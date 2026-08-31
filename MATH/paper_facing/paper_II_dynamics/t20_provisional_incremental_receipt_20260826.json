@@ -1,0 +1,49 @@
+{
+  "schema": "paper_ii_t20_provisional_incremental_promotion_v1",
+  "status": "author_override_provisional_rows_current",
+  "recorded_at": "2026-08-26T17:53:00-05:00",
+  "admission": "explicit_author_override_completed_t20_rows",
+  "evidence_label": "artifact_verified_provisional_not_accuracy_qualified",
+  "selection": "latest exact-evaluated t20 rung per method and drive-controller cell",
+  "frontier": {
+    "row_count": 14,
+    "complete_apm_avqds_pair_count": 3,
+    "im_row_count": 0,
+    "im_status": "t20_pending",
+    "componentwise_gate_status": "all displayed latest rows require threshold extension"
+  },
+  "ledger": {
+    "path": "output/paper_ii_staged/ledger_current.json",
+    "record_count": 123,
+    "sha256": "81d7bd1aeb55c45d000bdc3eec8e15eaa3d98b2f3cb85a286822b25ee092edaf"
+  },
+  "promotion_preview": {
+    "path": "output/pdf/paper_ii_staged_accuracy_campaign/promotion_preview.json",
+    "pair_count": 3,
+    "sha256": "9093fbd190e739b0e1fa298c0886319727c848a2e7b51f93ad518c71d5977e03"
+  },
+  "table": {
+    "path": "MATH/paper_details/generated/paper_ii_t20_provisional_frontier_table.tex",
+    "sha256": "d0a2b9bc541149b2f9e8122b8d24f14664f1929dcae238e2f686d6ab780b5603"
+  },
+  "figure": {
+    "path": "MATH/paper_details/figures/paper_ii_t20_provisional_weakslow_delta_theta.pdf",
+    "sha256": "62449bbcb1a50d86458f2901d8d7331fc7b9fffd4e0251d8a1ac29152c90768e"
+  },
+  "manuscript": {
+    "source": {
+      "path": "MATH/paper_details/time_dynamics_paper_II.tex",
+      "sha256": "4615f07b87c39fe44b2554cd9c1d4866abc64a7f06fef714f65f95b87fa9f655"
+    },
+    "pdf": {
+      "path": "MATH/paper_details/time_dynamics_paper_II.pdf",
+      "page_count": 12,
+      "sha256": "e33211ccb6db33fe4511af863405ff14f0643126a1845c4cf447cf37ab096c86"
+    },
+    "render_check": {
+      "pages": [7, 8, 9],
+      "status": "PASS"
+    }
+  },
+  "accuracy_claim": "No displayed t20 row is relabeled accuracy-qualified by this provisional refresh."
+}
