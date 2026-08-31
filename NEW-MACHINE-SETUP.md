@@ -63,13 +63,34 @@ tests; respect the 10 GB RAM invariant (`AGENTS.md` Hard invariants,
 `pipelines/shell/ram_guard.py`). Running it once on this machine and
 recording the result in `RECOVERY-AUDIT.md` is the first useful task.
 
-## 5. Optional: GitNexus agent tooling
+## 5. GitNexus agent tooling (do this — the repo's contracts assume it)
 
-Only needed for the GitNexus skills/MCP referenced in `CLAUDE.md`:
-install Node.js, then from the repo root `npx gitnexus analyze`, and register
-the GitNexus MCP server in Claude Code. Until then treat CLAUDE.md's GitNexus
-MUST-rules as inoperative (the index and registry were lost with the old
-machine).
+`CLAUDE.md` carries MUST-rules (impact analysis before edits, detect_changes
+before commits) that assume a live GitNexus index, and the worklogs show it
+was load-bearing in real campaigns (e.g. the Route C gated-dead verdict). The
+gitignored `.gitnexus/` index and `~/.gitnexus/` registry were lost with the
+old machine — rebuild:
+
+1. Install Node.js 20+ (nodejs.org installer, or Homebrew if present).
+2. From the repo root:
+
+```bash
+cd ~/Holstein_test && npx gitnexus analyze
+```
+
+   On npm 11.x, if `npx` crashes during install (`node.target is null`):
+   `npm i -g gitnexus` then `gitnexus analyze`
+   (workaround per `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`, GitNexus #1939).
+3. Register the GitNexus MCP server in Claude Code (the gitnexus CLI's own
+   setup output / `npx gitnexus --help` names the command), then restart
+   Claude Code so the server loads. `.claude/skills/gitnexus/` documents the
+   tools once live.
+4. Sanity: `node .gitnexus/run.cjs status` — expect the repo registered with
+   ~97k symbols (CLAUDE.md's counts are from the old index; new counts will
+   differ slightly after the recovery grafts).
+
+Until this is done, treat CLAUDE.md's GitNexus MUST-rules as inoperative
+(AGENTS.md's fail-soft rule for absent adapters applies).
 
 ## 6. Smoke-run entrypoints (optional)
 
