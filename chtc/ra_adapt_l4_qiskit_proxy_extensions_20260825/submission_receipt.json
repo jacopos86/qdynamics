@@ -1,0 +1,26 @@
+{
+  "schema": "paper_i_l4_qiskit_proxy_submission_receipt_v1",
+  "campaign_id": "paper_i_l4_qiskit_proxy_extensions_20260825",
+  "submitted_at": "2026-08-25T21:24:00Z",
+  "access_point": "ap2001.chtc.wisc.edu",
+  "cluster_id": 9697511,
+  "submission_status": "superseded_after_pre-science_runtime_packaging_failure",
+  "failure": "source archive omitted the imported docs package",
+  "scheduler_disposition": "exact cluster removed after one failed startup and before any accepted controller round",
+  "superseded_by_cluster_id": 9697516,
+  "job_batch_name": "paper-i-l4-qiskit-proxy-extensions-20260825",
+  "submitted_jobs": 9,
+  "initial_scheduler_state": {
+    "idle": 9,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "plan_sha256": "da82e7e27c6ce0f68b087b8b7897c05a20c1130057db649820485f37e9962552",
+  "authorization_sha256": "808469bd5ade2709460317c92b85df9ba9ca5571053bc0fe6c3451d5a9f0cac8",
+  "source_archive_sha256": "87d96f96f32a73bf8ef412aee27e4473badf858cbabb10cc7e8e33ed0689326e",
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_root": "/home/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825",
+  "remote_result_root": "/staging/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825/transfer",
+  "paper_adoption_authorized": false
+}

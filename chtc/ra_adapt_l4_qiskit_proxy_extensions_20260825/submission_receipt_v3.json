@@ -1,0 +1,25 @@
+{
+  "schema": "paper_i_l4_qiskit_proxy_submission_receipt_v1",
+  "campaign_id": "paper_i_l4_qiskit_proxy_extensions_20260825",
+  "submitted_at": "2026-08-25T21:31:10Z",
+  "verified_at": "2026-08-25T21:32:05Z",
+  "access_point": "ap2001.chtc.wisc.edu",
+  "cluster_id": 9697719,
+  "job_batch_name": "paper-i-l4-qiskit-proxy-extensions-20260825-v3",
+  "submitted_jobs": 9,
+  "scheduler_state": {
+    "idle": 9,
+    "running": 0,
+    "held": 0,
+    "completed": 0,
+    "matchmaking": "queued for available CHTC capacity"
+  },
+  "plan_sha256": "10463767e6f5e626456beb620621df65475af359d2207a05030e826e9ea18edc",
+  "authorization_sha256": "c924c487130147e5ea5672b400bdf8b3e869a5ce70a35a4814e46475c2bf8d80",
+  "source_archive_sha256": "c530128fe233f2a7ec7fdd5c3d98e04e7e51402721747ad2bdb4c2feb8b4eb94",
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_root": "/home/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825_v3",
+  "remote_result_root": "/staging/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825_v3/transfer",
+  "supersedes_cluster_id": 9697516,
+  "paper_adoption_authorized": false
+}

@@ -1,0 +1,350 @@
+{
+  "accepted_prefix_semantics": "prefix_closes_immediately_after_accepted_state_and_excludes_later_selector_scans_and_terminal_only_diagnostics_v1",
+  "accuracy_target": 1e-06,
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v6",
+  "cost_tuple_fields": [
+    "N2q",
+    "D2q",
+    "Dc",
+    "N1q",
+    "W1q",
+    "S_alg"
+  ],
+  "error_definition": "same_cutoff_absolute_energy_error_over_t",
+  "figures": {
+    "ra_appendix_l3_batch_convergence_v6": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_baseline_h10",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 88,
+            "Dc": 363,
+            "N1q": 374,
+            "N2q": 104,
+            "S_alg": 4124,
+            "W1q": 202
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 8,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            2.3914935642714075,
+            0.9459621389058586,
+            0.4601304352799096,
+            0.06875094268022242,
+            0.06556915511646766,
+            0.015279642117720371,
+            0.0025079024682410633,
+            9.295835212697057e-10,
+            7.064615559215781e-11,
+            6.063594071292755e-12
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "f02708648967c9e4cdb8c36f9b7a27af4f1f9b31b24153fc870480ac715b08e8",
+            "artifact_receipt.json": "9104cbdc015ed00317542eb2a813bf94841574c9f934cd7bc9f507663a914dff",
+            "cell_summary.json": "f6b866a5d0171aed3cab073dcd89d4cade858b9620e74a2706889f652ef7beea",
+            "observations/current.json": "6536b010ed6d57d9f1fea2424dd1d8dad8789ef13031556c2dc6a9260f8f4922"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_batching_h10",
+          "color": "#E45756",
+          "label": "RA + batch",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 188,
+            "Dc": 776,
+            "N1q": 690,
+            "N2q": 200,
+            "S_alg": 2683,
+            "W1q": 382
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 3,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            0.9293030566533607,
+            0.03220959086191222,
+            3.434248441180898e-10,
+            2.5015545190854027e-12,
+            1.376676550535194e-13,
+            1.509903313490213e-14,
+            1.1546319456101628e-14,
+            1.021405182655144e-14,
+            8.43769498715119e-15,
+            8.43769498715119e-15
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "6da90901db15205fa0588ce43f2becb9e9bc23593393bd4bf78ea50b0991f0e6",
+            "artifact_receipt.json": "544b269e1e05678fb3105e841465fb9019c4fa652de8cf478002f1b480900703",
+            "cell_summary.json": "68e9081632ce34c3f80ab55b823b8efbe8dc4c32ae741fe297197efafa9fdf15",
+            "observations/current.json": "dacb528a1efa3ebb3ba98e84c3fe0efed046aceaa516ae0a2757435036b68c77"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "ff22eab90b8f8698664de78be07a14269b29bb3a793c527f8f265f4622417057",
+        "png": "d485f99446cfc43173315fe7abbdc4fb4c003b6d9f442f7d12187926660a0a21"
+      }
+    },
+    "ra_appendix_l3_beam_convergence_v6": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_baseline_h10",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 88,
+            "Dc": 363,
+            "N1q": 374,
+            "N2q": 104,
+            "S_alg": 4124,
+            "W1q": 202
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 8,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            2.3914935642714075,
+            0.9459621389058586,
+            0.4601304352799096,
+            0.06875094268022242,
+            0.06556915511646766,
+            0.015279642117720371,
+            0.0025079024682410633,
+            9.295835212697057e-10,
+            7.064615559215781e-11,
+            6.063594071292755e-12
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "f02708648967c9e4cdb8c36f9b7a27af4f1f9b31b24153fc870480ac715b08e8",
+            "artifact_receipt.json": "9104cbdc015ed00317542eb2a813bf94841574c9f934cd7bc9f507663a914dff",
+            "cell_summary.json": "f6b866a5d0171aed3cab073dcd89d4cade858b9620e74a2706889f652ef7beea",
+            "observations/current.json": "6536b010ed6d57d9f1fea2424dd1d8dad8789ef13031556c2dc6a9260f8f4922"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_beam_h10",
+          "color": "#E45756",
+          "label": "RA + beam",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 88,
+            "Dc": 363,
+            "N1q": 374,
+            "N2q": 104,
+            "S_alg": 16797,
+            "W1q": 202
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 8,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            2.3914935642714075,
+            0.9459621389058586,
+            0.4601304351228164,
+            0.06875094267497017,
+            0.06556915511644856,
+            0.0152796421177408,
+            0.0025079024680478845,
+            9.296243774770119e-10,
+            7.046185857007004e-11,
+            5.810907310888069e-12
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "c0ad3c0bec8d68e96188143a5c2852b3554bcde4019d1f34a9197b0d40ffd463",
+            "artifact_receipt.json": "8ca1d66f1de7be3ab343f1ed5ef5f92dbf2038c3dd5ad6e2ac5d2bf58d2bdc43",
+            "cell_summary.json": "f30bc13283bd251098b2e64a7f5d38686448e9becba9aa904280820247cca48b",
+            "observations/current.json": "6c2831cec333f329978456f01fcff65c6c95250ed1aba97b6229757625102e0e"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "daf35f0411ca7203eae1b71c5ad4407a282d3e304a5f0e7c228d0922da7c35fb",
+        "png": "278c7c87907fcaf90072588896f8eee5322d36b060508b38a792d572d035cf46"
+      }
+    },
+    "ra_appendix_l3_prune_convergence_v6": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_baseline_h10",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 88,
+            "Dc": 363,
+            "N1q": 374,
+            "N2q": 104,
+            "S_alg": 4124,
+            "W1q": 202
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 8,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            2.3914935642714075,
+            0.9459621389058586,
+            0.4601304352799096,
+            0.06875094268022242,
+            0.06556915511646766,
+            0.015279642117720371,
+            0.0025079024682410633,
+            9.295835212697057e-10,
+            7.064615559215781e-11,
+            6.063594071292755e-12
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "f02708648967c9e4cdb8c36f9b7a27af4f1f9b31b24153fc870480ac715b08e8",
+            "artifact_receipt.json": "9104cbdc015ed00317542eb2a813bf94841574c9f934cd7bc9f507663a914dff",
+            "cell_summary.json": "f6b866a5d0171aed3cab073dcd89d4cade858b9620e74a2706889f652ef7beea",
+            "observations/current.json": "6536b010ed6d57d9f1fea2424dd1d8dad8789ef13031556c2dc6a9260f8f4922"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l3_metric_ablation_h10",
+          "color": "#E45756",
+          "label": "RA + prune",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 88,
+            "Dc": 363,
+            "N1q": 374,
+            "N2q": 104,
+            "S_alg": 6095,
+            "W1q": 202
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 8,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            3.3914935642714075,
+            2.3914935642714075,
+            0.9459621389058586,
+            0.4601304352799096,
+            0.06875094268022242,
+            0.06556915511646766,
+            0.015279642117720371,
+            0.0025079024682410633,
+            9.295835212697057e-10,
+            7.064615559215781e-11,
+            6.063594071292755e-12
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "462bfe17eacbaf216691c10d8adcbd18e41a4b926d954d223b126ffb30969b82",
+            "artifact_receipt.json": "76cc82ffa599ed763ff1525623ff3b6b4cbaf425dbf226aeb1754c775f7886f2",
+            "cell_summary.json": "5b91d1ca32eb698c7ac26b0fcd7d340903d5388e4554fec9cbb42386d8352f89",
+            "observations/current.json": "9a2eed02548170fd45df5b9c60fe07f081f491ba548edac1f9ea7122c93e2fb8"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "d0c6b6682ab0fb273cc3c076c4b8c41f2760d82bae6157961ba12730fde318a8",
+        "png": "78dd98c71618b0337d99d6c1f86c4ff1ae86e07efa67f6beb6da4c2a968ac916"
+      }
+    }
+  },
+  "generator_file_sha256": "54233a3b8cdf349c10f87268b50affdec37eed8e06e976227105b12918edd261",
+  "generator_relative_path": "chtc/ra_adapt_appendix_demos_20260820_v6/plot_l3_v6_appendix_convergence.py",
+  "generator_representation": "macro_generator_v1",
+  "lattice_sites": 3,
+  "n1q_definition": "post_transpile_one_qubit_quantum_ops_excluding_barrier_delay_id_measure_reset",
+  "plot_policy": {
+    "logarithmic_error_axis": true,
+    "one_column_one_figure_per_file": true,
+    "one_marker_per_trajectory": true,
+    "solid_lines": true,
+    "target_guide_line": false
+  },
+  "schema": "ra_adapt_appendix_l3_convergence_figures_v6_provenance_v1",
+  "science_source_git_commit": "73d652062e3ba589e4d34c7b0fcf35e563012711",
+  "sha256": "81d499f1ae2b4e333c1d99b06e8105d76c4cd5cf01b90a2fe1ae454f7745340d",
+  "w1q_definition": "termwise_pauli_pretranspile_work_sum_2_nx_plus_4_ny_plus_1_v1"
+}

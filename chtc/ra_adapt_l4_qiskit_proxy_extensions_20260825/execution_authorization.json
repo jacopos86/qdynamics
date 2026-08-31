@@ -1,0 +1,23 @@
+{
+  "schema": "paper_i_l4_qiskit_proxy_authorization_v1",
+  "campaign_id": "paper_i_l4_qiskit_proxy_extensions_20260825",
+  "created_at": "2026-08-25T21:30:12.847073Z",
+  "authority_basis": "explicit_user_directive_20260825_submit_l4_avqe_ra_append_batch_beam_prune_qiskit_and_proxy_k50_in_parallel",
+  "execution_authorized": true,
+  "submission_authorized": true,
+  "paper_adoption_authorized": false,
+  "plan_sha256": "10463767e6f5e626456beb620621df65475af359d2207a05030e826e9ea18edc",
+  "source_archive_sha256": "c530128fe233f2a7ec7fdd5c3d98e04e7e51402721747ad2bdb4c2feb8b4eb94",
+  "execution_ids": [
+    "l4__avqe__k50",
+    "l4__ra_qiskit__baseline__k50",
+    "l4__ra_qiskit__batching__k50",
+    "l4__ra_qiskit__beam_escalated__k50",
+    "l4__ra_qiskit__prune_gated_protect0__k50",
+    "l4__ra_proxy__baseline__k50",
+    "l4__ra_proxy__batching__k50",
+    "l4__ra_proxy__beam_escalated__k50",
+    "l4__ra_proxy__prune_gated_protect0__k50"
+  ],
+  "sha256": "c924c487130147e5ea5672b400bdf8b3e869a5ce70a35a4814e46475c2bf8d80"
+}

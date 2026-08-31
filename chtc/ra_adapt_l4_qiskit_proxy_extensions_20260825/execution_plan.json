@@ -1,0 +1,163 @@
+{
+  "schema": "paper_i_l4_qiskit_proxy_campaign_plan_v1",
+  "campaign_id": "paper_i_l4_qiskit_proxy_extensions_20260825",
+  "created_at": "2026-08-25T21:30:12.847073Z",
+  "run_class": "candidate",
+  "paper_adoption_authorized": false,
+  "execution_authorized": false,
+  "target": "pure_hubbard_l4_route_comparison",
+  "physics": {
+    "model": "Hubbard",
+    "num_sites": 4,
+    "boundary": "open",
+    "ordering": "blocked",
+    "t": 1.0,
+    "u": 1.25,
+    "half_filled_sector": [
+      2,
+      2
+    ],
+    "qubits": 8,
+    "exact_energy": -3.3827681604170525
+  },
+  "route": {
+    "candidate_representation": "intact_macro",
+    "phase0_gradient_screen": true,
+    "adaptive_phase_shortlists": true,
+    "adaptive_frontier_ratio": 0.9,
+    "phase3_candidate_gain_policy": "joint_total_gain_v1",
+    "active_gradient_policy": "stationary",
+    "accepted_refit_parameterization": "fixed_fs_whitened_affine_coordinate_chart_v1",
+    "powell": {
+      "xtol": 1e-05,
+      "ftol": 1e-12,
+      "maxiter": 200
+    },
+    "horizon": 50,
+    "qiskit_reporting": {
+      "backend": "FakeMarrakesh",
+      "optimization_level": 1,
+      "seed_transpiler": 7
+    },
+    "prune_variant": {
+      "arm": "metric_ablation_gated",
+      "small_theta_abs": 0.001,
+      "protect_steps": 0,
+      "max_regression": 1e-08,
+      "max_predicted_loss_per_cost": 1e-08,
+      "delete_and_complete_refit": true
+    },
+    "beam_variant": "beam_escalated_branch_compiled_cost_v1",
+    "batch_variant": "combinatorial_size3_window6_v1"
+  },
+  "matrix": {
+    "shared_avqe_cell": true,
+    "ra_selector_costs": [
+      "qiskit",
+      "proxy"
+    ],
+    "ra_arms": [
+      "baseline",
+      "batching",
+      "beam_escalated",
+      "metric_ablation_gated_protect0"
+    ],
+    "cells": [
+      {
+        "execution_id": "l4__avqe__k50",
+        "arm": "avqe",
+        "selector_cost": null,
+        "request_cpus": 4,
+        "memory_mb": 16384,
+        "disk_mb": 40960,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_qiskit__baseline__k50",
+        "arm": "baseline",
+        "selector_cost": "qiskit",
+        "request_cpus": 4,
+        "memory_mb": 24576,
+        "disk_mb": 61440,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_qiskit__batching__k50",
+        "arm": "batching",
+        "selector_cost": "qiskit",
+        "request_cpus": 4,
+        "memory_mb": 32768,
+        "disk_mb": 102400,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_qiskit__beam_escalated__k50",
+        "arm": "beam_escalated",
+        "selector_cost": "qiskit",
+        "request_cpus": 4,
+        "memory_mb": 49152,
+        "disk_mb": 153600,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_qiskit__prune_gated_protect0__k50",
+        "arm": "metric_ablation_gated",
+        "selector_cost": "qiskit",
+        "request_cpus": 4,
+        "memory_mb": 32768,
+        "disk_mb": 102400,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_proxy__baseline__k50",
+        "arm": "baseline",
+        "selector_cost": "proxy",
+        "request_cpus": 4,
+        "memory_mb": 24576,
+        "disk_mb": 61440,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_proxy__batching__k50",
+        "arm": "batching",
+        "selector_cost": "proxy",
+        "request_cpus": 4,
+        "memory_mb": 32768,
+        "disk_mb": 102400,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_proxy__beam_escalated__k50",
+        "arm": "beam_escalated",
+        "selector_cost": "proxy",
+        "request_cpus": 4,
+        "memory_mb": 49152,
+        "disk_mb": 153600,
+        "max_runtime_seconds": 259200
+      },
+      {
+        "execution_id": "l4__ra_proxy__prune_gated_protect0__k50",
+        "arm": "metric_ablation_gated",
+        "selector_cost": "proxy",
+        "request_cpus": 4,
+        "memory_mb": 32768,
+        "disk_mb": 102400,
+        "max_runtime_seconds": 259200
+      }
+    ]
+  },
+  "source_archive": {
+    "path": "source/source_locked.tar.gz",
+    "sha256": "c530128fe233f2a7ec7fdd5c3d98e04e7e51402721747ad2bdb4c2feb8b4eb94",
+    "inventory_sha256": "d018ebfdd109e2435743e7eca6eb1d69816f6dc0fb9dccab1da5eec6d7dc41d8"
+  },
+  "expected_artifacts": [
+    "run/result.json",
+    "run/summary.json",
+    "run/current.json",
+    "run/estimator_ledger.json",
+    "execution_receipt.json"
+  ],
+  "execution_target": "CHTC",
+  "sha256": "10463767e6f5e626456beb620621df65475af359d2207a05030e826e9ea18edc"
+}

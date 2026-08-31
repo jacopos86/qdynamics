@@ -1,0 +1,9 @@
+l4__avqe__k50	avqe	none	4	16384	40960	259200
+l4__ra_qiskit__baseline__k50	baseline	qiskit	4	24576	61440	259200
+l4__ra_qiskit__batching__k50	batching	qiskit	4	32768	102400	259200
+l4__ra_qiskit__beam_escalated__k50	beam_escalated	qiskit	4	49152	153600	259200
+l4__ra_qiskit__prune_gated_protect0__k50	metric_ablation_gated	qiskit	4	32768	102400	259200
+l4__ra_proxy__baseline__k50	baseline	proxy	4	24576	61440	259200
+l4__ra_proxy__batching__k50	batching	proxy	4	32768	102400	259200
+l4__ra_proxy__beam_escalated__k50	beam_escalated	proxy	4	49152	153600	259200
+l4__ra_proxy__prune_gated_protect0__k50	metric_ablation_gated	proxy	4	32768	102400	259200

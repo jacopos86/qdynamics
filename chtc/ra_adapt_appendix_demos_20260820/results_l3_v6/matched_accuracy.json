@@ -1,0 +1,1249 @@
+{
+  "accuracy_thresholds": [
+    0.01,
+    0.0001,
+    1e-06
+  ],
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v6",
+  "comparisons": [
+    {
+      "baseline_accepted_operator_count": 10,
+      "baseline_cell_id": "l3_baseline_h10",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": false,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "metric_ablation",
+      "feature_accepted_operator_count": 10,
+      "feature_cell_id": "l3_metric_ablation_h10",
+      "feature_events": {
+        "accepted_deletion_count": 0,
+        "pruning_nomination_count": 8,
+        "pruning_trials": [
+          {
+            "controller_round": 3,
+            "deleted_labels": [],
+            "measured_energy_after": -0.6974007588991986,
+            "measured_energy_before": -1.6813631289914979,
+            "nomination_label": "parent:d069c0f4355f6f48",
+            "predicted_energy_change": 1.3751674361209183,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 4,
+            "deleted_labels": [],
+            "measured_energy_after": -0.6974007588992466,
+            "measured_energy_before": -2.072742621591185,
+            "nomination_label": "parent:d069c0f4355f6f48",
+            "predicted_energy_change": 2.065688117565607,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 5,
+            "deleted_labels": [],
+            "measured_energy_after": -1.7814036530892887,
+            "measured_energy_before": -2.07592440915494,
+            "nomination_label": "parent:dbe4b1876732f38b",
+            "predicted_energy_change": 0.4557526515518082,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 6,
+            "deleted_labels": [],
+            "measured_energy_after": -2.1071994595745664,
+            "measured_energy_before": -2.126213922153687,
+            "nomination_label": "parent:d83088c176b0194e",
+            "predicted_energy_change": 0.2995326589521167,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 7,
+            "deleted_labels": [],
+            "measured_energy_after": -2.07274262152616,
+            "measured_energy_before": -2.1389856618031664,
+            "nomination_label": "parent:f2d91ee67872a35a",
+            "predicted_energy_change": 0.24646756669664446,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 8,
+            "deleted_labels": [],
+            "measured_energy_after": -2.072742621390402,
+            "measured_energy_before": -2.141493563341824,
+            "nomination_label": "parent:f2d91ee67872a35a",
+            "predicted_energy_change": 0.27780793626693545,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 9,
+            "deleted_labels": [],
+            "measured_energy_after": -2.072742621390495,
+            "measured_energy_before": -2.1414935642007613,
+            "nomination_label": "parent:f2d91ee67872a35a",
+            "predicted_energy_change": 0.28107887921638947,
+            "status": "rejected"
+          },
+          {
+            "controller_round": 10,
+            "deleted_labels": [],
+            "measured_energy_after": -2.1389856222221995,
+            "measured_energy_before": -2.141493564265344,
+            "nomination_label": "parent:d069c0f4355f6f48",
+            "predicted_energy_change": 0.04058141996634142,
+            "status": "rejected"
+          }
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 0,
+        "1e-04": 0,
+        "1e-06": 0
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.1389856618031664,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 84,
+              "Dc": 345,
+              "N2q": 100
+            },
+            "energy_decrease": 3.3889856618031664,
+            "same_cutoff_absolute_error": 0.0025079024682410633,
+            "weighted_compile_cost": 141.45,
+            "weighted_cost_per_energy_decrease": 41.738152390039666
+          },
+          "feature": {
+            "accepted_energy": -2.1389856618031664,
+            "cell_id": "l3_metric_ablation_h10",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 84,
+              "Dc": 345,
+              "N2q": 100
+            },
+            "energy_decrease": 3.3889856618031664,
+            "same_cutoff_absolute_error": 0.0025079024682410633,
+            "weighted_compile_cost": 141.45,
+            "weighted_cost_per_energy_decrease": 41.738152390039666
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_metric_ablation_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_metric_ablation_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    },
+    {
+      "baseline_accepted_operator_count": 10,
+      "baseline_cell_id": "l3_baseline_h10",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": true,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "batching",
+      "feature_accepted_operator_count": 15,
+      "feature_cell_id": "l3_batching_h10",
+      "feature_events": {
+        "accepted_record_sequence": [
+          [
+            1,
+            2,
+            6
+          ],
+          [
+            3,
+            0,
+            5
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            8
+          ],
+          [
+            10
+          ],
+          [
+            11
+          ],
+          [
+            13
+          ],
+          [
+            14
+          ],
+          [
+            9
+          ],
+          [
+            15
+          ]
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 3,
+        "1e-04": 3,
+        "1e-06": 3
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 4,
+        "1e-04": 5,
+        "1e-06": 5
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 4,
+          "baseline": {
+            "accepted_energy": -2.1389856618031664,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 84,
+              "Dc": 345,
+              "N2q": 100
+            },
+            "energy_decrease": 3.3889856618031664,
+            "same_cutoff_absolute_error": 0.0025079024682410633,
+            "weighted_compile_cost": 141.45,
+            "weighted_cost_per_energy_decrease": 41.738152390039666
+          },
+          "feature": {
+            "accepted_energy": -2.1414935639279826,
+            "cell_id": "l3_batching_h10",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 188,
+              "Dc": 776,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914935639279826,
+            "same_cutoff_absolute_error": 3.434248441180898e-10,
+            "weighted_compile_cost": 310.4,
+            "weighted_cost_per_energy_decrease": 91.52309864344807
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 5,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.1414935639279826,
+            "cell_id": "l3_batching_h10",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 188,
+              "Dc": 776,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914935639279826,
+            "same_cutoff_absolute_error": 3.434248441180898e-10,
+            "weighted_compile_cost": 310.4,
+            "weighted_cost_per_energy_decrease": 91.52309864344807
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 5,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.1414935639279826,
+            "cell_id": "l3_batching_h10",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 188,
+              "Dc": 776,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914935639279826,
+            "same_cutoff_absolute_error": 3.434248441180898e-10,
+            "weighted_compile_cost": 310.4,
+            "weighted_cost_per_energy_decrease": 91.52309864344807
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    },
+    {
+      "baseline_accepted_operator_count": 10,
+      "baseline_cell_id": "l3_baseline_h10",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": false,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "beam",
+      "feature_accepted_operator_count": 10,
+      "feature_cell_id": "l3_beam_h10",
+      "feature_events": {
+        "branches_explored": 38,
+        "explored_branch_sequences": [
+          [
+            [
+              1
+            ]
+          ],
+          [
+            [
+              2
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              4
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              4
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              10
+            ]
+          ],
+          [
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              3
+            ],
+            [
+              0
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              12
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              10
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              12
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              12
+            ],
+            [
+              18
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              12
+            ],
+            [
+              9
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              10
+            ],
+            [
+              8
+            ]
+          ],
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              0
+            ],
+            [
+              3
+            ],
+            [
+              7
+            ],
+            [
+              0
+            ],
+            [
+              2
+            ],
+            [
+              1
+            ],
+            [
+              10
+            ],
+            [
+              17
+            ]
+          ]
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 0,
+        "1e-04": 0,
+        "1e-06": 0
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.1389856618031664,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 84,
+              "Dc": 345,
+              "N2q": 100
+            },
+            "energy_decrease": 3.3889856618031664,
+            "same_cutoff_absolute_error": 0.0025079024682410633,
+            "weighted_compile_cost": 141.45,
+            "weighted_cost_per_energy_decrease": 41.738152390039666
+          },
+          "feature": {
+            "accepted_energy": -2.1389856618033596,
+            "cell_id": "l3_beam_h10",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 84,
+              "Dc": 345,
+              "N2q": 100
+            },
+            "energy_decrease": 3.3889856618033596,
+            "same_cutoff_absolute_error": 0.0025079024680478845,
+            "weighted_compile_cost": 141.45,
+            "weighted_cost_per_energy_decrease": 41.738152390037285
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.141493563341783,
+            "cell_id": "l3_beam_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341783,
+            "same_cutoff_absolute_error": 9.296243774770119e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.741790225845044
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493563341824,
+            "cell_id": "l3_baseline_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341824,
+            "same_cutoff_absolute_error": 9.295835212697057e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.74179022584452
+          },
+          "feature": {
+            "accepted_energy": -2.141493563341783,
+            "cell_id": "l3_beam_h10",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 88,
+              "Dc": 363,
+              "N2q": 104
+            },
+            "energy_decrease": 3.391493563341783,
+            "same_cutoff_absolute_error": 9.296243774770119e-10,
+            "weighted_compile_cost": 148.35,
+            "weighted_cost_per_energy_decrease": 43.741790225845044
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    }
+  ],
+  "compile_cost_weights": {
+    "delta_D2q": 0.3,
+    "delta_Dc": 0.25,
+    "delta_N1q": 0.0,
+    "delta_N2q": 0.3,
+    "delta_size": 0.0
+  },
+  "schema": "ra_adapt_appendix_l3_matched_accuracy_v1",
+  "sha256": "40167e16e5166653ad850abedf4ca4d40b4b7a3a00270d9da29e8b60d0a6a4c4"
+}

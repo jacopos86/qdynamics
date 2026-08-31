@@ -1,0 +1,598 @@
+{
+  "accepted_prefix_semantics": "prefix_closes_immediately_after_accepted_state_and_excludes_later_selector_scans_and_terminal_only_diagnostics_v1",
+  "accuracy_target": 1e-06,
+  "campaign_id": "ra_adapt_appendix_demos_20260820_v5",
+  "cost_tuple_fields": [
+    "N2q",
+    "D2q",
+    "Dc",
+    "N1q",
+    "W1q",
+    "S_alg"
+  ],
+  "error_definition": "same_cutoff_absolute_energy_error_over_t",
+  "figures": {
+    "ra_appendix_batch_convergence_v5": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l2_baseline_h5",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 7,
+            "Dc": 35,
+            "N1q": 38,
+            "N2q": 8,
+            "S_alg": 700,
+            "W1q": 25
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 3,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            0.9161341852729503,
+            0.09538182678002594,
+            4.75175454539567e-13,
+            5.284661597215745e-14,
+            2.220446049250313e-16
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "83cf808cbd0b50eff53df8f512c4e849449e780df39f1c1266c618f12c0c25e5",
+            "artifact_receipt.json": "08906c5ee49156560da5d21663be8682794140cf9a2f94ce6ef1f0e422312bc9",
+            "cell_summary.json": "e4b30b452384da6b2d30d2550d21449742d6ee26c2de1f7c557c51e3699ae71f",
+            "observations/current.json": "2be826c910a129e37ce69e1c49e1f7bfc9572205f9b99e5970a1d2895818b0e1"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l2_batching_h5",
+          "color": "#E45756",
+          "label": "RA + batch",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 7,
+            "Dc": 35,
+            "N1q": 38,
+            "N2q": 8,
+            "S_alg": 382,
+            "W1q": 25
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 1,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            4.440892098500626e-15,
+            6.661338147750939e-16,
+            8.881784197001252e-16,
+            8.881784197001252e-16
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "608abdf6467e173930c9ff1667be41a9745475fca26af2820e97f692e1ecb714",
+            "artifact_receipt.json": "267f2db93b44b55ab7cfda6edf030a2a5383d88b1f359801a556a8c23bf4ffa2",
+            "cell_summary.json": "436b3068a2a021f8fdf7a8b8df6bdc981b6f3d1025c883bccc57429e346843df",
+            "observations/current.json": "afff87582c89d6e8c53a576035f89d142b0a55c1aa02730ac82800e6d9af1917"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "7594e53ef24fe20f242b90780fe56bebbec550965f2737d64a2642f37a5da6d9",
+        "png": "41fdd78b2867c96af087860a507173bf248aeaceed0a4d37d94b4b8adbe08a6a"
+      }
+    },
+    "ra_appendix_beam_convergence_v5": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l2_baseline_h5",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 7,
+            "Dc": 35,
+            "N1q": 38,
+            "N2q": 8,
+            "S_alg": 700,
+            "W1q": 25
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 3,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            0.9161341852729503,
+            0.09538182678002594,
+            4.75175454539567e-13,
+            5.284661597215745e-14,
+            2.220446049250313e-16
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "83cf808cbd0b50eff53df8f512c4e849449e780df39f1c1266c618f12c0c25e5",
+            "artifact_receipt.json": "08906c5ee49156560da5d21663be8682794140cf9a2f94ce6ef1f0e422312bc9",
+            "cell_summary.json": "e4b30b452384da6b2d30d2550d21449742d6ee26c2de1f7c557c51e3699ae71f",
+            "observations/current.json": "2be826c910a129e37ce69e1c49e1f7bfc9572205f9b99e5970a1d2895818b0e1"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l2_beam_h5",
+          "color": "#E45756",
+          "label": "RA + beam",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 8,
+            "Dc": 37,
+            "N1q": 33,
+            "N2q": 8,
+            "S_alg": 1447,
+            "W1q": 18
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 2,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            0.9161341852729503,
+            4.440892098500626e-16,
+            8.881784197001252e-16,
+            8.881784197001252e-16,
+            1.3322676295501878e-15
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "53be3db003246dfca831c43164040b958f6c9b1b32596d5bbfa54537e51285c9",
+            "artifact_receipt.json": "9db4965bbe658f8ad127f1bc57ab73e943d8cdac430b3def3b6d5f0a5bd86b37",
+            "cell_summary.json": "d5a3b6467a0275050596882a3c02f03ecb9c58d628b6b79964f75f9545f80b50",
+            "observations/current.json": "d010d9ca8ac7e52fb23a99d776e4d5d2b1c10b385118b54db29773cce7d7a1a8"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "df55309a43e19e97369dcc6b386df580e9a169eb26e7b25d6c0ac0ed2de41d6f",
+        "png": "b9e8884a1f478eac0b8f3917d56cf7e49442689688edf41cd9636e83880d13ed"
+      }
+    },
+    "ra_appendix_noise_u1p5_convergence_v5": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u1p5_low_h10",
+          "color": "#4C78A8",
+          "label": "Low",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 12,
+            "Dc": 56,
+            "N1q": 73,
+            "N2q": 18,
+            "S_alg": 5946,
+            "W1q": 52
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            2.8860009363293817,
+            0.8860010487228889,
+            0.13600110103527907,
+            0.13600158983852317,
+            1.0426148335795915e-06,
+            2.103085116278436e-06,
+            1.2199728973705248e-06,
+            1.2199728973705248e-06,
+            3.246221428110374e-06,
+            2.632002550573276e-06,
+            2.885015887077458e-06
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "00c47785b4dea904a36f89d6ca877e02aa6613f5742adab4ad633da66f1fb970",
+            "artifact_receipt.json": "f59871ec5b16578b4be149d3f64cc5f6779480e25fea7cbaf340889a2ff07be8",
+            "cell_summary.json": "15133fe44286d7a51653aa9c0b47866edb8a9f72616953e46bb1fc32af3a26f7",
+            "observations/current.json": "b0f03b171536bf5a3104ce53cb07c854429b4dffa0798a1af504b7e17ed098dc"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u1p5_high_h10",
+          "color": "#F58518",
+          "label": "High",
+          "marker": "D",
+          "marker_cost_tuple": {
+            "D2q": 14,
+            "Dc": 64,
+            "N1q": 63,
+            "N2q": 16,
+            "S_alg": 5601,
+            "W1q": 54
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            2.8860009363293817,
+            0.8860010535924782,
+            0.13643698256905834,
+            5.4085066805154014e-05,
+            0.00011803286250033906,
+            0.00011803286250033906,
+            0.0004115328321683265,
+            0.0005987850655160276,
+            0.00013636077332823682,
+            0.00011994936820758362,
+            0.0003581125837932575
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "fba0e38e3eb9ac9b3566d5de2de7f867f92f2e6255154ecd76ec7e29634afeb2",
+            "artifact_receipt.json": "7ae70e56a336324163e52031837e9bce9a31006e550f61fc2304ac65b58ed0e1",
+            "cell_summary.json": "934287e74c5e81deb90b161a67098f71256a25e8f429789173a1497a862f8a75",
+            "observations/current.json": "e8fda58618210ae2526504d01b053b647cbce234038032772cdaa9bcb96b51df"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u1p5_extreme_h10",
+          "color": "#E45756",
+          "label": "Extreme",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 11,
+            "Dc": 53,
+            "N1q": 64,
+            "N2q": 14,
+            "S_alg": 5347,
+            "W1q": 48
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            2.8860009363293817,
+            0.9007637678815235,
+            0.14833486570364096,
+            0.025900918897261427,
+            0.03446430096031716,
+            0.023089003981485945,
+            0.050559896836229745,
+            0.0256013221241711,
+            0.07598014166855549,
+            0.028186069057620333,
+            0.018468122644127005
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "299e97357397d2315b2079283358fa79d29faeda8694cc96c9bc37f6bc2f7cae",
+            "artifact_receipt.json": "290d6d06fbf09f38c9a1e4a6c9f2610f63739f5785272ad58d704ce71ca09f94",
+            "cell_summary.json": "663563a7d9d2a519d44dd520336dd6dd870957c1396f0a7447e5e12145a4468e",
+            "observations/current.json": "64a79983cb1d7205281ffb13c3e2015e507016affe74a3370ed925b50d2b6f2c"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "fde52967c0e12814f54e413d2ec2e2f0bab86ca66872a226ab645e325cb8053f",
+        "png": "f6df6fc63d4376dabbb0e662ff50d6d17046eb428cfb1166c49bf2f5acf80f86"
+      }
+    },
+    "ra_appendix_noise_u8_convergence_v5": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u8p0_low_h10",
+          "color": "#4C78A8",
+          "label": "Low",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 13,
+            "Dc": 63,
+            "N1q": 78,
+            "N2q": 18,
+            "S_alg": 5794,
+            "W1q": 58
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            8.47213595499958,
+            0.349030528594688,
+            0.22213598725267147,
+            8.322731914756076e-07,
+            2.936176382806188e-06,
+            1.7202606807931176e-06,
+            2.407825705486033e-06,
+            1.0574651394590351e-05,
+            8.784963762664688e-06,
+            7.840020346983056e-06,
+            7.614881149975439e-06
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "68f915cbee9de10061b2d5e074c2b0a8e2784b78a721b6347b64b9629f3097d3",
+            "artifact_receipt.json": "2c799631b3fbfdfd83200d47d780b03d947054ad78a8bf20dd36f21eb14833e0",
+            "cell_summary.json": "67053cc93a1a0d34f57d8573d104ba0b718db0ac335c9d8743f9c57ffcbe7bf8",
+            "observations/current.json": "0a0cc24cbf05b879e2e0d0888bda738bc5126b3cf081f4f28b6f4d4d28a5ac0f"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u8p0_high_h10",
+          "color": "#F58518",
+          "label": "High",
+          "marker": "D",
+          "marker_cost_tuple": {
+            "D2q": 18,
+            "Dc": 79,
+            "N1q": 87,
+            "N2q": 22,
+            "S_alg": 5977,
+            "W1q": 66
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            8.47213595499958,
+            0.3490324143811059,
+            0.2222597238865082,
+            0.00019097802141371245,
+            9.672861050691317e-05,
+            9.672861050691317e-05,
+            0.00030476404010620906,
+            0.0005866567960493563,
+            0.000216165105124011,
+            0.00046579375161914793,
+            0.0004899515805280585
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "da409219b63866b3cc3a620a8b3c6614db836e9cf9b03c702571a1c82654548b",
+            "artifact_receipt.json": "a607c2d08b23aa7f00f3d74f0f691b8231a8021bec423a0c1e319b23b0e31e3d",
+            "cell_summary.json": "e4b2f96f164176bf26c9e72df2ec42ff37f43d2e3325e98bc461b8769af1e591",
+            "observations/current.json": "d7362a7aab05bd28df44e9f12bc237368e199f858d1123dea2fb9ea66102b585"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "noise_u8p0_extreme_h10",
+          "color": "#E45756",
+          "label": "Extreme",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 13,
+            "Dc": 61,
+            "N1q": 77,
+            "N2q": 18,
+            "S_alg": 5583,
+            "W1q": 50
+          },
+          "marker_reason": "common terminal horizon",
+          "marker_round": 10,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "same_cutoff_absolute_errors": [
+            8.47213595499958,
+            0.3495713836125367,
+            0.22580485793889904,
+            0.09002435099832895,
+            0.10509685556835396,
+            0.10509685556835396,
+            0.08049308495013058,
+            0.04589667471033765,
+            0.04121405670716943,
+            0.05147588383298113,
+            0.05147588383298113
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "23087468d74dda7952162273238d5004406e2f27f1c2f35e1025adc6aafe8683",
+            "artifact_receipt.json": "b36c749d8fed1e21051678c8bd50d2ceb7fdcf23d74e753affc9658da932ef2e",
+            "cell_summary.json": "44d7e6c47f21b5a42e15ccfdd4eed29585e6cd1aa18f912bee95df36e98b883e",
+            "observations/current.json": "109724313f92278183d241619bbd6fa4c2e67a1c4a4f20c390433be8fbbe0f84"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "81b45d539de57ece4abe2985a86c87dc4a736f21d6138898ceb98d15fb32781a",
+        "png": "82ced4fdeba8b3d0bad814654193b0e25f85a3dce64b8e8be05ba51e18b768b9"
+      }
+    },
+    "ra_appendix_prune_convergence_v5": {
+      "curves": [
+        {
+          "accepted_deletion_rounds": [],
+          "cell_id": "l2_baseline_h5",
+          "color": "#4C78A8",
+          "label": "Minimal RA",
+          "marker": "o",
+          "marker_cost_tuple": {
+            "D2q": 7,
+            "Dc": 35,
+            "N1q": 38,
+            "N2q": 8,
+            "S_alg": 700,
+            "W1q": 25
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 3,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            0.9161341852729503,
+            0.09538182678002594,
+            4.75175454539567e-13,
+            5.284661597215745e-14,
+            2.220446049250313e-16
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "83cf808cbd0b50eff53df8f512c4e849449e780df39f1c1266c618f12c0c25e5",
+            "artifact_receipt.json": "08906c5ee49156560da5d21663be8682794140cf9a2f94ce6ef1f0e422312bc9",
+            "cell_summary.json": "e4b30b452384da6b2d30d2550d21449742d6ee26c2de1f7c557c51e3699ae71f",
+            "observations/current.json": "2be826c910a129e37ce69e1c49e1f7bfc9572205f9b99e5970a1d2895818b0e1"
+          }
+        },
+        {
+          "accepted_deletion_rounds": [
+            3
+          ],
+          "cell_id": "l2_metric_ablation_h5",
+          "color": "#E45756",
+          "label": "RA + prune",
+          "marker": "*",
+          "marker_cost_tuple": {
+            "D2q": 7,
+            "Dc": 35,
+            "N1q": 38,
+            "N2q": 8,
+            "S_alg": 748,
+            "W1q": 18
+          },
+          "marker_reason": "first same-cutoff error <= 1e-06",
+          "marker_round": 3,
+          "rounds": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "same_cutoff_absolute_errors": [
+            2.720381826780026,
+            0.9161341852729503,
+            0.09538182678002594,
+            4.440892098500626e-16,
+            8.881784197001252e-16,
+            8.881784197001252e-16
+          ],
+          "source_files": {
+            "accepted_run_evidence.json": "c46db8b0f8d5b7a83871a3b3540b49bb810714bd997b286386aa89c93e7af78c",
+            "artifact_receipt.json": "a99b7c493903ef3f7a3c0012991391438a712d0a758279d0f66c0daf24cfdd2f",
+            "cell_summary.json": "5eb2661cf02172984e986f4ea9f586a7b387cf85f8a3e21f913fd40e64d732fc",
+            "observations/current.json": "0fa1d7891713bca78d7897913ef7a51cc1ff39fa713d9eb1f93fce76a32febf0"
+          }
+        }
+      ],
+      "files": {
+        "pdf": "5f35357769e7f75280eabd556916c8c3946302a2f7fef37881a0578f0279a4ab",
+        "png": "e8ca196eb85307d297d53d8420954881a9abc227d40c2049d81646daf2da052d"
+      }
+    }
+  },
+  "generator_file_sha256": "df5bbb47bbcd255005806eeed43152eb3a05894ef2586a2363343fbd8a5d8323",
+  "generator_relative_path": "chtc/ra_adapt_appendix_demos_20260820/plot_v5_appendix_convergence.py",
+  "n1q_definition": "post_transpile_one_qubit_quantum_ops_excluding_barrier_delay_id_measure_reset",
+  "plot_policy": {
+    "logarithmic_error_axis": true,
+    "one_column_one_figure_per_file": true,
+    "one_marker_per_trajectory": true,
+    "solid_lines": true,
+    "target_guide_line": false
+  },
+  "schema": "ra_adapt_appendix_convergence_figures_v5_provenance_v1",
+  "science_source_git_commit": "fdf15b369292e79bc6b247f9a211280820b15418",
+  "sha256": "cb3baacfcb79121797bd6fbe0df00aafd7bd011306818609735cd6979002faf6",
+  "w1q_definition": "termwise_pauli_pretranspile_work_sum_2_nx_plus_4_ny_plus_1_v1"
+}

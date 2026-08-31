@@ -1,0 +1,29 @@
+{
+  "demonstrations": {
+    "batching": {
+      "accepted_round_gap": null,
+      "baseline_round": null,
+      "feature_round": 1,
+      "identical_records_every_round": false,
+      "primary_threshold": 0.01,
+      "promote_to_l3": false,
+      "reasons": []
+    },
+    "beam": {
+      "branch_divergence_round": 1,
+      "branches_explored": 58,
+      "promote_to_l3": false,
+      "reasons": []
+    },
+    "metric_ablation": {
+      "accepted_deletion_count": 11,
+      "nomination_count": 13,
+      "promote_to_l3": false,
+      "reasons": []
+    }
+  },
+  "noise_horizon": 10,
+  "promoted_demonstrations": [],
+  "schema": "ra_adapt_appendix_escalation_decisions_v2",
+  "sha256": "f37da6c087727ed1ac569c3d3c801d34b7f2cdc2c9d8680a847d5c5063689e1a"
+}

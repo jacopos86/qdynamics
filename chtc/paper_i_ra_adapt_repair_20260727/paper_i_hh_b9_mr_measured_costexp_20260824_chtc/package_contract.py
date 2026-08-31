@@ -138,9 +138,7 @@ EXPECTED_DEPTH_PENALTY_WEIGHTS = {
 RESOURCE_ENVELOPES = {
     3: {
         "cpus": 4,
-        # Raised from 16384: the plateau strong_weak_u8 cell peaked at 17090 MB
-        # and was OOM-held on the first wave. 24576 is the measured floor.
-        "memory_mb": 24576,
+        "memory_mb": 16384,
         "disk_mb": 30720,
         "runtime_seconds": 172800,
     },

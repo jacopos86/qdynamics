@@ -1,0 +1,29 @@
+{
+  "schema": "paper_i_l4_qiskit_proxy_submission_receipt_v1",
+  "campaign_id": "paper_i_l4_qiskit_proxy_extensions_20260825",
+  "submitted_at": "2026-08-25T21:27:49Z",
+  "verified_at": "2026-08-25T21:28:52Z",
+  "access_point": "ap2001.chtc.wisc.edu",
+  "cluster_id": 9697516,
+  "submission_status": "superseded_after_pre-science_exact-energy-guard_failure",
+  "failure": "literal floating-point equality rejected a 1.3e-14 eigensolver roundoff difference",
+  "scheduler_disposition": "exact cluster removed before any accepted controller round",
+  "superseded_by_cluster_id": 9697719,
+  "job_batch_name": "paper-i-l4-qiskit-proxy-extensions-20260825-v2",
+  "submitted_jobs": 9,
+  "scheduler_state": {
+    "idle": 9,
+    "running": 0,
+    "held": 0,
+    "completed": 0,
+    "matchmaking": "eligible slots exist; currently waiting for available capacity"
+  },
+  "plan_sha256": "d8c7fcbbddda1f3bbf494f78b45841ef6b7e5f9ecd8b8e9fb453e6f63cb601c2",
+  "authorization_sha256": "ed8eded6b176a54e093132fed11a77dbcfcee3b08a60d1316c655852eb87065b",
+  "source_archive_sha256": "4a322bba72dc475a05bf799e2b36c88bb8e71e8b6a90e5e0618636a029d6fd86",
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_root": "/home/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825_v2",
+  "remote_result_root": "/staging/jsstrobel/paper_i_l4_qiskit_proxy_extensions_20260825_v2/transfer",
+  "supersedes_cluster_id": 9697511,
+  "paper_adoption_authorized": false
+}

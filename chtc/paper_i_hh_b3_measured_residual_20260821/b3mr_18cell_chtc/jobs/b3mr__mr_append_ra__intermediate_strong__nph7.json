@@ -1,0 +1,33 @@
+{
+  "arm_id": "mr_append_ra",
+  "builder": "build_resolved_ra_protocol",
+  "campaign_id": "paper_i_hh_b3_measured_residual_20260821",
+  "compile_cost_policy": null,
+  "execution_authorized": true,
+  "execution_id": "b3mr__mr_append_ra__intermediate_strong__nph7",
+  "family": "measured_residual",
+  "insertion_policy": "append_only",
+  "matrix": "B3MR",
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "paper_i_hh_b3_measured_residual_20260821_chtc",
+  "paper_adoption_authorized": false,
+  "protocol_file_sha256": "f96907c14848e092dd590378534fec6cb96b283ce1000a1e1dc141b2de59e654",
+  "protocol_path": "protocols/b3mr__mr_append_ra__intermediate_strong__nph7.json",
+  "protocol_sha256": "7e2974c25dd96141506a17eb81efa1f7fdff9a168bd6a882c6acb525b6178236",
+  "regime_id": "intermediate_strong",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "paper_i_ra_adapt_nonstationary_incremental_full_response_v2",
+  "route_contract_sha256": "81c2c0d7df25538f422ae12def54033ba94e4bc9154c5b0f1b0d23b19d855d80",
+  "route_variant": "paper_i_ra_adapt_nonstationary_incremental_full_response_v2",
+  "schema": "b3mr_job_v1",
+  "sha256": "d0ba454f0f76bee5bbda299d109c52497fa8a7e5c93d355884e3f2aff570213b",
+  "source_inventory_sha256": "165282d96ef5090244f94a741be4011371deb59f37f0b8e9710a18a9489660cc",
+  "submission_authorized": true
+}

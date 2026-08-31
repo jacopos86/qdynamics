@@ -1,0 +1,406 @@
+{
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+  "campaign_plan_sha256": "02868ed172af217039ed83ead16795bf485221635135d3bfac5926a776924c48",
+  "capacity_end": {
+    "available_memory_bytes": 5301157888,
+    "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+    "effective_available_memory_bytes": 5301157888,
+    "free_disk_bytes": 69022982144,
+    "macos_memory_pressure_free_percent": null,
+    "memory_source": "psutil_available_conservative",
+    "native_effective_available_memory_bytes": null,
+    "native_probe_command": [
+      "/usr/bin/memory_pressure",
+      "-Q"
+    ],
+    "native_probe_error": null,
+    "native_probe_output": null,
+    "native_probe_phase": "runtime",
+    "native_probe_status": "not_needed_psutil_satisfied",
+    "platform_name": "Darwin",
+    "psutil_available_memory_bytes": 5301157888,
+    "schema": "ra_adapt_appendix_capacity_receipt_v4",
+    "sha256": "376b8a76463d14191e3289f6e5b433433363adb869fe801608d3b054d981c189",
+    "total_physical_memory_bytes": 17179869184
+  },
+  "capacity_start": {
+    "available_memory_bytes": 9620726743,
+    "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+    "effective_available_memory_bytes": 9620726743,
+    "free_disk_bytes": 69698297856,
+    "macos_memory_pressure_free_percent": 56.0,
+    "memory_source": "macos_memory_pressure_q",
+    "native_effective_available_memory_bytes": 9620726743,
+    "native_probe_command": [
+      "/usr/bin/memory_pressure",
+      "-Q"
+    ],
+    "native_probe_error": null,
+    "native_probe_output": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 56%\n",
+    "native_probe_phase": "launch",
+    "native_probe_status": "available",
+    "platform_name": "Darwin",
+    "psutil_available_memory_bytes": 4808343552,
+    "schema": "ra_adapt_appendix_capacity_receipt_v4",
+    "sha256": "f674055c0d79444039cb0346195b4d56e83b6077a9bb8075210dbf66bb598d5f",
+    "total_physical_memory_bytes": 17179869184
+  },
+  "cell_artifact_receipts": {
+    "l3_baseline_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_baseline_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "6cf29b65a22f1164fda5f2fece04fb04f3184dfa10b9f1cc630f9e8a67a05ca7",
+          "size_bytes": 78467
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "1a1a4dbef10ecc409e7a4c2547e41793e4f55837f725205948003b48796e32ab",
+          "size_bytes": 5187
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "743caa30d8fac57ec02eaffed67e69dcd4d588e63939b93b6f2a8ad885aa3b78",
+          "size_bytes": 5374
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "4d83ef666d5c15f979f9c944681244bd484218ab71b387e0cfaabbac24381d48",
+          "size_bytes": 1901191
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.b801b01ddbdb1f0f.json",
+          "sha256": "b801b01ddbdb1f0f8174c4808387f90ec9e88a16f398ea1342ca758ab35407d9",
+          "size_bytes": 16138615
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "5efd62ddb10971f8f80f90e90d02776e4b20013f4c92e6362496e4d5d5461574",
+          "size_bytes": 26709206
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.453c2ce4af809c98.json",
+          "sha256": "453c2ce4af809c98cb2fe675263eb06cf9e2268a1a63c14f896ff83d0dde3c35",
+          "size_bytes": 4494
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "15a4b462cd3e4cad2e0176229b1ce8c2f489853c9952a86fd39276d2554ec0f8",
+          "size_bytes": 19753008
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "46cf4a2838501a9ff7015b140a5be6b5df156ce392be4af48b5da71eaf305afe",
+          "size_bytes": 10546
+        }
+      ],
+      "files_sha256": "06d6bb8e7b9db21ea3df65d88c0f3698833fed6031eb9ceed76d5277702193b9",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "b5747d3b29073e512dfc592e28527b95233f0164b409e4a48d94d7ec2e358068"
+    },
+    "l3_batching_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_batching_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "5cc13afbce1ce726562f7d434994e334b2d7a165f4aa3616f039d48fb2a63c3a",
+          "size_bytes": 70295
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "e943689a0d8afc4aad36fde994f4785d85cd3274e8db2d445012b6c0116cc0eb",
+          "size_bytes": 5253
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "00484e92e961f49316cf1a131dba06078d3dcea0c277b97544041fcd53d3fb03",
+          "size_bytes": 4348
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "8fe3a5508675ddae6cdaf70b2fde446bc0385357a1444e3da432c1e148d6f656",
+          "size_bytes": 2832995
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.76b07191c6d06759.json",
+          "sha256": "76b07191c6d067599a9cc54a99b3fa4c566b9c606b0dff01663fac83726f1bb3",
+          "size_bytes": 23293329
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "cbf8ce8add41bf5b898071948e2bd6592dadc4d965bb68ba3480bc551bfb2489",
+          "size_bytes": 30708698
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "b7586ce54a4aae3cdc525e23fd7d378b7ccfa1dc9b7aadeecc41b35dbf4e5a78",
+          "size_bytes": 28454896
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "bf0ab10f569aace019027b064536117f5f4cece26d4be1494ccabcc5c043fa0a",
+          "size_bytes": 9631
+        }
+      ],
+      "files_sha256": "db4890f17ef01d5fa61f98fab4520edca331f40e5875ed8183afae0fb810fbf4",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "de5c99d4d79d4c9c23cacc3620b802212ddee4bd78ab0fb16bbccdb424102483"
+    },
+    "l3_beam_cost_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_beam_cost_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "bc2d187f0600f9fcf2b8120c06532044671e91a7aaed038f2a4f08ce0bc6d328",
+          "size_bytes": 9738936
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "e505c6bcf9c10bcb7a2e867d016e5f09bdcb979f1faddaf554cd3ea5bdc85d3e",
+          "size_bytes": 5491
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "4ee64c0c78f4534cac5255116176e20a452d18823dd3398d80061e1a22c87886",
+          "size_bytes": 19053
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "3422c27ba0e326ec32be3037ce47bf14627e413c100c4362925cf2bd202fc465",
+          "size_bytes": 1994892
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.f4fccf032def65db.json",
+          "sha256": "f4fccf032def65db67ff8174fe767fa8124ec305d17b6934b5c1316ba68aebd6",
+          "size_bytes": 57539336
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "49d598f9d2c8eb1e7dedc9eea058539610f98c7b8eba2aebf77befa60971e856",
+          "size_bytes": 42239662
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.cc0fdcdfa7002420.json",
+          "sha256": "cc0fdcdfa7002420d8d1799da112066385abd1fd4bb6be9bf3df4cb5b22e9dc2",
+          "size_bytes": 4494
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "f807807b6a2a6dbea66261b1790f2f333f9f5afe17db5ef93c88aae6a9ae72d2",
+          "size_bytes": 66146786
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "17db40a2db6100db9aa587e586b1cdba99e32c37e35055c2c87a2981bf757857",
+          "size_bytes": 10616
+        }
+      ],
+      "files_sha256": "afbdfc9f769265fdd75d18e947232772f27981e5af49dbb3e9c3502ef4e94588",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "401d875afb058b28eb07c892331b898a0b24e951424a74ae013db03071b649ee"
+    },
+    "l3_beam_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_beam_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "9721ae438e40bf21d4167ea89396a242ba4ef3b9a12c08cc465faa2fd6e394c9",
+          "size_bytes": 9731568
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "c948978a0a7307808216d705f50bff9f60e3daa7d9b1ee2291fe13774c909ba0",
+          "size_bytes": 5423
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "dca8c6961236f2ca631ac8e1e91cdae122f88be57bc5cabc0fd76fe4d66ca847",
+          "size_bytes": 19059
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "831f99ea93af7de91ccd0f969522ce8af8ff369d2c6dfd8b05778893a209971c",
+          "size_bytes": 1996287
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.1310f018df3a23b1.json",
+          "sha256": "1310f018df3a23b1ecab8ed219722786db6d90890ccbfa161fb2e41b298bffeb",
+          "size_bytes": 57734526
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "6de15b21a05afa4d2b14cdf6318cc06895926347e65a70650fafd4d3a9f12aa2",
+          "size_bytes": 42392601
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.bc9e1c4d0211fceb.json",
+          "sha256": "bc9e1c4d0211fcebc9ba98f89894b141ed9134776be14225d120173d6d6e6b68",
+          "size_bytes": 4489
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "9d1f452402ae30305097885265cfd79b03a25458c3786b835a81429af8e4182f",
+          "size_bytes": 66373471
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "6baf4836d2d2f4a1f3f67baa9bf9f0e654049d80143f83a96a921f48f5b0e9f1",
+          "size_bytes": 10564
+        }
+      ],
+      "files_sha256": "24a8c9132685e96e39d5a4df1d468196a3b28c58ea42415bc04264feee5de4af",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "a40b156184c3f0e001be106ad11ad0e54470a01814177c176e545780316d40b5"
+    },
+    "l3_metric_ablation_gated_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_metric_ablation_gated_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "abecc14722012e18f3604cc04672801b4ff18b6ab23f92b2236a50f4790ba361",
+          "size_bytes": 107337
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "f8da82f27368acf31579e61fbacfa6f356b274dceeb68da909a30b992ad52a89",
+          "size_bytes": 5307
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "388852526fedeb0eca4287cb44c7028b5e9e4d4f4dfada7a5131d300127507cb",
+          "size_bytes": 7395
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "db61ef5ccc13f2eb72fd1a190e1de77ce73cedf21cc6788d92f50c8edff53218",
+          "size_bytes": 1686038
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.7dd13777a59799ae.json",
+          "sha256": "7dd13777a59799aee7258987821f579a6a7deaff8660ea36626fc4759b8bb5c4",
+          "size_bytes": 18322324
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "1dc7a3e8896657958d7972db02761a4f5f2ef724147812fd5bb3868594a8e017",
+          "size_bytes": 35552575
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.84644cf0f14a040c.json",
+          "sha256": "84644cf0f14a040c0bc4d11ead0cf45adc744d1cdc1c57b537ce5c4220d0106f",
+          "size_bytes": 4511
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "77b1d494d5d3b9738f2acf99194c7f4e98bf070803a99e149c545dbcdec46802",
+          "size_bytes": 27231084
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "5d055f95aaca1f048e9887b93a76132daef1b103936b803dc2d3ae972a21ed63",
+          "size_bytes": 9669
+        }
+      ],
+      "files_sha256": "02e84d2bedac6ad6c05afbd04e51adb0d27a0efef7e62dad0ef4337db972ae19",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "d0c13a598ae44b0c3e2e24b911a7e500aa27b0ef77830593b470562f071064ea"
+    },
+    "l3_metric_ablation_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v8",
+      "cell_id": "l3_metric_ablation_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "69a3eb4958dc98eaf92a132ab11a70301cc34f08010da161c4390a281bf1eb1d",
+          "size_bytes": 115541
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "526e1c318ac5efcb1c46449a322bcc2e463b2729698492d59463292072d9b72d",
+          "size_bytes": 5223
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "2ceb40ea57619ea03fa69c621ed29737edda4b045898fc6b2ec17d4440326c5a",
+          "size_bytes": 9517
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "92355f578813d254c73df05582b46b5a93eebdf0648a9cebf77646fc82ac0278",
+          "size_bytes": 1720710
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.5170eddffd2013f4.json",
+          "sha256": "5170eddffd2013f47beeed8496c2f0c36cff937d4d2bd77a9653d1da65dc3400",
+          "size_bytes": 24683938
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "0636a8e1fa73313831be6bfc6346b088ca4c97dc67b2f78ba11cdf2b3f240863",
+          "size_bytes": 41740508
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.d6836195e70ba24b.json",
+          "sha256": "d6836195e70ba24b3fe308f8e660343270d26f9d343310b6a9842d84dbcbb7e3",
+          "size_bytes": 4498
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "859b052e1e92b23cd13ee8f6e9797a0ca6e9c09ea0e6c043b64089f33373beb2",
+          "size_bytes": 36326003
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "ef3e497c79b4d759b4b9cd1a6bc919754af65e3d4d3b2fff4e81e2c208bde43d",
+          "size_bytes": 9817
+        }
+      ],
+      "files_sha256": "9899a89629e0e9ee4f8edd20e511bc347dce1333c47c1af764ae54001e3c20c7",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "82bcbc1e6f160911041e74b9546c1e262c345e1d76a3575b8fc302a393b3859c"
+    }
+  },
+  "chtc_submitted": false,
+  "executed_cell_count": 6,
+  "executed_cell_ids": [
+    "l3_baseline_h15",
+    "l3_metric_ablation_h15",
+    "l3_metric_ablation_gated_h15",
+    "l3_batching_h15",
+    "l3_beam_h15",
+    "l3_beam_cost_h15"
+  ],
+  "l3_pool_preflight_sha256": "07949f6e278814fcc6f8914ddbcaf6e4440e7c7dee5ef2fe69b5f36a40c18253",
+  "manuscript_repository_mutated": false,
+  "preserved_campaign_ids": [
+    "ra_adapt_appendix_demos_20260820_v1",
+    "ra_adapt_appendix_demos_20260820_v2",
+    "ra_adapt_appendix_demos_20260820_v3",
+    "ra_adapt_appendix_demos_20260820_v4",
+    "ra_adapt_appendix_demos_20260820_v5",
+    "ra_adapt_appendix_demos_l3_20260820_v6",
+    "ra_adapt_appendix_demos_l3_20260820_v7"
+  ],
+  "preserved_v5_report_root": "chtc/ra_adapt_appendix_demos_20260820/results_v5",
+  "preserved_v6_report_root": "chtc/ra_adapt_appendix_demos_20260820/results_l3_v6",
+  "preserved_v7_report_root": "chtc/ra_adapt_appendix_demos_20260820/results_l3_v7",
+  "schema": "ra_adapt_appendix_l3_campaign_manifest_v3",
+  "sha256": "3e2c67d20280db53cf84f2c75621e1b430387dad0422bca27de698b1dc1cc41b",
+  "source": {
+    "head": "a50daddf5d5fbd559e2d90fd0e907e1f21c5bef1",
+    "repo_root": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/appendix-demos-20260820",
+    "required_ancestor": "eecd9425e980949793c43514ed5a2ff7baa8dfd0",
+    "required_ancestor_present": true,
+    "required_appendix_lane_ancestor": "fd18c46804db2df8fb195a89406ca4db4ee94782",
+    "required_appendix_lane_ancestor_present": true,
+    "runner_path": "chtc/ra_adapt_appendix_demos_20260820_v8/run_local_ra_adapt_appendix_demos_l3_20260820_v8.py",
+    "runner_sha256": "73595767e3ccd4f3bab70b22f00dccf3ea80bceaaedaf6e5b3bd67ddd3e01611",
+    "worktree_clean": true
+  }
+}

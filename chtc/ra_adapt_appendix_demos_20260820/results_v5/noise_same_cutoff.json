@@ -1,0 +1,80 @@
+{
+  "campaign_id": "ra_adapt_appendix_demos_20260820_v5",
+  "horizon": 10,
+  "rows": [
+    {
+      "D2q": 12,
+      "Dc": 56,
+      "N2q": 18,
+      "accepted_energy": -1.3859980513134946,
+      "cell_id": "noise_u1p5_low_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "low",
+      "same_cutoff_absolute_error": 2.885015887077458e-06,
+      "u_over_t": 1.5
+    },
+    {
+      "D2q": 14,
+      "Dc": 64,
+      "N2q": 16,
+      "accepted_energy": -1.3856428237455884,
+      "cell_id": "noise_u1p5_high_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "high",
+      "same_cutoff_absolute_error": 0.0003581125837932575,
+      "u_over_t": 1.5
+    },
+    {
+      "D2q": 11,
+      "Dc": 53,
+      "N2q": 14,
+      "accepted_energy": -1.3675328136852547,
+      "cell_id": "noise_u1p5_extreme_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "extreme",
+      "same_cutoff_absolute_error": 0.018468122644127005,
+      "u_over_t": 1.5
+    },
+    {
+      "D2q": 13,
+      "Dc": 63,
+      "N2q": 18,
+      "accepted_energy": -0.47212834011842947,
+      "cell_id": "noise_u8p0_low_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "low",
+      "same_cutoff_absolute_error": 7.614881149975439e-06,
+      "u_over_t": 8.0
+    },
+    {
+      "D2q": 18,
+      "Dc": 79,
+      "N2q": 22,
+      "accepted_energy": -0.4716460034190514,
+      "cell_id": "noise_u8p0_high_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "high",
+      "same_cutoff_absolute_error": 0.0004899515805280585,
+      "u_over_t": 8.0
+    },
+    {
+      "D2q": 13,
+      "Dc": 61,
+      "N2q": 18,
+      "accepted_energy": -0.4206600711665983,
+      "cell_id": "noise_u8p0_extreme_h10",
+      "completed_controller_rounds": 10,
+      "horizon": 10,
+      "noise_level": "extreme",
+      "same_cutoff_absolute_error": 0.05147588383298113,
+      "u_over_t": 8.0
+    }
+  ],
+  "schema": "ra_adapt_appendix_noise_same_cutoff_v1",
+  "sha256": "dfb9fa6bd328637387069e7b7e3246f15d4af8fcce583bd76c4986a26d31256f"
+}

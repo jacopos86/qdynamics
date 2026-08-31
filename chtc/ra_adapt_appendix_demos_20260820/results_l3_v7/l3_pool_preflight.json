@@ -1,0 +1,355 @@
+{
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+  "executed_generator_count": 24,
+  "executed_pool": {
+    "all_generators_diagonal": false,
+    "candidate_representation": "macro_generator_v1",
+    "diagonal_only_generator_count": 12,
+    "generator_count": 24,
+    "generators": [
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_sing(alpha:0->2)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 2.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_sing(alpha:1->2)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 2.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_sing(beta:3->4)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_sing(beta:3->5)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_dbl(ab:0,3->2,4)",
+        "tangent_self_metric": 1.0,
+        "term_count": 8
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_dbl(ab:0,3->2,5)",
+        "tangent_self_metric": 1.0,
+        "term_count": 8
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_dbl(ab:1,3->2,4)",
+        "tangent_self_metric": 1.0,
+        "term_count": 8
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "uccsd_dbl(ab:1,3->2,5)",
+        "tangent_self_metric": 1.0,
+        "term_count": 8
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "hop(i=0,j=1,spin=0)",
+        "tangent_self_metric": 0.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "hop(i=0,j=1,spin=1)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "hop(i=1,j=2,spin=0)",
+        "tangent_self_metric": 1.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": false,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "hop(i=1,j=2,spin=1)",
+        "tangent_self_metric": 0.0,
+        "term_count": 2
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "onsite(i=0)",
+        "tangent_self_metric": 0.0,
+        "term_count": 3
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "onsite(i=1)",
+        "tangent_self_metric": 0.0,
+        "term_count": 3
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "onsite(i=2)",
+        "tangent_self_metric": 0.0,
+        "term_count": 3
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(zeeeee)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(eeezee)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(zeezee)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(eezeee)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(eeeeez)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(eezeez)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(ezeeze)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(eeeeze)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "ham_term(ezeeee)",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      }
+    ],
+    "nonzero_gradient_count": 2,
+    "nonzero_self_metric_count": 10,
+    "num_sites": 3,
+    "ordered_pool_sha256": "7e2f848979ecb779076c5f46ad9edef7a90608332cc05236be55f79fad03e03c",
+    "rank_tolerance": 1e-09,
+    "schema": "ra_adapt_appendix_pool_hartree_fock_response_diagnostics_v1",
+    "sector_num_particles": [
+      2,
+      1
+    ],
+    "sha256": "db147e3e7b0ae37fe4ac94f30740b99e89fb86e44cdb7a85b390860018c4608a",
+    "supported_response_rank": 8,
+    "tangent_gram_eigenvalues": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0
+    ],
+    "total_qubits": 6,
+    "zero_tolerance": 1e-10
+  },
+  "executed_supported_response_rank": 8,
+  "rank_validator_weakened": false,
+  "schema": "ra_adapt_appendix_l3_pool_preflight_v1",
+  "sha256": "a998aa34e13ecc4a911d5bb8073bf95bbe108b3fc66eb84a2fe9ad4189795e80",
+  "superseded_degenerate_pool": {
+    "all_generators_diagonal": true,
+    "candidate_representation": "single_pauli_word_v1",
+    "diagonal_only_generator_count": 9,
+    "generator_count": 9,
+    "generators": [
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::zeezee",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::eezeee",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::eeeeez",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::eezeez",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::ezeeze",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::eeeeze",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::ezeeee",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::zeeeee",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      },
+      {
+        "diagonal_only": true,
+        "hartree_fock_gradient_abs": 0.0,
+        "hermiticity_defect": 0.0,
+        "label": "guarded_singleton::eeezee",
+        "tangent_self_metric": 0.0,
+        "term_count": 1
+      }
+    ],
+    "nonzero_gradient_count": 0,
+    "nonzero_self_metric_count": 0,
+    "num_sites": 3,
+    "ordered_pool_sha256": "254ae95b9596178b8eb582753b81a60f9b197f6ec0aa3410e5755e8c4fa470a2",
+    "rank_tolerance": 1e-09,
+    "schema": "ra_adapt_appendix_pool_hartree_fock_response_diagnostics_v1",
+    "sector_num_particles": [
+      2,
+      1
+    ],
+    "sha256": "3aadd1e3b20c17b22609cedecd1d7452dbc6415216caff6ccb58da78fb7d0ed8",
+    "supported_response_rank": 0,
+    "tangent_gram_eigenvalues": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "total_qubits": 6,
+    "zero_tolerance": 1e-10
+  },
+  "superseded_generator_count": 9,
+  "superseded_supported_response_rank": 0
+}

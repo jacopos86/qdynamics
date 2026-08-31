@@ -41,8 +41,8 @@ REGIMES = [
 WEAK_REGIMES = {row[0] for row in REGIMES[:3]}
 STRONG_REGIMES = {row[0] for row in REGIMES[3:]}
 STRONG_APPEND_TRACE_SHA256 = {
-    "weak_strong": "2587c0a9fac52a30c145e45844f31c4e214f9a682a3078970e09dd57988e50aa",
-    "intermediate_strong": "7cabfbaa5fdcf122e0a4e6095dabd47728abd57146a9426cf44265a089854977",
+    "weak_strong": "e496ec6c0ae0802d3691e7f454ed770a9a386ab064baab3d1035e8e102fe0ab1",
+    "intermediate_strong": "6d552a0379e5c14bca5f49829da3b2fe278e2689e90c3c1f812999f48ac8fbf2",
     "strong_strong_u8": "9ceb3e387c9c91d0133fff2efe232be04c2482cf52df209f7feb6fcb9a9fe515",
 }
 
@@ -296,63 +296,42 @@ def main() -> int:
             }
 
     for regime in STRONG_REGIMES:
-        entry = kstar["b3"].get(f"b_depth_append_ra|{regime}")
-        if entry is None or not entry.get("trace"):
-            raise RuntimeError(f"missing completed strong append trace for {regime}")
-        points = [
-            (int(k), max(float(err), ERR_FLOOR)) for k, err in entry["trace"]
-        ]
+        stream = find_manifest_stream(manifest, "b_depth_append_ra", regime)
+        points = parse_ai_log(stream, exact[regime])
         if trace_sha256(points) != STRONG_APPEND_TRACE_SHA256[regime]:
             raise RuntimeError(f"strong append trajectory changed for {regime}")
         if not points or points[-1][0] != 75:
             raise RuntimeError(f"append trace for {regime} does not reach iteration 75")
         traces[("b_depth_append_ra", regime)] = points
         sources[("b_depth_append_ra", regime)] = {
-            "kind": "completed_bundle3_trace",
-            "path": str(KSTAR_TABLES),
-            "sha256": sha256(KSTAR_TABLES),
-            "json_key": f"b3.b_depth_append_ra|{regime}.trace",
+            "kind": "completed_bundle3_stream",
+            "path": str(stream),
+            "sha256": sha256(stream),
         }
 
-    live_tail_dir = (
-        args.base_root
-        / "output/local_runs/ra_adapt_costexp_depthfix_sixregime_20260820_v2/"
-        "live_tails_9675078"
+    live_path = Path(manifest["inputs"]["live_samples_fresh.jsonl"]["path"])
+    validate_manifest_input(manifest, "live_samples_fresh.jsonl", live_path)
+    queue_path = (
+        ROOT
+        / "chtc/paper_i_ra_adapt_repair_20260727/"
+        "ra_adapt_costexp_depthfix_sixregime_20260820_v2_chtc/queue_fresh.tsv"
     )
-    live_jobs = {
-        ("b_depth_costexp_always_open", "weak_strong"): (0, "queued"),
-        ("b_depth_costexp_always_open", "intermediate_strong"): (1, "queued"),
-        ("b_depth_costexp_always_open", "strong_strong_u8"): (2, "running"),
-        ("b_depth_costexp_plateau_position", "weak_strong"): (3, "running"),
-        ("b_depth_costexp_plateau_position", "intermediate_strong"): (4, "running"),
-        ("b_depth_costexp_plateau_position", "strong_strong_u8"): (5, "running"),
-    }
-    for (arm, regime), (proc, job_status) in live_jobs.items():
-        live_path = live_tail_dir / f"9675078.{proc}.out"
-        if not live_path.exists():
+    live = parse_live_snapshot(live_path, queue_map(queue_path), exact)
+    for regime in STRONG_REGIMES:
+        for arm in (
+            "b_depth_costexp_always_open",
+            "b_depth_costexp_plateau_position",
+        ):
+            points = live.get((arm, regime))
+            if not points:
+                raise RuntimeError(f"missing strong partial trace for {arm}|{regime}")
+            traces[(arm, regime)] = points
             sources[(arm, regime)] = {
-                "kind": "queued_no_accepted_prefix",
-                "cluster": 9675078,
-                "proc": proc,
-                "job_status_at_snapshot": job_status,
-                "snapshot_time": "2026-08-26T12:08:14-05:00",
+                "kind": "partial_live_snapshot",
+                "path": str(live_path),
+                "sha256": sha256(live_path),
+                "queue_map": str(queue_path),
             }
-            continue
-        points = parse_ai_log(live_path, exact[regime])
-        if not points:
-            raise RuntimeError(f"empty strong partial trace for {arm}|{regime}")
-        if [k for k, _ in points] != list(range(1, points[-1][0] + 1)):
-            raise RuntimeError(f"noncontiguous strong partial trace for {arm}|{regime}")
-        traces[(arm, regime)] = points
-        sources[(arm, regime)] = {
-            "kind": "current_best_running_prefix",
-            "path": str(live_path),
-            "sha256": sha256(live_path),
-            "cluster": 9675078,
-            "proc": proc,
-            "job_status_at_snapshot": job_status,
-            "snapshot_time": "2026-08-26T12:08:14-05:00",
-        }
 
     style, style_path = load_plot_style(args.output_dir)
     style.configure()
@@ -380,20 +359,6 @@ def main() -> int:
             "series": {},
         }
         for arm, label, color, linestyle, marker in SERIES:
-            if (arm, regime) not in traces:
-                source = sources[(arm, regime)]
-                stats[regime]["series"][arm] = {
-                    "label": label,
-                    "history_point_count": 0,
-                    "displayed_point_count": 0,
-                    "marker_k": None,
-                    "marker_error": None,
-                    "latest_displayed_k": None,
-                    "latest_displayed_error": None,
-                    "status": source["kind"],
-                    "source": source,
-                }
-                continue
             displayed = crop(traces[(arm, regime)], horizon)
             if not displayed:
                 raise RuntimeError(f"no displayed points for {arm}|{regime}")
@@ -499,10 +464,10 @@ def main() -> int:
     plt.close(fig)
 
     provenance = {
-        "schema": "paper_i_ra_adaptive_append_main_bundle3_current_prefix_v1",
+        "schema": "paper_i_ra_adaptive_append_main_bundle3_v9",
         "evidence_class": (
             "weak_complete_report_crop_strong_append_complete_"
-            "strong_insertion_current_best_prefix_snapshot_20260826"
+            "strong_insertion_partial_snapshot_20260820"
         ),
         "outputs": {
             "pdf": {"path": str(pdf_path), "sha256": sha256(pdf_path)},
@@ -523,9 +488,8 @@ def main() -> int:
                 "partial insertion traces receive no marker"
             ),
             "strong_insertion_policy": (
-                "current-best locally captured running prefixes stop at their "
-                "latest accepted iteration; queued rows with no accepted prefix "
-                "are omitted; no trajectory is extrapolated"
+                "partial locally evidenced traces stop at their latest point; "
+                "no extrapolation"
             ),
         },
         "per_regime": stats,
@@ -564,14 +528,10 @@ def main() -> int:
         fields = []
         for arm, *_ in SERIES:
             row = stats[regime]["series"][arm]
-            latest_error = row["latest_displayed_error"]
             fields.append(
                 f"{arm}:n={row['displayed_point_count']},"
                 f"k={row['latest_displayed_k']},"
-                f"dE={latest_error:.3e}," if latest_error is not None else
-                f"{arm}:n=0,k=None,dE=None,"
-            )
-            fields[-1] += (
+                f"dE={row['latest_displayed_error']:.3e},"
                 f"status={row['status']}"
             )
         print(regime, " | ".join(fields))

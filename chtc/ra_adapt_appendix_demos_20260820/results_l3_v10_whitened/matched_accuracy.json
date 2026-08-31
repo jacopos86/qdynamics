@@ -1,0 +1,537 @@
+{
+  "accuracy_thresholds": [
+    0.01,
+    0.0001,
+    1e-06
+  ],
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v10_whitened",
+  "comparisons": [
+    {
+      "baseline_accepted_operator_count": 15,
+      "baseline_cell_id": "l3_baseline_h15",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": false,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "metric_ablation_gated",
+      "feature_accepted_operator_count": 9,
+      "feature_cell_id": "l3_metric_ablation_gated_h15",
+      "feature_events": {
+        "accepted_record_sequence": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ],
+          [
+            0
+          ],
+          [
+            4
+          ],
+          [
+            3
+          ],
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            8
+          ],
+          [
+            10
+          ],
+          [
+            8
+          ],
+          [
+            21
+          ],
+          [
+            17
+          ],
+          [
+            21
+          ],
+          [
+            17
+          ]
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 0,
+        "1e-04": 0,
+        "1e-06": 0
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.1389856616364877,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 78,
+              "Dc": 324,
+              "N2q": 96
+            },
+            "energy_decrease": 3.3889856616364877,
+            "same_cutoff_absolute_error": 0.002507902634919734,
+            "weighted_compile_cost": 133.2,
+            "weighted_cost_per_energy_decrease": 39.30379567781346
+          },
+          "feature": {
+            "accepted_energy": -2.1389856616364877,
+            "cell_id": "l3_metric_ablation_gated_h15",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 78,
+              "Dc": 324,
+              "N2q": 96
+            },
+            "energy_decrease": 3.3889856616364877,
+            "same_cutoff_absolute_error": 0.002507902634919734,
+            "weighted_compile_cost": 133.2,
+            "weighted_cost_per_energy_decrease": 39.30379567781346
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_metric_ablation_gated_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_metric_ablation_gated_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    },
+    {
+      "baseline_accepted_operator_count": 15,
+      "baseline_cell_id": "l3_baseline_h15",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": true,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "batching",
+      "feature_accepted_operator_count": 16,
+      "feature_cell_id": "l3_batching_h15",
+      "feature_events": {
+        "accepted_record_sequence": [
+          [
+            1,
+            2,
+            6
+          ],
+          [
+            0,
+            3,
+            5
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            8
+          ],
+          [
+            10
+          ],
+          [
+            11
+          ],
+          [
+            9
+          ],
+          [
+            13
+          ],
+          [
+            12
+          ],
+          [
+            15
+          ],
+          [
+            16
+          ]
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 3,
+        "1e-04": 3,
+        "1e-06": 3
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 4,
+        "1e-04": 5,
+        "1e-06": 5
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 4,
+          "baseline": {
+            "accepted_energy": -2.1389856616364877,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 78,
+              "Dc": 324,
+              "N2q": 96
+            },
+            "energy_decrease": 3.3889856616364877,
+            "same_cutoff_absolute_error": 0.002507902634919734,
+            "weighted_compile_cost": 133.2,
+            "weighted_cost_per_energy_decrease": 39.30379567781346
+          },
+          "feature": {
+            "accepted_energy": -2.1414934604549147,
+            "cell_id": "l3_batching_h15",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 187,
+              "Dc": 772,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914934604549147,
+            "same_cutoff_absolute_error": 1.0381649273583093e-07,
+            "weighted_compile_cost": 309.1,
+            "weighted_cost_per_energy_decrease": 91.13978947744725
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 5,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.1414934604549147,
+            "cell_id": "l3_batching_h15",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 187,
+              "Dc": 772,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914934604549147,
+            "same_cutoff_absolute_error": 1.0381649273583093e-07,
+            "weighted_compile_cost": 309.1,
+            "weighted_cost_per_energy_decrease": 91.13978947744725
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 5,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.1414934604549147,
+            "cell_id": "l3_batching_h15",
+            "controller_round": 3,
+            "cost_tuple": {
+              "D2q": 187,
+              "Dc": 772,
+              "N2q": 200
+            },
+            "energy_decrease": 3.3914934604549147,
+            "same_cutoff_absolute_error": 1.0381649273583093e-07,
+            "weighted_compile_cost": 309.1,
+            "weighted_cost_per_energy_decrease": 91.13978947744725
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    },
+    {
+      "baseline_accepted_operator_count": 15,
+      "baseline_cell_id": "l3_baseline_h15",
+      "baseline_first_round_by_threshold": {
+        "1e-02": 7,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "beats_minimal_ra_at_any_threshold": true,
+      "beats_minimal_ra_before_round_three": false,
+      "demonstration": "beam_escalated",
+      "feature_accepted_operator_count": 15,
+      "feature_cell_id": "l3_beam_escalated_h15",
+      "feature_events": {
+        "accepted_record_sequence": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            0
+          ],
+          [
+            3
+          ],
+          [
+            6
+          ],
+          [
+            2
+          ],
+          [
+            0
+          ],
+          [
+            3
+          ],
+          [
+            10
+          ],
+          [
+            8
+          ],
+          [
+            19
+          ],
+          [
+            16
+          ],
+          [
+            14
+          ],
+          [
+            17
+          ],
+          [
+            9
+          ]
+        ]
+      },
+      "feature_first_round_by_threshold": {
+        "1e-02": 6,
+        "1e-04": 8,
+        "1e-06": 8
+      },
+      "num_sites": 3,
+      "rounds_saved_by_threshold": {
+        "1e-02": 1,
+        "1e-04": 0,
+        "1e-06": 0
+      },
+      "rows": [
+        {
+          "accepted_round_gap": 1,
+          "baseline": {
+            "accepted_energy": -2.1389856616364877,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 7,
+            "cost_tuple": {
+              "D2q": 78,
+              "Dc": 324,
+              "N2q": 96
+            },
+            "energy_decrease": 3.3889856616364877,
+            "same_cutoff_absolute_error": 0.002507902634919734,
+            "weighted_compile_cost": 133.2,
+            "weighted_cost_per_energy_decrease": 39.30379567781346
+          },
+          "feature": {
+            "accepted_energy": -2.134229260281805,
+            "cell_id": "l3_beam_escalated_h15",
+            "controller_round": 6,
+            "cost_tuple": {
+              "D2q": 63,
+              "Dc": 264,
+              "N2q": 76
+            },
+            "energy_decrease": 3.384229260281805,
+            "same_cutoff_absolute_error": 0.0072643039896025385,
+            "weighted_compile_cost": 107.7,
+            "weighted_cost_per_energy_decrease": 31.824085106761302
+          },
+          "status": "reached_by_both",
+          "threshold": 0.01
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.1414935641463106,
+            "cell_id": "l3_beam_escalated_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 71,
+              "Dc": 298,
+              "N2q": 92
+            },
+            "energy_decrease": 3.3914935641463106,
+            "same_cutoff_absolute_error": 1.250968217902937e-10,
+            "weighted_compile_cost": 123.4,
+            "weighted_cost_per_energy_decrease": 36.385149393925396
+          },
+          "status": "reached_by_both",
+          "threshold": 0.0001
+        },
+        {
+          "accepted_round_gap": 0,
+          "baseline": {
+            "accepted_energy": -2.141493564168525,
+            "cell_id": "l3_baseline_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 82,
+              "Dc": 342,
+              "N2q": 100
+            },
+            "energy_decrease": 3.391493564168525,
+            "same_cutoff_absolute_error": 1.0288259133517386e-10,
+            "weighted_compile_cost": 140.1,
+            "weighted_cost_per_energy_decrease": 41.30923363092025
+          },
+          "feature": {
+            "accepted_energy": -2.1414935641463106,
+            "cell_id": "l3_beam_escalated_h15",
+            "controller_round": 8,
+            "cost_tuple": {
+              "D2q": 71,
+              "Dc": 298,
+              "N2q": 92
+            },
+            "energy_decrease": 3.3914935641463106,
+            "same_cutoff_absolute_error": 1.250968217902937e-10,
+            "weighted_compile_cost": 123.4,
+            "weighted_cost_per_energy_decrease": 36.385149393925396
+          },
+          "status": "reached_by_both",
+          "threshold": 1e-06
+        }
+      ]
+    }
+  ],
+  "compile_cost_weights": {
+    "delta_D2q": 0.3,
+    "delta_Dc": 0.25,
+    "delta_N1q": 0.0,
+    "delta_N2q": 0.3,
+    "delta_size": 0.0
+  },
+  "schema": "ra_adapt_appendix_l3_matched_accuracy_v1",
+  "sha256": "0a4874b99a76cb2be84335c54da627ac4fd34c121eafe44239b4ed061fd3ff65"
+}

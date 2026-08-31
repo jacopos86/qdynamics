@@ -1,0 +1,294 @@
+{
+  "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+  "campaign_plan_sha256": "c0a3d47f47f085eb3c21ab399da76fbb062ff009e9b96a60aa260021bdda0e42",
+  "capacity_end": {
+    "available_memory_bytes": 5639061504,
+    "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+    "effective_available_memory_bytes": 5639061504,
+    "free_disk_bytes": 95507615744,
+    "macos_memory_pressure_free_percent": null,
+    "memory_source": "psutil_available_conservative",
+    "native_effective_available_memory_bytes": null,
+    "native_probe_command": [
+      "/usr/bin/memory_pressure",
+      "-Q"
+    ],
+    "native_probe_error": null,
+    "native_probe_output": null,
+    "native_probe_phase": "runtime",
+    "native_probe_status": "not_needed_psutil_satisfied",
+    "platform_name": "Darwin",
+    "psutil_available_memory_bytes": 5639061504,
+    "schema": "ra_adapt_appendix_capacity_receipt_v4",
+    "sha256": "dddb70477967f61eef3c2d579c30950b4f64b5a59b5ed55be7d52849cc818ece",
+    "total_physical_memory_bytes": 17179869184
+  },
+  "capacity_start": {
+    "available_memory_bytes": 10651518894,
+    "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+    "effective_available_memory_bytes": 10651518894,
+    "free_disk_bytes": 95211388928,
+    "macos_memory_pressure_free_percent": 62.0,
+    "memory_source": "macos_memory_pressure_q",
+    "native_effective_available_memory_bytes": 10651518894,
+    "native_probe_command": [
+      "/usr/bin/memory_pressure",
+      "-Q"
+    ],
+    "native_probe_error": null,
+    "native_probe_output": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 62%\n",
+    "native_probe_phase": "launch",
+    "native_probe_status": "available",
+    "platform_name": "Darwin",
+    "psutil_available_memory_bytes": 5287755776,
+    "schema": "ra_adapt_appendix_capacity_receipt_v4",
+    "sha256": "b37eeaeb6d42e966c59392bcbb349eae8b84b207f1b5c8e1c16db0cd17102317",
+    "total_physical_memory_bytes": 17179869184
+  },
+  "cell_artifact_receipts": {
+    "l3_baseline_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+      "cell_id": "l3_baseline_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "0d14e43758a22a11ee65567df4dd34d7a17a44d312a2f9935192c8f2fcad18fc",
+          "size_bytes": 78467
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "e16cd46c8b4f302860d79a40dca7555697b0f04ae23b62c2c806a223a441cdc8",
+          "size_bytes": 5187
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "c43bf7bad9e83113d4b76a2d0bbc9f4b0e908b6478dc1b9d38e6b30d4713a739",
+          "size_bytes": 5374
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "7ff7c128a5fd72fb6950e857819bcea02781e9d168c06a7530026338e4c0a1c2",
+          "size_bytes": 1901191
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.983620485738a243.json",
+          "sha256": "983620485738a2432460c36644eeb568e285339737d4af2acabf2327e1ca5d48",
+          "size_bytes": 16138615
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "c550865089dfa08a450373391527ccb8c4b7be269b5f608e2502fea21a242246",
+          "size_bytes": 26709206
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.5c619d3a56eb3287.json",
+          "sha256": "5c619d3a56eb3287ecf33eae729b7d480c5d687440c408b47674d9afd9de3a64",
+          "size_bytes": 4494
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "15a4b462cd3e4cad2e0176229b1ce8c2f489853c9952a86fd39276d2554ec0f8",
+          "size_bytes": 19753008
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "9fbbb2d251ba52893a68b4241f6966d5c8999a5408b77cca2c5162839bdb4b24",
+          "size_bytes": 10546
+        }
+      ],
+      "files_sha256": "168ddf53a85aafbdbf8cd810b1e9f5f9cb4a7d9f322e0c23b6b601fcc3c9e5b9",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "d5ca402062cf5fc73d898a3bf31ff44bd8279f1fc5c9fa2c873a83d48a4b7713"
+    },
+    "l3_batching_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+      "cell_id": "l3_batching_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "b9d097ed951eccf4d724064393b1be27f522d5cbc14e283ba3c13a4b29a6d502",
+          "size_bytes": 70295
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "d8b181bc3223bdae07e02af4cc7997474549fc7b749a1083ce64664952539f6c",
+          "size_bytes": 5253
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "a58941cde80714091b9b8cc609ee5577d8664de26331dd46384a277512ed7013",
+          "size_bytes": 4348
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "c662e3fa570ca8ff5e4f935d7f87c0c8ca0d0aea7e367fe07171049ac5b67a07",
+          "size_bytes": 2832995
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.448b04a117b5d884.json",
+          "sha256": "448b04a117b5d884d9fd33d4e4a61ffde8388b34b79b05ec547955054cce2478",
+          "size_bytes": 23293329
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "bfaa1149e429632c769ad0cba69fbad826fe326819660af49a61358bf15b8b0b",
+          "size_bytes": 30708698
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "b7586ce54a4aae3cdc525e23fd7d378b7ccfa1dc9b7aadeecc41b35dbf4e5a78",
+          "size_bytes": 28454896
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "1b991310bd027121560a9321c9820fb5726a510945e70f1499f71565b0262c5d",
+          "size_bytes": 9631
+        }
+      ],
+      "files_sha256": "c425436c3ec703580c2f1e4123ad4ec49e7fbac8647010fe43ebc021eb967af5",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "0cc1bed4f61160caf4770971d6fc5fe37471cc87cefc5201249e55082241b299"
+    },
+    "l3_beam_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+      "cell_id": "l3_beam_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "f5fffc98c14e345a043725dd36cbed75d011af5c8b128170de6593a20e934e3e",
+          "size_bytes": 9731568
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "50b8a336d738d94447ba00639b2c564574a07f2004680624768420f75957a084",
+          "size_bytes": 5423
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "cae347456735321ae9009444aae8b137125f0e396912ca7599914b5a488b83e8",
+          "size_bytes": 19059
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "d9c374ac227e01faef5be8c6d4c9894ed274921787d576d595d5971ea3134f2a",
+          "size_bytes": 1996287
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.26efd7925403cc71.json",
+          "sha256": "26efd7925403cc71a415b95a04dbd5db86c6cf970893fdbc3cfe5d3dd5a7ffe0",
+          "size_bytes": 57734526
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "bd25aa8615b3a2a573c71dbaf2aa9a6e0e39070fb2d36030d5605a4ad694bd32",
+          "size_bytes": 42392601
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.d07ec8ccd3826268.json",
+          "sha256": "d07ec8ccd3826268bf08cc0154aab659127f13eaf1af4a64a0a00ad91849bba8",
+          "size_bytes": 4489
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "9d1f452402ae30305097885265cfd79b03a25458c3786b835a81429af8e4182f",
+          "size_bytes": 66373471
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "9f1edfe6f0b010133fe82ddece5527c3252986cdac9e49554529a338383e1d1c",
+          "size_bytes": 10564
+        }
+      ],
+      "files_sha256": "91e794dc6761cf3869bad75fdf800dc7b96bf336bb5720d22ca37b6ec0d2da5b",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "d60ce8a08b52e45accee808761767b6df7f07b5da91a4f4df4a629f751db0a7d"
+    },
+    "l3_metric_ablation_h15": {
+      "campaign_id": "ra_adapt_appendix_demos_l3_20260820_v7",
+      "cell_id": "l3_metric_ablation_h15",
+      "files": [
+        {
+          "path": "accepted_run_evidence.json",
+          "sha256": "0eb1460cf7d77fe8e9777852c95cadb1e4ce1825b18aea76c65086cb24ca54e2",
+          "size_bytes": 115541
+        },
+        {
+          "path": "application_source.json",
+          "sha256": "9427a4273228b35245ff2a507f89acecd8eb8ed2713fee98f0cab9d3a90aa70e",
+          "size_bytes": 5223
+        },
+        {
+          "path": "cell_summary.json",
+          "sha256": "b18402a242a3679dc6b7b9b3fe2a2646514d0fc439411094e0ac007b7201f4f1",
+          "size_bytes": 9517
+        },
+        {
+          "path": "controller_replay_evidence.json",
+          "sha256": "756d8223feb19ea6436a4358138ebaea1fe0914908e76d891fd2c9d0743e75de",
+          "size_bytes": 1720710
+        },
+        {
+          "path": "observations/current.estimator_call_ledger_checkpoint.53e464363abea839.json",
+          "sha256": "53e464363abea8399d5a583baa7c322fb65dfd1aece59dddbcac13750dbc4907",
+          "size_bytes": 24683938
+        },
+        {
+          "path": "observations/current.json",
+          "sha256": "52b2e92aebe15a69cafd8145d91684570ec13a73144421adde9f6060de369aec",
+          "size_bytes": 41740508
+        },
+        {
+          "path": "observations/current.verified_singleton_resume.6839b70cbc6f3916.json",
+          "sha256": "6839b70cbc6f39163eb681c8e9637b125aedc311acd873ec7cc8a7209a3ef528",
+          "size_bytes": 4498
+        },
+        {
+          "path": "observations/estimator_ledger.json",
+          "sha256": "859b052e1e92b23cd13ee8f6e9797a0ca6e9c09ea0e6c043b64089f33373beb2",
+          "size_bytes": 36326003
+        },
+        {
+          "path": "result_identity.json",
+          "sha256": "3133ebae529f8bcc936feab91a7e5b7b5cac64554e1b29614a99e8701b40da0f",
+          "size_bytes": 9817
+        }
+      ],
+      "files_sha256": "f2fcb20aec0f46675a14c5d89fbfee376ca8f34356a825845ff77ba299a58239",
+      "schema": "ra_adapt_appendix_cell_artifact_receipt_v1",
+      "sha256": "d9fb2841e7a43e79a6959255a837795a9468b1da8e4a29d78c199fa6d0458f14"
+    }
+  },
+  "chtc_submitted": false,
+  "executed_cell_count": 4,
+  "executed_cell_ids": [
+    "l3_baseline_h15",
+    "l3_metric_ablation_h15",
+    "l3_batching_h15",
+    "l3_beam_h15"
+  ],
+  "l3_pool_preflight_sha256": "a998aa34e13ecc4a911d5bb8073bf95bbe108b3fc66eb84a2fe9ad4189795e80",
+  "manuscript_repository_mutated": false,
+  "preserved_campaign_ids": [
+    "ra_adapt_appendix_demos_20260820_v1",
+    "ra_adapt_appendix_demos_20260820_v2",
+    "ra_adapt_appendix_demos_20260820_v3",
+    "ra_adapt_appendix_demos_20260820_v4",
+    "ra_adapt_appendix_demos_20260820_v5",
+    "ra_adapt_appendix_demos_l3_20260820_v6"
+  ],
+  "preserved_v5_report_root": "chtc/ra_adapt_appendix_demos_20260820/results_v5",
+  "preserved_v6_report_root": "chtc/ra_adapt_appendix_demos_20260820/results_l3_v6",
+  "schema": "ra_adapt_appendix_l3_campaign_manifest_v2",
+  "sha256": "834481db96950016ad00e62ee87bfb77af4536e7037b35e89c7ecc3f18e76eee",
+  "source": {
+    "head": "0e61fae7b674636a29d766eb7a46afebcb893926",
+    "repo_root": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/appendix-demos-20260820",
+    "required_ancestor": "13de1c4abc4f0fc6a29bb4014c176c63d7f15ed7",
+    "required_ancestor_present": true,
+    "required_appendix_lane_ancestor": "fd18c46804db2df8fb195a89406ca4db4ee94782",
+    "required_appendix_lane_ancestor_present": true,
+    "runner_path": "chtc/ra_adapt_appendix_demos_20260820_v7/run_local_ra_adapt_appendix_demos_l3_20260820_v7.py",
+    "runner_sha256": "8fdc1779f155fc1cdcc694251ab632c4607b616ba6caec3a6a4cd705abbb0b3f",
+    "worktree_clean": true
+  }
+}
