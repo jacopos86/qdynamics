@@ -1,0 +1,291 @@
+{
+  "generated_utc": "2026-03-22T23:28:53.204687+00:00",
+  "pipeline": "hh_prune_nighthawk_fixed_scaffold_export",
+  "source_artifact_json": "artifacts/json/hh_prune_nighthawk_aggressive_5op.json",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "adapt_pool": "fixed_scaffold_locked"
+  },
+  "ground_state": {
+    "exact_energy": 0.15866790412572512,
+    "exact_energy_source": "computed",
+    "method": "python_matrix_eigendecomposition"
+  },
+  "adapt_vqe": {
+    "success": true,
+    "method": "hh_fixed_scaffold_vqe_export_v1",
+    "energy": 0.15909070323441662,
+    "exact_gs_energy": 0.15866790412572512,
+    "delta_e": 0.0004227991086915017,
+    "abs_delta_e": 0.0004227991086915017,
+    "num_particles": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "ansatz_depth": 5,
+    "num_parameters": 7,
+    "logical_num_parameters": 5,
+    "optimal_point": [
+      1.5707938677176911,
+      1.6400240536158577,
+      -3.1415852322533517,
+      -1.54485785098712,
+      -1.5707956982689952,
+      -0.08638170368796677,
+      -0.08646881746381309
+    ],
+    "logical_optimal_point": [
+      1.5707938677176911,
+      1.6400240536158577,
+      -2.343221541620236,
+      -1.5707956982689952,
+      -0.08642526057588992
+    ],
+    "parameterization": {
+      "mode": "per_pauli_term_v1",
+      "term_order": "native",
+      "ignore_identity": true,
+      "coefficient_tolerance": 1e-12,
+      "logical_operator_count": 5,
+      "runtime_parameter_count": 7,
+      "blocks": [
+        {
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+          "logical_index": 0,
+          "runtime_start": 0,
+          "runtime_count": 1,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        },
+        {
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+          "logical_index": 1,
+          "runtime_start": 1,
+          "runtime_count": 1,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "eeyxee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        },
+        {
+          "candidate_label": "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+          "logical_index": 2,
+          "runtime_start": 2,
+          "runtime_count": 2,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "yeeeee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "yezeze",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        },
+        {
+          "candidate_label": "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+          "logical_index": 3,
+          "runtime_start": 4,
+          "runtime_count": 1,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "yeyyee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        },
+        {
+          "candidate_label": "paop_full:paop_disp(site=0)",
+          "logical_index": 4,
+          "runtime_start": 5,
+          "runtime_count": 2,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "eyeeez",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "eyezee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        }
+      ]
+    },
+    "operators": [
+      "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+      "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+      "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+      "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+      "paop_full:paop_disp(site=0)"
+    ],
+    "pool_type": "fixed_scaffold_locked",
+    "structure_locked": true,
+    "fixed_scaffold_kind": "hh_nighthawk_gate_pruned_7term_v1",
+    "fixed_scaffold_metadata": {
+      "schema_version": 1,
+      "route_family": "locked_imported_scaffold_v1",
+      "subject_kind": "hh_nighthawk_gate_pruned_7term_v1",
+      "structure_locked": true,
+      "operator_count": 5,
+      "runtime_term_count": 7,
+      "term_order_id": "source_order",
+      "term_order_basis": "gate_pruned_source_order_7term",
+      "source_order_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "source_order_runtime_term_labels_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "runtime_term_labels_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "source_artifact_json": "artifacts/json/hh_prune_nighthawk_aggressive_5op.json",
+      "source_pool_type": "phase3_v1",
+      "compile_recommendation": {
+        "backend_name": "FakeNighthawk",
+        "optimization_level": 2,
+        "seed_transpiler": 7
+      }
+    },
+    "stop_reason": "optimizer_complete",
+    "nfev_total": 321,
+    "adapt_inner_optimizer": "POWELL",
+    "elapsed_s": 0.2968550408259034
+  },
+  "ansatz_input_state": {
+    "source": "hf",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-12,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "initial_state": {
+    "source": "fixed_scaffold_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 0.2736391429249474,
+        "im": 0.0
+      },
+      "000110": {
+        "re": 0.6511219519915447,
+        "im": 0.0
+      },
+      "001001": {
+        "re": 0.6511236026161159,
+        "im": 0.0
+      },
+      "001010": {
+        "re": 0.2736385593332017,
+        "im": 0.0
+      },
+      "010101": {
+        "re": -0.023708392213032267,
+        "im": 0.0
+      },
+      "010110": {
+        "re": -2.8360845905142658e-05,
+        "im": 0.0
+      },
+      "011001": {
+        "re": 2.8360917801211617e-05,
+        "im": 0.0
+      },
+      "011010": {
+        "re": 0.023708341650010283,
+        "im": 0.0
+      },
+      "100101": {
+        "re": 0.02246305909183015,
+        "im": 0.0
+      },
+      "100110": {
+        "re": 0.00951209060341456,
+        "im": 0.0
+      },
+      "101001": {
+        "re": -0.009509870524484449,
+        "im": 0.0
+      },
+      "101010": {
+        "re": -0.02246239619134022,
+        "im": 0.0
+      },
+      "110101": {
+        "re": -0.001946223809799385,
+        "im": 0.0
+      },
+      "110110": {
+        "re": -4.1431706458987434e-07,
+        "im": 0.0
+      },
+      "111001": {
+        "re": -4.1422036486075833e-07,
+        "im": 0.0
+      },
+      "111010": {
+        "re": -0.0019461663753817596,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-12,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  }
+}
