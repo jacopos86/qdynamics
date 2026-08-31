@@ -1,0 +1,39 @@
+{
+  "archive": {
+    "bytes": 8462213,
+    "file_count": 60,
+    "gzip_integrity": "PASS",
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/paper_ii_threshold_cluster9698247_14.tar.gz",
+    "sha256": "e0da222aef640b3b574690b9ac46684cb1acdeb40095d362a1d31d640c058ad2",
+    "tar_integrity": "PASS",
+    "uncompressed_input_bytes": 62839082
+  },
+  "cluster_id": 9698247,
+  "completed_jobs": 14,
+  "exit_code_0": 13,
+  "exit_code_nonzero": 1,
+  "fetch_status": "FETCHED_VERIFIED_LOCAL",
+  "local_archive": {
+    "bytes": 8462213,
+    "extraction_root": "output/paper_ii_staged/attempts/cluster_9698247/evidence/extracted",
+    "gzip_integrity": "PASS",
+    "path": "output/paper_ii_staged/attempts/cluster_9698247/raw/paper_ii_threshold_cluster9698247_14.tar.gz",
+    "sha256": "e0da222aef640b3b574690b9ac46684cb1acdeb40095d362a1d31d640c058ad2",
+    "tar_integrity": "PASS"
+  },
+  "local_storage_guard": {
+    "free_kib_at_check": 25280604,
+    "minimum_free_gib": 10,
+    "status": "PASS"
+  },
+  "nonzero_processes": [8],
+  "observed_at": "2026-08-26T01:14:00-05:00",
+  "remote_raw_state": "PRESERVED",
+  "remote_quota": {
+    "hard_mib": 51200,
+    "soft_mib": 40960,
+    "used_mib": 18348
+  },
+  "safeguard": "Process 8 wrote a complete run.json but reported three uncured local-subdivision steps and exited 3 under fail-on-unsupported-steps; retain as provenance only.",
+  "schema": "paper_ii_staged_cluster_completion_receipt_v1"
+}

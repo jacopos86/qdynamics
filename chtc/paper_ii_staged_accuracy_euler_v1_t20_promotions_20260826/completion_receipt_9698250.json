@@ -1,0 +1,39 @@
+{
+  "archive": {
+    "bytes": 5165512,
+    "file_count": 44,
+    "gzip_integrity": "PASS",
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/paper_ii_t20_cluster9698250_12.tar.gz",
+    "sha256": "2c1afc45859081445062e53ad6076ad30add0f3f6f0f34e3df03ac1919f3f3e4",
+    "tar_integrity": "PASS",
+    "uncompressed_input_bytes": 52396069
+  },
+  "cluster_id": 9698250,
+  "completed_trajectories": 4,
+  "duplicate_coordinate_failures_without_trajectory": 8,
+  "fetch_status": "FETCHED_VERIFIED_LOCAL_FAILURE_EVIDENCE_ONLY",
+  "jobs": 12,
+  "local_archive": {
+    "bytes": 5165512,
+    "extraction_status": "NOT_EXTRACTED_INVALID_TRAJECTORIES",
+    "gzip_integrity": "PASS",
+    "path": "output/paper_ii_staged/attempts/cluster_9698250/raw/paper_ii_t20_cluster9698250_12.tar.gz",
+    "sha256": "2c1afc45859081445062e53ad6076ad30add0f3f6f0f34e3df03ac1919f3f3e4",
+    "tar_integrity": "PASS"
+  },
+  "local_storage_guard": {
+    "free_bytes_at_check": 22961668096,
+    "minimum_free_gib": 10,
+    "status": "PASS"
+  },
+  "observed_at": "2026-08-26T01:51:00-05:00",
+  "remote_raw_state": "PRESERVED",
+  "remote_quota": {
+    "hard_mib": 51200,
+    "soft_mib": 40960,
+    "used_mib": 18390
+  },
+  "schema": "paper_ii_staged_cluster_completion_receipt_v1",
+  "terminal_cost_status": "BLOCKED_SUPPORT_RECONSTRUCTION_PARITY",
+  "trajectory_processes": [1, 9, 10, 11]
+}

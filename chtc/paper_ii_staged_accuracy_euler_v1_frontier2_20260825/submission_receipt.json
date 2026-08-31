@@ -1,0 +1,33 @@
+{
+  "schema": "paper_ii_staged_chtc_submission_receipt_v1",
+  "submitted_utc": "2026-08-25T21:55:25Z",
+  "batch_name": "paper-ii-staged-accuracy-euler-v1-screen-t5-frontier",
+  "cluster_id": 9697725,
+  "job_count": 25,
+  "final_history": {
+    "exit_zero": 19,
+    "exit_nonzero_safeguard": 6,
+    "held": 0,
+    "remaining_in_queue": 0
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825",
+  "submit_file": "chtc/paper_ii_staged_accuracy_euler_v1_frontier2_20260825/submit_screen_t5_frontier.sub",
+  "source_revision": "c9ad2057bd8462812432922bd78557047fa490db",
+  "package_manifest_sha256": "beb6cddfc9b947a6557aba9374d4dcea69514067b93f1f699f35df5b4714f27e",
+  "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+  "transfer_archive": {
+    "sha256": "7a2c8045f6c921de2b96967b80334de2461537dc3e932bb8fe1896109e95e981",
+    "integrity": "verified_locally_and_remotely_before_submission"
+  },
+  "result_archive": {
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/paper_ii_frontier2_final_25.tar.gz",
+    "bytes": 16640685,
+    "run_json_count": 43,
+    "sha256": "0d316bdabd281db78038a16fc486a64c13f9a24cf054b70f9a0f282b48614358",
+    "fetch_status": "fetched_and_sha256_verified",
+    "fetched_utc": "2026-08-25T23:13:40Z",
+    "local_path": "output/paper_ii_staged/fetched/cluster_9697725.final25/paper_ii_frontier2_final_25.tar.gz"
+  },
+  "paper_evidence_adopted": false,
+  "note": "Nonzero exits are fail-loud numerical-safeguard outcomes with run artifacts; scientific adoption remains an author decision."
+}

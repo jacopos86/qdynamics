@@ -1,0 +1,54 @@
+{
+  "schema": "paper_ii_staged_chtc_submission_receipt_v1",
+  "submitted_utc": "2026-08-26T05:25:55Z",
+  "batch_name": "paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier",
+  "cluster_id": 9698250,
+  "job_count": 12,
+  "initial_queue_state": {
+    "idle": 12,
+    "running": 0,
+    "held": 0,
+    "missing": 0
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825",
+  "submit_file": "chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/submit_active_t5_t20_frontier.sub",
+  "source_revision": "490df595107656fcb99f2a2357a742f55338c4a0",
+  "package_commit": "c5c16eca",
+  "package_manifest_sha256": "ca4990c00205e51814b0cc613d36ff4e9d2cc129e201d32fc23f3f16c53c5187",
+  "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+  "transfer_archive": {
+    "bytes": 16286577,
+    "sha256": "b8a9262e5201eff3705f43e19e04c95dff31084f068b8163d29af580ebb46c6a",
+    "integrity": "verified_locally_and_remotely_before_exact_local_and_remote_deletion"
+  },
+  "container_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "remote_storage": "previously verified retained image"
+  },
+  "pre_submit_checks": {
+    "package_audit": "PASS",
+    "promotion_resume_audit": "PASS_12_OF_12",
+    "targeted_tests": "92 passed",
+    "revision_parity": "PASS",
+    "resume_sha256_parity": "PASS_12_OF_12_LOCAL_AND_REMOTE",
+    "condor_dry_run_jobs": 12,
+    "matching_prior_queue_rows": 0,
+    "stale_monitor_processes": 0,
+    "remote_home_quota_used_mb": 18310,
+    "remote_home_quota_soft_mb": 40960,
+    "remote_home_quota_hard_mb": 51200
+  },
+  "source_ledger": "output/paper_ii_staged/fetched/cluster_9698201.final22/ledger_corrected_final22.json",
+  "concurrent_t5_cluster": 9698247,
+  "promotion_scope": {
+    "accuracy_qualified_t5_arms": 12,
+    "avqds_arms": 10,
+    "apm_arms": 2,
+    "complete_matched_pairs_represented": 2,
+    "continuation_interval": "5_to_20",
+    "continuation_point_count": 376
+  },
+  "promotion_status": "submitted_not_evaluated",
+  "note": "Per-cell accuracy-only promotion. Qualified t20 continuations run concurrently with unrelated t5 threshold extensions; cost does not gate submission."
+}

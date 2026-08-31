@@ -1,0 +1,24 @@
+{
+  "action_count": 12,
+  "action_stages": [
+    "promote_apm_t20",
+    "promote_avqds_t20"
+  ],
+  "campaign_id": "paper_ii_staged_accuracy_euler_v1",
+  "checks": [
+    "ledger replay emitted a nonempty current frontier",
+    "every action resolves through paper_ii_runs.build_run",
+    "every argv parses with the live runner parser",
+    "every action records checkpoint statevectors",
+    "every resume source is copied and sha256-bound",
+    "screening actions skip terminal compilation",
+    "promotion actions request terminal compilation"
+  ],
+  "code_revision": "79fa325db10f8edbee9f31b77c6e58468d50fb54",
+  "manifest": "chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/input/manifest.json",
+  "manifest_sha256": "ba52ae61eabd0c81058e9e31cd76bf981fdfd5c4e6bcf7b310b2d44efe287e8e",
+  "schema": "paper_ii_staged_chtc_package_v1",
+  "stage": "active_t5_t20_frontier",
+  "status": "PASS_NOT_SUBMITTED",
+  "submit_command": "condor_submit chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/submit_active_t5_t20_frontier.sub"
+}

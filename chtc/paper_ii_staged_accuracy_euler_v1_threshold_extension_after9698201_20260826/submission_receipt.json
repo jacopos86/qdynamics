@@ -1,0 +1,42 @@
+{
+  "schema": "paper_ii_staged_chtc_submission_receipt_v1",
+  "submitted_utc": "2026-08-26T05:05:26Z",
+  "batch_name": "paper-ii-staged-accuracy-euler-v1-screen-t5-frontier",
+  "cluster_id": 9698247,
+  "job_count": 14,
+  "initial_queue_state": {
+    "idle": 14,
+    "running": 0,
+    "held": 0,
+    "missing": 0
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825",
+  "submit_file": "chtc/paper_ii_staged_accuracy_euler_v1_threshold_extension_after9698201_20260826/submit_screen_t5_frontier.sub",
+  "source_revision": "fd752243ff651ac764db6ef60142f818102ab586",
+  "package_commit": "9566d96b",
+  "package_manifest_sha256": "61bd466c8ce027ff19ecce0670fafca8b2b7dbcc7c2d8f816358ebf500227f15",
+  "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+  "transfer_archive": {
+    "bytes": 11949987,
+    "sha256": "bf8717d8fbb70f39414144b185f86df38240606e42515ff8e6c5064f586f5a45",
+    "integrity": "verified_locally_and_remotely_before_exact_local_and_remote_deletion"
+  },
+  "container_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "remote_storage": "previously verified retained image"
+  },
+  "pre_submit_checks": {
+    "package_audit": "PASS",
+    "targeted_tests": "90 passed",
+    "condor_dry_run_jobs": 14,
+    "matching_prior_queue_rows": 0,
+    "remote_home_quota_used_mb": 18198,
+    "remote_home_quota_soft_mb": 40960,
+    "remote_home_quota_hard_mb": 51200
+  },
+  "source_ledger": "output/paper_ii_staged/fetched/cluster_9698201.final22/ledger_corrected_final22.json",
+  "prior_cluster": 9698201,
+  "promotion_status": "not_evaluated",
+  "note": "Threshold-extension frontier after ingesting corrected cluster 9698201. The report is rebuilt only from complete APM/AVQDS pairs that independently pass every declared physical-error gate."
+}

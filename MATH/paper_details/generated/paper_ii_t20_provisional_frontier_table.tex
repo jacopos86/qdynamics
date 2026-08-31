@@ -1,0 +1,26 @@
+\begin{table*}[t]
+\caption{Artifact-verified $t=20$ frontier.  Mean infidelity $\overline{1-F}=\operatorname{mean}_t[1-|\langle\psi_{\rm ex}(t)|\psi(t)\rangle|^2]$ uses all 501 reporting points on $0\le t\le20$.  $N_{\rm step}$ is the total number of accepted internal integration steps across the stitched trajectory.  $N_\theta$ is the terminal active-coordinate count, and $\widehat{\boldsymbol C}_G=(\widehat C_{2q},\widehat C_D,\widehat C_{1q})$ is the routing-independent terminal graph tuple.  The campaign compares AVQDS, full APM, and the deletion-disabled insertion McLachlan (IM) restriction; IM rows will enter when their $t=20$ runs complete.  The exact trajectory is used only after each run.}
+\label{tab:t20_provisional_frontier}
+\centering\scriptsize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lllrrrc}
+\toprule
+drive & controller & method & $\overline{1-F}$ & $N_{\rm step}$ & $N_\theta$ & $\widehat{\boldsymbol C}_G$ \\
+\midrule
+weak--slow & $\delta\theta$ & full APM & $4.8\!\times\!10^{-6}$ & 471,508 & 40 & $(140,200,298)$ \\
+weak--slow & $\delta\theta$ & AVQDS & $5.7\!\times\!10^{-7}$ & 255,572 & 58 & $(172,238,374)$ \\
+weak--slow & combined & full APM & $4.6\!\times\!10^{-6}$ & 725,424 & 37 & $(108,162,237)$ \\
+weak--slow & combined & AVQDS & $5.5\!\times\!10^{-7}$ & 405,760 & 58 & $(172,238,374)$ \\
+weak--slow & state motion & AVQDS & $1.6\!\times\!10^{-6}$ & 36,912 & 65 & $(190,272,411)$ \\
+fast--weak & $\delta\theta$ & AVQDS & $6.0\!\times\!10^{-7}$ & 796,269 & 61 & $(170,238,371)$ \\
+mid-resonant & $\delta\theta$ & AVQDS & $7.2\!\times\!10^{-7}$ & 947,997 & 60 & $(166,232,366)$ \\
+slow--strong & $\delta\theta$ & AVQDS & $6.2\!\times\!10^{-7}$ & 518,993 & 62 & $(186,248,396)$ \\
+slow--strong & combined & AVQDS & $5.1\!\times\!10^{-7}$ & 829,568 & 62 & $(186,248,396)$ \\
+strong--fast & $\delta\theta$ & AVQDS & $1.2\!\times\!10^{-7}$ & 1,000,649 & 62 & $(182,256,386)$ \\
+fast--fast & $\delta\theta$ & AVQDS & $4.1\!\times\!10^{-7}$ & 687,685 & 65 & $(192,258,417)$ \\
+fast--fast & state motion & AVQDS & $1.9\!\times\!10^{-7}$ & 504,448 & 100 & $(316,408,672)$ \\
+\addlinespace[2pt]
+\multicolumn{3}{l}{insertion McLachlan (IM)} & \multicolumn{4}{c}{\textit{$t=20$ rows pending}} \\
+\bottomrule
+\end{tabular}
+\end{table*}

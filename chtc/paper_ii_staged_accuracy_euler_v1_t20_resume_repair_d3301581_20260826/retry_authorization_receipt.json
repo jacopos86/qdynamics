@@ -1,0 +1,26 @@
+{
+  "authorized_action_ids": [
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1e-06",
+    "promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut3e-06",
+    "promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06"
+  ],
+  "authorization_scope": "One repaired CHTC attempt in a new remote workspace. The scientific actions and preserved t=5 resume blobs are unchanged; only the tested resume adapter and operational package revision differ.",
+  "authorized_at": "2026-08-26T06:45:00-05:00",
+  "diagnosis_receipt": "chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/diagnosis_receipt_9698250.json",
+  "new_remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_resume_fix_20260826",
+  "package_revision": "79fa325db10f8edbee9f31b77c6e58468d50fb54",
+  "repair_commit": "d3301581",
+  "resume_sha256_parity": "PASS_12_OF_12_AGAINST_CLUSTER_9698250_PACKAGE",
+  "schema": "paper_ii_staged_retry_authorization_receipt_v1",
+  "source_cluster": 9698250,
+  "status": "AUTHORIZED_NOT_SUBMITTED"
+}

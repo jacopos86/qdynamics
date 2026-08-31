@@ -1,0 +1,51 @@
+{
+  "cluster_id": 9698250,
+  "diagnosed_at": "2026-08-26T06:32:29-05:00",
+  "disposition": "No cluster-9698250 trajectory is eligible for accuracy ingestion. Recreate all twelve promotions from their preserved t=5 resume states using a package at or after repair commit d3301581 and distinct repaired-attempt action identifiers. Do not weaken the runtime-label or terminal-cost parity gates.",
+  "failed_without_trajectory_processes": [0, 2, 3, 4, 5, 6, 7, 8],
+  "invalid_completed_trajectory_processes": [1, 9, 10, 11],
+  "invalidated_action_ids": [
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1e-06",
+    "promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut3e-06",
+    "promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06"
+  ],
+  "observations": {
+    "completed_trajectory_logical_count_excess": 3,
+    "first_resumed_checkpoint_runtime_count": 68,
+    "resume_runtime_coordinate_count": 64,
+    "resume_runtime_labels_unique": true
+  },
+  "repair": {
+    "commit": "d3301581",
+    "rule": "A continuation reconstructs the complete terminal support from the resume state and therefore must not append the drive-aligned block again.",
+    "verified_production_boundary": {
+      "drive_augmentation_applied": false,
+      "drive_augmentation_reason": "resume_terminal_support_already_contains_drive_alignment",
+      "rebuilt_runtime_coordinate_count": 64,
+      "runtime_labels_unique": true,
+      "saved_runtime_coordinate_count": 64
+    }
+  },
+  "root_cause": "The resume adapter reconstructed the complete t=5 terminal support and the runner then applied fresh-run drive alignment a second time. The four extra runtime children produced duplicate labels after later structural insertion. Runs without a later insertion still evolved on the wrong 68-coordinate manifold; reconstructing their terminal support as independent logical terms explains the observed +3 logical-term cost-parity mismatch.",
+  "schema": "paper_ii_staged_execution_diagnosis_receipt_v1",
+  "source_failure_receipt": "chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/failure_receipt_9698250.json",
+  "tests": [
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_time_dynamics_resume.py test/test_ap_mclachlan_state_hamiltonian.py test/test_ap_mclachlan_avqds.py test/test_ap_mclachlan_adaptive_trajectory.py test/test_ap_terminal_qiskit_cost.py",
+      "result": "41 passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_ap_mclachlan*.py test/test_time_dynamics_resume.py test/test_staged_campaign*.py <all test_paper_ii_ modules except unrelated diagnostic-smoke fixture>",
+      "result": "370 passed"
+    }
+  ]
+}

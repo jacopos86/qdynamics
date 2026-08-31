@@ -1,0 +1,39 @@
+{
+  "blocked_action_ids": [
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut3e-06",
+    "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06"
+  ],
+  "cluster_id": 9698250,
+  "completed_trajectory_cost_failures": [
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07",
+      "process": 1
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1e-06",
+      "process": 9
+    },
+    {
+      "action_id": "promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut3e-06",
+      "process": 10
+    },
+    {
+      "action_id": "promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06",
+      "process": 11
+    }
+  ],
+  "cost_exception": "Terminal AP support reconstruction parity failed: selected_term_labels_match=False while runtime_coordinate_labels_match=True and the rebuilt logical count exceeds the saved logical count by three.",
+  "disposition": "Remote stderr was preserved and the eight duplicate-coordinate transfer-held jobs were removed from the live queue. Retry is blocked pending a tested resume-coordinate repair. Four additional trajectories reached t=20 and remain usable for accuracy evaluation, but terminal-cost reporting is blocked pending a support-reconstruction parity repair.",
+  "exception": "pipelines.time_dynamics.ap_mclachlan.state.APMcLachlanStateParityError: insert_runtime_coordinates(input): duplicate runtime coordinate labels are not allowed.",
+  "failed_processes": [0, 2, 3, 4, 5, 6, 7, 8],
+  "observed_at": "2026-08-26T01:14:00-05:00",
+  "remote_log_pattern": "chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/logs/paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier.9698250.<proc>.err",
+  "retry_authorized": false,
+  "schema": "paper_ii_staged_execution_failure_receipt_v1"
+}

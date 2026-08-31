@@ -1,0 +1,60 @@
+{
+  "schema": "paper_ii_staged_chtc_submission_receipt_v1",
+  "submitted_utc": "2026-08-26T01:57:21Z",
+  "batch_name": "paper-ii-staged-accuracy-euler-v1-screen-t5-frontier",
+  "cluster_id": 9698201,
+  "job_count": 22,
+  "initial_queue_state": {
+    "idle": 22,
+    "running": 0,
+    "held": 0,
+    "missing": 0
+  },
+  "final_history": {
+    "completed": 22,
+    "exit_zero": 17,
+    "exit_nonzero_safeguard": 5,
+    "held": 0,
+    "remaining": 0,
+    "run_json_count": 22
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825",
+  "submit_file": "chtc/paper_ii_staged_accuracy_euler_v1_exchange_budget_repair_20260825/submit_screen_t5_frontier.sub",
+  "source_revision": "c583ff96b4e3404d75b3ff68d59161155621898c",
+  "package_commit": "1ac3ad41",
+  "package_manifest_sha256": "3b6ff62983020dd2ccd24f7726616cc063893566d516cbabf502f010f17b168e",
+  "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+  "transfer_archive": {
+    "bytes": 152615,
+    "sha256": "05ca385cb4bc04865f0ce3e211d603d15c7fd8f33fe79940cd51f4bb9d595a20",
+    "integrity": "verified_locally_and_remotely_before_exact_remote_deletion"
+  },
+  "result_archive": {
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/paper_ii_exchange_repair_cluster9698201_22.tar.gz",
+    "local_path": "output/paper_ii_staged/fetched/cluster_9698201.final22/paper_ii_exchange_repair_cluster9698201_22.tar.gz",
+    "bytes": 9259884,
+    "sha256": "2980968a823720d52a358835d794193872e21bf8dda985d25944b449584ed1b1",
+    "integrity": "size_sha256_gzip_and_tar_verified_before_atomic_local_rename",
+    "remote_archive_state": "deleted_after_verified_local_ingestion",
+    "remote_raw_results_state": "preserved"
+  },
+  "container_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "remote_storage": "previously verified retained image"
+  },
+  "pre_submit_checks": {
+    "package_audit": "PASS",
+    "targeted_tests": "88 passed",
+    "condor_dry_run_jobs": 22,
+    "matching_prior_queue_rows": 0,
+    "stale_monitor_processes": 0,
+    "remote_home_quota_used_mb": 18100,
+    "remote_home_quota_hard_mb": 51200
+  },
+  "preserved_pre_repair_remote_results": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825",
+  "promotion_status": "two_complete_t5_accuracy_qualified_pairs_reported; remaining_frontier_extended",
+  "qualified_pair_count": 2,
+  "report_pdf": "output/pdf/paper_ii_staged_accuracy_campaign/paper_ii_staged_report.pdf",
+  "note": "Corrected candidate-screening submission after repairing permission-filtered exchange-family admission. Scientific adoption remains an author decision."
+}

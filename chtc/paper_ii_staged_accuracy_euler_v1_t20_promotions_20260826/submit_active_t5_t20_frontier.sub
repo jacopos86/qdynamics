@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/run_action_apptainer.sh
+arguments = $(action_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs
+log = chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/logs/paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier.$(Cluster).$(Process).log
+output = chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/logs/paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier.$(Cluster).$(Process).out
+error = chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/logs/paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 10GB
+request_disk = 40GB
++MaxRuntime = 43200
++JobBatchName = "paper-ii-staged-accuracy-euler-v1-active-t5-t20-frontier"
+queue action_id from chtc/paper_ii_staged_accuracy_euler_v1_t20_promotions_20260826/input/action_ids.txt

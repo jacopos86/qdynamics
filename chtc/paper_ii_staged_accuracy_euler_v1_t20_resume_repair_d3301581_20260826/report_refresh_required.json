@@ -1,0 +1,44 @@
+{
+  "active_report": {
+    "ledger_record_count": 47,
+    "path": "output/pdf/paper_ii_staged_accuracy_campaign/paper_ii_staged_report.pdf",
+    "qualified_pair_count": 2,
+    "source_clusters": [
+      9697391,
+      9698201
+    ],
+    "status": "STALE"
+  },
+  "blocks": [
+    "further_campaign_submission",
+    "claiming_the_visible_pdf_is_current"
+  ],
+  "created_at": "2026-08-26T10:45:00-05:00",
+  "pending_attempts": [
+    {
+      "cluster_id": 9698247,
+      "eligible_trajectory_count": 13,
+      "horizon": "t5",
+      "safeguard_trajectory_count": 1,
+      "status": "FETCHED_VERIFIED_GATE_PENDING"
+    },
+    {
+      "cluster_id": 9698264,
+      "eligible_trajectory_count": 12,
+      "horizon": "t20",
+      "safeguard_trajectory_count": 0,
+      "status": "FETCHED_VERIFIED_GATE_PENDING"
+    }
+  ],
+  "required_resolution": {
+    "report_behavior": "Every refreshed PDF must show the full ledger frontier on page one; complete qualified pairs add observable and resource pages.",
+    "steps": [
+      "ingest every eligible artifact and record safeguard provenance",
+      "compute the declared componentwise exact-reference gates",
+      "rebuild and render-check the canonical consolidated LaTeX PDF",
+      "record the refreshed ledger digest, report digest, row count, and qualified t20 pair count",
+      "remove this block only after those receipts agree"
+    ]
+  },
+  "schema": "paper_ii_report_refresh_required_v1"
+}

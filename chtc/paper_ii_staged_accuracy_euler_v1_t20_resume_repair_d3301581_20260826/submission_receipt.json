@@ -1,0 +1,44 @@
+{
+  "batch_name": "paper-ii-staged-accuracy-euler-v1-t20-resume-fix-d3301581",
+  "cluster_id": 9698264,
+  "initial_queue_state": {
+    "held": 0,
+    "idle": 12,
+    "running": 0
+  },
+  "job_count": 12,
+  "package_commit": "7f7f706a",
+  "pre_submit_checks": {
+    "action_count": 12,
+    "action_ids_unique": true,
+    "condor_dry_run_jobs": 12,
+    "container_image_bytes": 216371200,
+    "container_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "duplicate_active_or_historical_batch_rows": 0,
+    "exact_remote_file_count": 649,
+    "exact_remote_file_hash_parity": "PASS_649_OF_649",
+    "remote_home_quota_hard_mb": 51200,
+    "remote_home_quota_soft_mb": 40960,
+    "remote_home_quota_used_mb": 18483,
+    "resume_sha256_parity": "PASS_12_OF_12",
+    "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+    "stale_monitor_processes": 0
+  },
+  "remote_assembly": {
+    "base_source_revision": "490df595107656fcb99f2a2357a742f55338c4a0",
+    "copied_log_duplicates_removed_from_new_workspace": 36,
+    "old_workspace_untouched": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_20260825",
+    "overlay_bytes": 38738,
+    "overlay_sha256": "3ebc5953d17219dc14f17f93fd2929296fb6d1096800f3b365c953a48bc42bfc",
+    "removed_appledouble_transport_files": 988,
+    "resulting_expected_file_count": 649
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_resume_fix_20260826",
+  "repair_commit": "d3301581",
+  "retry_authorization_receipt": "chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/retry_authorization_receipt.json",
+  "schema": "paper_ii_staged_chtc_submission_receipt_v1",
+  "source_revision": "79fa325db10f8edbee9f31b77c6e58468d50fb54",
+  "status": "SUBMITTED_NOT_EVALUATED",
+  "submitted_at": "2026-08-26T06:48:00-05:00",
+  "submit_file_sha256": "a530dce9724789029175eedcda97dfd4945d81a2b72eb8b6f6454beaf64cf94f"
+}

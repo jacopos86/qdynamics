@@ -1,0 +1,151 @@
+{
+  "archive": {
+    "bytes": 13271737,
+    "file_count": 60,
+    "gzip_integrity": "PASS",
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_resume_fix_20260826/paper_ii_t20_resume_fix_cluster9698264_12.tar.gz",
+    "sha256": "d42aa3e7ebf46d9dc141f4606f2b2798696fd99d3f0134901e41c5b16453aa74",
+    "tar_entry_count": 74,
+    "tar_integrity": "PASS",
+    "uncompressed_input_bytes": 129920934
+  },
+  "cluster_id": 9698264,
+  "completed_jobs": 12,
+  "exit_code_0": 12,
+  "exit_code_nonzero": 0,
+  "fetch_status": "FETCHED_VERIFIED_LOCAL",
+  "jobs": [
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06",
+      "exit_code": 0,
+      "process": 0,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07",
+      "exit_code": 0,
+      "process": 1,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 2,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 3,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 4,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 5,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1e-06",
+      "exit_code": 0,
+      "process": 6,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 7,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 8,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1e-06",
+      "exit_code": 0,
+      "process": 9,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 10,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    },
+    {
+      "action_id": "promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut3e-06",
+      "exit_code": 0,
+      "process": 11,
+      "resume_boundary": "PASS",
+      "terminal_reconstruction_parity": "PASS",
+      "trajectory": "PRESENT",
+      "uncured_local_subdivision_count": 0
+    }
+  ],
+  "local_archive": {
+    "bytes": 13271737,
+    "extraction_root": "output/paper_ii_staged/attempts/cluster_9698264/evidence/extracted",
+    "gzip_integrity": "PASS",
+    "path": "output/paper_ii_staged/attempts/cluster_9698264/raw/paper_ii_t20_resume_fix_cluster9698264_12.tar.gz",
+    "sha256": "d42aa3e7ebf46d9dc141f4606f2b2798696fd99d3f0134901e41c5b16453aa74",
+    "tar_integrity": "PASS"
+  },
+  "observed_at": "2026-08-26T08:35:43-05:00",
+  "remote_raw_state": "PRESERVED",
+  "remote_quota": {
+    "hard_mib": 51200,
+    "soft_mib": 40960,
+    "used_mib_after_archive": 18620,
+    "used_mib_before_archive": 18607
+  },
+  "schema": "paper_ii_staged_cluster_completion_receipt_v1",
+  "validation": {
+    "plot_rows_per_trajectory": 376,
+    "resume_initial_support_equals_saved_t5_support": "PASS",
+    "runtime_coordinate_labels": "PASS",
+    "selected_term_labels": "PASS",
+    "terminal_cost_support_reconstruction_parity": "PASS"
+  }
+}
