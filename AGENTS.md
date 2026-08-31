@@ -121,12 +121,12 @@ or source-locked provenance.
   on your own branch. Stage commits with explicit paths only — a broad
   `git add -A` in a shared checkout sweeps other agents' uncommitted
   work into your commit (incident: `ba7f2ac9`, 2026-08-18).
-- Memory budget (user directive, 2026-08-18, after machine crashes):
-  all agent-launched work combined must stay under 10 GB resident RAM
-  on this 16 GB machine. Read and obey
+- Memory budget (user directive 2026-08-18, revised 2026-08-31 for the
+  24 GB M4 replacement machine): all agent-launched work combined must
+  stay under 18 GB resident RAM. Read and obey
   `agent_guidance/shared/memory-budget.md` before launching anything
   heavy; wrap heavy processes in `pipelines/shell/ram_guard.py`. One
-  heavy job at a time per machine; big compute goes to CHTC.
+  heavy job at a time per machine; many-job campaigns go to CHTC.
 - Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.
