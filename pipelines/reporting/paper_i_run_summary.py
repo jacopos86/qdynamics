@@ -1184,6 +1184,7 @@ def _canonical_ra_semantic_closure_identities(
 
     from pipelines.static_adapt.ra_adapt.contracts import (
         ACTIVE_GRADIENT_STATIONARY,
+        CANDIDATE_REPRESENTATION_MACRO,
         CANDIDATE_REPRESENTATION_SINGLE_PAULI,
         RAAdaptRequest,
         RESOURCE_WEIGHTING_ALL_PHASE,
@@ -1259,6 +1260,7 @@ def _canonical_ra_semantic_closure_identities(
 def _validate_canonical_identity(run_source: SRRunResult) -> None:
     from pipelines.static_adapt.ra_adapt.contracts import (
         ACTIVE_GRADIENT_STATIONARY,
+        CANDIDATE_REPRESENTATION_MACRO,
         CANDIDATE_REPRESENTATION_SINGLE_PAULI,
         RAAdaptRequest,
         RESOURCE_WEIGHTING_ALL_PHASE,
@@ -1271,6 +1273,7 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
     )
     from pipelines.static_adapt.sr_snake.contracts import (
         CANONICAL_CANDIDATE_REPRESENTATION,
+        ResolvedProblemReceipt,
         SRMethodPolicy,
         SRRunRequest,
     )
@@ -1284,6 +1287,11 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
     from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
         PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
         PaperIPureHubbardNoisePage12CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+        PAPER_I_HUBBARD_L4_ALGORITHM_ID,
+        PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
+        build_paper_i_hubbard_l4_problem,
     )
 
     problem = run_source.problem
@@ -1488,6 +1496,57 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
         )
         == 4
     )
+    l4_route_identity: tuple[str, str, str, str] | None = None
+    if (
+        observed_identity[0] == "ra_adapt"
+        and representation == CANDIDATE_REPRESENTATION_MACRO
+        and str(
+            _required_attribute(
+                problem,
+                "family_key",
+                context="run_source.problem",
+            )
+        )
+        == "hubbard"
+        and num_sites == 4
+    ):
+        l4_problem = build_paper_i_hubbard_l4_problem()
+        l4_request = RAAdaptRequest(
+            adapter=PaperIHubbardL4MacroGradientPhase0CandidateAdapter(),
+            method=method,
+        )
+        (
+            l4_profile_request,
+            l4_profile,
+            _l4_contract,
+            l4_contract_sha256,
+        ) = _repaired_route_contract(
+            l4_request,
+            active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+            resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+            algorithm_id=PAPER_I_HUBBARD_L4_ALGORITHM_ID,
+            problem=l4_problem,
+        )
+        l4_route_identity = (
+            "ra_adapt",
+            l4_profile_request,
+            l4_profile,
+            l4_contract_sha256,
+        )
+    named_hubbard_l4_application = bool(
+        l4_route_identity is not None
+        and observed_identity == l4_route_identity
+        and str(
+            _required_attribute(
+                problem,
+                "problem_request_sha256",
+                context="run_source.problem",
+            )
+        )
+        == ResolvedProblemReceipt.from_problem(
+            build_paper_i_hubbard_l4_problem()
+        ).problem_request_sha256
+    )
     semantic_route_identities = set(
         _canonical_ra_semantic_closure_identities(
             method,
@@ -1509,11 +1568,13 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             observed_identity in expected_identities
             or named_l3_page12_application
             or named_pure_hubbard_application
+            or named_hubbard_l4_application
         )
         representation_matches = bool(
             expected_identities
             or named_l3_page12_application
             or named_pure_hubbard_application
+            or named_hubbard_l4_application
         )
     else:
         (
@@ -1579,13 +1640,18 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             )
         )
         != "hh"
-        and not named_pure_hubbard_application
+        and not (
+            named_pure_hubbard_application
+            or named_hubbard_l4_application
+        )
     ):
         raise ValueError(
             "canonical Paper-I summary requires Hubbard-Holstein or the "
             "exact named pure-Hubbard full-noise application."
         )
-    if num_sites != 2 and not named_l3_page12_application:
+    if num_sites != 2 and not (
+        named_l3_page12_application or named_hubbard_l4_application
+    ):
         raise ValueError(
             "canonical Paper-I summary requires Hubbard-Holstein L=2 or "
             "the exact named Page-12 L=3 application."
@@ -1633,7 +1699,9 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             context="run_source.route.execution",
         )
     ) and not (
-        named_pure_hubbard_application or named_semantic_application
+        named_pure_hubbard_application
+        or named_hubbard_l4_application
+        or named_semantic_application
     ):
         raise ValueError("canonical Paper-I summary does not accept Phase 0.")
     if bool(

@@ -73,6 +73,12 @@ from pipelines.static_adapt.ra_adapt.l3_page12 import (
     paper_i_l3_page12_application_source_contract,
     require_paper_i_l3_page12_problem,
 )
+from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+    PAPER_I_HUBBARD_L4_SOURCE_LOCK_KEY,
+    is_paper_i_hubbard_l4_append_application,
+    paper_i_hubbard_l4_application_source_contract,
+    require_paper_i_hubbard_l4_materialization,
+)
 from pipelines.static_adapt.ra_adapt.replay_evidence import (
     build_append_controller_replay_evidence,
     build_signed_append_prefix_checkpoint,
@@ -177,6 +183,11 @@ def _require_paper_i_problem(
     ):
         return
     if request is not None and _is_named_l3_append_application(problem, request):
+        return
+    if (
+        request is not None
+        and is_paper_i_hubbard_l4_append_application(problem, request)
+    ):
         return
     if (
         str(problem.family_key).strip().lower() != "hh"
@@ -318,6 +329,15 @@ def build_resolved_append_protocol(
                 "The named L=3 conventional Append comparator requires its "
                 "exact bundle application source lock."
             )
+    if is_paper_i_hubbard_l4_append_application(problem, request):
+        require_paper_i_hubbard_l4_materialization(
+            problem=problem,
+            request=request,
+            algorithm_id=APPEND_ADAPT_ALGORITHM_ID,
+            active_gradient_policy=str(active_gradient_policy),
+            resource_weighting_scope=str(resource_weighting_scope),
+            source_locks=supplied_locks,
+        )
     for key, expected in expected_locks.items():
         supplied = supplied_locks.get(key)
         if supplied is not None and supplied != expected:
@@ -470,6 +490,17 @@ def _validate_resolved_append_protocol(
         ):
             raise ValueError(
                 "Resolved L=3 Append application source lock drifted."
+            )
+    if is_paper_i_hubbard_l4_append_application(problem, request):
+        application_source = paper_i_hubbard_l4_application_source_contract(
+            problem
+        )
+        if (
+            protocol.source_locks.get(PAPER_I_HUBBARD_L4_SOURCE_LOCK_KEY)
+            != application_source["sha256"]
+        ):
+            raise ValueError(
+                "Resolved Hubbard L=4 Append application source lock drifted."
             )
     parent, executable = _append_inventories(problem, request)
     if not _same_pool_identity(parent, protocol.parent_inventory):

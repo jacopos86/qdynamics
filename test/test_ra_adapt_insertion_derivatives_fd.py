@@ -8,6 +8,9 @@ import pytest
 from pipelines.scaffold.hh_continuation_stage_control import (
     StageControllerConfig,
 )
+from pipelines.scaffold.hh_continuation_scoring import (
+    OrderedInsertionGeometryOracle,
+)
 from pipelines.static_adapt.ra_adapt.contracts import (
     CANDIDATE_REPRESENTATION_MACRO,
     CANDIDATE_REPRESENTATION_SINGLE_PAULI,
@@ -198,6 +201,12 @@ def test_actual_position_gradient_and_hessian_match_finite_differences(
         request=request,
         h_compiled=h_compiled,
     )
+    staged_geometry = OrderedInsertionGeometryOracle().estimate(
+        scaffold_context=joint_context,
+        candidate_label=candidate.label,
+        candidate_term=candidate,
+        position_id=insertion_position,
+    )
 
     combined_terms = [
         *selected[:insertion_position],
@@ -253,6 +262,17 @@ def test_actual_position_gradient_and_hessian_match_finite_differences(
     assert joint.insertion_position == insertion_position
     assert first_order.payload["candidate_position_id"] == insertion_position
     assert joint.payload["candidate_position_id"] == insertion_position
+    assert staged_geometry["candidate_position_id"] == insertion_position
+    assert staged_geometry["F_raw"] == pytest.approx(
+        float(joint.payload["G_BB"]),
+        abs=2.0e-12,
+    )
+    np.testing.assert_allclose(
+        staged_geometry["q_window"],
+        joint.payload["G_AB"],
+        atol=2.0e-12,
+        rtol=2.0e-12,
+    )
     assert first_order.payload["energy_gradient"] == pytest.approx(
         gradient_fd[-1],
         abs=5.0e-9,

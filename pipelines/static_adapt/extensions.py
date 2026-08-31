@@ -448,8 +448,34 @@ def run_batch_proposals(
         joint_pair_observer=_observe_joint_pair,
     )
     if not proposals:
+        failure_summary = {
+            "forced_singleton_rank_waiver": bool(
+                batch_cfg.batch_empty_feasible_forced_fallback
+            ),
+            "reason": raw_summary.get("reason"),
+            "rejection_counts": raw_summary.get("rejection_counts", {}),
+            "rank_gate_rejection_count": raw_summary.get(
+                "rank_gate_rejection_count", 0
+            ),
+            "conditioning_gate_rejection_count": raw_summary.get(
+                "conditioning_gate_rejection_count", 0
+            ),
+            "subset_counts_considered": raw_summary.get(
+                "subset_counts_considered", {}
+            ),
+            "subset_counts_evaluated": raw_summary.get(
+                "subset_counts_evaluated", {}
+            ),
+            "subset_counts_feasible": raw_summary.get(
+                "subset_counts_feasible", {}
+            ),
+            "rank_feasibility_prefilter": raw_summary.get(
+                "rank_feasibility_prefilter", {}
+            ),
+        }
         raise RuntimeError(
-            f"{strategy_label} reduced-plane search found no feasible proposal."
+            f"{strategy_label} reduced-plane search found no feasible proposal: "
+            f"{failure_summary!r}."
         )
     winning_keys = {
         _batch_admission_record_key(record) for record in proposals[0].records

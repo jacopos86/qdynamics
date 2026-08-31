@@ -8,6 +8,7 @@ memory routing, and ADAPT result accounting stay with the pipeline caller.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Any, Callable, Mapping
 
 import numpy as np
@@ -68,6 +69,8 @@ class AdaptInnerOptimizerConfig:
     spsa_refit_engine_env: str
     spsa: AdaptSPSAConfig
     scipy_maxfev: int | None = None
+    scipy_powell_xtol: float = 1.0e-4
+    scipy_powell_ftol: float = 1.0e-8
 
 
 @dataclass(frozen=True)
@@ -131,6 +134,8 @@ def resolve_adapt_inner_optimizer_config(
     *,
     adapt_inner_optimizer: str,
     adapt_scipy_maxfev: int | None = None,
+    adapt_powell_xtol: float = 1.0e-4,
+    adapt_powell_ftol: float = 1.0e-8,
     adapt_spsa_a: float,
     adapt_spsa_c: float,
     adapt_spsa_alpha: float,
@@ -162,6 +167,12 @@ def resolve_adapt_inner_optimizer_config(
         if adapt_scipy_maxfev is None or int(adapt_scipy_maxfev) <= 0
         else int(adapt_scipy_maxfev)
     )
+    powell_xtol = float(adapt_powell_xtol)
+    powell_ftol = float(adapt_powell_ftol)
+    if not math.isfinite(powell_xtol) or powell_xtol <= 0.0:
+        raise ValueError("adapt_powell_xtol must be positive and finite.")
+    if not math.isfinite(powell_ftol) or powell_ftol <= 0.0:
+        raise ValueError("adapt_powell_ftol must be positive and finite.")
     return AdaptInnerOptimizerConfig(
         inner_optimizer_key=str(optimizer_key),
         spsa_refit_engine_label=str(resolve_adapt_spsa_refit_engine_label()),
@@ -180,6 +191,8 @@ def resolve_adapt_inner_optimizer_config(
             parallel_evaluations=int(adapt_spsa_parallel_evaluations),
         ),
         scipy_maxfev=scipy_maxfev,
+        scipy_powell_xtol=powell_xtol,
+        scipy_powell_ftol=powell_ftol,
     )
 
 
@@ -359,6 +372,8 @@ def run_deterministic_inner_optimizer(
         x0=np.asarray(x0, dtype=float),
         maxiter=int(maxiter_value),
         maxfev=config.scipy_maxfev,
+        powell_xtol=config.scipy_powell_xtol,
+        powell_ftol=config.scipy_powell_ftol,
         context_label=str(context_label),
         scipy_minimize_fn=scipy_minimize,
     )

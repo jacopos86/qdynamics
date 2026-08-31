@@ -2331,6 +2331,20 @@ def test_facade_stabilization_uses_only_the_accepted_plateau_winner(
     assert observed.total_metric_multiplier_mu == pytest.approx(0.75)
     assert observed.trust_boundary_active is True
 
+    roundoff_equivalent_paths = copy.deepcopy(row)
+    roundoff_echo = copy.deepcopy(accepted_winner)
+    roundoff_echo["kappa_stabilization_shift"] = 0.2500000000001
+    roundoff_echo["total_metric_multiplier_mu"] = 0.7500000000001
+    roundoff_equivalent_paths["route_a_trust_region_update"][
+        "phase3_stabilization_receipt"
+    ] = roundoff_echo
+    roundoff_observed = _required_phase3_stabilization(
+        roundoff_equivalent_paths,
+        support=support,
+    )
+    assert roundoff_observed.kappa_stabilization_shift == pytest.approx(0.25)
+    assert roundoff_observed.total_metric_multiplier_mu == pytest.approx(0.75)
+
     conflicting_accepted_paths = copy.deepcopy(row)
     conflicting_accepted_paths["route_a_trust_region_update"][
         "phase3_stabilization_receipt"

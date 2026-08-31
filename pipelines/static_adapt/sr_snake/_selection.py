@@ -735,6 +735,7 @@ class _GreedyBatchSelectionEvaluation:
     predictive_cost: _PredictiveCostReceipt
     proposal: _GreedyBatchProposalReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 def _normalized_subset_counts(
@@ -943,6 +944,7 @@ class _CombinatorialBatchSelectionEvaluation:
     predictive_cost: _PredictiveCostReceipt
     proposal: _CombinatorialBatchProposalReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 class _SelectionKernel(Protocol):
@@ -998,6 +1000,7 @@ class _GreedyBatchAdmissionDecision:
     predictive_cost: _PredictiveCostReceipt
     proposal: _GreedyBatchProposalReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1013,6 +1016,7 @@ class _CombinatorialBatchAdmissionDecision:
     predictive_cost: _PredictiveCostReceipt
     proposal: _CombinatorialBatchProposalReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 def _record_key(record: _CandidatePositionRecord) -> tuple[str, str]:
@@ -1530,31 +1534,55 @@ def _select_greedy_batch(
         "phase_iii",
     ):
         raise ValueError("selection must return Phase I, II, and III in order")
-    phase_i_domain_ids = tuple(
-        record.domain_record_id for record in evaluation.phase_i.population
-    )
-    if (
-        len(phase_i_domain_ids) != len(domain)
-        or set(phase_i_domain_ids)
-        != {record.domain_record_id for record in domain}
+    phase0 = evaluation.phase0
+    if phase0 is not None and (
+        phase0.phase != "phase0" or phase0.population != domain
     ):
         raise ValueError(
-            "Phase-I population must cover the admissible domain exactly once"
+            "batch Phase0 must cover the exact admissible domain"
         )
+    if phase0 is None:
+        phase_i_domain_ids = tuple(
+            record.domain_record_id
+            for record in evaluation.phase_i.population
+        )
+        if (
+            len(phase_i_domain_ids) != len(domain)
+            or set(phase_i_domain_ids)
+            != {record.domain_record_id for record in domain}
+        ):
+            raise ValueError(
+                "Phase-I population must cover the admissible domain "
+                "exactly once"
+            )
     domain_by_id = {record.domain_record_id: record for record in domain}
-    for receipt in receipts:
+    for receipt in receipts if phase0 is None else (phase0, *receipts):
         _assert_phase_lineage(
             receipt=receipt,
             domain_by_id=domain_by_id,
         )
-    _assert_progression(
-        earlier=evaluation.phase_i,
-        later=evaluation.phase_ii,
-    )
-    _assert_progression(
-        earlier=evaluation.phase_ii,
-        later=evaluation.phase_iii,
-    )
+    if phase0 is not None:
+        _assert_phase0_root_descent(
+            phase0=phase0,
+            phase_i=evaluation.phase_i,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
+    else:
+        _assert_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
 
     selected = tuple(evaluation.selected)
     if not selected:
@@ -1612,9 +1640,10 @@ def _select_greedy_batch(
     )
     if len(set(occurrence_ids)) != len(occurrence_ids):
         raise ValueError("estimator occurrence identities must be unique")
+    ordered_receipts = receipts if phase0 is None else (phase0, *receipts)
     phase_event_ids = tuple(
         event_id
-        for receipt in receipts
+        for receipt in ordered_receipts
         for event_id in receipt.estimator_event_ids
     )
     if phase_event_ids != occurrence_ids:
@@ -1634,6 +1663,7 @@ def _select_greedy_batch(
         predictive_cost=evaluation.predictive_cost,
         proposal=proposal,
         estimator_events=evaluation.estimator_events,
+        phase0=phase0,
     )
 
 
@@ -1699,31 +1729,55 @@ def _select_combinatorial_batch(
         "phase_iii",
     ):
         raise ValueError("selection must return Phase I, II, and III in order")
-    phase_i_domain_ids = tuple(
-        record.domain_record_id for record in evaluation.phase_i.population
-    )
-    if (
-        len(phase_i_domain_ids) != len(domain)
-        or set(phase_i_domain_ids)
-        != {record.domain_record_id for record in domain}
+    phase0 = evaluation.phase0
+    if phase0 is not None and (
+        phase0.phase != "phase0" or phase0.population != domain
     ):
         raise ValueError(
-            "Phase-I population must cover the admissible domain exactly once"
+            "batch Phase0 must cover the exact admissible domain"
         )
+    if phase0 is None:
+        phase_i_domain_ids = tuple(
+            record.domain_record_id
+            for record in evaluation.phase_i.population
+        )
+        if (
+            len(phase_i_domain_ids) != len(domain)
+            or set(phase_i_domain_ids)
+            != {record.domain_record_id for record in domain}
+        ):
+            raise ValueError(
+                "Phase-I population must cover the admissible domain "
+                "exactly once"
+            )
     domain_by_id = {record.domain_record_id: record for record in domain}
-    for receipt in receipts:
+    for receipt in receipts if phase0 is None else (phase0, *receipts):
         _assert_phase_lineage(
             receipt=receipt,
             domain_by_id=domain_by_id,
         )
-    _assert_progression(
-        earlier=evaluation.phase_i,
-        later=evaluation.phase_ii,
-    )
-    _assert_progression(
-        earlier=evaluation.phase_ii,
-        later=evaluation.phase_iii,
-    )
+    if phase0 is not None:
+        _assert_phase0_root_descent(
+            phase0=phase0,
+            phase_i=evaluation.phase_i,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
+    else:
+        _assert_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
 
     selected = tuple(evaluation.selected)
     if not selected:
@@ -1785,9 +1839,10 @@ def _select_combinatorial_batch(
     )
     if len(set(occurrence_ids)) != len(occurrence_ids):
         raise ValueError("estimator occurrence identities must be unique")
+    ordered_receipts = receipts if phase0 is None else (phase0, *receipts)
     phase_event_ids = tuple(
         event_id
-        for receipt in receipts
+        for receipt in ordered_receipts
         for event_id in receipt.estimator_event_ids
     )
     if phase_event_ids != occurrence_ids:
@@ -1807,4 +1862,5 @@ def _select_combinatorial_batch(
         predictive_cost=evaluation.predictive_cost,
         proposal=proposal,
         estimator_events=evaluation.estimator_events,
+        phase0=phase0,
     )

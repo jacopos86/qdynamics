@@ -167,6 +167,10 @@ PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION = (
 
 @dataclass(frozen=True)
 class FullScoreConfig:
+    # Exact-horizon routes admit the ranked champion alone at saturation,
+    # even when its tangent adds no retained metric rank.  Multi-member
+    # subsets retain the ordinary joint rank gate.
+    batch_empty_feasible_forced_fallback: bool = False
     z_alpha: float = 0.0
     lambda_H: float = 1e-6
     rho: float = 0.25
@@ -5089,17 +5093,90 @@ class OrderedInsertionGeometryOracle:
         scaffold_context: _ScaffoldDerivativeContext,
         candidate_label: str,
         candidate_term: Any,
+        position_id: int | None = None,
         compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
         pauli_action_cache: dict[str, Any] | None = None,
         novelty_eps: float = 1e-6,
     ) -> Mapping[str, Any]:
-        del compiled_cache, novelty_eps
-        cand_dpsi, cand_d2psi, cand_window_d2 = _propagate_append_candidate(
-            candidate_term=candidate_term,
-            psi_state=scaffold_context.psi_state,
-            window_dpsi=list(scaffold_context.dpsi_window),
-            pauli_action_cache=pauli_action_cache,
-        )
+        del compiled_cache, novelty_eps, candidate_label
+        selected = list(scaffold_context.selected_ops)
+        position = int(len(selected) if position_id is None else position_id)
+        if position < 0 or position > len(selected):
+            raise ValueError(
+                "Ordered insertion geometry received a position outside the "
+                "current ansatz boundary."
+            )
+        if position == len(selected):
+            cand_dpsi, cand_d2psi, cand_window_d2 = (
+                _propagate_append_candidate(
+                    candidate_term=candidate_term,
+                    psi_state=scaffold_context.psi_state,
+                    window_dpsi=list(scaffold_context.dpsi_window),
+                    pauli_action_cache=pauli_action_cache,
+                )
+            )
+        else:
+            theta_vec = np.asarray(scaffold_context.theta, dtype=float).reshape(-1)
+            combined_terms = [
+                *selected[:position],
+                candidate_term,
+                *selected[position:],
+            ]
+            combined_theta = np.insert(theta_vec, position, 0.0)
+            source_active = tuple(
+                int(index) for index in scaffold_context.refit_window_indices
+            )
+            active_combined = [
+                int(index if index < position else index + 1)
+                for index in source_active
+            ]
+            candidate_local = int(len(source_active))
+            derivative_indices = [*active_combined, int(position)]
+            sparse_pairs = [
+                *((index, candidate_local) for index in range(candidate_local)),
+                (candidate_local, candidate_local),
+            ]
+            executor = _executor_for_terms(
+                combined_terms,
+                pauli_action_cache=pauli_action_cache,
+            )
+            reconstructed, derivatives, second_derivatives = (
+                _propagate_executor_sparse_second_derivatives(
+                    executor=executor,
+                    theta=combined_theta,
+                    psi_ref=np.asarray(scaffold_context.psi_ref, dtype=complex),
+                    active_indices=derivative_indices,
+                    second_derivative_pairs=sparse_pairs,
+                )
+            )
+            reconstructed_state = np.asarray(reconstructed, dtype=complex).reshape(-1)
+            supplied_state = np.asarray(
+                scaffold_context.psi_state, dtype=complex
+            ).reshape(-1)
+            overlap = complex(np.vdot(supplied_state, reconstructed_state))
+            phase = overlap / abs(overlap) if abs(overlap) > 0.0 else 1.0 + 0.0j
+            state_delta = float(
+                np.linalg.norm(reconstructed_state / phase - supplied_state)
+            )
+            if state_delta > 1.0e-8:
+                raise ValueError(
+                    "Ordered insertion geometry reconstructed a state "
+                    f"inconsistent with the supplied state: delta={state_delta:.6g}."
+                )
+            aligned_derivatives = [
+                np.asarray(value / phase, dtype=complex)
+                for value in derivatives
+            ]
+            aligned_second = {
+                pair: np.asarray(value / phase, dtype=complex)
+                for pair, value in second_derivatives.items()
+            }
+            cand_dpsi = aligned_derivatives[candidate_local]
+            cand_d2psi = aligned_second[(candidate_local, candidate_local)]
+            cand_window_d2 = [
+                aligned_second[(index, candidate_local)]
+                for index in range(candidate_local)
+            ]
         cand_tangent = _horizontal_tangent(scaffold_context.psi_state, cand_dpsi)
         q_window = np.asarray(
             [
@@ -5110,7 +5187,8 @@ class OrderedInsertionGeometryOracle:
         )
         F_raw = float(max(0.0, np.real(np.vdot(cand_tangent, cand_tangent))))
         return {
-            "novelty_mode": "append_exact_tangent_context_v1",
+            "novelty_mode": "exact_ordered_insertion_tangent_context_v1",
+            "candidate_position_id": int(position),
             "candidate_dpsi": np.asarray(cand_dpsi, dtype=complex),
             "candidate_d2psi": np.asarray(cand_d2psi, dtype=complex),
             "candidate_window_d2": [np.asarray(x, dtype=complex) for x in cand_window_d2],
@@ -6266,6 +6344,7 @@ def build_full_candidate_features(
         scaffold_context=phase2_context,
         candidate_label=str(base_feature.candidate_label),
         candidate_term=candidate_term,
+        position_id=int(base_feature.position_id),
         compiled_cache=compiled_cache,
         pauli_action_cache=pauli_action_cache,
     )
@@ -6278,6 +6357,7 @@ def build_full_candidate_features(
             scaffold_context=phase3_context,
             candidate_label=str(base_feature.candidate_label),
             candidate_term=candidate_term,
+            position_id=int(base_feature.position_id),
             compiled_cache=compiled_cache,
             pauli_action_cache=pauli_action_cache,
         )
@@ -9890,6 +9970,7 @@ class _BatchFullGeometryWorkspace:
         PHASE3_CANDIDATE_GAIN_JOINT_TOTAL_V1
     )
     _active_only_gain_baseline_cache: dict[str, Any] | None = None
+    forced_rank_gate_waiver_size_one: bool = False
 
     def _active_only_gain_baseline(self) -> dict[str, Any]:
         """Solve the candidate-independent active model once per workspace."""
@@ -11221,8 +11302,14 @@ class _BatchFullGeometryWorkspace:
                 ordinary_feasible = False
                 ordinary_reason = str(ordinary_solve_result.reason)
             elif ordinary_batch_metric_rank_increment < batch_count:
-                ordinary_feasible = False
-                ordinary_reason = "rank_gate"
+                if int(batch_count) == 1 and bool(
+                    self.forced_rank_gate_waiver_size_one
+                ):
+                    ordinary_feasible = True
+                    ordinary_reason = "forced_rank_gate_waiver_size_one"
+                else:
+                    ordinary_feasible = False
+                    ordinary_reason = "rank_gate"
             elif (
                 ordinary_retained_condition is not None
                 and ordinary_retained_condition
@@ -11326,7 +11413,10 @@ class _BatchFullGeometryWorkspace:
             }
             self._subset_cache[key] = dict(summary)
             return summary
-        if batch_metric_rank_increment < batch_count:
+        if batch_metric_rank_increment < batch_count and not (
+            int(batch_count) == 1
+            and bool(self.forced_rank_gate_waiver_size_one)
+        ):
             summary = {
                 "subset_workspace_indices": [int(value) for value in key],
                 "selected_labels": selected_labels,
@@ -16079,6 +16169,9 @@ def _build_material_window_singleton_workspace(
         "workspace_build_mode": "exact_material_window_singleton_v1",
     }
     return _BatchFullGeometryWorkspace(
+        forced_rank_gate_waiver_size_one=bool(
+            getattr(cfg, "batch_empty_feasible_forced_fallback", False)
+        ),
         records=copied,
         record_index={_batch_record_identity_key(copied[0]): 0},
         ansatz_depth=int(len(selected)),
@@ -16178,6 +16271,25 @@ def _build_batch_full_geometry_workspace(
     context_mode = normalize_batch_joint_context_mode(
         getattr(cfg, "batch_joint_context_mode", None)
     )
+    active_gradient_policy = str(
+        getattr(
+            cfg,
+            "active_gradient_policy",
+            "measured_residual_response_v1",
+        )
+    ).strip()
+    if active_gradient_policy not in {
+        "stationary_source_response_v1",
+        "measured_residual_response_v1",
+    }:
+        raise ValueError(
+            "active_gradient_policy must be one of "
+            "{'stationary_source_response_v1',"
+            "'measured_residual_response_v1'}."
+        )
+    stationary_source = bool(
+        active_gradient_policy == "stationary_source_response_v1"
+    )
     active_indices = list(
         _batch_joint_active_indices(cfg, selected_ops=selected)
     )
@@ -16262,6 +16374,8 @@ def _build_batch_full_geometry_workspace(
     G_AA = np.asarray(phase2_cache.G_AA, dtype=float).copy()
     H_AA = np.asarray(phase2_cache.H_AA, dtype=float).copy()
     g_A = np.asarray(phase2_cache.g_A, dtype=float).copy()
+    if stationary_source:
+        g_A = np.zeros_like(g_A)
     G_AB = np.zeros((active_count, candidate_count), dtype=float)
     H_AB = np.zeros((active_count, candidate_count), dtype=float)
     G_BB = np.zeros((candidate_count, candidate_count), dtype=float)
@@ -16333,6 +16447,8 @@ def _build_batch_full_geometry_workspace(
             repaired_g_A = np.asarray(
                 repair_payload.get("g_A", []), dtype=float
             ).reshape(active_count)
+            if stationary_source:
+                repaired_g_A = np.zeros_like(repaired_g_A)
             if not active_block_initialized:
                 G_AA = repaired_G_AA
                 H_AA = repaired_H_AA
@@ -16623,6 +16739,13 @@ def _build_batch_full_geometry_workspace(
     )
     phase2_reuse_validation.update(
         {
+            "active_gradient_policy": str(active_gradient_policy),
+            "active_gradient_indices_acquired": (
+                []
+                if stationary_source
+                else [int(index) for index in active_indices]
+            ),
+            "active_source_gradient_fixed_zero": bool(stationary_source),
             "joint_pair_cache_scope": (
                 "state_scaffold_hamiltonian_fingerprinted_lru_v1"
                 if pair_geometry_cache.max_entries > 0
@@ -16657,6 +16780,9 @@ def _build_batch_full_geometry_workspace(
         matrices=(G_AA, G_AB, G_BB, H_AA, H_AB, H_BB, g_A, g_B),
     )
     workspace = _BatchFullGeometryWorkspace(
+        forced_rank_gate_waiver_size_one=bool(
+            getattr(cfg, "batch_empty_feasible_forced_fallback", False)
+        ),
         records=copied,
         record_index={
             _batch_record_identity_key(record): int(index)
