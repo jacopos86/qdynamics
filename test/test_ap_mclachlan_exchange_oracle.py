@@ -295,3 +295,74 @@ def test_selector_stack_matches_full_brute_force_oracle() -> None:
         stack_best.removed_runtime_indices,
         stack_best.inserted_selection,
     ) == oracle_best
+
+
+def test_selector_captured_drift_matches_fresh_materialization_at_every_cut() -> None:
+    """Every cached ``q(D, I)`` agrees with a fresh patched-state solve.
+
+    This is intentionally narrower than the full score oracle above: it pins
+    the exact scoring/realization boundary for every retained insertion cut,
+    including deletion-conditioned exchange candidates.  The reference route
+    materializes the patch, reevaluates the complete McLachlan geometry, and
+    solves the retained coordinates without consulting the structural cache.
+    """
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    cuts_by_atom = {
+        atom_id: singleton_insertion_cuts(term, BLOCKS)
+        for atom_id, term in POOL.items()
+    }
+    atoms = {
+        atom_id: SimpleNamespace(atom_id=atom_id, term=term)
+        for atom_id, term in POOL.items()
+    }
+    cache = build_structural_insertion_cache(
+        state=state,
+        evaluation=evaluation,
+        cuts_by_atom=cuts_by_atom,
+        atoms_by_id=atoms,
+    )
+    terms_by_key = dict(zip(state.runtime_coordinate_labels, BLOCKS), **POOL)
+    result = enumerate_structural_candidates(
+        cache=cache,
+        base_K=np.asarray(evaluation.geometry.K, dtype=float),
+        base_f=np.asarray(evaluation.geometry.f, dtype=float),
+        norm_b_sq=float(evaluation.geometry.norm_b_sq),
+        inverse_policy=POLICY,
+        weights=WEIGHTS,
+        deletable_indices=DELETABLE,
+        min_surviving_support=MIN_SURVIVORS,
+        cuts_by_atom=cuts_by_atom,
+        candidate_pool_for_deletion=lambda removed: tuple(sorted(POOL)),
+        insertion_cost=lambda atom_ids: 1.0 + 0.5 * len(atom_ids),
+        deletion_cost=lambda removed: 1.0 + 0.25 * len(removed),
+        tokens_commute=tokens_commute_from_terms(terms_by_key),
+        max_insertion_batch_size=1,
+    )
+
+    discrepancies = {}
+    for candidate in result.candidates:
+        key = (
+            candidate.removed_runtime_indices,
+            candidate.inserted_selection,
+        )
+        fresh_q = _oracle_q(state, evaluation, *key)
+        discrepancies[key] = abs(float(candidate.q) - fresh_q)
+        assert candidate.q == pytest.approx(
+            fresh_q,
+            rel=1.0e-9,
+            abs=1.0e-12,
+        ), key
+
+    assert any(selection and selection[0][1] == 0 for _, selection in discrepancies)
+    assert any(
+        selection and selection[0][1] == len(BLOCKS)
+        for _, selection in discrepancies
+    )
