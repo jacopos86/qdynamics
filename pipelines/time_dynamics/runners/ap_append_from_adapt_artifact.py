@@ -2319,3 +2319,75 @@ __all__ = [
     "reject_removed_online_redundancy_flags",
     "run_append_ap_mclachlan_from_runtime_input",
 ]
+
+
+# Ported 2026-08-31 from codex/paper-ii-search-profiles-20260824 for the
+# prospective APM exchange worker (RECOVERY-AUDIT.md sec 11).
+def _solve_repair_config_from_args(args: argparse.Namespace) -> SolveRepairConfig:
+    """Resolve a profile baseline, then apply explicit controller bounds."""
+
+    state_motion_override = args.solve_repair_state_motion_l2_step_max
+    _repair_kwargs = dict(
+        enabled=bool(args.solve_repair),
+        parameter_step_max=(
+            None
+            if args.solve_repair_parameter_step_max is None
+            else float(args.solve_repair_parameter_step_max)
+        ),
+        condition_number_max=float(args.solve_repair_condition_number_max),
+        condition_number_fail=(
+            None
+            if args.solve_repair_condition_number_fail is None
+            else float(args.solve_repair_condition_number_fail)
+        ),
+        strict_finite_shot_validation=bool(
+            args.solve_repair_strict_finite_shot_validation
+        ),
+        theta_dot_l2_max=(
+            None
+            if args.solve_repair_theta_dot_l2_max is None
+            else float(args.solve_repair_theta_dot_l2_max)
+        ),
+        rho_num_max=float(args.solve_repair_rho_num_max),
+        state_motion_l2_step_max=(
+            SolveRepairConfig().state_motion_l2_step_max
+            if state_motion_override is None
+            else float(state_motion_override)
+        ),
+        state_space_kink_eta_max=float(args.solve_repair_kink_eta_max),
+        local_subdivision_enabled=bool(args.solve_repair_local_subdivision),
+        max_local_subdivisions=int(args.solve_repair_max_local_subdivisions),
+        local_subdivision_factor=int(args.solve_repair_local_subdivision_factor),
+        min_local_dt=float(args.solve_repair_min_local_dt),
+        release_patience_min=int(args.solve_repair_release_patience_min),
+        release_patience_max=int(args.solve_repair_release_patience_max),
+        release_kink_threshold_scale=float(
+            args.solve_repair_release_kink_threshold_scale
+        ),
+        release_kink_severity_scale=float(
+            args.solve_repair_release_kink_severity_scale
+        ),
+        ridge_ladder=_parse_float_ladder(args.solve_repair_ridge_ladder),
+        pinv_rcond_ladder=_parse_float_ladder(args.solve_repair_pinv_rcond_ladder),
+        solve_damping_ladder=_parse_float_ladder(args.solve_repair_damping_ladder),
+    )
+    if str(args.solve_repair_profile) == "minimal":
+        minimal = SolveRepairConfig.minimal_profile(
+            enabled=bool(args.solve_repair),
+            ridge_ladder=(float(args.ridge_lambda),),
+            pinv_rcond_ladder=(float(args.pinv_rcond),),
+            solve_damping_ladder=(float(args.solve_damping),),
+        )
+        for field in (
+            "condition_number_max",
+            "rho_num_max",
+            "state_space_kink_eta_max",
+            "state_motion_l2_step_max",
+            "ridge_ladder",
+            "pinv_rcond_ladder",
+            "solve_damping_ladder",
+        ):
+            _repair_kwargs[field] = getattr(minimal, field)
+    if state_motion_override is not None:
+        _repair_kwargs["state_motion_l2_step_max"] = float(state_motion_override)
+    return SolveRepairConfig(**_repair_kwargs)

@@ -988,3 +988,12 @@ __all__ = [
     "write_campaign_manifest",
     "write_chtc_package",
 ]
+
+
+# Ported 2026-08-31 from codex/paper-ii-search-profiles-20260824 (symbol-level
+# compatibility for the staged-campaign stack; the branch's wider campaign.py
+# rewrite remains unmerged - see RECOVERY-AUDIT.md sec 11).
+PAPER_II_FAKE_MARRAKESH_FIXED_PATCH = CompileProfile()
+# Compatibility import for packages prepared before Paper II took ownership of
+# the fixed-patch policy. It does not invoke or configure the Paper-I route.
+PAPER_I_FAKE_MARRAKESH = PAPER_II_FAKE_MARRAKESH_FIXED_PATCH

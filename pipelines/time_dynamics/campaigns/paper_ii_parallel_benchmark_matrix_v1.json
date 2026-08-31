@@ -1,0 +1,207 @@
+{
+  "schema": "paper_ii_parallel_benchmark_matrix_v1",
+  "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+  "decision_handoff": {
+    "name": "paper_ii_parallel_benchmark_results_pipeline_handoff_20260828.md",
+    "sha256": "420911c88b75516f0fc0218e447b686aca2299e4923b4d99249c6f337a6f03b0"
+  },
+  "common": {
+    "controller": "state_motion_5e-5",
+    "methods": [
+      "apm",
+      "avqds"
+    ],
+    "grid": {
+      "start": 0.0,
+      "points": 501
+    },
+    "driven_grid": {
+      "start": 0.0,
+      "stop": 20.0,
+      "points": 501,
+      "calibration_prefix_stop": 5.0,
+      "calibration_prefix_points": 126,
+      "construction": "ordered_uniform_index_times_step"
+    },
+    "siam_grid": {
+      "start": 0.0,
+      "stop": 5.0,
+      "points": 501,
+      "screen_prefix_stop": 1.0,
+      "screen_prefix_points": 101,
+      "construction": "ordered_uniform_index_times_step"
+    },
+    "drive_waveform": {
+      "operator": "staggered_site_density",
+      "pattern": "staggered",
+      "tbar": 1.0,
+      "phi": 0.0,
+      "t0": 0.0,
+      "include_identity": false,
+      "time_sampling": "midpoint"
+    },
+    "cost_authority": "logical_n_theta_and_routing_independent_graph_tuple",
+    "qiskit_compilation": false,
+    "deterministic_scientific_executions_per_cell": 1
+  },
+  "accuracy_policy": {
+    "policy_id": "response_normalized_matched_pair_v2",
+    "observable_relative_target": 0.05,
+    "observable_relative_guard": 0.15,
+    "infidelity_scale": 0.0001,
+    "aggregate": "rms_of_normalized_q_components",
+    "matched_factor": 2.0,
+    "component_deadband": 0.1,
+    "response_scale_floor": 1e-12,
+    "componentwise_match_required": true,
+    "retain_model_absolute_guards": true,
+    "absolute_guards_by_lane": {
+      "paper_ii_hh_product_v1": {
+        "mean_abs_energy_error": 0.01,
+        "mean_abs_doublon_error": 0.005,
+        "mean_max_abs_site_occupation_error": 0.005
+      },
+      "paper_ii_hubbard_l4_scale_v1": {
+        "mean_abs_energy_error": 0.01,
+        "mean_abs_doublon_error": 0.005,
+        "mean_max_abs_site_occupation_error": 0.005
+      }
+    }
+  },
+  "activation_ladders": {
+    "hh_and_hubbard_l4": {
+      "start": 0.01,
+      "ratio": 3.0,
+      "floor": 1e-12,
+      "include_floor": true,
+      "monotonicity_assumed": false
+    },
+    "siam_nb4": {
+      "start": 0.01,
+      "ratio": 3.0,
+      "floor": 1e-7,
+      "include_floor": true,
+      "monotonicity_assumed": false
+    }
+  },
+  "hh_product": {
+    "model": "hubbard_holstein",
+    "lattice_sites": 2,
+    "t_hop": 1.0,
+    "omega0": 1.0,
+    "boundary": "open",
+    "ordering": "blocked",
+    "boson_encoding": "binary",
+    "n_up": 1,
+    "n_down": 1,
+    "staggered_potential": 0.0,
+    "phonon_cutoffs": [
+      1,
+      3
+    ],
+    "regimes": [
+      {
+        "id": "mott_dominated",
+        "U": 8.0,
+        "g": 0.353553390593
+      },
+      {
+        "id": "crossover",
+        "U": 1.25,
+        "g": 0.790569415042
+      },
+      {
+        "id": "phonon_dominated",
+        "U": 0.25,
+        "g": 0.790569415042
+      }
+    ],
+    "drives": [
+      "fastweak",
+      "slowstrong",
+      "weakslow",
+      "strongfast",
+      "midres",
+      "fastfast"
+    ],
+    "horizon": 20.0,
+    "calibration_prefix": 5.0,
+    "physical_cell_count": 36,
+    "method_slot_count": 72,
+    "independent_seed_count": 6,
+    "exact_reference_count": 36,
+    "seed_policy": "independent_generator_derived_fixed_structure_vqe_per_cutoff_regime",
+    "seed_energy_gate": 1e-6,
+    "exact_reference_policy": "one_content_addressed_t20_reference_per_physical_drive_cell",
+    "observable_schema": "paper_ii_hh_energy_doublon_site_occupation_statevector_v1"
+  },
+  "siam_nb4": {
+    "model": "single_impurity_anderson",
+    "n_bath": 4,
+    "U": 1.5,
+    "V": 0.7071067811865475,
+    "t_b": 1.0,
+    "V_pre_quench": 0.0,
+    "ordering": "spin_blocked_jordan_wigner",
+    "n_up": 3,
+    "n_down": 2,
+    "pool_families": [
+      "K",
+      "J",
+      "Qd",
+      "A",
+      "X",
+      "P"
+    ],
+    "horizon": 5.0,
+    "screen_prefix": 1.0,
+    "physical_cell_count": 1,
+    "method_slot_count": 2,
+    "seed_policy": "exact_givens_decoupled_bath_fermi_sea_plus_spin_up_impurity",
+    "seed_artifact": {
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "exact_reference_policy": "one_content_addressed_t5_sector_eigh_reference",
+    "exact_reference_artifact": {
+      "manifest_path": "output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/manifest.json",
+      "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+      "data_path": "output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/reference.npz",
+      "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26"
+    },
+    "observable_schema": "siam_screening_observables_v2",
+    "source_epoch": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4"
+  },
+  "hubbard_l4": {
+    "model": "hubbard",
+    "lattice_sites": 4,
+    "boundary": "open",
+    "n_up": 2,
+    "n_down": 2,
+    "U_over_t": 4.0,
+    "t_hop": 1.0,
+    "ordering": "blocked",
+    "drives": [
+      "weakslow",
+      "strongfast"
+    ],
+    "horizon": 20.0,
+    "physical_cell_count": 2,
+    "method_slot_count": 4,
+    "independent_seed_count": 1,
+    "exact_reference_count": 2,
+    "seed_policy": "independent_generator_derived_fixed_structure_vqe",
+    "seed_energy_gate": 1e-6,
+    "exact_reference_policy": "one_content_addressed_t20_reference_per_physical_drive_cell",
+    "observable_schema": "paper_ii_hubbard_energy_doublon_site_occupation_statevector_v1"
+  },
+  "excluded": [
+    "n_ph_max_7",
+    "siam_n_bath_6",
+    "siam_interaction_sweep",
+    "siam_pool_ablation",
+    "siam_insertion_only",
+    "qiskit_compilation"
+  ]
+}

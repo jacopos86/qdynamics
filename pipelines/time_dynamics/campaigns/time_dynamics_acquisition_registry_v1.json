@@ -1,0 +1,288 @@
+{
+  "lanes": [
+    {
+      "attempts_root": "output/paper_ii_staged/attempts",
+      "blocked_by": [
+        "production_operations_adapter_binding"
+      ],
+      "kind": "paper_ii_hh_controller_baseline_v2",
+      "lane_id": "paper_ii_hh_nph1",
+      "metadata": {
+        "decision_handoff_sha256": "420911c88b75516f0fc0218e447b686aca2299e4923b4d99249c6f337a6f03b0",
+        "downstream_controller": "state_motion_5e-5",
+        "legacy_coverage_index": "output/paper_ii_staged/acquisition_supervisor/legacy_coverage_index_v1.json",
+        "legacy_coverage_index_sha256": "ea14d7257f152fe0d9efd5df0edbcdf45034731872ec2602ce6d0cf29906da44",
+        "legacy_coverage_process_count": 269,
+        "legacy_coverage_receipt_count": 65,
+        "physical_identity": {
+          "U": 4.0,
+          "g": 0.5,
+          "lattice_sites": 2,
+          "n_ph_max": 1
+        },
+        "preserved_controllers": [
+          "delta_theta_5e-5",
+          "state_motion_1e-3_plus_parameter_5e-5",
+          "state_motion_5e-5"
+        ],
+        "prior_root": {
+          "state": "absent"
+        },
+        "qiskit_compilation_requested": false,
+        "reporting_cost_authority": "logical_and_graph_proxies",
+        "role": "canonical_controller_comparison_baseline"
+      },
+      "monitor_enabled": true,
+      "planner_authority": "pipelines.time_dynamics.staged_campaign.StagedCampaign.next_actions",
+      "report_contract": "output/pdf/paper_ii_staged_accuracy_campaign/paper_ii_staged_report.json",
+      "scientific_state": "output/paper_ii_staged/ledger_current.json",
+      "state_root": "output/paper_ii_staged/acquisition_supervisor",
+      "submission_enabled": false
+    },
+    {
+      "attempts_root": "output/paper_ii_hh_product_v1/attempts",
+      "blocked_by": [
+        "seed_manifest_binding",
+        "exact_reference_manifest_binding",
+        "action_registry_binding",
+        "scout_anchor_planner_v2_binding",
+        "report_slots_binding",
+        "package_builder_binding",
+        "source_epoch_binding",
+        "production_operations_adapter_binding",
+        "authenticated_transport_binding",
+        "remote_workdir_binding",
+        "lane_mutation_handler_binding",
+        "production_service_preflight_binding",
+        "scientific_pre_submit_audit_binding",
+        "apm_exchange_family_cost_normalization_binding",
+        "apm_exchange_rejection_continuation_binding"
+      ],
+      "kind": "paper_ii_hh_cutoff_interaction_product",
+      "lane_id": "paper_ii_hh_product_v1",
+      "metadata": {
+        "controller": "state_motion_5e-5",
+        "matrix_accuracy_policy_sha256": "7065dc2e535864adc1eae43923f688171a2215bd3fbf0515daf1df172f5de8ec",
+        "matrix_expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+        "matrix_manifest": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+        "matrix_payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+        "matrix_raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+        "method_slot_count": 72,
+        "physical_cell_count": 36,
+        "planned_report_contract_file_sha256": "26f48551c1d65f3729e2724f0680173f129b0fcc5da68e345c7e49d8eba9b645",
+        "planned_report_contract_sha256": "67087310796081676761c68c0733500a926732fd8a4bd9218486cbd300e124a5",
+        "qiskit_compilation_requested": false
+      },
+      "monitor_enabled": false,
+      "planner_authority": "pipelines.time_dynamics.prospective_scientific_planner:plan_prospective_cell",
+      "report_contract": "output/pdf/paper_ii_hh_product_v1/report_contract_current.json",
+      "scientific_state": "output/paper_ii_hh_product_v1/scientific_state_current.json",
+      "state_root": "output/paper_ii_hh_product_v1/acquisition_supervisor",
+      "submission_enabled": false
+    },
+    {
+      "attempts_root": "output/siam_screening/nb4_pilot_v1/attempts",
+      "blocked_by": [
+        "production_operations_adapter_binding"
+      ],
+      "kind": "siam_nb4_comparator_first",
+      "lane_id": "siam_nb4_pilot_v1",
+      "metadata": {
+        "controller": "state_motion_5e-5",
+        "decision_handoff_sha256": "420911c88b75516f0fc0218e447b686aca2299e4923b4d99249c6f337a6f03b0",
+        "n_bath": 4,
+        "qiskit_compilation_requested": false,
+        "report_contract_file_sha256": "579cb99c038359ce47af926d06720262cd35ea76c27995cb9b06c714c465a73d",
+        "report_contract_sha256": "e844cb2f762099cfcfc94ed7725b412690e0fad8e85a630dba0877bde7def5c9",
+        "reporting_cost_authority": "logical_and_graph_proxies",
+        "scientific_state_file_sha256": "2e62b42ed55a82f47317ff1d19b8ee57dd9de84a9321e8d46e4bac852c9104db",
+        "scientific_state_sha256": "081dee9e4e3ad50f7f5b8ec2eac31d8239cc8b184cc187f6a188366ef34bdeec",
+        "source_epoch": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3"
+      },
+      "monitor_enabled": true,
+      "planner_authority": "pipelines.time_dynamics.siam_nb4_ladder.plan_siam_nb4_ladder",
+      "report_contract": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/report_contract_current.json",
+      "scientific_state": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/scientific_state_current.json",
+      "state_root": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor",
+      "submission_enabled": false
+    },
+    {
+      "attempts_root": "output/paper_ii_hubbard_l4_scale_v1/attempts",
+      "blocked_by": [
+        "seed_manifest_binding",
+        "exact_reference_manifest_binding",
+        "action_registry_binding",
+        "scout_anchor_planner_v2_binding",
+        "report_slots_binding",
+        "package_builder_binding",
+        "source_epoch_binding",
+        "production_operations_adapter_binding",
+        "authenticated_transport_binding",
+        "remote_workdir_binding",
+        "lane_mutation_handler_binding",
+        "production_service_preflight_binding",
+        "scientific_pre_submit_audit_binding",
+        "apm_exchange_family_cost_normalization_binding",
+        "apm_exchange_rejection_continuation_binding"
+      ],
+      "kind": "paper_ii_hubbard_scale_pilot",
+      "lane_id": "paper_ii_hubbard_l4_scale_v1",
+      "metadata": {
+        "controller": "state_motion_5e-5",
+        "matrix_accuracy_policy_sha256": "7065dc2e535864adc1eae43923f688171a2215bd3fbf0515daf1df172f5de8ec",
+        "matrix_expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+        "matrix_manifest": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+        "matrix_payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+        "matrix_raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+        "method_slot_count": 4,
+        "physical_cell_count": 2,
+        "planned_report_contract_file_sha256": "9b2601d3b075ff2f0e311a9cb670c67c04faf22723758c79236846c9dcf0dc23",
+        "planned_report_contract_sha256": "ea3b9de3fc4df231d4e938d2fcd6d7e28cfca522a1eaf9d80da6f397eaf8d84d",
+        "qiskit_compilation_requested": false
+      },
+      "monitor_enabled": false,
+      "planner_authority": "pipelines.time_dynamics.prospective_scientific_planner:plan_prospective_cell",
+      "report_contract": "output/pdf/paper_ii_hubbard_l4_scale_v1/report_contract_current.json",
+      "scientific_state": "output/paper_ii_hubbard_l4_scale_v1/scientific_state_current.json",
+      "state_root": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor",
+      "submission_enabled": false
+    }
+  ],
+  "production_operations": null,
+  "production_operations_blocked": {
+    "adapter_id": "chtc_authenticated_controlmaster_v1",
+    "blocked_by": [
+      "authenticated_transport_binding",
+      "bootstrap_action_identity_binding",
+      "lane_mutation_handler_binding",
+      "remote_workdir_binding",
+      "package_builder_binding",
+      "production_service_preflight_binding",
+      "scientific_pre_submit_audit_binding"
+    ],
+    "factory": "pipelines.time_dynamics.chtc_acquisition_operations:build_operations",
+    "source": {
+      "path": "pipelines/time_dynamics/chtc_acquisition_operations.py",
+      "sha256": "4b2cc896cb3d804e65926420ef245243f00f972b21282dc4ad6d816653d1f271"
+    },
+    "status": "blocked"
+  },
+  "registry_id": "paper_ii_parallel_benchmarks_authorized_v2",
+  "schema": "time_dynamics_acquisition_registry_v1",
+  "scientific_contracts": {
+    "executor_registry": {
+      "binding_count": 16,
+      "bindings_sha256": "d8e31573eb7095e412702ba33b54a1474d4d7571dd0b019274b9d9ac6ecf00f5",
+      "builder": "pipelines.time_dynamics.prospective_execution_bindings:binding_registry_payload",
+      "handlers_importable": true,
+      "production_submission_enabled": false,
+      "qiskit_compilation": false,
+      "source": {
+        "path": "pipelines/time_dynamics/prospective_execution_bindings.py",
+        "sha256": "7072fa527590d88bf9b67fb66594de4596c220a900839f27449058e155cecbe1"
+      }
+    },
+    "identity_registry": {
+      "builder": "pipelines.time_dynamics.prospective_campaign_bootstrap:build_identity_registry",
+      "lane_counts": {
+        "paper_ii_hh_product_v1": {
+          "references": 36,
+          "seeds": 6
+        },
+        "paper_ii_hubbard_l4_scale_v1": {
+          "references": 2,
+          "seeds": 1
+        },
+        "siam_nb4_pilot_v1": {
+          "references": 1,
+          "seeds": 1
+        }
+      },
+      "reference_count": 39,
+      "registry_sha256": "227a8c539513618980940896abc74167599a0e79846b21d955ef826d9fdff7f4",
+      "seed_count": 8,
+      "source": {
+        "path": "pipelines/time_dynamics/prospective_campaign_bootstrap.py",
+        "sha256": "1ae9ad99f165a84427a9faece34c4b5e843416d55276bb2e86c2f50f5202ab55"
+      }
+    },
+    "matrix": {
+      "accuracy_policy_spec_sha256": "7065dc2e535864adc1eae43923f688171a2215bd3fbf0515daf1df172f5de8ec",
+      "expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+      "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+      "path": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+      "payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+      "physical_cell_count": 39,
+      "raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2"
+    },
+    "planned_report_contracts": {
+      "paper_ii_hh_product_v1": {
+        "file_sha256": "26f48551c1d65f3729e2724f0680173f129b0fcc5da68e345c7e49d8eba9b645",
+        "path": "output/pdf/paper_ii_hh_product_v1/report_contract_current.json",
+        "planned_cells": 36,
+        "planned_exact_references": 36,
+        "planned_method_slots": 72,
+        "report_contract_sha256": "67087310796081676761c68c0733500a926732fd8a4bd9218486cbd300e124a5",
+        "tuple_structure_sha256": "c66aaa21ac9b4608ae0993d00d714c012ab1791266572231aadc5825e22ea608"
+      },
+      "paper_ii_hubbard_l4_scale_v1": {
+        "file_sha256": "9b2601d3b075ff2f0e311a9cb670c67c04faf22723758c79236846c9dcf0dc23",
+        "path": "output/pdf/paper_ii_hubbard_l4_scale_v1/report_contract_current.json",
+        "planned_cells": 2,
+        "planned_exact_references": 2,
+        "planned_method_slots": 4,
+        "report_contract_sha256": "ea3b9de3fc4df231d4e938d2fcd6d7e28cfca522a1eaf9d80da6f397eaf8d84d",
+        "tuple_structure_sha256": "0eed48b7823ec9e4d0c1fc87e7446c8b7027ebaa0a008ee5f436e74997ff9118"
+      },
+      "siam_nb4_pilot_v1": {
+        "file_sha256": "975b87e3acd28bfcc59eb580b35708cd9b76ef430b8a8b02f8aaa6f67effd531",
+        "path": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/planned_matrix_report_contract_v1.json",
+        "planned_cells": 1,
+        "planned_exact_references": 1,
+        "planned_method_slots": 2,
+        "report_contract_sha256": "9cc10fe2f336f4659b2de9a7940ab3c9e04ffcc65bb868a7eb07b1d25c72744e",
+        "tuple_structure_sha256": "46745fa2c30b15f390be18b79e1df2b7f6e9992089a5a409bf3802f83d1c4228"
+      }
+    },
+    "schema": "paper_ii_acquisition_contract_bindings_v1",
+    "scientific_planner": {
+      "builder": "pipelines.time_dynamics.prospective_scientific_planner:plan_prospective_cell",
+      "source": {
+        "path": "pipelines/time_dynamics/prospective_scientific_planner.py",
+        "sha256": "01e3224f044eb77a16dd6b4fd1fb0b9c05603d8fb7fea08ca0808e07c819911b"
+      }
+    },
+    "scientific_pre_submit_audits": {
+      "paper_ii_hh_product_v1": {
+        "receipt": null,
+        "required": true,
+        "status": "pending"
+      },
+      "paper_ii_hubbard_l4_scale_v1": {
+        "receipt": null,
+        "required": true,
+        "status": "pending"
+      }
+    },
+    "siam_stable": {
+      "report_contract": {
+        "file_sha256": "579cb99c038359ce47af926d06720262cd35ea76c27995cb9b06c714c465a73d",
+        "path": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/report_contract_current.json",
+        "report_contract_sha256": "e844cb2f762099cfcfc94ed7725b412690e0fad8e85a630dba0877bde7def5c9"
+      },
+      "scientific_state": {
+        "file_sha256": "2e62b42ed55a82f47317ff1d19b8ee57dd9de84a9321e8d46e4bac852c9104db",
+        "path": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/scientific_state_current.json",
+        "scientific_state_sha256": "081dee9e4e3ad50f7f5b8ec2eac31d8239cc8b184cc187f6a188366ef34bdeec"
+      },
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      }
+    }
+  },
+  "supervisor_state_root": "output/time_dynamics_acquisition"
+}

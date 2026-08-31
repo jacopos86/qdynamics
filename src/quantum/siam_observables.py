@@ -10,7 +10,10 @@ The screening observables are:
 * impurity double occupancy :math:`D_d = \langle n_{d\uparrow}n_{d\downarrow}\rangle`;
 * shell correlations :math:`C_j = \langle \mathbf S_d\cdot\mathbf S_j\rangle`
   for every bath site :math:`j`;
-* integrated screening :math:`\Sigma(r,t) = \sum_{j\le r} C_j(t)`;
+* impurity number :math:`N_d=n_{d\uparrow}+n_{d\downarrow}`;
+* impurity self-spin :math:`S_d^2=\tfrac34(N_d-2D_d)`;
+* integrated screening
+  :math:`\Sigma(r,t)=\langle S_d^2\rangle+\sum_{j\le r}C_j(t)`;
 * the impurity current :math:`I_d`, optional.
 
 :math:`\mathbf S_d\cdot\mathbf S_j` is the **full** scalar product, including
@@ -46,6 +49,7 @@ from src.quantum.siam_model import (
 )
 
 SIAM_OBSERVABLES_V1 = "siam_screening_observables_v1"
+SIAM_OBSERVABLES_V2 = "siam_screening_observables_v2"
 
 
 def _plus(layout: SIAMLayout, mode: int) -> PauliPolynomial:
@@ -112,6 +116,22 @@ def impurity_double_occupancy_operator(layout: SIAMLayout) -> PauliPolynomial:
     return number_operator(layout, up) * number_operator(layout, dn)
 
 
+def impurity_number_operator(layout: SIAMLayout) -> PauliPolynomial:
+    r""":math:`N_d=n_{d\uparrow}+n_{d\downarrow}`."""
+
+    up, dn = _modes(layout, "d")
+    return number_operator(layout, up) + number_operator(layout, dn)
+
+
+def impurity_spin_square_operator(layout: SIAMLayout) -> PauliPolynomial:
+    r""":math:`S_d^2=\tfrac34(N_d-2D_d)` on one spinful orbital."""
+
+    return 0.75 * (
+        impurity_number_operator(layout)
+        - 2.0 * impurity_double_occupancy_operator(layout)
+    )
+
+
 def impurity_current_operator(
     layout: SIAMLayout, *, v: float
 ) -> PauliPolynomial:
@@ -134,24 +154,60 @@ def impurity_current_operator(
     return terms
 
 
-def screening_observable_operators(
+def screening_observable_operators_v1(
     layout: SIAMLayout, *, v: float | None = None
 ) -> dict[str, PauliPolynomial]:
-    """Every gated screening observable, keyed by report name."""
+    r"""Historical v1 bundle with :math:`\Sigma=\sum_j C_j`.
+
+    This explicit legacy entry point preserves the observable bundle attached
+    to already-produced raw trajectories.  New exact and offline-reporting
+    artifacts must use :func:`screening_observable_operators` instead.
+    """
 
     ops: dict[str, PauliPolynomial] = {
         "m_d": impurity_magnetization_operator(layout),
         "D_d": impurity_double_occupancy_operator(layout),
     }
+    cumulative: PauliPolynomial | None = None
     for site in range(1, layout.n_bath + 1):
-        ops[f"C_{site}"] = spin_correlation_operator(layout, site)
+        correlation = spin_correlation_operator(layout, site)
+        ops[f"C_{site}"] = correlation
+        cumulative = correlation if cumulative is None else cumulative + correlation
+        ops[f"Sigma_{site}"] = cumulative
     if v is not None:
         ops["I_d"] = impurity_current_operator(layout, v=float(v))
     return ops
 
 
-def integrated_screening(correlations: dict[str, float], radius: int) -> float:
-    r""":math:`\Sigma(r) = \sum_{j\le r} C_j`."""
+def screening_observable_operators(
+    layout: SIAMLayout, *, v: float | None = None
+) -> dict[str, PauliPolynomial]:
+    r"""Canonical v2 reporting bundle with the impurity self-spin term."""
+
+    n_d = impurity_number_operator(layout)
+    d_d = impurity_double_occupancy_operator(layout)
+    s_d2 = impurity_spin_square_operator(layout)
+    ops: dict[str, PauliPolynomial] = {
+        "m_d": impurity_magnetization_operator(layout),
+        "D_d": d_d,
+        "N_d": n_d,
+        "S_d2": s_d2,
+    }
+    cumulative = s_d2
+    for site in range(1, layout.n_bath + 1):
+        correlation = spin_correlation_operator(layout, site)
+        ops[f"C_{site}"] = correlation
+        cumulative = cumulative + correlation
+        ops[f"Sigma_{site}"] = cumulative
+    if v is not None:
+        ops["I_d"] = impurity_current_operator(layout, v=float(v))
+    return ops
+
+
+def integrated_screening_v1(
+    correlations: dict[str, float], radius: int
+) -> float:
+    r"""Historical :math:`\Sigma_{v1}(r)=\sum_{j\le r}C_j`."""
 
     total = 0.0
     for site in range(1, int(radius) + 1):
@@ -162,14 +218,32 @@ def integrated_screening(correlations: dict[str, float], radius: int) -> float:
     return total
 
 
+def integrated_screening(
+    correlations: dict[str, float],
+    radius: int,
+    *,
+    impurity_spin_square: float,
+) -> float:
+    r""":math:`\Sigma_{v2}(r)=S_d^2+\sum_{j\le r}C_j`."""
+
+    return float(impurity_spin_square) + integrated_screening_v1(
+        correlations, radius
+    )
+
+
 __all__ = [
     "SIAM_OBSERVABLES_V1",
+    "SIAM_OBSERVABLES_V2",
     "identity_polynomial",
     "impurity_current_operator",
     "impurity_double_occupancy_operator",
     "impurity_magnetization_operator",
+    "impurity_number_operator",
+    "impurity_spin_square_operator",
     "integrated_screening",
+    "integrated_screening_v1",
     "screening_observable_operators",
+    "screening_observable_operators_v1",
     "spin_correlation_operator",
     "spin_lower_operator",
     "spin_raise_operator",

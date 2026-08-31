@@ -124,6 +124,10 @@ class StepControl:
     control_id: str
     flags: tuple[str, ...]
     required_integrator: str | None = None
+    solve_repair_enabled: bool = False
+    state_motion_l2_step_max: float | None = None
+    parameter_step_max: float | None = None
+    max_local_subdivisions: int | None = None
     note: str = ""
 
 
@@ -814,4 +818,567 @@ __all__ = [
     "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
     "PRODUCTION_STRUCTURE", "RESIDUAL_GATE", "Arm", "Drive", "Horizon",
     "InsertionGate", "RunCommand", "build_run", "main", "paper_ii_runs",
+]
+
+
+# --- Ported 2026-08-31 from codex/paper-ii-search-profiles-20260824: SIAM
+# nb2/nb4 arm registry and search-profile machinery (additive symbols only;
+# the branch's wider rewrite of this file remains unmerged - RECOVERY-AUDIT.md
+# sec 11). ---
+
+DELTA_THETA_CONTROL_TIGHT_10X = StepControl(
+    control_id="delta_theta_5e-4_diagnostic",
+    flags=("--avqds-delta-theta-max", "5.0e-4", "--no-solve-repair"),
+    required_integrator="euler",
+    parameter_step_max=5.0e-4,
+    note="Diagnostic tenfold tightening of the parameter-motion controller.",
+)
+
+DELTA_THETA_CONTROL_TIGHT_100X = StepControl(
+    control_id="delta_theta_5e-5_diagnostic",
+    flags=("--avqds-delta-theta-max", "5.0e-5", "--no-solve-repair"),
+    required_integrator="euler",
+    parameter_step_max=5.0e-5,
+    note="Diagnostic hundredfold tightening of the parameter-motion controller.",
+)
+
+STATE_MOTION_CONTROL_TIGHT_10X = StepControl(
+    control_id="state_motion_1e-3_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "10",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    max_local_subdivisions=10,
+    note="Diagnostic tenfold tightening of the state-motion controller.",
+)
+
+STATE_MOTION_CONTROL_TIGHT_100X = StepControl(
+    control_id="state_motion_1e-4_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-4",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "10",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-4,
+    max_local_subdivisions=10,
+    note="Diagnostic hundredfold tightening of the state-motion controller.",
+)
+
+STATE_MOTION_CONTROL_5E5_DIAGNOSTIC = StepControl(
+    control_id="state_motion_5e-5_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "5.0e-5",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "11",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=11,
+    note="Diagnostic state-motion calibration immediately below 1.0e-4.",
+)
+
+COMPOSED_STATE_PARAMETER_CONTROL_TIGHT_10X = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-4_diagnostic",
+    flags=(
+        *STATE_MOTION_CONTROL_TIGHT_10X.flags,
+        "--solve-repair-parameter-step-max", "5.0e-4",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-4,
+    max_local_subdivisions=10,
+    note="Diagnostic tenfold tightening of both controller bounds.",
+)
+
+COMPOSED_CONTROL_PARAMETER_TIGHT_100X = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-5_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "13",
+        "--solve-repair-parameter-step-max", "5.0e-5",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-5,
+    max_local_subdivisions=13,
+    note=(
+        "Diagnostic composition of the tenfold-tighter state-motion bound "
+        "and hundredfold-tighter parameter-motion bound."
+    ),
+)
+
+DELTA_THETA_CONTROL_CALIBRATED = StepControl(
+    control_id="delta_theta_5e-5",
+    flags=(
+        *DELTA_THETA_CONTROL_TIGHT_100X.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    required_integrator="euler",
+    parameter_step_max=5.0e-5,
+    note="Paper-facing parameter-motion controller calibrated at fixed accuracy.",
+)
+
+STATE_MOTION_CONTROL_CALIBRATED = StepControl(
+    control_id="state_motion_5e-5",
+    flags=(
+        *STATE_MOTION_CONTROL_5E5_DIAGNOSTIC.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=11,
+    note="Paper-facing state-motion controller calibrated at fixed accuracy.",
+)
+
+COMPOSED_CONTROL_CALIBRATED = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-5",
+    flags=(
+        *COMPOSED_CONTROL_PARAMETER_TIGHT_100X.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-5,
+    max_local_subdivisions=13,
+    note="Paper-facing composed controller calibrated at fixed accuracy.",
+)
+
+@dataclass(frozen=True)
+class SearchProfile:
+    """One explicit approximation budget for generalized exchange.
+
+    These settings bound computational work; they do not change the score or
+    certification mathematics.  A binding cap can nevertheless change which
+    patch is selected, so the profile id is part of every run id and campaign
+    manifest.  ``paper_facing_allowed`` describes intended use only; it never
+    judges a completed result.
+    """
+
+    profile_id: str
+    pool_size: int
+    joint_patch_evaluations: int
+    certification_attempts_per_level: int
+    certification_attempts_per_deletion_branch: int
+    rounds_per_checkpoint: int
+    insertion_cardinality: int = 1
+    paper_facing_allowed: bool = False
+    note: str = ""
+
+    def __post_init__(self) -> None:
+        for name in (
+            "pool_size",
+            "joint_patch_evaluations",
+            "certification_attempts_per_level",
+            "certification_attempts_per_deletion_branch",
+            "rounds_per_checkpoint",
+            "insertion_cardinality",
+        ):
+            if int(getattr(self, name)) < 1:
+                raise ValueError(f"{name} must be at least 1")
+
+    @property
+    def flags(self) -> tuple[str, ...]:
+        return (
+            "--max-structural-pool-size", str(int(self.pool_size)),
+            "--max-joint-patch-evaluations",
+            str(int(self.joint_patch_evaluations)),
+            "--max-certification-attempts-per-level",
+            str(int(self.certification_attempts_per_level)),
+            "--max-certification-attempts-per-deletion-branch",
+            str(int(self.certification_attempts_per_deletion_branch)),
+            "--max-insertion-rounds-per-checkpoint",
+            str(int(self.rounds_per_checkpoint)),
+            "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
+        )
+
+DIAGNOSTIC_FAST_SEARCH = SearchProfile(
+    profile_id="diagnostic_fast_v1",
+    pool_size=32,
+    joint_patch_evaluations=2_000,
+    certification_attempts_per_level=3,
+    certification_attempts_per_deletion_branch=1,
+    rounds_per_checkpoint=3,
+    note=(
+        "Cheap execution-path diagnostic. Its capped candidate pool and work "
+        "budgets make it unsuitable for Paper-II resource comparisons."
+    ),
+)
+
+PAPER_DECLARED_SEARCH = SearchProfile(
+    profile_id="paper_declared_v1",
+    pool_size=128,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note="Declared Paper-II finite-work search budget.",
+)
+
+SIAM_NB2_PROOF_SEARCH = SearchProfile(
+    profile_id="siam_nb2_proof_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=2 proof budget. The cap is nonbinding for its complete "
+        "14-block candidate pool."
+    ),
+)
+
+SIAM_NB4_PILOT_SEARCH = SearchProfile(
+    profile_id="siam_nb4_pilot_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=4 pilot budget. The cap is nonbinding for its complete "
+        "24-block K/J/Qd/A/X/P logical pool."
+    ),
+)
+
+CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
+    profile_id="cap_sensitivity_2x_v1",
+    pool_size=128,
+    joint_patch_evaluations=100_000,
+    certification_attempts_per_level=24,
+    certification_attempts_per_deletion_branch=4,
+    rounds_per_checkpoint=24,
+    paper_facing_allowed=True,
+    note=(
+        "Selected-cell sensitivity check at twice the declared work limits; "
+        "not an exhaustive combinatorial search."
+    ),
+)
+
+SEARCH_PROFILES: Mapping[str, SearchProfile] = {
+    profile.profile_id: profile
+    for profile in (
+        DIAGNOSTIC_FAST_SEARCH,
+        PAPER_DECLARED_SEARCH,
+        CAP_SENSITIVITY_2X_SEARCH,
+    )
+}
+
+LOCKED_STRUCTURAL_POLICY: tuple[str, ...] = (
+    "--no-append-schur-condition-gate",
+)
+
+SIAM_NB2_PROOF_HORIZON = Horizon("t1_26", 1.0, 26)
+
+SIAM_NB2_PROOF_ARMS: Mapping[str, Arm] = {
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+}
+
+SIAM_NB4_TIME_STEP = 1.0e-2
+
+SIAM_NB4_FULL_TIMES: tuple[float, ...] = tuple(
+    float(index) * SIAM_NB4_TIME_STEP for index in range(501)
+)
+
+SIAM_NB4_SCREEN_TIMES: tuple[float, ...] = SIAM_NB4_FULL_TIMES[:101]
+
+SIAM_NB4_CONTINUATION_TIMES: tuple[float, ...] = SIAM_NB4_FULL_TIMES[100:]
+
+SIAM_NB4_INITIAL_ACTIVATION_CUT = 1.0e-3
+
+SIAM_NB4_ARMS: Mapping[str, Arm] = {
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+}
+
+@dataclass(frozen=True)
+class SIAMNB4Segment:
+    """One exact ordered-grid slice in the resumable SIAM Nb=4 pilot."""
+
+    segment_id: str
+    times: tuple[float, ...]
+    requires_resume: bool
+
+    def __post_init__(self) -> None:
+        if not self.times:
+            raise ValueError("SIAM Nb=4 segment requires a nonempty time grid")
+        if any(
+            not math.isfinite(float(value))
+            for value in self.times
+        ) or any(
+            right <= left for left, right in zip(self.times, self.times[1:])
+        ):
+            raise ValueError("SIAM Nb=4 segment times must be finite and increasing")
+
+    @property
+    def flags(self) -> tuple[str, ...]:
+        return (
+            "--times",
+            ",".join(repr(float(value)) for value in self.times),
+        )
+
+SIAM_NB4_SCREEN_SEGMENT = SIAMNB4Segment(
+    segment_id="screen_t0_t1_101",
+    times=SIAM_NB4_SCREEN_TIMES,
+    requires_resume=False,
+)
+
+SIAM_NB4_CONTINUATION_SEGMENT = SIAMNB4Segment(
+    segment_id="continue_t1_t5_401",
+    times=SIAM_NB4_CONTINUATION_TIMES,
+    requires_resume=True,
+)
+
+@dataclass(frozen=True)
+class SIAMProofRunCommand:
+    """One arm of the locked, reference-blind SIAM Nb=2 proof pair."""
+
+    seed_path: str
+    arm: Arm
+    output_json: str
+    code_revision: str
+    extra_flags: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not str(self.code_revision).strip():
+            raise ValueError("code_revision must name the tested commit")
+
+    @property
+    def horizon(self) -> Horizon:
+        return SIAM_NB2_PROOF_HORIZON
+
+    @property
+    def run_id(self) -> str:
+        return f"siam_nb2_{self.horizon.horizon_id}_{self.arm.arm_id}"
+
+    @property
+    def search_profile(self) -> SearchProfile:
+        return SIAM_NB2_PROOF_SEARCH
+
+    def argv(self) -> tuple[str, ...]:
+        gate_flags = () if self.arm.is_comparator else MCLACHLAN_L2_GATE.flags
+        policy_flags = (
+            ()
+            if "--dynamics-policy" in self.arm.flags
+            else ("--dynamics-policy", self.arm.arm_id)
+        )
+        return (
+            "--siam-seed-json", str(self.seed_path),
+            *self.horizon.flags,
+            *EULER_RIDGE1E6_NUMERICS.flags,
+            *STATE_MOTION_CONTROL_CALIBRATED.flags,
+            *self.search_profile.flags,
+            *LOCKED_STRUCTURAL_POLICY,
+            *gate_flags,
+            *policy_flags,
+            *self.arm.flags,
+            "--parameterization-mode", "logical_shared",
+            "--record-statevector",
+            "--require-complete-candidate-pool",
+            *PROGRESS,
+            *self.extra_flags,
+            "--code-revision", str(self.code_revision),
+            "--output-json", str(self.output_json),
+        )
+
+    def shell(self) -> str:
+        parts = ["PYTHONPATH=.", "PYTHONUNBUFFERED=1", "python3", RUNNER_PATH]
+        return " \\\n  ".join(parts + list(self.argv()))
+
+def build_siam_nb2_proof_run(
+    *,
+    seed_path: str,
+    arm: str,
+    output_json: str,
+    code_revision: str,
+    extra_flags: Sequence[str] = (),
+) -> SIAMProofRunCommand:
+    """Compose one arm of the single registered SIAM Nb=2 proof pair."""
+
+    if arm not in SIAM_NB2_PROOF_ARMS:
+        raise KeyError(
+            f"unknown SIAM Nb=2 proof arm {arm!r}; "
+            f"known: {sorted(SIAM_NB2_PROOF_ARMS)}"
+        )
+    return SIAMProofRunCommand(
+        seed_path=str(seed_path),
+        arm=SIAM_NB2_PROOF_ARMS[arm],
+        output_json=str(output_json),
+        code_revision=str(code_revision),
+        extra_flags=tuple(str(flag) for flag in extra_flags),
+    )
+
+@dataclass(frozen=True)
+class SIAMNB4RunCommand:
+    """One source-locked SIAM Nb=4 screen or continuation command.
+
+    The raw trajectory remains exact-reference blind.  Screen and continuation
+    commands bind exact slices of one canonical ``T=5``/501-point reporting
+    grid, so their later digest-bound stitch cannot accept a nearly-equal grid.
+    """
+
+    seed_path: str
+    arm: Arm
+    segment: SIAMNB4Segment
+    output_json: str
+    code_revision: str
+    activation_cut: float
+    resume_from_run_json: str | None = None
+
+    def __post_init__(self) -> None:
+        registered_arm = SIAM_NB4_ARMS.get(self.arm.arm_id)
+        if registered_arm is None or self.arm != registered_arm:
+            raise ValueError(
+                "SIAM Nb=4 supports only full exchange APM and AVQDS"
+            )
+        if self.segment not in (
+            SIAM_NB4_SCREEN_SEGMENT,
+            SIAM_NB4_CONTINUATION_SEGMENT,
+        ):
+            raise ValueError("SIAM Nb=4 command requires a registered grid segment")
+        if not str(self.code_revision).strip():
+            raise ValueError("code_revision must name the tested commit")
+        cut = float(self.activation_cut)
+        if not math.isfinite(cut) or cut <= 0.0:
+            raise ValueError("activation_cut must be finite and positive")
+        resume_path = str(self.resume_from_run_json or "").strip()
+        if self.segment.requires_resume and not resume_path:
+            raise ValueError("SIAM Nb=4 continuation requires a prior run JSON")
+        if not self.segment.requires_resume and resume_path:
+            raise ValueError("SIAM Nb=4 screen must start from the immutable seed")
+    @property
+    def run_id(self) -> str:
+        cut_token = format(float(self.activation_cut), ".12g").replace("-", "m")
+        return (
+            f"siam_nb4_{self.segment.segment_id}_{self.arm.arm_id}_"
+            f"cut{cut_token}"
+        )
+
+    @property
+    def search_profile(self) -> SearchProfile:
+        return SIAM_NB4_PILOT_SEARCH
+
+    def argv(self) -> tuple[str, ...]:
+        cut = repr(float(self.activation_cut))
+        resume_flags = (
+            ()
+            if not self.segment.requires_resume
+            else ("--resume-from-run-json", str(self.resume_from_run_json))
+        )
+        exchange_flags = self.arm.flags if self.arm.arm_id == "exchange" else ()
+        exchange_gate_flags = (
+            ("--insertion-gate-mode", "mclachlan_l2")
+            if self.arm.arm_id == "exchange"
+            else ()
+        )
+        return (
+            *resume_flags,
+            "--siam-seed-json", str(self.seed_path),
+            *self.segment.flags,
+            *EULER_RIDGE1E6_NUMERICS.flags,
+            *STATE_MOTION_CONTROL_CALIBRATED.flags,
+            *self.search_profile.flags,
+            *LOCKED_STRUCTURAL_POLICY,
+            *exchange_gate_flags,
+            "--insertion-l2-cut", cut,
+            "--avqds-l2-cut", cut,
+            "--dynamics-policy", self.arm.arm_id,
+            *exchange_flags,
+            "--parameterization-mode", "logical_shared",
+            "--append-occurrence-policy", "layer_reuse",
+            "--record-statevector",
+            "--require-complete-candidate-pool",
+            *PROGRESS,
+            "--code-revision", str(self.code_revision),
+            "--output-json", str(self.output_json),
+        )
+
+    def shell(self) -> str:
+        parts = ["PYTHONPATH=.", "PYTHONUNBUFFERED=1", "python3", RUNNER_PATH]
+        return " \\\n  ".join(parts + list(self.argv()))
+
+def build_siam_nb4_screen_run(
+    *,
+    seed_path: str,
+    arm: str,
+    output_json: str,
+    code_revision: str,
+    activation_cut: float = SIAM_NB4_INITIAL_ACTIVATION_CUT,
+) -> SIAMNB4RunCommand:
+    """Build one ``0<=t<=1`` screen rung; the common initial cut is 1e-3."""
+
+    if arm not in SIAM_NB4_ARMS:
+        raise KeyError(
+            f"unknown SIAM Nb=4 arm {arm!r}; known: {sorted(SIAM_NB4_ARMS)}"
+        )
+    return SIAMNB4RunCommand(
+        seed_path=str(seed_path),
+        arm=SIAM_NB4_ARMS[arm],
+        segment=SIAM_NB4_SCREEN_SEGMENT,
+        output_json=str(output_json),
+        code_revision=str(code_revision),
+        activation_cut=float(activation_cut),
+    )
+
+def build_siam_nb4_continuation_run(
+    *,
+    seed_path: str,
+    arm: str,
+    resume_from_run_json: str,
+    activation_cut: float,
+    output_json: str,
+    code_revision: str,
+) -> SIAMNB4RunCommand:
+    """Build one exact ``1<=t<=5`` continuation at a method-owned cut."""
+
+    if arm not in SIAM_NB4_ARMS:
+        raise KeyError(
+            f"unknown SIAM Nb=4 arm {arm!r}; known: {sorted(SIAM_NB4_ARMS)}"
+        )
+    return SIAMNB4RunCommand(
+        seed_path=str(seed_path),
+        arm=SIAM_NB4_ARMS[arm],
+        segment=SIAM_NB4_CONTINUATION_SEGMENT,
+        output_json=str(output_json),
+        code_revision=str(code_revision),
+        activation_cut=float(activation_cut),
+        resume_from_run_json=str(resume_from_run_json),
+    )
+
+__all__ = [
+    "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
+    "AVQDS_PUBLISHED_NUMERICS", "CAP_SENSITIVITY_2X_SEARCH",
+    "COMPOSED_STATE_PARAMETER_CONTROL", "DIAGNOSTIC_FAST_SEARCH",
+    "DRIVES", "EULER_NUMERICS", "EULER_RIDGE1E6_NUMERICS", "EXCHANGE",
+    "NUMERICS", "Numerics",
+    "RK4_NUMERICS", "SHARED_NUMERICS", "STATE_MOTION_CONTROL",
+    "STEP_CONTROLS", "StepControl",
+    "GATES", "HH_SNAKE_NPH1", "HORIZONS", "REGIMES", "Regime",
+    "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
+    "LOCKED_STRUCTURAL_POLICY", "PAPER_DECLARED_SEARCH", "RESIDUAL_GATE",
+    "SEARCH_PROFILES", "SearchProfile", "Arm", "Drive", "Horizon",
+    "InsertionGate", "RunCommand", "build_run", "main", "paper_ii_runs",
+    "SIAM_NB2_PROOF_ARMS", "SIAM_NB2_PROOF_HORIZON",
+    "SIAM_NB2_PROOF_SEARCH",
+    "SIAMProofRunCommand", "build_siam_nb2_proof_run",
+    "SIAM_NB4_ARMS", "SIAM_NB4_CONTINUATION_SEGMENT",
+    "SIAM_NB4_CONTINUATION_TIMES", "SIAM_NB4_FULL_TIMES",
+    "SIAM_NB4_INITIAL_ACTIVATION_CUT", "SIAM_NB4_PILOT_SEARCH",
+    "SIAM_NB4_SCREEN_SEGMENT", "SIAM_NB4_SCREEN_TIMES",
+    "SIAM_NB4_TIME_STEP", "SIAMNB4RunCommand", "SIAMNB4Segment",
+    "build_siam_nb4_continuation_run", "build_siam_nb4_screen_run",
 ]

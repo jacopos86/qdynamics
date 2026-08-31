@@ -39,6 +39,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+import hashlib
+import json
+
 import numpy as np
 
 from pipelines.time_dynamics.ap_mclachlan.append_cost import (
@@ -807,3 +810,60 @@ __all__ = [
     "generalized_exchange_domain",
     "select_generalized_exchange_patch",
 ]
+
+
+def build_candidate_pool_contract(
+    state: APMcLachlanState,
+    *,
+    support_config: Any,
+) -> dict[str, Any]:
+    """Hash the exact ordered insertion pool shared by every policy.
+
+    The source-pool name and its size are insufficient evidence: occurrence
+    expansion, Pauli-family deduplication, order, and a finite cap all act
+    before either structural rule sees a candidate.  This receipt is built by
+    the same function used by APM and AVQDS, so a comparison can fail closed if
+    the effective pools differ while avoiding a large pool dump in every run.
+    """
+
+    atoms, _pauli_by_atom, telemetry = build_candidate_pool(
+        state,
+        support_config=support_config,
+        insertions_enabled=True,
+    )
+    ordered_atoms: list[dict[str, Any]] = []
+    for atom in atoms:
+        rotations = iter_runtime_rotation_terms(
+            getattr(atom.term, "polynomial"),
+            ignore_identity=bool(state.executor.ignore_identity),
+            coefficient_tolerance=float(state.executor.coefficient_tolerance),
+            sort_terms=bool(state.executor.sort_terms),
+        )
+        ordered_atoms.append(
+            {
+                "atom_id": str(atom.atom_id),
+                "atom_label": str(atom.atom_label),
+                "rotations": [
+                    {
+                        "pauli_exyz": str(rotation.pauli_exyz),
+                        "coeff_real": float(rotation.coeff_real),
+                    }
+                    for rotation in rotations
+                ],
+            }
+        )
+    blob = json.dumps(ordered_atoms, sort_keys=True, separators=(",", ":"))
+    return {
+        "schema": "paper_ii_effective_candidate_pool_v1",
+        "ordered_atom_contract_sha256": hashlib.sha256(
+            blob.encode("utf-8")
+        ).hexdigest(),
+        "candidate_pool_raw": int(telemetry["candidate_pool_raw"]),
+        "candidate_pool_deduplicated": int(
+            telemetry["candidate_pool_deduplicated"]
+        ),
+        "candidate_pool_order": str(telemetry["candidate_pool_order"]),
+        "append_occurrence_policy": str(
+            telemetry["append_occurrence_policy"]
+        ),
+    }

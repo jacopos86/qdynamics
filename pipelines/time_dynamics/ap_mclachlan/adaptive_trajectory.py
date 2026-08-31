@@ -13,6 +13,7 @@ from functools import lru_cache
 from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
+from pipelines.time_dynamics.resume import ControllerResumeState
 
 from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     AP_APPEND_COST_MODEL_PAPER_I_PROXY_V1,
@@ -2391,3 +2392,179 @@ __all__ = [
     "SupportPatchControllerConfig",
     "run_append_mclachlan_trajectory",
 ]
+
+
+# Ported 2026-08-31 from codex/paper-ii-search-profiles-20260824 (SIAM stack
+# dependency; RECOVERY-AUDIT.md sec 11).
+def _controller_resume_snapshot(
+    *,
+    checkpoint_index: int,
+    prune_runtime_state: _PruneControllerRuntimeState,
+    repair_hold_state: _RepairHoldState | None,
+    previous_accepted_theta_dot: np.ndarray | None,
+) -> dict[str, Any]:
+    return ControllerResumeState(
+        checkpoint_index=int(checkpoint_index),
+        prune_runtime_state=_prune_runtime_resume_payload(prune_runtime_state),
+        repair_hold_state=_repair_hold_resume_payload(repair_hold_state),
+        previous_accepted_theta_dot=(
+            None
+            if previous_accepted_theta_dot is None
+            else tuple(
+                float(value)
+                for value in np.asarray(
+                    previous_accepted_theta_dot,
+                    dtype=float,
+                ).reshape(-1)
+            )
+        ),
+    ).to_json_dict()
+
+def _prune_runtime_resume_payload(
+    state: _PruneControllerRuntimeState,
+) -> dict[str, Any]:
+    def history_payload(
+        history: Mapping[str, Sequence[tuple[int, float]]],
+    ) -> dict[str, list[list[float | int]]]:
+        return {
+            str(key): [[int(index), float(value)] for index, value in values]
+            for key, values in history.items()
+        }
+
+    return {
+        "support_identity_hash": state.support_identity_hash,
+        "loss_history": history_payload(state.loss_history),
+        "conditioning_history": history_payload(state.conditioning_history),
+        "cooldown_until_index": {
+            str(key): int(value)
+            for key, value in state.cooldown_until_index.items()
+        },
+        "accepted_commit_count": int(state.accepted_commit_count),
+        "accumulated_drift": float(state.accumulated_drift),
+        "accumulated_drift_time": (
+            None
+            if state.accumulated_drift_time is None
+            else float(state.accumulated_drift_time)
+        ),
+        "last_support_transition_metadata": dict(
+            state.last_support_transition_metadata
+        ),
+    }
+
+def _repair_hold_resume_payload(
+    state: _RepairHoldState | None,
+) -> dict[str, Any] | None:
+    if state is None:
+        return None
+    return {
+        "inverse_policy": _inverse_policy_resume_payload(state.inverse_policy),
+        "required_pass_count": int(state.required_pass_count),
+        "pass_count": int(state.pass_count),
+        "origin_kink_eta": (
+            None
+            if state.origin_kink_eta is None
+            else float(state.origin_kink_eta)
+        ),
+    }
+
+
+def _inverse_policy_resume_payload(
+    policy: McLachlanInversePolicy,
+) -> dict[str, Any]:
+    return {
+        "pinv_rcond": float(policy.pinv_rcond),
+        "ridge_lambda": float(policy.ridge_lambda),
+        "solve_damping": float(policy.solve_damping),
+        "epsilon": float(policy.epsilon),
+        "policy_id": str(policy.policy_id),
+    }
+
+def _inverse_policy_from_resume_payload(
+    payload: Mapping[str, Any],
+) -> McLachlanInversePolicy:
+    return McLachlanInversePolicy(
+        pinv_rcond=float(payload["pinv_rcond"]),
+        ridge_lambda=float(payload["ridge_lambda"]),
+        solve_damping=float(payload["solve_damping"]),
+        epsilon=float(payload["epsilon"]),
+        policy_id=str(payload["policy_id"]),
+    )
+
+def _prune_runtime_from_resume_payload(
+    payload: Mapping[str, Any],
+) -> _PruneControllerRuntimeState:
+    def history(name: str) -> dict[str, list[tuple[int, float]]]:
+        return {
+            str(key): [
+                (int(row[0]), float(row[1]))
+                for row in tuple(values or ())
+            ]
+            for key, values in dict(payload.get(name) or {}).items()
+        }
+
+    return _PruneControllerRuntimeState(
+        support_identity_hash=(
+            None
+            if payload.get("support_identity_hash") is None
+            else str(payload["support_identity_hash"])
+        ),
+        loss_history=history("loss_history"),
+        conditioning_history=history("conditioning_history"),
+        cooldown_until_index={
+            str(key): int(value)
+            for key, value in dict(
+                payload.get("cooldown_until_index") or {}
+            ).items()
+        },
+        accepted_commit_count=int(payload.get("accepted_commit_count") or 0),
+        accumulated_drift=float(payload.get("accumulated_drift") or 0.0),
+        accumulated_drift_time=(
+            None
+            if payload.get("accumulated_drift_time") is None
+            else float(payload["accumulated_drift_time"])
+        ),
+        last_support_transition_metadata=dict(
+            payload.get("last_support_transition_metadata") or {}
+        ),
+    )
+
+def _repair_hold_from_resume_payload(
+    payload: Mapping[str, Any] | None,
+) -> _RepairHoldState | None:
+    if payload is None:
+        return None
+    return _RepairHoldState(
+        inverse_policy=_inverse_policy_from_resume_payload(
+            dict(payload["inverse_policy"])
+        ),
+        required_pass_count=int(payload["required_pass_count"]),
+        pass_count=int(payload.get("pass_count") or 0),
+        origin_kink_eta=(
+            None
+            if payload.get("origin_kink_eta") is None
+            else float(payload["origin_kink_eta"])
+        ),
+    )
+
+def _restore_controller_resume_state(
+    payload: Mapping[str, Any] | None,
+) -> tuple[
+    int,
+    _PruneControllerRuntimeState,
+    _RepairHoldState | None,
+    np.ndarray | None,
+]:
+    if payload is None:
+        return 0, _PruneControllerRuntimeState(), None, None
+    restored = ControllerResumeState.from_json_dict(payload)
+    previous = (
+        None
+        if restored.previous_accepted_theta_dot is None
+        else np.asarray(restored.previous_accepted_theta_dot, dtype=float).reshape(-1)
+    )
+    return (
+        int(restored.checkpoint_index),
+        _prune_runtime_from_resume_payload(restored.prune_runtime_state),
+        _repair_hold_from_resume_payload(restored.repair_hold_state),
+        previous,
+    )
