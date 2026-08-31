@@ -4002,6 +4002,9 @@ single-artifact generalizations.
 | Q49 | The four joint-linear-solve policies, re-checked | **Keep three, delete one.** `projected_generalized_trust_v1` — Phase-III response solve, every run. `whitened_eigh_v1` — the `JointLinearSolveConfig` default, carried by the accepted refit. `global_trust_eigh_v2` — passed explicitly by the Schur-restricted solve in scoring and the prune inner solve. `block_pinv_legacy_v1` — no explicit site anywhere. | 2026-08-25 |
 | Q50 | `global_trust_eigh_v2` as the **Phase-III** solve | **Keep it and queue an extension bundle.** v2 handles the singular Moré--Sorensen hard case where v1 forces the shifted Hessian positive definite, so it can be expected to produce better steps. Note the premise correction: v2 **is** used in bundled runs, for the Schur-restricted and prune inner solves — what no bundle used is v2 as the *Phase-III response solve*. That is the ablation. | 2026-08-25 |
 | Q51 | Instrument the projected solver to record the retained-support Hessian spectrum? | **No — not worth the receipt weight.** The hard-case question stays unanswerable from receipts, and the v2 ablation (Q50) remains the only way to test it. Do not add `H_s` eigenvalues to the Phase-III receipt during the refactor. | 2026-08-25 |
+| Q52 | `marrakesh_graph_span_v1` under the run-level cost interface | **Keep it as the graph proxy.** Do not delete it or replace it with Qiskit compilation. It remains the proxy implementation selected explicitly against the peer Qiskit-compiled implementation. | 2026-08-25 |
+| Q53 | May Q45 establish a new estimator ledger? | **Yes, after diagnosis.** Attribute the extra primitives first and rule out an accidental expansion. An explained change inherent to removing lane-wise scoring may establish the new baseline; an implementation side effect may not. | 2026-08-25 |
+| Q54 | Rename `phase123_controller_maturity_v2` under Q38? | **No. Q38 is superseded.** Retain the existing wire-format identifier and preserve continuation of old sidecars. Do not rename the snapshot merely to improve its label. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
@@ -4077,7 +4080,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stages 1.2/1.4 done in `1e6db270`/`5680f959`; Q43 done in `af832630`; Q45 lane-wise scoring deletion in progress; Q30, Q33, and Q38 remain decision boundaries; phase controller preserved |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | done on `codex/paper-i-q45-diagnosis-20260825`; Q42 PAOP, deferred Gram, runtime split, Q52 graph proxy, and Q54 snapshot version preserved; final closure recorded below |
 | _(add yours)_ | | | |
 
 ---
@@ -5692,3 +5695,286 @@ source-shape assertion. Q43 adds no failing test.
 **Paper-I-local impact audit:** every pre-edit symbol impact was LOW. Final
 isolated GitNexus `detect-changes` reports eight files, four mapped symbols,
 zero affected processes, and LOW risk.
+
+### 2026-08-25 — Q45 — global phase shortlists and lane-restriction cleanup
+
+**Correction to 6ar:** its numerical conclusion about the historical shortlist
+caps is wrong. The `24` / `12` / `0.25` values cited there are the recorded base
+settings, not the effective controller caps. The completed-run
+`controller_snapshot.phase_caps` is Phase I `8` and Phase II `4`; the historical
+budget resolver divided the bases by the recorded aggressiveness factor `3`.
+The first Q45 implementation accidentally deleted that effective-cap behavior
+at the same time as lane-wise ranking. That was an implementation side effect,
+not a consequence of global scoring.
+
+**Diagnosis required by Q53:** from baseline
+`c4e52f366a85cb86ea5fbaa2b72b731546dad154`, the accidental uncapped attempt
+produced 332 unique ledger entries and 356 ordered occurrences. Relative to the
+clean 256-entry / 266-occurrence run, all baseline primitives remained present;
+the extras were 30 Phase-II self-Hessian primitives, 23 charged runtime-split
+child gradients, 23 charged runtime-split child metrics, and their reuse
+occurrences. Restoring the effective `8` / `4` / `1/12` caps removes that
+expansion. The diagnosed global run has 230 unique entries and 238 ordered
+occurrences: 26 fewer unique primitives and 28 fewer occurrences than the
+lane-wise baseline, with no extra primitive family.
+
+**Global-scoring increment:** commit `a0ecc565` changes Phase-I and Phase-II
+shortlisting from per-physical-family lane allocation to one global ranked
+population. It retains `physical_operator_lane` only as generator provenance
+and retains the historical effective caps independently of lane machinery. The
+change adds 37 lines and deletes 299: **262 net lines removed**.
+
+The new deterministic ledger fingerprint is
+`f77777af46edfd4902a24a24aa54742ef3c35e884dead760d715ed83baa24b82`,
+with primitive-id hash
+`22609f548232398d6777dbb4d2d77c10053bbefb482ae31a5692013393879943`
+and complete ledger JSON hash
+`cb72837dc641f74eab4aa63ac42db7565739c0b4da5940e1640ef76662a205ec`.
+The optimized energy is unchanged within `2.2e-16`. The explicitly selected
+graph proxy is unchanged: source `marrakesh_graph_span_v1`, compile cost `2.2`,
+and resource tuple `(c_hat_1q, c_hat_2q, c_hat_d, c_hat_theta) = (7, 2, 2, 1)`.
+The route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+Collection changes from `5461 tests collected, 54 errors` to `5459 tests
+collected, 54 errors`; the complete `ERROR test/...` diff is empty.
+
+**Structural-cleanup increment:** commit `33934b9e` deletes the now-unreachable
+lane quota allocation, lane health/frontier ranking, lane refill, lane
+retention audit, identity-propagated lane-health fields, and five executable
+controls (`physical_lane_shortlist_aggressiveness`,
+`phase1_lane_retention_enabled`, the two lane-quota pressures, and the Phase-II
+lane-relative threshold). Historical route-contract dictionaries remain
+byte-identical provenance, while runtime namespaces reject the retired fields.
+The effective historical caps are named directly and do not depend on a lane
+factor. This change adds 46 lines and deletes 1,189: **1,143 net lines
+removed**.
+
+The cleanup reproduces the Q45 ledger byte-for-byte: 230 entries, 238 ordered
+occurrences, fingerprint `f77777af46edfd4902a24a24aa54742ef3c35e884dead760d715ed83baa24b82`,
+primitive-id hash
+`22609f548232398d6777dbb4d2d77c10053bbefb482ae31a5692013393879943`,
+and complete JSON hash
+`cb72837dc641f74eab4aa63ac42db7565739c0b4da5940e1640ef76662a205ec`.
+Collection changes from `5459 tests collected, 54 errors` to `5460 tests
+collected, 54 errors`; the `ERROR test/...` diff is empty. The focused retired
+control, cap-resolution, Phase-I/II shortlist, Phase-III terminal, accepted
+refit, and Paper-IV compatibility surface passes `47 passed`.
+
+**Paper-I-local impact audit:** the physical shortlist entry points were HIGH
+risk because they feed Phase I, Phase II, beam search and the main controller;
+that blast radius was reported before editing. A disposable Paper-I-only index
+was rebuilt after GitNexus's incremental FTS failure. Final
+`detect-changes --scope all` reports 12 indexed files, 24 changed symbols, one
+affected execution flow, and MEDIUM aggregate risk. No repo-wide index was run.
+The macro-only physical-lanes profile family named for retirement in 6ar remains
+for a separate increment; this entry does not claim that profile deletion.
+
+### 2026-08-25 — Q45 — physical-lane profile family retired
+
+**Implementation:** from the completed Q45 cleanup commit `33934b9e`, commit
+`a2647f65` deletes all seven registered
+`SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_*` profiles, their aliases,
+execution-setting dictionaries, contract/sha builders, registry membership,
+controller exceptions, and profile-specific tests. Raw macro generators and
+their `physical_operator_lane` provenance remain unchanged.
+
+Typed `RAAdaptRequest` macro execution remains available. It now constructs one
+internal `typed_ra_macro_global_v1` parent from the no-prune symmetric-cost
+contract and applies the typed insertion, pruning, and beam objects to it. The
+contract records `physical_operator_lanes_active = False` and
+`shortlist_population_policy = "single_global_population_v1"`. Its
+`static_lane_route = "physical_operator_type"` field is retained only as
+generator-family provenance and as the source-locked trigger for the historical
+effective `8` / `4` caps; no lane allocator consumes it after Q45. A
+new-checkpoint macro resume test passes, while the retired profile names are
+explicitly rejected.
+
+The change adds 123 lines and deletes 1,222: **1,099 net lines removed**.
+
+**Reproducibility:** the completed deterministic global-scoring run remains
+byte-identical at 230 unique entries and 238 ordered occurrences. Its ledger
+fingerprint is
+`f77777af46edfd4902a24a24aa54742ef3c35e884dead760d715ed83baa24b82`,
+primitive-id hash is
+`22609f548232398d6777dbb4d2d77c10053bbefb482ae31a5692013393879943`,
+and complete ledger JSON hash is
+`cb72837dc641f74eab4aa63ac42db7565739c0b4da5940e1640ef76662a205ec`.
+The active route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5460 tests collected, 54
+errors` to `5457 tests collected, 54 errors`; the complete `ERROR test/...`
+diff is empty. The focused retired-profile, insertion-retirement, typed macro
+one-round, and macro-resume surface passes `24 passed`. The broader files retain
+their already-established unrelated failures: passive beam fields deleted by
+the extension pass, stale generic route digests, and singleton Phase-III
+population expectations.
+
+**Paper-I-local impact audit:** the retired base contract was CRITICAL (39
+upstream symbols across 11 processes), and the typed macro parent was CRITICAL
+(19 upstream symbols across five processes); both warnings were reported before
+editing. The final disposable Paper-I-only index reports MEDIUM aggregate risk,
+one affected execution flow, and no repo-wide analysis. The obsolete lane-on /
+lane-off diagnostic bundle materializers remain historical campaign surfaces;
+this increment retires the executable route/profile family ratified in 6ar and
+does not infer a separate decision about deleting archived campaign contracts.
+
+### 2026-08-25 — Work Plan 3.2a — shared run-level proxy cost scales
+
+**Implementation:** from clean baseline
+`f827c1c3ac288135e59c1b757c939b8af387e9cd`, commit `22e6bb5a` collapses the
+seven duplicated Phase-I/Phase-II compile-proxy and optimization-scale pairs
+named in Q33 into seven run-level values. The CLI, executor, canonical runtime
+infrastructure, output settings, `SimpleScoreConfig`, and `FullScoreConfig` now
+carry one copy of each value. The fourteen old phase-prefixed flags and
+parameters have no aliases. Phase-specific measurement weights remain separate;
+Q33 did not classify them as duplicates.
+
+The change adds 95 lines and deletes 124: **29 net lines removed**.
+
+**Reproducibility:** a completed one-round typed macro run was executed from
+both the clean baseline worktree and the changed worktree. Both sidecars are
+byte-identical: 229 unique entries, 286 ordered occurrences, ledger fingerprint
+`7c91059b8622ed22e5a9a556e1db1993855966866b564e85a97240b5aa3489b8`,
+primitive-id stream hash
+`ecd703ef24218289156be9c3abaa7d8295d0f7111f29accf426c06466c5b1e9c`,
+canonical ledger hash
+`4c264bae5e22873de9242084f4a9748ba74d13e0bde8ff820ab9a6957ef48b93`,
+and complete sidecar SHA-256
+`2ffe64ed226ef7b0a211ff3e1429a182a7d9b654e22b5b60ee1e454fabbba33b`.
+Energy and route digest also remain identical at
+`0.21922359359558485` and
+`e0d09f4278b59a80c143fbfb6078722a282b3b8c8a223522faa0092d1e27b3be`.
+
+**Collection and tests:** before and after are both `5457 tests collected, 54
+errors`; the complete `ERROR test/...` diff is empty. Four direct CLI,
+route-normalization, and typed-macro execution tests pass.
+
+**Paper-I-local impact audit:** pre-edit impacts were MEDIUM for the CLI parser
+and LOW for the executor, both score constructors, kwargs builder, output
+builder, and test. Final localized `detect-changes --scope all` reports four
+files, ten symbols, six serialization/controller flows, and HIGH aggregate
+risk; the exact sidecar identity, empty collection-error diff, and focused
+tests close that risk. One analyzer invocation accidentally targeted the full
+worktree because its working directory was wrong; that newly created index was
+immediately deleted before use. The final audit was rebuilt and run only in the
+disposable Paper-I slice.
+
+### 2026-08-25 — Work Plan 3.2b — one run-level cost oracle for Phases I–III
+
+**Implementation:** from clean baseline
+`f6ff728ffbd6732b3b53968ecbd8ee3a67b39204`, commit `262196f2` removes the
+second staged compile oracle and makes the selected run-level cost source apply
+uniformly to Phase I, Phase II, and Phase III. Qiskit mode uses one
+`BackendCompileOracle`, one FakeMarrakesh target, signed marginal compile cost,
+and one candidate-position cache identity at all three phases. Graph mode uses
+the same single-oracle path with `marrakesh_graph_span_v1`, preserving Q52.
+
+The historical phase-specific route strings remain byte-identical only inside
+authenticated provenance contracts. The typed runtime boundary translates
+those historical contracts to the single live oracle; no snapshot or route
+identifier was renamed. Two superseded mixed-scope test modules were deleted;
+the surviving facade and semantic-closure tests exercise the all-phase
+contract directly. The change adds 277 lines and deletes 2,357:
+**2,080 net lines removed**.
+
+**Reproducibility:** the exact completed typed-macro harness used for 3.2a
+reproduces byte-for-byte: 229 unique entries, 286 ordered occurrences, ledger
+fingerprint
+`7c91059b8622ed22e5a9a556e1db1993855966866b564e85a97240b5aa3489b8`,
+primitive-id stream hash
+`ecd703ef24218289156be9c3abaa7d8295d0f7111f29accf426c06466c5b1e9c`,
+canonical ledger hash
+`4c264bae5e22873de9242084f4a9748ba74d13e0bde8ff820ab9a6957ef48b93`,
+and complete sidecar SHA-256
+`2ffe64ed226ef7b0a211ff3e1429a182a7d9b654e22b5b60ee1e454fabbba33b`.
+Energy and route digest remain exactly
+`0.21922359359558485` and
+`e0d09f4278b59a80c143fbfb6078722a282b3b8c8a223522faa0092d1e27b3be`.
+
+**Collection and tests:** collection changes from `5457 tests collected, 54
+errors` to `5411 tests collected, 54 errors`; the complete `ERROR test/...`
+diff is empty. The focused signed-cost, all-phase facade, semantic preflight,
+and final-accounting surface passes `9 passed`. The complete facade result is
+`64 passed, 3 failed`; the direct-oracle plus semantic-closure result is
+`101 passed, 7 failed`. Every one of those ten broader failures reproduces on
+the untouched baseline. The route-profile file likewise gives `102 passed, 10
+failed` both before and after; its ten failures are the already-retired
+physical-lane assertions.
+
+**Paper-I-local impact audit:** the pre-edit route and controller impacts were
+HIGH or CRITICAL and were reported before editing. A fresh disposable
+Paper-I-only index, rebuilt with the large controller file included, reports 11
+indexed changed files, 44 changed symbols, 42 affected execution flows, and
+CRITICAL aggregate risk. The affected flows are the expected RA facade,
+Phase-I/II/III selection, compile-oracle, receipt, and serialization paths; no
+unrelated execution area appeared. No repository-wide index was run.
+
+### 2026-08-25 — Work Plan 2.4 — Paper-I Aer fallback permission removed
+
+**Implementation:** from source baseline `262196f2`, commits `b85ef7ee` and
+`17ef89ca` make every Paper-I construction of the shared noise-oracle runtime
+fail closed. The Phase-III runtime, final noise audit, and locked pure-Hubbard
+noise contract now set `allow_aer_fallback = False`; no Paper-I call site still
+sets it to `True`. The shared implementation in
+`pipelines/exact_bench/noise_oracle_runtime.py` is unchanged because active
+Paper-II consumers use it and DECISIONS does not ratify changing that lane.
+The retained `False` argument is therefore a cross-lane boundary pin, not a
+fallback-reporting field.
+
+The implementation changes three values and adds three assertions to existing
+tests: **3 net lines added** (measured net removal `-3`). The initially separate
+contract test was folded into the existing parametrized noise-contract test to
+avoid duplicating setup.
+
+**Reproducibility:** the exact completed one-round typed-macro harness remains
+byte-identical: 229 unique entries, 286 ordered occurrences, ledger fingerprint
+`7c91059b8622ed22e5a9a556e1db1993855966866b564e85a97240b5aa3489b8`,
+and complete sidecar SHA-256
+`2ffe64ed226ef7b0a211ff3e1429a182a7d9b654e22b5b60ee1e454fabbba33b`.
+The optimized energy remains `0.21922359359558485`.
+
+**Collection and tests:** on the source-only increment, collection remains
+`5411 tests collected, 54 errors`; the complete `ERROR test/...` diff is empty.
+After merging the concurrently advanced `paper-ii-exchange-selector` branch at
+`603d30c0` for worklog coordination, the combined tree collects `5415` tests
+with the same 54 errors and the same empty error-list diff. The five focused
+strictness cases pass. The complete pure-Hubbard noise file gives `11 passed,
+3 failed`; the same three semantic-version failures reproduce on the untouched
+baseline (`10 passed, 3 failed` before the folded assertion).
+
+**Paper-I-local impact audit:** pre-edit impacts were LOW for both runtime
+lifecycle helpers and CRITICAL for the locked pure-Hubbard contract (22
+upstream symbols, four direct consumers, seven Paper-I/reporting processes);
+the CRITICAL warning was reported before editing. The corrected disposable
+Paper-I-only index reports four changed files, six changed symbols, one affected
+`run_ra_adapt` serialization flow, and MEDIUM aggregate risk. The first final
+index result was discarded because the slice lacked the baseline test file and
+therefore misclassified that whole file as newly added; the baseline was added
+and the index rebuilt before this recorded result. No repo-wide index was run.
+
+### 2026-08-25 — Work Plan Stages 1–3 — COMPLETE
+
+Every row is now closed by an implementation or a later author decision:
+1.1 is withdrawn by Q42; 1.2 is `1e6db270`; 1.3, 2.1, 2.2, and the named dead
+2.3 telemetry are `05604a36`; 1.4 is `5680f959`; 2.4 is `b85ef7ee` plus
+`17ef89ca`; 2.5 and 3.1 are `c4400c36`; 3.2 is `22e6bb5a` plus `262196f2`;
+3.3 is `abdba188`; and 3.4 is `2d23fb1b`. Q54 supersedes 3.5, so the existing
+`phase123_controller_maturity_v2` wire identifier remains unchanged.
+
+Those Stage 1–3 increments remove **3,375 net lines** in aggregate. The
+separately ratified Q43 and Q45 increments completed during the same goal remove
+another 548 and 2,504 net lines respectively. PAOP, deferred Gram, the
+load-bearing runtime split, the explicitly selectable Marrakesh graph proxy,
+and the phase controller remain intact. Phase I, Phase II, and Phase III now
+select the same single run-level cost oracle.
+
+The final combined tree after worklog coordination collects `5415` tests with
+54 errors; its `ERROR test/...` list is unchanged. The final completed
+typed-macro ledger remains at 229 unique primitives, 286 ordered occurrences,
+and fingerprint
+`7c91059b8622ed22e5a9a556e1db1993855966866b564e85a97240b5aa3489b8`.
+The separately diagnosed Q45 global-scoring harness remains byte-identical at
+fingerprint
+`f77777af46edfd4902a24a24aa54742ef3c35e884dead760d715ed83baa24b82`.
+No stop condition triggered after the Q42/Q41 retractions and Q53 attribution.
