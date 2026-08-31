@@ -1,0 +1,921 @@
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\graphicspath{{../../}{}}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\ifmmode\left[#1\right]\else\textsf{[#1]}\fi}}
+\newcommand{\tentative}[1]{\textcolor{red!70!black}{#1}}
+\newcommand{\structlabel}[1]{\noindent\mbox{\tentative{#1.}}~}
+\newcommand{\Oset}{\mathcal{O}}
+\newcommand{\Gset}{\mathcal{G}}
+\newcommand{\Rset}{\mathcal{R}}
+\newcommand{\Sset}{\mathcal{S}}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Bcal}{\mathcal{B}}
+\newcommand{\Ocal}{\mathcal{O}}
+\newcommand{\Ucal}{\mathcal{U}}
+\newcommand{\Jcal}{\mathcal{J}}
+\newcommand{\Pcal}{\mathcal{P}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Mcal}{\mathcal{M}}
+\newcommand{\Wcal}{\mathcal{W}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\newcommand{\TR}{\mathrm{TR}}
+\newcommand{\ex}{\mathrm{ex}}
+\newcommand{\ctrl}{\mathrm{ctrl}}
+\newcommand{\stat}{\mathrm{stat}}
+\newcommand{\dyn}{\mathrm{dyn}}
+\newcommand{\drv}{\mathrm{drv}}
+\newcommand{\obs}{\mathrm{obs}}
+\newcommand{\stay}{\mathrm{stay}}
+\newcommand{\app}{\mathrm{append}}
+\newcommand{\prune}{\mathrm{prune}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Top}{\operatorname{Top}}
+\newcommand{\argminp}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\argmaxp}{\mathop{\mathrm{arg\,max}}}
+\newcommand{\proj}{\mathrm{proj}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\CVaR}{\operatorname{CVaR}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\hh}{\mathrm{HH}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+\newcommand{\twq}{\mathrm{2Q}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\expval}[1]{\langle #1\rangle}
+\newcommand{\inlinetablecaption}[2]{%
+  \refstepcounter{table}\label{#1}%
+  \noindent\textsc{Table~\thetable.} #2\par\vspace{0.6ex}%
+}
+
+
+\begin{document}
+
+\title{Checkpoint-Adaptive McLachlan Dynamics for Mixed Fermion--Boson Hamiltonians}
+
+\author{Jake Strobel}
+\author{Jacopo Simoni}
+\author{Gabrille Riva}
+\author{Yuan Ping}
+\affiliation{University of Wisconsin--Madison}
+
+\date{\today}
+
+
+\begin{abstract}
+Real-time simulation of driven electron--phonon and related mixed fermion--boson systems requires a variational manifold that remains expressive without becoming too deep, ill-conditioned, or measurement-expensive for NISQ execution.  We present a checkpoint-adaptive McLachlan dynamics controller initialized from a compact static ADAPT scaffold.  The method evolves parameters by a regularized projective McLachlan solve on each open checkpoint interval, while checkpoint-local residual diagnostics decide whether to stay, append a zero-initialized tangent block, prune a verified redundant block, or repair an unsupported solve.  Append is confirmed by Schur-complement tangent gain, and pruning is protected by projection, short-horizon shadow verification, persistence, cooldown, and rollback.  Driven-energy, observable, and spectral errors are reported as non-depth-matched trajectory-accuracy and resource tradeoffs against fixed-scaffold McLachlan/TDVP, product-formula, pVQD, adaptive pVQD, and AVQDS-style baselines.  In the current all-class aggregate, the optimized product-formula envelope remains the raw-accuracy reference, while the checkpoint route uses \tentative{$3.49\times$} fewer accumulated two-qubit gates and \tentative{$3.58\times$} lower accumulated two-qubit depth; against variational dynamics baselines, it gives \tentative{$3.17\times$} lower mean energy error than pVQD/adaptive pVQD and \tentative{$1.34\times$} lower observable error than the AVQDS-style tangent benchmark at \tentative{$4.19\times$} fewer accumulated two-qubit gates.
+\end{abstract}
+
+\maketitle
+
+
+\section{Introduction}
+
+\structlabel{Problem, Hamiltonian, importance of solving it}
+Driven mixed fermion--boson systems require real-time propagation of electronic, bosonic, and electron--phonon observables under Hamiltonians whose static operator labels are fixed while drive coefficients vary in time \cite{Macridin2018,Macridin2018PRA,Sawaya2020,Li2023,Denner2023}. % \placeholder{Cites electron--phonon and fermion--boson simulation targets, bosonic/$d$-level encodings, variational-basis electron--phonon encoding, and hybrid electron--phonon alternatives.}
+The physical outputs of interest include time-domain energy, site occupation, doublon response, density modulation, and spectral response extracted from the driven trajectory.  We consider mixed fermion--boson Hamiltonians augmented by a time-dependent drive:
+\begin{align}
+H(t)&=H_f+H_b+H_{fb}+H_{\drv}(t),
+\nonumber\\
+H_f&=\sum_{pq}h_{pq}c_p^\dagger c_q
++\frac12\sum_{pqrs}V_{pqrs}c_p^\dagger c_q^\dagger c_s c_r,
+\nonumber\\
+H_b&=\sum_{\mu}\omega_\mu b_\mu^\dagger b_\mu+H_b^{\rm nl},
+\nonumber\\
+H_{fb}&=\sum_{\mu}X_\mu F_\mu[c^\dagger,c]
++\sum_{\mu}P_\mu G_\mu[c^\dagger,c],
+\nonumber\\
+H_{\drv}(t)&=\sum_{\eta\in\mathcal I_{\drv}}
+a_\eta(t)\Dcal_\eta[c^\dagger,c,b^\dagger,b] .
+\label{eq:general_fb_terms_dynamic}
+\end{align}
+Here $c_p^\dagger,c_p$ and $b_\mu^\dagger,b_\mu$ are fermionic and truncated bosonic ladder operators, $X_\mu=b_\mu^\dagger+b_\mu$, $P_\mu=\ii(b_\mu^\dagger-b_\mu)$, and $\Dcal_\eta$ is a second-quantized drive channel; for the density pump, $\Dcal_{i\sigma}=c_{i\sigma}^{\dagger}c_{i\sigma}$. These channels are expanded into Pauli strings only after the fermion and boson encodings are fixed. Model definitions and drive waveforms are specified in Appendix~\ref{app:hamiltonian_families}.  The NISQ question is again an accuracy--hardware-cost question: a dynamics method must track observables over time without accumulating a circuit, measurement, or conditioning burden that destroys the trajectory on noisy hardware.
+
+\structlabel{Current solution strategies}
+Digital product-formula methods such as Suzuki--Trotter and randomized product formulas approximate the full unitary evolution but can require large depths for strongly coupled fermion--boson systems \cite{Suzuki1985,Suzuki1990,ChildsSu2019ProductFormula,ChildsOstranderSu2019RandomizedPF,Campbell2019QDRIFT,Macridin2018,Sawaya2020,Li2023}. % \placeholder{Cites deterministic and randomized product-formula/qDRIFT baselines together with electron--phonon and bosonic encoding context.}
+Variational dynamics methods instead evolve circuit parameters, including fixed-scaffold McLachlan/TDVP, pVQD, adaptive projected variational dynamics, and AVQDS-style approaches \cite{LiBenjamin2017VQS,Yuan2019VQS,Endo2020GeneralProcesses,Benedetti2021TimeEvolution,Barison2021,Yao2021,Linteau2024,Zhang2025}. % \placeholder{Cites variational quantum simulation, fixed projected variational dynamics, AVQDS, adaptive pVQD, and compressed adaptive dynamics.}
+McLachlan propagation projects the instantaneous Schrödinger drift onto the tangent space of the current variational manifold, yielding a measured tangent metric, a force vector, and a regularized parameter velocity \cite{McLachlan1964,Yuan2019VQS,Barison2021}. % \placeholder{Cites the McLachlan least-squares principle and modern variational quantum simulation/pVQD formulations.}
+This is the standard near-term motivation for variational real-time simulation: the McLachlan route can trade unrestricted product-formula accuracy for a shorter, problem-adapted circuit path whose tangent geometry is estimated from the prepared state.  Existing adaptive variants use residual information to expand the manifold when the current tangent space is insufficient.
+
+\structlabel{Problem with current solutions}
+The remaining difficulty is hardware-efficient trajectory maintenance.  A static ADAPT scaffold may be compact at the initial time yet fail to span the driven velocity later; conversely, a blindly expanding adaptive dynamics manifold can accumulate redundant generators, ill-conditioned tangent metrics, and unnecessary two-qubit depth \cite{Yao2021,Linteau2024,Zhang2025}. % \placeholder{Cites adaptive dynamics methods whose growth mechanisms motivate a sharper manifold-maintenance problem.}
+The append decision should therefore estimate the marginal gain of adding a candidate tangent block, not merely detect a large residual.  Likewise, a prune decision should be rollback-safe and observable-safe, rather than a simple small-angle deletion.  Finally, time integration itself should respond to local trajectory stiffness: Euler can be cheaper in calm, columnar, well-conditioned regimes, while RK4 is preferable when local curvature or embedded-step disagreement is high.
+
+\structlabel{Solution strategy}
+We develop a checkpoint-adaptive McLachlan controller on top of the selected static scaffold.  Between checkpoints the scaffold is fixed and the parameters follow a stabilized projective McLachlan velocity \cite{McLachlan1964,Yuan2019VQS,Barison2021}. % \placeholder{Cites the projected variational-dynamics lineage for the continuous solve.}
+At checkpoints, the controller chooses exactly one lane: stay, append a zero-initialized candidate block, prune a verified redundant block, or repair an unsupported solve.  Append is triggered by structural expressivity miss and confirmed by a Schur-complement tangent-gain ladder; prune is restricted to calm or differentially safe regimes with projection, shadow verification, persistence, cooldown, and exact rollback.  The results section therefore compares trajectory accuracy and resource accumulation against fixed-scaffold McLachlan/TDVP, product formulas, pVQD, adaptive pVQD, and AVQDS-style baselines \cite{Barison2021,Yao2021,Linteau2024,Zhang2025,Campbell2019QDRIFT}. % \placeholder{Cites the baseline families used for the planned dynamics comparison.}
+
+\section{Checkpoint-adaptive McLachlan dynamics}
+\label{sec:dynamics_method}
+
+A compact ground-state ansatz can be reused to simulate quench-driven real-time dynamics. McLachlan dynamics is NISQ-compatible under the constraint that the initialized ansatz circuit remains NISQ-compatible \cite{McLachlan1964,LiBenjamin2017VQS,Yuan2019VQS}. % \placeholder{Cites the least-squares variational principle and early near-term variational quantum simulation routes.}
+As such, preparation of the initial state is not an auxiliary detail: the static scaffold supplies the starting manifold on which the dynamic controller operates.
+
+\subsection{Implemented McLachlan propagation}
+Let checkpoint times be $0=\tau_0<\cdots<\tau_T=T$, with physical time $t_k=t_0+\tau_k$ and step $\Delta\tau_k=\tau_{k+1}-\tau_k$. During propagation the Pauli labels are fixed and only the driven coefficients change:
+\begin{equation}
+H(t)=\sum_{\alpha\in\mathcal I_{\stat}}h_\alpha P_\alpha
++\sum_{\beta\in\mathcal I_{\drv}}c_\beta(t)P_\beta .
+\label{eq:dynamics_sampling}
+\end{equation}
+We write $H(t_k)$ for the Hamiltonian evaluated at the checkpoint sample time.
+For the inherited ADAPT ansatz, $\ket{\psi_k}=U(\theta_k)\ket{\psi_{\rm ref}}$, the parameterization supplies flattened coordinates $\theta_k\in\mathbb R^{N_k}$. The algorithm estimates, through measurement-compatible tangent observables, the horizontally projected tangent block
+\begin{equation}
+\bar T_k=Q_{\psi_k}T_k
+=Q_{\psi_k}\left[
+\partial_{\theta_{k,1}}\ket{\psi_k},\ldots,
+\partial_{\theta_{k,N_k}}\ket{\psi_k}
+\right],
+\label{eq:projected_tangent_block}
+\end{equation}
+and the instantaneous projected Schrödinger drift
+\begin{equation}
+\bar b_k=-\ii\left(H(t_k)-\expval{H(t_k)}_{\psi_k}\right)\ket{\psi_k}.
+\label{eq:projected_schrodinger_drift}
+\end{equation}
+
+The regularized least-squares mismatch between the projected tangent velocity and the Schrödinger drift is the McLachlan residual on the prepared circuit manifold \cite{McLachlan1964,Yuan2019VQS,Barison2021}.
+% \placeholder{Cites the variational least-squares residual and its parameterized-circuit dynamics form.}
+\begin{equation}
+\begin{aligned}
+\mathfrak m_k(v)
+&:=\|\bar T_kv-\bar b_k\|_2^2
++v^\top\Lambda_kv \\
+&=v^\top K_kv-2v^\top f_k+\Var_{\psi_k}(H(t_k)),
+\end{aligned}
+\label{eq:mclachlan_metric_objective}
+\end{equation}
+where $K_k=G_k+\Lambda_k=\Re(\bar T_k^\dagger\bar T_k)+\Lambda_k$ and $f_k=\Re(\bar T_k^\dagger\bar b_k)$. The ideal least-squares velocity and the stabilized propagated velocity are
+
+\begin{equation}
+\begin{aligned}
+\dot\theta_k^{\rm LS}
+&\in\argminp_{v\in\mathbb R^{N_k}}\mathfrak m_k(v),
+\qquad
+K_k\dot\theta_k^{\rm LS}=f_k,\\
+\dot\theta_k
+&:=K_{k,\tau,\eps}^{\oplus}f_k
+=(G_k+\Lambda_k)_{\tau,\eps}^{\oplus}f_k .
+\end{aligned}
+\label{eq:mclachlan_velocity}
+\end{equation}
+The resulting velocity defines the classical IVP for the parameter trajectory $\theta(t)$ and hence the propagated state $\ket{\psi(\theta(t))}$.
+
+Direct Gram inversion can produce ill-conditioning under finite shots. As such, the McLachlan solve uses finite-shot stabilization: a regularized Gram matrix together with a spectrally supported damped pseudoinverse. Near-null tangent modes below the retained-support threshold are not inverted, and retained modes are damped to avoid amplifying finite-shot fluctuations into large artificial parameter velocities. See Appendix~\ref{app:dynamic_controller_details} for the supported inverse.
+
+\subsection{Conditional Euler vs Runge--Kutta integration}
+
+The checkpoint IVP in Eq.~(\ref{eq:mclachlan_velocity}) is integrated by a checkpoint-local Euler/Runge--Kutta-4 (RK4) policy. We bias RK4 integration during early physical time and during turbulent intervals, whereas Euler is used in calm, well-conditioned, low-curvature intervals.
+
+Turbulence is detected by local indicators such as split-step Euler disagreement, curvature, conditioning, expressivity miss, and rapid drive-coefficient variation.  The explicit policy gates are collected in Appendix~\ref{app:dynamic_controller_details}.
+
+\subsection{Append condition}
+The least-squares residual quantifies the current projected tangent space's ability to express Schrödinger drift and, equivalently, the ansatz's ability to represent the state's instantaneous velocity. Under large structural residual miss, an append gate can insert a zero-initialized generator block within the ansatz.
+
+The decisive factor to append a candidate $r$ is satisfaction of a threshold score. Specifically:
+
+\begin{equation}
+    \rho_k(r)=\frac{\Delta_{r,k}^{\rm Schur}}{\operatorname{Var}_{\psi_k}\left(H(t_k)\right)}=\frac{w_{r,k}^\top (S_{r,k})_{\tau}^{\dagger}w_{r,k}}{\|b_k\|^2}
+\end{equation}
+where the numerator is the local Schur gain, with $S_{r,k}=C_{r,k}+\Lambda_r-B_{r,k}^\top K_{k,\tau,\eps}^{\oplus}B_{r,k}$ and $w_{r,k}=q_{r,k}-B_{r,k}^\top K_{k,\tau,\eps}^{\oplus}f_k$. For a candidate append block $A_r$ and old-ansatz suffix $U_{k,>p}^{+}$ after the insertion point, let $\widetilde A_{r,a}^{(p)}=U_{k,>p}^{+}A_{r,a}(U_{k,>p}^{+})^\dagger$ so that $\bar U_{r,k}
+=-i\bigl[
+ Q_{\psi_k}\widetilde A_{r,1}^{(p)}\ket{\psi_k}\ ~...~
+ Q_{\psi_k}\widetilde A_{r,m_r}^{(p)}\ket{\psi_k}
+\bigr]$ represents the candidate tangent block. The overlap of this block with the current tangent space is $B_{r,k}=\Re(\bar T_k^\dagger\bar U_{r,k})$, its internal Gram matrix is $C_{r,k}=\Re(\bar U_{r,k}^\dagger\bar U_{r,k})$, and its force projection is $q_{r,k}=\Re(\bar U_{r,k}^\dagger\bar b_k)$.
+
+Append candidacy is considered when the normalized expressivity residual, namely the variance-normalized component of the instantaneous Schrödinger drift outside the current McLachlan tangent span, exceeds a checkpoint threshold \cite{Yao2021,Linteau2024,Zhang2025}. % \placeholder{Cites adaptive variational dynamics routes that use residual/projection information for circuit growth; the Schur-gain ladder is the present controller's admission refinement.}
+Candidate scoring then uses retained-support whitening to evaluate a nested monotone lower-bound ladder for normalized Schur tangent gain; the first supra-threshold bound certifies admission, while rejection occurs only if the full regularized Schur score remains sub-threshold. Admission also requires the confidence guard to clear, and the augmented tangent-plane residual may be recomputed before committing the structural edit. See Appendices~\ref{app:schur_gain} and \ref{app:dynamic_controller_details}.
+
+\subsection{Prune and stay condition}
+
+Despite attempts at compact circuits, an ansatz may contain redundant generators. In such a case, generator ablation is allowed in calm, low-miss regimes. Candidate blocks are protected by recent admission cooldown and active motion, and a deletion is accepted only after recomputing the reduced ansatz and verifying small cached loss, small Rayleigh regression, small residual increase, and bounded segment objective drift. Rejected ablation trials roll back exactly and put the tested block on cooldown. The explicit guards are given in Appendix~\ref{app:dynamic_controller_details}.
+
+At each checkpoint the controller chooses one lane: append for a confirmed high-miss candidate, prune for a calm scaffold with an accepted deletion trial, and stay for the default propagation branch. Append enters with zero amplitude and therefore preserves state continuity; prune is accepted after verification. The accepted variational path supplies the reported observables $O_{\rm alg}(t_j)=\bra{\psi(\theta(t_j);\Oset(t_j))}O\ket{\psi(\theta(t_j);\Oset(t_j))}$, which are the inputs to the time-domain and spectral errors in Sec.~\ref{sec:benchmarks}. The piecewise structural update is listed in Appendix~\ref{app:dynamic_controller_details}.
+
+
+\subsection{Encoding and scaffold-transfer surface}
+\label{sec:dyn_encoding_surface}
+
+The dynamic controller inherits a compiled scaffold from the static stage, so encoding choices enter twice: first through the generator support and two-qubit cost of the prepared ansatz, and then through the measured tangent geometry $G_k$, force $f_k$, and candidate append blocks used during propagation. The benchmark surface therefore varies fermion maps, boson encodings, and register layouts while holding the physical Hamiltonian and drive fixed. In the canonical benchmark setting we use Jordan--Wigner fermions and binary bosons, and the encoding/resource study varies parity, Bravyi--Kitaev, Gray-code, unary, and site-local fermion--boson layouts \cite{Macridin2018,Macridin2018PRA,Sawaya2020,Li2023}. % \placeholder{Cites fermion--boson/electron--phonon simulation and bosonic encoding work motivating encoding-aware dynamics resources.}
+This makes the dynamic claim explicitly encoding-aware rather than tied to a single favorable register representation.
+
+
+\section{Results}
+\label{sec:results}
+\label{sec:benchmarks}
+
+The dynamics results are organized around trajectory accuracy and accumulated hardware cost. Within each benchmark point, all methods use the same initial static scaffold, drive, time grid, phonon cutoff, observable set, mapping/layout, and final resource accounting. We report time-averaged energy error, observable error, spectral error, accumulated compiled resources, and shot estimates, followed by ablations that disable checkpoint append, checkpoint pruning, and integrator policy components.
+
+\subsection{Dynamics results}
+
+\structlabel{Dynamics results}Table~\ref{tab:dyn_claims} compares checkpoint McLachlan propagation against fixed-scaffold McLachlan/TDVP, product formulas, pVQD, adaptive pVQD, and AVQDS-style tangent baselines \cite{McLachlan1964,Barison2021,Suzuki1985,Suzuki1990,ChildsSu2019ProductFormula,ChildsOstranderSu2019RandomizedPF,Campbell2019QDRIFT,Yao2021,Linteau2024,Zhang2025}. % \placeholder{Cites the method families represented by the dynamics benchmark table.}
+Within each benchmark point all methods start from the same prepared static scaffold, use the same drive, and are evaluated on the same time grid. The prepared scaffold is therefore benchmark-point specific, while the McLachlan/controller settings are intended to be tuned only at Hamiltonian-class granularity (fermionic, bosonic, or mixed fermion--boson), not separately per Hamiltonian instance. The error columns separate energy, selected observables, and spectral response; the resource columns accumulate compiled and measurement work over the trajectory. Red entries mark filled benchmark values or cells to refresh when the benchmark matrix is relocked.
+
+\begin{widetext}
+\inlinetablecaption{tab:dyn_claims}{Driven-dynamics Pareto benchmark by Hamiltonian class and method. Entries are weighted means across completed non-excluded benchmark points; the current harmonic/Kerr seed is retained as a stress row but excluded from the main bosonic and all-class aggregates. All rows use the same initial-state protocol, time grid, observable set, mapping/layout, and phonon cutoff within each benchmark point; McLachlan/controller settings are tracked as class-tuned provenance and current fixture fills remain unlocked until the relocked sweep replaces them. The final block averages over all reported classes.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.09\textwidth}p{0.18\textwidth}ccccccccc@{}}
+Class & Method & $\overline{|\Delta E|}$ & $\epsilon_{\obs}^{(2)}$ & $1-F_{\min}$ & $\epsilon_{\rm spec}$ & $N_{\twq}^{\rm tot}$ & $D_{\twq}^{\rm tot}$ & $D_{\rm circ}^{\rm tot}$ & $N_{\rm shots}$ & role \\
+\colrule
+fermionic & checkpoint McLachlan & $0.00847$ & $0.0645$ & -- & -- & $5.4$ & $3.8$ & $17$ & -- & ours \\
+fermionic & fixed-scaffold McLachlan/TDVP & $0.00847$ & $0.0645$ & $0.0802$ & -- & $5.4$ & $3.8$ & $17$ & -- & baseline \\
+fermionic & optimized Suzuki/product-formula envelope & $1.05\!\times\!10^{-4}$ & $1.26\!\times\!10^{-4}$ & $3.69\!\times\!10^{-7}$ & -- & $160$ & $160$ & $268.8$ & -- & benchmark-only \\
+fermionic & qDRIFT / randomized product formulas & $0.0238$ & $0.0186$ & $0.00879$ & -- & $72.8$ & $72.8$ & $136.8$ & -- & benchmark-only \\
+fermionic & fixed pVQD & $0.0373$ & $0.0663$ & $0.077$ & -- & $38.4$ & $38.4$ & $56$ & -- & ideal-overlap benchmark \\
+fermionic & adaptive pVQD & $0.0373$ & $0.0663$ & $0.077$ & -- & $38.4$ & $38.4$ & $56$ & -- & ideal-overlap benchmark \\
+fermionic & AVQDS-style tangent benchmark & $6.51\!\times\!10^{-4}$ & $0.0644$ & $0.0797$ & -- & $43.2$ & $43.2$ & $66.4$ & -- & benchmark-only \\
+\colrule
+bosonic & checkpoint McLachlan & $8.89\!\times\!10^{-8}$ & $6.66\!\times\!10^{-8}$ & -- & -- & $601$ & $594$ & $2029$ & -- & ours \\
+bosonic & fixed-scaffold McLachlan/TDVP & $8.89\!\times\!10^{-8}$ & $6.66\!\times\!10^{-8}$ & $4.16\!\times\!10^{-13}$ & -- & $601$ & $594$ & $2029$ & -- & baseline \\
+bosonic & optimized Suzuki/product-formula envelope & $8.39\!\times\!10^{-7}$ & $9.16\!\times\!10^{-6}$ & $4.11\!\times\!10^{-9}$ & -- & $1312$ & $1312$ & $1616$ & -- & benchmark-only \\
+bosonic & qDRIFT / randomized product formulas & $0.0123$ & $0.0269$ & $0.00811$ & -- & $296$ & $296$ & $360$ & -- & benchmark-only \\
+bosonic & fixed pVQD & $1.11\!\times\!10^{-4}$ & $8.05\!\times\!10^{-4}$ & $3.69\!\times\!10^{-6}$ & -- & $2376$ & $2376$ & $2948$ & -- & ideal-overlap benchmark \\
+bosonic & adaptive pVQD & $1.11\!\times\!10^{-4}$ & $8.05\!\times\!10^{-4}$ & $3.69\!\times\!10^{-6}$ & -- & $2376$ & $2376$ & $2948$ & -- & ideal-overlap benchmark \\
+bosonic & AVQDS-style tangent benchmark & $0.00305$ & $0.00334$ & $1.2\!\times\!10^{-4}$ & -- & $2376$ & $2376$ & $2948$ & -- & benchmark-only \\
+\colrule
+mixed fermion--boson & checkpoint McLachlan & $0.0221$ & $0.026$ & -- & -- & $13$ & $13$ & $54$ & -- & ours \\
+mixed fermion--boson & fixed-scaffold McLachlan/TDVP & $0.0221$ & $0.026$ & $0.00254$ & -- & $13$ & $13$ & $54$ & -- & baseline \\
+mixed fermion--boson & optimized Suzuki/product-formula envelope & $3.31\!\times\!10^{-6}$ & $2.77\!\times\!10^{-5}$ & $8.67\!\times\!10^{-9}$ & -- & $128$ & $128$ & $200$ & -- & benchmark-only \\
+mixed fermion--boson & qDRIFT / randomized product formulas & $0.00387$ & $0.00928$ & $0.00247$ & -- & $128$ & $128$ & $192$ & -- & benchmark-only \\
+mixed fermion--boson & fixed pVQD & $0.0182$ & $0.00848$ & $0.00277$ & -- & $32$ & $32$ & $44$ & -- & ideal-overlap benchmark \\
+mixed fermion--boson & adaptive pVQD & $0.0182$ & $0.00848$ & $0.00277$ & -- & $32$ & $32$ & $44$ & -- & ideal-overlap benchmark \\
+mixed fermion--boson & AVQDS-style tangent benchmark & $0.0579$ & $0.141$ & $0.0541$ & -- & $96$ & $96$ & $146$ & -- & benchmark-only \\
+\colrule
+all classes & checkpoint McLachlan & $0.0092$ & $0.0498$ & -- & -- & $91.6$ & $89.4$ & $309.7$ & -- & ours \\
+all classes & fixed-scaffold McLachlan/TDVP & $0.0092$ & $0.0498$ & $0.0576$ & -- & $91.6$ & $89.4$ & $309.7$ & -- & baseline \\
+all classes & optimized Suzuki/product-formula envelope & $7.57\!\times\!10^{-5}$ & $9.54\!\times\!10^{-5}$ & $2.65\!\times\!10^{-7}$ & -- & $320$ & $320$ & $451.4$ & -- & benchmark-only \\
+all classes & qDRIFT / randomized product formulas & $0.0193$ & $0.0185$ & $0.00779$ & -- & $112.6$ & $112.6$ & $176.6$ & -- & benchmark-only \\
+all classes & fixed pVQD & $0.0292$ & $0.0487$ & $0.0554$ & -- & $371.4$ & $371.4$ & $467.4$ & -- & ideal-overlap benchmark \\
+all classes & adaptive pVQD & $0.0292$ & $0.0487$ & $0.0554$ & -- & $371.4$ & $371.4$ & $467.4$ & -- & ideal-overlap benchmark \\
+all classes & AVQDS-style tangent benchmark & $0.00917$ & $0.0666$ & $0.0647$ & -- & $384$ & $384$ & $489.4$ & -- & benchmark-only \\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+The all-class block quantifies the current Pareto reading. The optimized Suzuki/product-formula envelope has lower raw all-class energy and observable errors, so it is not a dominated accuracy baseline; the checkpoint route instead uses \tentative{$3.49\times$} fewer accumulated two-qubit gates, \tentative{$3.58\times$} lower two-qubit depth, and \tentative{$1.46\times$} lower accumulated circuit depth. Against variational dynamics baselines, the checkpoint row has \tentative{$3.17\times$} lower mean energy error than fixed/adaptive pVQD, \tentative{$2.10\times$} lower mean energy error than qDRIFT, and \tentative{$1.34\times$} lower observable error than the AVQDS-style tangent benchmark with \tentative{$4.19\times$} fewer accumulated two-qubit gates and \tentative{$4.30\times$} lower two-qubit depth. The same aggregate also records non-dominance: qDRIFT has lower observable error and the AVQDS-style energy error is effectively tied, so the claim is a selected Pareto-axis advantage rather than a blanket baseline domination.
+
+Table~\ref{tab:dyn_ablation_matrix} holds the static scaffold fixed and disables only checkpoint-time controls. These rows therefore measure propagation decisions rather than static scaffold construction. As above, entries are paired disabled-minus-full deltas; positive observable or spectral deltas indicate degradation.
+
+\begin{widetext}
+\inlinetablecaption{tab:dyn_ablation_matrix}{Dynamics-controller ablations. Entries are mean paired changes across completed benchmark points unless a row explicitly names a paired diagnostic; positive entries indicate degradation relative to the full checkpoint controller. Here $\bar\epsilon_E=\overline{|E_{\rm alg}-E_{\ex}|}$.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.20\textwidth}cccccccp{0.18\textwidth}@{}}
+Variant & $\Delta\bar\epsilon_E$ & $\Delta\epsilon_{\obs}^{(2)}$ & $\Delta\epsilon_{\rm spec}$ & $\Delta N_{\twq}^{\rm tot}$ & $\Delta D_{\twq}^{\rm tot}$ & $\Delta D_{\rm circ}^{\rm tot}$ & $\Delta N_{\rm shots}$ & interpretation \\
+\colrule
+fixed scaffold & $8.45\!\times\!10^{-4}$ & $6.25\!\times\!10^{-4}$ & -- & $0$ & $0$ & $-0.6$ & -- & tests adaptive controller against fixed scaffold \\
+no checkpoint append & $0$ & $0$ & -- & $0$ & $0$ & $0$ & -- & tests tangent expansion \\
+no checkpoint pruning & $0$ & $0$ & -- & $0$ & $0$ & $0$ & -- & neutral on current matrix; prune pilot below \\
+fixed ODE/integrator policy & $8.45\!\times\!10^{-4}$ & $6.25\!\times\!10^{-4}$ & -- & $0$ & $0$ & $-0.6$ & -- & tests Euler/RK4 controller \\
+no residual split & $0$ & $0$ & -- & $0$ & $0$ & $0$ & -- & tests residual confirmation \\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+In this benchmark surface, fixed-scaffold and fixed-integrator ablations are most visibly worse in the bosonic and spin-boson rows, while most small fermionic points are too calm to stress append, pruning, or residual-split decisions. The separate Hubbard $A=0.2$ paired pilot supplies the current pruning diagnostic in a calm regime: pruning accepts \tentative{$9$} deletions and ends with \tentative{$32$} runtime parameters rather than \tentative{$56$}, while the mean energy-error change is \tentative{$-7.48\!\times\!10^{-10}$}. This is the current generator-ablation claim: a \tentative{$42.9\%$} runtime-parameter compression with no measurable energy penalty in the paired pilot, not yet a class-wide pruning advantage.
+
+\begin{center}
+\centering
+\IfFileExists{figures/hh_dynamic_energy_tentative.png}{\includegraphics[width=0.97\columnwidth]{figures/hh_dynamic_energy_tentative.png}}{\placeholder{Missing figure}}
+\end{center}
+\noindent\emph{Driven-energy figure.} The trace shows the driven Hubbard--Holstein trajectory used for the filled comparison. The panel is a trajectory diagnostic for the checkpoint run; quantitative method comparisons for the current fill are reported in Table~\ref{tab:dyn_claims} as non-depth-matched accuracy--resource tradeoffs rather than as equal-depth product-formula error comparisons.
+
+\begin{center}
+\centering
+\IfFileExists{figures/hh_site_occupation_tentative.png}{\includegraphics[width=0.97\columnwidth]{figures/hh_site_occupation_tentative.png}}{\placeholder{Missing figure}}
+\end{center}
+\noindent\emph{Site-occupation figure.} The plotted site occupation uses the same driven Hubbard--Holstein trajectory. The panel shows the checkpoint trajectory's density response on the filled example, while cross-method error comparisons remain tied to the non-depth-matched benchmark table.
+
+The spectral diagnostic Fourier-transforms the accepted site-occupation trajectories. For site occupation,
+\begin{equation}
+A_{n_i}(\omega;g)=
+\left|\sum_j w_j\left(\langle n_i(t_j;g)\rangle-\bar n_i(g)\right)
+\ee^{\ii\omega t_j}\right|^2 ,
+\label{eq:site_occupation_spectrum}
+\end{equation}
+where $w_j$ is the analysis window. The spectrum figure shows $A_{n_i}(\omega;g)$ across the coupling sweep, with peak positions and amplitudes compared to the $\phmax^{\rm ref}=4$ reference. It is used here as a response diagnostic for the accepted checkpoint trajectory, not as evidence for an equal-depth product-formula accuracy advantage. The same sweep gives cutoff-stress errors $\tentative{2.16\!\times\!10^{-15}}$, $\tentative{8.18\!\times\!10^{-6}}$, $\tentative{5.33\!\times\!10^{-5}}$, $\tentative{1.07\!\times\!10^{-4}}$, and $\tentative{2.29\!\times\!10^{-4}}$ at $\lambda=0.0,0.2,0.5,0.7,1.0$, respectively.
+
+\begin{center}
+\centering
+\IfFileExists{figures/hh_site_spectrum_tentative.png}{\includegraphics[width=0.97\columnwidth]{figures/hh_site_spectrum_tentative.png}}{\placeholder{Missing figure}}
+\end{center}
+\noindent\emph{Spectrum figure.} The spectra use the same driven site occupation as above; the inset records the $\lambda$-sweep cutoff-stress errors used for the sweep panel.
+
+
+\section{Discussion and conclusion}
+\label{sec:discussion}
+\label{sec:conclusion}
+
+\structlabel{Mechanistic interpretation}
+The dynamic controller treats the selected scaffold as a live McLachlan tangent manifold. The continuous component is ordinary projective McLachlan propagation on a fixed scaffold, while the discrete component reacts to checkpoint-local diagnostics. Residual miss detects when the driven velocity has left the current tangent span; Schur gain decides whether a zero-amplitude append is worth the added circuit burden; and prune verification removes only blocks whose deletion remains safe under projection and short-horizon observable checks.
+
+\structlabel{Scope, limitations, and future work}
+The present evidence is a small-system diagnostic surface. The benchmark refresh should extend the filled entries with class-wise held-out sweeps, calibrated finite-shot perturbations, noise-model runs, and at least one real-QPU-facing validation point. Integrator switching should be presented as a cost-control policy only if the benchmark matrix shows a measurable resource or accuracy benefit; otherwise it should be demoted to an ablation.
+
+\structlabel{Summary}
+We presented a checkpoint-adaptive McLachlan controller for driven mixed fermion--boson dynamics. The method combines stabilized projective TDVP, residual-triggered append, Schur-complement tangent-gain confirmation, rollback-safe pruning, and conditional Euler/RK4 integration. The filled trajectory and table entries report the intended Pareto comparison: product formulas remain the unrestricted raw-accuracy reference, while the checkpoint route gives tentative lower-resource and selected-error advantages over variational dynamics baselines. The current all-class table gives \tentative{$3.49\times$} fewer two-qubit gates and \tentative{$3.58\times$} lower two-qubit depth than the optimized product-formula envelope, \tentative{$3.17\times$} lower mean energy error than pVQD/adaptive pVQD, and \tentative{$1.34\times$} lower observable error than the AVQDS-style tangent benchmark, while shot-cost and broader held-out-noise cells remain red placeholders for the benchmark refresh.
+
+\begin{acknowledgments}
+\placeholder{Add funding, compute resources, discussions, and advisor acknowledgments.}
+\end{acknowledgments}
+
+\clearpage
+\appendix
+
+\section{Benchmark Hamiltonian families}
+\label{app:hamiltonian_families}
+
+The benchmark registry contains spinful Hubbard variants, Hubbard--Holstein instances, spinless $t$--$V$ chains, boson-only chains, spin-boson/generalized-Rabi controls, and restricted closed-shell molecular tests. Onsite coefficients below absorb the sign convention used by a particular benchmark specification; the operator content is the invariant part of the family definition.
+
+The spinful lattice base is
+\begin{align}
+H_{\rm Hub}[\epsilon]={}&
+-t\sum_{\langle i,j\rangle,\sigma}
+\left(c_{i\sigma}^{\dagger}c_{j\sigma}
++c_{j\sigma}^{\dagger}c_{i\sigma}\right)
+\nonumber\\
+&
++U\sum_i n_{i\uparrow}n_{i\downarrow}
++\sum_{i,\sigma}\epsilon_i n_{i\sigma}.
+\label{eq:app_hubbard}
+\end{align}
+The registered ionic, extended, and next-nearest-neighbor variants are
+\begin{align}
+H_{\rm ion}&=H_{\rm Hub}[\epsilon_i=(-1)^i\Delta],
+\nonumber\\
+H_{\rm ext}&=H_{\rm Hub}[\epsilon]+V\sum_{\langle i,j\rangle} n_i n_j,
+\nonumber\\
+H_{t,t',U}&=H_{\rm Hub}[\epsilon]
+\nonumber\\
+&\quad
+-t'\sum_{\langle\!\langle i,j\rangle\!\rangle,\sigma}
+\left(c_{i\sigma}^{\dagger}c_{j\sigma}
++c_{j\sigma}^{\dagger}c_{i\sigma}\right),
+\label{eq:app_hubbard_variants}
+\end{align}
+with $n_i=n_{i\uparrow}+n_{i\downarrow}$. The spinless fermion control family is
+\begin{equation}
+H_{tV}=
+-t\sum_{\langle i,j\rangle}
+\left(c_i^\dagger c_j+c_j^\dagger c_i\right)
++V\sum_{\langle i,j\rangle}n_i n_j
++\sum_i\epsilon_i n_i .
+\label{eq:app_spinless_tv}
+\end{equation}
+
+The Hubbard--Holstein benchmark augments Eq.~(\ref{eq:app_hubbard}) with truncated phonons and a density drive,
+\begin{align}
+H_{\hh}(t)=&H_{\rm Hub}[\epsilon^{(0)}]
++\omega_0\sum_i b_i^{\dagger}b_i
++g\sum_i X_i(n_i-\bar n)
+\nonumber\\
+&+\sum_{i,\sigma}v_i(t)n_{i\sigma},
+\qquad
+X_i=b_i^\dagger+b_i .
+\label{eq:app_hh}
+\end{align}
+For the half-filled lattice cases $\bar n=1$. The driven trajectories use
+\begin{equation}
+v_i(t)=s_i A\sin(\omega t+\phi)
+\exp\left[-\frac{(t-t_0)^2}{2\bar t^{\,2}}\right],
+\label{eq:app_drive_waveform}
+\end{equation}
+where the site profile $s_i$ selects the density mode to be excited.
+
+The boson-only benchmark families use the same truncated local Fock operators. The number-conserving Bose--Hubbard chain is
+\begin{align}
+H_{\rm BH}={}&
+-t\sum_{\langle i,j\rangle}
+\left(b_i^\dagger b_j+b_j^\dagger b_i\right)
++\omega_0\sum_i n_i
+\nonumber\\
+&
++\frac{U_b}{2}\sum_i n_i(n_i-I)
++\sum_i\epsilon_i n_i ,
+\label{eq:app_bose_hubbard}
+\end{align}
+while the harmonic/Kerr chain used for bosonic stress tests is
+\begin{align}
+H_{\rm HK}={}&
+\omega_0\sum_i n_i
++\frac{U_K}{2}\sum_i n_i(n_i-I)
+\nonumber\\
+&
+-J_X\sum_{\langle i,j\rangle}X_iX_j
++\sum_i\eta_iX_i .
+\label{eq:app_harmonic_kerr}
+\end{align}
+The optional zero-point identity contribution is tracked in the benchmark specification and shifts only scalar energy offsets.
+
+The spin-boson/generalized-Rabi control family is represented by a single two-level emitter coupled to one truncated boson mode,
+\begin{align}
+H_{\rm SB}={}&
+-t_s\sigma_x+\Delta\sigma_z
++\omega_0 b^\dagger b
+\nonumber\\
+&
++u_xX_b\sigma_x
++g_zX_b\sigma_z,
+\qquad X_b=b^\dagger+b .
+\label{eq:app_spin_boson}
+\end{align}
+The restricted closed-shell molecular electronic tests use
+\begin{equation}
+H_{\rm mol}=E_{\rm nuc}I
++\sum_{pq}h_{pq}a_p^\dagger a_q
++\frac12\sum_{pqrs}(pr|qs)
+a_p^\dagger a_q^\dagger a_s a_r .
+\label{eq:app_molecular}
+\end{equation}
+Molecular vibronic and generalized electron--phonon instances add truncated modes to Eq.~(\ref{eq:app_molecular}) through
+\begin{align}
+H_{\rm vib}={}&H_{\rm mol}
++\sum_\mu\omega_\mu b_\mu^\dagger b_\mu
+\nonumber\\
+&
++\sum_{\mu,pq}
+\left(\kappa^X_{\mu pq}X_\mu+\kappa^P_{\mu pq}P_\mu\right)
+a_p^\dagger a_q
++H_b^{\rm nl}.
+\label{eq:app_vibronic}
+\end{align}
+
+\section{Dynamic-controller feature details}
+\label{app:dynamic_controller_details}
+
+The supported inverse used in the McLachlan solve is spectral. For a measured real symmetric matrix $A=V\operatorname{diag}(s_i)V^\top$,
+\begin{equation}
+A_{\tau,\eps}^{\oplus}
+=V\operatorname{diag}\!\left(
+\frac{\mathbf 1[s_i\ge\tau_{\rm pinv}s_1]}{s_i+\eps_{\rm solve}}
+\right)V^\top .
+\label{eq:supported_inverse}
+\end{equation}
+Thus the implementation inverts retained tangent modes while damping unresolved coordinate directions.
+
+The residual split used by the checkpoint controller is
+\begin{equation}
+\begin{aligned}
+\epsilon_{\rm expr,k}^2
+&=\min_v\|\bar T_kv-\bar b_k\|_2^2\\
+&=\Var_{\psi_k}(H_k^\sharp)-f_k^\top G_{k,\tau}^\dagger f_k,\\
+\rho_{\rm expr,k}
+&=\frac{\epsilon_{\rm expr,k}^2}{\Var_{\psi_k}(H_k^\sharp)+\eps},
+\end{aligned}
+\label{eq:expr_miss}
+\end{equation}
+and the realized regularized residual is
+\begin{equation}
+\begin{aligned}
+\bar r_{\rm real,k}&=\bar T_kK_{k,\tau,\eps}^{\oplus}f_k-\bar b_k,\\
+\rho_{\rm real,k}&=\frac{\|\bar r_{\rm real,k}\|_2^2}{\Var_{\psi_k}(H_k^\sharp)+\eps},\\
+\rho_{\rm num,k}&=[\rho_{\rm real,k}-\rho_{\rm expr,k}]_+ .
+\end{aligned}
+\label{eq:num_miss}
+\end{equation}
+
+The one-step maps are
+\begin{equation}
+\begin{aligned}
+\operatorname{Step}_{\rm E}(\theta,t,\Delta\tau,\sigma;\Oset)
+&=\theta+\Delta\tau F_{\Oset}(\theta,t+\sigma\Delta\tau),\\
+\operatorname{Step}_{\rm RK4}(\theta,t,\Delta\tau,\sigma;\Oset)
+&=\theta+\Delta\tau\sum_{i=1}^4 b_i v_i ,
+\end{aligned}
+\label{eq:step_maps}
+\end{equation}
+with the usual RK4 tableau and stage velocities. A checkpoint is called turbulent when same-scaffold Euler propagation is locally unreliable:
+\begin{equation}
+\begin{aligned}
+\operatorname{Turb}_k&=\mathbf 1[\mathcal T_k],\\
+\mathcal T_k&=
+(\pi_k^{\rm col}<p_{\rm col})
+\vee(\chi_k^{\rm curv}>\tau_{\rm curv})\\
+&\quad\vee(e_k^{\rm Eul}>\tau_{\rm Eul})
+\vee(\rho_{\rm expr,k}>\tau_{\rm miss}^{\rm col})\\
+&\quad\vee(\kappa_{\rm eff,k}>\kappa_{\rm col})
+\vee(\upsilon_{\drv,k}>\tau_{\drv}) .
+\end{aligned}
+\label{eq:turbulent_period}
+\end{equation}
+The drive-variation indicator is
+\begin{equation}
+\upsilon_{\drv,k}=\Delta\tau_k
+\max_{\beta\in\mathcal I_{\drv}}
+\frac{|\dot c_\beta(t_k^\sharp)|}{|c_\beta(t_k^\sharp)|+c_{\rm floor}},
+\label{eq:drive_variation}
+\end{equation}
+and the integrator policy is
+\begin{equation}
+\iota_k^{\rm pol}=
+\begin{cases}
+{\rm RK4},& k<k_{\rm warm}\ \text{or}\ \operatorname{Turb}_k=1,\\
+{\rm Euler},&\text{otherwise.}
+\end{cases}
+\label{eq:integrator_policy}
+\end{equation}
+
+The append gate is
+\begin{equation}
+\begin{aligned}
+\operatorname{HighMiss}_k=1
+&\iff \epsilon_{\rm expr,k}^2\ge\tau_{\rm miss}^{\rm abs}\\
+&\quad\vee\ \rho_{\rm expr,\ell}\ge\tau_{\rm miss}
+\ \text{for recent } \ell,\\
+\operatorname{Admit}_k^{\app}(r)=1
+&\iff \operatorname{HighMiss}_k=1\\
+&\quad\wedge\ \rho_{r,k}^{\rm gain}\ge\tau_{\rm gain}
+\wedge S_{r,k}^{\rm conf}\ge\tau_{\rm conf},
+\end{aligned}
+\label{eq:append_admit}
+\end{equation}
+where $\rho_{r,k}^{\rm gain}=\Delta_{r,k}^{\rm Schur}/(\Var_{\psi_k}(H_k^\sharp)+\eps)$.
+
+For dynamic pruning,
+\begin{equation}
+\begin{aligned}
+\Gamma_k^{\prune,\rm perm}
+&=\mathbf 1[\rho_{\rm expr,k}\le\tau_{\prune}^{\rm miss}]
+\mathbf 1[c_k^{\rm dir}\ge\tau_{\rm calm}^{\cos}]\\
+&\quad\times
+\mathbf 1[\eta_k^{\rm rate}\le\tau_{\rm calm}^{\rm rate}]
+\mathbf 1[B_k\ge2],
+\end{aligned}
+\label{eq:prune_perm}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+\Dcal_k^{\prune}
+&=\{b:\ b\notin\Pcal_{\rm protect}(k),\ c_{b,k}^{\rm cool}=0,\\
+&\qquad
+\sigma_{b,k}^{\rm stag}\ge\tau_{\rm stale},\
+\Gamma_k^{\prune,\rm perm}=1\},
+\end{aligned}
+\label{eq:dyn_prune_candidates}
+\end{equation}
+and the rollback-safe acceptance check is
+\begin{equation}
+\begin{aligned}
+\operatorname{accept}_{\prune}(b)\iff{}&
+L_{b,k}^{\rm cache}\le\tau_{\rm loss}^{\prune}\\
+&\wedge\Delta_{\rm ray,b,k}^{\prune}\le\tau_{\rm ray}^{\prune}\\
+&\wedge\Delta\rho_{b,k}^{\prune}\le\tau_{\rho}^{\prune}\\
+&\wedge\Delta J_{b,k}^{\prune}\le\Delta_{\rm safe}^{\rm seg}.
+\end{aligned}
+\label{eq:dyn_prune_accept}
+\end{equation}
+
+The piecewise structural law is
+\begin{equation}
+\nu_k^\star=
+\begin{cases}
+\app(r_k^\star),&\exists r:\operatorname{Admit}_k^{\app}(r)=1,\\
+\prune(b_k^\star),&\Dcal_k^{\prune}\neq\varnothing\
+\text{and}\ \operatorname{accept}_{\prune}(b_k^\star),\\
+\stay,&\text{otherwise,}
+\end{cases}
+\label{eq:hybrid_lane}
+\end{equation}
+followed by
+\begin{equation}
+\begin{aligned}
+(\Oset_k^\nu,\theta_k^{\nu,+})&=\mathsf S_{\nu_k^\star}(\Oset_k,\theta_k),\\
+\theta_{k+1}
+&=\operatorname{Step}_{\iota_k^{\rm pol}}
+(\theta_k^{\nu,+},t_k,\Delta\tau_k,\sigma_k;\Oset_k^\nu),\\
+\Oset_{k+1}&=\Oset_k^\nu .
+\end{aligned}
+\label{eq:piecewise_smooth_law}
+\end{equation}
+
+
+\section{Evaluation details}
+\label{app:evaluation_details}
+
+The dynamic benchmark suite is stratified by Hamiltonian family, size, coupling, phonon cutoff, drive amplitude, drive frequency, integration grid, and random seed. The same prepared static scaffold is used for all dynamic methods within a benchmark point, so differences in driven observables are attributed to the propagation method rather than the initial-state construction. The reduced encoding panel varies the fermion map over JW, parity, and BK; the register layout over spin-blocked, site-interleaved fermions, and site-local fermion--boson blocks; and the boson encoding over binary, Gray, and unary registers.
+
+Dynamical observable errors are reported either as an RMS time-domain error,
+\begin{equation}
+\epsilon_{O}^{(2)}=
+\Biggl(\Delta t\sum_{j}\sum_{O\in\Ocal_{\obs}}w_O
+\left|\expval{O}_{\rm alg}(t_j)-\expval{O}_{\ex}(t_j)\right|^2\Biggr)^{1/2},
+\label{eq:appendix_obs_l2}
+\end{equation}
+or as a maximum error over the same sampled trajectory. Spectral errors use
+\begin{equation}
+\epsilon_{\rm spec}=\sum_{\omega_{\ell}\in\Omega_{\rm peaks}}
+\Bigl(|A_{\rm alg}(\omega_{\ell})-A_{\ex}(\omega_{\ell})|
++\lambda_{\omega}|\omega_{\ell,\rm alg}-\omega_{\ell,\ex}|\Bigr).
+\label{eq:appendix_spectral_error}
+\end{equation}
+Shot estimates use grouped Pauli measurement variances and the grouped analogue used by the measurement allocator. Noise robustness uses iid-Gaussian perturbations of measured energies, gradients, metrics, and forces, with variance scaled by nominal shots and optional two-qubit-depth and measurement-group factors. Hardware-validation workflows include fake-backend scheduled noise, readout mitigation, Pauli twirling, dynamical decoupling, and zero-noise extrapolation; those workflows are validation checks outside the main results.
+
+\section{Qubit encodings and register layout}
+\label{app:encodings}
+
+For the canonical Hubbard--Holstein benchmark, fermions are mapped by the Jordan--Wigner transformation. With blocked spin ordering $p(i,\uparrow)=i$ and $p(i,\downarrow)=L+i$,
+\begin{equation}
+\begin{aligned}
+c_p^{\dagger}&=\frac12(X_p-\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
+c_p&=\frac12(X_p+\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
+n_p&=\frac{I-Z_p}{2} .
+\end{aligned}
+\label{eq:jw_map}
+\end{equation}
+Each local phonon mode is truncated to dimension $d=\phmax+1$ with occupation basis $\{\ket{n}_i\}_{n=0}^{d-1}$. In binary encoding,
+\begin{equation}
+\begin{aligned}
+\ket{n}_i&\mapsto \ket{\operatorname{bin}(n)}_i,\\
+b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i,\\
+b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{\operatorname{bin}(n-1)}_i\bra{\operatorname{bin}(n)}_i,\\
+n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n)}_i,\\
+x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
+&\qquad\qquad\qquad\qquad+\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),\\
+P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
+&\qquad\qquad\qquad\qquad-\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),
+\end{aligned}
+\label{eq:boson_binary_encoding}
+\end{equation}
+with the operator understood on the truncated binary code subspace. In unary encoding,
+\begin{equation}
+\begin{aligned}
+\ket{n}_i&\mapsto \ket{e_n}_i\equiv\ket{0\cdots 010\cdots 0}_i,\\
+b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{e_{n+1}}_i\bra{e_n}_i,\\
+b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{e_{n-1}}_i\bra{e_n}_i,\\
+n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{e_n}_i\bra{e_n}_i,\\
+x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
+&\qquad\qquad\qquad\qquad+\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),\\
+P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
+&\qquad\qquad\qquad\qquad-\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),
+\end{aligned}
+\label{eq:boson_unary_encoding}
+\end{equation}
+on the one-hot code subspace. The number of phonon qubits per site is
+\begin{equation}
+q_{\rm pb}=\begin{cases}
+\max\{1,\lceil\log_2 d\rceil\}, & \text{binary},\\
+d, & \text{unary},
+\end{cases}
+\label{eq:qpb}
+\end{equation}
+and the full Hubbard--Holstein register contains
+\begin{equation}
+N_q=2L+Lq_{\rm pb}.
+\label{eq:nqubits}
+\end{equation}
+Gray-code and variational basis-state encodings are used only in the encoding/resource robustness study.
+
+\section{Operator pools}
+\label{app:pools}
+
+The full operator pool is a deduplicated union
+\begin{equation}
+\Gset_{\rm full}=\Gset_{\rm UCCSD}\cup\Gset_{\rm HVA}\cup\Gset_{\rm term}^{\rm aug}\cup\Gset_{\rm PAOP}^{\rm full}\cup\Gset_{\rm PAOP,LF}^{\rm full}.
+\label{eq:full_meta_pool}
+\end{equation}
+For the reduced Hubbard--Holstein tests, the lean family is
+\begin{equation}
+\Gset_{\rm lean}=\Gset_{\rm UCCSD}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm disp}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p},
+\label{eq:lean_pool}
+\end{equation}
+with a narrower $L=2$, $\phmax=1$ family
+\begin{equation}
+\begin{aligned}
+\Gset_{{\rm lean},L=2}={}&\Gset_{\rm UCCSD,sing}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\\
+&\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p}^{\rm cross-site}.
+\end{aligned}
+\label{eq:l2_lean_pool}
+\end{equation}
+Representative symbolic generators are
+\begin{align}
+A_{ia,\sigma}^{\rm sing}&=\ii\left(c_{a\sigma}^{\dagger}c_{i\sigma}-c_{i\sigma}^{\dagger}c_{a\sigma}\right),
+\nonumber\\
+A_{ijab}^{\rm dbl}&=\ii\left(c_a^{\dagger}c_b^{\dagger}c_jc_i-\mathrm{h.c.}\right),
+\nonumber\\
+G_i^{({\rm cloud},p)}&=\tilde n_i\sum_{r\in\mathcal N(i)}\alpha_{ir}P_r,
+\nonumber\\
+G_{ij}^{({\rm hd})}&=T_{ij}^{(+)}(P_i-P_j),
+\nonumber\\
+G_i^{({\rm disp})}&\sim \tilde n_ix_i,
+\nonumber\\
+G_i^{({\rm dd},p)}&\sim D_iP_i,
+\label{eq:pool_family_symbols}
+\end{align}
+where $x_i=b_i+b_i^{\dagger}$ and $P_i=\ii(b_i^{\dagger}-b_i)$.
+
+\section{Suzuki and randomized product-formula baselines}
+\label{app:product_formula}
+
+For a Pauli or grouped-term decomposition $H(t)=\sum_{\alpha=1}^{M}H_{\alpha}(t)$, the second-order symmetric Suzuki step is \cite{Suzuki1985,Suzuki1990}
+% \placeholder{Cites deterministic Suzuki product-formula decompositions used by the product-formula baseline.}
+\begin{equation}
+\begin{split}
+U_{{\rm Suz},2}(t_k,\Delta t)={}&\prod_{\alpha=1}^{M}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right]\\
+&\prod_{\alpha=M}^{1}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right].
+\end{split}
+\label{eq:suzuki2_generic}
+\end{equation}
+The baseline suite also includes first-order Trotter, fourth-order Suzuki when feasible, and qDRIFT/randomized product formulas with matched time-step, seed, and compiled-resource accounting \cite{ChildsSu2019ProductFormula,ChildsOstranderSu2019RandomizedPF,Campbell2019QDRIFT}.
+% \placeholder{Cites modern product-formula error context, randomized product formulas, and qDRIFT.}
+
+\section{Schur gain ladder}
+\label{app:schur_gain}
+\placeholder{Schur appendix}
+The whitened coordinates enter only as a compressed confirmation of this same Schur geometry. If $K_k=V_k\Sigma_k^2V_k^\top$ on retained support,
+\begin{equation}
+\begin{aligned}
+z_k&=\Sigma_k^{-1}V_k^\top f_k,\\
+\Gamma_{r,k}&=\Sigma_k^{-1}V_k^\top B_{r,k},\\
+\zeta_{r,k}&=q_{r,k}-\Gamma_{r,k}^{\top}z_k,\\
+\widetilde S_{r,k}(J)&=C_{r,k}+\Lambda_r-\Gamma_{r,k;J}^{\top}\Gamma_{r,k;J},\\
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J)
+&=\zeta_{r,k}^{\top}(\widetilde S_{r,k}(J)+\lambda_SI)^{-1}\zeta_{r,k}.
+\end{aligned}
+\label{eq:whitened_append}
+\end{equation}
+For nested retained mode sets $J_r^{(0)}\subseteq\cdots\subseteq J_r^{(m_{\max})}$ with a common ridge $\lambda_S>0$,
+\begin{equation}
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(0)})
+\le\cdots\le
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(m_{\max})})
+\le
+\Delta_{r,k}^{\rm Schur,(\lambda_S)} .
+\label{eq:compressed_schur_chain}
+\end{equation}
+This monotone chain motivates retaining spectral support: it gives a cheaper scout/confirm ladder while preserving the full local geometry.
+\placeholder{schur appendix}
+
+\begin{thebibliography}{99}
+
+\bibitem{Weisse2008}
+A. Wei{\ss}e and H. Fehske,
+``Exact diagonalization techniques,''
+in \emph{Computational Many-Particle Physics},
+edited by H. Fehske, R. Schneider, and A. Wei{\ss}e,
+Lecture Notes in Physics Vol. 739 (Springer, Berlin, Heidelberg, 2008), pp. 529--544.
+
+\bibitem{Troyer2005}
+M. Troyer and U.-J. Wiese,
+``Computational complexity and fundamental limitations to fermionic quantum Monte Carlo simulations,''
+\emph{Physical Review Letters} \textbf{94}, 170201 (2005).
+
+\bibitem{Schollwock2011}
+U. Schollw\"ock,
+``The density-matrix renormalization group in the age of matrix product states,''
+\emph{Annals of Physics} \textbf{326}, 96 (2011).
+
+\bibitem{Grimsley2019}
+H.~R. Grimsley, S.~E. Economou, E. Barnes, and N.~J. Mayhall,
+``An adaptive variational algorithm for exact molecular simulations on a quantum computer,''
+\emph{Nature Communications} \textbf{10}, 3007 (2019).
+
+\bibitem{Tang2021}
+H.~L. Tang, V.~O. Shkolnikov, G.~S. Barron, H.~R. Grimsley, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``Qubit-ADAPT-VQE: An adaptive algorithm for constructing hardware-efficient ans\"atze on a quantum processor,''
+\emph{PRX Quantum} \textbf{2}, 020310 (2021).
+
+\bibitem{Yordanov2021}
+Y.~S. Yordanov, V. Armaos, C.~H.~W. Barnes, and D.~R.~M. Arvidsson-Shukur,
+``Qubit-excitation-based adaptive variational quantum eigensolver,''
+\emph{Communications Physics} \textbf{4}, 228 (2021).
+
+\bibitem{Feniou2023}
+C. Feniou, M. Hassan, D. Traor\'e, E. Giner, Y. Maday, and J.-P. Piquemal,
+``Overlap-ADAPT-VQE: Practical quantum chemistry on quantum computers via overlap-guided compact ans\"atze,''
+\emph{Communications Physics} \textbf{6}, 192 (2023).
+
+\bibitem{Anastasiou2024}
+P.~G. Anastasiou, Y. Chen, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``TETRIS-ADAPT-VQE: An adaptive algorithm that yields shallower, denser circuit ans\"atze,''
+\emph{Physical Review Research} \textbf{6}, 013254 (2024).
+
+\bibitem{Ramoa2025}
+M. Ram\^oa, P.~G. Anastasiou, L.~P. Santos, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``Reducing the resources required by ADAPT-VQE using coupled exchange operators and improved subroutines,''
+\emph{npj Quantum Information} \textbf{11}, 86 (2025).
+
+\bibitem{McLachlan1964}
+A.~D. McLachlan,
+``A variational solution of the time-dependent Schr\"odinger equation,''
+\emph{Molecular Physics} \textbf{8}, 39 (1964).
+
+\bibitem{LiBenjamin2017VQS}
+Y. Li and S.~C. Benjamin,
+``Efficient variational quantum simulator incorporating active error minimization,''
+\emph{Physical Review X} \textbf{7}, 021050 (2017).
+
+\bibitem{Yuan2019VQS}
+X. Yuan, S. Endo, Q. Zhao, Y. Li, and S.~C. Benjamin,
+``Theory of variational quantum simulation,''
+\emph{Quantum} \textbf{3}, 191 (2019).
+
+\bibitem{Endo2020GeneralProcesses}
+S. Endo, J. Sun, Y. Li, S.~C. Benjamin, and X. Yuan,
+``Variational quantum simulation of general processes,''
+\emph{Physical Review Letters} \textbf{125}, 010501 (2020).
+
+\bibitem{Benedetti2021TimeEvolution}
+M. Benedetti, M. Fiorentini, and M. Lubasch,
+``Hardware-efficient variational quantum algorithms for time evolution,''
+\emph{Physical Review Research} \textbf{3}, 033083 (2021).
+
+\bibitem{Barison2021}
+S. Barison, F. Vicentini, and G. Carleo,
+``An efficient quantum algorithm for the time evolution of parameterized circuits,''
+\emph{Quantum} \textbf{5}, 512 (2021).
+
+\bibitem{Yao2021}
+Y.-X. Yao, N. Gomes, F. Zhang, C.-Z. Wang, K.-M. Ho, T. Iadecola, and P. P. Orth,
+``Adaptive variational quantum dynamics simulations,''
+\emph{PRX Quantum} \textbf{2}, 030307 (2021).
+
+\bibitem{Linteau2024}
+D. Linteau, S. Barison, N.~H. Lindner, and G. Carleo,
+``Adaptive projected variational quantum dynamics,''
+\emph{Physical Review Research} \textbf{6}, 023130 (2024).
+
+\bibitem{Zhang2025}
+F. Zhang, N. Gomes, Y.-X. Yao, P. P. Orth, C.-Z. Wang, K.-M. Ho, and T. Iadecola,
+``Adaptive variational quantum dynamics simulations with compressed circuits,''
+\emph{Physical Review B} \textbf{111}, 094310 (2025).
+
+\bibitem{Suzuki1985}
+M. Suzuki,
+``Decomposition formulas of exponential operators and Lie exponentials with some applications to quantum mechanics and statistical physics,''
+\emph{Journal of Mathematical Physics} \textbf{26}, 601 (1985).
+
+\bibitem{Suzuki1990}
+M. Suzuki,
+``Fractal decomposition of exponential operators with applications to many-body theories and Monte Carlo simulations,''
+\emph{Physics Letters A} \textbf{146}, 319 (1990).
+
+\bibitem{ChildsSu2019ProductFormula}
+A.~M. Childs and Y. Su,
+``Nearly optimal lattice simulation by product formulas,''
+\emph{Physical Review Letters} \textbf{123}, 050503 (2019).
+
+\bibitem{ChildsOstranderSu2019RandomizedPF}
+A.~M. Childs, A. Ostrander, and Y. Su,
+``Faster quantum simulation by randomization,''
+\emph{Quantum} \textbf{3}, 182 (2019).
+
+\bibitem{Campbell2019QDRIFT}
+E. Campbell,
+``Random compiler for fast Hamiltonian simulation,''
+\emph{Physical Review Letters} \textbf{123}, 070503 (2019).
+
+\bibitem{Macridin2018}
+A. Macridin, P. Spentzouris, J. Amundson, and R. Harnik,
+``Electron-phonon systems on a universal quantum computer,''
+\emph{Physical Review Letters} \textbf{121}, 110504 (2018).
+
+\bibitem{Macridin2018PRA}
+A. Macridin, P. Spentzouris, J. Amundson, and R. Harnik,
+``Digital quantum computation of fermion-boson interacting systems,''
+\emph{Physical Review A} \textbf{98}, 042312 (2018).
+
+\bibitem{Sawaya2020}
+N.~P.~D. Sawaya, T. Menke, T.~H. Kyaw, S. Johri, A. Aspuru-Guzik, and G.~G. Guerreschi,
+``Resource-efficient digital quantum simulation of $d$-level systems for photonic, vibrational, and spin-$s$ Hamiltonians,''
+\emph{npj Quantum Information} \textbf{6}, 49 (2020).
+
+\bibitem{Li2023}
+W. Li, J. Ren, S. Huai, T. Cai, Z. Shuai, and S. Zhang,
+``Efficient quantum simulation of electron-phonon systems by variational basis state encoder,''
+\emph{Physical Review Research} \textbf{5}, 023046 (2023).
+
+\bibitem{Denner2023}
+M.~M. Denner, H. Yan, N. A. Sinitsyn, and others,
+``A hybrid quantum-classical method for electron-phonon systems,''
+\emph{Communications Physics} \textbf{6}, 317 (2023).
+
+\end{thebibliography}
+
+\end{document}

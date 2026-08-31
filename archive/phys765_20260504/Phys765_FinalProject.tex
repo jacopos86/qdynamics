@@ -1,0 +1,1170 @@
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\ifmmode\left[#1\right]\else\textsf{[#1]}\fi}}
+\newcommand{\tentative}[1]{\textcolor{red!70!black}{#1}}
+\newcommand{\Oset}{\mathcal{O}}
+\newcommand{\Gset}{\mathcal{G}}
+\newcommand{\Rset}{\mathcal{R}}
+\newcommand{\Sset}{\mathcal{S}}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Bcal}{\mathcal{B}}
+\newcommand{\Ocal}{\mathcal{O}}
+\newcommand{\Ucal}{\mathcal{U}}
+\newcommand{\Jcal}{\mathcal{J}}
+\newcommand{\Pcal}{\mathcal{P}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Mcal}{\mathcal{M}}
+\newcommand{\Wcal}{\mathcal{W}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\newcommand{\TR}{\mathrm{TR}}
+\newcommand{\ex}{\mathrm{ex}}
+\newcommand{\ctrl}{\mathrm{ctrl}}
+\newcommand{\stat}{\mathrm{stat}}
+\newcommand{\dyn}{\mathrm{dyn}}
+\newcommand{\drv}{\mathrm{drv}}
+\newcommand{\obs}{\mathrm{obs}}
+\newcommand{\stay}{\mathrm{stay}}
+\newcommand{\app}{\mathrm{append}}
+\newcommand{\prune}{\mathrm{prune}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Top}{\operatorname{Top}}
+\newcommand{\argminp}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\argmaxp}{\mathop{\mathrm{arg\,max}}}
+\newcommand{\proj}{\mathrm{proj}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\CVaR}{\operatorname{CVaR}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\hh}{\mathrm{HH}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+\newcommand{\twq}{\mathrm{2Q}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\expval}[1]{\langle #1\rangle}
+\newcommand{\inlinetablecaption}[2]{%
+  \refstepcounter{table}\label{#1}%
+  \noindent\textsc{Table~\thetable.} #2\par\vspace{0.6ex}%
+}
+
+\begin{document}
+
+\title{Geometry- and Cost-Aware Adaptive Variational Simulation of Mixed Fermion--Boson Hamiltonians}
+
+\author{Jake Strobel}
+\author{Jacopo Simoni}
+\affiliation{University of Wisconsin--Madison}
+
+\date{\today}
+
+\begin{abstract}
+Strong electron--phonon coupling combines electronic correlation with truncated bosonic lattice motion, producing mixed fermion--boson Hilbert spaces whose useful dynamics can be visible on small lattices but whose compiled two-qubit depth and measurement budgets remain severe for near-term quantum hardware. We introduce a geometry- and cost-aware adaptive variational controller for ground-state preparation and driven real-time simulation of such Hamiltonians. The ground-state stage constructs an ordered scaffold from candidate--position records rather than bare operators, using staged trust-region screening, tangent-space novelty restoration, reduced-window reranking, batching, and explicit penalties for depth, two-qubit burden, parameter growth, and shot cost. The dynamical stage reuses the selected scaffold as a time-dependent variational manifold, propagates the coordinates by a regularized projective McLachlan equation, and applies checkpoint-local stay, append, or prune decisions using residual miss, Schur-complement tangent gain, and resource-aware forecast scores. We benchmark the controller on Hubbard, Hubbard--Holstein, generalized electron--phonon, bosonic, and molecular/vibronic instances, comparing against exact diagonalization, fixed-ansatz VQE, original and hardware-efficient ADAPT variants, fixed-scaffold McLachlan dynamics, projected variational quantum dynamics, adaptive variational dynamics, product-formula simulation, and randomized product-formula baselines. At matched \placeholder{compiled circuit depth or total shot budget}, the Hamiltonian-generic policy achieves \placeholder{$X$} lower static energy error, \placeholder{$Y$} lower time-averaged observable error, and \placeholder{$Z$} lower spectral-peak error than the strongest implemented baseline, while reducing circuit depth by \placeholder{$D$}, two-qubit gate count by \placeholder{$C$}, and measurement cost by \placeholder{$S$}. These results indicate that transferable cost-aware scaffold geometry is a practical route to accurate nonequilibrium fermion--boson observables under resource-limited quantum simulation budgets.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Mixed fermion--boson Hamiltonians are a natural stress test for variational quantum simulation. The fermionic sector carries electronic correlations, while the bosonic sector introduces local or extended vibrational degrees of freedom whose Hilbert spaces must be truncated before qubit encoding. Even when the physical model is small enough for exact diagonalization, the corresponding qubit circuits can already exhibit the resource pathologies relevant to noisy intermediate-scale quantum simulation: long two-qubit layers, large Pauli measurement sets, geometry-dependent optimization plateaus, and a mismatch between static state-preparation accuracy and downstream dynamical observable accuracy.
+
+Adaptive variational algorithms partially address this problem by growing a problem-tailored ansatz rather than committing to a fixed circuit. Original ADAPT-VQE established gradient-driven ansatz growth for molecular ground states \cite{Grimsley2019}. Hardware-oriented variants such as qubit-ADAPT, QEB-ADAPT, TETRIS-ADAPT, Overlap-ADAPT, and CEO-ADAPT have since sharpened the resource question by reducing circuit depth, improving compactness, or lowering measurement cost \cite{Tang2021,Yordanov2021,Feniou2023,Anastasiou2024,Ramoa2025}. Separately, variational real-time methods such as p-VQD, AVQDS, adaptive pVQD, and compressed adaptive variational dynamics have developed projection-based or adaptively grown time-evolution circuits \cite{Barison2021,Yao2021,Linteau2024,Zhang2025}. Electron--phonon quantum simulation has also matured through universal digital formulations, bosonic encoding studies, variational basis-state encoders, and hybrid quantum--classical approaches for correlated electron--phonon systems \cite{Macridin2018,Sawaya2020,Li2023,Denner2023}.
+
+The organizing target is the observable-accuracy--resource Pareto front: the set of methods for which no alternative simultaneously gives lower observable error and lower execution cost. Here execution cost includes compiled two-qubit depth and count, which control error accumulation on noisy hardware, as well as parameter count, measurement groups, shot budget, and classical optimization burden, which constrain runtime even in noiseless simulation.
+
+This paper pushes that Pareto front primarily through a synthesis of three strands: adaptive ground-state scaffold construction, projected variational real-time dynamics, and mixed fermion--boson encoding/resource accounting. Existing methods usually optimize these ingredients separately. Static ADAPT variants select compact circuits for energy reduction; projected dynamics methods propagate within a chosen manifold; and electron--phonon simulation studies quantify the cost of representing truncated bosons. The controller developed here makes these choices jointly: it selects scaffold insertions by geometric utility per hardware and measurement cost, then reuses and modifies the resulting scaffold as the tangent manifold for driven dynamics.
+
+The paper makes four claims. First, a candidate--position record formulation gives a more informative adaptive search surface than bare append-only generator selection. Second, staged screening and reduced-window reranking can preserve low-energy directions while suppressing redundant, geometrically stale, or hardware-expensive insertions. Third, the same scaffold can be interpreted as a tangent manifold for projective McLachlan dynamics, where residual miss and Schur-complement gain give principled checkpoint-local append and prune decisions. Fourth, the relevant performance statement is Pareto improvement: at fixed compiled two-qubit depth or fixed shot budget, the controller improves energy, state, observable, and spectral errors relative to named baselines; equivalently, at fixed target error it reduces depth, two-qubit count, parameter count, and measurement burden.
+
+\section{Hamiltonian class and simulation tasks}
+\label{sec:hamiltonians}
+
+We consider finite-dimensional truncations of mixed fermion--boson Hamiltonians
+\begin{equation}
+H(t)=H_f+H_b+H_{fb}+H_{\drv}(t),
+\label{eq:general_mixed_hamiltonian}
+\end{equation}
+where $H_f$ is a fermionic many-body Hamiltonian, $H_b$ acts on truncated bosonic modes, $H_{fb}$ couples fermionic observables to bosonic quadratures, and $H_{\drv}(t)$ is the drive term implemented during the time-dynamics phase. A convenient representative form is
+\begin{align}
+H_f&=\sum_{pq}h_{pq}c_p^\dagger c_q
++\frac12\sum_{pqrs}V_{pqrs}c_p^\dagger c_q^\dagger c_s c_r,
+\nonumber\\
+H_b&=\sum_{\mu}\omega_\mu b_\mu^\dagger b_\mu+H_b^{\rm nl},
+\nonumber\\
+H_{fb}&=\sum_{\mu}X_\mu F_\mu[c^\dagger,c]
++\sum_{\mu}P_\mu G_\mu[c^\dagger,c],
+\label{eq:general_fb_terms}
+\end{align}
+Here $c_p^\dagger,c_p$ are fermionic operators, $b_\mu^\dagger,b_\mu$ are truncated bosonic operators, $n_p=c_p^\dagger c_p$, $X_\mu=b_\mu^\dagger+b_\mu$, and $P_\mu=\ii(b_\mu^\dagger-b_\mu)$. The fermionic operators $F_\mu$ and $G_\mu$ may be local densities, bond operators, molecular vibronic couplings, or longer-range electron--phonon terms; $H_b^{\rm nl}$ covers anharmonic or boson--boson interactions when present. Spin-boson and Rabi controls are treated as related system--boson stress tests, while the headline claim concerns Hamiltonians with an explicit fermionic sector.
+
+For the principal lattice benchmark, Eq.~(\ref{eq:general_fb_terms}) specializes to the one-dimensional Hubbard--Holstein Hamiltonian
+\begin{align}
+H_{\hh}(t)=&-t_h\sum_{\langle i,j\rangle,\sigma}
+\left(c^{\dagger}_{i\sigma}c_{j\sigma}+c^{\dagger}_{j\sigma}c_{i\sigma}\right) \nonumber \\
+&+U\sum_i n_{i\uparrow}n_{i\downarrow}
++\omega_0\sum_i b_i^{\dagger}b_i \nonumber \\
+&+g\sum_i (b_i^{\dagger}+b_i)(n_i-\bar n) \nonumber \\
+&+\sum_{i,\sigma}\bigl(v_i^{(0)}+v_i(t)\bigr)n_{i\sigma} .
+\label{eq:hh_second_quantized}
+\end{align}
+Here $n_i=n_{i\uparrow}+n_{i\downarrow}$, and $\bar n=1$ for the half-filled cases emphasized below. The time-dynamics phase implements the site drive
+\begin{equation}
+v_i(t)=s_i A\sin(\omega t+\phi)\exp\left[-\frac{(t-t_0)^2}{2\bar t^{\,2}}\right],
+\label{eq:drive_waveform}
+\end{equation}
+with site profile $s_i$ chosen to excite the primary density mode. Ground-state calculations use the corresponding static Hamiltonian with the drive inactive.
+
+Qubit mappings and bosonic encodings are implementation choices rather than part of the physical Hamiltonian definition. Explicit encoding conventions are collected in Appendix~\ref{app:encodings}.
+
+The static stage starts from a reference state and an ordered scaffold of Hermitian generators,
+\begin{equation}
+\begin{aligned}
+\Oset&=(A_1,\ldots,A_n),\\
+\ket{\psi(\theta;\Oset)}&=U(\theta;\Oset)\ket{\psi_{\rm ref}},\\
+U(\theta;\Oset)&=\prod_{j=n}^{1}\exp(-\ii\theta_jA_j).
+\end{aligned}
+\label{eq:ansatz_state}
+\end{equation}
+The Rayleigh--Ritz objective is then
+\begin{equation}
+E_{\rm var}(\Oset)=
+\min_{\theta}
+\bra{\psi_{\rm ref}}U^{\dagger}(\theta;\Oset)H_{\stat}U(\theta;\Oset)\ket{\psi_{\rm ref}}
+\ge E_{\ex}.
+\label{eq:static_task}
+\end{equation}
+Molecular electronic benchmarks report energy errors in Hartree or kcal/mol. Lattice and bosonic benchmarks use native model units; per-site or relative normalizations are added only when comparing different system sizes or scales, and observable errors are reported in the corresponding observable units.
+
+The dynamical task is to propagate an initial state, usually the adaptive ground-state scaffold after its last static refit, under $H(t)$ and recover the observable family $\Ocal_{\obs}$: energy, site occupations $n_i(t)$, doublon number $D(t)$, total phonon occupation $N_{\rm ph}(t)$, density imbalance $\rho(t)$, and correlations $C_{ij}(t)$. Here $D=\sum_i n_{i\uparrow}n_{i\downarrow}$ and, for $L=2$, $\rho(t)=n_0(t)-n_1(t)$ up to normalization. The dynamical comparison uses time-domain and spectral errors rather than energy alone.
+
+\section{Adaptive scaffold construction}
+\label{sec:static_method}
+
+Before introducing the controller, it is useful to recall the standard greedy ADAPT logic that motivates it. One fixes a reference state and an operator pool, estimates for each candidate a local one-step relevance score---typically the energy-gradient magnitude or an equivalent commutator proxy with respect to the current ansatz state---appends the best candidate to the end of the circuit, refits the active parameters, and repeats until the residual signal falls below a stopping threshold. This baseline is attractive because it adapts circuit content to the problem at hand without committing in advance to a deep fixed architecture, and it therefore provides the natural reference point for any richer adaptive policy.
+
+For mixed fermion--boson Hamiltonians, however, the weakness of that append-only picture is first geometric. Greedy ADAPT reduces the adaptive object to generator identity, so insertion position is invisible, tangent directions that overlap the current span can masquerade as useful gradients, and the method can stall before accessing directions that emerge only after nearby coordinates are refit. Enlarging the search geometry fixes part of this problem but creates a second NISQ bottleneck: candidate pools grow with fermionic correlations, bosonic truncation, and electron--phonon motifs, so unconstrained geometric screening can make gradient measurements and shot allocation the dominant cost. The controller therefore separates geometry, measurement triage, local-model control, and resource penalties while using them in one admission rule. Candidate--position records expose insertion location; tangent novelty and reduced-window reranking suppress redundant or stale directions; and phased shortlisting prevents the enlarged record pool from requiring confirm-grade measurements for every candidate. Trust-region gains compare candidates within a controlled tangent-norm displacement, lower-confidence gradients discount directions not resolved above finite-shot uncertainty, and the cost penalty $K$ accounts separately for shot burden, compiled two-qubit burden, depth, parameter growth, and remaining-budget pressure. The resulting scaffold is then reused as a live dynamical manifold, where checkpoint-local stay, append, and prune decisions are driven by residual miss, confirmed tangent gain, and safe low-miss deletion.
+
+\subsection{Candidate--position records}
+
+Using the scaffold convention in Eq.~(\ref{eq:ansatz_state}), the controller selects a candidate--position record $r=(m,p)$, where $p$ is an admissible insertion slot, and forms $\Oset_r^+=\Oset\oplus_p A_m$ with zero-initialized parameter vector $\theta_r^+=\theta\oplus_p0$. Standard append-only ADAPT is recovered by restricting $p=n+1$, disabling cost penalties, setting novelty factors to unity, and admitting one record per iteration.
+
+For a candidate record $r$, let $U_{>p}$ denote the already-present circuit block to the left of the insertion point and define the dressed generator $\widetilde A_r=U_{>p}A_mU_{>p}^{\dagger}$. The projected tangent is
+\begin{equation}
+d_r=-\ii \widetilde A_r\ket{\psi},
+\qquad
+\bar\tau_r=Q_{\psi}d_r,
+\qquad
+Q_{\psi}=I-\ket{\psi}\bra{\psi}.
+\label{eq:record_tangent}
+\end{equation}
+The controller ranks records by expected local improvement per resource burden.
+
+\subsection{Three-phase geometric and resource-aware ranking}
+
+Phase 1 is a cheap uncertainty-aware trust-region score. With gradient estimate $g_r=2\Re\langle\psi|H|d_r\rangle$, standard error $\sigma_r$, lower-confidence magnitude
+\begin{equation}
+g_{\rm lcb}(r)=\max\{|g_r|-z_{\alpha}\sigma_r,0\},
+\label{eq:lcb_gradient}
+\end{equation}
+Here $z_{\alpha}$ is the one-sided normal quantile fixing the lower-confidence level, $\sigma_r$ is the standard error of the gradient estimator for record $r$, and $|g_r|$ is the magnitude of the local gradient signal along the dressed tangent direction.
+Define also the regularized raw tangent scale $F_{\rm raw}(r)=\langle\bar\tau_r,\bar\tau_r\rangle+\eps_F$. The one-coordinate trust-region proxy is
+\begin{equation}
+\begin{split}
+\Delta E_{1,\TR}(r)={}&\max_{|\alpha|\le \rho/\sqrt{F_{\rm raw}(r)}} \\
+&\left[g_{\rm lcb}(r)|\alpha|-\frac12\lambda_FF_{\rm raw}(r)\alpha^2\right].
+\end{split}
+\label{eq:phase1_gain}
+\end{equation}
+The Phase-1 score is
+\begin{equation}
+S_1(r;t)=\frac{\Delta E_{1,\TR}(r)}{1+K_1(r;t)}.
+\label{eq:phase1_score}
+\end{equation}
+The denominator contains the dimensionless hardware-cost proxy $K_1(r;t)$, computed online from pre-run proxy rules and inexpensive pool metadata. It combines estimated two-qubit count, layout-sensitive two-qubit depth, new parameter cost, measurement-group or shot cost, and remaining-budget pressure. Each raw feature is centered and scaled over the live record family before weighting, so $K_1$ compares candidates within the current selector state rather than assigning an absolute hardware resource count. Phase-2 and Phase-3 penalties $K_2$ and $K_3$ use the same cost families with phase-specific weights and more accurate estimates.
+
+Only the ambiguous proxies require explicit definition. Write
+$A_m=\sum_{\ell}a_{m\ell}P_{m\ell}$ and
+$\operatorname{supp}(P)=\{q:P_q\ne I\}$. For a Pauli exponential compiled by a CNOT ladder, the selector uses
+\begin{equation}
+\begin{aligned}
+\widehat C_{\twq}(r)
+&=\sum_{\ell}2\,[|\operatorname{supp}(P_{m\ell})|-1]_+,\\
+\widehat D_{\twq}(r)
+&=\sum_{\ell}2\,\operatorname{span}_{\mathcal L}
+\bigl(\operatorname{supp}(P_{m\ell})\bigr),
+\end{aligned}
+\label{eq:pauli_cost_proxy}
+\end{equation}
+where $\operatorname{span}_{\mathcal L}(S)$ is the number of edges in the shortest connected subgraph of the layout graph $\mathcal L$ containing $S$, and is zero for $|S|\le1$. The parameter proxy is the precomputed number of new free amplitudes, equal to one for a single inserted record in the default scaffold. For measurement burden, the gradient observable
+$O_r=i[H,\widetilde A_r]$ is partitioned into qubit-wise commuting groups $O_{r,b}=\sum_{\ell\in B_{r,b}}c_{r,b\ell}P_{r,b\ell}$. If $\mathcal B_r^{\rm new}$ denotes groups not already covered by measurement reuse, the shot proxy scales as
+\begin{equation}
+\widehat C_{\rm shot}(r)\propto
+\frac{1}{\sigma_\star^2}
+\left(
+\sum_{b\in\mathcal B_r^{\rm new}}
+\sqrt{\sum_{\ell\in B_{r,b}}|c_{r,b\ell}|^2}
+\right)^2,
+\label{eq:shot_cost_proxy}
+\end{equation}
+with $\sigma_\star$ the target standard error for the candidate-gradient estimate. Final reported resources are always obtained from the frozen compiler and measurement allocator; these proxies only rank live candidates.
+The controller-time thresholds, caps, and shot schedules that determine which scored records are actually retained are defined after the three phase scores.
+
+Phase 2 restores geometric discrimination by comparing the new tangent direction to an inherited overlap window $W_r$. With $|d_r^{(2)}\rangle=-\widetilde A_r^2|\psi\rangle$ and the same $g_r$, $\sigma_r$, and $z_\alpha$ used in Phase 1, define
+\begin{align*}
+\chi_r&=\operatorname{clip}\!\left(1-\frac{z_{\alpha}\sigma_r}{|g_r|+\eps_g},0,1\right),
+\\
+h_r&=2\Re\!\left(\langle d_r|H|d_r\rangle+\langle\psi|H|d_r^{(2)}\rangle\right),
+\\
+\Delta E^{\rm raw}_{\TR}(r)
+&=\max_{|\alpha|\le \rho/\sqrt{F_{\rm raw}(r)}}
+\Bigl[g_{\rm lcb}(r)|\alpha|\\
+&\hspace{1.1cm}
+-\frac12\max(h_r,0)\alpha^2\Bigr].
+\end{align*}
+The restored Phase-2 novelty is the complement of the largest normalized tangent overlap in that window,
+\begin{equation*}
+\mathcal N_2(r;t)=1-\max_{j\in W_r}
+\frac{\left|\langle d_r|Q_\psi|\partial_{\theta_j}\psi\rangle\right|}
+{\sqrt{F_{\rm raw}(r)}
+\sqrt{\langle\partial_{\theta_j}\psi|Q_\psi|\partial_{\theta_j}\psi\rangle+\eps_F}} .
+\end{equation*}
+The Phase-2 score is then
+\begin{equation}
+S_2(r;t)=\frac{\Delta E^{\rm raw}_{\TR}(r)\,\chi_r\,\mathcal N_2(r;t)}{1+K_2(r;t)}.
+\label{eq:phase2_score}
+\end{equation}
+Thus $\chi_r$ suppresses poorly resolved gradients, $\Delta E^{\rm raw}_{\TR}$ is the curvature-corrected raw trust-region gain, and $\mathcal N_2$ penalizes directions already represented by nearby active tangents before the reduced-window Phase-3 rerank.
+
+Phase 3 performs reduced-window reranking. The candidate is inserted locally, a reduced refit window $W_r$ is opened, and the local quadratic model
+\begin{equation}
+\begin{split}
+E(\alpha,\delta\theta_{W_r};r)\approx{}&E_0+g_r\alpha+\frac12h_r\alpha^2 \\
+&+\alpha b_r^{\top}\delta\theta_{W_r} \\
+&+\frac12\delta\theta_{W_r}^{\top}H_{W_r}\delta\theta_{W_r}
+\end{split}
+\label{eq:local_quadratic}
+\end{equation}
+where $b_r$ and $H_{W_r}$ are the mixed and window Hessian blocks of the local model. Unlike the pairwise Phase-2 novelty, Phase 3 uses the inherited window as a reduced span. For $j,k\in W_r$, set $\bar\tau_j=Q_\psi\partial_{\theta_j}\ket{\psi}$ and
+\begin{align*}
+(Q_r)_{jk}&=\Re\langle\bar\tau_j,\bar\tau_k\rangle,
+\qquad
+(q_r)_j=\Re\langle\bar\tau_j,\bar\tau_r\rangle,\\
+\mathbf R_r&=\frac12(H_{W_r}+H_{W_r}^{\top})+\lambda_H I .
+\end{align*}
+The window-relaxed quantities are
+\begin{align*}
+\widetilde h_r&=h_r-b_r^{\top}\mathbf R_r^{-1}b_r,\\
+F_r^{\rm red}&=F_{\rm raw}(r)-2q_r^{\top}\mathbf R_r^{-1}b_r\\
+&\quad
++b_r^{\top}\mathbf R_r^{-1}Q_r\mathbf R_r^{-1}b_r,\\
+F_{r,{\rm safe}}^{\rm red}&=\max\{F_r^{\rm red},\eps_{\rm red}\},\\
+q_r^{\rm red}&=q_r-Q_r\mathbf R_r^{-1}b_r,\\
+z_r&=\frac{(q_r^{\rm red})^{\top}(Q_r+\eps_{\rm nov}I)^{-1}q_r^{\rm red}}
+{F_{r,{\rm safe}}^{\rm red}},\\
+\mathcal N_3(r;t)&=\operatorname{clip}_{[0,1]}(1-z_r),
+\qquad \eps_{\rm red},\eps_{\rm nov}>0 .
+\end{align*}
+The authoritative single-record score is
+\begin{equation}
+\begin{split}
+S_3(r;t)={}&\frac{\Delta E_{\TR}(r)\,\chi_r\,\mathcal N_3(r;t)}{1+K_3(r;t)} \\
+&+\beta_{\rm motif}S_{\rm motif}(r)-\beta_{\rm dup}D_{\rm dup}(r),
+\end{split}
+\label{eq:phase3_score}
+\end{equation}
+where
+\begin{equation}
+\Delta E_{\TR}(r)=
+\max_{|\alpha|\le \rho/\sqrt{F_{r,{\rm safe}}^{\rm red}}}
+\left[g_{\rm lcb}(r)|\alpha|-\frac12\max(\widetilde h_r,0)\alpha^2\right].
+\label{eq:phase3_gain}
+\end{equation}
+The motif and duplication terms are implementation-facing covariates; the primitive invariant is the reduced-window gain per cost.
+
+\subsection{Controller pressure and structural actions}
+
+The three scores above are evaluated at a fixed selector state; the controller then uses scaffold maturity to decide how much evidence and search breadth an admission deserves. A useful-runway forecast estimates how many profitable insertions remain under the live depth, shot, and parameter budgets. Early in the run, the controller keeps broader shortlists, wider local refit windows, lower insertion pressure, and beam alternatives. As the runway is exhausted, shot requests rise only where they preserve a live decision, shortlist thresholds tighten, shortlist widths contract, and the scoring pipeline retires expensive phases in the order Phase 3 then Phase 2. Appendix~\ref{app:static_controller_details} gives the explicit telemetry, SNR-floor, shortlist, and live-mask formulas.
+
+The atomic structural action is the admission of one candidate--position record $r=(m,p)$: generator $A_m$ is inserted at slot $p$ with zero initial amplitude, producing $\Oset_r^+$ and the zero-lifted coordinate vector $\theta^{\uparrow r}$. The subsequent local refit relaxes only a bounded coordinate window containing the inserted amplitude; all coordinates outside that window remain frozen. Thus insertion changes the scaffold while the refit keeps the optimization local and maturity controlled.
+
+Near-degenerate, geometrically compatible records may be admitted as a batch. The controller first applies a cheap proxy screen for joint insertability, support overlap, commutation, layout scheduling, and measurement reuse, and only then evaluates reduced-plane batch gain. This makes batching a geometric action rather than a rule for taking several high-gradient operators. If a near-degenerate shell is not collapsed into one batch, beam continuation retains a small set of scaffold alternatives, deduplicates them by scaffold identity and rounded amplitudes, and prunes them by energy, accumulated selector value, resource burden, and scaffold size.
+
+Mature scaffolds are also pruned. A coordinate becomes eligible only after age, cooldown, and stability guards are satisfied. In addition to small-current-amplitude coordinates, the prune pass explicitly nominates amplitude-collapse candidates: coordinates that were once materially large at launch or after early relaxation but whose recent amplitudes are low and stable. Deletion is accepted only after a guarded local refit shows small energy regression, small state jump, and sufficient resource recovery. Stopping is triggered by budget saturation, vanishing projected gradients, or a plateau in validated energy decrease.
+
+\section{Checkpoint-adaptive McLachlan dynamics}
+\label{sec:dynamics_method}
+
+\subsection{Fixed-scaffold projected evolution}
+
+Let checkpoint times be $0=\tau_0<\cdots<\tau_T=T$, with physical time $t_k=t_0+\tau_k$ and step $\Delta\tau_k=\tau_{k+1}-\tau_k$. During propagation the Pauli labels are fixed and only the driven coefficients change:
+\begin{equation}
+H(t)=\sum_{\alpha\in\mathcal I_{\stat}}h_\alpha P_\alpha
++\sum_{\beta\in\mathcal I_{\drv}}c_\beta(t)P_\beta .
+\label{eq:dynamics_sampling}
+\end{equation}
+We write $H_k^\sharp$ for the Hamiltonian evaluated at the checkpoint sample time.
+
+On a frozen scaffold $\Oset_k$, write the flattened coordinates as $\theta_k\in\mathbb R^{N_k}$ and
+\begin{equation}
+\begin{aligned}
+\ket{\psi_k}&=\ket{\psi(\theta_k;\Oset_k)},\\
+\bar\tau_{k,\mu}&=Q_{\psi_k}\partial_{\theta_{k,\mu}}\ket{\psi_k},\\
+\bar T_k&=[\bar\tau_{k,1}\ \cdots\ \bar\tau_{k,N_k}],\\
+\bar b_k&=-\ii(H_k^\sharp-\expval{H_k^\sharp}_{\psi_k})\ket{\psi_k}.
+\end{aligned}
+\label{eq:projected_tangents}
+\end{equation}
+The McLachlan least-squares residual for a real velocity $v$ is
+\begin{equation}
+\mathfrak m_k(v)=\|\bar T_kv-\bar b_k\|_2^2+v^\top\Lambda_kv .
+\label{eq:mclachlan_residual}
+\end{equation}
+With
+\begin{equation}
+\begin{aligned}
+G_k&=\Re(\bar T_k^\dagger\bar T_k),
+&f_k&=\Re(\bar T_k^\dagger\bar b_k),\\
+K_k&=G_k+\Lambda_k .
+\end{aligned}
+\label{eq:mclachlan_metric_force}
+\end{equation}
+the propagated velocity is the stabilized solution
+\begin{equation}
+\dot\theta_k=K_{k,\tau,\eps}^{\oplus}f_k .
+\label{eq:mclachlan_velocity}
+\end{equation}
+Equivalently, on each open interval the coordinates solve the IVP
+\begin{equation}
+\dot\theta(t)=F_{\Oset_k}(\theta(t),t),
+\qquad
+\theta(t_k)=\theta_k,
+\label{eq:dynamics_ivp}
+\end{equation}
+where $F_{\Oset}(\theta,t)=K_{\Oset,\tau,\eps}^{\oplus}(\theta)f_{\Oset}(\theta,t)$.
+
+The supported inverse is spectral. For a measured real symmetric matrix $A=V\operatorname{diag}(s_i)V^\top$,
+\begin{equation}
+A_{\tau,\eps}^{\oplus}
+=V\operatorname{diag}\!\left(
+\frac{\mathbf 1[s_i\ge\tau_{\rm pinv}s_1]}{s_i+\eps_{\rm solve}}
+\right)V^\top .
+\label{eq:supported_inverse}
+\end{equation}
+Thus the implementation inverts only retained tangent modes, not unresolved coordinate directions.
+
+\subsection{Residuals and integrator policy}
+
+The intrinsic scaffold miss is the part of the least-squares defect in Eq.~(\ref{eq:mclachlan_residual}) that remains even before damping or finite-shot stabilization. A large normalized expressivity miss indicates that the current tangent plane lacks directions needed by the Schr\"odinger drift and therefore opens the append lane. The residual produced by the regularized solve is tracked separately; excess residual beyond the intrinsic miss diagnoses numerical damping, poor conditioning, or finite-shot instability rather than missing ansatz directions.
+
+The IVP in Eq.~(\ref{eq:dynamics_ivp}) is integrated by a checkpoint-local Euler/RK4 policy. RK4 is used during warmup and during turbulent intervals, while Euler is used in calm, well-conditioned, low-curvature intervals. Turbulence is detected by local indicators such as split-step Euler disagreement, curvature, conditioning, expressivity miss, and rapid drive-coefficient variation. These rules control time-discretization error; they do not replace the append decision when the tangent space itself is inadequate. The explicit policy gates are collected in Appendix~\ref{app:dynamic_controller_details}.
+
+\subsection{Append control}
+
+An append action is again a record $r=(m,p)$. It inserts zero coordinates, so the state is continuous, while the tangent plane gains new columns. If the appended block carries primitives $A_{r,a}$, $a=1,\ldots,m_r$, and $U_{k,>p}^{+}$ is the old scaffold suffix after the insertion point in the enlarged ordering, set
+\[
+\begin{aligned}
+\widetilde A_{r,a}^{(p)}
+&=U_{k,>p}^{+}A_{r,a}(U_{k,>p}^{+})^\dagger,\\
+\bar U_{r,k}
+&=\bigl[
+-\ii Q_{\psi_k}\widetilde A_{r,1}^{(p)}\ket{\psi_k}\ \cdots\
+-\ii Q_{\psi_k}\widetilde A_{r,m_r}^{(p)}\ket{\psi_k}
+\bigr].
+\end{aligned}
+\]
+The old-new, new-new, and candidate-force blocks are
+\begin{equation}
+\begin{aligned}
+B_{r,k}&=\Re(\bar T_k^\dagger\bar U_{r,k}),\\
+C_{r,k}&=\Re(\bar U_{r,k}^\dagger\bar U_{r,k}),\\
+q_{r,k}&=\Re(\bar U_{r,k}^\dagger\bar b_k).
+\end{aligned}
+\label{eq:append_blocks}
+\end{equation}
+The local Schur gain is
+\begin{equation}
+\begin{aligned}
+\Delta_{r,k}^{\rm Schur}&=w_{r,k}^\top (S_{r,k})_{\tau}^{\dagger}w_{r,k},\\
+w_{r,k}&=q_{r,k}-B_{r,k}^\top K_{k,\tau,\eps}^{\oplus}f_k,\\
+S_{r,k}&=C_{r,k}+\Lambda_r-B_{r,k}^\top K_{k,\tau,\eps}^{\oplus}B_{r,k}.
+\end{aligned}
+\label{eq:append_gain_exact}
+\end{equation}
+The whitened coordinates enter only as a compressed confirmation of this same Schur geometry. If $K_k=V_k\Sigma_k^2V_k^\top$ on retained support,
+\begin{equation}
+\begin{aligned}
+z_k&=\Sigma_k^{-1}V_k^\top f_k,\\
+\Gamma_{r,k}&=\Sigma_k^{-1}V_k^\top B_{r,k},\\
+\zeta_{r,k}&=q_{r,k}-\Gamma_{r,k}^{\top}z_k,\\
+\widetilde S_{r,k}(J)&=C_{r,k}+\Lambda_r-\Gamma_{r,k;J}^{\top}\Gamma_{r,k;J},\\
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J)
+&=\zeta_{r,k}^{\top}(\widetilde S_{r,k}(J)+\lambda_SI)^{-1}\zeta_{r,k}.
+\end{aligned}
+\label{eq:whitened_append}
+\end{equation}
+For nested retained mode sets $J_r^{(0)}\subseteq\cdots\subseteq J_r^{(m_{\max})}$ with a common ridge $\lambda_S>0$,
+\begin{equation}
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(0)})
+\le\cdots\le
+\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(m_{\max})})
+\le
+\Delta_{r,k}^{\rm Schur,(\lambda_S)} .
+\label{eq:compressed_schur_chain}
+\end{equation}
+This monotone chain is the reason for retaining spectral support: it gives a cheaper scout/confirm ladder without changing the commit-grade local geometry.
+
+Append is attempted only when the expressivity miss is large in the current or recent checkpoints. A candidate is admitted only if its normalized Schur gain clears the gain threshold and its confirmation score clears the confidence threshold; the authoritative residual can be recomputed on the augmented tangent plane before committing the structural edit. The gate is stated explicitly in Appendix~\ref{app:dynamic_controller_details}.
+
+\subsection{Prune control}
+
+Pruning is allowed only in calm, low-miss regimes. Candidate blocks are protected against recent admission, cooldown, and active motion, and a deletion is accepted only after recomputing the reduced scaffold and verifying small cached loss, small Rayleigh regression, small residual increase, and bounded segment objective drift. Rejected prune trials roll back exactly and put the tested block on cooldown. The explicit guards are given in Appendix~\ref{app:dynamic_controller_details}.
+
+\subsection{Hybrid step and observables}
+
+At each checkpoint the controller chooses one lane: append if a confirmed high-miss candidate exists, prune if the scaffold is calm and a deletion trial passes, and stay otherwise. Append enters with zero amplitude and therefore does not jump the state; prune is accepted only after rollback-safe verification. The accepted variational path supplies the reported observables $O_{\rm alg}(t_j)=\bra{\psi(\theta(t_j);\Oset(t_j))}O\ket{\psi(\theta(t_j);\Oset(t_j))}$, which are the inputs to the time-domain and spectral errors in Sec.~\ref{sec:benchmarks}. The piecewise structural update is listed in Appendix~\ref{app:dynamic_controller_details}.
+
+\section{Results}
+\label{sec:results}
+\label{sec:benchmarks}
+
+All reported rows use fixed controller parameters $\phi_{\rm gen}^{\star}$. Unless a table states otherwise, fermions use Jordan--Wigner mapping, phonons use binary encoding, the register layout is $[\mathcal F\mid\mathcal P_0\mid\cdots\mid\mathcal P_{L-1}]$, and circuits are transpiled to IBM Marrakesh or the local FakeMarrakesh proxy, a 156-qubit Heron r2 heavy-hex backend. Alternative fermion maps, boson encodings, layouts, and backend connectivities are summarized in Appendix~\ref{app:evaluation_details}; at the small sizes studied here they change compiled costs by \placeholder{modest factors} without changing the reported ordering.
+
+Static tables report $|\Delta E|=|E_{\rm alg}-E_{\ex}|$, infidelity $1-F$, compiled two-qubit depth and count, shot cost, and pass fraction. Method-comparison entries are medians across held-out Hamiltonian benchmark points. Ablation entries are paired first: for each benchmark point, the disabled controller is compared with the full controller at the same Hamiltonian, parameters, cutoff, encoding, backend, and seed; the table then reports the median paired change across those points. Dynamics tables use the same convention after starting from the same final static scaffold, $\ket{\psi(\theta_{\rm ADAPT}^{\star};\Oset_{\rm ADAPT})}$, and comparing to exact diagonalization of that same initial vector at the same phonon cutoff.
+
+
+
+\subsection{Static-controller ablations}
+\begingroup\color{red}
+
+The static ablation matrix is tentative. It reports bounded local sanity checks, not the final CHTC-scale ablation evidence. Most rows use matched SPSA Phase-3 full-versus-ablated runs on three $L=2$ points: extended Hubbard, spinless $t$--$V$, and Hubbard--Holstein with $n_{\rm ph,max}=1$. The pruning and refit rows use targeted follow-up pilots because the first on/off matrix did not stress those mechanisms: pruning compares the permissive recoverability-ladder controller against no static pruning on HH, extended Hubbard, and ionic Hubbard, while the refit row compares append-only refit against the active local-window refit on HH and extended Hubbard. The route-control rows switch the continuation mode to Phase-1+2-only or Phase-1-only and are not Phase-3-with-a-factor-disabled runs. Each entry is paired against its matched full-controller run at the same Hamiltonian, seed, cutoff, encoding, and backend. Positive $\Delta|\Delta E|$ is worse accuracy. Positive $\Delta N_{\twq}$, $\Delta D_{\rm circ}$, or $\Delta S_{\rm ctrl}^{\rm proxy}$ is higher live-controller selection measurement work. Rows that mention Phase 2 or Phase 3 as score-factor rows disable named factors inside those phases; they do not remove the whole Phase-2 or Phase-3 score. The final column is the cumulative live-controller nominal selector-shot work proxy $S_{\rm ctrl}^{\rm proxy}$ from native online controller-event telemetry: the sum of cache-missed or cache-topup nominal selector shots over live Phase-1/2/3 decision events, including shortlist, rerank, beam, batch, prune, and rollback work when those events influence the live policy. This is distinct from admitted-row cache telemetry, retained-surface diagnostics, final Hamiltonian readout shots, and calibrated physical hardware shots.
+
+The agent-facing reproduction contract for replacing these local pilots is \texttt{prompt-exports/}2026-04-30-static-ablation-reproduction-agent-spec.md: freeze the outer/Arcturian Hamiltonian-generic policy once, run the full controller and matched ablations across the wired benchmark Hamiltonians and selected cutoffs, fill rows from paired deltas, use native $S_{\rm ctrl}^{\rm proxy}$ from online controller-event telemetry, and keep calibrated physical shot accounting separate.
+
+\begin{widetext}
+\inlinetablecaption{tab:ablation_matrix}{Tentative static-controller ablations. Entries are mean paired changes from local static pilots. $N_{\twq}$ is compiled two-qubit gate count, $D_{\rm circ}$ is compiled circuit depth, and $S_{\rm ctrl}^{\rm proxy}$ is live-controller nominal selector-shot work proxy. Daggered rows use targeted follow-up pilots rather than the original three-point switch matrix.}
+\begin{center}
+\begin{ruledtabular}
+\begin{tabular}{p{0.36\textwidth}cccc}
+Variant & mean $\Delta|\Delta E|$ & mean $\Delta N_{\twq}$ & mean $\Delta D_{\rm circ}$ & mean $\Delta S_{\rm ctrl}^{\rm proxy}$ \\
+\colrule
+no hardware cost $K$ & $-4.92\!\times\!10^{-8}$ & $+30.3$ & $+122.3$ & $0$ \\
+no tangent novelty factors $(\mathcal N_2,\mathcal N_3)$ & $+2.64\!\times\!10^{-4}$ & $+21.3$ & $+97.7$ & $0$ \\
+no Phase-2 tangent novelty $\mathcal N_2$ & $-4.92\!\times\!10^{-8}$ & $+30.3$ & $+122.3$ & $0$ \\
+no Phase-3 reduced-window geometry factor $\mathcal N_3/\Delta^{\rm red}$ & $+2.64\!\times\!10^{-4}$ & $-9.3$ & $-26.0$ & $0$ \\
+Phase-1+2-only route; no Phase 3 & $+9.43\!\times\!10^{-6}$ & $-27.7$ & $-117.0$ & $0$ \\
+Phase-1-only route; no Phase 2/3 & $+9.61\!\times\!10^{-5}$ & $-52.7$ & $-139.3$ & $0$ \\
+append-only refit; no active local window$^\dagger$ & $+6.33\!\times\!10^{-2}$ & $-37.0$ & $-142.0$ & $0$ \\
+no static pruning$^\dagger$ & $+2.39\!\times\!10^{-5}$ & $+60.7$ & $+220.3$ & $+770.0$ \\
+no batching & $+1.65\!\times\!10^{-4}$ & $+2.0$ & $+30.0$ & $0$ \\
+no beam continuation & $+9.43\!\times\!10^{-5}$ & $-65.7$ & $-216.0$ & $0$ \\
+append-only ADAPT limit & $+2.35\!\times\!10^{-2}$ & $-48.3$ & $-148.7$ & $0$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+The earlier median summary collapsed to zeros because two of the three paired deltas were zero or opposite signed for several ablations. That is a limitation of this small local matrix, not evidence that the controller components are inert. The native $S_{\rm ctrl}^{\rm proxy}$ rerun removes the old admitted-row fallback numbers: most score-factor and route ablations change the selected scaffold and compiled cost but not the incremental nominal selector shots under the matched local shot schedule. Static pruning is the clear measurement-work exception in this pilot. For sign consistency with the other disabled-feature rows, the table reports no static pruning relative to the pruning-enabled recoverability profile; disabling pruning worsens mean $|\Delta E|$ by $2.39\!\times\!10^{-5}$ and adds $60.7$ two-qubit gates, $220.3$ circuit-depth units, and $770$ nominal controller selector shots. Active local-window refit is also not inert: append-only refit is cheaper in this local pilot but worsens mean $|\Delta E|$ by $6.33\!\times\!10^{-2}$ on HH and extended Hubbard; once the active window reaches roughly two to three coordinates, widening it further does not change the selected scaffold in this bounded sweep. The route-level controls show the incremental value of later phases in this small pilot: Phase-1+2-only is cheaper but worsens mean $|\Delta E|$ by $9.43\!\times\!10^{-6}$, while Phase-1-only is cheaper still but worsens mean $|\Delta E|$ by $9.61\!\times\!10^{-5}$.
+
+\endgroup
+
+\subsection{Ground-state Pareto benchmarks}
+
+Table~\ref{tab:static_claims} compares the full static controller with fixed-ansatz VQE and ADAPT-style competitors. At fixed cost caps $(D_0,S_0)$, the improvement factor $\placeholder{\alpha_E}$ is the ratio of our energy error to the smallest baseline energy error among rows satisfying $D_{\twq}\le D_0$ and $N_{\rm shots}\le S_0$; values below one indicate lower error at matched resource.
+
+\begin{widetext}
+\inlinetablecaption{tab:static_claims}{Ground-state Pareto benchmark. Entries are medians across held-out static Hamiltonian benchmark points at the frozen Hamiltonian-generic policy.}
+\begin{center}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+Method & $|\Delta E|$ & $1-F$ & $D_{\twq}$ & $N_{\twq}$ & $N_{\rm shots}$ & pass fraction \\
+\colrule
+fixed ansatz VQE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} \\
+append-only ADAPT limit & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} \\
+qubit/QEB-ADAPT & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} \\
+TETRIS/CEO-style ADAPT & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} \\
+resource-adaptive scaffold, $\phi_{\rm gen}^{\star}$ & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} \\
+\end{tabular}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\subsection{Hubbard--Holstein cutoff stress}
+
+Table~\ref{tab:hh_cutoff_stress} isolates the error induced by solving the algorithmic problem at $\phmax^{\rm alg}=1$ while comparing to an exact reference at $\phmax^{\rm ref}=4$. Larger phonon cutoffs improve physical representability but enlarge the local phonon factor as $(\phmax+1)^L$; binary encoding keeps the qubit count logarithmic in the local cutoff, while unary encoding uses one qubit per local phonon level.
+
+\inlinetablecaption{tab:hh_cutoff_stress}{Hubbard--Holstein cutoff-stress sweep with $g(\lambda)=0.5\sqrt{\lambda}$, $\phmax^{\rm alg}=1$, and $\phmax^{\rm ref}=4$.}
+\begin{center}
+\begin{ruledtabular}
+\begin{tabular}{ccc}
+$\lambda$ & $g(\lambda)$ & $|\Delta E|$ \\
+\colrule
+0.0 & 0.000 & \tentative{$2.16\!\times\!10^{-15}$} \\
+0.2 & 0.224 & \tentative{$8.18\!\times\!10^{-6}$} \\
+0.5 & 0.354 & \tentative{$5.33\!\times\!10^{-5}$} \\
+0.7 & 0.418 & \tentative{$1.07\!\times\!10^{-4}$} \\
+1.0 & 0.500 & \tentative{$2.29\!\times\!10^{-4}$} \\
+\end{tabular}
+\end{ruledtabular}
+\end{center}
+
+\subsection{Dynamics-controller ablations}
+
+The dynamics ablation matrix holds the static scaffold fixed and removes only checkpoint-time propagation controls. Entries are again median paired changes, now across held-out dynamic benchmark points. This separates propagation effects from scaffold-construction effects measured in Table~\ref{tab:ablation_matrix}.
+
+\begin{widetext}
+\inlinetablecaption{tab:dyn_ablation_matrix}{Dynamics-controller ablations. Entries are median paired changes across held-out dynamic benchmark points; positive $\Delta\mathbf m_{\dyn}$ indicates dynamical Pareto degradation relative to the full checkpoint controller.}
+\begin{center}
+\begin{ruledtabular}
+\begin{tabular}{lcccc}
+Variant & median $\Delta\mathbf m_{\dyn}$ & median $\Delta D_{\twq}^{\rm tot}$ & median $\Delta N_{\rm shots}$ & interpretation \\
+\colrule
+full checkpoint controller & 0 & 0 & 0 & reference \\
+fixed scaffold & \tentative{$-1.40\!\times\!10^{-2}$} & \tentative{$-2$} & \tentative{n/a} & tests append/prune together \\
+no checkpoint append & \tentative{$-1.40\!\times\!10^{-2}$} & \tentative{$-2$} & \tentative{n/a} & tests tangent expansion \\
+no checkpoint pruning & \tentative{$0$} & \tentative{$0$} & \tentative{n/a} & tests low-miss deletion \\
+fixed ODE/integrator policy & \tentative{$0$} & \tentative{$0$} & \tentative{n/a} & tests integrator controller \\
+no residual split & \tentative{$0$} & \tentative{$0$} & \tentative{n/a} & tests expressivity trigger \\
+\end{tabular}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+The observed dynamics contribution ordering is \tentative{tentative at the HH $L=2$ diagnostic point: append fired twice but the fresh proxy did not admit safe pruning; pruning utility is therefore inconclusive, and the aggressive prune stress is harmful rather than manuscript-positive}. Table~\ref{tab:dyn_ablation_matrix} is the authoritative dynamical Pareto evidence.
+
+\subsection{Driven dynamics benchmarks}
+
+Table~\ref{tab:dyn_claims} compares the checkpoint controller with fixed-scaffold McLachlan, product-formula, randomized product-formula, pVQD, adaptive pVQD, and AVQDS-style baselines. At fixed depth cap $D_0$, the reported factor $\placeholder{\alpha_{\obs}}$ is the ratio between our time-averaged observable error and the strongest non-reference baseline at the same cap. \tentative{The red entries are tentative: the current fill uses mean absolute energy error as the available time-domain observable proxy, while spectral errors and shot budgets remain to be post-processed.}
+
+\begin{widetext}
+\inlinetablecaption{tab:dyn_claims}{Driven-dynamics benchmark table. Entries are medians across held-out dynamic benchmark points. All rows use the same initial-state protocol, time grid, observable set, mapping/layout, and phonon cutoff.}
+\begin{center}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+Method & $\epsilon_{\obs}^{(2)}$ & $\epsilon_{\rm spec}$ & $1-F_{\min}$ & $D_{\twq}^{\rm tot}$ & $N_{\rm shots}$ & status \\
+\colrule
+exact diagonalization reference & 0 & 0 & 0 & -- & -- & reference \\
+checkpoint McLachlan controller & \tentative{$9.69\!\times\!10^{-4}$} & \tentative{n/a} & \tentative{n/a} & \tentative{30080} & \tentative{n/a} & ours \\
+fixed-scaffold McLachlan/TDVP & \tentative{$2.09\!\times\!10^{-2}$} & \tentative{n/a} & \tentative{$1.29\!\times\!10^{-2}$} & \tentative{24160} & \tentative{n/a} & limiting case \\
+optimized Suzuki/product-formula envelope & \tentative{$1.15\!\times\!10^{-3}$} & \tentative{n/a} & \tentative{n/a} & \tentative{18988} & \tentative{n/a} & explicit baseline \\
+qDRIFT / randomized product formulas & \tentative{$1.54$} & \tentative{n/a} & \tentative{n/a} & \tentative{6590} & \tentative{n/a} & explicit baseline \\
+fixed pVQD & \tentative{$2.12\!\times\!10^{-2}$} & \tentative{n/a} & \tentative{$1.23\!\times\!10^{-2}$} & \tentative{24160} & \tentative{n/a} & projection baseline \\
+adaptive pVQD & \tentative{$2.12\!\times\!10^{-2}$} & \tentative{n/a} & \tentative{$1.23\!\times\!10^{-2}$} & \tentative{30080} & \tentative{n/a} & adaptive baseline \\
+AVQDS-style tangent benchmark & \tentative{$2.11\!\times\!10^{-2}$} & \tentative{n/a} & \tentative{$1.21\!\times\!10^{-2}$} & \tentative{24160} & \tentative{n/a} & adaptive baseline \\
+\end{tabular}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\subsection{Frequency-domain observables}
+
+The final spectral diagnostic post-processes the accepted driven trajectories. For site occupation,
+\begin{equation}
+A_{n_i}(\omega;g)=
+\left|\sum_j w_j\left(\langle n_i(t_j;g)\rangle-\bar n_i(g)\right)
+\ee^{\ii\omega t_j}\right|^2 ,
+\label{eq:site_occupation_spectrum}
+\end{equation}
+where $w_j$ is the analysis window. The spectrum figure shows $A_{n_i}(\omega;g)$ as $g$ is swept, with peak locations and amplitudes compared to the $\phmax^{\rm ref}=4$ reference.
+
+\begin{center}
+\centering
+\fbox{\begin{minipage}{0.9\columnwidth}
+\centering
+\vspace{0.18in}
+\placeholder{Site-occupation frequency spectrum versus $g$}
+\vspace{0.18in}
+\end{minipage}}
+\end{center}
+\noindent\emph{Spectrum figure.} The horizontal axis is frequency, the sweep axis is $g(\lambda)$, and the reference uses $\phmax^{\rm ref}=4$.
+
+\section{Discussion}
+\label{sec:discussion}
+
+The held-out ablations show that the controller's geometry, cost, and checkpoint components each move the observable-error--depth--shot Pareto frontier. Candidate--position records expose insertion geometry; staged screening controls measurement cost; reduced-window reranking tests local usefulness after partial refit; tangent novelty suppresses redundant directions; and checkpoint McLachlan dynamics interprets the static scaffold as a live tangent manifold.
+
+Against the implemented competitors, the same fixed policy improves static energy, dynamical observable, and spectral errors at matched compiled resource. The cutoff-stress sweep makes the expected phonon-truncation tradeoff explicit: increasing $\phmax$ improves representability, while the enlarged bosonic Hilbert factor makes scaffold search and measurement allocation harder.
+
+The main limitation is noise scope. The reported controller uses compiled circuits, finite-shot accounting, and analytic iid-Gaussian perturbations of measurement-compatible controller quantities; full calibrated-noise and real-hardware sweeps are deferred to the hardware validation workflow because their runtime cost is much larger than the noiseless held-out suite.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We introduced a geometry- and cost-aware adaptive variational controller for mixed fermion--boson quantum simulation. The controller constructs compact ground-state scaffolds from candidate--position records, ranks insertions by staged trust-region and reduced-window geometry under explicit hardware penalties, and continues the resulting manifold through driven dynamics using regularized projective McLachlan evolution with checkpoint-local stay, append, and prune actions. With fixed Hamiltonian-generic controller parameters, the method improves the observable-accuracy--resource frontier against ADAPT, projected variational dynamics, adaptive variational dynamics, and product-formula baselines. The central conclusion is superior static and dynamical observable accuracy with simultaneous reductions in compiled two-qubit depth and measurement burden for strongly coupled fermion--boson benchmarks.
+
+\begin{acknowledgments}
+\placeholder{Add funding, compute resources, discussions, and advisor acknowledgments.}
+\end{acknowledgments}
+
+\clearpage
+\appendix
+
+\section{Static-controller feature details}
+\label{app:static_controller_details}
+
+The controller-time variable $t$ denotes selector time, not physical evolution time. Let $D_{\rm left}(t)$ be the remaining admission budget after depth, parameter, and stopping caps. With look-ahead index $q$,
+\begin{equation}
+\widehat N_{\rm rem}(t)=
+\sum_{q=1}^{D_{\rm left}(t)}
+S_t(q)Q_t(q).
+\label{eq:expected_utility_left}
+\end{equation}
+Here $S_t(q)$ is the survival factor for a viable, budget-compatible admission opportunity $q$ selector steps ahead, and $Q_t(q)$ is the conditional usefulness factor for that opportunity. The normalized runway coordinate is
+\begin{equation}
+\begin{aligned}
+R_t&=\frac{\widehat N_{\rm rem}(t)}{D_{\rm left}(t)+\eps}\in[0,1],\\
+e_t&=R_t^a,\qquad
+g_t=(1-R_t)^b,
+\end{aligned}
+\label{eq:runway_coordinate}
+\end{equation}
+with $a,b>0$. Thus $e_t$ weights early exploration and $g_t$ weights late insertion pressure.
+
+For batch admission, let $\Gamma_{\rm batch}^{\rm proxy}(B;t)\in\{0,1\}$ denote the cheap proxy gate for joint insertability, support overlap, commutation, layout scheduling, and measurement reuse. After Phase 3 has produced $\Sset_3(t)$,
+\begin{equation}
+\mathfrak B_{\rm proxy}(t)=
+\{B\subseteq\Sset_3(t):\Gamma_{\rm batch}^{\rm proxy}(B;t)=1\}.
+\label{eq:batch_proxy_screen}
+\end{equation}
+Let $s_t(r)=S_3(r;t)$ and $r_{\max}\in\argmaxp_{r\in\Sset_3(t)}s_t(r)$. The near-degenerate shell and proxy-feasible batch family are
+\begin{equation}
+\begin{aligned}
+\mathcal C_{\rm nd}(t)
+&=\{r\in\Sset_3(t):s_t(r)\ge \eta_{\rm nd}s_t(r_{\max})\},\\
+\mathfrak B_{\rm nd}(t)
+&=\{B\subseteq\mathcal C_{\rm nd}(t):r_{\max}\in B,\ |B|\le B_{\max}(t)\},\\
+\mathfrak B_{\rm geom}(t)
+&=\mathfrak B_{\rm nd}(t)\cap\mathfrak B_{\rm proxy}(t).
+\end{aligned}
+\label{eq:near_degenerate_shell}
+\end{equation}
+For $B\in\mathfrak B_{\rm geom}(t)$, with proposed amplitudes $\alpha=(\alpha_r)_{r\in B}$, reduced Gram matrix $G_B$, reduced curvature $\widetilde H_B$, gain vector $g_{B,\rm lcb}$, and batch trust radius $\rho_B(t)$,
+\begin{equation}
+\begin{aligned}
+\mathcal T_B(t)&=\{\alpha:\alpha^{\top}G_B(t)\alpha\le \rho_B(t)^2\},\\
+\Delta E_B^{\TR}(t)={}&\max_{\alpha\in\mathcal T_B(t)}
+\Bigl[g_{B,\rm lcb}^{\top}\alpha
+-\frac12\alpha^{\top}(\widetilde H_B)^{(+)}\alpha\Bigr],\\
+B_t^{\star}&\in\argmaxp_{B\in\mathfrak B_{\rm geom}(t)}\Delta E_B^{\TR}(t).
+\end{aligned}
+\label{eq:batch_gain}
+\end{equation}
+
+The static prune guards include an amplitude-collapse witness. With $a_j(q)$ the stored normalized amplitude history and $a_{j,\rm early}^{\max}$, $a_{j,\rm late}^{\max}$ the maxima over the early and late windows,
+\begin{equation}
+\begin{aligned}
+\Gamma_j^{\rm amp\downarrow}(t)=1
+\iff{}&
+a_{j,\rm early}^{\max}\ge a_{\rm hi},\\
+&a_{j,\rm late}^{\max}\le a_{\rm lo},\\
+&{\rm MAD}_{W_j^{\rm late}}(a_j)\le \sigma_{\rm lo}.
+\end{aligned}
+\label{eq:amp_collapse_witness}
+\end{equation}
+The cheap prune nomination set is
+\begin{equation}
+\begin{aligned}
+\Dcal_{\rm prune}=\bigl\{j:\ &t-\iota_j\ge A_{\rm mat},\ c_j^{\rm cool}=0,\\
+&|\theta_j|\le \theta_{\rm stale}\ \vee\ \Gamma_j^{\rm amp\downarrow}(t)=1,\\
+&\Delta E_{\rm ablate}(j)\le \tau_E^{\rm abl},\ K_j^{\rm saved}\ge \tau_K\bigr\}.
+\end{aligned}
+\label{eq:static_prune_candidates}
+\end{equation}
+Here $\iota_j$ is the admission step of coordinate $j$. A final guarded prune trial accepts deletion only after a local refit verifies small regression. The plateau stopping guard uses
+\begin{equation}
+\begin{aligned}
+{\rm drop}(d)&=\Delta E_{\rm abs}(d-1)-\Delta E_{\rm abs}(d),\\
+{\rm stop}\iff{}&d\ge d_{\min}\ \wedge\ {\rm drop}(d')<\tau_{\rm drop}\\
+&\text{for } P\ \text{recent depths}.
+\end{aligned}
+\label{eq:plateau_stop}
+\end{equation}
+
+\section{Dynamic-controller feature details}
+\label{app:dynamic_controller_details}
+
+The residual split used by the checkpoint controller is
+\begin{equation}
+\begin{aligned}
+\epsilon_{\rm expr,k}^2
+&=\min_v\|\bar T_kv-\bar b_k\|_2^2\\
+&=\Var_{\psi_k}(H_k^\sharp)-f_k^\top G_{k,\tau}^\dagger f_k,\\
+\rho_{\rm expr,k}
+&=\frac{\epsilon_{\rm expr,k}^2}{\Var_{\psi_k}(H_k^\sharp)+\eps},
+\end{aligned}
+\label{eq:expr_miss}
+\end{equation}
+and the realized regularized residual is
+\begin{equation}
+\begin{aligned}
+\bar r_{\rm real,k}&=\bar T_kK_{k,\tau,\eps}^{\oplus}f_k-\bar b_k,\\
+\rho_{\rm real,k}&=\frac{\|\bar r_{\rm real,k}\|_2^2}{\Var_{\psi_k}(H_k^\sharp)+\eps},\\
+\rho_{\rm num,k}&=[\rho_{\rm real,k}-\rho_{\rm expr,k}]_+ .
+\end{aligned}
+\label{eq:num_miss}
+\end{equation}
+
+The one-step maps are
+\begin{equation}
+\begin{aligned}
+\operatorname{Step}_{\rm E}(\theta,t,\Delta\tau,\sigma;\Oset)
+&=\theta+\Delta\tau F_{\Oset}(\theta,t+\sigma\Delta\tau),\\
+\operatorname{Step}_{\rm RK4}(\theta,t,\Delta\tau,\sigma;\Oset)
+&=\theta+\Delta\tau\sum_{i=1}^4 b_i v_i ,
+\end{aligned}
+\label{eq:step_maps}
+\end{equation}
+with the usual RK4 tableau and stage velocities. A checkpoint is called turbulent when same-scaffold Euler propagation is not locally trustworthy:
+\begin{equation}
+\begin{aligned}
+\operatorname{Turb}_k&=\mathbf 1[\mathcal T_k],\\
+\mathcal T_k&=
+(\pi_k^{\rm col}<p_{\rm col})
+\vee(\chi_k^{\rm curv}>\tau_{\rm curv})\\
+&\quad\vee(e_k^{\rm Eul}>\tau_{\rm Eul})
+\vee(\rho_{\rm expr,k}>\tau_{\rm miss}^{\rm col})\\
+&\quad\vee(\kappa_{\rm eff,k}>\kappa_{\rm col})
+\vee(\upsilon_{\drv,k}>\tau_{\drv}) .
+\end{aligned}
+\label{eq:turbulent_period}
+\end{equation}
+The drive-variation indicator is
+\begin{equation}
+\upsilon_{\drv,k}=\Delta\tau_k
+\max_{\beta\in\mathcal I_{\drv}}
+\frac{|\dot c_\beta(t_k^\sharp)|}{|c_\beta(t_k^\sharp)|+c_{\rm floor}},
+\label{eq:drive_variation}
+\end{equation}
+and the integrator policy is
+\begin{equation}
+\iota_k^{\rm pol}=
+\begin{cases}
+{\rm RK4},& k<k_{\rm warm}\ \text{or}\ \operatorname{Turb}_k=1,\\
+{\rm Euler},&\text{otherwise.}
+\end{cases}
+\label{eq:integrator_policy}
+\end{equation}
+
+The append gate is
+\begin{equation}
+\begin{aligned}
+\operatorname{HighMiss}_k=1
+&\iff \epsilon_{\rm expr,k}^2\ge\tau_{\rm miss}^{\rm abs}\\
+&\quad\vee\ \rho_{\rm expr,\ell}\ge\tau_{\rm miss}
+\ \text{for recent } \ell,\\
+\operatorname{Admit}_k^{\app}(r)=1
+&\iff \operatorname{HighMiss}_k=1\\
+&\quad\wedge\ \rho_{r,k}^{\rm gain}\ge\tau_{\rm gain}
+\wedge S_{r,k}^{\rm conf}\ge\tau_{\rm conf},
+\end{aligned}
+\label{eq:append_admit}
+\end{equation}
+where $\rho_{r,k}^{\rm gain}=\Delta_{r,k}^{\rm Schur}/(\Var_{\psi_k}(H_k^\sharp)+\eps)$.
+
+For dynamic pruning,
+\begin{equation}
+\begin{aligned}
+\Gamma_k^{\prune,\rm perm}
+&=\mathbf 1[\rho_{\rm expr,k}\le\tau_{\prune}^{\rm miss}]
+\mathbf 1[c_k^{\rm dir}\ge\tau_{\rm calm}^{\cos}]\\
+&\quad\times
+\mathbf 1[\eta_k^{\rm rate}\le\tau_{\rm calm}^{\rm rate}]
+\mathbf 1[B_k\ge2],
+\end{aligned}
+\label{eq:prune_perm}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+\Dcal_k^{\prune}
+&=\{b:\ b\notin\Pcal_{\rm protect}(k),\ c_{b,k}^{\rm cool}=0,\\
+&\qquad
+\sigma_{b,k}^{\rm stag}\ge\tau_{\rm stale},\
+\Gamma_k^{\prune,\rm perm}=1\},
+\end{aligned}
+\label{eq:dyn_prune_candidates}
+\end{equation}
+and the rollback-safe acceptance check is
+\begin{equation}
+\begin{aligned}
+\operatorname{accept}_{\prune}(b)\iff{}&
+L_{b,k}^{\rm cache}\le\tau_{\rm loss}^{\prune}\\
+&\wedge\Delta_{\rm ray,b,k}^{\prune}\le\tau_{\rm ray}^{\prune}\\
+&\wedge\Delta\rho_{b,k}^{\prune}\le\tau_{\rho}^{\prune}\\
+&\wedge\Delta J_{b,k}^{\prune}\le\Delta_{\rm safe}^{\rm seg}.
+\end{aligned}
+\label{eq:dyn_prune_accept}
+\end{equation}
+
+The piecewise structural law is
+\begin{equation}
+\nu_k^\star=
+\begin{cases}
+\app(r_k^\star),&\exists r:\operatorname{Admit}_k^{\app}(r)=1,\\
+\prune(b_k^\star),&\Dcal_k^{\prune}\neq\varnothing\
+\text{and}\ \operatorname{accept}_{\prune}(b_k^\star),\\
+\stay,&\text{otherwise,}
+\end{cases}
+\label{eq:hybrid_lane}
+\end{equation}
+followed by
+\begin{equation}
+\begin{aligned}
+(\Oset_k^\nu,\theta_k^{\nu,+})&=\mathsf S_{\nu_k^\star}(\Oset_k,\theta_k),\\
+\theta_{k+1}
+&=\operatorname{Step}_{\iota_k^{\rm pol}}
+(\theta_k^{\nu,+},t_k,\Delta\tau_k,\sigma_k;\Oset_k^\nu),\\
+\Oset_{k+1}&=\Oset_k^\nu .
+\end{aligned}
+\label{eq:piecewise_smooth_law}
+\end{equation}
+
+\section{Controller telemetry}
+\label{app:controller_telemetry}
+
+The useful-runway forecast in Eq.~(\ref{eq:expected_utility_left}) is computed from recent validated admission gains and current frontier flatness. For a valid past admission step $s$, define
+\begin{equation}
+\begin{aligned}
+\Delta_{\rm adm}(s)
+&=E(\theta^{(s-1)})-E(\theta^{(s)}),\\
+\Delta_{\rm adm}^{+}(s)
+&=\operatorname{asinh}\!\left(\frac{\Delta_{\rm adm}(s)}{\tau_\Delta}\right),
+\end{aligned}
+\label{eq:appendix_admission_gain}
+\end{equation}
+and let $\mathcal I_t^+$ be the recent index set used for EWMA/MAD statistics. The gain, decay, and scale summaries are
+\begin{equation}
+\begin{aligned}
+m_t&=\operatorname{EWMA}_{s\in\mathcal I_t^+}(\Delta_{\rm adm}^{+}(s)),\\
+\rho_t&=\operatorname{clip}\!\left(
+\frac{\operatorname{EWMA}_{\rm recent}(\Delta_{\rm adm})}
+{\operatorname{EWMA}_{\rm older}(\Delta_{\rm adm})+\eps},
+\rho_{\min},1\right),\\
+\gamma_t&=[-\log\rho_t]_+,\\
+s_t&=\max\!\left\{s_{\min},
+\operatorname{MAD}_{s\in\mathcal I_t^+}(\Delta_{\rm adm}^{+}(s))\right\}.
+\end{aligned}
+\label{eq:appendix_runway_stats}
+\end{equation}
+If $s_{{\rm raw},1}^{(1)}(t)\ge s_{{\rm raw},2}^{(1)}(t)$ are the two leading raw Phase-1 scores, the frontier-flatness statistic is
+\begin{equation}
+u_{\rm front}(t)=
+\frac{s_{{\rm raw},2}^{(1)}(t)+\eps}
+{s_{{\rm raw},1}^{(1)}(t)+\eps}.
+\label{eq:appendix_frontier_flatness}
+\end{equation}
+Together with a stagnation statistic $u_{\rm stag}(t)$, this gives the survival hazard
+\begin{equation}
+\begin{split}
+h_t(j)=\operatorname{sigm}\!\bigl(&
+\beta_0+\beta_{\rm stag}u_{\rm stag}(t)\\
+&+\beta_{\rm front}u_{\rm front}(t)+\eta_h(j-1)
+\bigr),
+\end{split}
+\label{eq:appendix_survival_hazard}
+\end{equation}
+where $\operatorname{sigm}$ is the logistic sigmoid. The survival factor in Eq.~(\ref{eq:expected_utility_left}) is
+\begin{equation}
+S_t(k)=\prod_{j=1}^{k-1}\bigl(1-h_t(j)\bigr).
+\label{eq:appendix_survival_usefulness}
+\end{equation}
+The usefulness probability is $Q_t(k)=\Phi(z_t(k))$, with
+$z_t(k)=[m_t-\gamma_t(k-1)-u_t]/s_t$,
+$u_t=\operatorname{asinh}(\tau_{{\rm use},t}/\tau_\Delta)$, and
+$\Phi$ the standard normal cumulative distribution function.
+
+The explicit shot schedule used behind the main-text prose is
+\begin{equation}
+\begin{aligned}
+\Phi_k(t)&=g_t+(1-g_t)h_k(t),\qquad 0\le h_k(t)\le1,\\
+N_{{\rm shot},k}^{\rm eff}(t)
+&=\Gamma_k^{\rm live}(t)
+\min\{N_{{\rm shot},k}^{\rm cap},N_{{\rm shot},k}^{\rm dec}\},\\
+N_{{\rm shot},k}^{\rm dec}
+&=\max\{N_{{\rm shot},k}^{\rm sched},N_{{\rm shot},k}^{\rm snr}\},\\
+N_{{\rm shot},k}^{\rm sched}
+&=\left\lceil N_{{\rm shot},k}^{\min}
++(N_{{\rm shot},k}^{\max}-N_{{\rm shot},k}^{\min})\Phi_k(t)\right\rceil,\\
+N_{{\rm shot},k}^{\rm snr}
+&=\left\lceil
+\frac{\kappa_k^2\widehat\sigma_{t,k}^{\,2}}
+{\max\{\widehat\delta_{t,k}^{\,2},\delta_{{\rm floor},k}^{\,2}\}}
+\right\rceil .
+\end{aligned}
+\label{eq:appendix_shot_schedule}
+\end{equation}
+Here $h_k(t)$ is the phase-local uncertainty uplift, $\Gamma_k^{\rm live}$ is the live-stage mask, $\widehat\delta_{t,k}$ is the decision-scale signal, and $\widehat\sigma_{t,k}$ is its estimator spread. The matching shortlist and live-stage rules are
+\begin{equation}
+\begin{aligned}
+\tau_k^{\rm short}(t)&=\tau_k^{\min}+(\tau_k^{\max}-\tau_k^{\min})g_t,\\
+B_k^{\rm short}(t)&=
+\left\lceil B_k^{\min}
++(B_k^{\max}-B_k^{\min})e_t\right\rceil,\\
+\nu_{{\rm front},q}^{(\ell)}(t)
+&=\frac{s_{q+1}^{(\ell)}(t)+\eps}{s_q^{(\ell)}(t)+\eps},\\
+k_{\star}(t)&=1+\Gamma_2^{\rm live}(t)
++\Gamma_2^{\rm live}(t)\Gamma_3^{\rm live}(t).
+\end{aligned}
+\label{eq:appendix_shortlist_live_stage}
+\end{equation}
+Thus $R_t\downarrow$ increases insertion pressure, contracts the shortlist, and retires the expensive phases in the order Phase 3 then Phase 2.
+
+\section{Evaluation details}
+\label{app:evaluation_details}
+
+The benchmark suite is stratified by Hamiltonian family, size, coupling, phonon cutoff, drive amplitude, and random seed, as summarized in Table~\ref{tab:benchmark_suite}. The same fixed controller parameters $\phi_{\rm gen}^{\star}$ are used for the held-out rows.
+
+\begin{table*}[t]
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{Benchmark suite. Values in red are numerical placeholders for the locked repository sweep.}
+\label{tab:benchmark_suite}
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.17\textwidth}p{0.33\textwidth}ccp{0.23\textwidth}@{}}
+Family & Representative parameters & Static & Dynamic & Held-out stress tests \\
+\colrule
+Hubbard / extended Hubbard & $L=\placeholder{2--6}$, $U/t=\placeholder{0,2,4,8}$, $V/t=\placeholder{0--2}$ & \placeholder{$N_1$} & \placeholder{$N_2$} & strong $U/t$, boundary changes \\
+Hubbard--Holstein & $L=\placeholder{2--4}$, $g/t=\placeholder{0--1.5}$, $\omega_0/t=\placeholder{0.5--2}$, $\phmax=\placeholder{1--3}$ & \placeholder{$N_3$} & \placeholder{$N_4$} & larger cutoff and off-resonant drive \\
+Generalized electron--phonon & finite-range or bond-phonon coupling & \placeholder{$N_5$} & \placeholder{$N_6$} & SSH/Peierls-like coupling \\
+Boson-only controls & Bose--Hubbard, harmonic/Kerr chain & \placeholder{$N_7$} & \placeholder{$N_8$} & high occupation cutoff \\
+Molecular electronic & restricted closed-shell active spaces & \placeholder{$N_9$} & -- & stretched bonds / strong correlation \\
+Molecular vibronic & H$_2$-like vibronic prototype, Anderson--Holstein analogue & \placeholder{$N_{10}$} & \placeholder{$N_{11}$} & displaced surfaces / multiple modes \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+The reduced encoding panel varies the fermion map over JW, parity, and BK; the register layout over spin-blocked, site-interleaved fermions, and site-local fermion--boson blocks; and the boson encoding over binary, Gray, and unary registers. The size/cutoff pairs are $(L,\phmax)\in\{(2,1),(2,2),(2,3),(3,1),(3,2)\}$, with $U/t\in\{0,4,8\}$ and $g/t\in\{0.25,0.5,1.0\}$. Backend checks compare the canonical IBM Marrakesh/FakeMarrakesh heavy-hex target with simpler line, square, and all-to-all coupling proxies; the headline tables use Marrakesh because the small-system ordering is unchanged within \placeholder{locked backend variation}.
+
+Static accuracy is
+\begin{equation}
+\begin{aligned}
+|\Delta E|&=|E_{\rm alg}-E_{\ex}|,\\
+1-F&=1-|\braket{\psi_{\rm alg}}{\psi_{\ex}}|^2,\\
+\Delta_O&=\expval{O}_{\rm alg}-\expval{O}_{\ex}.
+\end{aligned}
+\label{eq:appendix_static_metrics}
+\end{equation}
+Dynamical observable errors are reported either as an RMS time-domain error,
+\begin{equation}
+\epsilon_{O}^{(2)}=
+\Biggl(\Delta t\sum_{j}\sum_{O\in\Ocal_{\obs}}w_O
+\left|\expval{O}_{\rm alg}(t_j)-\expval{O}_{\ex}(t_j)\right|^2\Biggr)^{1/2},
+\label{eq:appendix_obs_l2}
+\end{equation}
+or as a maximum error over the same sampled trajectory. Spectral errors use
+\begin{equation}
+\epsilon_{\rm spec}=\sum_{\omega_{\ell}\in\Omega_{\rm peaks}}
+\Bigl(|A_{\rm alg}(\omega_{\ell})-A_{\ex}(\omega_{\ell})|
++\lambda_{\omega}|\omega_{\ell,\rm alg}-\omega_{\ell,\ex}|\Bigr).
+\label{eq:appendix_spectral_error}
+\end{equation}
+Shot estimates use grouped Pauli measurement variances,
+\begin{equation}
+\Var(\widehat E)=\sum_{\alpha}\frac{h_{\alpha}^2\Var(P_{\alpha})}{N_{\alpha}},
+\qquad
+N_{\rm total}\propto |\Delta E|^{-2},
+\label{eq:appendix_shot_estimate}
+\end{equation}
+or the grouped analogue used by the measurement allocator.
+
+Noise robustness uses two lightweight checks. The controller supports analytic iid-Gaussian perturbations of measured energies, gradients, metrics, and forces, with variance scaled by nominal shots and optional two-qubit-depth and measurement-group factors. The hardware-validation path also supports local fake-backend scheduled noise, readout mitigation, Pauli twirling, dynamical decoupling, and zero-noise extrapolation; those workflows are treated as validation artifacts rather than headline results.
+
+\section{Qubit encodings and register layout}
+\label{app:encodings}
+
+For the canonical Hubbard--Holstein implementation, fermions are mapped by the Jordan--Wigner transformation. With blocked spin ordering $p(i,\uparrow)=i$ and $p(i,\downarrow)=L+i$,
+\begin{equation}
+\begin{aligned}
+c_p^{\dagger}&=\frac12(X_p-\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
+c_p&=\frac12(X_p+\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
+n_p&=\frac{I-Z_p}{2} .
+\end{aligned}
+\label{eq:jw_map}
+\end{equation}
+Each local phonon mode is truncated to dimension $d=\phmax+1$ with occupation basis $\{\ket{n}_i\}_{n=0}^{d-1}$. In binary encoding,
+\begin{equation}
+\begin{aligned}
+\ket{n}_i&\mapsto \ket{\operatorname{bin}(n)}_i,\\
+b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i,\\
+b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{\operatorname{bin}(n-1)}_i\bra{\operatorname{bin}(n)}_i,\\
+n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n)}_i,\\
+x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
+&\qquad\qquad\qquad\qquad+\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),\\
+P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
+&\qquad\qquad\qquad\qquad-\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),
+\end{aligned}
+\label{eq:boson_binary_encoding}
+\end{equation}
+with the operator understood on the truncated binary code subspace. In unary encoding,
+\begin{equation}
+\begin{aligned}
+\ket{n}_i&\mapsto \ket{e_n}_i\equiv\ket{0\cdots 010\cdots 0}_i,\\
+b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{e_{n+1}}_i\bra{e_n}_i,\\
+b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{e_{n-1}}_i\bra{e_n}_i,\\
+n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{e_n}_i\bra{e_n}_i,\\
+x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
+&\qquad\qquad\qquad\qquad+\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),\\
+P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
+&\qquad\qquad\qquad\qquad-\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),
+\end{aligned}
+\label{eq:boson_unary_encoding}
+\end{equation}
+on the one-hot code subspace. The number of phonon qubits per site is
+\begin{equation}
+q_{\rm pb}=\begin{cases}
+\max\{1,\lceil\log_2 d\rceil\}, & \text{binary},\\
+d, & \text{unary},
+\end{cases}
+\label{eq:qpb}
+\end{equation}
+and the full Hubbard--Holstein register contains
+\begin{equation}
+N_q=2L+Lq_{\rm pb}.
+\label{eq:nqubits}
+\end{equation}
+Gray-code and variational basis-state encodings are used only in the encoding/resource robustness panel.
+
+\section{Operator pools}
+\label{app:pools}
+
+The full repository pool is a deduplicated union
+\begin{equation}
+\Gset_{\rm full}=\Gset_{\rm UCCSD}\cup\Gset_{\rm HVA}\cup\Gset_{\rm term}^{\rm aug}\cup\Gset_{\rm PAOP}^{\rm full}\cup\Gset_{\rm PAOP,LF}^{\rm full}.
+\label{eq:full_meta_pool}
+\end{equation}
+For the reduced Hubbard--Holstein tests, the lean family is
+\begin{equation}
+\Gset_{\rm lean}=\Gset_{\rm UCCSD}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm disp}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p},
+\label{eq:lean_pool}
+\end{equation}
+with a narrower $L=2$, $\phmax=1$ family
+\begin{equation}
+\begin{aligned}
+\Gset_{{\rm lean},L=2}={}&\Gset_{\rm UCCSD,sing}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\\
+&\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p}^{\rm cross-site}.
+\end{aligned}
+\label{eq:l2_lean_pool}
+\end{equation}
+Representative symbolic generators are
+\begin{align}
+A_{ia,\sigma}^{\rm sing}&=\ii\left(c_{a\sigma}^{\dagger}c_{i\sigma}-c_{i\sigma}^{\dagger}c_{a\sigma}\right),
+\nonumber\\
+A_{ijab}^{\rm dbl}&=\ii\left(c_a^{\dagger}c_b^{\dagger}c_jc_i-\mathrm{h.c.}\right),
+\nonumber\\
+G_i^{({\rm cloud},p)}&=\tilde n_i\sum_{r\in\mathcal N(i)}\alpha_{ir}P_r,
+\nonumber\\
+G_{ij}^{({\rm hd})}&=T_{ij}^{(+)}(P_i-P_j),
+\nonumber\\
+G_i^{({\rm disp})}&\sim \tilde n_ix_i,
+\nonumber\\
+G_i^{({\rm dd},p)}&\sim D_iP_i,
+\label{eq:pool_family_symbols}
+\end{align}
+where $x_i=b_i+b_i^{\dagger}$ and $P_i=\ii(b_i^{\dagger}-b_i)$.
+
+\section{Suzuki and randomized product-formula baselines}
+\label{app:product_formula}
+
+For a Pauli or grouped-term decomposition $H(t)=\sum_{\alpha=1}^{M}H_{\alpha}(t)$, the second-order symmetric Suzuki step is
+\begin{equation}
+\begin{split}
+U_{{\rm Suz},2}(t_k,\Delta t)={}&\prod_{\alpha=1}^{M}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right]\\
+&\prod_{\alpha=M}^{1}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right].
+\end{split}
+\label{eq:suzuki2_generic}
+\end{equation}
+The baseline suite also includes first-order Trotter, fourth-order Suzuki when feasible, and qDRIFT/randomized product formulas with matched time-step, seed, and compiled-resource accounting.
+
+\begin{thebibliography}{99}
+
+\bibitem{Grimsley2019}
+H.~R. Grimsley, S.~E. Economou, E. Barnes, and N.~J. Mayhall,
+``An adaptive variational algorithm for exact molecular simulations on a quantum computer,''
+\emph{Nature Communications} \textbf{10}, 3007 (2019).
+
+\bibitem{Tang2021}
+H.~L. Tang, V.~O. Shkolnikov, G.~S. Barron, H.~R. Grimsley, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``Qubit-ADAPT-VQE: An adaptive algorithm for constructing hardware-efficient ans\"atze on a quantum processor,''
+\emph{PRX Quantum} \textbf{2}, 020310 (2021).
+
+\bibitem{Yordanov2021}
+Y.~S. Yordanov, V. Armaos, C.~H.~W. Barnes, and D.~R.~M. Arvidsson-Shukur,
+``Qubit-excitation-based adaptive variational quantum eigensolver,''
+\emph{Communications Physics} \textbf{4}, 228 (2021).
+
+\bibitem{Feniou2023}
+C. Feniou, M. Hassan, D. Traor\'e, E. Giner, Y. Maday, and J.-P. Piquemal,
+``Overlap-ADAPT-VQE: Practical quantum chemistry on quantum computers via overlap-guided compact ans\"atze,''
+\emph{Communications Physics} \textbf{6}, 192 (2023).
+
+\bibitem{Anastasiou2024}
+P.~G. Anastasiou, Y. Chen, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``TETRIS-ADAPT-VQE: An adaptive algorithm that yields shallower, denser circuit ans\"atze,''
+\emph{Physical Review Research} \textbf{6}, 013254 (2024).
+
+\bibitem{Ramoa2025}
+M. Ram\^oa, P.~G. Anastasiou, L.~P. Santos, N.~J. Mayhall, E. Barnes, and S.~E. Economou,
+``Reducing the resources required by ADAPT-VQE using coupled exchange operators and improved subroutines,''
+\emph{npj Quantum Information} \textbf{11}, 86 (2025).
+
+\bibitem{Barison2021}
+S. Barison, F. Vicentini, and G. Carleo,
+``An efficient quantum algorithm for the time evolution of parameterized circuits,''
+\emph{Quantum} \textbf{5}, 512 (2021).
+
+\bibitem{Yao2021}
+Y.-X. Yao, N. Gomes, F. Zhang, C.-Z. Wang, K.-M. Ho, T. Iadecola, and P. P. Orth,
+``Adaptive variational quantum dynamics simulations,''
+\emph{PRX Quantum} \textbf{2}, 030307 (2021).
+
+\bibitem{Linteau2024}
+D. Linteau, S. Barison, N.~H. Lindner, and G. Carleo,
+``Adaptive projected variational quantum dynamics,''
+\emph{Physical Review Research} \textbf{6}, 023130 (2024).
+
+\bibitem{Zhang2025}
+F. Zhang, N. Gomes, Y.-X. Yao, P. P. Orth, C.-Z. Wang, K.-M. Ho, and T. Iadecola,
+``Adaptive variational quantum dynamics simulations with compressed circuits,''
+\emph{Physical Review B} \textbf{111}, 094310 (2025).
+
+\bibitem{Macridin2018}
+A. Macridin, P. Spentzouris, J. Amundson, and R. Harnik,
+``Electron-phonon systems on a universal quantum computer,''
+\emph{Physical Review Letters} \textbf{121}, 110504 (2018).
+
+\bibitem{Sawaya2020}
+N.~P.~D. Sawaya, T. Menke, T.~H. Kyaw, S. Johri, A. Aspuru-Guzik, and G.~G. Guerreschi,
+``Resource-efficient digital quantum simulation of $d$-level systems for photonic, vibrational, and spin-$s$ Hamiltonians,''
+\emph{npj Quantum Information} \textbf{6}, 49 (2020).
+
+\bibitem{Li2023}
+W. Li, J. Ren, S. Huai, T. Cai, Z. Shuai, and S. Zhang,
+``Efficient quantum simulation of electron-phonon systems by variational basis state encoder,''
+\emph{Physical Review Research} \textbf{5}, 023046 (2023).
+
+\bibitem{Denner2023}
+M.~M. Denner, H. Yan, N. A. Sinitsyn, and others,
+``A hybrid quantum-classical method for electron-phonon systems,''
+\emph{Communications Physics} \textbf{6}, 317 (2023).
+
+\end{thebibliography}
+
+\end{document}

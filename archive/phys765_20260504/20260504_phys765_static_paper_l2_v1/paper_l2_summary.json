@@ -1,0 +1,186 @@
+{
+  "best_by_case_delta_e": {
+    "hh_L2_strong_canonical": {
+      "case_id": "hh_L2_strong_canonical",
+      "delta_E_abs": 7.009977727950867e-05,
+      "energy": 0.1587380039030052,
+      "method_id": "hh_adapt_full_meta_legacy",
+      "paper_include": true,
+      "paper_role": "candidate_ours",
+      "quality_status": "ok_paper_candidate",
+      "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+      "static_compiled_2q": 69,
+      "static_compiled_depth": 163
+    },
+    "hh_L2_weak_diagnostic": {
+      "case_id": "hh_L2_weak_diagnostic",
+      "delta_E_abs": 2.7761269921877663e-05,
+      "energy": -0.7763497696348326,
+      "method_id": "hh_adapt_full_meta_legacy",
+      "paper_include": true,
+      "paper_role": "candidate_ours",
+      "quality_status": "ok_paper_candidate",
+      "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+      "static_compiled_2q": 69,
+      "static_compiled_depth": 163
+    }
+  },
+  "paper_include_count": 9,
+  "quality_status_counts": {
+    "ok_large_error": 17,
+    "ok_optimizer_suspect": 7,
+    "ok_paper_candidate": 9,
+    "ok_reference_not_improved": 5
+  },
+  "role_counts": {
+    "candidate_ours": 8,
+    "diagnostic_large_error": 17,
+    "diagnostic_optimizer_suspect": 7,
+    "excluded_reference_not_improved": 5,
+    "fair_competitor": 1
+  },
+  "row_count": 38,
+  "schema": "hh_static_paper_l2_benchmark_v1",
+  "static_compile_status_counts": {
+    "ok": 33,
+    "skipped_by_policy": 5
+  },
+  "static_pareto_by_case": {
+    "hh_L2_strong_canonical": [
+      {
+        "case_id": "hh_L2_strong_canonical",
+        "delta_E_abs": 7.009977727950867e-05,
+        "energy": 0.1587380039030052,
+        "method_id": "hh_adapt_full_meta_legacy",
+        "paper_include": true,
+        "paper_role": "candidate_ours",
+        "quality_status": "ok_paper_candidate",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 69,
+        "static_compiled_depth": 163
+      },
+      {
+        "case_id": "hh_L2_strong_canonical",
+        "delta_E_abs": 0.003095733845392884,
+        "energy": 0.16176363797111856,
+        "method_id": "hh_hva_termwise_vqe",
+        "paper_include": false,
+        "paper_role": "diagnostic_optimizer_suspect",
+        "quality_status": "ok_optimizer_suspect",
+        "static_compile_scope": "static_termwise_hva_skeleton_with_reference",
+        "static_compiled_2q": 50,
+        "static_compiled_depth": 100
+      },
+      {
+        "case_id": "hh_L2_strong_canonical",
+        "delta_E_abs": 0.19320304044472253,
+        "energy": 0.3518709445704482,
+        "method_id": "hh_hea_qiskit_vqe",
+        "paper_include": false,
+        "paper_role": "diagnostic_optimizer_suspect",
+        "quality_status": "ok_optimizer_suspect",
+        "static_compile_scope": "static_qiskit_hea_with_reference",
+        "static_compiled_2q": 10,
+        "static_compiled_depth": 31
+      },
+      {
+        "case_id": "hh_L2_strong_canonical",
+        "delta_E_abs": 4.427118533501177,
+        "energy": 4.585786437626902,
+        "method_id": "hh_adapt_qeb_sq_lf_std_legacy",
+        "paper_include": false,
+        "paper_role": "diagnostic_large_error",
+        "quality_status": "ok_large_error",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 8,
+        "static_compiled_depth": 13
+      }
+    ],
+    "hh_L2_weak_diagnostic": [
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 2.7761269921877663e-05,
+        "energy": -0.7763497696348326,
+        "method_id": "hh_adapt_full_meta_legacy",
+        "paper_include": true,
+        "paper_role": "candidate_ours",
+        "quality_status": "ok_paper_candidate",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 69,
+        "static_compiled_depth": 163
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 0.0023505675623887168,
+        "energy": -0.7740269633423658,
+        "method_id": "hh_hva_termwise_vqe",
+        "paper_include": false,
+        "paper_role": "diagnostic_optimizer_suspect",
+        "quality_status": "ok_optimizer_suspect",
+        "static_compile_scope": "static_termwise_hva_skeleton_with_reference",
+        "static_compiled_2q": 50,
+        "static_compiled_depth": 100
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 0.013102935862598253,
+        "energy": -0.7632745950421562,
+        "method_id": "hh_adapt_hva_legacy",
+        "paper_include": true,
+        "paper_role": "candidate_ours",
+        "quality_status": "ok_paper_candidate",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 32,
+        "static_compiled_depth": 69
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 0.013102935862598253,
+        "energy": -0.7632745950421562,
+        "method_id": "hh_adapt_paop_lf_std_legacy",
+        "paper_include": true,
+        "paper_role": "candidate_ours",
+        "quality_status": "ok_paper_candidate",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 32,
+        "static_compiled_depth": 69
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 0.013102935862598253,
+        "energy": -0.7632745950421562,
+        "method_id": "hh_adapt_pareto_lean_legacy",
+        "paper_include": true,
+        "paper_role": "candidate_ours",
+        "quality_status": "ok_paper_candidate",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 32,
+        "static_compiled_depth": 69
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 0.6380243933134807,
+        "energy": -0.13835313759127377,
+        "method_id": "hh_hea_qiskit_vqe",
+        "paper_include": false,
+        "paper_role": "diagnostic_optimizer_suspect",
+        "quality_status": "ok_optimizer_suspect",
+        "static_compile_scope": "static_qiskit_hea_with_reference",
+        "static_compiled_2q": 10,
+        "static_compiled_depth": 30
+      },
+      {
+        "case_id": "hh_L2_weak_diagnostic",
+        "delta_E_abs": 2.199344569477853,
+        "energy": 1.4229670385730984,
+        "method_id": "hh_adapt_qeb_sq_lf_std_legacy",
+        "paper_include": false,
+        "paper_role": "diagnostic_large_error",
+        "quality_status": "ok_large_error",
+        "static_compile_scope": "static_selected_adapt_skeleton_with_reference",
+        "static_compiled_2q": 8,
+        "static_compiled_depth": 13
+      }
+    ]
+  }
+}

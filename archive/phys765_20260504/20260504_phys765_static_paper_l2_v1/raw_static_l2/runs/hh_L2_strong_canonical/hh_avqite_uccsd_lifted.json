@@ -1,0 +1,463 @@
+{
+  "abs_delta_e": 0.9879993066367883,
+  "ansatz_kind": "compiled_operator",
+  "ansatz_name": "hh_uccsd_lifted",
+  "avqite_backtrack_factor": 0.5,
+  "avqite_derivative_eps": 0.0001,
+  "avqite_energy_tol": 1e-08,
+  "avqite_max_backtracks": 6,
+  "avqite_max_steps": 80,
+  "avqite_regularization": 1e-08,
+  "avqite_residual_tol": 1e-06,
+  "avqite_step_size_initial": 0.1,
+  "avqite_steps_completed": 9,
+  "avqite_stop_reason": "step_underflow",
+  "benchmark_algorithm": {
+    "adapt_pool": "",
+    "adapt_reopt_policy": "full",
+    "algorithm_id": "hh_avqite_uccsd_lifted",
+    "allow_repeats": true,
+    "ansatz_kind": "",
+    "ansatz_name": "hh_uccsd_lifted",
+    "avqite_energy_tol": 1e-08,
+    "avqite_max_steps": 80,
+    "avqite_residual_tol": 1e-06,
+    "avqite_step_size": 0.1,
+    "basis_amp_cutoff": null,
+    "basis_probe_angle": null,
+    "continuation_mode": "legacy",
+    "display_name": "HH-AVQITE-UCCSD-Lifted",
+    "eps_energy": 1e-08,
+    "eps_grad": 1e-05,
+    "finite_angle": 0.1,
+    "finite_angle_fallback": true,
+    "finite_angle_min_improvement": 1e-12,
+    "max_depth": 0,
+    "maxiter": 0,
+    "operator_source": "hh_uccsd_lifted",
+    "optimizer": "COBYLA",
+    "paop_normalization": "none",
+    "paop_prune_eps": 0.0,
+    "paop_r": 1,
+    "paop_split_paulis": false,
+    "parameterization_mode": "logical_shared",
+    "phase2_batch_selection_mode": "",
+    "phase3_backend_cost_mode": "proxy",
+    "qsci_max_basis_states": null,
+    "runner_kind": "compiled_operator_avqite",
+    "seed": 7,
+    "sqd_max_basis_states": null,
+    "sqd_seed": null,
+    "sqd_shots_per_probe": null,
+    "vqe_maxiter": null,
+    "vqe_reps": null,
+    "vqe_restarts": null
+  },
+  "benchmark_case": {
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "case_id": "hh_L2_strong_canonical",
+    "dv": 0.0,
+    "g_ep": 0.5,
+    "include_zero_point": true,
+    "n_ph_max": 1,
+    "num_sites": 2,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "t": 1.0,
+    "u": 4.0
+  },
+  "benchmark_reference_energy_audit": {
+    "reference_abs_delta_e": 4.841332095874274,
+    "reference_energy_status": "ok",
+    "reference_state_energy": 5.0,
+    "reference_state_source": "resolved_problem.reference_state"
+  },
+  "benchmark_schema": "hh_static_ground_state_benchmark_v1",
+  "benchmark_status": "ok",
+  "converged": false,
+  "delta_E_abs": 0.9879993066367883,
+  "delta_e": 0.9879993066367883,
+  "display_name": "HH-AVQITE-UCCSD-Lifted",
+  "energy": 1.146667210762514,
+  "energy_evaluations_total": 34,
+  "exact_energy": 0.15866790412572568,
+  "exact_gs_energy": 0.15866790412572568,
+  "finished_utc": "2026-05-05T02:28:46.649403+00:00",
+  "hamiltonian_id": "hh_L2_strong_canonical",
+  "history": [
+    {
+      "energy": 5.0,
+      "event": "initial",
+      "imaginary_time": 0.0,
+      "step": 0
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": true,
+          "backtrack_index": 0,
+          "energy": 4.523722336977713,
+          "step_size": 0.1
+        }
+      ],
+      "backtracks": 0,
+      "direction_norm": 1.414213550587982,
+      "energy": 4.523722336977713,
+      "energy_before": 5.0,
+      "energy_delta": -0.47627766302228736,
+      "event": "accepted_step",
+      "imaginary_time": 0.1,
+      "residual_max": 0.9999999983333334,
+      "step": 1,
+      "step_size": 0.1
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": true,
+          "backtrack_index": 0,
+          "energy": 3.671898909440622,
+          "step_size": 0.1
+        }
+      ],
+      "backtracks": 0,
+      "direction_norm": 1.949723445199126,
+      "energy": 3.671898909440622,
+      "energy_before": 4.523722336977713,
+      "energy_delta": -0.8518234275370906,
+      "event": "accepted_step",
+      "imaginary_time": 0.2,
+      "residual_max": 1.369484915128566,
+      "step": 2,
+      "step_size": 0.1
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": true,
+          "backtrack_index": 0,
+          "energy": 2.4700169324696915,
+          "step_size": 0.1
+        }
+      ],
+      "backtracks": 0,
+      "direction_norm": 2.59389082274493,
+      "energy": 2.4700169324696915,
+      "energy_before": 3.671898909440622,
+      "energy_delta": -1.2018819769709306,
+      "event": "accepted_step",
+      "imaginary_time": 0.30000000000000004,
+      "residual_max": 1.6983513043950391,
+      "step": 3,
+      "step_size": 0.1
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": true,
+          "backtrack_index": 0,
+          "energy": 1.393079424298787,
+          "step_size": 0.1
+        }
+      ],
+      "backtracks": 0,
+      "direction_norm": 3.5449403174335252,
+      "energy": 1.393079424298787,
+      "energy_before": 2.4700169324696915,
+      "energy_delta": -1.0769375081709045,
+      "event": "accepted_step",
+      "imaginary_time": 0.4,
+      "residual_max": 1.6694815937646172,
+      "step": 4,
+      "step_size": 0.1
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 1.6600667341123843,
+          "step_size": 0.1
+        },
+        {
+          "accepted": true,
+          "backtrack_index": 1,
+          "energy": 1.1896190960243982,
+          "step_size": 0.05
+        }
+      ],
+      "backtracks": 1,
+      "direction_norm": 8.316350766506398,
+      "energy": 1.1896190960243982,
+      "energy_before": 1.393079424298787,
+      "energy_delta": -0.20346032827438876,
+      "event": "accepted_step",
+      "imaginary_time": 0.45,
+      "residual_max": 0.9893988292937083,
+      "step": 5,
+      "step_size": 0.05
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 5.330821097201878,
+          "step_size": 0.1
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 1,
+          "energy": 2.392365940563729,
+          "step_size": 0.05
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 2,
+          "energy": 1.3911893641184405,
+          "step_size": 0.025
+        },
+        {
+          "accepted": true,
+          "backtrack_index": 3,
+          "energy": 1.1887300964495569,
+          "step_size": 0.0125
+        }
+      ],
+      "backtracks": 3,
+      "direction_norm": 23.004356643932937,
+      "energy": 1.1887300964495569,
+      "energy_before": 1.1896190960243982,
+      "energy_delta": -0.0008889995748413426,
+      "event": "accepted_step",
+      "imaginary_time": 0.4625,
+      "residual_max": 0.3979899512362946,
+      "step": 6,
+      "step_size": 0.0125
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 5.005342845483266,
+          "step_size": 0.1
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 1,
+          "energy": 2.2977287697286597,
+          "step_size": 0.05
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 2,
+          "energy": 1.3340894907186536,
+          "step_size": 0.025
+        },
+        {
+          "accepted": true,
+          "backtrack_index": 3,
+          "energy": 1.166249587078127,
+          "step_size": 0.0125
+        }
+      ],
+      "backtracks": 3,
+      "direction_norm": 19.849382197181292,
+      "energy": 1.166249587078127,
+      "energy_before": 1.1887300964495569,
+      "energy_delta": -0.022480509371429758,
+      "event": "accepted_step",
+      "imaginary_time": 0.47500000000000003,
+      "residual_max": 0.625158913514667,
+      "step": 7,
+      "step_size": 0.0125
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 5.087448236882937,
+          "step_size": 0.1
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 1,
+          "energy": 3.0750877742481064,
+          "step_size": 0.05
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 2,
+          "energy": 1.5489219788656112,
+          "step_size": 0.025
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 3,
+          "energy": 1.2121559471935206,
+          "step_size": 0.0125
+        },
+        {
+          "accepted": true,
+          "backtrack_index": 4,
+          "energy": 1.1515084198144283,
+          "step_size": 0.00625
+        }
+      ],
+      "backtracks": 4,
+      "direction_norm": 27.587243106060367,
+      "energy": 1.1515084198144283,
+      "energy_before": 1.166249587078127,
+      "energy_delta": -0.014741167263698784,
+      "event": "accepted_step",
+      "imaginary_time": 0.48125,
+      "residual_max": 0.379435969679337,
+      "step": 8,
+      "step_size": 0.00625
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 5.088953235390361,
+          "step_size": 0.1
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 1,
+          "energy": 4.408974548571043,
+          "step_size": 0.05
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 2,
+          "energy": 3.336398872685878,
+          "step_size": 0.025
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 3,
+          "energy": 1.644949208936706,
+          "step_size": 0.0125
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 4,
+          "energy": 1.240753084074976,
+          "step_size": 0.00625
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 5,
+          "energy": 1.1594456967201523,
+          "step_size": 0.003125
+        },
+        {
+          "accepted": true,
+          "backtrack_index": 6,
+          "energy": 1.146667210762514,
+          "step_size": 0.0015625
+        }
+      ],
+      "backtracks": 6,
+      "direction_norm": 51.00418103437905,
+      "energy": 1.146667210762514,
+      "energy_before": 1.1515084198144283,
+      "energy_delta": -0.004841209051914319,
+      "event": "accepted_step",
+      "imaginary_time": 0.48281250000000003,
+      "residual_max": 0.4701074696123123,
+      "step": 9,
+      "step_size": 0.0015625
+    },
+    {
+      "backtrack_trials": [
+        {
+          "accepted": false,
+          "backtrack_index": 0,
+          "energy": 5.07362094827039,
+          "step_size": 0.1
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 1,
+          "energy": 2.8615967754962868,
+          "step_size": 0.05
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 2,
+          "energy": 2.7301547410624436,
+          "step_size": 0.025
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 3,
+          "energy": 4.251457196950453,
+          "step_size": 0.0125
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 4,
+          "energy": 1.9616848433525216,
+          "step_size": 0.00625
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 5,
+          "energy": 1.3402153692243808,
+          "step_size": 0.003125
+        },
+        {
+          "accepted": false,
+          "backtrack_index": 6,
+          "energy": 1.1894841170736365,
+          "step_size": 0.0015625
+        }
+      ],
+      "direction_norm": 133.20340525535653,
+      "energy": 1.146667210762514,
+      "event": "rejected_step",
+      "residual_max": 0.37504200249874886,
+      "step": 10,
+      "stop_reason": "step_underflow"
+    }
+  ],
+  "imaginary_time_total": 0.48281250000000003,
+  "logical_parameter_count": 3,
+  "method_kind": "avqite",
+  "name": "HH-AVQITE-UCCSD-Lifted",
+  "nfev": 94,
+  "nfev_total": 94,
+  "nit": 9,
+  "num_parameters": 3,
+  "num_params": 3,
+  "optimizer": "AVQITE",
+  "optimizer_message": "step_underflow",
+  "optimizer_success": false,
+  "parameterization_mode": "logical_shared",
+  "runtime_parameter_count": 12,
+  "runtime_s": 0.006211457992321812,
+  "selected_operator_count": 3,
+  "selected_operator_labels": [
+    "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+    "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+    "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)"
+  ],
+  "started_utc": "2026-05-05T02:28:46.643191+00:00",
+  "state_preparations_total": 94,
+  "success": true,
+  "theta": [
+    0.7946366705603938,
+    0.794636670560085,
+    -0.40291596919067546
+  ],
+  "vqe_maxiter": null,
+  "vqe_maxiter_used": null,
+  "vqe_reps": null,
+  "vqe_restarts": null
+}

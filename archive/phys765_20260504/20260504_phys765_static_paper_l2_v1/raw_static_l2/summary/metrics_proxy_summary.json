@@ -1,0 +1,109 @@
+{
+  "schema": "hh_bench_metrics_v5",
+  "generated_utc": "2026-05-05T02:29:19.599497+00:00",
+  "row_count": 38,
+  "ok_row_count": 38,
+  "status_counts": {
+    "ok": 38
+  },
+  "runtime_s": {
+    "sum": 54.4140229979821,
+    "median": 0.3368676875033998,
+    "max": 8.165181959004258
+  },
+  "depth_proxy": {
+    "min": 0,
+    "median": 8.0,
+    "max": 36
+  },
+  "shots_total": {
+    "sum": 1024,
+    "median": 512.0,
+    "max": 512
+  },
+  "delta_E_abs": {
+    "best": 2.7761269921877663e-05,
+    "median": 0.33481272294442943
+  },
+  "method_best_delta": {
+    "hh_adapt_full_hamiltonian_legacy": 2.2763775309047545,
+    "hh_adapt_hva_legacy": 0.013102935862598253,
+    "hh_adapt_paop_lf_std_legacy": 0.013102935862598253,
+    "hh_adapt_qeb_sq_lf_std_legacy": 2.199344569477853,
+    "hh_adapt_tetris_paop_lf_std_phase3": 0.013102935862597143,
+    "hh_adapt_overlap_paop_lf_std_phase3": 0.013102935862597365,
+    "hh_adapt_ceo_paop_lf_std_phase3": 0.013102935862597143,
+    "hh_adapt_uccsd_otimes_paop_lf_std_legacy": 0.6052641183757073,
+    "hh_adapt_full_meta_legacy": 2.7761269921877663e-05,
+    "hh_adapt_pareto_lean_legacy": 0.013102935862598253,
+    "hh_hva_termwise_vqe": 0.0023505675623887168,
+    "hh_hva_layerwise_vqe": 0.874458468200112,
+    "hh_uccsd_lifted_vqe": 0.026377542317224112,
+    "hh_avqite_uccsd_lifted": 0.03478801202554627,
+    "hh_qsci_sq_lf_std": 2.2019212662509515,
+    "hh_sqd_sq_lf_std": 2.2019212662509515,
+    "hh_puccd_lifted_vqe": 2.2763775309047536,
+    "hh_lang_firsov_sq_lf_vqe": 2.1993445714490685,
+    "hh_hea_qiskit_vqe": 0.19320304044472253
+  },
+  "operator_family_counts": {
+    "adapt_vqe": 8,
+    "adapt_vqe+hva": 2,
+    "adapt_vqe+paop": 8,
+    "adapt_vqe+uccsd+paop": 2,
+    "conventional_vqe+hva": 4,
+    "conventional_vqe+uccsd": 2,
+    "avqite+uccsd": 2,
+    "qsci": 2,
+    "sqd": 2,
+    "conventional_vqe": 6
+  },
+  "pool_family_counts": {
+    "full_hamiltonian": 2,
+    "hva": 6,
+    "paop_lf_std": 2,
+    "sq_lf_std": 8,
+    "phase3_v1": 6,
+    "uccsd_otimes_paop_lf_std": 2,
+    "full_meta": 2,
+    "pareto_lean": 2,
+    "uccsd": 4
+  },
+  "benchmark_schema": "hh_static_ground_state_benchmark_v1",
+  "case_ids": [
+    "hh_L2_strong_canonical",
+    "hh_L2_weak_diagnostic"
+  ],
+  "algorithm_ids": [
+    "hh_adapt_full_hamiltonian_legacy",
+    "hh_adapt_hva_legacy",
+    "hh_adapt_paop_lf_std_legacy",
+    "hh_adapt_qeb_sq_lf_std_legacy",
+    "hh_adapt_tetris_paop_lf_std_phase3",
+    "hh_adapt_overlap_paop_lf_std_phase3",
+    "hh_adapt_ceo_paop_lf_std_phase3",
+    "hh_adapt_uccsd_otimes_paop_lf_std_legacy",
+    "hh_adapt_full_meta_legacy",
+    "hh_adapt_pareto_lean_legacy",
+    "hh_hva_termwise_vqe",
+    "hh_hva_layerwise_vqe",
+    "hh_uccsd_lifted_vqe",
+    "hh_avqite_uccsd_lifted",
+    "hh_qsci_sq_lf_std",
+    "hh_sqd_sq_lf_std",
+    "hh_puccd_lifted_vqe",
+    "hh_lang_firsov_sq_lf_vqe",
+    "hh_hea_qiskit_vqe"
+  ],
+  "audit_fields": [
+    "reference_state_energy",
+    "reference_abs_delta_e",
+    "improvement_over_reference_abs_delta_e",
+    "beats_reference_state",
+    "benchmark_audit_flags",
+    "quality_status",
+    "algorithm_spec_optimizer",
+    "configured_optimizer",
+    "actual_optimizer"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "case_ids": [
+    "hh_L2_strong_canonical",
+    "hh_L2_weak_diagnostic"
+  ],
+  "compile_config": {
+    "backend_name": "FakeMarrakesh",
+    "optimization_level": 2,
+    "preferred_fake_backends": [
+      "FakeMarrakesh"
+    ],
+    "seed_transpiler": 7
+  },
+  "compile_policy": "paper",
+  "contract": {
+    "main_workflow_impact": "read-only wrapper over benchmark artifacts; no production route defaults are changed",
+    "phase3_canonical_status": "not frozen; current ADAPT rows are candidates/diagnostics, not a promoted final Phase 3 claim",
+    "qiskit_boundary": "Qiskit is used only for benchmark/reference circuit compilation, not production/core VQE paths",
+    "scope": "HH static/no-drive L=2 paper-facing benchmark table"
+  },
+  "generated_utc": "2026-05-05T02:31:46.572950+00:00",
+  "output_dir": "artifacts/agent_runs/20260504_phys765_static_paper_l2_v1",
+  "row_source": "input_rows",
+  "schema": "hh_static_paper_l2_benchmark_v1",
+  "source_rows_path": "artifacts/agent_runs/20260504_phys765_static_paper_l2_v1/raw_static_l2/hh_static_benchmark_rows.json"
+}

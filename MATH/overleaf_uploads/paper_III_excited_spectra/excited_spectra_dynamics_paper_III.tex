@@ -1,0 +1,1636 @@
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\ifmmode\left[#1\right]\else\textsf{[#1]}\fi}}
+\newcommand{\tentative}[1]{\textcolor{red!70!black}{#1}}
+\newcommand{\structlabel}[1]{\noindent\mbox{\tentative{#1.}}~}
+
+\newcommand{\Oset}{\mathcal{O}}
+\newcommand{\Gset}{\mathcal{G}}
+\newcommand{\Rset}{\mathcal{R}}
+\newcommand{\Sset}{\mathcal{S}}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Bcal}{\mathcal{B}}
+\newcommand{\Ocal}{\mathcal{O}}
+\newcommand{\Ecal}{\mathcal{E}}
+\newcommand{\Acal}{\mathcal{A}}
+\newcommand{\Ccal}{\mathcal{C}}
+\newcommand{\Qcal}{\mathcal{Q}}
+\newcommand{\Vcal}{\mathcal{V}}
+\newcommand{\Mcal}{\mathcal{M}}
+\newcommand{\Wcal}{\mathcal{W}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Pcal}{\mathcal{P}}
+\newcommand{\Tcal}{\mathcal{T}}
+\newcommand{\Ucal}{\mathcal{U}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\newcommand{\TR}{\mathrm{TR}}
+\newcommand{\ex}{\mathrm{ex}}
+\newcommand{\ctrl}{\mathrm{ctrl}}
+\newcommand{\stat}{\mathrm{stat}}
+\newcommand{\dyn}{\mathrm{dyn}}
+\newcommand{\drv}{\mathrm{drv}}
+\newcommand{\obs}{\mathrm{obs}}
+\newcommand{\stay}{\mathrm{stay}}
+\newcommand{\app}{\mathrm{append}}
+\newcommand{\prune}{\mathrm{prune}}
+\newcommand{\qse}{\mathrm{QSE}}
+\newcommand{\eqse}{\mathrm{eQSE}}
+\newcommand{\ed}{\mathrm{ED}}
+\newcommand{\lf}{\mathrm{LF}}
+\newcommand{\fb}{\mathrm{fb}}
+\newcommand{\fs}{\mathrm{f}}
+\newcommand{\bs}{\mathrm{b}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\Top}{\operatorname{Top}}
+\newcommand{\argminp}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\argmaxp}{\mathop{\mathrm{arg\,max}}}
+\newcommand{\proj}{\mathrm{proj}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\hh}{\mathrm{HH}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+\newcommand{\twq}{\mathrm{2Q}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\expval}[1]{\langle #1\rangle}
+\newcommand{\inlinetablecaption}[2]{%
+  \refstepcounter{table}\label{#1}%
+  \noindent\textsc{Table~\thetable.} #2\par\vspace{0.6ex}%
+}
+
+\begin{document}
+
+\title{Geometry-Aware Quantum Subspace Expansion and Excited-State McLachlan Dynamics for Mixed Fermion--Boson Hamiltonians}
+
+\author{Jake Strobel}
+\author{\placeholder{coauthors}}
+\affiliation{University of Wisconsin--Madison}
+
+\date{\today}
+
+\begin{abstract}
+Strong electron--phonon coupling combines electronic correlation with truncated bosonic lattice motion, producing mixed fermion--boson Hilbert spaces whose low-energy response is governed not only by the ground state, but by operator-accessible excited sectors, transition strengths, and drive-induced manifold escape.  We develop a geometry- and cost-aware Quantum Subspace Expansion (QSE) acquisition rule on top of a prepared compact adaptive ansatz, together with frozen-subspace and live McLachlan routes for excited-state real-time propagation.  The static excited-state stage ranks candidate excitation records by probe-transition gain, nonorthogonal-manifold novelty, residual capture, Schur-like spectral gain, projected-metric conditioning, and measurement/compiled-circuit cost, while batching compatible excitation operators, pruning redundant basis directions, and tracking roots across coupling and drive sweeps.  The resultant nonorthogonal excitation manifold is diagonalized through a regularized generalized eigenproblem, yielding approximate excitation energies, eigenvectors, and transition matrix elements for fermionic, bosonic, mixed fermion--boson, Hamiltonian-derived, and Lang--Firsov/polaronic operator alphabets.  The dynamic stage either evolves QSE coefficients inside the frozen projected manifold or compresses selected QSE roots into live variational circuits whose McLachlan tangent spaces can be checkpoint-expanded or pruned according to residual miss and Schur-complement tangent gain.  The benchmark protocol covers generalized electron--phonon, bosonic, and molecular/vibronic instances, including Hubbard--Holstein, and is designed to compare excitation energies, root fidelities, spectral functions, transition strengths, time-domain observables, overlap conditioning, two-qubit cost, and shot-cost proxies against fixed-alphabet QSE, qEOM/q-sc-EOM, SSVQE/e-QEB-style excited-state baselines, fixed-ansatz McLachlan dynamics, adaptive variational dynamics, and product-formula trajectories.  The benchmark suite is structured as a matched accuracy--resource comparison that tests when selected QSE manifolds recover the relevant spectral window with smaller matrix-measurement burden, and when driven roots require live excited-state McLachlan rather than frozen-subspace propagation.  As such, the useful quantum-processor simulation target is shifted from ground-state preparation alone toward compact, geometry-selected fermion--boson spectra and driven excited-state response.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+\structlabel{Problem, Hamiltonian, importance of solving it}
+Hamiltonians consisting of fermionic, bosonic, and fermion--boson-correlation sectors are used to model lattice materials, molecular vibronic response, polarons, local vibrational dressing, and electronically mediated bosonic motion \cite{Hubbard1963,Holstein1959,Macridin2018ElectronPhonon,Sawaya2020DLevel,Li2023VBSElectronPhonon,Backes2023HHDMFT,Denner2023HybridEP,Dutta2024BosonicChemistry,Peng2025BosonHamiltonians}.  Ground-state variational algorithms target compact state preparation and ground-seeded dynamics.  Here the target is the excitation manifold itself: excitation energies, transition strengths, spectral functions, and the behavior of selected excited states under external drives.
+
+The many-body Hamiltonians considered retain one physical form.  We write
+\begin{align}
+H(t)&=H_0+H_{\drv}(t),
+\qquad
+H_0=H_f+H_b+H_{fb},
+\nonumber\\
+H_f&=\sum_{pq}h_{pq}c_p^\dagger c_q
++\frac12\sum_{pqrs}V_{pqrs}c_p^\dagger c_q^\dagger c_s c_r,
+\nonumber\\
+H_b&=\sum_{\mu}\omega_\mu b_\mu^\dagger b_\mu+H_b^{\rm nl},
+\nonumber\\
+H_{fb}&=\sum_{\mu}X_\mu F_\mu[c^\dagger,c]
++\sum_{\mu}P_\mu G_\mu[c^\dagger,c],
+\nonumber\\
+H_{\drv}(t)&=\sum_{\eta\in\mathcal I_{\drv}}\lambda_\eta(t)O_\eta^{\drv}.
+\label{eq:general_fb_terms}
+\end{align}
+Here $c_p^\dagger,c_p$ and $b_\mu^\dagger,b_\mu$ are respectively fermionic and truncated bosonic operators, $X_\mu=b_\mu^\dagger+b_\mu$, and $P_\mu=\ii(b_\mu^\dagger-b_\mu)$.  The drive operators $O_\eta^{\drv}$ are second-quantized observables such as density probes, currents, dipoles, local displacements, or phonon momenta; only the scalar envelopes $\lambda_\eta(t)$ vary in time.  After fermion and boson encodings this same Hamiltonian is represented for measurement as a Pauli expansion,
+\begin{equation}
+H(t)=\sum_{\alpha\in\mathcal I}h_\alpha(t)\mathsf P_\alpha,
+\qquad
+h_\alpha(t)=h_\alpha^{(0)}
++\sum_{\eta\in\mathcal I_{\drv}}\lambda_\eta(t)h_{\alpha\eta}^{\drv}.
+\label{eq:pauli_hamiltonian_intro}
+\end{equation}
+
+Classically exact spectra scale exponentially in the combined electronic and truncated bosonic Hilbert-space size, so exact diagonalization is mainly a small-instance diagnostic reference \cite{WeisseFehske2008}.  Approximate classical methods can be powerful in favorable regimes, including tensor-network methods in low-entanglement settings, while sign problems and mixed cutoff structure remain important limitations in other regimes \cite{TroyerWiese2005,Schollwoeck2011}.  Consequently, a useful NISQ-era excited-state method must not only return a few eigenvalues; it must identify which compact operator-generated manifold represents the spectral window of interest and whether that manifold remains closed under the applied drive.
+
+\structlabel{Current solution strategies}
+The current excited-state quantum-algorithm routes include variational deflation, state-averaged or subspace variational eigensolvers, equation-of-motion methods, quantum subspace-expansion methods, excited-state ADAPT variants, and projected variational dynamics \cite{Higgott2019VQD,Parrish2019MCVQE,Jones2019Spectra,Nakanishi2019SSVQE,Ollitrault2020qEOM,AsthanaKumar2023QScEOM,Yordanov2021QEB}.  Quantum Subspace Expansion starts from an optimized state, applies an operator alphabet to generate a small nonorthogonal state family, measures the overlap and Hamiltonian matrices in that family, and solves a generalized eigenvalue problem \cite{McClean2017QSE,Colless2018QSE}.  Virtual, generalized, Krylov, and broader quantum-subspace methods show that this matrix-projection viewpoint has become a general spectral tool rather than a single chemistry subroutine \cite{Urbanek2020VQSE,Yoshioka2022GQSE,CortesGray2022QKSD,Motta2024SubspaceReview}.  With $N_{\ex}$ excitation records and $|\Hcal|$ Hamiltonian measurement groups, the matrix-measurement burden scales nominally as $\mathcal O(N_{\ex}^2|\Hcal|)$, followed by a classical $\mathcal O(N_{\ex}^3)$ diagonalization.  Measurement optimization and adaptive-measurement studies show that this matrix construction can dominate excited-state QSE practicality, while shadow-based subspace expansion offers one route to reusing informationally rich measurement data \cite{ChoiIzmaylov2023MeasurementQSE,Nakamura2024AdaptiveMeasurementQSE,Boyd2025ShadowSubspace,Fischer2025ShadowQSE}.  This is attractive when $N_{\ex}$ is much smaller than the full Hilbert-space dimension and the retained subspace remains well conditioned.
+
+For dynamics, the projected-state analogue is frozen-subspace propagation: keep the QSE basis fixed and evolve only the coefficient vector under the projected Hamiltonian.  A more flexible but more expensive route prepares or refits an excited root into a live variational ansatz, then propagates its parameters using McLachlan's variational principle and the broader variational-simulation machinery \cite{McLachlan1964,Yuan2019VQS,Barison2021PVQD,Yao2021AVQDS,Linteau2024APVQD,Zhang2025CompressedAVQD}.  This separates fixed-basis excited-state propagation from checkpoint-controlled live tangent-manifold propagation.
+
+\structlabel{Problem with current solutions}
+Standard QSE can be under-specified by the operator alphabet.  Fermionic-only excitations may recover electronic particle--hole structure but miss bosonic dressing; bosonic-only excitations may recover vibrational sidebands but miss electronic reorganization; mixed density--phonon or bond--phonon operators may be essential in strong-coupling regimes; Hamiltonian-derived and Lang--Firsov-like operators may capture spectral directions that low-rank bare excitations miss.  Excitation rank alone is therefore a poor predictor of difficulty.  Prior QSE and response-function work already shows that physically chosen nonorthogonal excitation bases can target Green functions, transition spectra, and dynamical response observables \cite{Jamet2022GreenQSE,Dhawan2024ImagTimeGreen,Gauthier2024OccupationQSE,Kokcu2024LinearResponse,Umeano2025KitaevQSE}.  The decisive issue here is whether the chosen nonorthogonal manifold contains the Hamiltonian-closed directions required by the spectral window and by the driven evolution.
+
+Furthermore, the QSE overlap matrix is not only a duplicate detector.  It is the metric tensor of the nonorthogonal excitation manifold.  Quantum-subspace diagonalization theory and finite-shot analyses show that small overlap eigenvalues can amplify statistical error, destabilize generalized eigenvectors, and force support truncation or other regularization choices \cite{Epperly2022QSD,Lee2024SamplingQKSD,Getelina2024HardwareNoiseQSE,OLeary2025PartitionedQSE,Kwao2026GEPQSE}.  In excited-state applications, the same instability appears as root-flipping, inflated transition amplitudes, missing roots after thresholding, and noisy dynamics.  A large alphabet can therefore be less useful than a smaller geometry-selected one.  In dynamics, a fixed QSE manifold inherits the same failure mode as any fixed-ansatz McLachlan propagation: the drive can push the state outside the represented subspace.
+
+\structlabel{Solution strategy}
+As such, we define a geometry- and cost-aware excitation-record acquisition rule for QSE.  An optimized ground-state ADAPT ansatz supplies the seed state, with ADAPT and recent resource- or geometry-aware descendants providing the adaptive-ansatz lineage rather than the novelty claim of this paper \cite{Grimsley2019ADAPT,Tang2021QubitADAPT,Anastasiou2024TETRIS,Ramoa2025CEO,Sohail2026GeoADAPT}.  Candidate excitation records are not admitted merely because they are low excitation rank or conventional; they are ranked by probe-transition gain, Fubini--Study scale, metric novelty, residual capture, Schur-like spectral gain, overlap conditioning, and hardware/measurement cost.  The cited QSE literature motivates the ingredients---operator-generated response manifolds, regularized nonorthogonal metrics, and measurement-aware matrix construction---but the combined staged admission rule is introduced here.  The admitted records define a nonorthogonal excitation basis, whose overlap and Hamiltonian matrices are regularized and diagonalized to obtain approximate excited energies and transition matrix elements.
+
+We then send selected QSE roots into two dynamics routes.  The first route performs frozen-coefficient propagation inside the projected QSE manifold.  The second route compresses/refits selected QSE roots into live ansatz states and propagates them using a root-indexed regularized McLachlan decision policy, with checkpoint-local append, prune, stay, and integrator choices.  The main claim is therefore not simply ``we compute excited states.''  It is that fermion--boson excited-state simulation should be organized around spectral expressivity of operator alphabets, nonorthogonal geometry, matrix-measurement cost, and explicit diagnostics for when a frozen spectral manifold ceases to be dynamically closed.
+
+\section{Static excited-state QSE selection}
+\label{sec:static_qse_method}
+
+\subsection{Ground-state ansatz and excitation records}
+
+Let a ground-state ADAPT calculation return the optimized seed
+\begin{equation}
+\ket{\psi_0}
+=
+U_{\Oset^\star}(\theta^\star)\ket{\Phi_0},
+\qquad
+E_0=\bra{\psi_0}H_0\ket{\psi_0}.
+\label{eq:seed_state}
+\end{equation}
+The excited-state construction does not rebuild the ground-state optimizer.  It treats Eq.~(\ref{eq:seed_state}) as a prepared state primitive with fixed encoding, register layout, backend compilation, phonon cutoff, and measurement-allocation conventions.
+
+A candidate excitation record is
+\begin{equation}
+r=(m,\chi,\mathfrak s),
+\label{eq:qse_record}
+\end{equation}
+where $m$ labels the symbolic operator, $\chi$ labels its alphabet family, and $\mathfrak s$ labels the targeted symmetry sector.  The principal alphabet union is
+\begin{equation}
+\Ecal_{\rm full}
+=
+\Ecal_f\cup\Ecal_b\cup\Ecal_{fb}\cup\Ecal_{\lf}
+\cup\Ecal_H\cup\Ecal_{\tau}.
+\label{eq:alphabet_union}
+\end{equation}
+Representative operators are
+\begin{align}
+\Ecal_f:&\quad
+c_{a\sigma}^\dagger c_{i\sigma},\quad
+c_{a\sigma}^\dagger c_{b\sigma'}^\dagger c_{j\sigma'}c_{i\sigma},
+\nonumber\\
+\Ecal_b:&\quad
+X_\mu,\quad P_\mu,\quad b_\mu^\dagger b_\nu+b_\nu^\dagger b_\mu,\quad n_\mu(n_\mu-I),
+\nonumber\\
+\Ecal_{fb}:&\quad
+(n_i-\bar n)X_\mu,\quad (n_i-\bar n)P_\mu,\quad
+(c_i^\dagger c_j+c_j^\dagger c_i)X_\mu,
+\nonumber\\
+\Ecal_{\lf}:&\quad
+(n_i-\bar n)P_i,\quad
+(n_i-\bar n)\sum_{\mu\in\mathcal N(i)}\alpha_{i\mu}P_\mu,
+\nonumber\\
+\Ecal_H:&\quad
+P_\alpha,\quad [H_0,P_\alpha],\quad H_0P_\alpha,\quad (H_0-E_0)^kP_\alpha,
+\nonumber\\
+\Ecal_\tau:&\quad
+\partial_{\theta_j}U_{\Oset^\star}(\theta^\star)\ket{\Phi_0}
+\ \leftrightarrow\
+\widetilde A_j\ket{\psi_0}.
+\label{eq:alphabet_examples}
+\end{align}
+The alphabet may contain non-Hermitian excitation records, as in ordinary QSE.  When a Hamiltonian-derived Hermitian generator is required, anti-Hermitian commutators are converted as $[H_0,P_\alpha]\mapsto \ii[H_0,P_\alpha]$ for Hermitian $H_0$ and $P_\alpha$; products such as $H_0P_\alpha$ are treated as measured linear-combination records and are paired with adjoints when a Hermitian matrix element requires closure.
+Let $\Pi_{\mathfrak s}$ enforce the target symmetry sector and
+\begin{equation}
+Q_0=I-\ket{\psi_0}\bra{\psi_0}.
+\label{eq:q0}
+\end{equation}
+The excitation vector associated with record $r$ is
+\begin{equation}
+\ket{\phi_r}
+=
+\Pi_{\mathfrak s}Q_0\Omega_r\ket{\psi_0}.
+\label{eq:qse_basis_state}
+\end{equation}
+If the ground root is intentionally retained, $Q_0$ is replaced by $I$ and the identity operator is included in the basis.
+
+\subsection{Three-phase excitation-record ranking}
+
+Ground-state ADAPT ranks generator-position records before admission.  Here we rank excitation records before admitting them into the nonorthogonal QSE basis.  Because full matrix completion for all records is expensive, we use a tripartite ranking sequence: Phase 1 performs a cheap transition/probe screen, Phase 2 adds overlap-metric novelty and conditioning, and Phase 3 uses residual capture and Schur-like spectral gain after reduced projected diagonalization.  Throughout this acquisition section, $\ell$ denotes the discrete QSE-basis growth index; physical time is reserved for the dynamics variable $t$.
+
+\subsubsection{Phase I}
+
+Phase 1 scoring takes the form
+\begin{equation}
+S_1(r;\ell)=\frac{\Delta_{\qse,1}(r;\ell)}{1+K_1(r;\ell)}.
+\label{eq:qse_phase1_score}
+\end{equation}
+Here $K_1(r;\ell)$ is the cheap acquisition cost proxy, and $\Delta_{\qse,1}$ is a lower-confidence probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
+\begin{equation}
+\ket{\psi_0}\ \mapsto\ \ket{\psi_0}+\alpha\ket{\phi_r},
+\label{eq:qse_phase1_trial_displacement}
+\end{equation}
+used only to compare candidate records on a common state-space scale before full matrix completion.  Let $\rho_{\qse,1}(\ell)>0$ denote the Phase-I QSE trial radius, let $a=|\alpha|$ be the real trial amplitude, and define the raw metric norm $F_r=\braket{\phi_r}{\phi_r}$.  The one-record displacement is constrained by $a^2F_r\le \rho_{\qse,1}(\ell)^2$.  For probe observables $\Ocal_{\rm probe}$ and weights $w_O$, define the nonnegative lower-confidence probe visibility
+\begin{equation}
+g_r=
+\left[
+\left[
+\sum_{O\in\Ocal_{\rm probe}}w_O
+\left|
+\bra{\psi_0}O^\dagger\ket{\phi_r}
+\right|^2
+\right]^{1/2}
+-z_\alpha\widehat\sigma_r
+\right]_+ .
+\label{eq:qse_probe_gain}
+\end{equation}
+Here $z_\alpha$ is the chosen one-sided confidence multiplier, $\widehat\sigma_r$ is the estimated shot-noise standard deviation of the weighted probe visibility, and $[x]_+=\max(x,0)$.  The closed-form trial amplitude and Phase-I gain are
+\begin{equation}
+\begin{aligned}
+a_r
+&=
+\begin{cases}
+\displaystyle
+\min\!\left\{
+\frac{\rho_{\qse,1}(\ell)}{\sqrt{F_r+\eps_F}},
+\frac{g_r}{\lambda_F(F_r+\eps_F)}
+\right\},&\lambda_F>0,\\[2ex]
+\displaystyle
+\frac{\rho_{\qse,1}(\ell)}{\sqrt{F_r+\eps_F}},&\lambda_F=0,
+\end{cases}
+\\
+\Delta_{\qse,1}(r;\ell)
+&=
+g_ra_r-\frac{\lambda_F}{2}(F_r+\eps_F)a_r^2 .
+\end{aligned}
+\label{eq:qse_phase1_gain}
+\end{equation}
+The meaning is parallel to trust-region energy gain in variational ADAPT: records that give strong observable-accessible displacement per unit state-space norm are preferred over records whose large coefficient scale merely reflects normalization artifacts, with the state-space metric language following the Fubini--Study geometry of quantum states \cite{ProvostVallee1980}.
+
+The cost proxy includes incremental overlap/Hamiltonian matrix elements, new Pauli groups, conditioning risk, and optional compiled preparation cost for controlled-overlap or Hadamard-test implementations; Pauli grouping and measurement-reuse considerations enter this proxy as resource estimates rather than as spectral evidence \cite{Verteletskyi2020MeasurementGrouping}:
+\begin{equation}
+\begin{aligned}
+K_1(r;\ell)
+&=
+w_S\widehat C_S(r)+w_M\widehat C_M(r)
++w_{\obs}\widehat C_{\obs}(r)\\
+&\quad
++w_\kappa\widehat C_\kappa(r)
++w_{\twq}\widehat C_{\twq}(r;\ell).
+\end{aligned}
+\label{eq:qse_cost_proxy}
+\end{equation}
+The weights are nonnegative controller weights, and the hatted quantities are dimensionless normalized resource or risk predictors.  The term $\widehat C_S(r)$ estimates the additional grouped measurements needed for overlap entries involving $\phi_r$; $\widehat C_M(r)$ estimates the additional grouped measurements needed for projected Hamiltonian entries; $\widehat C_{\obs}(r)$ estimates additional observable or transition-matrix groups for the probe set; $\widehat C_\kappa(r)$ estimates numerical conditioning risk from adding a nearly dependent basis direction; and $\widehat C_{\twq}(r;\ell)$ estimates the incremental compiled two-qubit or controlled-preparation burden of measuring record $r$ at growth step $\ell$.  These are acquisition costs, not evidence that the candidate is physically unimportant.  If $\Acal_\ell$ denotes the current admitted record set, then a cheap Hamiltonian-matrix measurement proxy is
+\begin{equation}
+\widehat C_M(r)\propto
+\sum_{a\in\Acal_\ell}
+\#\operatorname{groups}\left[
+\Omega_a^\dagger Q_0\Pi_{\mathfrak s}H_0\Pi_{\mathfrak s}Q_0\Omega_r
+\right],
+\label{eq:qse_matrix_cost_proxy}
+\end{equation}
+with the analogous expression for $\widehat C_S$ obtained by replacing $H_0$ with $I$, and the analogous expression for $\widehat C_{\obs}$ obtained by replacing $H_0$ with the measured probe or observable $O$.
+
+\subsubsection{Phase II}
+
+Phase II corrects the Phase I screen for nonorthogonal expressibility.  Let $\Acal_\ell$ denote the set of excitation records already admitted into the QSE basis at growth step $\ell$, and let $\Phi_{\Acal_\ell}=[\ket{\phi_a}]_{a\in\Acal_\ell}$.  Define
+\begin{equation}
+S_{\Acal_\ell}=(\braket{\phi_a}{\phi_b})_{a,b\in\Acal_\ell},
+\qquad
+s_r=(\braket{\phi_a}{\phi_r})_{a\in\Acal_\ell}.
+\label{eq:qse_overlap_parts}
+\end{equation}
+Let $S_{\ell,\tau}^{+}$ be the supported pseudoinverse of $S_{\Acal_\ell}$ after discarding metric eigenvalues below the support floor.  The metric projector onto the current nonorthogonal basis is
+\begin{equation}
+P_{\ell,\tau}
+=
+\Phi_{\Acal_\ell}S_{\ell,\tau}^{+}\Phi_{\Acal_\ell}^{\dagger},
+\qquad
+\ket{\bar\phi_r}=(I-P_{\ell,\tau})\ket{\phi_r}.
+\label{eq:qse_metric_projector}
+\end{equation}
+The metric novelty factor is the residual norm fraction
+\begin{equation}
+\mathcal N_2^{\qse}(r;\ell)
+=
+\left[
+\frac{\braket{\bar\phi_r}{\bar\phi_r}}
+{F_r+\eps_F}
+\right]_{[0,1]}
+=
+\left[
+1-\frac{s_r^\dagger S_{\ell,\tau}^{+}s_r}
+{F_r+\eps_F}
+\right]_{[0,1]} .
+\label{eq:qse_phase2_novelty}
+\end{equation}
+Here $[\,\cdot\,]_{[0,1]}$ denotes clipping to the interval $[0,1]$.  A ridge inverse may be used as a damped numerical approximation, but the intended geometric object is the supported metric projection.
+A cheap conditioning guard is built from the condition number of a matrix argument $A$,
+$\kappa(A):=\sigma_{\max}(A)/\sigma_{\min}(A)$, where $\sigma_{\max}(A)$ and $\sigma_{\min}(A)$ are the largest and smallest retained singular values.  In the guard below, $\kappa$ is evaluated on the $\tau_S$-supported subspace after discarding singular values below the support floor $\tau_S$:
+\begin{equation}
+\Gamma_{\kappa,2}(r;\ell)=
+\mathbf 1\!\left[
+\kappa\!\left(
+\begin{bmatrix}
+S_{\Acal_\ell}&s_r\\
+s_r^\dagger&\braket{\phi_r}{\phi_r}
+\end{bmatrix}_{\tau_S}
+\right)
+\le\kappa_{\max,2}
+\right],
+\label{eq:qse_phase2_condition_guard}
+\end{equation}
+and the Phase II score is
+\begin{equation}
+S_2(r;\ell)=
+\Gamma_{\kappa,2}(r;\ell)
+\frac{\Delta_{\qse,1}(r;\ell)\mathcal N_2^{\qse}(r;\ell)}
+{1+K_2(r;\ell)}.
+\label{eq:qse_phase2_score}
+\end{equation}
+
+\subsubsection{Phase III}
+
+Phase III performs reduced-window spectral reranking.  Let $\Acal_\ell$ be the current retained excitation-record set, let
+$M_{\Acal_\ell}:=(\bra{\phi_a}H_0\ket{\phi_b})_{a,b\in\Acal_\ell}$ be the projected Hamiltonian matrix, and let $c^{(\nu)}=(c_a^{(\nu)})_{a\in\Acal_\ell}$ be the coefficient vector for QSE root $\nu$.  The projected generalized eigenproblem on $\Acal_\ell$ is
+\begin{equation}
+M_{\Acal_\ell}c^{(\nu)}=\varepsilon_\nu S_{\Acal_\ell}c^{(\nu)},
+\qquad
+(c^{(\mu)})^\dagger S_{\Acal_\ell}c^{(\nu)}=\delta_{\mu\nu}.
+\label{eq:qse_phase3_gep}
+\end{equation}
+The current root is
+\begin{equation}
+\ket{\Psi_\nu^{(\ell)}}=
+\sum_{a\in\Acal_\ell}c_a^{(\nu)}\ket{\phi_a}.
+\label{eq:qse_current_root}
+\end{equation}
+Using the same supported metric projector $P_{\ell,\tau}$, the projected eigen-equation residual is
+\begin{equation}
+\ket{R_\nu^{(\ell)}}=
+(I-P_{\ell,\tau})(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}}.
+\label{eq:qse_eigen_residual}
+\end{equation}
+For candidate $r$, keep the same residualized vector $\ket{\bar\phi_r}=(I-P_{\ell,\tau})\ket{\phi_r}$.  A denominator-free, noise-stable residual-capture diagnostic is
+\begin{equation}
+\begin{aligned}
+C_\nu^{\rm res}(r;\ell)
+&=
+\frac{
+|\bra{\bar\phi_r}R_\nu^{(\ell)}\rangle|^2
+}{
+(\braket{\bar\phi_r}{\bar\phi_r}+\lambda_S)
+(\braket{R_\nu^{(\ell)}}{R_\nu^{(\ell)}}+\eps_R)
+}.
+\end{aligned}
+\label{eq:qse_residual_capture}
+\end{equation}
+The Schur-like lower-branch energy gain also includes an energy denominator.  Define
+\begin{equation}
+\eta_{\nu r}
+=
+\bra{\bar\phi_r}(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}},
+\qquad
+\delta_{\nu r}
+=
+\bra{\bar\phi_r}(H_0-\varepsilon_\nu)\ket{\bar\phi_r}.
+\label{eq:qse_schur_parts}
+\end{equation}
+Then
+\begin{equation}
+G_\nu^{\rm Schur}(r;\ell)
+=
+\frac{
+|\eta_{\nu r}|^2
+}{
+[\delta_{\nu r}]_+
++\lambda_E(\braket{\bar\phi_r}{\bar\phi_r}+\lambda_S)
+}.
+\label{eq:qse_schur_gain}
+\end{equation}
+The Phase III target-window gain mixes residual capture and Schur-like energy improvement using nonnegative weights $\alpha_R$ and $\alpha_E$:
+\begin{equation}
+\begin{aligned}
+\Delta_{\qse,3}(r;\ell)
+&=
+\sum_{\nu\in\Wcal_{\rm targ}(\ell)}
+w_\nu
+\Bigl[
+\alpha_R C_\nu^{\rm res}(r;\ell)
+\\
+&\hspace{7em}
++\alpha_E G_\nu^{\rm Schur}(r;\ell)
+\Bigr].
+\end{aligned}
+\label{eq:qse_phase3_gain}
+\end{equation}
+The authoritative record score is
+\begin{equation}
+S_3(r;\ell)=
+\frac{
+\Delta_{\qse,3}(r;\ell)\mathcal N_2^{\qse}(r;\ell)
+}{
+1+K_3(r;\ell)
+}.
+\label{eq:qse_phase3_score}
+\end{equation}
+A record is admitted when $S_3$ clears the live threshold, the metric rank increases, and root tracking remains stable over the retained spectral window:
+\begin{equation}
+\begin{aligned}
+\operatorname{Admit}^{\qse}_\ell(r)=1
+\iff{}&
+S_3(r;\ell)\ge\tau_3(\ell)
+\\
+&\wedge\
+\rank(S_{\Acal_\ell\cup\{r\},\tau})
+>
+\rank(S_{\Acal_\ell,\tau})
+\\
+&\wedge\
+\Gamma_{\rm root}(r;\ell)=1 .
+\end{aligned}
+\label{eq:qse_admit}
+\end{equation}
+
+\subsubsection{Batching, root-beaming, and root tracking}
+
+The Phase III results produce a ranked record set
+\begin{equation}
+\Rset_3(\ell)=\{r:S_3(r;\ell)\ge\tau_3(\ell)\}.
+\label{eq:qse_phase3_record_set}
+\end{equation}
+Batching is allowed when records are sector-compatible, measurement-reusable, and metric-independent.  Write
+$R_{rr'}:=|\braket{\bar\phi_r}{\bar\phi_{r'}}|/
+\sqrt{(F_r+\eps_F)(F_{r'}+\eps_F)}$ for the normalized residual cross-overlap:
+\begin{equation}
+\begin{aligned}
+\Gamma_{\rm batch}^{\qse}(B;\ell)=1
+\iff{}&
+\mathbf 1[\mathfrak s_r=\mathfrak s_{r'}\ \forall r,r'\in B]
+\\
+&\times
+\mathbf 1[
+R_{rr'}\le\tau_{\rm cross}\ \forall r\ne r']
+\\
+&\times
+\mathbf 1[\widehat C_{\rm meas}(B)\le \tau_{\rm meas}^{B}(\ell)]
+\\
+&\times
+\mathbf 1[\kappa(S_{\Acal_\ell\cup B,\tau})\le\kappa_{\max}] .
+\end{aligned}
+\label{eq:qse_batch_gate}
+\end{equation}
+Degenerate record frontiers are handled by root-beaming: run several near-degenerate record additions for $j_{\rm beam}$ QSE-growth steps, match roots by overlap, and retain the branch minimizing a Pareto objective,
+\begin{equation}
+J_{\rm beam}
+=
+\epsilon_{\rm spec}
++\lambda_\kappa\log\kappa(S)
++\lambda_M M_{\rm eff}
++\lambda_{\rm shot}S_{\rm mat}^{\rm proxy}.
+\label{eq:qse_beam_objective}
+\end{equation}
+
+Root tracking across coupling, cutoff, drive, and record-growth sweeps uses global assignment on the metric-overlap matrix rather than independent maxima.  If $c_\nu^{(\ell)}$ and $c_\mu^{(\ell+1)}$ are coefficient vectors in two successive bases, padded into the union basis where necessary, define
+\begin{equation}
+\mathcal O_{\nu\mu}^{(\ell,\ell+1)}
+=
+\left|
+(c_\nu^{(\ell)})^\dagger
+S_{\Acal_\ell\cup\Acal_{\ell+1}}
+c_\mu^{(\ell+1)}
+\right|^2 .
+\label{eq:root_matching}
+\end{equation}
+The matching $\mu^\star(\nu)$ is the Hungarian assignment maximizing
+$\sum_\nu \mathcal O_{\nu,\mu^\star(\nu)}^{(\ell,\ell+1)}$; near degeneracies are tracked as subspaces by principal angles rather than as independent labeled eigenvectors.
+
+\subsection{Implemented QSE diagonalization}
+
+After record selection, the admitted basis is
+\begin{equation}
+\Vcal_{\Acal,\mathfrak s}
+=
+\spanop\{\ket{\phi_a}:a\in\Acal\}.
+\label{eq:qse_subspace}
+\end{equation}
+The overlap, projected Hamiltonian, and observable matrices are
+\begin{align}
+S_{ab}
+&=
+\braket{\phi_a}{\phi_b}
+=
+\bra{\psi_0}\Omega_a^\dagger Q_0\Pi_{\mathfrak s}Q_0\Omega_b\ket{\psi_0},
+\nonumber\\
+M_{ab}
+&=
+\bra{\phi_a}H_0\ket{\phi_b}
+=
+\bra{\psi_0}\Omega_a^\dagger Q_0\Pi_{\mathfrak s}H_0\Pi_{\mathfrak s}Q_0\Omega_b\ket{\psi_0},
+\nonumber\\
+O_{ab}
+&=
+\bra{\phi_a}O\ket{\phi_b}.
+\label{eq:qse_matrices}
+\end{align}
+The QSE roots solve
+\begin{equation}
+M c^{(\nu)}=\varepsilon_\nu S c^{(\nu)},
+\qquad
+(c^{(\mu)})^\dagger S c^{(\nu)}=\delta_{\mu\nu},
+\label{eq:qse_gep}
+\end{equation}
+with approximate state
+\begin{equation}
+\ket{\Psi_\nu^{\qse}}
+=
+\sum_{a\in\Acal}c_a^{(\nu)}\ket{\phi_a}.
+\label{eq:qse_state}
+\end{equation}
+Finite-shot and finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a statistically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
+$S=V\diag(s_i)V^\dagger$, define retained support
+$\mathcal I_S=\{i:s_i\ge\tau_Ss_{\max}\}$ and the exact supported whitening map
+\begin{equation}
+B
+=
+V_{\mathcal I_S}
+\diag(s_i^{-1/2}) .
+\label{eq:qse_metric_whitening}
+\end{equation}
+The committed diagonalization is
+\begin{equation}
+\widehat M
+=
+B^\dagger MB,
+\qquad
+\widehat M y_\nu=\varepsilon_\nu y_\nu,
+\qquad
+c_\nu=By_\nu ,
+\label{eq:qse_whitened_gep}
+\end{equation}
+so that $c_\nu^\dagger S c_\nu=1$ on the retained support.  If a ridge map
+$B_\lambda=V_{\mathcal I_S}\diag((s_i+\lambda_S)^{-1/2})$ is used for damping instead, the resulting Ritz vector is renormalized by
+$c_\nu=B_\lambda y_\nu/\sqrt{y_\nu^\dagger B_\lambda^\dagger S B_\lambda y_\nu}$.
+At first order, shot perturbations in the measured matrices shift an $S$-normalized Ritz value by
+\begin{equation}
+\delta\varepsilon_\nu
+=
+c_\nu^\dagger(\delta M-\varepsilon_\nu\delta S)c_\nu ,
+\label{eq:qse_first_order_shot_shift}
+\end{equation}
+which is the quantity propagated into finite-shot error bars and conditioning penalties.
+
+\subsection{Transition observables and spectral functions}
+
+QSE and related response-function methods have been used to extract Green functions, Lehmann representations, bosonic and fermionic correlation functions, and dynamical response observables from quantum-generated subspaces \cite{Jamet2022GreenQSE,Dhawan2024ImagTimeGreen,Gauthier2024OccupationQSE,Kokcu2024LinearResponse,Umeano2025KitaevQSE}.  For an observable $O$, the excited-only QSE basis uses $Q_0$ and therefore does not contain the ground state as a Ritz vector.  The transition vector from the prepared reference is
+\begin{equation}
+d_a^O
+=
+\bra{\phi_a}O\ket{\psi_0},
+\qquad
+\mathfrak t_\nu^O
+=
+(c^{(\nu)})^\dagger d^O .
+\label{eq:qse_transition}
+\end{equation}
+The zero-temperature spectral function associated with perturbation $O$ is
+\begin{equation}
+A_O(\omega)
+=
+\sum_{\nu\in\Wcal_{\rm targ}}
+\left|\mathfrak t_\nu^O\right|^2
+L_\eta\!\left(\omega-(\varepsilon_\nu-E_0)\right),
+\label{eq:qse_spectral_function}
+\end{equation}
+where $L_\eta$ is the analysis broadening kernel.  If the identity record is included and $Q_0$ is removed, then the usual matrix element $T_{0\nu}^O=(c^{(0)})^\dagger O^\Acal c^{(\nu)}$ may be used instead.  For Hubbard--Holstein-style tests, the primary observables are
+\begin{align}
+n_i&=\sum_\sigma c_{i\sigma}^\dagger c_{i\sigma},
+&
+N_{\rm ph}&=\sum_\mu b_\mu^\dagger b_\mu,
+\nonumber\\
+X_i&=b_i^\dagger+b_i,
+&
+C_{nX}(r)&=\sum_i(n_i-\bar n)X_{i+r}.
+\label{eq:fb_observables}
+\end{align}
+For truncated bosonic registers, every spectral table should also report a cutoff-boundary diagnostic such as
+\begin{equation}
+\ell_{\rm cut}(\Psi)=
+\sum_{\mu}\bra{\Psi}\Pi_{n_\mu=\phmax}\ket{\Psi},
+\label{eq:boson_cutoff_leakage}
+\end{equation}
+which detects whether the selected basis is pressing against the highest retained oscillator level where the encoded ladder algebra differs most strongly from the infinite-dimensional bosonic algebra.
+
+\subsection{Iteration-dependent excitation selection and pruning}
+
+The growth variable $\ell$ denotes QSE-basis acquisition step, not physical time.  The weightings of novelty, cost, and spectral gain change over the useful-runway coordinate.  Early growth rewards alphabet diversity and metric novelty; late growth rewards root-window residual reduction and transition-strength accuracy.  The live shortlist contracts as $M=|\Acal_\ell|$ grows because each new record increases matrix-measurement cost approximately linearly against all retained records.
+
+A record becomes eligible for pruning after a maturity interval.  Let $x_a^{(\nu)}$ denote the metric participation of record $a$ in root $\nu$,
+\begin{equation}
+x_a^{(\nu)}
+=
+\Re\left[
+(c_a^{(\nu)})^\ast
+\sum_{b\in\Acal}S_{ab}c_b^{(\nu)}
+\right].
+\label{eq:qse_record_participation}
+\end{equation}
+The cheap prune nomination set is
+\begin{equation}
+\begin{aligned}
+\Dcal_{\rm prune}^{\qse}
+=\{a:\ &\ell-\iota_a\ge A_{\rm mat},\
+c_a^{\rm cool}=0,\ \kappa(S_{\Acal\setminus a})\le \kappa(S_{\Acal}),\\
+&\sum_{\nu\in\Wcal_{\rm targ}}w_\nu |x_a^{(\nu)}|\le\tau_x,\
+\Delta_{\rm spec}^{\rm cache}(a)\le\tau_{\rm spec}^{\rm prune}\}.
+\end{aligned}
+\label{eq:qse_prune_candidates}
+\end{equation}
+A committed prune is accepted only after recomputing the reduced diagonalization and verifying small spectral regression:
+\begin{equation}
+\begin{aligned}
+\operatorname{accept}_{\rm prune}^{\qse}(a)
+\iff{}&
+\Delta\epsilon_{\rm spec}^{(a)}\le\tau_{\rm spec}
+\\
+&\wedge\
+\Delta\epsilon_T^{(a)}\le\tau_T
+\wedge
+\Delta\rho_{\rm eig}^{(a)}\le\tau_\rho .
+\end{aligned}
+\label{eq:qse_prune_accept}
+\end{equation}
+
+\section{Excited-state dynamics}
+\label{sec:excited_dynamics_method}
+
+\subsection{Frozen-subspace QSE propagation}
+
+Let the selected QSE basis $\{\ket{\phi_a}\}_{a\in\Acal}$ be fixed after static diagonalization.  The frozen-subspace state is
+\begin{equation}
+\ket{\Psi(t)}=\sum_{a\in\Acal}z_a(t)\ket{\phi_a}
+=\Phi_\Acal z(t),
+\qquad
+z^\dagger S z=1.
+\label{eq:frozen_qse_state}
+\end{equation}
+Propagation is performed in the supported orthonormal coordinates from Eq.~(\ref{eq:qse_metric_whitening}), with $z(t)=By(t)$ and $\|y(t)\|_2=1$.  Projection of the Schr\"odinger equation gives
+\begin{equation}
+\begin{aligned}
+\ii \dot y(t)&=\widehat M(t)y(t),
+\\
+\widehat M(t)&=B^\dagger M(t)B,
+\\
+M_{ab}(t)&=\bra{\phi_a}H(t)\ket{\phi_b}.
+\end{aligned}
+\label{eq:frozen_qse_ode}
+\end{equation}
+The projected Hamiltonian separates into premeasured matrix components,
+\begin{equation}
+M(t)=M_0+\sum_{\beta\in\mathcal I_{\drv}}c_\beta(t)M_\beta,
+\qquad
+(M_\beta)_{ab}=\bra{\phi_a}P_\beta\ket{\phi_b}.
+\label{eq:frozen_projected_drive}
+\end{equation}
+This route is measurement-efficient after matrix construction and is the correct baseline for weak drives and spectrally closed manifolds.
+
+The frozen-subspace escape diagnostic is
+\begin{equation}
+\begin{aligned}
+E(t)&=z(t)^\dagger M(t)z(t),\\
+p(t)&=[M(t)-E(t)S]z(t),
+\end{aligned}
+\label{eq:frozen_escape_parts}
+\end{equation}
+so that the represented drift norm is $p(t)^\dagger S_\tau^+p(t)$.  The measurement-compatible escape fraction is
+\begin{equation}
+\rho_{\rm esc}(t)
+=
+\frac{
+\left[
+\Var_{\Psi(t)}(H(t))
+-p(t)^\dagger S_\tau^+p(t)
+\right]_+
+}{
+\Var_{\Psi(t)}(H(t))+\eps
+}.
+\label{eq:frozen_escape}
+\end{equation}
+Large $\rho_{\rm esc}$ indicates that the drive is coupling the propagated state to directions absent from the chosen excitation alphabet.
+
+\subsection{QSE-root compression into a live ansatz}
+
+For live McLachlan dynamics, a selected QSE root is compressed or refit into a circuit state.  Given target root $\ket{\Psi_\nu^{\qse}}$, define
+\begin{equation}
+\begin{aligned}
+\mathcal L_\nu(\vartheta)
+={}&
+1-
+\left|
+\bra{\Psi_\nu^{\qse}}
+U_{\Oset_\nu}(\vartheta)\ket{\Phi_\nu}
+\right|^2
+\\
+&+
+\lambda_E
+\left[
+\bra{\psi_\nu(\vartheta)}H_0\ket{\psi_\nu(\vartheta)}
+-\varepsilon_\nu
+\right]^2
+\\
+&+
+\lambda_\perp
+\sum_{\mu<\nu}
+|\braket{\psi_\mu}{\psi_\nu(\vartheta)}|^2 .
+\end{aligned}
+\label{eq:root_refit}
+\end{equation}
+Here
+\begin{equation}
+\ket{\psi_\nu(\vartheta)}=
+U_{\Oset_\nu}(\vartheta)\ket{\Phi_\nu}
+\label{eq:excited_live_ansatz}
+\end{equation}
+and $\ket{\Phi_\nu}$ may be the ground reference, a symmetry-adapted determinant/Fock state, or the leading configuration extracted from the QSE coefficient vector.
+The QSE-root overlap in Eq.~(\ref{eq:root_refit}) is evaluated as
+$\bra{\Psi_\nu^{\qse}}\psi_\nu(\vartheta)\rangle
+=\sum_a(c_a^{(\nu)})^\ast\bra{\phi_a}\psi_\nu(\vartheta)\rangle$,
+with the component overlaps obtained either by the same overlap-measurement protocol used for QSE matrix construction or by exact statevector evaluation in small diagnostic benchmarks.
+
+\subsection{Implemented excited-state McLachlan propagation}
+
+For root $\nu$ at checkpoint $k$, the live state is
+\begin{equation}
+\ket{\psi_{\nu,k}}=
+U_{\Oset_{\nu,k}}(\vartheta_{\nu,k})\ket{\Phi_\nu}.
+\label{eq:live_excited_checkpoint_state}
+\end{equation}
+The horizontal tangent columns are
+\begin{equation}
+\begin{aligned}
+\ket{\bar\partial_i\psi_{\nu,k}}
+&=
+Q_{\psi_{\nu,k}}
+\partial_{\vartheta_{\nu,k,i}}\ket{\psi_{\nu,k}},
+\\
+Q_{\psi_{\nu,k}}&=I-\ket{\psi_{\nu,k}}\bra{\psi_{\nu,k}},
+\end{aligned}
+\label{eq:excited_tangent_block}
+\end{equation}
+and the standard real McLachlan system is
+\begin{equation}
+K_{\nu,k}\dot\vartheta_{\nu,k}=f_{\nu,k},
+\label{eq:excited_mclachlan_system}
+\end{equation}
+with
+\begin{equation}
+\begin{aligned}
+(K_{\nu,k})_{ij}
+&=
+\Re\braket{\bar\partial_i\psi_{\nu,k}}{\bar\partial_j\psi_{\nu,k}}
++(\Lambda_{\nu,k})_{ij},
+\\
+(f_{\nu,k})_i
+&=
+\Im\bra{\bar\partial_i\psi_{\nu,k}}
+\left[
+H(t_k)-\expval{H(t_k)}_{\psi_{\nu,k}}
+\right]
+\ket{\psi_{\nu,k}} .
+\end{aligned}
+\label{eq:excited_gram_force}
+\end{equation}
+Equivalently, if $\bar T_{\nu,k}$ collects the horizontal tangent columns and
+$\bar b_{\nu,k}=-\ii[H(t_k)-\expval{H(t_k)}_{\psi_{\nu,k}}]\ket{\psi_{\nu,k}}$, the same update is the regularized least-squares solve
+\begin{equation}
+\begin{aligned}
+\dot\vartheta_{\nu,k}
+&=
+\argminp_{v\in\mathbb R^{N_{\nu,k}}}
+\left\{
+\|\bar T_{\nu,k}v-\bar b_{\nu,k}\|_2^2
++v^\top\Lambda_{\nu,k}v
+\right\} \\
+&\implies
+\dot\vartheta_{\nu,k}
+=
+K_{\nu,k,\tau,\eps}^{\oplus}f_{\nu,k}.
+\end{aligned}
+\label{eq:excited_mclachlan_velocity}
+\end{equation}
+This is the regularized projective McLachlan solve with an added root index, root-orthogonality bookkeeping, and QSE-root initialization \cite{McLachlan1964,Yuan2019VQS}.
+
+\subsection{Conditional Euler vs Range Kutta integration}
+
+The excited-state IVP is integrated using a checkpoint-local Euler/RK4 policy with root-indexed turbulence.  A checkpoint is called turbulent for root $\nu$ when
+\begin{equation}
+\begin{aligned}
+\operatorname{Turb}_{\nu,k}&=\mathbf 1[\mathcal T_{\nu,k}],\\
+\mathcal T_{\nu,k}
+&=
+(\pi_{\nu,k}^{\rm col}<p_{\rm col})
+\vee(\chi_{\nu,k}^{\rm curv}>\tau_{\rm curv})
+\nonumber\\
+&\quad\vee(e_{\nu,k}^{\rm Eul}>\tau_{\rm Eul})
+\vee(\rho_{\rm expr,\nu,k}>\tau_{\rm miss}^{\rm col})
+\nonumber\\
+&\quad
+\vee(\kappa_{\rm eff,\nu,k}>\kappa_{\rm col})
+\vee(\upsilon_{\drv,k}>\tau_{\drv}).
+\end{aligned}
+\label{eq:excited_turbulent_period}
+\end{equation}
+The integration policy is
+\begin{equation}
+\iota_{\nu,k}^{\rm pol}=
+\begin{cases}
+{\rm RK4},& k<k_{\rm warm}\ \text{or}\ \operatorname{Turb}_{\nu,k}=1,\\
+{\rm Euler},&\text{otherwise.}
+\end{cases}
+\label{eq:excited_integrator_policy}
+\end{equation}
+
+\subsection{Append condition}
+
+The root-indexed expressivity residual is
+\begin{equation}
+\rho_{\rm expr,\nu,k}
+=
+\frac{
+\min_v\|\bar T_{\nu,k}v-\bar b_{\nu,k}\|_2^2
+}{
+\Var_{\psi_{\nu,k}}(H(t_k))+\eps
+}.
+\label{eq:excited_expr_miss}
+\end{equation}
+For a candidate append block $r$ inserted into the excited-state ansatz, let
+\begin{equation}
+\bar U_{r,\nu,k}
+=
+-\ii
+\left[
+Q_{\psi_{\nu,k}}\widetilde A_{r,1}^{(p)}\ket{\psi_{\nu,k}}\ \cdots\
+Q_{\psi_{\nu,k}}\widetilde A_{r,m_r}^{(p)}\ket{\psi_{\nu,k}}
+\right].
+\label{eq:excited_candidate_tangent}
+\end{equation}
+Define
+\begin{align}
+B_{r,\nu,k}&=\Re(\bar T_{\nu,k}^\dagger\bar U_{r,\nu,k}),
+&
+C_{r,\nu,k}&=\Re(\bar U_{r,\nu,k}^\dagger\bar U_{r,\nu,k}),
+\nonumber\\
+q_{r,\nu,k}&=\Re(\bar U_{r,\nu,k}^\dagger\bar b_{\nu,k}),
+&
+w_{r,\nu,k}&=q_{r,\nu,k}-B_{r,\nu,k}^\top K_{\nu,k,\tau,\eps}^{\oplus}f_{\nu,k}.
+\label{eq:excited_append_parts}
+\end{align}
+The Schur complement block is
+\begin{equation}
+S_{r,\nu,k}
+=
+C_{r,\nu,k}+\Lambda_r
+-
+B_{r,\nu,k}^\top K_{\nu,k,\tau,\eps}^{\oplus}B_{r,\nu,k},
+\label{eq:excited_append_schur_block}
+\end{equation}
+and the normalized tangent gain is
+\begin{equation}
+\rho_{r,\nu,k}^{\rm gain}
+=
+\frac{
+w_{r,\nu,k}^\top(S_{r,\nu,k})_\tau^\dagger w_{r,\nu,k}
+}{
+\Var_{\psi_{\nu,k}}(H(t_k))+\eps
+}.
+\label{eq:excited_append_gain}
+\end{equation}
+Admission occurs when
+\begin{equation}
+\begin{aligned}
+\operatorname{Admit}_{\nu,k}^{\app}(r)=1
+\iff{}&
+\rho_{\rm expr,\nu,k}\ge\tau_{\rm miss}
+\wedge
+\rho_{r,\nu,k}^{\rm gain}\ge\tau_{\rm gain}
+\\
+&\wedge\
+S_{r,\nu,k}^{\rm conf}\ge\tau_{\rm conf}
+\wedge
+\Gamma_{\perp,\nu,k}(r)=1 .
+\end{aligned}
+\label{eq:excited_append_admit}
+\end{equation}
+The final guard $\Gamma_{\perp,\nu,k}$ prevents collapse of the propagated excited root into lower roots.
+
+\subsection{Prune and stay condition}
+
+A live excited-state ansatz may contain directions that were useful for root compression but become dynamically inactive.  Pruning is allowed only in calm, low-miss regimes:
+\begin{equation}
+\begin{aligned}
+\Gamma_{\nu,k}^{\prune,\rm perm}
+&=
+\mathbf 1[\rho_{\rm expr,\nu,k}\le\tau_{\prune}^{\rm miss}]
+\mathbf 1[c_{\nu,k}^{\rm dir}\ge\tau_{\rm calm}^{\cos}]
+\nonumber\\
+&\quad\times
+\mathbf 1[\eta_{\nu,k}^{\rm rate}\le\tau_{\rm calm}^{\rm rate}]
+\mathbf 1[B_{\nu,k}\ge2].
+\end{aligned}
+\label{eq:excited_prune_perm}
+\end{equation}
+The candidate deletion set is
+\begin{equation}
+\begin{aligned}
+\Dcal_{\nu,k}^{\prune}
+=\{b:\ &b\notin\Pcal_{\nu,\rm protect}(k),\
+c_{b,\nu,k}^{\rm cool}=0,\
+\sigma_{b,\nu,k}^{\rm stag}\ge\tau_{\rm stale},\\
+&\Gamma_{\nu,k}^{\prune,\rm perm}=1\}.
+\end{aligned}
+\label{eq:excited_prune_candidates}
+\end{equation}
+Rollback-safe acceptance is
+\begin{equation}
+\begin{aligned}
+\operatorname{accept}_{\prune}^{\nu}(b)\iff{}&
+L_{b,\nu,k}^{\rm cache}\le\tau_{\rm loss}^{\prune}
+\wedge
+\Delta_{\rm ray,b,\nu,k}^{\prune}\le\tau_{\rm ray}^{\prune}
+\nonumber\\
+&\wedge
+\Delta\rho_{b,\nu,k}^{\prune}\le\tau_{\rho}^{\prune}
+\wedge
+\Delta J_{b,\nu,k}^{\prune}\le\Delta_{\rm safe}^{\rm seg}.
+\end{aligned}
+\label{eq:excited_prune_accept}
+\end{equation}
+At each checkpoint the controller chooses one lane:
+\begin{equation}
+\nu_{\ctrl,k}^{\star}=
+\begin{cases}
+\app(r_k^\star),&\exists r:\operatorname{Admit}_{\nu,k}^{\app}(r)=1,\\
+\prune(b_k^\star),&\Dcal_{\nu,k}^{\prune}\neq\varnothing\
+\text{and}\ \operatorname{accept}_{\prune}^{\nu}(b_k^\star),\\
+\stay,&\text{otherwise.}
+\end{cases}
+\label{eq:excited_hybrid_lane}
+\end{equation}
+
+\section{Results}
+\label{sec:results}
+
+The results section follows a compact accuracy/resource order: class-wise spectral table, mechanism ablation table, dynamics table, dynamics ablation table, and then figures.  The static results concern excitation spectra rather than ground-state energy.  The dynamics results compare frozen QSE, adaptive QSE, and live excited-state McLachlan.
+
+\subsection{Static excited-state results}
+
+\structlabel{Static excited-state results}
+Table~\ref{tab:qse_static_claims} gives the spectral comparison by Hamiltonian class averages.  The same-cutoff columns test whether the selected QSE basis recovers the ED spectrum inside the working Hilbert space; the higher-cutoff columns test whether lower-cutoff QSE spectra remain physically stable after embedding.  Resource columns report effective basis size, overlap conditioning, final matrix-measurement proxy, and optional compiled two-qubit cost.
+
+\begin{widetext}
+\inlinetablecaption{tab:qse_static_claims}{Excited-state QSE Pareto benchmark by Hamiltonian class and method.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.105\textwidth}p{0.205\textwidth}cccccccc@{}}
+Class & Method & $\overline{|\Delta\omega|}_{\rm same}$ & $\overline{|\Delta\omega|}_{4}$ & $1-\overline{F}_{\rm root}$ & $\epsilon_T$ & $\epsilon_{\rm spec}$ & $M_{\rm eff}$ & $\kappa(S)$ & $S_{\rm mat}^{\rm proxy}$ \\
+\colrule
+fermionic & qEOM/q-sc-EOM & \placeholder{...} & -- & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermionic & fermionic-only QSE & \placeholder{...} & -- & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermionic & Hamiltonian-derived QSE & \placeholder{...} & -- & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermionic & geometry-selected QSE & \placeholder{...} & -- & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+\colrule
+bosonic & bosonic-only QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+bosonic & Hamiltonian-derived QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+bosonic & geometry-selected QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+\colrule
+fermion--boson & fermionic-only QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermion--boson & bosonic-only QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermion--boson & mixed dressed QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermion--boson & Lang--Firsov/polaronic QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fermion--boson & geometry-selected QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\begin{widetext}
+\inlinetablecaption{tab:qse_ablation_matrix}{Static QSE-selection ablations. Entries are disabled-minus-full paired changes; positive spectral deltas indicate degradation relative to geometry-selected QSE.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.28\textwidth}cccccc@{}}
+Variant & $\Delta\overline{|\Delta\omega|}$ & $\Delta(1-\overline F_{\rm root})$ & $\Delta\epsilon_T$ & $\Delta\epsilon_{\rm spec}$ & $\Delta\kappa(S)$ & $\Delta S_{\rm mat}^{\rm proxy}$ \\
+\colrule
+no metric novelty $\mathcal N_2^{\qse}$ & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+no residual capture or Schur spectral gain & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+no conditioning guard & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+no cost penalty & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+fixed largest alphabet & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+no QSE pruning & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+no root-beaming/tracking guard & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\subsection{Dynamics results}
+
+\structlabel{Dynamics results}
+Table~\ref{tab:excited_dyn_claims} compares frozen QSE propagation, adaptive-QSE propagation, and live excited-state McLachlan against projected-variational and product-formula baselines.  Within each benchmark point all methods start from the same optimized ground-state ansatz and the same selected excitation root, use the same drive, and are evaluated on the same time grid.
+
+\begin{widetext}
+\inlinetablecaption{tab:excited_dyn_claims}{Excited-state driven-dynamics Pareto benchmark by Hamiltonian class and method.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.10\textwidth}p{0.22\textwidth}cccccccc@{}}
+Class & Method & $\overline{|\Delta E_\nu(t)|}$ & $\epsilon_{\obs}^{(2)}$ & $\epsilon_{\rm spec}$ & $\overline{\rho_{\rm esc}}$ & $N_{\twq}^{\rm tot}$ & $D_{\twq}^{\rm tot}$ & $S_{\rm mat}^{\rm proxy}$ & status \\
+\colrule
+fermionic & frozen QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & baseline\\
+fermionic & adaptive QSE basis & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+fermionic & live excited McLachlan & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+\colrule
+bosonic & frozen QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & baseline\\
+bosonic & adaptive QSE basis & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+bosonic & live excited McLachlan & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+\colrule
+fermion--boson & frozen QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & baseline\\
+fermion--boson & adaptive QSE basis & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+fermion--boson & live excited McLachlan & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & ours\\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\begin{widetext}
+\inlinetablecaption{tab:excited_dyn_ablation_matrix}{Excited-state dynamics-controller ablations. Entries are disabled-minus-full paired changes.}
+\begin{center}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.23\textwidth}ccccccp{0.20\textwidth}@{}}
+Variant & $\Delta\overline{|\Delta E_\nu|}$ & $\Delta\epsilon_{\obs}^{(2)}$ & $\Delta\epsilon_{\rm spec}$ & $\Delta\overline{\rho_{\rm esc}}$ & $\Delta D_{\twq}^{\rm tot}$ & $\Delta S_{\rm mat}^{\rm proxy}$ & interpretation \\
+\colrule
+frozen QSE only & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests dynamic closure of selected QSE basis\\
+no adaptive QSE basis growth & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests residual-driven subspace expansion\\
+no live McLachlan append & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests tangent expansion\\
+no excited-state pruning & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests low-miss deletion\\
+fixed ODE/integrator policy & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests turbulence controller\\
+no root-orthogonality guard & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & tests collapse into lower roots\\
+\end{tabular*}
+\end{ruledtabular}
+\end{center}
+\end{widetext}
+
+\subsection{Spectral attribution figures}
+
+The main physics figures should use condensed diagnostics, replacing ground-state traces by spectral-window diagnostics:
+\begin{equation}
+\begin{aligned}
+\Phi_\chi&=[\ket{\phi_a}]_{a\in\Acal_\chi},
+\qquad
+P_{\chi,\tau}
+=
+\Phi_\chi(\Phi_\chi^\dagger\Phi_\chi)_\tau^+\Phi_\chi^\dagger,
+\\
+x_\chi^{(\nu)}
+&=
+\bra{\Psi_\nu^{\qse}}
+P_{\chi,\tau}
+\ket{\Psi_\nu^{\qse}},
+\qquad
+\chi\in\{f,b,fb,\lf,H,\tau\}.
+\end{aligned}
+\label{eq:alphabet_attribution}
+\end{equation}
+Here $\Acal_\chi$ is the subset of admitted records whose source alphabet label is $\chi$.  These attributions are non-exclusive operator-family diagnostics and need not sum to one; an exclusive decomposition would require ordered orthogonalization or a leave-one-family-out attribution rule.
+The recommended panels are: excitation energy error versus root index; transition strength recovery versus root index; alphabet attribution versus coupling $g/t$; overlap condition number versus admitted record count; frozen-QSE escape $\rho_{\rm esc}(t)$ versus dynamic observable error; and a Pareto plot of $\epsilon_{\rm spec}$ against $S_{\rm mat}^{\rm proxy}$.
+
+\section{Discussion and conclusion}
+\label{sec:discussion}
+\label{sec:conclusion}
+
+\structlabel{Mechanistic interpretation}
+The selection mechanism is acquisition of operator-generated spectral directions under finite matrix-measurement and circuit budgets.  Probe-transition gain identifies candidate excitations visible to the observables of interest, metric novelty prevents addition of directions already expressible by the current nonorthogonal basis, residual capture measures projected eigen-equation miss, Schur-like gain estimates lower-branch spectral improvement, and cost penalties keep the construction from degenerating into a largest-alphabet measurement program.  In dynamics, frozen QSE is efficient when the drive remains inside the selected spectral manifold, while adaptive QSE or live excited-state McLachlan is required when the projected escape residual becomes large.
+
+\structlabel{Scope, limitations, and future work}
+The evidence is a compiled, finite-shot-accounted small-system study with ED used as a diagnostic reference.  Exact spectra and trajectories enter only as benchmarks for reported root errors, transition strengths, and time-domain observables; controller decisions are based on measurement-compatible quantities of the prepared seed state and selected excitation basis.  The main unresolved numerical issues are sweep scale, root matching under near-degeneracy, finite-shot generalized-eigenproblem stability, and cutoff stress for phonon-bearing systems.  Hardware validation is useful as a final anchor but should not replace the method's class-wise transfer tests.
+
+\structlabel{Summary}
+We presented a geometry-aware QSE acquisition rule and excited-state McLachlan dynamics route for mixed fermion--boson Hamiltonians.  The method uses an optimized compact ADAPT ansatz as a ground-state seed, ranks excitation records by probe gain, metric novelty, residual capture, Schur-like spectral gain, conditioning, and cost, then diagonalizes the selected nonorthogonal manifold to obtain spectra and transition observables.  The dynamic stage either propagates frozen QSE coefficients or refits selected roots into live McLachlan circuits with checkpoint-local stay, append, and prune decisions.  The completed sweep will give a single accuracy--resource comparison across excitation energies, root fidelities, transition strengths, spectra, driven observables, matrix-measurement cost, overlap conditioning, and compiled quantum resources.
+
+\begin{acknowledgments}
+\placeholder{Add funding, compute resources, discussions, and advisor acknowledgments.}
+\end{acknowledgments}
+
+\clearpage
+\appendix
+
+\section{Benchmark Hamiltonian families}
+\label{app:hamiltonian_families}
+
+The benchmark-family definitions use the same Hamiltonian registry and encoding conventions as the ground-state and real-time routes.  This appendix states only the root windows, probe observables, symmetry sectors, and excitation alphabets needed for the excited-state study.
+
+\begin{table*}[t]
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{Excited-state benchmark suite. Values in red are placeholders for the locked repository sweep.}
+\label{tab:excited_benchmark_suite}
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.16\textwidth}p{0.25\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.17\textwidth}@{}}
+Family & Representative parameters & Target roots/probes & Alphabets swept & Held-out stress tests \\
+\colrule
+Hubbard / extended Hubbard & $L=\placeholder{2--6}$, $U/t=\placeholder{0,2,4,8}$ & density, current, spin & $\Ecal_f,\Ecal_H,\Ecal_\tau$ & strong $U/t$, near-degenerate roots \\
+Hubbard--Holstein & $L=\placeholder{2--4}$, $g/t=\placeholder{0--1.5}$, $\omega_0/t=\placeholder{0.5--2}$ & density, $X_i$, $N_{\rm ph}$, $C_{nX}$ & $\Ecal_f,\Ecal_b,\Ecal_{fb},\Ecal_{\lf},\Ecal_H$ & larger cutoff, off-resonant drive \\
+Boson-only controls & Bose--Hubbard, harmonic/Kerr chain & displacement, occupation & $\Ecal_b,\Ecal_H$ & high occupation cutoff \\
+Spin-boson/Rabi & $\Delta,\omega,g$ sweeps & spin response, displacement & $\Ecal_b,\Ecal_{fb},\Ecal_H$ & ultrastrong coupling \\
+Molecular electronic & restricted active spaces & dipole, particle--hole roots & $\Ecal_f,\Ecal_H,\Ecal_\tau$ & stretched bonds \\
+Molecular vibronic & small vibronic prototypes & dipole, displacement, vibronic sidebands & $\Ecal_f,\Ecal_b,\Ecal_{fb},\Ecal_{\lf}$ & displaced surfaces / multiple modes \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\section{Excitation alphabet registry}
+\label{app:excitation_alphabets}
+
+The symbolic excitation registry is a deduplicated union of fermionic, bosonic, mixed, Lang--Firsov, Hamiltonian-derived, and tangent-derived records:
+\begin{equation}
+\Ecal_{\rm registry}
+=
+\Ecal_f^{(1,2)}
+\cup
+\Ecal_b^{(1,2)}
+\cup
+\Ecal_{fb}^{\rm dens}
+\cup
+\Ecal_{fb}^{\rm bond}
+\cup
+\Ecal_{\lf}
+\cup
+\Ecal_H^{(K)}
+\cup
+\Ecal_\tau .
+\label{eq:app_excitation_registry}
+\end{equation}
+The implementation stores each record with symbolic support, mapped Pauli support, sector label, measurement groups, and compatibility metadata.
+
+\section{QSE measurement and regularization details}
+\label{app:qse_measurement_details}
+
+The overlap and Hamiltonian matrices are estimated from grouped Pauli decompositions of
+\begin{equation}
+\Omega_a^\dagger Q_0\Pi_{\mathfrak s}\Omega_b,
+\qquad
+\Omega_a^\dagger Q_0\Pi_{\mathfrak s}H_0\Pi_{\mathfrak s}Q_0\Omega_b,
+\qquad
+\Omega_a^\dagger Q_0\Pi_{\mathfrak s}O\Pi_{\mathfrak s}Q_0\Omega_b.
+\label{eq:app_qse_measurement_operators}
+\end{equation}
+Finite-shot symmetrization is
+\begin{equation}
+S\leftarrow\frac12(S+S^\dagger),\qquad
+M\leftarrow\frac12(M+M^\dagger),
+\label{eq:app_qse_symmetrization}
+\end{equation}
+followed by metric support truncation and ridge whitening as in Eq.~(\ref{eq:qse_metric_whitening}).  This regularization is part of the scientific protocol, not a numerical afterthought, because excited-state QSE matrix elements are both measurement intensive and sensitive to the retained overlap support \cite{ChoiIzmaylov2023MeasurementQSE,Nakamura2024AdaptiveMeasurementQSE,Kwao2026GEPQSE}.
+
+The generalized eigenvalue equation follows from the Rayleigh quotient in the nonorthogonal QSE basis.  For a retained basis $\{\ket{\phi_a}:a\in\Acal\}$, write a trial state as
+\begin{equation}
+\ket{\Psi(c)}
+=
+\sum_{a\in\Acal}c_a\ket{\phi_a}.
+\label{eq:app_qse_trial_state}
+\end{equation}
+The overlap matrix $S$ and projected Hamiltonian matrix $M$ play different roles:
+\begin{equation}
+S_{ab}=\braket{\phi_a}{\phi_b},
+\qquad
+M_{ab}=\bra{\phi_a}H_0\ket{\phi_b}.
+\label{eq:app_qse_sm_def}
+\end{equation}
+Thus
+\begin{equation}
+\braket{\Psi(c)}{\Psi(c)}
+=c^\dagger S c,
+\qquad
+\bra{\Psi(c)}H_0\ket{\Psi(c)}
+=c^\dagger M c.
+\label{eq:app_qse_norm_energy}
+\end{equation}
+The best approximate eigenstate inside the retained subspace is obtained by minimizing the energy expectation while keeping the trial state normalized.  Equivalently, one may minimize the Rayleigh quotient
+\begin{equation}
+\varepsilon(c)
+=
+\frac{c^\dagger M c}{c^\dagger S c},
+\label{eq:app_qse_rayleigh}
+\end{equation}
+or minimize $c^\dagger M c$ subject to the normalization constraint $c^\dagger S c=1$.  Introduce a Lagrange multiplier $\varepsilon$ to enforce the constraint:
+\begin{equation}
+\mathcal L(c)
+=
+c^\dagger M c-\varepsilon(c^\dagger S c-1),
+\label{eq:app_qse_lagrangian}
+\end{equation}
+where variations in $c$ are now unconstrained because the constraint has been moved into $\mathcal L$.  Setting the derivative with respect to $c^\dagger$ to zero gives
+\begin{equation}
+\frac{\partial\mathcal L}{\partial c^\dagger}
+=
+Mc-\varepsilon Sc
+=0,
+\label{eq:app_qse_lagrange_stationarity}
+\end{equation}
+and therefore
+\begin{equation}
+M c=\varepsilon S c.
+\label{eq:app_qse_gep_derivation}
+\end{equation}
+Therefore $M$ is not a regularized version of $S$: $S$ is the metric of the nonorthogonal basis, while $M$ is the Hamiltonian restricted to that basis.  If the basis were orthonormal, then $S=I$ and Eq.~(\ref{eq:app_qse_gep_derivation}) would reduce to ordinary Hamiltonian diagonalization.
+
+\section{Spectral metrics}
+\label{app:spectral_metrics}
+
+For ED-accessible benchmarks, root matching uses Eq.~(\ref{eq:root_matching}).  Static root errors are
+\begin{align}
+\epsilon_E(\nu)&=|\varepsilon_\nu^{\qse}-E_\nu^{\ed}|,
+\nonumber\\
+\epsilon_F(\nu)&=1-|\braket{\Psi_\nu^{\ed}}{\Psi_\nu^{\qse}}|^2,
+\nonumber\\
+\epsilon_T^O(\nu)&=
+\left|
+|\bra{\Psi_\nu^{\qse}}O\ket{\Psi_0^{\qse}}|^2
+-
+|\bra{\Psi_\nu^{\ed}}O\ket{\Psi_0^{\ed}}|^2
+\right|.
+\label{eq:app_root_metrics}
+\end{align}
+The spectral-window error is
+\begin{equation}
+\epsilon_{\rm spec}^{O}(\Wcal)
+=
+\sum_{\nu\in\Wcal}
+w_\nu^{O}
+\left[
+|\Delta\omega_\nu|
++
+\lambda_T\epsilon_T^O(\nu)
++
+\lambda_F\epsilon_F(\nu)
+\right].
+\label{eq:app_spectral_error}
+\end{equation}
+
+\section{Adaptive QSE during dynamics}
+\label{app:adaptive_qse_dynamics}
+
+If frozen-subspace propagation has large escape residual, dynamically enlarge the QSE basis.  At checkpoint $t_k$, score a trial record by
+\begin{equation}
+\Delta_r^{\qse-\dyn}(t_k)
+=
+\frac{
+|\bra{\bar\phi_r}
+[H(t_k)-\expval{H(t_k)}]\ket{\Psi(t_k)}|^2
+}{
+\braket{\bar\phi_r}{\bar\phi_r}+\lambda_S
+}.
+\label{eq:app_qse_dyn_gain}
+\end{equation}
+Let $\mathcal N_{2,k}^{\qse-\dyn}(r)$ denote the same supported metric-residual novelty as Eq.~(\ref{eq:qse_phase2_novelty}), but evaluated against the current dynamic QSE basis at checkpoint $t_k$.
+Admission occurs when
+\begin{equation}
+\begin{aligned}
+\operatorname{Admit}_{k}^{\qse-\dyn}(r)=1
+\iff{}&
+\rho_{\rm esc}(t_k)\ge\tau_{\rm esc}
+\\
+&\wedge\
+\frac{
+\Delta_r^{\qse-\dyn}(t_k)\mathcal N_{2,k}^{\qse-\dyn}(r)
+}{
+1+K_{\rm meas}(r)+K_{\rm cond}(r)
+}
+\ge\tau_{\qse}^{\dyn}.
+\end{aligned}
+\label{eq:app_adaptive_qse_admit}
+\end{equation}
+The new basis keeps past matrix elements and measures only the new rows/columns needed to continue Eq.~(\ref{eq:frozen_qse_ode}).
+
+\section{QSE-to-McLachlan compression details}
+\label{app:qse_to_mclachlan_details}
+
+The root-refit objective in Eq.~(\ref{eq:root_refit}) is optimized with the same canonical optimizer settings as the ground-state ansatz preparation unless a root-specific stress test is being reported.  The final live excited-state circuit is accepted when
+\begin{equation}
+\begin{aligned}
+1-
+\left|
+\bra{\Psi_\nu^{\qse}}\psi_\nu(\vartheta^\star)
+\right|^2
+\le\tau_{\rm refit}
+\\
+\wedge\quad
+\left|
+\bra{\psi_\nu(\vartheta^\star)}
+H_0
+\ket{\psi_\nu(\vartheta^\star)}
+-\varepsilon_\nu
+\right|
+\le\tau_E^{\rm refit}.
+\end{aligned}
+\label{eq:app_refit_accept}
+\end{equation}
+
+\section{Dynamic-controller feature details}
+\label{app:excited_dynamic_controller_details}
+
+The live excited-state McLachlan route uses the supported inverse, residual split, turbulence detector, append ladder, and prune guards defined above, with the root index $\nu$ added everywhere.  The supported inverse is
+\begin{equation}
+A_{\tau,\eps}^{\oplus}
+=
+V\diag\!\left(
+\frac{\mathbf 1[s_i\ge\tau_{\rm pinv}s_1]}{s_i+\eps_{\rm solve}}
+\right)V^\top,
+\qquad
+A=V\diag(s_i)V^\top.
+\label{eq:app_excited_supported_inverse}
+\end{equation}
+The realized residual split is
+\begin{equation}
+\begin{aligned}
+\epsilon_{\rm expr,\nu,k}^2
+&=\min_v\|\bar T_{\nu,k}v-\bar b_{\nu,k}\|_2^2,\\
+\rho_{\rm expr,\nu,k}
+&=
+\frac{\epsilon_{\rm expr,\nu,k}^2}
+{\Var_{\psi_{\nu,k}}(H(t_k))+\eps}.
+\end{aligned}
+\label{eq:app_excited_expr_split}
+\end{equation}
+
+\begin{thebibliography}{99}
+
+\bibitem{Hubbard1963}
+J. Hubbard,
+``Electron correlations in narrow energy bands,''
+\emph{Proceedings of the Royal Society A} \textbf{276}, 238--257 (1963).
+
+\bibitem{Holstein1959}
+T. Holstein,
+``Studies of polaron motion: Part I. The molecular-crystal model,''
+\emph{Annals of Physics} \textbf{8}, 325--342 (1959);
+``Studies of polaron motion: Part II. The `small' polaron,''
+\emph{Annals of Physics} \textbf{8}, 343--389 (1959).
+
+\bibitem{WeisseFehske2008}
+A. Weisse and H. Fehske,
+``Exact diagonalization techniques,''
+in \emph{Computational Many-Particle Physics}, Lecture Notes in Physics Vol. 739 (Springer, 2008), pp. 529--544.
+
+\bibitem{TroyerWiese2005}
+M. Troyer and U.-J. Wiese,
+``Computational complexity and fundamental limitations to fermionic quantum Monte Carlo simulations,''
+\emph{Physical Review Letters} \textbf{94}, 170201 (2005).
+
+\bibitem{Schollwoeck2011}
+U. Schollw\"ock,
+``The density-matrix renormalization group in the age of matrix product states,''
+\emph{Annals of Physics} \textbf{326}, 96--192 (2011).
+
+\bibitem{Macridin2018ElectronPhonon}
+A. Macridin, P. Spentzouris, J. Amundson, and R. Harnik,
+``Electron-phonon systems on a universal quantum computer,''
+\emph{Physical Review Letters} \textbf{121}, 110504 (2018).
+
+\bibitem{Sawaya2020DLevel}
+N. P. D. Sawaya et al.,
+``Resource-efficient digital quantum simulation of $d$-level systems for photonic, vibrational, and spin-$s$ Hamiltonians,''
+\emph{npj Quantum Information} \textbf{6}, 49 (2020).
+
+\bibitem{Li2023VBSElectronPhonon}
+W. Li et al.,
+``Efficient quantum simulation of electron-phonon systems by variational basis state encoder,''
+\emph{Physical Review Research} \textbf{5}, 023046 (2023).
+
+\bibitem{McClean2017QSE}
+J. R. McClean, M. E. Kimchi-Schwartz, J. Carter, and W. A. de Jong,
+``Hybrid quantum-classical hierarchy for mitigation of decoherence and determination of excited states,''
+\emph{Physical Review A} \textbf{95}, 042308 (2017).
+
+\bibitem{Colless2018QSE}
+J. I. Colless, V. V. Ramasesh, D. Dahlen, M. S. Blok, M. E. Kimchi-Schwartz, J. R. McClean, J. Carter, W. A. de Jong, and I. Siddiqi,
+``Computation of molecular spectra on a quantum processor with an error-resilient algorithm,''
+\emph{Physical Review X} \textbf{8}, 011021 (2018).
+
+\bibitem{Higgott2019VQD}
+O. Higgott, D. Wang, and S. Brierley,
+``Variational quantum computation of excited states,''
+\emph{Quantum} \textbf{3}, 156 (2019).
+
+\bibitem{Parrish2019MCVQE}
+R. M. Parrish et al.,
+``Quantum computation of electronic transitions using a variational quantum eigensolver,''
+\emph{Physical Review Letters} \textbf{122}, 230401 (2019).
+
+\bibitem{Jones2019Spectra}
+T. Jones, S. Endo, S. McArdle, X. Yuan, and S. C. Benjamin,
+``Variational quantum algorithms for discovering Hamiltonian spectra,''
+\emph{Physical Review A} \textbf{99}, 062304 (2019).
+
+\bibitem{Nakanishi2019SSVQE}
+K. M. Nakanishi, K. Mitarai, and K. Fujii,
+``Subspace-search variational quantum eigensolver for excited states,''
+\emph{Physical Review Research} \textbf{1}, 033062 (2019).
+
+\bibitem{Ollitrault2020qEOM}
+P. J. Ollitrault et al.,
+``Quantum equation of motion for computing molecular excitation energies on a noisy quantum processor,''
+\emph{Physical Review Research} \textbf{2}, 043140 (2020).
+
+\bibitem{AsthanaKumar2023QScEOM}
+A. Asthana et al.,
+``Quantum self-consistent equation-of-motion method for computing molecular excitation energies, ionization potentials, and electron affinities on a quantum computer,''
+\emph{Chemical Science} \textbf{14}, 2405--2418 (2023).
+
+\bibitem{Grimsley2019ADAPT}
+H. R. Grimsley, S. E. Economou, E. Barnes, and N. J. Mayhall,
+``An adaptive variational algorithm for exact molecular simulations on a quantum computer,''
+\emph{Nature Communications} \textbf{10}, 3007 (2019).
+
+\bibitem{Tang2021QubitADAPT}
+H. L. Tang et al.,
+``Qubit-ADAPT-VQE: An adaptive algorithm for constructing hardware-efficient ans\"atze on a quantum processor,''
+\emph{PRX Quantum} \textbf{2}, 020310 (2021).
+
+\bibitem{Yordanov2021QEB}
+Y. S. Yordanov, V. Armaos, C. H. W. Barnes, and D. R. M. Arvidsson-Shukur,
+``Qubit-excitation-based adaptive variational quantum eigensolver,''
+\emph{Communications Physics} \textbf{4}, 228 (2021).
+
+\bibitem{Anastasiou2024TETRIS}
+P. G. Anastasiou, Y. Chen, N. J. Mayhall, E. Barnes, and S. E. Economou,
+``TETRIS-ADAPT-VQE: An adaptive algorithm that yields shallower, denser circuit ans\"atze,''
+\emph{Physical Review Research} \textbf{6}, 013254 (2024).
+
+\bibitem{Ramoa2025CEO}
+M. Ram\^oa et al.,
+``Reducing the resources required by ADAPT-VQE using coupled exchange operators and improved subroutines,''
+\emph{npj Quantum Information} \textbf{11}, 86 (2025).
+
+\bibitem{Sohail2026GeoADAPT}
+M. A. Sohail and T. Koike-Akino,
+``Geo-ADAPT-VQE: Quantum information metric-aware circuit optimization for quantum chemistry,''
+arXiv:2603.10325 (2026).
+
+\bibitem{McLachlan1964}
+A. D. McLachlan,
+``A variational solution of the time-dependent Schr\"odinger equation,''
+\emph{Molecular Physics} \textbf{8}, 39--44 (1964).
+
+\bibitem{Yuan2019VQS}
+X. Yuan, S. Endo, Q. Zhao, Y. Li, and S. C. Benjamin,
+``Theory of variational quantum simulation,''
+\emph{Quantum} \textbf{3}, 191 (2019).
+
+\bibitem{Barison2021PVQD}
+S. Barison, F. Vicentini, and G. Carleo,
+``An efficient quantum algorithm for the time evolution of parameterized circuits,''
+\emph{Quantum} \textbf{5}, 512 (2021).
+
+\bibitem{Yao2021AVQDS}
+Y.-X. Yao, N. Gomes, F. Zhang, C.-Z. Wang, K.-M. Ho, T. Iadecola, and P. P. Orth,
+``Adaptive variational quantum dynamics simulations,''
+\emph{PRX Quantum} \textbf{2}, 030307 (2021).
+
+\bibitem{Linteau2024APVQD}
+D. Linteau, S. Barison, N. H. Lindner, and G. Carleo,
+``Adaptive projected variational quantum dynamics,''
+\emph{Physical Review Research} \textbf{6}, 023130 (2024).
+
+\bibitem{Zhang2025CompressedAVQD}
+F. Zhang, C.-Z. Wang, T. Iadecola, P. P. Orth, and Y.-X. Yao,
+``Adaptive variational quantum dynamics simulations with compressed circuits and fewer measurements,''
+\emph{Physical Review B} \textbf{111}, 094310 (2025).
+
+\bibitem{ProvostVallee1980}
+J. P. Provost and G. Vall\'ee,
+``Riemannian structure on manifolds of quantum states,''
+\emph{Communications in Mathematical Physics} \textbf{76}, 289--301 (1980).
+
+\bibitem{Verteletskyi2020MeasurementGrouping}
+V. Verteletskyi, T.-C. Yen, and A. F. Izmaylov,
+``Measurement optimization in the variational quantum eigensolver using a minimum clique cover,''
+\emph{Journal of Chemical Physics} \textbf{152}, 124114 (2020).
+
+\bibitem{Urbanek2020VQSE}
+M. Urbanek, D. Camps, R. Van Beeumen, and W. A. de Jong,
+``Chemistry on quantum computers with virtual quantum subspace expansion,''
+\emph{Journal of Chemical Theory and Computation} \textbf{16}, 5425--5431 (2020).
+
+\bibitem{Yoshioka2022GQSE}
+N. Yoshioka, H. Hakoshima, Y. Matsuzaki, Y. Tokunaga, Y. Suzuki, and S. Endo,
+``Generalized quantum subspace expansion,''
+\emph{Physical Review Letters} \textbf{129}, 020502 (2022).
+
+\bibitem{CortesGray2022QKSD}
+C. L. Cortes and S. K. Gray,
+``Quantum Krylov subspace algorithms for ground- and excited-state energy estimation,''
+\emph{Physical Review A} \textbf{105}, 022417 (2022).
+
+\bibitem{Motta2024SubspaceReview}
+M. Motta et al.,
+``Subspace methods for electronic structure simulations on quantum computers,''
+\emph{Electronic Structure} \textbf{6}, 013001 (2024).
+
+\bibitem{Epperly2022QSD}
+E. N. Epperly, L. Lin, and Y. Nakatsukasa,
+``A theory of quantum subspace diagonalization,''
+\emph{SIAM Journal on Matrix Analysis and Applications} \textbf{43}, 1263--1290 (2022).
+
+\bibitem{Lee2024SamplingQKSD}
+G. Lee, D. Lee, and J. Huh,
+``Sampling error analysis in quantum Krylov subspace diagonalization,''
+\emph{Quantum} \textbf{8}, 1477 (2024).
+
+\bibitem{Getelina2024HardwareNoiseQSE}
+J. C. Getelina, P. Sharma, T. Iadecola, P. P. Orth, and Y.-X. Yao,
+``Quantum subspace expansion in the presence of hardware noise,''
+\emph{APL Quantum} \textbf{1}, 036127 (2024).
+
+\bibitem{OLeary2025PartitionedQSE}
+T. O'Leary, L. W. Anderson, D. Jaksch, and M. Kiffner,
+``Partitioned quantum subspace expansion,''
+\emph{Quantum} \textbf{9}, 1726 (2025).
+
+\bibitem{Boyd2025ShadowSubspace}
+G. Boyd, B. Koczor, and Z. Cai,
+``High-dimensional subspace expansion using classical shadows,''
+\emph{Physical Review A} \textbf{111}, 022423 (2025).
+
+\bibitem{Kwao2026GEPQSE}
+P. F. Kwao, S. P. Sundar, B. Gupt, and A. Asthana,
+``Generalized eigenvalue problem in subspace-based excited-state methods for quantum computers,''
+\emph{Journal of Chemical Theory and Computation} \textbf{22}, 2892--2903 (2026).
+
+\bibitem{ChoiIzmaylov2023MeasurementQSE}
+S. Choi and A. F. Izmaylov,
+``Measurement optimization techniques for excited electronic states in near-term quantum computing algorithms,''
+\emph{Journal of Chemical Theory and Computation} \textbf{19}, 3184--3193 (2023).
+
+\bibitem{Nakamura2024AdaptiveMeasurementQSE}
+Y. Nakamura, Y. Yano, and N. Yoshioka,
+``Adaptive measurement strategy for quantum subspace methods,''
+\emph{New Journal of Physics} \textbf{26}, 033028 (2024).
+
+\bibitem{Jamet2022GreenQSE}
+F. Jamet, A. Agarwal, and I. Rungger,
+``Quantum subspace expansion algorithm for Green's functions,''
+arXiv:2205.00094 (2022).
+
+\bibitem{Dhawan2024ImagTimeGreen}
+D. Dhawan, D. Zgid, and M. Motta,
+``Quantum algorithm for imaginary-time Green's functions,''
+\emph{Journal of Chemical Theory and Computation} \textbf{20}, 4629--4638 (2024).
+
+\bibitem{Gauthier2024OccupationQSE}
+B. Gauthier, P. Rosenberg, A. Foley, and M. Charlebois,
+``Occupation-number quantum-subspace-expansion approach to computing the single-particle Green function: An opportunity for noise filtering,''
+\emph{Physical Review A} \textbf{110}, 032624 (2024).
+
+\bibitem{Kokcu2024LinearResponse}
+E. K\"okc\"u, H. A. Labib, J. K. Freericks, and A. F. Kemper,
+``A linear response framework for simulating bosonic and fermionic correlation functions illustrated on quantum computers,''
+\emph{Nature Communications} \textbf{15}, 3881 (2024).
+
+\bibitem{Umeano2025KitaevQSE}
+C. Umeano, F. Jamet, L. P. Lindoy, I. Rungger, and O. Kyriienko,
+``Quantum subspace expansion approach for simulating dynamical response functions of Kitaev spin liquids,''
+\emph{Physical Review Materials} \textbf{9}, 034401 (2025).
+
+\bibitem{Backes2023HHDMFT}
+S. Backes, Y. Murakami, S. Sakai, and R. Arita,
+``Dynamical mean-field theory for the Hubbard-Holstein model on a quantum device,''
+\emph{Physical Review B} \textbf{107}, 165155 (2023).
+
+\bibitem{Denner2023HybridEP}
+M. M. Denner et al.,
+``A hybrid quantum-classical method for electron-phonon systems,''
+\emph{Communications Physics} \textbf{6}, 233 (2023).
+
+\bibitem{Dutta2024BosonicChemistry}
+R. Dutta et al.,
+``Simulating chemistry on bosonic quantum devices,''
+\emph{Journal of Chemical Theory and Computation} \textbf{20}, 6426--6441 (2024).
+
+\bibitem{Peng2025BosonHamiltonians}
+B. Peng, Y. Su, D. Claudino, K. Kowalski, G. H. Low, and M. Roetteler,
+``Quantum simulation of boson-related Hamiltonians: Techniques, effective Hamiltonian construction, and error analysis,''
+\emph{Quantum Science and Technology} \textbf{10}, 023002 (2025).
+
+\bibitem{Fischer2025ShadowQSE}
+L. E. Fischer, D. Bultrini, I. Tavernelli, and F. Tacchino,
+``Large-scale implementation of quantum subspace expansion with classical shadows,''
+arXiv:2510.25640 (2025).
+
+\end{thebibliography}
+
+\end{document}
