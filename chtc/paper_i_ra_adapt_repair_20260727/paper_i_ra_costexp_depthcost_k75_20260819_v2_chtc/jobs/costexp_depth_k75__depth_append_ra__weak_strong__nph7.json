@@ -1,0 +1,39 @@
+{
+  "arm_id": "depth_append_ra",
+  "builder": "build_paper_i_ra_all_phase_adaptive_natural_terminal_request",
+  "campaign_id": "ra_adapt_costexp_depthcost_k75_20260819_v2",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "costexp_depth_k75__depth_append_ra__weak_strong__nph7",
+  "expected_signed_penalty_weights": {
+    "penalty_weight_1q": 0.0,
+    "penalty_weight_2q": 0.3,
+    "penalty_weight_depth": 0.25,
+    "penalty_weight_depth_2q": 0.3,
+    "penalty_weight_size": 0.0
+  },
+  "family": "explicit_depth",
+  "insertion_policy": "append_only",
+  "manuscript_adoption_authorized": false,
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "ra_adapt_costexp_depthcost_k75_20260819_v2_chtc",
+  "protocol_file_sha256": "77c93e121fc5929d76e5ae29b640fe280938c1e864da2e559fe938b0351ba251",
+  "protocol_path": "protocols/costexp_depth_k75__depth_append_ra__weak_strong__nph7.json",
+  "protocol_sha256": "855ce4b603c63d396417eaca588e19c2ad89be5ec3c16aaead82ca5feb4f4736",
+  "regime_id": "weak_strong",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "922abe196602b74283520184db36094c5497eab9cf86cbe7ab7ead5bee3fc2d9",
+  "route_variant": "gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "ra_adapt_costexp_depthcost_k75_job_v2",
+  "sha256": "0fded2504a55708d2cb6cc362b59bd97bd450b5511afb3bcb12758472fb59570",
+  "source_inventory_sha256": "6175ebc7588e5478d63d406e37c78ce83f95900fa821fd4a4c5d8f24a6d9fd8a",
+  "submission_authorized": true
+}

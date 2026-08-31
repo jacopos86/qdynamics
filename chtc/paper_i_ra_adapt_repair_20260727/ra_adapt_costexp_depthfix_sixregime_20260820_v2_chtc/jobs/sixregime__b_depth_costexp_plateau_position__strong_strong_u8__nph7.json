@@ -1,0 +1,33 @@
+{
+  "arm_id": "b_depth_costexp_plateau_position",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_forced_k50_request",
+  "campaign_id": "ra_adapt_costexp_depthfix_sixregime_20260820_v2",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "sixregime__b_depth_costexp_plateau_position__strong_strong_u8__nph7",
+  "family": "explicit_depth_costexp",
+  "insertion_policy": "plateau_commutation_costexp",
+  "matrix": "B",
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "ra_adapt_costexp_depthfix_sixregime_20260820_v2_chtc",
+  "paper_adoption_authorized": false,
+  "protocol_file_sha256": "ac7a0ffd25611244c7cc372e8f8209c44b9c2f78b6d487703e5e2b336b19c8e9",
+  "protocol_path": "protocols/sixregime__b_depth_costexp_plateau_position__strong_strong_u8__nph7.json",
+  "protocol_sha256": "0e260409691be17bcbbcb16d4405412dcc2f8ddc7c7f3ea3dde8d09b7dc3fc09",
+  "regime_id": "strong_strong_u8",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1",
+  "route_contract_sha256": "ec88f2453352b6a0dc547dd29a8c215053c9ba02981dca0e28afa300b14e5719",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_forced_admission_k50_v1",
+  "schema": "ra_adapt_costexp_depthfix_sixregime_job_v2",
+  "sha256": "84e18088c97a590658cd27db3cd04d4b88ae74aed87e14114b9e8c10a27d7d17",
+  "source_inventory_sha256": "6f43505e8b4baa3b48bd76a21d61b90c035013638c9ba89d39aaec6740a2138a",
+  "submission_authorized": true
+}

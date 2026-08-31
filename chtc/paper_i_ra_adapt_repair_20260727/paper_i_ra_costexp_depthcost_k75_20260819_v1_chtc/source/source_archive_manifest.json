@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "74b7438bd0de8020d2ad6aa7ee144c39e83d2962f18f6c9b7feda196f3426a5a",
+  "archive_size_bytes": 4991167,
+  "member_count": 615,
+  "members_sha256": "4c2baa4f644f0158ccdd9fdb3c5cdeccfdbf219cf118a0710e1ba2679509fdcb",
+  "schema": "paper_i_ra_costexp_depthcost_k75_source_archive_v1",
+  "sha256": "538f377605c07e414c87a8966411fc41d78d734d57f1af8a729e4fa380ba3e22",
+  "source_inventory_sha256": "a9498103448973a8f59fd6a6680db06e1396ddfef2f99eab8c22b07235047163"
+}

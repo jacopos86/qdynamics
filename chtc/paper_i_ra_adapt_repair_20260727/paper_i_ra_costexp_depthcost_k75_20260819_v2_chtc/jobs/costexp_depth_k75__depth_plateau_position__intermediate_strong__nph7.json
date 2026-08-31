@@ -1,0 +1,39 @@
+{
+  "arm_id": "depth_plateau_position",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+  "campaign_id": "ra_adapt_costexp_depthcost_k75_20260819_v2",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "costexp_depth_k75__depth_plateau_position__intermediate_strong__nph7",
+  "expected_signed_penalty_weights": {
+    "penalty_weight_1q": 0.0,
+    "penalty_weight_2q": 0.3,
+    "penalty_weight_depth": 0.25,
+    "penalty_weight_depth_2q": 0.3,
+    "penalty_weight_size": 0.0
+  },
+  "family": "explicit_depth",
+  "insertion_policy": "plateau_commutation",
+  "manuscript_adoption_authorized": false,
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "ra_adapt_costexp_depthcost_k75_20260819_v2_chtc",
+  "protocol_file_sha256": "60a00e598257cfb1d7c5126635ddff7b250800f8d42c4c09ae6a36c6dd662418",
+  "protocol_path": "protocols/costexp_depth_k75__depth_plateau_position__intermediate_strong__nph7.json",
+  "protocol_sha256": "b30466cfd7c4306e3e92257e4844d68a9e0b372400754fd5711f35c86309dd86",
+  "regime_id": "intermediate_strong",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "1bdd7f059e3d967f3f37ffd56581735ff0085099ee62cc9c90f789e35f904f71",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "ra_adapt_costexp_depthcost_k75_job_v2",
+  "sha256": "1bff07bf65bbb647c4fea4043a66f6f2151996b7ce6cc64e963b892a73b9a891",
+  "source_inventory_sha256": "6175ebc7588e5478d63d406e37c78ce83f95900fa821fd4a4c5d8f24a6d9fd8a",
+  "submission_authorized": true
+}

@@ -1,0 +1,39 @@
+{
+  "arm_id": "costexp_always_open",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+  "campaign_id": "ra_adapt_costexp_depthcost_k75_20260819_v2",
+  "compile_cost_policy": null,
+  "execution_authorized": true,
+  "execution_id": "costexp_depth_k75__costexp_always_open__strong_strong_u8__nph7",
+  "expected_signed_penalty_weights": {
+    "penalty_weight_1q": 0.0,
+    "penalty_weight_2q": 1.0,
+    "penalty_weight_depth": 0.1,
+    "penalty_weight_depth_2q": 0.0,
+    "penalty_weight_size": 0.01
+  },
+  "family": "costexp",
+  "insertion_policy": "always_commutation_reduced_costexp",
+  "manuscript_adoption_authorized": false,
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "ra_adapt_costexp_depthcost_k75_20260819_v2_chtc",
+  "protocol_file_sha256": "fa9785100266d772380802d863a92187bf882566c705ee5a47e50ce99e556e99",
+  "protocol_path": "protocols/costexp_depth_k75__costexp_always_open__strong_strong_u8__nph7.json",
+  "protocol_sha256": "d4fb214cf40aabf78fa359d35fd04a4ab79e7feb072af4d948eb65a48aa9d197",
+  "regime_id": "strong_strong_u8",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "a40e82afb41f305069619d1c4ebadb42b2af71d5a8c4b28c2bd72f5da1f10b41",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "ra_adapt_costexp_depthcost_k75_job_v2",
+  "sha256": "e1085d9067d43d4f4e14b03ecc34dc795e3999b21d091eec8c8286994da2ed5a",
+  "source_inventory_sha256": "6175ebc7588e5478d63d406e37c78ce83f95900fa821fd4a4c5d8f24a6d9fd8a",
+  "submission_authorized": true
+}

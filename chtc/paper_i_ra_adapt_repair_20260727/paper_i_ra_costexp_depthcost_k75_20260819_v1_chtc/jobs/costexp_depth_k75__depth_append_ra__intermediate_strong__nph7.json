@@ -1,0 +1,32 @@
+{
+  "arm_id": "depth_append_ra",
+  "builder": "build_paper_i_ra_all_phase_adaptive_natural_terminal_request",
+  "campaign_id": "paper_i_ra_costexp_depthcost_k75_20260819_v1",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "costexp_depth_k75__depth_append_ra__intermediate_strong__nph7",
+  "family": "explicit_depth",
+  "insertion_policy": "append_only",
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "paper_i_ra_costexp_depthcost_k75_20260819_v1_chtc",
+  "paper_adoption_authorized": false,
+  "protocol_file_sha256": "32593452c6ed722e905b2bdcc0da6e52ca24b474f9f4a6c617835ec5b27ad5c6",
+  "protocol_path": "protocols/costexp_depth_k75__depth_append_ra__intermediate_strong__nph7.json",
+  "protocol_sha256": "0cbc7ed3766dd26de4efe1d2bad2ccd2d39fa362ad8668312701dfcd80e617f9",
+  "regime_id": "intermediate_strong",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "e25398cb742e6878421e23869636e8c6b5949455823f38401682b670daeedc82",
+  "route_variant": "gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "paper_i_ra_costexp_depthcost_k75_job_v1",
+  "sha256": "6ef7eccb57e930ad2deee08d1b097a3aaf13848e3596f7ee9d12cc6f12c435d7",
+  "source_inventory_sha256": "a9498103448973a8f59fd6a6680db06e1396ddfef2f99eab8c22b07235047163",
+  "submission_authorized": true
+}

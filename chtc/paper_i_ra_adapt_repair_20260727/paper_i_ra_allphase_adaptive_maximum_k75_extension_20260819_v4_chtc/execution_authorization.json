@@ -1,0 +1,22 @@
+{
+  "authority_basis": "explicit_user_authorization_in_chat_20260819_proceed_with_fix_so_75_results_are_not_wasted",
+  "campaign_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v4",
+  "created_at": "2026-08-19T23:36:24.916614Z",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+    "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+    "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+    "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7"
+  ],
+  "package_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v4_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "97d3adef65e906fb7b0c250d6332387556d082f737e285ca37b47c5ba38d9eed",
+  "schema": "paper_i_ra_allphase_adaptive_maximum_k75_authorization_v4",
+  "sha256": "ca4c426494a11e2ef920c2836b9f80538948d8cc6510dc1ce3b91f8dab222282",
+  "source_archive_sha256": "e65bce8db251d61fce898c584604968838fda9b9897a19a27bc506f62ca6f7ae",
+  "source_inventory_sha256": "138b1c126a57f920fa07dde3149b74d99e9e0a6bc563e450eba23aa89033cf85",
+  "submission_authorized": true
+}

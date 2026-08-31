@@ -1,0 +1,332 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1"
+  ],
+  "campaign_id": "ra_adapt_warmstart_sixregime_20260820_v1",
+  "canonical_execution_order": [
+    "sixregime__c_ws_depth_append_ra__weak_weak__nph3",
+    "sixregime__c_ws_depth_append_ra__intermediate_weak__nph3",
+    "sixregime__c_ws_depth_append_ra__strong_weak_u8__nph3",
+    "sixregime__c_ws_depth_append_ra__weak_strong__nph7",
+    "sixregime__c_ws_depth_append_ra__intermediate_strong__nph7",
+    "sixregime__c_ws_depth_append_ra__strong_strong_u8__nph7",
+    "sixregime__c_ws_depth_costexp_always_open__weak_weak__nph3",
+    "sixregime__c_ws_depth_costexp_always_open__intermediate_weak__nph3",
+    "sixregime__c_ws_depth_costexp_always_open__strong_weak_u8__nph3",
+    "sixregime__c_ws_depth_costexp_always_open__weak_strong__nph7",
+    "sixregime__c_ws_depth_costexp_always_open__intermediate_strong__nph7",
+    "sixregime__c_ws_depth_costexp_always_open__strong_strong_u8__nph7",
+    "sixregime__c_ws_depth_costexp_plateau_position__weak_weak__nph3",
+    "sixregime__c_ws_depth_costexp_plateau_position__intermediate_weak__nph3",
+    "sixregime__c_ws_depth_costexp_plateau_position__strong_weak_u8__nph3",
+    "sixregime__c_ws_depth_costexp_plateau_position__weak_strong__nph7",
+    "sixregime__c_ws_depth_costexp_plateau_position__intermediate_strong__nph7",
+    "sixregime__c_ws_depth_costexp_plateau_position__strong_strong_u8__nph7"
+  ],
+  "companion": "matrix C (alpha-star Schur candidate warm start) ships as a separate package once its sealed axis lands",
+  "created_at": "2026-08-20T15:12:15.161939Z",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__weak_weak__nph3",
+      "file_sha256": "228d2270d0b6f9845865e592ca0bd91fc6f51ec1d62fd6204d9b6d679d1c273a",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__weak_weak__nph3.json",
+      "sha256": "66fefeeadb07b61491237c9fd500966814556bed5f84dd17c03fac569126174a"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__intermediate_weak__nph3",
+      "file_sha256": "50ffb1c126f6c0cc368d73c75a12f7c66bd857721276291225cff6cdf0644983",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__intermediate_weak__nph3.json",
+      "sha256": "0414f85a99d83efb9556d0a3de6e4243290f00c4b2475ff640e25482f39ec073"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__strong_weak_u8__nph3",
+      "file_sha256": "77a9861c7510a191560565ef44a01a97d610741187fff95e36939917adf8ca65",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__strong_weak_u8__nph3.json",
+      "sha256": "448959dc8eb032395edc0a27944d5b3299b9ac708a5b0e5cbd070df5dab5ba12"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__weak_strong__nph7",
+      "file_sha256": "c4058f96ad3cceb9e840e642e496e4e1f4862fe6454d39224c5def0785ded267",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__weak_strong__nph7.json",
+      "sha256": "97bce50e5a65740f6eef72ece6afcb52ac98497db3f5d4c49c2edf1188608de9"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__intermediate_strong__nph7",
+      "file_sha256": "e5ed31853fed2320a8636495c4ebade7c5c9870ee8e5cb8fee4a647899bd70d7",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__intermediate_strong__nph7.json",
+      "sha256": "cf3f23b6e7b68e59885b46f4908080018b9bae8205279ccfc77f7446efb249d3"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__strong_strong_u8__nph7",
+      "file_sha256": "796870b2d1045f51747df7b099dee741fad7a2db1c998faa48c0f302fffa9199",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_append_ra__strong_strong_u8__nph7.json",
+      "sha256": "0e70fad911cd3473d3919dce3abeaddf37db520b26c8237f206009518eee7119"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__weak_weak__nph3",
+      "file_sha256": "379a5fd3fddd6a136d5597419d65915866a984689213413c193c8a3ce4b66d05",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__weak_weak__nph3.json",
+      "sha256": "d63235e4ea7f66009f2e381784f76776590c9c92bda03d0f0645231b042ff7cd"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__intermediate_weak__nph3",
+      "file_sha256": "5a8422445549aee4acb5f57c32eda208a0664e02f9ef3bdf6c5783f1109dbf08",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__intermediate_weak__nph3.json",
+      "sha256": "85cb375445e6150918a1743f744236fc2136a8ba66b766817e312664d262d362"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__strong_weak_u8__nph3",
+      "file_sha256": "e2b0edcb47fdd2913021d1a22820c221f3848e499edcf58dd8d865e202e8edee",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__strong_weak_u8__nph3.json",
+      "sha256": "6ff1cf82382411af33729ff7d7e0afade70bafbf0cf19bbd64a75b5f4b0fd615"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__weak_strong__nph7",
+      "file_sha256": "dc0dfd0619a5388c5722cf88d5f6701fdfdb21ea3bfac97b7c89b8078851bcb7",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__weak_strong__nph7.json",
+      "sha256": "bd912cc3e096c40047ff92ed57b554a29ab93ec9fb2a6718be83ef41c1bef561"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__intermediate_strong__nph7",
+      "file_sha256": "af6e6faf60d558462bbc9425195a43dae2684631d55c054e518261761dcc1a1f",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__intermediate_strong__nph7.json",
+      "sha256": "cc8ea31258ce80bb5f70a3e28c3159ae50d46c9031a01791cd343e9cf6340645"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__strong_strong_u8__nph7",
+      "file_sha256": "cf35ba10400f640673c41609502f12eec71d42aaf40f42ea0d55a469b97c843d",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_always_open__strong_strong_u8__nph7.json",
+      "sha256": "e0dc0178336fbbc81c5da1588e3f68d59cc7c56e82c2c0a01ea41064f965644c"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__weak_weak__nph3",
+      "file_sha256": "d12431f9bed56133830c17249511379b6a7f2efa3301ec0f6ae59f87ea5ee2c2",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__weak_weak__nph3.json",
+      "sha256": "609d122071490dbea3f4b22c16dd70f79f92d3de930cdaa0a9f19425e306b85b"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__intermediate_weak__nph3",
+      "file_sha256": "369a56b65015abf47e2c955a1f18ebf35e440f95de9875a2d875f6c414ce2f58",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__intermediate_weak__nph3.json",
+      "sha256": "48d10c9750563bf70307bd02de3380d53b0c54b661b77841fa9e0f1b3d86463f"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__strong_weak_u8__nph3",
+      "file_sha256": "48e4225db1e4c3d7ba409b47e97a8a7e64f3072de92fa5de9a3cc054338ac9cd",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__strong_weak_u8__nph3.json",
+      "sha256": "88fd01571992ff79823b0a29c11e209d47e75bc56fe20191291a109af7da030b"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__weak_strong__nph7",
+      "file_sha256": "8286e0a163b1c40ab09e7ca3439ddc1b65c6e061d54843a1edf4490b3b86c22e",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__weak_strong__nph7.json",
+      "sha256": "2f2dc8aed13116bc4eed0b6b85126b1156790eee44d8e5669e169d0ba6e508a2"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__intermediate_strong__nph7",
+      "file_sha256": "87142a011759e0c70d54f3ec3b625cb526cff9bc24873bd27bec52036c2cf3b2",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__intermediate_strong__nph7.json",
+      "sha256": "bf6888cd08a034b9723d2cb9f18b5603582627eb5af54091e48f5a3160efc5df"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__strong_strong_u8__nph7",
+      "file_sha256": "cb4b20d5a15717820b27a6974104e2f7623897c14e500a4211a357aa6f80cadc",
+      "mode": "fresh",
+      "path": "jobs/sixregime__c_ws_depth_costexp_plateau_position__strong_strong_u8__nph7.json",
+      "sha256": "dc09054a4fd8be9f84802443bc811379ca8fc3d62a356954273406d93ecea7a2"
+    }
+  ],
+  "matrix_shape": {
+    "active_cells": 18,
+    "arms": 3,
+    "horizons": {
+      "nph3": 50,
+      "nph7": 75
+    },
+    "matrices": {
+      "C_alpha_star_warm_start": 18
+    },
+    "regimes": 6
+  },
+  "package_id": "ra_adapt_warmstart_sixregime_20260820_v1_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__weak_weak__nph3",
+      "file_sha256": "da15de22e1ee97e136079160a8a74caee47edd7731a45efe932655c493a1dc64",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__weak_weak__nph3.json",
+      "sha256": "bb898e26230e0f57fa5ea9720c3a45009d633e1ba8c3aa9afe69593ac2c532cd"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__intermediate_weak__nph3",
+      "file_sha256": "2357bc9445905d738e6d54bfd7e5701e07a83a7ff84c33e36ee9d843f7e62229",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__intermediate_weak__nph3.json",
+      "sha256": "8056f2971dddb413e21be44bb672a089cad9e19a113415526c0f14b0a58c68bb"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__strong_weak_u8__nph3",
+      "file_sha256": "fb90eb43d75e3b367a19e59608589ed36c14bca368f299892fc46989e32e0abc",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__strong_weak_u8__nph3.json",
+      "sha256": "a7bb3d131c233b6566f622bfbbb2782ae79271915333f711cf137ffb91382295"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__weak_strong__nph7",
+      "file_sha256": "8810078f1343aad384de68d1d66c7dd90ae6efec0c463136753c9b26994faaf6",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__weak_strong__nph7.json",
+      "sha256": "d44e07326bcb034de69a06fd1e2b9fc98396569ed2287d641ea27b1e8bd82f37"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__intermediate_strong__nph7",
+      "file_sha256": "5251e04675f57181db1aee82acafad9e0538f14c41efb41286759adb122b124c",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__intermediate_strong__nph7.json",
+      "sha256": "41cc3954ddc6bfb1e25e82ce526440eaae941c212028355d2a06a3f745bdb5a6"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_append_ra__strong_strong_u8__nph7",
+      "file_sha256": "0262415e3fbcf2525ab657e042dab257ed18bee0e09bfdf4ba7181cfd061465d",
+      "path": "protocols/sixregime__c_ws_depth_append_ra__strong_strong_u8__nph7.json",
+      "sha256": "0f910b5776f69a3d1e9fecf4f8793998d8aaba1663fed8dfd216eb0fa7524af2"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__weak_weak__nph3",
+      "file_sha256": "dbaa028a4db3d3ebdc731a1d3589c2348cb0b21007954df357ea22350ca8f9cb",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__weak_weak__nph3.json",
+      "sha256": "25b477e965da71304e733552b2d585ffd41fcf10ffad8dc693ee2b5c00817137"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__intermediate_weak__nph3",
+      "file_sha256": "a396f9e51ae1638b9d929e7640162c6d859f1c9a1f1c51cbf56574f10665f462",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__intermediate_weak__nph3.json",
+      "sha256": "c697b32c26c078f66f9771822cf36ec8f387a478b8bbcc3004b36239a4d70c0f"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__strong_weak_u8__nph3",
+      "file_sha256": "b49a5db255e0bfe57c2ee6bdfcb2d4c4c1ed1ea14be00c888611c1ab862befe9",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__strong_weak_u8__nph3.json",
+      "sha256": "263a8cc972201e5d7608c6bdcfb422d1c8b013e9efc7f0eac29ce3000c888506"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__weak_strong__nph7",
+      "file_sha256": "33e14d7f422665f2b6b20dd8defb9814b399faa663a286a65a6829991d96e1a6",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__weak_strong__nph7.json",
+      "sha256": "55cf4ec8603e7aa75b543e12bd6472ade070c90256059fd1ed8480190a1ee33b"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__intermediate_strong__nph7",
+      "file_sha256": "843d584bc51d44afff54169c801f8aad61b46cdf7952d6dcb62186d5eaf1bbf8",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__intermediate_strong__nph7.json",
+      "sha256": "da9e0659e6d0a81ccc72fdcdead8b65589495ce2e419c17d19e093e88f1b863b"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_always_open__strong_strong_u8__nph7",
+      "file_sha256": "9f244bf4544ebd7d2b9909440f8b76b6403fbd1f2021e3cb5d42880b715cbb4c",
+      "path": "protocols/sixregime__c_ws_depth_costexp_always_open__strong_strong_u8__nph7.json",
+      "sha256": "0bcb4e7345cd7011f767a6d4657d78919e939e5cc184b8a76006bb0a73e7d9b9"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__weak_weak__nph3",
+      "file_sha256": "a0a16fa08dad13de59591d29dae861eda00ede47f413a1e2e5e2af8963b6e756",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__weak_weak__nph3.json",
+      "sha256": "7397e26c251d2d235db6d1d988670c48f204ecd6b2ab5d96e01d82eb45a1d11e"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__intermediate_weak__nph3",
+      "file_sha256": "4e5753dd1ae77aa48051a018096917461810ec126b5e718fa426eaf42abe9fab",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__intermediate_weak__nph3.json",
+      "sha256": "8d9cfcb97177dfcaeac305fe8930546e15b4b119afdaac0d0dcf9287a6001ee1"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__strong_weak_u8__nph3",
+      "file_sha256": "d2159e298c83e79e8a590104b145564f43988c5af4bad8fe891b758ee7aa0b7c",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__strong_weak_u8__nph3.json",
+      "sha256": "62d2aa93def4eae8acb644ca419ecb77ceb3e60337c9a13da905444851532d96"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__weak_strong__nph7",
+      "file_sha256": "582463294fe51e471dd055499d593edc9a2fef2a4ecab37d1538e413ddb3f958",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__weak_strong__nph7.json",
+      "sha256": "7943e321fbd52e0494f6e4260f53d43855bdc492196b00b439d24b0ce8abb7c7"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__intermediate_strong__nph7",
+      "file_sha256": "a5ba04cc2318626f6a426a1c5a04c8bb7af506bb531e4b7ba80348207f5c2afc",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__intermediate_strong__nph7.json",
+      "sha256": "f48667f532f05318df09af70c2d6d5744ae7985604b61533879b6a9e4ff3dad3"
+    },
+    {
+      "execution_id": "sixregime__c_ws_depth_costexp_plateau_position__strong_strong_u8__nph7",
+      "file_sha256": "7f54f69ae4c9f464911890024f4f48b8570fb9f8425b2f47e1f66a0e4bae94ee",
+      "path": "protocols/sixregime__c_ws_depth_costexp_plateau_position__strong_strong_u8__nph7.json",
+      "sha256": "f9a5068a900bd106caf2377142ad16e2c2e8d8e95c99145ff5b309bbfed38b6b"
+    }
+  ],
+  "regimes": [
+    {
+      "horizon": 50,
+      "nph": 3,
+      "regime_id": "weak_weak"
+    },
+    {
+      "horizon": 50,
+      "nph": 3,
+      "regime_id": "intermediate_weak"
+    },
+    {
+      "horizon": 50,
+      "nph": 3,
+      "regime_id": "strong_weak_u8"
+    },
+    {
+      "horizon": 75,
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "horizon": 75,
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "horizon": 75,
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "3": {
+      "cpus": 4,
+      "disk_mb": 30720,
+      "memory_mb": 16384,
+      "runtime_seconds": 172800
+    },
+    "7": {
+      "cpus": 4,
+      "disk_mb": 61440,
+      "memory_mb": 40960,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "ra_adapt_warmstart_sixregime_plan_v2",
+  "sha256": "d256b16b109c131b20b7e19be77cf7b3d5020fb3c8e51f644fd33a94a8251870",
+  "source_archive_sha256": "35c76afc01cfc56d505b89139c7b3706b6feaf6e88a9a3e24f9dbfb042fa08c9",
+  "source_inventory_sha256": "45ad2640f94e21b24ff2f4362c44ae528f8ff1ec6fd27dd19546fd4ac5a17a17",
+  "submission_authorized": false
+}

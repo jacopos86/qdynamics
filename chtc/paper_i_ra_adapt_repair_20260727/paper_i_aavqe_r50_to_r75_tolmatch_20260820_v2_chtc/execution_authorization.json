@@ -1,0 +1,10 @@
+{
+  "authority_basis": "explicit_user_order_20260819_true_continuation_from_iteration_50_on_chtc",
+  "created_at": "2026-08-20T01:22:04.857994Z",
+  "execution_authorized": true,
+  "package_id": "paper_i_aavqe_r50_to_r75_continuation_20260819_v1_chtc",
+  "paper_adoption_authorized": false,
+  "schema": "paper_i_aavqe_r75_continuation_authorization_v1",
+  "sha256": "49c8953286a0cb4c5706fa9d398c2b95e4a6b5d907fc4fea3bbd984431c03036",
+  "submission_authorized": true
+}

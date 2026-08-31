@@ -1,0 +1,33 @@
+{
+  "arm_id": "b_depth_append_ra",
+  "builder": "build_paper_i_ra_all_phase_adaptive_forced_k50_request",
+  "campaign_id": "paper_i_hh_b9_mr_measured_costexp_20260824",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "b9mr__b_depth_append_ra__weak_weak__nph3",
+  "family": "explicit_depth",
+  "insertion_policy": "append_only",
+  "matrix": "B",
+  "maximum_controller_rounds": 50,
+  "mode": "fresh",
+  "nph": 3,
+  "package_id": "paper_i_hh_b9_mr_measured_costexp_20260824_chtc",
+  "paper_adoption_authorized": false,
+  "protocol_file_sha256": "1bd02b3063ff126d856293873c136902fe9360e7eb4400013f558888b8c08e10",
+  "protocol_path": "protocols/b9mr__b_depth_append_ra__weak_weak__nph3.json",
+  "protocol_sha256": "48e7c427bab2383c08aafd6fed80173de502e91fd579889b8835638514f035ef",
+  "regime_id": "weak_weak",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 30720,
+    "memory_mb": 24576,
+    "runtime_seconds": 172800
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_MEASURED_V1",
+  "route_contract_sha256": "d8f1af4c131bbc154799080111b07a94919d7ecfd938efc86abbeebdde0be4e4",
+  "route_variant": "measured_residual_adaptive_shortlist_phase123_adaptive_forced_admission_k50_v1",
+  "schema": "b9mrmc_job_v1",
+  "sha256": "30425888fa86081258f414eeeacb5fd2c4980dd053cdc0c49f3759140ff0d97f",
+  "source_inventory_sha256": "787a6a5a549a2959493737f1b037ecda363f774c853d4c9f25457804dc2d7b08",
+  "submission_authorized": true
+}

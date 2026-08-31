@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "fd7b37dd3329e074e3fcb1966a65cae35eaada09cccbee1a02caab6e1eb45d7a",
+  "archive_size_bytes": 5008159,
+  "member_count": 616,
+  "members_sha256": "fa41bc4479e1b98b70cb862f56e053a4c6ebaa192a6f884d115d97af0de9dc8d",
+  "schema": "ra_adapt_costexp_depthfix_sixregime_source_archive_v2",
+  "sha256": "deabac58461c9fef312c57e0124d787351d0b5199bee35e862152baafbbb8479",
+  "source_inventory_sha256": "6f43505e8b4baa3b48bd76a21d61b90c035013638c9ba89d39aaec6740a2138a"
+}

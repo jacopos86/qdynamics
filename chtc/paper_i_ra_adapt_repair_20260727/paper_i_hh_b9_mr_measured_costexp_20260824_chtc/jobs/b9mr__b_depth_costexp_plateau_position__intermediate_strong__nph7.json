@@ -1,0 +1,33 @@
+{
+  "arm_id": "b_depth_costexp_plateau_position",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_forced_k50_request",
+  "campaign_id": "paper_i_hh_b9_mr_measured_costexp_20260824",
+  "compile_cost_policy": "explicit_depth_qiskit_cost_v1",
+  "execution_authorized": true,
+  "execution_id": "b9mr__b_depth_costexp_plateau_position__intermediate_strong__nph7",
+  "family": "explicit_depth_costexp",
+  "insertion_policy": "plateau_commutation_costexp",
+  "matrix": "B",
+  "maximum_controller_rounds": 75,
+  "mode": "fresh",
+  "nph": 7,
+  "package_id": "paper_i_hh_b9_mr_measured_costexp_20260824_chtc",
+  "paper_adoption_authorized": false,
+  "protocol_file_sha256": "6bd04db7e3cc5f05e6be55840965a47b9dc0f2135893ecd9fe9c94b814441211",
+  "protocol_path": "protocols/b9mr__b_depth_costexp_plateau_position__intermediate_strong__nph7.json",
+  "protocol_sha256": "459b3e3fa2503ceac742844b4282cd9912094d2df307eb1af6d326bbb2eedf5f",
+  "regime_id": "intermediate_strong",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 61440,
+    "memory_mb": 40960,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_MEASURED_V1",
+  "route_contract_sha256": "47df2f3dd73020d3f995906b3bd5b069676babc2c5872d45b293d9d5b2814044",
+  "route_variant": "position_records_measured_residual_adaptive_shortlist_phase123_adaptive_forced_admission_k50_v1",
+  "schema": "b9mrmc_job_v1",
+  "sha256": "256133634a297a9835fe2a86ff64cff9fe19327b075d97cfebb4d58c2310be4a",
+  "source_inventory_sha256": "787a6a5a549a2959493737f1b037ecda363f774c853d4c9f25457804dc2d7b08",
+  "submission_authorized": true
+}

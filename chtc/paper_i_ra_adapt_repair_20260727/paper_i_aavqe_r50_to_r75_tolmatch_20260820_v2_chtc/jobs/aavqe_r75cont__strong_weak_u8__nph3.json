@@ -1,0 +1,18 @@
+{
+  "anchor_history_path": "anchors/aavqe_r75cont__strong_weak_u8__nph3.history.json",
+  "anchor_history_sha256": "c92f2bed8903f829cd92e0e15bd5d4199dac90d7f6c7579f085d29ae8900b799",
+  "anchor_path": "anchors/aavqe_r75cont__strong_weak_u8__nph3.checkpoint.json",
+  "anchor_sha256": "c4039a786567a8f6dd37b04f73d7f6ce317f9a4c0fde3bd9f1215210adbd086a",
+  "anchor_source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_singleton6_r50_powell_tolmatch_20260816_v1_chtc_local_runtime/20260816T180727Z/core__strong_weak_u8__nph3__append_singleton/payload/checkpoint.json",
+  "authority_basis": "explicit_user_order_20260819_true_continuation_from_iteration_50_on_chtc",
+  "energy_reproduction_tolerance": 1e-14,
+  "execution_authorized": true,
+  "execution_id": "aavqe_r75cont__strong_weak_u8__nph3",
+  "expected_prefix_energy": 0.5264600802889283,
+  "nph": 3,
+  "regime_id": "strong_weak_u8",
+  "schema": "paper_i_aavqe_r75_continuation_job_v1",
+  "sha256": "849ebd0a67ac838990e9946e78be1d644e6eea343e4ed68029e22691313ace0d",
+  "source_archive_sha256": "219ebfec49f66fb21fbf84eaf6f7878c8dce41a952f09d6c56f38533bfe914fa",
+  "target_horizon": 75
+}

@@ -1,0 +1,137 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v4",
+  "canonical_execution_order": [
+    "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+    "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+    "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+    "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-19T23:36:24.916614Z",
+  "defect": "sealed v1 source: pipelines/reporting/paper_i_run_summary.py enumerated canonical RA identities for horizons 1..50 only; every v1 cell crashes in summarize_paper_i_run after round 75",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "1d0401661f0c8b833eee5ef6d317b72d921b0fbf111c3ab4ee50c01556f7e2b9",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "0b5d458ac5256949e37c2464ccf3032f99a282949ac731600c3020e9c63ec8d1"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "8320be7c072a4208c848c29be849b23efa7aabfe7d00d96ae234523351d584d1",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "31c0690de02fdf6d1935d697b93a13d05d5b999d9a914c5e5bfaf7f4ea990439"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "9132a7cc90f47c743e24e4787b2a4dd24f15eda176aee749d49562eaf3bebcd5",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "2ecd0aedcb3e593c759a8ef1f121bce26004b405380cca05d956ad06e118f1b9"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+      "file_sha256": "3acea7ef3d461ba5206a1f7caa81c357d09386ae6221ed062c31588314d3c3f5",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__plateau_position_phase0__weak_strong__nph7.json",
+      "sha256": "314d09fe8f2ae848b41d76c6c5d304efc181024abb46f912b69a0b2e5ed32759"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "35b2c659a427d9eb42e1f261ad38a02116443ba25df712bf2859ea5e0012f7d7",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__plateau_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "92aaa58c12bf095d380a1c1e961364c7a549b82e84942c87eda287f6b98660af"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "27dbf2c587db20ec84bfd022c5fb4c57f3890a8282637d9ca541895074b5f8a4",
+      "mode": "resume_live",
+      "path": "jobs/allphase_k75__plateau_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "ff5665a36fb738875cee210e36c9aa5a68dcf18a564a5d050791d158450aa346"
+    }
+  ],
+  "matrix_shape": {
+    "active_cells": 6,
+    "arms": 3,
+    "deferred_completion_cells": 3,
+    "regimes": 3
+  },
+  "maximum_controller_rounds": 75,
+  "package_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v4_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "e316f095ac352d3c447e72793ece7b5132cbcf57e7224368475fdbbca4b6eda9",
+      "path": "protocols/allphase_k75__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "f9a8bac7692e210513e971fab7a91587b2d2c8d3c543efea07db8f900a38fec6"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "68d79d3148731f0a2301e10b24aa845e6c7eeeb66151b726049820c0f3040fff",
+      "path": "protocols/allphase_k75__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "7d650cdfd805f1f0cd8b0e6b2a6d9d73ad1d14355fc39963f4d9480859db5076"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "8149bea37f1f0fb88cb11c7b837b6c3882c4395fd8331dea9feb5eb8dc0a6c2b",
+      "path": "protocols/allphase_k75__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "67b501e2a41a88286942d9378391baa8def2d16d704ace7eb184a7fb33cab9ef"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+      "file_sha256": "b7fb3207125c7b053ea70d6b44068550ddb785f306af47514216b9c5d39b7134",
+      "path": "protocols/allphase_k75__plateau_position_phase0__weak_strong__nph7.json",
+      "sha256": "82eb0fc9874b287795383ad43769b14ae8b1121319126792b099c5b8c64f5e12"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "c33a2d1c9d0d617ee8d49376ab181c2d9e592372d23cfc1bdb3bf464b8207cf0",
+      "path": "protocols/allphase_k75__plateau_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "5a4b01e31de0c0c8885173de8039e11e5f4e45ffeb4017d329ab6e21af2393d8"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "83e095c12f6148b5c9aa29e2694454f02ce53229d09b44d41c96575f94191654",
+      "path": "protocols/allphase_k75__plateau_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "4c96c26b4a55ea2ecba392881b0fcf8930297974d47f454349cb6bf8ae0242dc"
+    }
+  ],
+  "recovery_of": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v1 (cluster 9663770)",
+  "regimes": [
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "7": {
+      "cpus": 4,
+      "disk_mb": 61440,
+      "memory_mb": 40960,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_ra_allphase_adaptive_maximum_k75_plan_v4",
+  "sha256": "97d3adef65e906fb7b0c250d6332387556d082f737e285ca37b47c5ba38d9eed",
+  "source_archive_sha256": "e65bce8db251d61fce898c584604968838fda9b9897a19a27bc506f62ca6f7ae",
+  "source_inventory_sha256": "138b1c126a57f920fa07dde3149b74d99e9e0a6bc563e450eba23aa89033cf85",
+  "submission_authorized": false
+}

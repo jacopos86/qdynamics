@@ -1,0 +1,220 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v1",
+  "canonical_execution_order": [
+    "allphase_k75__append_ra__weak_strong__nph7",
+    "allphase_k75__append_ra__intermediate_strong__nph7",
+    "allphase_k75__append_ra__strong_strong_u8__nph7",
+    "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+    "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+    "allphase_k75__plateau_append_phase0__weak_strong__nph7",
+    "allphase_k75__plateau_append_phase0__intermediate_strong__nph7",
+    "allphase_k75__plateau_append_phase0__strong_strong_u8__nph7",
+    "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+    "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-19T07:12:57.168820Z",
+  "execution_authorized": false,
+  "fresh_h75_rationale": "resume-based continuation deferred: uniform per-round route identity is enforced by the provenance surface; fresh h75 reproduces the k50 prefix deterministically (smoke A)",
+  "jobs": [
+    {
+      "execution_id": "allphase_k75__append_ra__weak_strong__nph7",
+      "file_sha256": "d1ea663a42489ff090df93eaa7215f6f557625f7f8c2439f6f06fd84d899235e",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__append_ra__weak_strong__nph7.json",
+      "sha256": "9d6ab89d1d286d252c8ad65d826fa7762e905caa0b6ca8c4e8928365ce4fc7d8"
+    },
+    {
+      "execution_id": "allphase_k75__append_ra__intermediate_strong__nph7",
+      "file_sha256": "4cd402c5a55820cd440036864487fcc7bb31cc64209c2e186219d7e41d226b67",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__append_ra__intermediate_strong__nph7.json",
+      "sha256": "db7042e78531c50436a9995dadc4c459bf9ce88d46dc02655f93af47371cdcc2"
+    },
+    {
+      "execution_id": "allphase_k75__append_ra__strong_strong_u8__nph7",
+      "file_sha256": "398dcb9e637eea0ab79fcd666af454a61d41dafd4753f7cb4af8a6dca6ac314b",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__append_ra__strong_strong_u8__nph7.json",
+      "sha256": "3af08b3ee3b8a857a019220935f7510716b34cccf3eb817a51a0f768551e8da7"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "1b45007f7abd8d26578208a8bf8ce665d4eec13308762ddca735dd56d3718d06",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "e330bc3020210a8ad7a0293e16e1d725580ef82696215a588b9567a39b8ed2ba"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "9efd09ee00d048557cb3ab7cf159a564f65daed51b249d3891f55a0946bf5b93",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "ac4b42b2a9a52c12e025f266c4c0dd1edcbf45499705a205d21ba0e0d257ffe6"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "23489a5e64ef329868ce1f51ac8a36d0a5f87e2e61654f57cfb7896c29f03455",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "f5d5613a550fcececafe9de1a4e4c6dd9c46e51068e9b4ac8d502c00e36fe217"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__weak_strong__nph7",
+      "file_sha256": "dafb46c87d774efbf6fb857a2277aaaa4767dd03ee86488922624c4ebf1f77cd",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_append_phase0__weak_strong__nph7.json",
+      "sha256": "bdfb4776a6c8791053e75d7be3088f1af0338b9b05a306e179840c8940aec0fb"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__intermediate_strong__nph7",
+      "file_sha256": "1f1d7e345d77e8586d000c994fb2d2089d1ef384fc54289c6bc462ab69035cbc",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_append_phase0__intermediate_strong__nph7.json",
+      "sha256": "75c67efe89ec02e0b5d9fcd15e68d40a6c5eddcf413d5dac12abf744cfd11987"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__strong_strong_u8__nph7",
+      "file_sha256": "af69fa8977ae7ef5c48820b49629548d4cc90c34c5a67b97114cc454f78999dc",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_append_phase0__strong_strong_u8__nph7.json",
+      "sha256": "12808b2104bb6a72fdff77af3a9859e320a6ec738e1fcc132a76c3fd317c0f93"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+      "file_sha256": "ace2ce19d20e9116a99963838270bafc8d24ae94a1ea6c40c9df983ad2fa90d6",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_position_phase0__weak_strong__nph7.json",
+      "sha256": "f598be1d5c79797b10aa27a1a59a9d951cb7294b54a7e4e675562b550d8ab724"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "c7f4f9a246ee213687df9d6f1c05d7b89502f7041725f30753be87d2b3dee7af",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "6e4f34393302e2473d6c149c3952be82efff57b80b714f82c771c1b7189755aa"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "12e41b3f7b974c3a3e87563ac100e9e01bdbb1dc914a43518a3789cfd2ed98ea",
+      "mode": "fresh",
+      "path": "jobs/allphase_k75__plateau_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "c83758ca9972d0d9210228b8b74873d30f9e316765c233d79af20c69e5a265c4"
+    }
+  ],
+  "matrix_shape": {
+    "active_cells": 12,
+    "arms": 4,
+    "regimes": 3
+  },
+  "maximum_controller_rounds": 75,
+  "package_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v1_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_k75__append_ra__weak_strong__nph7",
+      "file_sha256": "3349853052ee4edf5b10a50e0d8269408a9f52c0d9279791a7139b5c1340a55b",
+      "path": "protocols/allphase_k75__append_ra__weak_strong__nph7.json",
+      "sha256": "bafff17425b49162e56029d4c3649bb4853404bad9c23fae6755c69b5c1e7942"
+    },
+    {
+      "execution_id": "allphase_k75__append_ra__intermediate_strong__nph7",
+      "file_sha256": "1b53ad60db00cc79ca5a7ccffe22625f8d6c979fb7d4f2d64b26d25994a91310",
+      "path": "protocols/allphase_k75__append_ra__intermediate_strong__nph7.json",
+      "sha256": "b06a5f4bf954ec6c67a63b33d87b5208dac59cdf504a028324213c7927733704"
+    },
+    {
+      "execution_id": "allphase_k75__append_ra__strong_strong_u8__nph7",
+      "file_sha256": "80dd7e320e78180068b82da09599fe8b27e5c8dbba02051b4ab2d611cb0bde79",
+      "path": "protocols/allphase_k75__append_ra__strong_strong_u8__nph7.json",
+      "sha256": "f86a3b8e12a2091afc992fa7415e702df41bb940ffb0eda6655044c9afa44b8c"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "42b4095531eff478c6c0fc77d47867e3c0221dbedd3c4c803b0957fc38889a64",
+      "path": "protocols/allphase_k75__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "2bb66b3d5a3477572e841b138d7748e39a0cf464d67647e277ff940f63a4e456"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "8b4f7a2cf0717ddf7bdc1d2d4a4bd7334d07cc057a1240c78e6098599932c7d3",
+      "path": "protocols/allphase_k75__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "865424d8ee73e95e5ffaa4114a49a3e86cb45cd1d628a244c946376ad987ed8a"
+    },
+    {
+      "execution_id": "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "8173fd4eaae8a1cd8b5c4fea7d47c9b3d0f782a5f0d56bcac9248abf73e74cb6",
+      "path": "protocols/allphase_k75__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "df6b7b5d45eb4eb42f99259136a8d9ad8700a8a402e72a99e9ea00f65393e3e3"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__weak_strong__nph7",
+      "file_sha256": "4dcc500133cb2c85a0659289ceb37f7e1e708acad7c65c2b4d7cac08d69cd420",
+      "path": "protocols/allphase_k75__plateau_append_phase0__weak_strong__nph7.json",
+      "sha256": "de3e50fe0e9e3ee8da583a74843dbf9c9babedbcabb954b02621bfd10b7a7929"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__intermediate_strong__nph7",
+      "file_sha256": "b1b310da9048a6ff1930667d10d130c23eee740370fc2a45bafa43a23af511ed",
+      "path": "protocols/allphase_k75__plateau_append_phase0__intermediate_strong__nph7.json",
+      "sha256": "500c8259fbac1b79a2fa8d6ea3cb1c6545db85824e5ec5f4b4f33e2f9551bfc7"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_append_phase0__strong_strong_u8__nph7",
+      "file_sha256": "c49b3569e73d813be42c9912302c8c4d20de9099129b1612f4ff756e7c6d887b",
+      "path": "protocols/allphase_k75__plateau_append_phase0__strong_strong_u8__nph7.json",
+      "sha256": "3bb5d7541be4b74c8e80ffe524ae42cb09233373e9a77c1c137f9813a6055241"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+      "file_sha256": "fa4f15d39dcf259b87a7d2fafb96e9788c752b5e99eb06d432656e03c7b98923",
+      "path": "protocols/allphase_k75__plateau_position_phase0__weak_strong__nph7.json",
+      "sha256": "7e8af3fa6c3cabb8f4047056ae6b0ff7e6bd2d9020dd000d2effbc38b54d4b0e"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "db10628011c8ebbbe6f32f4265a8b3c496dffd44bbac6b294666b092f88a68ea",
+      "path": "protocols/allphase_k75__plateau_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "c36db7cd3def67f9970f1aa14592827f39058e02c79892c0f183dcb6b4d25d98"
+    },
+    {
+      "execution_id": "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "300d2076bb3508ea6dc70b4645077eb74e39ee609f990c906e1e35be82a8b4f9",
+      "path": "protocols/allphase_k75__plateau_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "81eb789bf186c123fcb313723ffd925f76dd14228d744ee32f59acfe31c38757"
+    }
+  ],
+  "regimes": [
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "7": {
+      "cpus": 4,
+      "disk_mb": 61440,
+      "memory_mb": 24576,
+      "runtime_seconds": 259200
+    }
+  },
+  "resume_round": 50,
+  "schema": "paper_i_ra_allphase_adaptive_maximum_k75_plan_v1",
+  "sha256": "514d3da639a4f3172794f2e6575b8d7c90196335e48570ad9b5065e327260150",
+  "source_archive_sha256": "99c0c634fe4cfc54bd9df9241735673b860e7852c403e014dd127c172ab52090",
+  "source_inventory_sha256": "4c158b5064dce3aa60ec6ba5f7a2315dd6ff6a2e7e7c6ed366caac98d5b39b7c",
+  "submission_authorized": false
+}

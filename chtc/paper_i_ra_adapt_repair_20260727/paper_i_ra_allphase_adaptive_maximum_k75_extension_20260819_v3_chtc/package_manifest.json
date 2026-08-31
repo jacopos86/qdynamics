@@ -1,0 +1,39 @@
+{
+  "authorization_sha256": "5ae4288343b214fbac9d0bd4f25d0a0af8f26d23ba4104d5b7b41b4c7c9a9f9d",
+  "campaign_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v3",
+  "created_at": "2026-08-19T20:31:53.384140Z",
+  "execute_file_sha256": "1f628301b2e61a16b1777278be78b0edb36b1473b248ecf112152b3ad2398617",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_k75__always_open_position_phase0__weak_strong__nph7",
+    "allphase_k75__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__always_open_position_phase0__strong_strong_u8__nph7",
+    "allphase_k75__plateau_position_phase0__weak_strong__nph7",
+    "allphase_k75__plateau_position_phase0__intermediate_strong__nph7",
+    "allphase_k75__plateau_position_phase0__strong_strong_u8__nph7"
+  ],
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "package_id": "paper_i_ra_allphase_adaptive_maximum_k75_extension_20260819_v3_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "98da3ffdc00fe9fd7b593a7d00e2b1292a8fd2f80db220d78a80bdfcc4f6acb3",
+  "queue_fresh_sha256": "94ace87161d6169841c0c53b99bb7d1782123fb0f4c97e941a973cf705c53a28",
+  "queue_resume_sha256": "ae78ecc4241eeee5efeb4129e05d08bbce712d693cdcadee68089bdb35160507",
+  "row_count": 9,
+  "schema": "paper_i_ra_allphase_adaptive_maximum_k75_package_v3",
+  "sha256": "3cfc507f8e68becb6e325f758dc4a88750cbdf4d30a977b0b6aabfc7c604c859",
+  "source_archive": {
+    "archive_sha256": "fb990d9d747d33d5f39ed9b8bba78fb81bd93d1141abba537f46e023c996cd34",
+    "archive_size_bytes": 4983606,
+    "member_count": 615,
+    "members_sha256": "57761c9040031e7d82396d5e498f20568d00e7ce763959ce02047f06b4f8aad8",
+    "schema": "paper_i_ra_allphase_adaptive_maximum_k75_source_archive_v3",
+    "sha256": "943df1d0e7b7a4b1db2fd99e8ad2bb23ae2cc3bed0482cf813028342faab92e9",
+    "source_inventory_sha256": "9eeedf3e6c351502769b0efa4c188ec61a4b00dbb5e17a558c75a944e4e584d1"
+  },
+  "source_inventory_sha256": "9eeedf3e6c351502769b0efa4c188ec61a4b00dbb5e17a558c75a944e4e584d1",
+  "status": "authorized_six_cells_3resume_3fresh_completion_deferred",
+  "submission_authorized": true,
+  "submitted": false,
+  "worker_file_sha256": "976a40ae9788b4c48117309adce4f2072ae59d0b518ec513fe543079a5c1afbb"
+}
