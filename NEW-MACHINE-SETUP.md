@@ -1,5 +1,21 @@
 # New machine bootstrap
 
+Target hardware (user, 2026-08-31): Apple M4, 14-core CPU / 20-core GPU,
+24 GB RAM, 1 TB SSD. Implications:
+
+- **RAM invariant:** the standing 10 GB agent-work ceiling (AGENTS.md Hard
+  invariants; written for the lost 16 GB machine) REMAINS IN FORCE until the
+  user explicitly raises it. With 24 GB the user MAY choose to allow one
+  16 GB job at a time — that would make the Paper II t=10 comparator lane
+  (16 GB/job, previously CHTC-only) locally re-runnable if the CHTC archives
+  prove unrecoverable. Ask; do not assume.
+- **Disk:** 1 TB comfortably holds the full CHTC rescue fetch (~65–78 GB,
+  `CHTC-FETCH.md`) alongside the repo.
+- **CPU:** 14 cores help compiles and collection, but RAM, not CPU, is the
+  binding constraint for the heavy integration tests — run the full suite
+  serially first; parallel workers multiply resident memory.
+- **GPU:** irrelevant to this stack (qiskit-aer CPU path).
+
 Contract for a fresh agent session on a new machine. Execute top to bottom;
 each step states its verification. Context: this repo was recovered on
 2026-08-31 after the previous machine was lost — `RECOVERY-AUDIT.md` has the
