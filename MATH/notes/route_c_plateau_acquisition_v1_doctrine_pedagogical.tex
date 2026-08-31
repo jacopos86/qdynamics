@@ -1,0 +1,729 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.62in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlist[itemize]{leftmargin=*,topsep=2pt,itemsep=1pt}
+\setlist[enumerate]{leftmargin=*,topsep=2pt,itemsep=1pt}
+\newcommand{\R}{\mathbb R}
+\newcommand{\C}{\mathbb C}
+\newcommand{\Span}{\operatorname{span}}
+\newcommand{\Ree}{\operatorname{Re}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\lcb}{\mathrm{lcb}}
+\newcommand{\plat}{\mathrm{plat}}
+\newcommand{\logi}{\mathrm{log}}
+\newcommand{\exec}{\mathrm{exec}}
+\newcommand{\tr}{\mathrm{TR}}
+\newcommand{\vol}{\mathrm{vol}}
+\newcommand{\FS}{\mathrm{FS}}
+\newcommand{\dd}{\,\mathrm d}
+\title{Route C Plateau Acquisition v1.2\\Pedagogical Derivation of the Log-Volume Novelty Rule}
+\author{Holstein repository note}
+\date{2026-06-08}
+\begin{document}
+\maketitle
+\small
+\raggedright
+
+\textbf{Reader contract.} This PDF is the derivation-first companion to
+\texttt{MATH/notes/route\_c\_plateau\_acquisition\_v1\_doctrine.md}. The
+Markdown file is the repo-agent implementation contract. This PDF explains why
+Route C should rank plateau candidates by incremental Fubini--Study log-volume
+growth, while preserving the unlock-or-zero-commit energy rule.
+
+\section{What plateau acquisition is trying to measure}
+
+At ADAPT step $t$, the selector owns an admitted ansatz word
+\[
+\mathcal O_t^{\logi}=(o_1,\ldots,o_{n_t}),\qquad
+I_t^{\logi}=\{1,
+\ldots,n_t\}.
+\]
+Some coordinates were bought during plateau mode and currently have committed
+amplitude zero. They are not pending candidates. They are admitted coordinates
+with provenance
+\[
+D_t^0=\{j\in I_t^{\logi}:\operatorname{status}_{t,j}=\mathrm{dormant\_plateau}\}.
+\]
+The executable nonzero circuit is the smaller set
+\[
+I_t^{\exec}=\{j\in I_t^{\logi}:|\theta_{t,j}|>\theta_{\rm zero}\}.
+\]
+The physical state is unchanged by zero amplitudes, but the local coordinate
+chart has acquired directions. Route C is therefore a chart-growth mechanism:
+it buys tangent directions at zero energy cost and later asks the ordinary inner
+optimizer whether the enlarged chart contains a validated descent.
+
+Normal Phase III uses
+\[
+S_3(r;t)=\frac{\Delta E_{\tr}(r;t)\mathcal N_3(r;t)}{1+K_3(r;t)}.
+\]
+When
+\[
+\Delta_{\max}^{(3)}(t)=\max_{r\in\mathcal R_3(t)}\Delta E_{\tr}(r;t)
+\le \eps_{\plat}(t),
+\]
+the product score cannot express novelty acquisition, because the gain factor is
+unresolved. Plateau mode replaces the selection law; it does not accept an
+uphill energy step.
+
+\section{The primitive geometry}
+
+Let $|\psi_t\rangle$ be the committed reportable state. The horizontal tangent
+for an admitted coordinate $j$ is
+\[
+\tau_j(t)=Q_{\psi_t}\partial_{\theta_j}
+|\psi(\mathcal O_t^{\logi},\theta_t^{\logi})\rangle .
+\]
+For a candidate-position record $r=(m,p)$ with trial amplitude $\alpha_r$,
+\[
+\tau_r(t)=Q_{\psi_t}\partial_{\alpha_r}
+|\psi(\mathcal O_t^{\logi}\oplus r,
+(\theta_t^{\logi},\alpha_r))\rangle\big|_{\alpha_r=0}.
+\]
+The plateau context is the admitted scaffold:
+\[
+C_t=I_t^{\logi}
+\]
+unless a run explicitly logs a contracted approximation such as
+$W_r^{\rm act}\cup D_t^0$. Build
+\[
+T_C=[\tau_j]_{j\in C_t}.
+\]
+The real Fubini--Study Gram primitives are
+\[
+G_C=\Ree(T_C^\dagger T_C),\qquad
+q_r=\Ree(T_C^\dagger\tau_r),\qquad
+F_r=\Ree\langle\tau_r,\tau_r\rangle .
+\]
+Componentwise,
+\[
+(G_C)_{ij}=\Ree\langle\tau_i,\tau_j\rangle,
+\quad
+(q_r)_i=\Ree\langle\tau_i,\tau_r\rangle,
+\quad
+F_r=\Ree\langle\tau_r,\tau_r\rangle .
+\]
+$G_C$ measures metric correlations among already admitted directions, $q_r$
+records the candidate's shadows against them, and $F_r$ is the candidate's own
+local Fubini--Study length squared.
+
+\section{Projection residual from least squares}
+
+The old span explains $\tau_r$ by synthesizing
+\[
+T_C\beta=\sum_{j\in C_t}\beta_j\tau_j.
+\]
+The best old-span explanation solves
+\[
+\beta^\star\in\argmin_\beta
+\|\tau_r-T_C\beta\|_{\FS}^2.
+\]
+Expand the objective using the real Fubini--Study metric:
+\[
+\|\tau_r-T_C\beta\|_{\FS}^2
+=F_r-2\beta^\top q_r+\beta^\top G_C\beta.
+\]
+Stationarity gives the normal equation
+\[
+G_C\beta^\star=q_r,
+\qquad
+\beta^\star=G_C^+q_r
+\]
+on the resolved support. Substituting the optimized coefficient eliminates
+$\beta$:
+\[
+\min_\beta\|\tau_r-T_C\beta\|_{\FS}^2
+=F_r-q_r^\top G_C^+q_r.
+\]
+Define the supported residual strength
+\[
+\sigma_r^\perp=\bigl[F_r-q_r^\top G_C^+q_r\bigr]_+.
+\]
+The fractional novelty used in earlier doctrine is
+\[
+\mathcal N_r^{\rm frac}=\clip_{[0,1]}
+\frac{\sigma_r^\perp}{\max(F_r,\eps_{\rm red})}.
+\]
+This answers: what fraction of this candidate's tangent cannot be explained by
+already admitted coordinates?
+
+\section{Why the fraction is not enough}
+
+The fraction is scale-free. Scale-free is useful for detecting redundancy, but
+plateau acquisition has a second requirement: the added direction must have a
+resolved size. Two failure modes follow immediately.
+
+\textbf{Tiny but high fraction.} If $F_r\ll 1$ and the candidate is orthogonal to
+$T_C$, then $\mathcal N_r^{\rm frac}\approx1$ while $\sigma_r^\perp\approx F_r$
+is numerically useless.
+
+\textbf{Large but mostly redundant.} If $F_r$ is large but almost all of it lies
+in $\Span(T_C)$, then the raw candidate is energetic/geometric clutter. Its
+fractional residual catches the redundancy.
+
+Thus Route C should gate by both
+\[
+\sigma_{r,\lcb}^\perp\ge\sigma_{\plat}^{\min},
+\qquad
+\mathcal N_{r,\lcb}^{\rm frac}\ge\nu_{\plat}^{\min}.
+\]
+The first gate requires a resolved absolute tangent addition. The second gate
+requires that the addition is not mostly old-span motion.
+
+\section{Where the logarithm comes from}
+
+A coordinate chart with tangent matrix $T$ has local Fubini--Study volume element
+\[
+\dd\operatorname{Vol}_{\FS}(T)
+\propto
+\sqrt{\det(T^\dagger T)}\,\dd a_1\cdots \dd a_d.
+\]
+The square root appears because the Gram determinant gives squared volume. If a
+new coordinate is appended, the physical infinitesimal volume ratio is therefore
+\[
+\frac{\dd\operatorname{Vol}_{\FS}(C\cup r)}
+{\dd\operatorname{Vol}_{\FS}(C)\,\dd a_r}
+=
+\sqrt{
+\frac{\det G_{C\cup r}}
+{\det G_C}}.
+\]
+This expression assumes nonsingular Grams; the ridge version below is the
+numerically supported replacement.
+Route C wants an additive acquisition score. Volumes multiply when independent
+coordinates are appended, while logarithms turn products into sums:
+\[
+\log(R_1R_2)=\log R_1+\log R_2.
+\]
+This is the sole reason for the logarithm: the score is a log-volume increment,
+so marginal chart-growth contributions can be compared and added.
+
+For a possibly rank-deficient or noisy Gram, use a ridge
+\[
+A_C=G_C+\lambda_{\vol}I,
+\qquad \lambda_{\vol}>0.
+\]
+The ridge supplies a baseline metric for the one empty coordinate that would be
+present even before measuring the candidate's residual. After appending
+candidate $r$, the regularized augmented Gram is
+\[
+G_{C\cup r}^{(\lambda)}=
+\begin{bmatrix}
+G_C+\lambda_{\vol}I & q_r\\
+q_r^\top & F_r+\lambda_{\vol}
+\end{bmatrix}.
+\]
+The block determinant identity gives
+\[
+\det G_{C\cup r}^{(\lambda)}
+=\det(A_C)
+\left(F_r+\lambda_{\vol}-q_r^\top A_C^{-1}q_r\right).
+\]
+Define the ridge residual
+\[
+\sigma_{r|C}^{\lambda}=\bigl[F_r-q_r^\top A_C^{-1}q_r\bigr]_+.
+\]
+Then
+\[
+F_r+\lambda_{\vol}-q_r^\top A_C^{-1}q_r
+=\lambda_{\vol}+\sigma_{r|C}^{\lambda}.
+\]
+Normalize by the baseline ridge volume of the added coordinate:
+\[
+R_{r|C}^{\det}
+:=
+\frac{\det G_{C\cup r}^{(\lambda)}}
+{\lambda_{\vol}\det(A_C)}
+=1+\frac{\sigma_{r|C}^{\lambda}}{\lambda_{\vol}}.
+\]
+The physical Fubini--Study volume ratio is the square root:
+\[
+R_{r|C}^{\FS}=\sqrt{R_{r|C}^{\det}}.
+\]
+Thus the physical log-volume gain is
+\[
+\log R_{r|C}^{\FS}
+=\frac12\log\left(1+\frac{\sigma_{r|C}^{\lambda}}{\lambda_{\vol}}\right).
+\]
+The repo score uses the log-determinant version
+\[
+\Delta V_{r|C}^{\lambda}
+:=
+\log R_{r|C}^{\det}
+=
+\log\left(1+\frac{\sigma_{r|C}^{\lambda}}{\lambda_{\vol}}\right).
+\]
+This is exactly twice the physical log-volume gain. The factor $1/2$ is global
+and positive, so it does not change candidate ranking. Thresholds such as
+$V_{\plat}^{\min}$ should use the same convention as the implementation.
+
+This is the direct implementation of ``buy the candidate that grows the local
+state-manifold chart most.''
+
+\section{Route-C acquisition score}
+
+The v1.2 plateau score is
+\[
+S_{3,\plat}^{\vol}(r;t)=
+\frac{[\Delta V_{r|C}^{\lambda}]_{\lcb}}{1+K_3(r;t)}.
+\]
+The selector uses
+\[
+r_t\in\argmax_{r\in\mathcal R_{\plat}(t)}
+S_{3,\plat}^{\vol}(r;t),
+\]
+subject to feasibility, duplicate blocking, and the two residual gates.
+
+This score uses Geo-ADAPT's useful ingredient: the Fubini--Study/QIM metric. It
+uses geometry as coverage, not as a natural-gradient energy step. In plateau
+mode the immediate energy coordinate is unresolved, so the metric asks which
+record expands the admitted tangent chart.
+
+\section{Where Schur response belongs}
+
+A Schur-relaxed tangent often has the form
+\[
+\tau_r^\star=\tau_r+T_Cs_r.
+\]
+Let $P_C$ be the Fubini--Study projection onto $\Span(T_C)$. Since $T_Cs_r$ is
+already in the context span,
+\[
+(I-P_C)\tau_r^\star=(I-P_C)(\tau_r+T_Cs_r)=(I-P_C)\tau_r.
+\]
+Thus if the novelty projector uses the same admitted context, Schur
+reparameterization does not change the out-of-context residual. It changes the
+in-context coordinate response and the energy model, not the new span.
+
+Route C v1.2 therefore uses raw horizontal tangent geometry for plateau
+log-volume acquisition. Schur quantities remain essential for ordinary Phase III
+energy ranking, negative-curvature diagnostics, and trial-refit/unlock
+validation.
+
+\section{Block-aware plateau acquisition}
+
+Plateau escape can be collective. For a candidate block
+$B=\{r_1,\ldots,r_s\}$, define
+\[
+T_B=[\tau_{r_1},\ldots,\tau_{r_s}],
+\quad
+F_{BB}=\Ree(T_B^\dagger T_B),
+\quad
+Q_{CB}=\Ree(T_C^\dagger T_B).
+\]
+The residual block Gram is
+\[
+\Sigma_{B|C}^{\lambda}
+=F_{BB}-Q_{CB}^\top(G_C+\lambda_{\vol}I)^{-1}Q_{CB}.
+\]
+The block log-volume increment is
+\[
+\Delta V_{B|C}^{\lambda}
+=\log\det(I_s+\lambda_{\vol}^{-1}\Sigma_{B|C}^{\lambda}).
+\]
+A practical implementation can remain greedy:
+\[
+r_{\rm next}\in\argmax_{r\in\mathcal R_{\plat}(t)\setminus B}
+\frac{[\Delta V_{r|C\cup B}^{\lambda}]_{\lcb}}{1+K_3(r;t)}.
+\]
+After one direction has been added to the context, another nearly equivalent
+candidate has smaller marginal volume gain. This is the block-aware version of
+``do not keep buying the same dormant direction.''
+
+\section{Residual-pool leverage as optional Geo-style coverage}
+
+For plateau candidates $u,v\in\mathcal R_{\plat}(t)$, define
+\[
+K_{uv|C}^{\lambda}=\Ree\langle\tau_u,\tau_v\rangle
+-q_u^\top(G_C+\lambda_{\vol}I)^{-1}q_v.
+\]
+This is a candidate-pool Gram after subtracting the admitted context. A ridge
+leverage score is
+\[
+\ell_r^{\lambda_P}=
+\left[K_{\mathcal R|C}^{\lambda}
+(K_{\mathcal R|C}^{\lambda}+\lambda_PI)^{-1}\right]_{rr}.
+\]
+Leverage can be logged, used as a tie-breaker, or used as a gate. The minimal
+v1.2 implementation should not require it. The primary score is log-volume over
+cost.
+
+\section{Uncertainty-aware form}
+
+Let
+\[
+y_r=(G_C+\lambda_{\vol}I)^{-1}q_r.
+\]
+For
+\[
+\sigma_{r|C}^{\lambda}=F_r-q_r^\top y_r,
+\]
+first-order perturbation gives
+\[
+\dd\sigma_{r|C}^{\lambda}
+=\dd F_r-2y_r^\top\dd q_r+y_r^\top(\dd G_C)y_r.
+\]
+A shot-block bootstrap or covariance propagation can estimate
+$\operatorname{SE}(\sigma_{r|C}^{\lambda})$ from the same measured Gram and
+overlap primitives. Then
+\[
+[\Delta V_{r|C}^{\lambda}]_{\lcb}
+=\left[\log\left(1+
+\frac{[\sigma_{r|C}^{\lambda}-z_\alpha\operatorname{SE}(\sigma_{r|C}^{\lambda})]_+}
+{\lambda_{\vol}}
+\right)\right]_+.
+\]
+For deterministic local diagnostics, the LCB can be the raw value. For
+measurement-facing routes, low-confidence volume increments should not drive
+plateau acquisition.
+
+\section{Trial refit remains ordinary}
+
+After selecting $r_t$, form
+\[
+\mathcal O_t^{\rm trial}=\mathcal O_t^{\logi}\oplus r_t,
+\qquad
+x_t^{(0)}=(\theta_t^{\logi},0).
+\]
+Because $\theta_t^{\logi}$ already contains zeros for dormant coordinates, the
+trial vector includes active/base coordinates, dormant coordinates, and the new
+candidate coordinate. The ordinary inner optimizer solves
+\[
+x_t^{\rm opt}\approx\argmin_x E(\mathcal O_t^{\rm trial},x).
+\]
+For SPSA, every dormant and selected plateau coordinate must appear in the
+perturbation vector:
+\[
+i\in D_t^0\cup\{r_t\}\implies
+\Delta_i^{(s)}\in\{-1,+1\},\qquad c_s\Delta_i^{(s)}\ne0.
+\]
+Finite-amplitude seed probes can help when first-order SPSA is weak at the
+origin, but they are optimizer-strength diagnostics. They do not change the
+acquisition statistic or the unlock rule.
+
+\section{Energy safety: unlock or zero commit}
+
+Let
+\[
+E_t^{\rm rep}=\text{current reportable energy},
+\qquad
+E_t^{\rm trial}=E(\mathcal O_t^{\rm trial},x_t^{\rm opt}).
+\]
+The raw trial drop is
+\[
+\widehat\Delta_t^{\rm trial}=E_t^{\rm rep}-E_t^{\rm trial}.
+\]
+A lower-confidence validated drop is
+\[
+Y_t^{\rm trial}=\widehat\Delta_t^{\rm trial}
+-z_\alpha\sigma_{\Delta E,t}
+-b_{E,\Delta}^{\rm cmp}(t)
+-\gamma_{\rm hw}\Delta b_{E,r_t}^{\rm inc}(t).
+\]
+Unlock succeeds if
+\[
+Y_t^{\rm trial}\ge\eps_{\rm unlock}(t).
+\]
+On success, commit $x_t^{\rm opt}$ and report $E_t^{\rm trial}$. Plateau-acquired
+coordinates whose amplitudes exceed $\theta_{\rm zero}$ become non-dormant.
+
+On failure,
+\[
+Y_t^{\rm trial}<\eps_{\rm unlock}(t),
+\]
+commit the selected record logically but restore the energetic state:
+\[
+E_{t+1}^{\rm rep}=E_t^{\rm rep},
+\qquad
+\theta_{D_{t+1}^0}=0.
+\]
+The failed trial's nonzero dormant amplitudes and optimizer memory must not leak
+into the next committed state unless a separately named experimental route says
+so.
+
+\section{Implementation translation}
+
+The implementation-facing Route C v1.2 selector is:
+\[
+\Delta_{\max}^{(3)}(t)\le\eps_{\plat}(t)
+\implies
+r_t\in\argmax_{r\in\mathcal R_{\plat}(t)}
+\frac{[\Delta V_{r|I_t^{\logi}}^{\lambda}]_{\lcb}}{1+K_3(r;t)}.
+\]
+Candidate pass gates are
+\[
+\sigma_{r,\lcb}^\perp\ge\sigma_{\plat}^{\min},
+\qquad
+\mathcal N_{r,\lcb}^{\rm frac}\ge\nu_{\plat}^{\min}.
+\]
+The acquisition context is
+\[
+I_t^{\logi}=I_t^{\rm base}\cup D_t^0,
+\qquad
+D_t^0=\{j:\operatorname{status}_{t,j}=\mathrm{dormant\_plateau}\}.
+\]
+The commit rule remains energy-based:
+\begin{align*}
+Y_t^{\rm trial}\ge\eps_{\rm unlock}
+&\Rightarrow \text{commit nonzero refit},\\
+Y_t^{\rm trial}<\eps_{\rm unlock}
+&\Rightarrow \text{zero commit}.
+\end{align*}
+
+\section{Minimum regression fixtures}
+
+\begin{enumerate}
+\item A tangent already in the active-plus-dormant span has
+$\sigma^\perp\approx0$ and $\Delta V\approx0$.
+\item A tiny orthogonal tangent has high fractional novelty but fails
+$\sigma_{\plat}^{\min}$.
+\item A large mostly redundant tangent fails $\nu_{\plat}^{\min}$.
+\item Among passing candidates, larger $\Delta V/(1+K_3)$ wins.
+\item After selecting one member of a redundant pair, the second member's
+marginal log-volume gain falls.
+\item Dormant coordinates appear in the SPSA vector during trial refit.
+\item Failed unlock restores reportable energy and zero-commits plateau
+coordinates.
+\item A synthetic collective fixture,
+\[
+E(a_1,a_2)=E_0+\lambda(a_1^2+a_2^2)-\beta a_1a_2,
+\quad \beta>2\lambda,
+\]
+has neutral axes but a descending joint direction.
+\end{enumerate}
+
+
+\section{Worked scalar examples for the gates}
+
+Assume the old span has already been projected out, so the only remaining
+quantity is the residual strength. The gates can be read without matrix algebra.
+
+\textbf{Tiny orthogonal direction.} Let $q_r=0$ and $F_r=10^{-12}$. Then
+\[
+\sigma_r^\perp=10^{-12},
+\qquad
+\mathcal N_r^{\rm frac}=1.
+\]
+A fraction-only selector treats this as maximally novel. A plateau chart-growth
+selector rejects it if $\sigma_{\plat}^{\min}\gg10^{-12}$. The candidate adds a
+new direction in exact arithmetic, but it does not add a resolved state-space
+coordinate at the numerical or measurement scale of the run.
+
+\textbf{Large mostly old direction.} Let $F_r=1$ and
+$q_r^\top G_C^+q_r=0.9999$. Then
+\[
+\sigma_r^\perp=10^{-4},
+\qquad
+\mathcal N_r^{\rm frac}=10^{-4}.
+\]
+The absolute residual may be visible, but the candidate is almost an old-span
+motion. The fractional gate rejects it unless $\nu_{\plat}^{\min}\le10^{-4}$.
+
+\textbf{Resolved and genuinely new.} Let $F_r=10^{-2}$ and the old span explains
+only $20\%$ of it. Then
+\[
+\sigma_r^\perp=8\times10^{-3},
+\qquad
+\mathcal N_r^{\rm frac}=0.8.
+\]
+This candidate passes both gates for typical plateau settings and receives a
+log-volume rank
+\[
+\Delta V=\log\left(1+\frac{8\times10^{-3}}{\lambda_{\vol}}\right)
+\]
+under the ridge approximation.
+
+\section{Why the logarithm is the stable volume unit}
+
+The raw determinant ratio multiplies across independent coordinates. If two
+orthogonal residual directions have residual strengths $\sigma_1$ and
+$\sigma_2$, the regularized volume ratio is approximately
+\[
+\left(1+\frac{\sigma_1}{\lambda_{\vol}}\right)
+\left(1+\frac{\sigma_2}{\lambda_{\vol}}\right).
+\]
+Taking logs makes marginal gains additive:
+\[
+\Delta V_{\{1,2\}}
+=\log\left(1+\frac{\sigma_1}{\lambda_{\vol}}\right)
++\log\left(1+\frac{\sigma_2}{\lambda_{\vol}}\right).
+\]
+This is useful for greedy selection. A candidate already explained by the
+current block has small marginal residual, so its added log-volume is small.
+The logarithm also compresses extremely large residuals so cost and gates can
+still influence ranking.
+
+For small residuals,
+\[
+\log(1+x)=x+O(x^2),
+\qquad x=\sigma/\lambda_{\vol}.
+\]
+Thus near the resolution floor the log-volume score behaves like a scaled
+absolute residual. For large residuals it becomes a diminishing-return chart
+coverage score.
+
+\section{Block determinant derivation}
+
+The singleton determinant identity is the $s=1$ case of the block formula. Let
+\[
+A_C=G_C+\lambda_{\vol}I,
+\qquad
+B=Q_{CB},
+\qquad
+D=F_{BB}+\lambda_{\vol}I_s.
+\]
+The augmented block is
+\[
+\begin{bmatrix}
+A_C & B\\
+B^\top & D
+\end{bmatrix}.
+\]
+The Schur determinant identity gives
+\[
+\det\begin{bmatrix}A_C&B\\B^\top&D\end{bmatrix}
+=\det(A_C)\det(D-B^\top A_C^{-1}B).
+\]
+Substitute $D=F_{BB}+\lambda_{\vol}I_s$:
+\[
+D-B^\top A_C^{-1}B
+=\lambda_{\vol}I_s+
+\left(F_{BB}-Q_{CB}^\top A_C^{-1}Q_{CB}\right).
+\]
+The parenthesized term is
+\[
+\Sigma_{B|C}^{\lambda}=F_{BB}-Q_{CB}^\top A_C^{-1}Q_{CB}.
+\]
+The nontrivial volume ratio normalizes out the baseline ridge volume of $s$ new
+empty coordinates:
+\[
+\frac{\det G_{C\cup B}^{(\lambda)}}
+{\det(A_C)\lambda_{\vol}^s}
+=\det\left(I_s+\lambda_{\vol}^{-1}\Sigma_{B|C}^{\lambda}\right).
+\]
+Taking logs yields
+\[
+\Delta V_{B|C}^{\lambda}
+=\log\det\left(I_s+\lambda_{\vol}^{-1}\Sigma_{B|C}^{\lambda}\right).
+\]
+This is the block chart-growth objective. Greedy Route C approximates it by
+adding one record at a time with the current block included in the context.
+
+\section{Relation to rank growth}
+
+Rank growth is the hard-threshold version of volume growth. If the eigenvalues
+of the residual block are $\mu_1,\ldots,\mu_s$, then
+\[
+\Delta V_{B|C}^{\lambda}
+=\sum_{k=1}^s\log\left(1+\frac{\mu_k}{\lambda_{\vol}}\right).
+\]
+Resolved numerical rank counts modes above a threshold:
+\[
+\rank_{\eps_{\rank}}(\Sigma_{B|C})
+=\left|\{k:\mu_k>\eps_{\rank}\mu_{\max}\}\right|.
+\]
+Rank tells how many directions survived the support rule. Log-volume also keeps
+track of their sizes. Route C telemetry should ideally report both: rank for
+human audit, log-volume for ranking.
+
+\section{How Route C differs from accepting uphill moves}
+
+A plateau admission at zero has exact identity safety:
+\[
+e^{-i0A_r}=I,
+\qquad
+U(\mathcal O_t^{\logi}\oplus r, (\theta_t^{\logi},0))
+=U(\mathcal O_t^{\logi},\theta_t^{\logi}).
+\]
+Therefore
+\[
+E(\mathcal O_t^{\logi}\oplus r, (\theta_t^{\logi},0))
+=E_t^{\rm rep}.
+\]
+The algorithm may evaluate nonzero trial points during refit. Those trial points
+are not committed unless the validated drop passes
+\[
+Y_t^{\rm trial}\ge\eps_{\rm unlock}.
+\]
+If the trial fails,
+\[
+E_{t+1}^{\rm rep}=E_t^{\rm rep}.
+\]
+The new record remains in the logical scaffold at zero amplitude so future
+novelty sees it. This is energy-safe chart growth.
+
+\section{Collective escape fixture}
+
+The minimal local-hurdle fixture is
+\[
+E(a_1,a_2)=E_0+\lambda(a_1^2+a_2^2)-\beta a_1a_2,
+\qquad
+\lambda>0,
+\quad
+\beta>2\lambda.
+\]
+Axis probes do not improve energy:
+\[
+E(s,0)-E_0=\lambda s^2\ge0,
+\qquad
+E(0,s)-E_0=\lambda s^2\ge0.
+\]
+The diagonal direction improves energy:
+\[
+E(s,s)-E_0=(2\lambda-\beta)s^2<0.
+\]
+A singleton energy-gain selector can stall because neither coordinate is useful
+alone. Route C buys resolved, nonredundant coordinates at zero amplitude until
+the ordinary enlarged optimizer has access to the joint direction. The unlock
+rule then decides whether the joint move is real.
+
+\section{Finite-angle novelty as fallback}
+
+A finite-angle state probe would compare
+\[
+|\psi_r(\alpha_0)\rangle
+=U(\mathcal O_t^{\logi}\oplus r,(	heta_t^{\logi},\alpha_0))
+|\psi_{\rm ref}\rangle
+\]
+against the current state using
+\[
+D_{\FS}^2(r;\alpha_0)=1-|\langle\psi_t|\psi_r(\alpha_0)\rangle|^2.
+\]
+This is a legitimate diagnostic, but it mixes tangent novelty, finite-angle
+curvature, ordering effects, and nonlinear state overlap. The default Route C
+novelty primitive should remain tangent log-volume. Finite-angle novelty is a
+fallback when tangent rank saturates while plateau failures persist.
+
+\section{Implementation checklist from the derivation}
+
+\begin{enumerate}
+\item Construct $C_t=I_t^{\logi}$ by default, including dormant plateau
+coordinates by provenance status.
+\item Compute raw horizontal tangent Gram primitives $G_C,q_r,F_r$.
+\item Compute $\sigma^\perp$, $\mathcal N^{\rm frac}$, and
+$\Delta V^\lambda$.
+\item Apply absolute and fractional residual gates before ranking.
+\item Rank by $[\Delta V^\lambda]_{\lcb}/(1+K_3)$.
+\item Log all geometry components, not only the final score.
+\item Run the ordinary enlarged refit over active, dormant, and selected
+coordinates.
+\item Commit nonzero amplitudes only after validated unlock; otherwise commit
+at zero and restore optimizer state.
+\end{enumerate}
+
+\section{One-sentence doctrine}
+
+During a plateau, Route C should use Fubini--Study metric geometry to buy the
+candidate-position record that most increases the resolved local log-volume of
+the admitted active-plus-dormant scaffold, then let the ordinary enlarged refit
+try to turn that purchased coordinate chart into a validated energy unlock.
+
+\end{document}

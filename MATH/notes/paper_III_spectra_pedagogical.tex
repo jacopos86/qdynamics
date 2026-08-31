@@ -1,0 +1,221 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.65in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\braket}[2]{\left\langle#1\middle|#2\right\rangle}
+\newcommand{\matel}[3]{\left\langle#1\middle|#2\middle|#3\right\rangle}
+\newcommand{\HH}{\mathrm{HH}}
+\newcommand{\QSE}{\mathrm{QSE}}
+\newcommand{\ED}{\mathrm{ED}}
+\newcommand{\Full}{\mathrm{Fullmeta}}
+\newcommand{\Geom}{\mathrm{Geom}}
+\newcommand{\Span}{\operatorname{span}}
+\newcommand{\cond}{\operatorname{cond}}
+
+\definecolor{boxgray}{RGB}{245,245,245}
+\newenvironment{paperbox}{\par\smallskip\noindent\begin{center}\begin{minipage}{0.94\linewidth}\small\hrule\smallskip}{\smallskip\hrule\end{minipage}\end{center}\smallskip}
+
+\title{Pedagogical duplicate for Paper III: geometry-selected QSE spectra}
+\author{Internal learning source; not a journal draft}
+\date{May 31, 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note is the learning version of the Paper-III static path.  The journal draft can stay compact.  This duplicate explains what the QSE calculation is doing, why operator sources matter, why overlap conditioning matters, and why a spectrum can look accurate while the sorted excited-state ladder looks poor.
+
+The reader is assumed to understand Paper I: a ground-state adaptive ansatz is built from an operator sequence and optimized for a Hubbard--Holstein Hamiltonian.  Paper III starts from that prepared ground-state vector and asks which excitation directions should be used to build a spectral subspace.
+
+\section{Paper-I object reused by Paper III}
+Paper I gives an optimized ground-state ansatz
+\begin{equation}
+  \ket{\psi_0}
+  = U_m(\theta_m)\cdots U_1(\theta_1)\ket{\phi_{\rm ref}},
+  \qquad
+  U_j(\theta_j)=e^{-i\theta_j A_j}.
+\end{equation}
+The sequence
+\begin{equation}
+  \mathcal A=(A_1,A_2,\ldots,A_m)
+\end{equation}
+is useful because it records which directions were needed to lower the ground-state energy.  Paper III uses \(\ket{\psi_0}\) as a prepared state.  Some Paper-III baselines also reuse the operator information in \(\mathcal A\) as a candidate excitation source.
+
+\begin{paperbox}
+\textbf{Translation from Paper I.}  Paper I studies how to acquire the ground-state ansatz.  Paper III takes the acquired state as fixed input and studies how to acquire a nonorthogonal excitation basis around that state.
+\end{paperbox}
+
+\section{Regular QSE as a subspace solve}
+Choose excitation operators
+\begin{equation}
+  \Omega_1,\Omega_2,\ldots,\Omega_M.
+\end{equation}
+Each operator creates a candidate excited-state direction from the prepared state:
+\begin{equation}
+  \ket{\phi_a}=\Omega_a\ket{\psi_0}.
+\end{equation}
+For the Paper-III static mode we usually remove the component parallel to the prepared state,
+\begin{equation}
+  Q_0 = I-\ket{\psi_0}\bra{\psi_0},
+  \qquad
+  \ket{\tilde\phi_a}=Q_0\Omega_a\ket{\psi_0}.
+\end{equation}
+This makes the QSE basis focus on directions away from the reference state.  The nonorthogonal overlap and Hamiltonian matrices are
+\begin{align}
+  S_{ab} &= \braket{\tilde\phi_a}{\tilde\phi_b},\\
+  H_{ab} &= \matel{\tilde\phi_a}{H}{\tilde\phi_b}.
+\end{align}
+The QSE roots are obtained from the generalized eigenproblem
+\begin{equation}
+  Hc_\nu = E_\nu Sc_\nu.
+  \label{eq:qse_gep}
+\end{equation}
+The coefficient vector \(c_\nu\) synthesizes a root inside the nonorthogonal basis:
+\begin{equation}
+  \ket{\Psi_\nu^{\QSE}}
+  =\sum_a c_{\nu a}\ket{\tilde\phi_a}.
+\end{equation}
+
+\begin{paperbox}
+\textbf{Key point.}  QSE is the matrix construction and generalized eigenproblem in Eq.~\eqref{eq:qse_gep}.  A concrete QSE calculation is not fully specified until the excitation operators \(\Omega_a\) are specified.
+\end{paperbox}
+
+\section{Operator source versus selection rule}
+Two choices are being studied at once.
+
+\begin{enumerate}
+\item \textbf{Operator source:} where the candidate operators come from.
+\item \textbf{Selection rule:} which candidates are retained in the final QSE basis.
+\end{enumerate}
+For the weak--weak Hubbard--Holstein pilot, the current rows mean:
+\begin{center}
+\begin{tabular}{p{0.42\linewidth}p{0.48\linewidth}}
+\toprule
+Row & Meaning\\
+\midrule
+regular mixed Fullmeta QSE & Use the full mixed fermion--boson Fullmeta alphabet as the QSE basis.\\
+geometry-selected mixed Fullmeta QSE & Start from the same Fullmeta alphabet, then select a compact basis by geometry/conditioning/resource scores.\\
+Hamiltonian-term QSE & Use operators derived from Hamiltonian Pauli terms.\\
+ground-ansatz-derived QSE & Use operators inherited from the Paper-I ground-state ansatz sequence.\\
+\bottomrule
+\end{tabular}
+\end{center}
+This is why the benchmark is partly about methods and partly about useful excitation operators.  The mixed system needs mixed fermion--boson operators, but different operator sources can still be tested as baselines.
+
+\section{Why the overlap matrix matters}
+The overlap matrix \(S\) is the Gram matrix of the selected QSE directions.  If two basis vectors are nearly the same direction, then \(S\) has a small eigenvalue.  The condition estimate
+\begin{equation}
+  \kappa(S)=\frac{\lambda_{\max}(S)}{\lambda_{\min}(S)}
+\end{equation}
+measures how fragile the generalized eigenproblem is.  A large \(\kappa(S)\) means that small numerical, sampling, or measurement errors can move roots substantially.
+
+Regular mixed Fullmeta QSE can be spectrally accurate in ideal arithmetic because it includes many useful directions.  The same overcomplete alphabet can make \(S\) nearly singular.  Geometry-selected QSE tries to keep directions that explain spectral response without keeping redundant directions.
+
+\section{Metric novelty as a residual}
+Let the already-selected projected QSE directions be the columns of
+\begin{equation}
+  T=[t_1\ \cdots\ t_m],
+\end{equation}
+and let \(x\) be a new candidate projected direction.  The old span explains \(x\) by choosing coefficients \(\beta\):
+\begin{equation}
+  T\beta \approx x.
+\end{equation}
+Choose \(\beta\) by least squares:
+\begin{equation}
+  \beta^\star \in \arg\min_\beta \|x-T\beta\|^2.
+\end{equation}
+Expanding gives
+\begin{equation}
+  \|x-T\beta\|^2
+  = x^\dagger x -2\operatorname{Re}(\beta^\dagger T^\dagger x)
+  +\beta^\dagger T^\dagger T\beta.
+\end{equation}
+Define
+\begin{equation}
+  G=T^\dagger T,
+  \qquad q=T^\dagger x,
+  \qquad F=x^\dagger x.
+\end{equation}
+The normal equation is
+\begin{equation}
+  G\beta^\star=q.
+\end{equation}
+After optimizing out \(\beta\), the unexplained fraction is
+\begin{equation}
+  \mathcal N(x\mid T)
+  =1-\frac{q^\dagger G^+q}{F}.
+\end{equation}
+This is the metric novelty: it is large when the candidate points outside the old selected span.
+
+\begin{paperbox}
+The optimized coefficients \(\beta^\star\) do not appear in the reported novelty because the old span has already been allowed to explain as much of the candidate as possible.
+\end{paperbox}
+
+\section{Spectral intensity and spectral L2}
+For a probe observable \(O\), the QSE spectral function is a broadened weighted root list:
+\begin{equation}
+  I_{\QSE}(\omega)
+  =\sum_\nu w_\nu^{\QSE}K_\eta(\omega-\omega_\nu^{\QSE}),
+\end{equation}
+where
+\begin{equation}
+  \omega_\nu^{\QSE}=E_\nu^{\QSE}-E_{\rm ref},
+  \qquad
+  w_\nu^{\QSE}=|\matel{\Psi_\nu^{\QSE}}{O}{\psi_0}|^2.
+\end{equation}
+The same-cutoff exact spectrum \(I_{\ED}(\omega)\) is built the same way using exact eigenvectors in the encoded Hilbert space.  The spectral diagnostic is
+\begin{equation}
+  \epsilon_{\rm spec}
+  =\left(\sum_j |I_{\QSE}(\omega_j)-I_{\ED}(\omega_j)|^2\Delta\omega\right)^{1/2}
+	ag{diagnostic}
+\end{equation}
+up to the implementation's grid normalization convention.
+
+A sorted energy ladder asks whether root \(\nu\) matches root \(\nu\).  A spectrum asks whether the bright weighted peaks are reproduced.  These are different tests.  Dark exact roots can make the ordered ladder look poor while the spectrum overlay looks good.
+
+\section{Resource proxy}
+The matrix proxy \(S_{\rm mat}^{\rm proxy}\) estimates the amount of QSE matrix information required.  It grows with the number of basis pairs and Hamiltonian terms.  For a basis of size \(M\), the number of upper-triangular basis pairs is
+\begin{equation}
+  \frac{M(M+1)}{2}.
+\end{equation}
+The Hamiltonian matrix measurement burden scales like this pair count times the Hamiltonian term count.  The proxy is not a physical runtime claim; it is a consistent diagnostic for comparing basis policies.
+
+\section{Current weak--weak pilot numbers}
+For the current Hubbard--Holstein weak--weak diagnostic point, \((U/t,\lambda)=(0.25,0.25)\), \(n_{\rm ph}=2\), the useful pilot table is:
+\begin{center}
+\scriptsize
+\begin{tabular}{lrrrr}
+\toprule
+Basis & rank & \(\kappa(S)\) & \(S_{\rm mat}\) & L2\\
+\midrule
+regular Fullmeta & 36 & \(8.08{\times}10^9\) & 289640 & \(2.31{\times}10^{-8}\)\\
+geometry Fullmeta & 23 & \(2.13{\times}10^3\) & 9407 & \(4.63{\times}10^{-3}\)\\
+Hamiltonian terms & 21 & \(6.28{\times}10^9\) & 19107 & \(2.42{\times}10^{-2}\)\\
+ground ansatz & 6 & \(4.54{\times}10^2\) & 959 & \(1.05{\times}10^{-1}\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+The regular Fullmeta row is almost exact on the broadened spectrum, but the overlap matrix is extremely ill-conditioned.  The geometry-selected row gives a compact, better-conditioned compromise.  The Hamiltonian-term row is not enough to fix conditioning.  The ground-ansatz-derived row is cheap and stable, but it misses more spectral weight.
+
+\section{Promoted plots for the pilot}
+The current promoted plot set is deliberately small.
+\begin{enumerate}
+\item \textbf{Spectrum overlay:} exact ED versus the QSE basis constructions.
+\item \textbf{Energy-gap ladder:} sorted excitation gaps, labeled as a diagnostic rather than a one-to-one physical assignment.
+\item \textbf{Tradeoff plot:} spectral L2 versus \(\kappa(S)\) and spectral L2 versus \(S_{\rm mat}^{\rm proxy}\).
+\end{enumerate}
+Transition-strength root-index scatter plots are not promoted at this stage because the visual grammar is not yet readable.
+
+\section{Next code questions}
+For the weak--weak pilot, the immediate code tasks are:
+\begin{enumerate}
+\item lock the promoted plot PDF format;
+\item add additional probe observables only after the row definitions stay fixed;
+\item decide whether Table~1 should report one observable or a small observable suite;
+\item then repeat the same benchmark structure for the other Hubbard--Holstein regimes.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,1097 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.3em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+\newcommand{\R}{\mathbb R}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\nov}{\mathcal N}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+
+\title{Paper-I Static ADAPT Projection Geometry Primer\\[-1mm]
+\large Same Gram/Schur machinery, written only in SNAKE static-ADAPT notation}
+\author{Local pedagogical note}
+\date{May 17, 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note rewrites the nonorthogonal projection primer entirely in Paper-I static-ADAPT notation. The recurring object is a candidate generator-position record \(r\) with tangent \(\tau_r\), compared against an inherited window \(W_r\) of already available tangent directions. The primitive scalar is the part of \(\tau_r\) that survives after the window tangents optimally synthesize their best explanation:
+\[
+F_r-q_r^\top Q_r^+q_r.
+\]
+This scalar becomes geometric novelty, Phase-III refit-aware novelty, and the safe Fubini--Study scale inside SNAKE's trust-region gain.
+\end{abstract}
+
+\section{The static-ADAPT projection question}
+
+\begin{intuitionbox}
+A candidate insertion is valuable when it creates a state-space tangent direction that the inherited nearby ansatz coordinates cannot already reproduce. The old directions are inherited-window tangents; the candidate is \(\tau_r\). The coefficients below are infinitesimal old-parameter fluctuations used to synthesize the best old-window response.
+\end{intuitionbox}
+
+\begin{jargonbox}
+Paper I is greedy coordinate expansion on a projective Hilbert manifold. A record \(r=(m,p)\) proposes a new coordinate \(\vartheta_r\); its tangent \(\tau_r\) is scored after quotienting out the inherited-window tangent span. Algebraically, the quotient residual is
+\[
+\min_\beta\|\tau_r-T_{W_r}\beta\|^2
+=F_r-q_r^\top Q_r^+q_r.
+\]
+The score uses this scalar because it is the part of the candidate's Fubini--Study displacement that remains after old nearby coordinates have cooperatively refit.
+\end{jargonbox}
+
+Let
+\begin{equation}
+T_{W_r}=[\tau_i]_{i\in W_r},
+\qquad
+\tau_r=\partial_{\vartheta_r}\ket{\psi(\theta)}.
+\label{eq:p1_window_candidate}
+\end{equation}
+The old window explains the candidate by choosing coefficients \(\beta\):
+\begin{equation}
+T_{W_r}\beta=\sum_{i\in W_r}\beta_i\tau_i\approx \tau_r.
+\label{eq:p1_synthesis}
+\end{equation}
+The coefficient vector \(\beta\) is a synthesis coordinate for a hypothetical old-window tangent. It answers: ``which linear combination of inherited tangents best reconstructs the candidate tangent?'' This is a geometric projection coefficient. Later, \(\delta\theta_W^\star\) will be an energy-refit response produced by the Schur model; both live in inherited-window coordinates, but they solve different optimization problems.
+Choose \(\beta\) by least squares in the projective tangent metric:
+\begin{equation}
+\beta_r^\star\in\arg\min_\beta
+\left\|\tau_r-T_{W_r}\beta\right\|^2.
+\label{eq:p1_ls}
+\end{equation}
+Write the objective in coordinates before compressing it:
+\begin{align}
+\left\|\tau_r-T_{W_r}\beta\right\|^2
+&=\left\langle
+\tau_r-\sum_{i\in W_r}\beta_i\tau_i,\,
+\tau_r-\sum_{j\in W_r}\beta_j\tau_j
+\right\rangle,
+\notag\\
+&=\langle\tau_r,\tau_r\rangle
+-2\sum_{i\in W_r}\beta_i\langle\tau_i,\tau_r\rangle
++\sum_{i,j\in W_r}\beta_i\beta_j\langle\tau_i,\tau_j\rangle.
+\label{eq:p1_coordinate_expand}
+\end{align}
+Here \(i,j\in W_r\) index inherited-window tangents. Package the primitive overlaps as
+\begin{align}
+(Q_r)_{ij}&=\Re\langle\tau_i,\tau_j\rangle,
+\qquad
+(q_r)_i=\Re\langle\tau_i,\tau_r\rangle,
+\notag\\
+F_r&=\Re\langle\tau_r,\tau_r\rangle.
+\label{eq:p1_QqF}
+\end{align}
+The coefficient vector and overlap vector are columns,
+\begin{equation}
+\beta=
+\begin{pmatrix}
+\beta_1\\[-1mm]\vdots\\[-1mm]\beta_m
+\end{pmatrix},
+\qquad
+q_r=
+\begin{pmatrix}
+(q_r)_1\\[-1mm]\vdots\\[-1mm](q_r)_m
+\end{pmatrix}.
+\label{eq:p1_column_vectors}
+\end{equation}
+The transpose turns the first column into a row, so the single-index weighted sum is
+\begin{equation}
+\beta^\top q_r
+=
+\begin{pmatrix}\beta_1&\cdots&\beta_m\end{pmatrix}
+\begin{pmatrix}(q_r)_1\\[-1mm]\vdots\\[-1mm](q_r)_m\end{pmatrix}
+=\sum_{i\in W_r}\beta_i(q_r)_i.
+\label{eq:p1_dot_product}
+\end{equation}
+The Gram matrix \(Q_r\) stores pairwise window overlaps. Multiplying by \(\beta\) first gives
+\begin{equation}
+(Q_r\beta)_i=\sum_{j\in W_r}(Q_r)_{ij}\beta_j,
+\label{eq:p1_matrix_vector}
+\end{equation}
+and the quadratic form is the double-index weighted overlap sum
+\begin{align}
+\beta^\top Q_r\beta
+&=\sum_{i\in W_r}\beta_i(Q_r\beta)_i
+\notag\\
+&=\sum_{i,j\in W_r}\beta_i(Q_r)_{ij}\beta_j
+\notag\\
+&=\sum_{i,j\in W_r}\beta_i\beta_j\Re\langle\tau_i,\tau_j\rangle .
+\label{eq:p1_quadratic_form}
+\end{align}
+Substituting these packages into the expanded objective gives
+\begin{equation}
+\left\|\tau_r-T_{W_r}\beta\right\|^2
+=F_r-2\beta^\top q_r+\beta^\top Q_r\beta.
+\label{eq:p1_expand}
+\end{equation}
+\emph{Stationarity} means that the derivative of this quadratic objective with respect to the coefficient vector \(\beta\) vanishes:
+\begin{align}
+\frac{\partial}{\partial\beta}
+\left[
+F_r-2\beta^\top q_r+\beta^\top Q_r\beta
+\right]
+&=-2q_r+2Q_r\beta,
+\notag\\
+-2q_r+2Q_r\beta_r^\star&=0.
+\label{eq:p1_stationarity_derivative}
+\end{align}
+Thus the optimal old-window coefficients solve
+\begin{equation}
+Q_r\beta_r^\star=q_r,
+\qquad
+\beta_r^\star=Q_r^+q_r.
+\label{eq:p1_normal}
+\end{equation}
+The old-window projection is
+\begin{equation}
+P_{W_r}\tau_r=T_{W_r}\beta_r^\star
+=T_{W_r}Q_r^+q_r.
+\label{eq:p1_projection}
+\end{equation}
+The surviving tangent length is
+\begin{equation}
+\left\|\tau_r-P_{W_r}\tau_r\right\|^2
+=F_r-q_r^\top Q_r^+q_r.
+\label{eq:p1_residual}
+\end{equation}
+The coefficient vector \(\beta_r^\star\) no longer appears in the residual because it has already been optimized out. The scalar above reports the best leftover tangent length after the inherited window has had its best chance to synthesize \(\tau_r\).
+
+\section{How to read the matrices as algorithmic scalars}
+
+The matrix objects are bookkeeping for one scalar question:
+\begin{equation}
+\text{how much of }\tau_r\text{ survives the inherited-window explanation?}
+\end{equation}
+The operational chain is
+\begin{equation}
+\begin{aligned}
+Q_r\beta_r^\star=q_r
+&\Longrightarrow
+\beta_r^\star=Q_r^+q_r\\
+&\Longrightarrow
+P_{W_r}\tau_r=T_{W_r}\beta_r^\star\\
+&\Longrightarrow
+\|\tau_r-P_{W_r}\tau_r\|^2
+=F_r-q_r^\top Q_r^+q_r.
+\end{aligned}
+\label{eq:p1_matrix_to_scalar}
+\end{equation}
+Thus \(Q_r\) stores redundancy among inherited-window tangents, \(q_r\) stores candidate shadows against those tangents, and \(F_r-q_r^\top Q_r^+q_r\) is the scalar novelty length.
+
+\begin{jargonbox}
+The map \(\tau_r\mapsto q_r=T_{W_r}^\top\tau_r\) is an analysis map: it records overlaps with old tangent directions. The map \(\beta\mapsto T_{W_r}\beta\) is a synthesis map: it constructs an old-window tangent from coefficients. The Gram solve \(Q_r\beta=q_r\) converts analysis data into synthesis coefficients in a nonorthogonal tangent coordinate system.
+\end{jargonbox}
+
+\section{Schur and quotient readings of the same residual}
+
+Append the candidate tangent to the inherited-window tangent block. Its augmented Gram matrix is
+\begin{equation}
+\mathcal Q_r
+=
+\begin{pmatrix}
+T_{W_r}^\top T_{W_r}&T_{W_r}^\top\tau_r\\
+\tau_r^\top T_{W_r}&\tau_r^\top\tau_r
+\end{pmatrix}
+=
+\begin{pmatrix}
+Q_r&q_r\\
+q_r^\top&F_r
+\end{pmatrix}.
+\label{eq:p1_block_gram}
+\end{equation}
+When \(Q_r\) is invertible, eliminating the inherited-window coordinates gives the Schur complement
+\begin{equation}
+\mathcal Q_r/Q_r=F_r-q_r^\top Q_r^{-1}q_r.
+\label{eq:p1_schur_residual}
+\end{equation}
+This is the same leftover tangent length as the least-squares residual. With a pseudoinverse, the same quotient-space interpretation is
+\begin{equation}
+\begin{aligned}
+\tau_r\sim\tau_r'
+&\Longleftrightarrow
+\tau_r-\tau_r'\in\range(T_{W_r}),\\
+\|[\tau_r]\|^2
+&:=\min_\beta\|\tau_r-T_{W_r}\beta\|^2\\
+&=F_r-q_r^\top Q_r^+q_r.
+\end{aligned}
+\label{eq:p1_quotient_norm}
+\end{equation}
+The bracket \([\tau_r]\) means the candidate direction after all inherited-window directions have been identified as already available.
+
+\section{Phase-II novelty}
+
+Normalize the surviving tangent length by the candidate's own length:
+\begin{equation}
+\boxed{
+\nov_{2,r}(t)=1-\frac{q_r^\top Q_r^+q_r}{F_r}.
+}
+\label{eq:p1_n2}
+\end{equation}
+The inverse \(Q_r^+\) denotes the resolved Moore--Penrose inverse on the trusted tangent support, as described below. In implementation this may be damped or thresholded; the mathematical object is the supported old-window projection.
+
+\begin{cautionbox}
+With full-rank \(Q_r\), the symbol \(Q_r^+\) reduces to \(Q_r^{-1}\). With nearly repeated inherited-window tangents, the supported inverse suppresses unstable explanations through nearly null modes before the scalar novelty is reported.
+\end{cautionbox}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/nonorthogonal_projection_geometry/orthogonal_projection.svg.png}
+\caption{Projection picture for \(\tau_r\) against the inherited-window tangent span. Source: Wikimedia Commons, \emph{Orthogonal Projection qtl2.svg}, accessed May 16, 2026, \url{https://commons.wikimedia.org/wiki/File:Orthogonal_Projection_qtl2.svg}.}
+\end{figure}
+
+\section{Supported inverse in Paper-I notation}
+
+Diagonalize the window Gram metric:
+\begin{equation}
+Q_r=V_r\diag(s_{r,1},\ldots,s_{r,m})V_r^\top.
+\label{eq:p1_Q_eigs}
+\end{equation}
+The columns \(v_{r,a}\) are obtained from
+\begin{equation}
+Q_rv_{r,a}=s_{r,a}v_{r,a},
+\qquad \|v_{r,a}\|=1.
+\label{eq:p1_eigenproblem}
+\end{equation}
+Each \(v_{r,a}\) is a coefficient recipe for an inherited-window tangent mixture:
+\begin{equation}
+T_{W_r}v_{r,a}=\sum_{i\in W_r}(v_{r,a})_i\tau_i.
+\label{eq:p1_mode_synthesis}
+\end{equation}
+Its physical tangent length is
+\begin{equation}
+\|T_{W_r}v_{r,a}\|^2
+=v_{r,a}^\top Q_rv_{r,a}=s_{r,a}.
+\label{eq:p1_mode_length}
+\end{equation}
+A supported inverse keeps modes with \(s_{r,a}\ge \tau s_{r,\max}\):
+\begin{equation}
+Q_{r,\tau}^+
+=V_r\diag\left(\frac{\mathbf 1[s_{r,a}\ge\tau s_{r,\max}]}{s_{r,a}}\right)V_r^\top.
+\label{eq:p1_supported_inverse}
+\end{equation}
+
+\section{Gradient gain and Fubini--Study scale}
+
+The candidate record \(r\) defines a one-parameter energy curve at ADAPT iteration \(t\):
+\begin{equation}
+E_r(\alpha;t)
+=\bra{\psi_r(\alpha;t)}H\ket{\psi_r(\alpha;t)},
+\qquad
+\partial_\alpha\ket{\psi_r(\alpha;t)}\big|_{\alpha=0}=\tau_r .
+\label{eq:p1_candidate_energy_curve}
+\end{equation}
+Its directional energy gradient is the derivative of that curve at zero:
+\begin{equation}
+g_r(t)=
+\left.\frac{d}{d\alpha}E_r(\alpha;t)\right|_{\alpha=0}.
+\label{eq:p1_gradient_definition}
+\end{equation}
+The directional curvature is the second derivative along the same candidate curve:
+\begin{equation}
+h_r(t)=
+\left.\frac{d^2}{d\alpha^2}E_r(\alpha;t)\right|_{\alpha=0}.
+\label{eq:p1_curvature_definition}
+\end{equation}
+\begin{intuitionbox}
+The tangent \(\tau_r\) is the state-space direction produced by the candidate generator. The scalar \(\alpha\) chooses how far and which way to move along that direction. The gradient \(g_r(t)\) is the signed first-order energy slope along this coordinate; choosing the sign of \(\alpha\) selects the descending branch. The trust region limits the Fubini--Study displacement \(\|\alpha\tau_r\|\), so the local quadratic model is only used inside a controlled geometric neighborhood.
+\end{intuitionbox}
+For a small candidate displacement,
+\begin{equation}
+E_r(\alpha;t)-E_r(0;t)
+\approx g_r(t)\alpha+\frac12h_r(t)\alpha^2.
+\label{eq:p1_taylor_energy}
+\end{equation}
+Choose a nonnegative step length \(s=|\alpha|\) and take the descent sign
+\begin{equation}
+\alpha=-s\,\operatorname{sgn}(g_r(t)).
+\label{eq:p1_descent_alpha}
+\end{equation}
+Then the linear term becomes
+\begin{equation}
+g_r(t)\alpha
+=-s\,g_r(t)\operatorname{sgn}(g_r(t))
+=-|g_r(t)|s.
+\label{eq:p1_linear_descent_sign}
+\end{equation}
+Substituting \(s=|\alpha|\) into the Taylor model gives
+\begin{equation}
+E_r(\alpha;t)-E_r(0;t)
+\approx
+-|g_r(t)|\,|\alpha|+\frac12h_r(t)\alpha^2.
+\label{eq:p1_signed_taylor_energy}
+\end{equation}
+The predicted energy drop is the negative of this energy change:
+\begin{equation}
+-\bigl(E_r(\alpha;t)-E_r(0;t)\bigr)
+\approx |g_r(t)|\,|\alpha|-\frac12h_r(t)\alpha^2.
+\label{eq:p1_drop_model}
+\end{equation}
+Phase I substitutes the Fubini--Study scale curvature \(\lambda_FF_r\) for \(h_r(t)\). The trust-region step is controlled by state displacement:
+\begin{equation}
+|\alpha|\sqrt{F_r}\le\rho.
+\label{eq:p1_tr_radius}
+\end{equation}
+This comes from the first-order tangent displacement
+\begin{equation}
+\|\alpha\tau_r\|=|\alpha|\sqrt{\langle\tau_r,\tau_r\rangle}
+=|\alpha|\sqrt{F_r}.
+\label{eq:p1_state_displacement}
+\end{equation}
+A first local gain model is
+\begin{equation}
+\Delta E_{1,r}^{\rm TR}(t)=
+\max_{|\alpha|\le\rho/\sqrt{F_r}}
+\left[|g_r(t)|\,|\alpha|-\frac12\lambda_FF_r\alpha^2\right].
+\label{eq:p1_phase1_gain}
+\end{equation}
+Phase II replaces the crude curvature \(\lambda_FF_r\) by the directional curvature \(h_r(t)\):
+\begin{equation}
+\Delta E_{2,r}^{\rm TR}(t)=
+\max_{|\alpha|\le\rho/\sqrt{F_r}}
+\left[|g_r(t)|\,|\alpha|-\frac12h_r(t)\alpha^2\right].
+\label{eq:p1_phase2_gain}
+\end{equation}
+
+\section{Schur-refitted curvature}
+
+Let the candidate amplitude \(\alpha\) couple to an inherited refit window displacement \(\delta\theta_W\):
+\begin{align}
+g&=g_r(t),
+\qquad
+h=h_r(t),
+\notag\\
+c_i&=\left.\frac{\partial^2 E}{\partial\alpha\,\partial\theta_i}\right|_0,
+\qquad
+R_{ij}=\left.\frac{\partial^2 E}{\partial\theta_i\,\partial\theta_j}\right|_0,
+\qquad i,j\in W_r .
+\label{eq:p1_schur_coefficients}
+\end{align}
+Here \(g,h,c,R\) are local shorthand for the candidate gradient, candidate curvature, candidate-window mixed curvature, and window Hessian block. The quadratic model is
+\begin{equation}
+E(\alpha,\delta\theta_W)
+\approx E_0+g\alpha+\frac12h\alpha^2
++\alpha c^\top\delta\theta_W
++\frac12\delta\theta_W^\top R\delta\theta_W.
+\label{eq:p1_quad_model}
+\end{equation}
+For fixed \(\alpha\), minimize over \(\delta\theta_W\):
+\begin{equation}
+0=\alpha c+R\delta\theta_W,
+\qquad
+\delta\theta_W^\star=-\alpha R^{-1}c.
+\label{eq:p1_window_star}
+\end{equation}
+Substitution gives
+\begin{equation}
+E(\alpha,\delta\theta_W^\star)
+=E_0+g\alpha+\frac12\left(h-c^\top R^{-1}c\right)\alpha^2,
+\label{eq:p1_schur_substitute}
+\end{equation}
+so the Schur-relaxed curvature is
+\begin{equation}
+h_r^{\rm Schur}=h_r-c_r^\top R_r^{-1}c_r.
+\label{eq:p1_h_schur}
+\end{equation}
+
+\section{Refit-star Phase-III novelty}
+
+The same Schur response also changes the tangent being tested. Since
+\begin{equation}
+\frac{d}{d\alpha}\delta\theta_W^\star(0)=-R_r^{-1}c_r,
+\label{eq:p1_window_response}
+\end{equation}
+the optimal-refit tangent is
+\begin{equation}
+\tau_r^\star=\tau_r-T_{W_r}R_r^{-1}c_r.
+\label{eq:p1_tau_star}
+\end{equation}
+Define the refit response per unit candidate amplitude:
+\begin{equation}
+\gamma_r^\star
+:=\frac{\delta\theta_W^\star(\alpha)}{\alpha}
+=-R_r^{-1}c_r.
+\label{eq:p1_gamma_star}
+\end{equation}
+Then the same tangent can be written as
+\begin{equation}
+\tau_r^\star=\tau_r+T_{W_r}\gamma_r^\star.
+\label{eq:p1_tau_star_gamma}
+\end{equation}
+Define
+\begin{equation}
+F_r^\star=\Re\langle\tau_r^\star,\tau_r^\star\rangle,
+\qquad
+(q_r^\star)_i=\Re\langle\tau_i,\tau_r^\star\rangle.
+\label{eq:p1_star_primitives}
+\end{equation}
+Expand the star norm from the primitive overlaps:
+\begin{align}
+F_r^\star
+&=\Re\langle \tau_r+T_{W_r}\gamma_r^\star,\,
+\tau_r+T_{W_r}\gamma_r^\star\rangle
+\notag\\
+&=F_r+2q_r^\top\gamma_r^\star
++(\gamma_r^\star)^\top Q_r\gamma_r^\star
+\notag\\
+&=
+F_r-2q_r^\top R_r^{-1}c_r
++c_r^\top R_r^{-1}Q_rR_r^{-1}c_r .
+\label{eq:p1_F_star_expand}
+\end{align}
+Likewise, each component of the star overlap vector is
+\begin{align}
+(q_r^\star)_i
+&=\Re\left\langle
+\tau_i,\,
+\tau_r+\sum_{j\in W_r}(\gamma_r^\star)_j\tau_j
+\right\rangle
+\notag\\
+&=(q_r)_i+\sum_{j\in W_r}(Q_r)_{ij}(\gamma_r^\star)_j,
+\label{eq:p1_q_star_components}
+\end{align}
+or, in vector form,
+\begin{equation}
+q_r^\star=q_r+Q_r\gamma_r^\star
+=q_r-Q_rR_r^{-1}c_r.
+\label{eq:p1_q_star_expand}
+\end{equation}
+The Phase-III trust region is obtained by putting the same Schur response into the block Fubini--Study displacement. For a joint candidate-window step,
+\begin{align}
+\left\|\alpha\tau_r+T_{W_r}\delta\theta_W\right\|^2
+&=
+\alpha^2F_r
++2\alpha q_r^\top\delta\theta_W
++\delta\theta_W^\top Q_r\delta\theta_W .
+\label{eq:p1_phase3_block_fs}
+\end{align}
+On the Schur-refit line \(\delta\theta_W=\alpha\gamma_r^\star\), this becomes
+\begin{align}
+\left\|\alpha\tau_r+T_{W_r}(\alpha\gamma_r^\star)\right\|^2
+&=
+\alpha^2
+\left[
+F_r+2q_r^\top\gamma_r^\star
++(\gamma_r^\star)^\top Q_r\gamma_r^\star
+\right]
+\notag\\
+&=\alpha^2F_r^\star.
+\label{eq:p1_phase3_trust_region_collapse}
+\end{align}
+Therefore the inherited-window-refitted trust region
+\begin{equation}
+\left\|\alpha\tau_r+T_{W_r}\delta\theta_W^\star\right\|\le\rho
+\label{eq:p1_phase3_block_tr}
+\end{equation}
+reduces to the scalar bound
+\begin{equation}
+|\alpha|\sqrt{F_r^\star}\le\rho,
+\qquad
+|\alpha|\le\frac{\rho}{\sqrt{F_r^\star}}.
+\label{eq:p1_phase3_alpha_bound}
+\end{equation}
+Now repeat the same least-squares test, with the refit-aware tangent replacing the raw candidate tangent:
+\begin{equation}
+\beta_{3,r}^\star\in
+\arg\min_\beta
+\left\|\tau_r^\star-T_{W_r}\beta\right\|^2.
+\label{eq:p1_n3_ls}
+\end{equation}
+Write this residual objective as \(J_{3,r}(\beta)\). Expanding directly from the primitive overlaps gives
+\begin{align}
+J_{3,r}(\beta)
+&:=\left\|\tau_r^\star-T_{W_r}\beta\right\|^2
+\notag\\
+&=
+\Re\langle\tau_r^\star,\tau_r^\star\rangle
+-2\sum_{i\in W_r}\beta_i\Re\langle\tau_i,\tau_r^\star\rangle
++\sum_{i,j\in W_r}\beta_i\beta_j\Re\langle\tau_i,\tau_j\rangle
+\notag\\
+&=F_r^\star-2\beta^\top q_r^\star+\beta^\top Q_r\beta.
+\label{eq:p1_n3_expand}
+\end{align}
+The least-squares normal equation is therefore
+\begin{align}
+\nabla_\beta J_{3,r}(\beta)
+&=-2q_r^\star+2Q_r\beta=0,
+\notag\\
+Q_r\beta_{3,r}^\star&=q_r^\star,
+\qquad
+\beta_{3,r}^\star=Q_r^+q_r^\star
+\label{eq:p1_n3_normal}
+\end{align}
+on the resolved support of \(Q_r\).
+Substitute the optimized coefficient back into the residual:
+\begin{align}
+\min_\beta\left\|\tau_r^\star-T_{W_r}\beta\right\|^2
+&=
+F_r^\star
+-2(q_r^\star)^\top Q_r^+q_r^\star
++(q_r^\star)^\top Q_r^+Q_rQ_r^+q_r^\star
+\notag\\
+&=
+F_r^\star-(q_r^\star)^\top Q_r^+q_r^\star .
+\label{eq:p1_n3_residual}
+\end{align}
+Therefore the normalized Phase-III novelty is
+\begin{equation}
+\boxed{
+\nov_{3,r}(t)=1-
+\frac{(q_r^\star)^\top Q_r^+q_r^\star}{F_r^\star}.
+}
+\label{eq:p1_n3}
+\end{equation}
+The coefficient \(\beta_{3,r}^\star\) is optimized out exactly as in Phase II. The new ingredient is the Schur-refit tangent \(\tau_r^\star\); once that tangent is formed, the novelty calculation is the same old-window least-squares residual.
+The Phase-III gain uses the refit-aware scale and Schur curvature:
+\begin{equation}
+\Delta E_{3,r}^{\rm TR}(t)=
+\max_{|\alpha|\le\rho/\sqrt{F_r^\star}}
+\left[|g_r(t)|\,|\alpha|-\frac12h_r^{\rm Schur}\alpha^2\right].
+\label{eq:p1_phase3_gain}
+\end{equation}
+
+\section{Batching: common-window reduced plane}
+
+The slide-deck phrase ``geometrically compatible degenerate scores with
+non-overlapping Pauli support'' is the eligibility layer.  The geometric layer
+begins after Phase III has produced a near-degenerate shell of individually
+strong records.  A proposed batch
+\[
+B=\{r_1,\ldots,r_s\}
+\]
+is then tested as one small reduced trust-region problem with a shared
+old-window response.
+
+\begin{intuitionbox}
+Batch admission is an energy-model decision.  The least-squares-looking solve
+appears inside the construction: the old refit window is optimized out by a
+normal equation, and the resulting state displacement is measured with a Gram
+matrix.  The final batch score is the predicted energy gain inside a
+Fubini--Study trust region.
+\end{intuitionbox}
+
+The batch uses one common inherited refit window:
+\begin{equation}
+W_B=\bigcup_{r\in B}W_r,
+\qquad
+T_B=[\tau_a]_{a\in W_B},
+\qquad
+D_B=[\tau_{r_1}\ \cdots\ \tau_{r_s}].
+\label{eq:p1_batch_window}
+\end{equation}
+The batch amplitudes are collected in
+\begin{equation}
+\alpha_B=(\alpha_{r_1},\ldots,\alpha_{r_s})^\top .
+\label{eq:p1_batch_alpha}
+\end{equation}
+These are fresh trial amplitudes for the proposed batch move.  The records in
+\(B\) carry Phase-III scores, gradients, curvatures, costs, and tangents into
+the batch test, but their candidate coordinates are still zero at the current
+state.  The vector \(\alpha_B\) is chosen jointly by the batch trust-region
+model.
+The inherited-window coordinate displacement is
+\begin{equation}
+\delta\theta_{W_B}
+=\left(\delta\theta_a\right)_{a\in W_B},
+\label{eq:p1_batch_window_displacement}
+\end{equation}
+so each component changes one old ansatz coordinate in the common batch
+window.  The resolved downhill gradient vector is
+\begin{equation}
+\widetilde g_B(t)
+=
+\left(
+\widetilde g_{r_1}(t),\ldots,\widetilde g_{r_s}(t)
+\right)^\top .
+\label{eq:p1_batch_gradient}
+\end{equation}
+Here \(D_B\) stores the raw candidate tangents at the current ansatz state,
+before the shared inherited-window response is applied.
+The local energy \(E(\alpha_B,\delta\theta_{W_B};B)\) is the energy of the
+state obtained by inserting the records in \(B\) with amplitudes \(\alpha_B\)
+and moving the old coordinates in \(W_B\) by \(\delta\theta_{W_B}\).  All
+derivatives below are evaluated at the current state:
+\[
+(\alpha_B,\delta\theta_{W_B})=(0,0).
+\]
+The current energy is
+\[
+E_0:=E(0,0;B).
+\]
+The candidate-candidate, window-candidate, and window-window curvature blocks
+are
+\begin{align}
+(H_{BB})_{rs}
+&:=
+\left.
+\partial_{\alpha_r}\partial_{\alpha_s}
+E(\alpha_B,\delta\theta_{W_B};B)
+\right|_{0},
+\notag\\
+(H_{W_BB})_{a r}
+&:=
+\left.
+\partial_{\theta_a}\partial_{\alpha_r}
+E(\alpha_B,\delta\theta_{W_B};B)
+\right|_{0},
+\notag\\
+(H_{W_BW_B})_{ab}
+&:=
+\left.
+\partial_{\theta_a}\partial_{\theta_b}
+E(\alpha_B,\delta\theta_{W_B};B)
+\right|_{0},
+\label{eq:p1_batch_hessian_blocks}
+\end{align}
+where \(r,s\in B\) and \(a,b\in W_B\), and
+\(H_{BW_B}:=H_{W_BB}^{\top}\).  This note writes \(R_B\) for the manuscript's
+\(\mathbf R_B\):
+\begin{equation}
+R_B
+:=
+\frac12\left(H_{W_BW_B}+H_{W_BW_B}^{\top}\right)
++\lambda_HI,
+\qquad
+\lambda_H>0.
+\label{eq:p1_batch_RB_def}
+\end{equation}
+In exact arithmetic, \(H_{BB}\) and \(H_{W_BW_B}\) are symmetric curvature
+blocks and \(H_{BW_B}=H_{W_BB}^{\top}\).  In implementation, the window block
+is symmetrized and damped before inversion; the displayed \(R_B^{-1}\) means
+the stable supported/damped solve on this local refit window.
+For each record \(r\), the mixed candidate-window curvature vector is the
+\(r\)-th column of \(H_{W_BB}\):
+\begin{equation}
+b_r
+:=
+\left[
+\left.
+\partial_{\theta_a}\partial_{\alpha_r}
+E(\alpha_B,\delta\theta_{W_B};B)
+\right|_{0}
+\right]_{a\in W_B}.
+\label{eq:p1_batch_br_def}
+\end{equation}
+Thus \(b_r\) records how the candidate amplitude \(\alpha_r\) couples, to
+second order, with each old coordinate in the common refit window.
+Before any inherited coordinates refit, the batch displacement is
+\begin{equation}
+\delta\psi_B
+\approx
+D_B\alpha_B+T_B\delta\theta_{W_B}.
+\label{eq:p1_batch_state_step}
+\end{equation}
+Thus the old coordinates do not respond separately to each record.  They
+respond once to the whole proposed batch.
+
+Let the local batch energy model be
+\begin{align}
+m_B(\alpha_B,\delta\theta_{W_B})
+&=E_0-\widetilde g_B^\top\alpha_B
++\frac12\alpha_B^\top H_{BB}\alpha_B
+\notag\\
+&\quad
++\alpha_B^\top H_{BW_B}\delta\theta_{W_B}
+	+\frac12\delta\theta_{W_B}^\top R_B\delta\theta_{W_B},
+\label{eq:p1_batch_model}
+\end{align}
+where
+\[
+H_{W_BB}
+=
+\begin{bmatrix}b_{r_1}&\cdots&b_{r_s}\end{bmatrix}
+=H_{BW_B}^\top
+\]
+collects those mixed candidate-window vectors.  For fixed \(\alpha_B\),
+optimize the inherited-window coordinates:
+\begin{align}
+0
+&=\nabla_{\delta\theta_{W_B}}m_B
+=H_{W_BB}\alpha_B+R_B\delta\theta_{W_B},
+\notag\\
+\delta\theta_{W_B}^\star(\alpha_B)
+&=-R_B^{-1}H_{W_BB}\alpha_B.
+\label{eq:p1_batch_window_star}
+\end{align}
+This is the batching analogue of the least-squares normal equation.  In the
+single-candidate novelty derivation, the old window solves \(Q_r\beta=q_r\) to
+explain a tangent.  In the batch refit derivation, the old window solves
+\(R_B\delta\theta^\star=-H_{W_BB}\alpha_B\) to supply the best local energetic
+response to a multi-amplitude step.  Thus the optimized variable that
+disappears is \(\delta\theta_{W_B}\), not \(\alpha_B\): the batch amplitudes
+remain as the variables of the reduced trust-region problem.
+
+Substitute Eq.~\eqref{eq:p1_batch_window_star} into the state displacement:
+\begin{equation}
+\delta\psi_B^\star(\alpha_B)
+=
+\left(D_B-T_BR_B^{-1}H_{W_BB}\right)\alpha_B
+=U_B\alpha_B.
+\label{eq:p1_batch_reduced_step}
+\end{equation}
+Columnwise,
+\begin{equation}
+u_r^{(B)}=\tau_r-T_BR_B^{-1}b_r.
+\label{eq:p1_batch_reduced_tangent}
+\end{equation}
+These are the batch-reduced tangents.  They are the directions that remain
+after all records in \(B\) share the same inherited-window refit.
+Columnwise, \(T_BR_B^{-1}b_r\) is the old-window tangent response predicted by
+the energy model for record \(r\).  Subtracting it forms the part of the
+candidate tangent that is not already supplied by the local refit response.
+
+The reduced Fubini--Study metric for the batch is
+\begin{equation}
+G_B^\star=U_B^\top U_B,
+\qquad
+(G_B^\star)_{rs}
+=\Re\langle u_r^{(B)},u_s^{(B)}\rangle.
+\label{eq:p1_batch_gram}
+\end{equation}
+Equivalently, with
+\((q_r^{(B)})_a=\Re\langle\tau_a,\tau_r\rangle\) for \(a\in W_B\) and
+\(Q_B=\Re\langle T_B,T_B\rangle\),
+\begin{align}
+(G_B^\star)_{rs}
+&=
+\Re\langle\tau_r,\tau_s\rangle
+-(q_r^{(B)})^\top v_s
+-(q_s^{(B)})^\top v_r
+\notag\\
+&\quad
++v_r^\top Q_Bv_s,
+\qquad
+v_r=R_B^{-1}b_r.
+\label{eq:p1_batch_gram_expanded}
+\end{align}
+The diagonal entries are individual refit-aware tangent lengths.  The
+off-diagonal entries measure whether two records still interfere after the
+common window has done its best local refit.
+This is where linear independence is tested.  A well-conditioned
+\(G_B^\star\) means the batch records span a genuine reduced tangent plane; a
+nearly singular \(G_B^\star\) means the proposed records collapse onto the
+same refit-adjusted direction.
+
+The same substitution Schur-reduces the candidate-candidate curvature:
+\begin{equation}
+H_B^\star
+=
+H_{BB}-H_{BW_B}R_B^{-1}H_{W_BB}.
+\label{eq:p1_batch_schur_hessian}
+\end{equation}
+Before this block is used in the conservative gain model, it is symmetrized
+and its positive-semidefinite part is taken:
+\begin{equation}
+\begin{aligned}
+\bar H_B^\star
+&:=
+\frac12\left(H_B^\star+(H_B^\star)^\top\right)
+=V\operatorname{diag}(\eta_i)V^\top,\\
+(H_B^\star)^{(+)}
+&:=
+V\operatorname{diag}(\max\{\eta_i,0\})V^\top .
+\end{aligned}
+\label{eq:p1_batch_psd_part}
+\end{equation}
+The explicit damping belongs to \(R_B\), because \(R_B\) is the block being
+inverted.  The candidate block enters only through the reduced quadratic
+model, so it is symmetrized and then PSD-clipped for the trust-region gain.
+The Gram block \(G_B^\star\) is
+symmetrized as an overlap matrix and eigen-tested by the rank gate.
+Let \(\rho_B>0\) be the batch Fubini--Study trust-region radius.  The batch
+trust-region gain is therefore
+\begin{equation}
+\boxed{
+\Delta E_3(B)
+=
+\max_{\alpha_B^\top G_B^\star\alpha_B\le\rho_B^2}
+\left[
+\widetilde g_B^\top|\alpha_B|
+-\frac12\alpha_B^\top (H_B^\star)^{(+)}\alpha_B
+\right].
+}
+\label{eq:p1_batch_gain}
+\end{equation}
+The batching method is therefore a small classical reduced-plane optimization:
+solve out the old-window response, form \(G_B^\star\) and \(H_B^\star\), then
+optimize the batch amplitudes jointly.
+
+\begin{intuitionbox}
+Singleton Phase III asks whether one Schur-refitted tangent is worth buying.
+Batching asks whether several such tangents form a stable reduced plane whose
+joint gain survives when the amplitudes are chosen together.
+\end{intuitionbox}
+
+The rank gate rejects collapsed reduced planes.  If \(\mu_1,\ldots,\mu_s\) are
+the eigenvalues of \(G_B^\star\), then
+\[
+\frac{\operatorname{tr}(G_B^\star)}{|B|}
+=\frac1s\sum_{i=1}^s\mu_i
+\]
+is the average reduced tangent length.  The smallest eigenvalue
+\(\lambda_{\min}(G_B^\star)\) is the weakest surviving direction in the batch.
+The threshold \(\tau_{\rm rank}>0\) requires the weakest direction to remain a
+fixed fraction of the average direction strength:
+\begin{equation}
+\lambda_{\min}(G_B^\star)
+\ge
+\tau_{\rm rank}\frac{\operatorname{tr}(G_B^\star)}{|B|}.
+\label{eq:p1_batch_rank_gate}
+\end{equation}
+A failed rank gate means the batch contains redundant reduced directions, even
+if the individual records looked good before they were tested together.
+The additivity check compares the joint gain with contextual singleton gains
+computed inside the same common reduction.  The scalar \(\rho_B\) is the
+batch trust-region radius, \(\eps>0\) prevents division by zero,
+\(x^{(+)}:=\max\{x,0\}\), and \(\beta\) is the one-record amplitude being
+tested while the rest of \(B\) supplies the context:
+\begin{equation}
+\Delta E_{r\mid B}
+=
+\max_{\beta^2(G_B^\star)_{rr}\le\rho_B^2}
+\left[
+\widetilde g_r(t)|\beta|
+-\frac12(H_B^\star)_{rr}^{(+)}\beta^2
+\right],
+\label{eq:p1_batch_context_gain}
+\end{equation}
+\begin{equation}
+\delta_{\rm add}(B)
+=
+\left[
+1-\frac{\Delta E_3(B)}
+{\sum_{r\in B}\Delta E_{r\mid B}+\eps}
+\right]_+.
+\label{eq:p1_batch_additivity}
+\end{equation}
+This number is a lost-gain fraction.  If
+\(\Delta E_3(B)\approx\sum_{r\in B}\Delta E_{r\mid B}\), then
+\(\delta_{\rm add}(B)\approx0\) and the batch is nearly additive.  If the joint
+gain is much smaller than the contextual singleton sum, then
+\(\delta_{\rm add}(B)\) is large: the records compete in the reduced plane, so
+the batch should shrink or split into beam alternatives.  A geometric batch is
+admitted only after both gates pass:
+\[
+\lambda_{\min}(G_B^\star)
+\ge
+\tau_{\rm rank}\frac{\operatorname{tr}(G_B^\star)}{|B|},
+\qquad
+\delta_{\rm add}(B)\le\tau_{\rm add}.
+\]
+
+\subsection{Greedy batch construction}
+
+The equations above test a proposed batch \(B\).  The deployed selector builds
+that proposal by greedy one-record append moves through the near-degenerate
+shell.  Let \(r_{\max}\) be the highest-scoring Phase-III record and define the
+near-degenerate shell
+\[
+\mathcal N_3
+=\{r\in\mathcal S_3:\ S_3(r)\ge \eta_{\rm nd}S_3(r_{\max})\}.
+\]
+Initialize
+\[
+B^{(1)}=\{r_{\max}\}.
+\]
+Given a current accepted batch \(B^{(k)}\), each add-on \(r\in
+\mathcal N_3\setminus B^{(k)}\) proposes
+\[
+B^+=B^{(k)}\cup\{r\}.
+\]
+For that proposed \(B^+\), the common window is rebuilt:
+\[
+W_{B^+}=\bigcup_{q\in B^+}W_q,
+\]
+then \(R_{B^+}\), \(U_{B^+}\), \(G_{B^+}^\star\),
+\((H_{B^+}^\star)^{(+)}\), \(\Delta E_3(B^+)\), and
+\(\delta_{\rm add}(B^+)\) are recomputed on the new common reduction.
+
+The marginal value of the add-on is
+\begin{equation}
+\Delta_{\rm marg}(r\mid B^{(k)})
+=
+\Delta E_3(B^{(k)}\cup\{r\})-\Delta E_3(B^{(k)}).
+\label{eq:p1_batch_marginal_gain}
+\end{equation}
+An add-on is feasible only when the structural constraints hold, the rank gate
+holds for \(G_{B^+}^\star\), the additivity gate holds for \(B^+\), and the
+marginal gain is positive.  Among feasible add-ons, the greedy selector appends
+the one with largest \(\Delta_{\rm marg}\).  Then the test repeats until the
+batch cap is reached or no feasible positive-gain add-on remains.
+
+Thus a failed gate is local to the proposed add-on; the already accepted
+current batch remains available.  If one add-on makes \(G_{B^+}^\star\) nearly
+singular or gives a large additivity defect, that add-on is skipped and other
+shell records can still be tested.  If every remaining add-on fails a gate or
+gives nonpositive marginal gain, the selector stops and emits the current
+\(B^{(k)}\).  When the current batch has size one, this is ordinary singleton
+admission.
+
+\begin{intuitionbox}
+The rank gate asks whether the appended record supplies a new reduced tangent
+direction after the shared inherited-window response.  A small
+\(\lambda_{\min}(G_{B^+}^\star)\) says that the proposed enlarged plane has a
+nearly collapsed direction, so the append is geometrically redundant.  The
+additivity gate asks whether the joint energy gain survives when the batch
+amplitudes compete inside the same reduced trust region.
+\end{intuitionbox}
+
+\appendix
+\section{Worked example: one inherited tangent}
+
+Let the inherited window contain one normalized tangent \(\tau_1\), and let
+\begin{equation}
+\langle\tau_1,\tau_1\rangle=1,\qquad
+\langle\tau_1,\tau_r\rangle=a,\qquad
+\langle\tau_r,\tau_r\rangle=F_r.
+\end{equation}
+Then
+\begin{equation}
+Q_r=(1),\qquad q_r=(a),\qquad
+q_r^\top Q_r^{-1}q_r=a^2.
+\end{equation}
+The old-window coefficient is \(\beta_r^\star=a\), the fitted tangent is \(a\tau_1\), and the novelty is
+\begin{equation}
+\nov_{2,r}=1-\frac{a^2}{F_r}.
+\end{equation}
+If \(a^2=F_r\), the candidate is fully synthesized by \(\tau_1\). If \(a=0\), the candidate is orthogonal to the inherited tangent.
+
+\section{Worked example: two nonorthogonal inherited tangents}
+
+Let
+\begin{equation}
+\tau_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+\tau_2=\begin{pmatrix}1\\1\end{pmatrix},
+\qquad
+\tau_r=\begin{pmatrix}1\\2\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+Q_r=
+\begin{pmatrix}1&1\\1&2\end{pmatrix},
+\qquad
+q_r=
+\begin{pmatrix}1\\3\end{pmatrix},
+\qquad
+F_r=5.
+\end{equation}
+Solving \(Q_r\beta=q_r\) gives
+\begin{equation}
+\beta_r^\star=
+\begin{pmatrix}-1\\2\end{pmatrix},
+\qquad
+T_{W_r}\beta_r^\star
+=-\tau_1+2\tau_2
+=\begin{pmatrix}1\\2\end{pmatrix}
+=\tau_r.
+\end{equation}
+Thus
+\begin{equation}
+F_r-q_r^\top Q_r^{-1}q_r=0,
+\qquad
+\nov_{2,r}=0.
+\end{equation}
+The raw overlaps \(q_r=(1,3)^\top\) do not directly give the coefficients; the Gram solve converts those overlaps into the synthesis coefficients \((-1,2)^\top\).
+
+\section{Worked example: nearly repeated inherited tangents}
+
+Let two inherited tangents be nearly repeated:
+\begin{equation}
+\tau_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+\tau_2=\begin{pmatrix}1\\\delta\end{pmatrix},
+\qquad 0<\delta\ll1.
+\end{equation}
+Then
+\begin{equation}
+Q_r=\begin{pmatrix}1&1\\1&1+\delta^2\end{pmatrix},
+\qquad
+v_-\approx\frac1{\sqrt2}\begin{pmatrix}1\\-1\end{pmatrix},
+\qquad
+s_-\approx\frac{\delta^2}{2}.
+\end{equation}
+The coefficient recipe \(v_-\) synthesizes the difference of two almost identical tangents, so its physical length is tiny:
+\begin{equation}
+\|T_{W_r}v_-\|^2\approx s_-.
+\end{equation}
+If \(s_-\) falls below the support threshold, \(Q_{r,\tau}^+\) discards this mixture before inversion. The discarded mode is an unresolved parameter fluctuation direction: large opposite changes in the two old coordinates barely move the state.
+
+\section{Worked example: trust-region gain}
+
+Suppose
+\begin{equation}
+|g_r(t)|=0.08,\qquad
+F_r=4,\qquad
+\rho=0.1,\qquad
+\lambda_F=1.
+\end{equation}
+The trust-region bound is
+\begin{equation}
+|\alpha|\le\frac{\rho}{\sqrt{F_r}}=\frac{0.1}{2}=0.05.
+\end{equation}
+The Phase-I model is
+\begin{equation}
+\Delta E_{1,r}^{\rm TR}(\alpha)
+=0.08|\alpha|-2\alpha^2.
+\end{equation}
+The unconstrained maximizer satisfies
+\begin{equation}
+0.08-4|\alpha|=0
+\quad\Longrightarrow\quad
+|\alpha|=0.02,
+\end{equation}
+which is inside the trust region. Hence
+\begin{equation}
+\Delta E_{1,r}^{\rm TR}=0.08(0.02)-2(0.02)^2=8.0\times10^{-4}.
+\end{equation}
+
+\section{Worked example: Schur curvature after refit}
+
+Let the local refit-window model have
+\begin{equation}
+h=5,\qquad
+c=\begin{pmatrix}2\\1\end{pmatrix},
+\qquad
+R=
+\begin{pmatrix}4&0\\0&2\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+R^{-1}c=
+\begin{pmatrix}1/2\\1/2\end{pmatrix},
+\qquad
+c^\top R^{-1}c=2(1/2)+1(1/2)=1.5.
+\end{equation}
+The Schur-relaxed curvature is
+\begin{equation}
+h_r^{\rm Schur}=h-c^\top R^{-1}c=5-1.5=3.5.
+\end{equation}
+The refit window has absorbed part of the candidate curvature response, so Phase III scores the candidate using the relaxed curvature \(3.5\), not the raw curvature \(5\).
+
+\end{document}

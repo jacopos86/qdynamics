@@ -1,0 +1,824 @@
+
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.1pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.25em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+
+\newcommand{\Oset}{\mathcal O}
+\newcommand{\Acal}{\mathcal A}
+\newcommand{\Ecal}{\mathcal E}
+\newcommand{\Wcal}{\mathcal W}
+\newcommand{\Rcal}{\mathcal R}
+\newcommand{\Scal}{\mathcal S}
+\newcommand{\Pcal}{\mathcal P}
+\newcommand{\Dcal}{\mathcal D}
+\newcommand{\Gcal}{\mathcal G}
+\newcommand{\Mcal}{\mathcal M}
+\newcommand{\Ical}{\mathcal I}
+\newcommand{\qse}{\mathrm{QSE}}
+\newcommand{\QSE}{\mathrm{QSE}}
+\newcommand{\ED}{\mathrm{ED}}
+\newcommand{\fb}{\mathrm{fb}}
+\newcommand{\lf}{\mathrm{LF}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ii}{\mathrm i}
+\newcommand{\dd}{\mathrm d}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\argminp}{\operatorname*{arg\,min}}
+\newcommand{\argmaxp}{\operatorname*{arg\,max}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\newcommand{\matel}[3]{\langle #1\mid #2\mid #3\rangle}
+\newcommand{\expval}[1]{\langle #1\rangle}
+\newcommand{\stay}{\mathrm{stay}}
+\newcommand{\app}{\mathrm{append}}
+\newcommand{\ablate}{\mathrm{ablate}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+\definecolor{graybox}{HTML}{F4F4F4}
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{paperbox}{colback=greenbox,colframe=green!45!black,title=Paper-III translation,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+\newtcolorbox{examplebox}{colback=graybox,colframe=black!50,title=Worked micro-example,fonttitle=\bfseries\small}
+
+\title{Paper-III QSE Pedagogical Companion\\[-1mm]
+\large Primitive Bit Strings, Operator Records, Nonorthogonal Ritz Geometry, and Spectral Diagnostics}
+\author{Local pedagogical note}
+\date{May 31, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Source anchor and reading contract}
+
+\begin{cautionbox}
+Source anchor: current local Paper-III manuscript, \texttt{excited\_spectra\_dynamics\_paper\_III.tex}. This note is not a verbatim manuscript duplicate. It is a derivation companion: high-level statement, primitive expansion, and return to the paper-level equation.
+\end{cautionbox}
+
+\begin{intuitionbox}
+Paper I gives a prepared seed state. Paper III asks which excitation operators should be applied to that seed so that a small nonorthogonal subspace recovers excited-state response. The QSE generalized eigenproblem is standard. The selection of a stable, low-cost, mixed fermion--boson excitation manifold is the new algorithmic object.
+\end{intuitionbox}
+
+The shortest high-level chain is
+\begin{equation}
+\boxed{
+\begin{gathered}
+\ket{\Phi_0}:=\ket{\mathbf z_{\rm ref}},
+\qquad
+V_0:=U_{\Oset^\star}(\theta^\star),
+\qquad
+\ket{\psi_0}:=V_0\ket{\Phi_0},\\
+\ket{\psi_0}\xrightarrow{\Omega_a}\ket{\phi_a}
+\xrightarrow{\Acal}(S,M,d^O),\\
+(S,M,d^O)\xrightarrow{Mc=\varepsilon Sc}
+(\varepsilon_\nu,c^{(\nu)})\xrightarrow{O}A_O(\omega).
+\end{gathered}}
+\label{eq:opening_chain}
+\end{equation}
+The rest of this note expands each arrow. The primitive layer is the computational bit-string representation after the fermion/boson encoding. The paper layer is the compact matrix notation used in the manuscript.
+
+\begin{paperbox}
+Algorithm, pool, and selector are different objects:
+\[
+\begin{array}{rcl}
+\text{QSE solve} &:& Mc=\varepsilon Sc,\\
+\text{operator source} &:& \Omega_r\in\Ecal_{\rm registry},\\
+\text{selector} &:& \Rcal_1\to\Scal_1\to\Rcal_2\to\Scal_2,\\
+&& \Rcal_3\to\Scal_3\to\Acal.
+\end{array}
+\]
+Regular mixed Fullmeta QSE and geometry-selected mixed Fullmeta QSE can start from the same Fullmeta source; they differ in how the final record set \(\Acal\) is chosen.
+\end{paperbox}
+
+\section{Primitive state space}
+
+Let the encoded problem use \(n_q\) qubits and computational basis \(\{\ket{\mathbf z}:\mathbf z\in\{0,1\}^{n_q}\}\). The reference determinant/Fock configuration is the bit-string ket \(\ket{\Phi_0}:=\ket{\mathbf z_{\rm ref}}\). The Paper-I seed circuit is the ordered product
+\begin{equation}
+\begin{aligned}
+V_0
+&:=U_{\Oset^\star}(\theta^\star)\\
+&:=\prod_{j=1}^{m_0}\exp[-\ii\theta_j^\star A_j],\\
+\ket{\psi_0}
+&:=V_0\ket{\Phi_0}\\
+&=U_{\Oset^\star}(\theta^\star)\ket{\Phi_0}\\
+&=U_{\Oset^\star}(\theta^\star)\ket{\mathbf z_{\rm ref}}.
+\end{aligned}
+\label{eq:seed_unitary}
+\end{equation}
+Expand the seed in the primitive basis:
+\begin{equation}
+\begin{aligned}
+\ket{\psi_0}
+&=\sum_{\mathbf z}\psi_0(\mathbf z)\ket{\mathbf z},\\
+\psi_0(\mathbf z)
+&:=\braket{\mathbf z}{\psi_0}\\
+&=\bra{\mathbf z}V_0\ket{\Phi_0}\\
+&=\bra{\mathbf z}U_{\Oset^\star}(\theta^\star)
+\ket{\mathbf z_{\rm ref}}.
+\end{aligned}
+\label{eq:seed_bit_amplitudes}
+\end{equation}
+At this level, a state is just the complex table \(\psi_0(\mathbf z)\). Everything else in QSE is built from this table and encoded operators.
+
+\begin{jargonbox}
+Notation discipline: \(\ket{\Phi_0}\) is the reference bit-string ket, \(\ket{\psi_0}\) is the optimized seed ket, \(\ket{\phi_a}\) is an excitation ket, and \(\Phi_\Acal\) is the column matrix collecting excitation kets.
+\end{jargonbox}
+
+\section{Primitive operator action}
+
+After encoding, the Hamiltonian, excitation records, and probe observables are Pauli expansions:
+\begin{equation}
+H_0=\sum_\gamma h_\gamma P_\gamma,
+\qquad
+\Omega_a=\sum_\mu \omega_{a\mu}P_\mu,
+\qquad
+O=\sum_\eta o_\eta P_\eta.
+\label{eq:pauli_expansions}
+\end{equation}
+A Pauli word acts on a bit string by a deterministic bit flip and a phase:
+\begin{equation}
+P_\mu\ket{\mathbf z}
+=\chi_\mu(\mathbf z)\ket{\pi_\mu(\mathbf z)},
+\qquad
+\chi_\mu(\mathbf z)\in\{\pm1,\pm\ii\}.
+\label{eq:pauli_action}
+\end{equation}
+Equivalently,
+\begin{equation}
+\bra{\mathbf z}P_\mu\ket{\mathbf z'}
+=\chi_\mu(\mathbf z')\,
+\mathbf 1[\mathbf z=\pi_\mu(\mathbf z')].
+\label{eq:pauli_matrix}
+\end{equation}
+
+Apply an excitation operator to the seed:
+\begin{equation}
+\begin{aligned}
+\ket{\phi_a}
+&=\Omega_a\ket{\psi_0},\\
+\phi_a(\mathbf z)
+&:=\braket{\mathbf z}{\phi_a}
+=\bra{\mathbf z}\Omega_a\ket{\psi_0}\\
+&=\sum_{\mu}\omega_{a\mu}
+\sum_{\mathbf z'}
+\bra{\mathbf z}P_\mu\ket{\mathbf z'}\psi_0(\mathbf z')\\
+&=\sum_{\mu,\mathbf z'}
+\omega_{a\mu}\chi_\mu(\mathbf z')
+\mathbf 1[\mathbf z=\pi_\mu(\mathbf z')]\psi_0(\mathbf z').
+\end{aligned}
+\label{eq:phi_primitive}
+\end{equation}
+The ket and its primitive coordinate table are different objects. Insert the bit-string resolution of identity:
+\begin{equation}
+\begin{aligned}
+\ket{\phi_a}
+&=\left(\sum_{\mathbf z}\ket{\mathbf z}\bra{\mathbf z}\right)\ket{\phi_a}\\
+&=\sum_{\mathbf z}\ket{\mathbf z}\braket{\mathbf z}{\phi_a}\\
+&=\sum_{\mathbf z}\phi_a(\mathbf z)\ket{\mathbf z},
+\qquad
+\phi_a(\mathbf z):=\braket{\mathbf z}{\phi_a}.
+\end{aligned}
+\label{eq:ket_coordinate_identity}
+\end{equation}
+This is the first important high-to-low-to-high loop: \(\ket{\phi_a}=\Omega_a\ket{\psi_0}\) becomes Eq.~\eqref{eq:phi_primitive}, Eq.~\eqref{eq:ket_coordinate_identity} reconstructs the ket from primitive amplitudes, then the notation returns to the compact vector \(\ket{\phi_a}\).
+
+\section{Primitive overlap matrix}
+
+For a retained record set \(\Acal\), the column object and its primitive entries must be kept separate:
+\begin{equation}
+\begin{aligned}
+\Phi_\Acal
+&:=\big[\ket{\phi_a}\big]_{a\in\Acal},\\
+(\Phi_\Acal)_{\mathbf z,a}
+&:=\bra{\mathbf z}\Phi_\Acal e_a\\
+&=\braket{\mathbf z}{\phi_a}
+=\phi_a(\mathbf z).
+\end{aligned}
+\label{eq:Phi_entries}
+\end{equation}
+Thus \(\Phi_\Acal\) is a matrix whose columns are kets, while \((\Phi_\Acal)_{\mathbf z,a}\) is a scalar amplitude indexed by a bit string and a retained record.
+
+The paper writes \(S_{ab}=\braket{\phi_a}{\phi_b}\). Expand it all the way down:
+\begin{equation}
+\begin{aligned}
+S_{ab}
+&=\braket{\phi_a}{\phi_b}\\
+&=\sum_{\mathbf z}\phi_a(\mathbf z)^*\phi_b(\mathbf z)\\
+&=\sum_{\mu\nu}\omega_{a\mu}^*\omega_{b\nu}
+\bra{\psi_0}P_\mu^\dagger P_\nu\ket{\psi_0}\\
+&=\sum_{\mu\nu}\omega_{a\mu}^*\omega_{b\nu}
+\sum_{\mathbf z\mathbf z'}
+\psi_0(\mathbf z)^*
+\bra{\mathbf z}P_\mu^\dagger P_\nu\ket{\mathbf z'}
+\psi_0(\mathbf z').
+\end{aligned}
+\label{eq:S_chain}
+\end{equation}
+Substitute the Pauli action one step further. If \(P_\mu^\dagger P_\nu\) has phase \(\chi_{\mu\nu}\) and bit map \(\pi_{\mu\nu}\), then
+\begin{equation}
+S_{ab}=
+\sum_{\mu\nu}\omega_{a\mu}^*\omega_{b\nu}
+\sum_{\mathbf z'}
+\psi_0(\pi_{\mu\nu}(\mathbf z'))^*
+\chi_{\mu\nu}(\mathbf z')
+\psi_0(\mathbf z').
+\label{eq:S_bit_final}
+\end{equation}
+Now return to the paper-level matrix:
+\begin{equation}
+S=\Phi_\Acal^\dagger\Phi_\Acal,
+\qquad
+S_{ab}=\braket{\phi_a}{\phi_b}.
+\label{eq:S_high_return}
+\end{equation}
+
+For three retained records, the expanded matrix shape is
+\begin{equation}
+S=
+\begin{pmatrix}
+\sum_z\phi_1^*\phi_1&\sum_z\phi_1^*\phi_2&\sum_z\phi_1^*\phi_3\\
+\sum_z\phi_2^*\phi_1&\sum_z\phi_2^*\phi_2&\sum_z\phi_2^*\phi_3\\
+\sum_z\phi_3^*\phi_1&\sum_z\phi_3^*\phi_2&\sum_z\phi_3^*\phi_3
+\end{pmatrix}.
+\label{eq:S_matrix_shape}
+\end{equation}
+Each \(\sum_z\) is shorthand for the bit-string sum in Eq.~\eqref{eq:S_chain}.
+
+\section{Primitive Hamiltonian matrix}
+
+The Hamiltonian matrix has the same structure with one inserted Hamiltonian expansion:
+\begin{equation}
+\begin{aligned}
+M_{ab}
+&=\matel{\phi_a}{H_0}{\phi_b}\\
+&=\sum_{\mu\gamma\nu}
+\omega_{a\mu}^*h_\gamma\omega_{b\nu}
+\bra{\psi_0}P_\mu^\dagger P_\gamma P_\nu\ket{\psi_0}\\
+&=\sum_{\mu\gamma\nu}
+\omega_{a\mu}^*h_\gamma\omega_{b\nu}
+\sum_{\mathbf z\mathbf z'}
+\psi_0(\mathbf z)^*
+\bra{\mathbf z}P_\mu^\dagger P_\gamma P_\nu\ket{\mathbf z'}
+\psi_0(\mathbf z').
+\end{aligned}
+\label{eq:M_chain}
+\end{equation}
+If \(P_\mu^\dagger P_\gamma P_\nu\) has phase \(\chi_{\mu\gamma\nu}\) and bit map \(\pi_{\mu\gamma\nu}\), then
+\begin{equation}
+M_{ab}=
+\sum_{\mu\gamma\nu}\omega_{a\mu}^*h_\gamma\omega_{b\nu}
+\sum_{\mathbf z'}
+\psi_0(\pi_{\mu\gamma\nu}(\mathbf z'))^*
+\chi_{\mu\gamma\nu}(\mathbf z')
+\psi_0(\mathbf z').
+\label{eq:M_bit_final}
+\end{equation}
+Return to the compact paper notation:
+\begin{equation}
+M=\Phi_\Acal^\dagger H_0\Phi_\Acal,
+\qquad
+M_{ab}=\matel{\phi_a}{H_0}{\phi_b}.
+\label{eq:M_high_return}
+\end{equation}
+
+The corresponding three-record matrix is
+\begin{equation}
+M=
+\begin{pmatrix}
+\phi_1^\dagger H_0\phi_1&\phi_1^\dagger H_0\phi_2&\phi_1^\dagger H_0\phi_3\\
+\phi_2^\dagger H_0\phi_1&\phi_2^\dagger H_0\phi_2&\phi_2^\dagger H_0\phi_3\\
+\phi_3^\dagger H_0\phi_1&\phi_3^\dagger H_0\phi_2&\phi_3^\dagger H_0\phi_3
+\end{pmatrix}.
+\label{eq:M_matrix_shape}
+\end{equation}
+
+\begin{paperbox}
+Measurement view: estimating \(S_{ab}\) means estimating Pauli strings from \(P_\mu^\dagger P_\nu\). Estimating \(M_{ab}\) means estimating Pauli strings from \(P_\mu^\dagger P_\gamma P_\nu\). This is why the matrix cost scales with the retained basis size and with Pauli grouping.
+\end{paperbox}
+
+\section{Rayleigh--Ritz derivation}
+
+Given coefficients \(c\), the trial vector is
+\begin{equation}
+\ket{\Psi(c)}=\sum_{a\in\Acal}c_a\ket{\phi_a}=\Phi_\Acal c.
+\label{eq:qse_trial}
+\end{equation}
+The norm and energy reduce to quadratic forms:
+\begin{equation}
+\begin{aligned}
+\braket{\Psi(c)}{\Psi(c)}
+&=\sum_{ab}c_a^*c_bS_{ab}=c^\dagger Sc,\\
+\matel{\Psi(c)}{H_0}{\Psi(c)}
+&=\sum_{ab}c_a^*c_bM_{ab}=c^\dagger Mc.
+\end{aligned}
+\label{eq:norm_energy}
+\end{equation}
+The Rayleigh quotient is \(R(c)=c^\dagger Mc/(c^\dagger Sc)\). Since the scale of \(c\) is arbitrary, impose \(c^\dagger Sc=1\) and use a Lagrange multiplier:
+\begin{equation}
+\begin{aligned}
+\mathcal L(c,c^\dagger,\varepsilon)
+&=c^\dagger Mc-\varepsilon(c^\dagger Sc-1),\\
+\delta_{c^\dagger}\mathcal L
+&=\delta c^\dagger Mc-\varepsilon\,\delta c^\dagger Sc\\
+&=\delta c^\dagger(M-\varepsilon S)c.
+\end{aligned}
+\label{eq:lagrange_qse}
+\end{equation}
+Because \(\delta c^\dagger\) is arbitrary,
+\begin{equation}
+(M-\varepsilon S)c=0,
+\qquad
+Mc=\varepsilon Sc.
+\label{eq:qse_gep}
+\end{equation}
+Multiplying by \(c^\dagger\) returns the high-level energy: \(\varepsilon=c^\dagger Mc=R(c)\) when \(c^\dagger Sc=1\).
+
+\begin{jargonbox}
+The generalized eigenproblem is not a new physical postulate. It is the Euler--Lagrange stationarity condition of the energy quotient in the nonorthogonal metric defined by the selected excitation vectors.
+\end{jargonbox}
+
+\section{Supported metric whitening}
+
+If \(S\) is ill-conditioned, solve only on its supported eigenspace. Let
+\begin{equation}
+S=V\diag(s_i)V^\dagger,
+\qquad
+\Ical_S=\{i:s_i\ge \tau_Ss_{\max}\}.
+\label{eq:S_eigs}
+\end{equation}
+Define
+\begin{equation}
+B=V_{\Ical_S}\diag(s_i^{-1/2}).
+\label{eq:B_def}
+\end{equation}
+Then
+\begin{equation}
+\begin{aligned}
+B^\dagger SB
+&=\diag(s_i^{-1/2})V_{\Ical_S}^\dagger SV_{\Ical_S}\diag(s_i^{-1/2})\\
+&=\diag(s_i^{-1/2})\diag(s_i)\diag(s_i^{-1/2})=I.
+\end{aligned}
+\label{eq:B_whitens}
+\end{equation}
+Substitute \(c=By\) into \(Mc=\varepsilon Sc\):
+\begin{equation}
+\begin{aligned}
+MBy&=\varepsilon SBy,\\
+B^\dagger MBy&=\varepsilon B^\dagger SBy,\\
+\widehat M y&=\varepsilon y,
+\qquad
+\widehat M=B^\dagger MB.
+\end{aligned}
+\label{eq:whitened_gep}
+\end{equation}
+The retained rank is \(|\Ical_S|\). The condition estimate \(\kappa(S)=s_{\max}/s_{\min}\) reports how dangerous the metric solve is before or after support truncation.
+
+\begin{cautionbox}
+A high retained rank is not automatically good. If the added directions are nearly duplicates, rank support and conditioning determine whether those directions are numerically usable.
+\end{cautionbox}
+
+\section{Record-first staged selector}
+
+A QSE candidate is a record, not just an operator:
+\begin{equation}
+r=(\Omega_r,\sigma_r,\chi_r,\Gcal_r,C_r).
+\label{eq:record_tuple}
+\end{equation}
+Here \(\Omega_r\) is the excitation operator, \(\sigma_r\) is the sector/symmetry label, \(\chi_r\) is the source family, \(\Gcal_r\) is measurement metadata, and \(C_r\) is a cost proxy. The staged-continuation surface is
+\begin{equation}
+\Rcal_1\to\Scal_1\to\Rcal_2\to\Scal_2\to\Rcal_3\to\Scal_3\to\Acal,
+\qquad
+\Rcal_{k+1}:=\Scal_k.
+\label{eq:record_flow}
+\end{equation}
+The source registry is
+\begin{equation}
+\Ecal_{\rm registry}=\Ecal_f\cup\Ecal_b\cup\Ecal_{fb}\cup\Ecal_{\lf}\cup\Ecal_H\cup\Ecal_\tau.
+\label{eq:registry}
+\end{equation}
+Electronic, bosonic, mixed, Lang--Firsov-like, Hamiltonian-derived, and tangent-derived records are therefore treated as alternative ways to build columns of \(\Phi_\Acal\).
+
+\section{Novelty from old-span least squares}
+
+Let \(T=[t_1\;\cdots\;t_m]\) be the current selected directions and \(x\) be a candidate direction. The old span explains \(x\) by fitting coefficients \(\beta\):
+\begin{equation}
+\beta^\star\in\argminp_\beta\|x-T\beta\|^2.
+\label{eq:ls_problem}
+\end{equation}
+Expand the objective:
+\begin{equation}
+\begin{aligned}
+\|x-T\beta\|^2
+&=(x-T\beta)^\dagger(x-T\beta)\\
+&=x^\dagger x-\beta^\dagger T^\dagger x-x^\dagger T\beta+\beta^\dagger T^\dagger T\beta\\
+&=F-2\operatorname{Re}\beta^\dagger q+\beta^\dagger G\beta,
+\end{aligned}
+\label{eq:ls_expand}
+\end{equation}
+where
+\begin{equation}
+G=T^\dagger T,
+\qquad
+q=T^\dagger x,
+\qquad
+F=x^\dagger x.
+\label{eq:GqF}
+\end{equation}
+Stationarity gives
+\begin{equation}
+\begin{aligned}
+0&=\partial_{\beta^*}(F-2\operatorname{Re}\beta^\dagger q+\beta^\dagger G\beta),\\
+G\beta^\star&=q,
+\qquad
+\beta^\star=G^+q.
+\end{aligned}
+\label{eq:normal_eq}
+\end{equation}
+Substitute the optimized coefficient back:
+\begin{equation}
+\begin{aligned}
+\min_\beta\|x-T\beta\|^2
+&=F-(\beta^\star)^\dagger q\\
+&=F-q^\dagger G^+q,\\
+\mathcal N(x\mid T)
+&=1-\frac{q^\dagger G^+q}{F}.
+\end{aligned}
+\label{eq:novelty}
+\end{equation}
+
+\begin{paperbox}
+QSE substitution:
+\[
+T\to\Phi_{\Acal_\ell},
+\quad
+x\to\ket{\phi_r},
+\quad
+G\to S_{\Acal_\ell},
+\quad
+q\to s_r,
+\quad
+F\to F_r.
+\]
+Thus \(\mathcal N_2^{\qse}(r;\ell)=1-s_r^\dagger S_{\ell,\tau}^+s_r/(F_r+\eps_F)\), up to clipping and support floors.
+\end{paperbox}
+
+\section{Schur complement reading of novelty}
+
+The augmented Gram matrix is
+\begin{equation}
+S_{\rm aug}=
+\begin{pmatrix}
+G&q\\
+q^\dagger&F
+\end{pmatrix}.
+\label{eq:aug_gram}
+\end{equation}
+If \(G\) is supported and invertible on its range, block elimination gives
+\begin{equation}
+\begin{aligned}
+S_{\rm aug}/G
+&:=F-q^\dagger G^+q,\\
+\begin{pmatrix}G&q\\q^\dagger&F\end{pmatrix}
+&\sim
+\begin{pmatrix}G&0\\0&S_{\rm aug}/G\end{pmatrix}.
+\end{aligned}
+\label{eq:schur_novelty}
+\end{equation}
+The Schur complement \(F-q^\dagger G^+q\) is the residual length after the old span has explained the candidate. This is the same novelty numerator as Eq.~\eqref{eq:novelty}.
+
+\begin{intuitionbox}
+The Schur complement is what remains of the candidate after the old basis directions have coordinated with each other through their own metric. The candidate is novel only in the quotient space modulo the old span.
+\end{intuitionbox}
+
+\section{Phase-I scalar trust-region derivation}
+
+Phase I gives a cheap visibility screen. A candidate displacement is \(\ket{\psi_0}\mapsto\ket{\psi_0}+\alpha\ket{\phi_r}\), with \(a=|\alpha|\). Let \(g_r\) be the lower-confidence probe gain and \(F_r\) the candidate norm. The scalar local model is
+\begin{equation}
+\Delta(a)=g_ra-\frac{\lambda_F}{2}(F_r+\eps_F)a^2,
+\qquad
+0\le a\le a_{\rm rad}:=\frac{\rho_{\qse,1}}{\sqrt{F_r+\eps_F}}.
+\label{eq:phase1_model}
+\end{equation}
+Differentiate:
+\begin{equation}
+\begin{aligned}
+\frac{\dd\Delta}{\dd a}
+&=g_r-\lambda_F(F_r+\eps_F)a,\\
+\frac{\dd^2\Delta}{\dd a^2}
+&=-\lambda_F(F_r+\eps_F)\le0.
+\end{aligned}
+\label{eq:phase1_derivs}
+\end{equation}
+So the unconstrained stationary point and clipped point are
+\begin{equation}
+\begin{aligned}
+a_{\rm stat}&=\frac{g_r}{\lambda_F(F_r+\eps_F)},\\
+a_r&=\min\{a_{\rm rad},a_{\rm stat}\}
+\quad(\lambda_F>0).
+\end{aligned}
+\label{eq:phase1_clip}
+\end{equation}
+The optimized gain is
+\begin{equation}
+\Delta_{\qse,1}(r;\ell)=g_ra_r-\frac{\lambda_F}{2}(F_r+\eps_F)a_r^2.
+\label{eq:phase1_gain}
+\end{equation}
+The Phase-I score is this gain normalized by acquisition cost:
+\begin{equation}
+S_1(r;\ell)=\frac{\Delta_{\qse,1}(r;\ell)}{1+K_1(r;\ell)}.
+\label{eq:S1}
+\end{equation}
+
+\section{Phase-II score from novelty and conditioning}
+
+Phase II forms the candidate-augmented overlap matrix
+\begin{equation}
+S_{\rm aug}(r)=
+\begin{pmatrix}
+S_{\Acal_\ell}&s_r\\
+s_r^\dagger&F_r
+\end{pmatrix}.
+\label{eq:Saug_qse}
+\end{equation}
+The novelty numerator is the Schur residual \(F_r-s_r^\dagger S_{\ell,\tau}^+s_r\). The normalized factor is
+\begin{equation}
+\mathcal N_2^{\qse}(r;\ell)=
+\left[1-\frac{s_r^\dagger S_{\ell,\tau}^+s_r}{F_r+\eps_F}\right]_{[0,1]}.
+\label{eq:N2}
+\end{equation}
+A conditioning gate is
+\begin{equation}
+\Gamma_{\kappa,2}(r;\ell)=
+\mathbf 1[\kappa(S_{\rm aug}(r)_\tau)\le\kappa_{\max,2}].
+\label{eq:kappa_gate}
+\end{equation}
+Thus
+\begin{equation}
+S_2(r;\ell)=
+\Gamma_{\kappa,2}(r;\ell)
+\frac{\Delta_{\qse,1}(r;\ell)\mathcal N_2^{\qse}(r;\ell)}{1+K_2(r;\ell)}.
+\label{eq:S2}
+\end{equation}
+
+\section{Phase-III residual and Ritz derivation}
+
+After a provisional QSE solve, root \(\nu\) has
+\begin{equation}
+\ket{\Psi_\nu}=\sum_{a\in\Acal_\ell}c_a^{(\nu)}\ket{\phi_a},
+\qquad
+M c^{(\nu)}=\varepsilon_\nu S c^{(\nu)}.
+\label{eq:current_root}
+\end{equation}
+The eigen-equation residual outside the represented span is
+\begin{equation}
+\ket{R_\nu}=(I-P_{\ell,\tau})(H_0-\varepsilon_\nu)\ket{\Psi_\nu}.
+\label{eq:residual}
+\end{equation}
+A residualized candidate \(\ket{u_r}\) receives
+\begin{equation}
+C_\nu^{\rm res}(r;\ell)=
+\frac{|\braket{u_r}{R_\nu}|^2}{\braket{R_\nu}{R_\nu}+\eps_R}.
+\label{eq:Cres}
+\end{equation}
+For the Ritz part, define
+\begin{equation}
+\eta_{\nu r}=\matel{u_r}{H_0-\varepsilon_\nu}{\Psi_\nu},
+\qquad
+\delta_{\nu r}=\matel{u_r}{H_0-\varepsilon_\nu}{u_r}.
+\label{eq:eta_delta}
+\end{equation}
+The shifted two-dimensional block is
+\begin{equation}
+H_{2\times2}^{\rm shift}=
+\begin{pmatrix}0&\eta_{\nu r}^*\\\eta_{\nu r}&\delta_{\nu r}\end{pmatrix}.
+\label{eq:block_two}
+\end{equation}
+Its characteristic equation is
+\begin{equation}
+\begin{aligned}
+0&=\det(H_{2\times2}^{\rm shift}-\lambda I)\\
+&=\det\begin{pmatrix}-\lambda&\eta^*\\\eta&\delta-\lambda\end{pmatrix}\\
+&=(-\lambda)(\delta-\lambda)-|\eta|^2\\
+&=\lambda^2-\delta\lambda-|\eta|^2.
+\end{aligned}
+\label{eq:char_derivation}
+\end{equation}
+Therefore
+\begin{equation}
+\lambda_\pm=\frac{\delta_{\nu r}\pm
+\sqrt{\delta_{\nu r}^2+4|\eta_{\nu r}|^2}}{2},
+\qquad
+G_\nu^{2\times2}=-\lambda_-.
+\label{eq:G2}
+\end{equation}
+The Phase-III gain is
+\begin{equation}
+\Delta_{\qse,3}(r;\ell)=
+\sum_{\nu\in\Wcal_{\rm targ}}w_\nu
+[\alpha_R C_\nu^{\rm res}(r;\ell)+\alpha_EG_\nu^{2\times2}(r;\ell)].
+\label{eq:D3}
+\end{equation}
+
+\section{Admission and ablation}
+
+A record is admitted when the score clears threshold, rank increases, and root tracking remains stable:
+\begin{equation}
+\begin{aligned}
+\operatorname{Admit}_\ell^{\qse}(r)=1
+\iff{}&S_3(r;\ell)\ge\tau_3(\ell),\\
+&\rank(S_{\Acal_\ell\cup\{r\},\tau})>\rank(S_{\Acal_\ell,\tau}),\\
+&\Gamma_{\rm root}(r;\ell)=1.
+\end{aligned}
+\label{eq:admit}
+\end{equation}
+For ablation, participation of record \(a\) in root \(\nu\) is
+\begin{equation}
+x_a^{(\nu)}=
+\operatorname{Re}\left[(c_a^{(\nu)})^*
+\sum_{b\in\Acal}S_{ab}c_b^{(\nu)}\right].
+\label{eq:participation}
+\end{equation}
+A mature low-participation record may be removed only after recomputing the reduced QSE problem and verifying small spectral regression.
+
+\section{Transition vector and spectrum}
+
+The transition vector has the primitive expansion
+\begin{equation}
+\begin{aligned}
+d_a^O
+&=\bra{\phi_a}O\ket{\psi_0}\\
+&=\sum_{\mu\eta}\omega_{a\mu}^*o_\eta
+\bra{\psi_0}P_\mu^\dagger P_\eta\ket{\psi_0}.
+\end{aligned}
+\label{eq:dO}
+\end{equation}
+The root transition amplitude follows from substituting the QSE root:
+\begin{equation}
+\begin{aligned}
+\bra{\Psi_\nu^{\qse}}O\ket{\psi_0}
+&=\left(\sum_a c_a^{(\nu)}\ket{\phi_a}\right)^\dagger O\ket{\psi_0}\\
+&=\sum_a(c_a^{(\nu)})^*\bra{\phi_a}O\ket{\psi_0}\\
+&=(c^{(\nu)})^\dagger d^O.
+\end{aligned}
+\label{eq:transition}
+\end{equation}
+The broadened spectrum is
+\begin{equation}
+A_O(\omega)=\sum_{\nu\in\Wcal_{\rm targ}}
+|(c^{(\nu)})^\dagger d^O|^2
+L_\eta(\omega-(\varepsilon_\nu-E_0)).
+\label{eq:spectrum}
+\end{equation}
+
+\begin{intuitionbox}
+The ordered-root ladder weights every root index. The spectrum weights each root by transition intensity. A dark state can ruin ordered-root recovery and barely move the spectrum overlay.
+\end{intuitionbox}
+
+\section{Spectral metrics}
+
+For matched or ordered roots, define an excitation gap \(\omega_\nu=\varepsilon_\nu-E_0\). A simple energy diagnostic is
+\begin{equation}
+\Delta\omega_\nu=\omega_\nu^{\qse}-\omega_\nu^{\ED}.
+\label{eq:gap_error}
+\end{equation}
+A transition-strength diagnostic is
+\begin{equation}
+\epsilon_T^O(\nu)=
+\left||\bra{\Psi_\nu^{\qse}}O\ket{\psi_0}|^2
+-|\bra{\Psi_\nu^{\ED}}O\ket{\Psi_0^{\ED}}|^2\right|.
+\label{eq:T_error}
+\end{equation}
+The spectral L2 diagnostic compares functions on a grid:
+\begin{equation}
+\|A_O^{\qse}-A_O^{\ED}\|_{2,\rm grid}
+=\left(\sum_j w_j|A_O^{\qse}(\omega_j)-A_O^{\ED}(\omega_j)|^2\right)^{1/2}.
+\label{eq:spectral_l2}
+\end{equation}
+
+\section{Hubbard--Holstein observables}
+
+For the static Hubbard--Holstein path, use electronic, bosonic, and mixed probes:
+\begin{equation}
+\begin{aligned}
+n_i&=\sum_\sigma c_{i\sigma}^\dagger c_{i\sigma},
+&N_{\rm ph}&=\sum_\mu b_\mu^\dagger b_\mu,\\
+X_i&=b_i^\dagger+b_i,
+&C_{nX}(r)&=\sum_i(n_i-\bar n)X_{i+r}.
+\end{aligned}
+\label{eq:hh_obs}
+\end{equation}
+The cutoff diagnostic is
+\begin{equation}
+\ell_{\rm cut}(\Psi)=\sum_\mu\bra{\Psi}\Pi_{n_\mu=\phmax}\ket{\Psi}.
+\label{eq:cutoff}
+\end{equation}
+Large cutoff leakage means the selected basis is pressing against the finite phonon register boundary.
+
+\section{Frozen QSE dynamics}
+
+The static manifold can be propagated under a drive after matrix construction. Write
+\begin{equation}
+\ket{\Psi(t)}=\Phi_\Acal z(t),
+\qquad
+z^\dagger Sz=1,
+\qquad
+z=By.
+\label{eq:frozen_state}
+\end{equation}
+Project Schrödinger's equation:
+\begin{equation}
+\begin{aligned}
+\ii\partial_t\ket{\Psi(t)}&=H(t)\ket{\Psi(t)},\\
+\ii\Phi_\Acal\dot z&=H(t)\Phi_\Acal z,\\
+\ii\Phi_\Acal^\dagger\Phi_\Acal\dot z&=\Phi_\Acal^\dagger H(t)\Phi_\Acal z,\\
+\ii S\dot z&=M(t)z.
+\end{aligned}
+\label{eq:frozen_project}
+\end{equation}
+Whitened coordinates give
+\begin{equation}
+\ii\dot y=B^\dagger M(t)B y.
+\label{eq:frozen_white}
+\end{equation}
+The escape diagnostic compares total drift to represented drift. With \(E=z^\dagger Mz\) and \(p=(M-ES)z\),
+\begin{equation}
+\rho_{\rm esc}=\frac{[\Var_\Psi(H)-p^\dagger S_\tau^+p]_+}{\Var_\Psi(H)+\eps}.
+\label{eq:escape}
+\end{equation}
+
+\section{Root refit}
+
+For a selected QSE root, define a live ansatz \(\ket{\psi_\nu(\vartheta)}=U_{\Oset_\nu}(\vartheta)\ket{\Phi_\nu}\). The refit objective is
+\begin{equation}
+\begin{aligned}
+\mathcal L_\nu(\vartheta)
+={}&1-|\braket{\Psi_\nu^{\qse}}{\psi_\nu(\vartheta)}|^2\\
+&+\lambda_E( \matel{\psi_\nu(\vartheta)}{H_0}{\psi_\nu(\vartheta)}-\varepsilon_\nu)^2\\
+&+\lambda_\perp\sum_{\mu<\nu}|\braket{\psi_\mu}{\psi_\nu(\vartheta)}|^2.
+\end{aligned}
+\label{eq:refit}
+\end{equation}
+The overlap term expands as
+\begin{equation}
+\braket{\Psi_\nu^{\qse}}{\psi_\nu(\vartheta)}
+=\sum_a(c_a^{(\nu)})^*\braket{\phi_a}{\psi_\nu(\vartheta)}.
+\label{eq:refit_overlap}
+\end{equation}
+
+\section{Current weak--weak pilot reading}
+
+The current pilot is Hubbard--Holstein weak--weak, \((U/t,\lambda)=(0.25,0.25)\), with \(n_{\rm ph}=2\). These are diagnostic numbers:
+\begin{center}
+\footnotesize
+\begin{tabular}{lrrrr}
+\toprule
+basis & rank & \(\kappa(S)\) & \(S_{\rm mat}\) & L2\\
+\midrule
+regular Fullmeta & 36 & \(8.08{\times}10^9\) & 289640 & \(2.31{\times}10^{-8}\)\\
+geometry Fullmeta & 23 & \(2.13{\times}10^3\) & 9407 & \(4.63{\times}10^{-3}\)\\
+Hamiltonian-term & 21 & \(6.28{\times}10^9\) & 19107 & \(2.42{\times}10^{-2}\)\\
+ground-ansatz & 6 & \(4.54{\times}10^2\) & 959 & \(1.05{\times}10^{-1}\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+Regular Fullmeta is nearly exact in ideal arithmetic but ill-conditioned and expensive. Geometry-selected Fullmeta is the compact compromise. Hamiltonian-term QSE shows that Hamiltonian-derived records alone do not cure conditioning. Ground-ansatz-derived QSE is stable and cheap but misses spectral weight.
+
+\section{Figure interpretation}
+
+Promoted static figures should teach one concept each:
+\begin{itemize}
+\item spectrum overlay: whether the selected manifold reproduces probe-visible response;
+\item ordered energy/gap ladder: whether root order is recovered;
+\item spectral L2 versus \(\kappa(S)\) or \(S_{\rm mat}\): the accuracy--stability--cost tradeoff.
+\end{itemize}
+Transition-strength root-index scatter should not be promoted until the visual grammar is redesigned.
+
+\end{document}

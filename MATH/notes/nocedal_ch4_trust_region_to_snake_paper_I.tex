@@ -1,0 +1,1866 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.35pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.3em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\FS}{\mathrm{FS}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\newcommand{\twovec}[2]{\begin{pmatrix}#1\\#2\end{pmatrix}}
+
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+\definecolor{graybox}{HTML}{F4F4F4}
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{paperbox}{colback=greenbox,colframe=green!45!black,title=Paper-I notation,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+\newtcolorbox{examplebox}{colback=graybox,colframe=black!50,title=Worked micro-example,fonttitle=\bfseries\small}
+
+\title{Nocedal Chapter 4 in Paper-I Static-ADAPT Notation\\[-1mm]
+\large Fubini--Study Trust Regions, Candidate Amplitudes, and Schur Window Refit}
+\author{Local pedagogical note}
+\date{May 18, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This is a Paper-I-native reading companion for Nocedal and Wright's Chapter 4 trust-region method. The main notation is the notation of the Static ADAPT manuscript: candidate records \(r\), candidate amplitude \(\alpha\), tangent scale \(F_r\), resolved gradient \(\widetilde g_r(t)\), directional curvature \(h_r\), reduced-window Hessian \(\mathbf R_r\), Schur curvature \(h_r^\star\), reduced tangent scale \(F_r^\star\), and the phase gains \(\Delta E_1(r),\Delta E_2(r),\Delta E_3(r)\). Nocedal's symbols \(x_k,p,g_k,B_k,\Delta_k\) appear only as source anchors. The goal is to make Chapter 4 readable as the mathematical spine behind the Paper-I Fubini--Study trust-region scoring rule.
+\end{abstract}
+
+\section{Source anchor and what this note does}
+
+\begin{cautionbox}
+Source anchor: Jorge Nocedal and Stephen J. Wright, \emph{Numerical Optimization}, Second Edition, Chapter 4, ``Trust-Region Methods,'' book pages roughly 66--98, approximately PDF pages 85--120 in the linked copy \url{https://convexoptimization.com/TOOLS/nocedal.pdf}, accessed May 18, 2026. This note paraphrases and maps notation. It does not reproduce Chapter 4 pages.
+\end{cautionbox}
+
+\begin{intuitionbox}
+Chapter 4 is about using a local quadratic model only inside a region where the model is trusted. Paper I uses that same idea, with the trusted region measured by Fubini--Study state displacement. The scalar candidate amplitude \(\alpha\) is the local step. In Phase III, the local step expands to \((\alpha,\delta\theta_{W_r})\), then the inherited-window variable is eliminated.
+\end{intuitionbox}
+
+The Nocedal reading path that matters for Paper I is compact:
+\begin{itemize}
+\item Eq.-level model: local quadratic model plus a radius constraint.
+\item Step-quality logic: compare predicted decrease to actual decrease.
+\item Scaling section: replace a raw Euclidean step norm by a geometry-weighted norm.
+\item Paper-I translation: replace \(\|p\|\le \Delta_k\) by \(|\alpha|\sqrt{F_r}\le\rho\), or by the star Phase-III version \(|\alpha|\sqrt{F_r^\star}\le\rho\).
+\end{itemize}
+
+\section{Paper-I objects before Nocedal objects}
+
+At ADAPT iteration \(t\), Paper I has an ordered ansatz
+\begin{equation}
+\ket{\psi_t}=\ket{\psi(\theta_t)}
+=U_{\mathcal O_t}(\theta_t)\ket{\Phi_0}.
+\label{eq:psi_t}
+\end{equation}
+A candidate-position record \(r\) proposes adding one new scalar coordinate \(\vartheta_r\). The new coordinate is initialized at zero:
+\begin{equation}
+\theta_t^{\rm aug}(r)=(\theta_t,0),
+\qquad
+\vartheta_r=0.
+\label{eq:augmented_chart}
+\end{equation}
+The trial amplitude for that candidate is denoted \(\alpha\). The candidate-restricted energy curve is
+\begin{equation}
+E_r(\alpha;t)
+=E\!\left(\theta_t^{\rm aug}(r)+\alpha e_r\right),
+\label{eq:Er_curve}
+\end{equation}
+where \(e_r\) is the unit coordinate direction for the appended coordinate. The object \(\alpha\) is a coordinate step inside the chart created by appending record \(r\).
+
+\begin{paperbox}
+Paper-I language:
+\[
+r=\text{candidate generator-position record},
+\qquad
+\vartheta_r=\text{new ansatz coordinate},
+\qquad
+\alpha=\text{trial amplitude in that coordinate}.
+\]
+The generator record defines the chart. The scalar \(\alpha\) moves inside that chart.
+\end{paperbox}
+
+The candidate tangent is
+\begin{equation}
+\tau_r
+=\partial_{\vartheta_r}\ket{\psi(\theta)}
+\quad\text{at}\quad
+\theta=\theta_t^{\rm aug}(r),\ \vartheta_r=0.
+\label{eq:tau_r_def}
+\end{equation}
+Since quantum states have an irrelevant global phase and normalization direction, Paper I uses the horizontal projector
+\begin{equation}
+Q_\psi=I-\ket{\psi}\bra{\psi}.
+\label{eq:Qpsi}
+\end{equation}
+The candidate's Fubini--Study tangent norm is
+\begin{equation}
+F_r=\|Q_\psi\tau_r\|^2.
+\label{eq:F_of_r}
+\end{equation}
+This is the Paper-I object that replaces a raw Euclidean coordinate-length scale.
+
+\section{Nocedal variables translated only after Paper-I variables}
+
+Nocedal writes a generic optimization problem in coordinates:
+\begin{equation}
+f:\R^n\to\R,\qquad x_k\in\R^n,\qquad p\in\R^n.
+\label{eq:nocedal_generic}
+\end{equation}
+The local model is
+\begin{equation}
+m_k(p)=f_k+g_k^\top p+\frac12p^\top B_kp.
+\label{eq:nocedal_model}
+\end{equation}
+In Paper I, this generic model appears in two restrictions:
+\begin{equation}
+p\quad\leadsto\quad \alpha
+\qquad\text{in Phase I/II},
+\label{eq:p_to_alpha}
+\end{equation}
+and
+\begin{equation}
+p\quad\leadsto\quad
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix}
+\qquad\text{in Phase III}.
+\label{eq:p_to_block}
+\end{equation}
+The source dictionary is:
+\begin{center}
+\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.31\columnwidth}
+>{\raggedright\arraybackslash}p{0.58\columnwidth}}
+\toprule
+Nocedal symbol & Paper-I object\\
+\midrule
+\(x_k\) & Current ansatz coordinate vector \(\theta_t\), or candidate-augmented vector \(\theta_t^{\rm aug}(r)=(\theta_t,0)\).\\
+\(p\) & Candidate-only step \(\alpha\), or refit-window block \((\alpha,\delta\theta_{W_r})\).\\
+\(f(x_k)\) & Current energy \(E(\theta_t)\) or \(E_r(0;t)\).\\
+\(g_k^\top p\) & Candidate-only term \(g_r(t)\alpha\), or block term \(g_r(t)\alpha+g_W^\top\delta\theta_{W_r}\).\\
+\(p^\top B_kp\) & Candidate curvature \(h_r\alpha^2\), or block quadratic using \(h_r,c_r,H_{W_r}\).\\
+\(\|p\|\le\Delta_k\) & \(|\alpha|\sqrt{F_r}\le\rho\), or \(|\alpha|\sqrt{F_r^\star}\le\rho\).\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The scalar candidate Taylor model}
+
+The Paper-I directional gradient is the first derivative of the candidate energy curve:
+\begin{equation}
+g_r(t)=
+\left.\frac{d}{d\alpha}E_r(\alpha;t)\right|_{\alpha=0}.
+\label{eq:g_r_def}
+\end{equation}
+The resolved gradient used in the score is
+\begin{equation}
+\widetilde g_r(t)=|g_r(t)|-\eta_r(t),
+\label{eq:resolved_g_def}
+\end{equation}
+where \(\eta_r(t)\) is the gradient-resolution allowance from the manuscript. In the theoretical model below, \(\widetilde g_r(t)\) is the first-order decrease signal available to the phase score.
+
+The Paper-I directional curvature is
+\begin{equation}
+h_r
+=
+\left.\frac{d^2}{d\alpha^2}E_r(\alpha;t)\right|_{\alpha=0}.
+\label{eq:h_r_derivative_def}
+\end{equation}
+The manuscript also writes this as the state-derivative expression
+\begin{equation}
+h_r=
+2\Re\left[
+(\partial_\alpha\bra{\psi})H\ket{\partial_\alpha\psi}
++\bra{\psi}H\ket{\partial_\alpha^2\psi}
+\right]_{\alpha=0},
+\label{eq:h_r_state_def}
+\end{equation}
+up to the convention used for writing real parts and symmetric terms. For the trust-region derivation, the key fact is that \(h_r\) is the second derivative along the same scalar candidate curve \(E_r(\alpha;t)\).
+
+Taylor expand the candidate curve at \(\alpha=0\):
+\begin{equation}
+E_r(\alpha;t)
+=E_r(0;t)+g_r(t)\alpha+\frac12h_r\alpha^2+O(\alpha^3).
+\label{eq:taylor_Er}
+\end{equation}
+Discarding the cubic remainder gives the local quadratic model
+\begin{equation}
+E_r(\alpha;t)-E_r(0;t)
+\approx g_r(t)\alpha+\frac12h_r\alpha^2.
+\label{eq:local_scalar_model}
+\end{equation}
+
+\begin{intuitionbox}
+The gradient is a signed slope of the energy curve. The scalar \(\alpha\) chooses how far and which direction to move along the appended coordinate. The model becomes a predicted decrease only after choosing the sign of \(\alpha\).
+\end{intuitionbox}
+
+\section{Why the descent model uses a positive gradient magnitude}
+
+Write the nonnegative step length as
+\begin{equation}
+s=|\alpha|\ge0.
+\label{eq:s_abs_alpha}
+\end{equation}
+The energy-decreasing sign choice is
+\begin{equation}
+\alpha=-s\,\sgn(g_r(t)).
+\label{eq:alpha_descent_sign}
+\end{equation}
+Then
+\begin{align}
+g_r(t)\alpha
+&=g_r(t)\left[-s\,\sgn(g_r(t))\right]\notag\\
+&=-s\,g_r(t)\sgn(g_r(t))\notag\\
+&=-|g_r(t)|\,s\notag\\
+&=-|g_r(t)|\,|\alpha|.
+\label{eq:linear_term_sign}
+\end{align}
+Substitute into the Taylor model:
+\begin{equation}
+E_r(\alpha;t)-E_r(0;t)
+\approx
+-|g_r(t)|\,|\alpha|
++\frac12h_r\alpha^2.
+\label{eq:descent_taylor}
+\end{equation}
+The predicted drop is the negative of the predicted change:
+\begin{equation}
+\operatorname{drop}_r(\alpha;t)
+\approx
+|g_r(t)|\,|\alpha|-\frac12h_r\alpha^2.
+\label{eq:drop_raw_gradient}
+\end{equation}
+The manuscript replaces \(|g_r(t)|\) by \(\widetilde g_r(t)\) when using finite-resolution gradients:
+\begin{equation}
+\operatorname{drop}_r(\alpha;t)
+\approx
+\widetilde g_r(t)|\alpha|-\frac12h_r\alpha^2.
+\label{eq:drop_resolved_gradient}
+\end{equation}
+
+\begin{examplebox}
+Take \(g_r(t)=+0.04\). Moving with positive \(\alpha\) initially raises the energy, so use \(\alpha=-|\alpha|\). Then \(g_r(t)\alpha=-0.04|\alpha|\). Take \(g_r(t)=-0.04\). Moving with positive \(\alpha\) initially lowers the energy, so use \(\alpha=+|\alpha|\). Then \(g_r(t)\alpha=-0.04|\alpha|\). The gain formula writes this common descent result with \(|g_r(t)|\) or \(\widetilde g_r(t)\).
+\end{examplebox}
+
+\section{Fubini--Study trust region in Paper-I notation}
+
+The first-order state displacement from the candidate coordinate is
+\begin{equation}
+\delta\psi_r(\alpha)
+\approx \alpha Q_\psi\tau_r.
+\label{eq:delta_psi_alpha}
+\end{equation}
+Its squared Fubini--Study length is
+\begin{align}
+\|\delta\psi_r(\alpha)\|_{\FS}^2
+&\approx
+\|\alpha Q_\psi\tau_r\|^2\notag\\
+&=\alpha^2\|Q_\psi\tau_r\|^2\notag\\
+&=\alpha^2F_r.
+\label{eq:FS_length_alpha}
+\end{align}
+A trust-region radius \(\rho\) in state geometry gives
+\begin{equation}
+\|\delta\psi_r(\alpha)\|_{\FS}\le\rho
+\quad\Longleftrightarrow\quad
+|\alpha|\sqrt{F_r}\le\rho.
+\label{eq:FS_trust_constraint}
+\end{equation}
+Thus the allowed scalar amplitude satisfies
+\begin{equation}
+|\alpha|\le\frac{\rho}{\sqrt{F_r}}.
+\label{eq:alpha_bound_F}
+\end{equation}
+
+\begin{paperbox}
+This is the direct Section 4.5 translation: Nocedal's scaled trust region replaces raw coordinate length by a geometry-weighted norm. Paper I's geometry is the Fubini--Study tangent norm \(F_r\).
+\end{paperbox}
+
+\section{Phase-I gain}
+
+Phase I uses a curvature proxy \(\lambda F_r\). Starting from the resolved-gradient drop model,
+\begin{equation}
+\widetilde g_r(t)|\alpha|-\frac12\lambda F_r\alpha^2,
+\label{eq:phase1_objective_piece}
+\end{equation}
+and imposing \eqref{eq:alpha_bound_F}, the Paper-I Phase-I gain is
+\begin{equation}
+\boxed{
+\Delta E_1(r)
+=
+\max_{|\alpha|\le \rho/\sqrt{F_r}}
+\left[
+\widetilde g_r(t)|\alpha|
+-\frac{\lambda F_r\alpha^2}{2}
+\right].
+}
+\label{eq:phase1_gain}
+\end{equation}
+
+The objective is a one-dimensional quadratic in \(s=|\alpha|\):
+\begin{equation}
+\phi_1(s)
+=\widetilde g_r(t)s-\frac12\lambda F_r s^2,
+\qquad
+0\le s\le\frac{\rho}{\sqrt{F_r}}.
+\label{eq:phase1_s_model}
+\end{equation}
+Its unconstrained maximizer solves
+\begin{equation}
+\phi_1'(s)=\widetilde g_r(t)-\lambda F_r s=0,
+\qquad
+s_1^\star=\frac{\widetilde g_r(t)}{\lambda F_r}.
+\label{eq:phase1_unconstrained}
+\end{equation}
+The trust-region maximizer is
+\begin{equation}
+s_{1,\rho}^\star=
+\min\left\{
+\frac{\widetilde g_r(t)}{\lambda F_r},
+\frac{\rho}{\sqrt{F_r}}
+\right\}.
+\label{eq:phase1_constrained_s}
+\end{equation}
+Therefore
+\begin{equation}
+\Delta E_1(r)
+=\widetilde g_r(t)s_{1,\rho}^\star
+-\frac12\lambda F_r(s_{1,\rho}^\star)^2.
+\label{eq:phase1_closed}
+\end{equation}
+
+\begin{intuitionbox}
+The trust-region bound can become active before the unconstrained quadratic optimum. That means the local model predicts a larger step, but Paper I only trusts the model up to Fubini--Study distance \(\rho\).
+\end{intuitionbox}
+
+\section{Phase-II gain and the first geometric novelty}
+
+Phase II keeps the same scalar coordinate and the same Fubini--Study radius, but replaces \(\lambda F_r\) by the measured or estimated directional curvature \(h_r\):
+\begin{equation}
+\boxed{
+\Delta E_2(r)
+=
+\max_{|\alpha|\le \rho/\sqrt{F_r}}
+\left[
+\widetilde g_r(t)|\alpha|
+-\frac{h_r\alpha^2}{2}
+\right].
+}
+\label{eq:phase2_gain}
+\end{equation}
+
+Phase II also asks whether the candidate tangent is geometrically new relative to the inherited overlap window \(W_r\). Let \(i,j\in W_r\). The inherited-window Gram matrix and candidate-window overlap vector are
+\begin{equation}
+(Q_r)_{ij}
+=\Re\braket{Q_\psi\tau_i}{Q_\psi\tau_j},
+\qquad
+(q_r)_i
+=\Re\braket{Q_\psi\tau_i}{Q_\psi\tau_r}.
+\label{eq:Qr_qr_paper}
+\end{equation}
+The window attempts to synthesize the candidate tangent by choosing coefficients \(\beta\):
+\begin{equation}
+T_{W_r}\beta=\sum_{i\in W_r}\beta_i Q_\psi\tau_i\approx Q_\psi\tau_r.
+\label{eq:window_synthesis}
+\end{equation}
+The least-squares objective is
+\begin{equation}
+\min_\beta
+\left\|
+Q_\psi\tau_r-T_{W_r}\beta
+\right\|^2.
+\label{eq:window_ls}
+\end{equation}
+Expanding gives
+\begin{equation}
+\left\|
+Q_\psi\tau_r-T_{W_r}\beta
+\right\|^2
+=F_r-2\beta^\top q_r+\beta^\top Q_r\beta.
+\label{eq:novelty_expand}
+\end{equation}
+Stationarity gives
+\begin{equation}
+Q_r\beta_r^\star=q_r.
+\label{eq:novelty_normal}
+\end{equation}
+Substitution gives the explained length \(q_r^\top Q_r^+q_r\) and the residual length
+\begin{equation}
+F_r-q_r^\top Q_r^+q_r.
+\label{eq:novelty_residual}
+\end{equation}
+The manuscript uses a ridge-stabilized version:
+\begin{equation}
+\boxed{
+\mathcal N_2(r;t)
+=1-
+\frac{q_r^\top Q_r^+q_r}{F_r}.
+}
+\label{eq:N2_paper}
+\end{equation}
+
+\begin{paperbox}
+The Phase-II score uses \(\Delta E_2(r)\mathcal N_2(r;t)/(1+K_2(r))\). The trust-region part measures predicted energy drop. The novelty part measures the fraction of the candidate tangent that survives after inherited-window tangents explain it.
+\end{paperbox}
+
+\section{Nocedal's vector step becomes the Phase-III block}
+
+Phase III adds inherited-window refit. The local coordinate step is
+\begin{equation}
+u_r=
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix}.
+\label{eq:u_r_block}
+\end{equation}
+Now the candidate amplitude \(\alpha\) and the inherited-window response \(\delta\theta_{W_r}\) are treated together in a local quadratic model:
+\begin{align}
+E(\alpha,\delta\theta_{W_r};r)
+\approx{}&E_0+g_r\alpha+\frac12h_r\alpha^2
+\notag\\
+&+\alpha c_r^\top\delta\theta_{W_r}
++\frac12\delta\theta_{W_r}^\top H_{W_r}\delta\theta_{W_r}.
+\label{eq:paper_phase3_model}
+\end{align}
+This is the Paper-I version of Nocedal's
+\begin{equation}
+f_k+g_k^\top p+\frac12p^\top B_kp,
+\label{eq:nocedal_reference_again}
+\end{equation}
+with
+\begin{equation}
+p\leftrightarrow
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix},
+\qquad
+g_k\leftrightarrow
+\begin{pmatrix}
+g_r\\
+0
+\end{pmatrix},
+\qquad
+B_k\leftrightarrow
+\begin{pmatrix}
+h_r&c_r^\top\\
+c_r&H_{W_r}
+\end{pmatrix}.
+\label{eq:block_dictionary}
+\end{equation}
+The zero in the second component reflects local optimization of the inherited window before testing the candidate. If the window gradient is retained explicitly, replace \(0\) by \(g_W\).
+
+The mixed vector and window block are
+\begin{equation}
+(c_r)_j
+=
+\left.
+\frac{\partial^2E(\alpha,\delta\theta_W)}
+{\partial\alpha\,\partial(\delta\theta_j)}
+\right|_0,
+\qquad j\in W_r,
+\label{eq:c_r_def_paper}
+\end{equation}
+and
+\begin{equation}
+(H_{W_r})_{ij}
+=
+\left.
+\frac{\partial^2E(\alpha,\delta\theta_W)}
+{\partial(\delta\theta_i)\,\partial(\delta\theta_j)}
+\right|_0,
+\qquad i,j\in W_r.
+\label{eq:HWr_def_paper}
+\end{equation}
+The manuscript uses the symmetrized window Hessian as the displayed curvature block:
+\begin{equation}
+\mathbf R_r
+=
+\frac12(H_{W_r}+H_{W_r}^\top).
+\label{eq:Rr_def_paper}
+\end{equation}
+The inverse \(\mathbf R_r^{-1}\) below denotes the damped/resolved inverse used on the trusted support. For the pedagogical derivation, replace \(H_{W_r}\) by \(\mathbf R_r\) in the refit quadratic:
+\begin{equation}
+E_{\rm loc}
+=E_0+g_r\alpha+\frac12h_r\alpha^2
++\alpha c_r^\top\delta\theta_{W_r}
++\frac12\delta\theta_{W_r}^\top \mathbf R_r\delta\theta_{W_r}.
+\label{eq:regularized_local_model}
+\end{equation}
+
+\section{Linear algebra note for the block terms}
+
+Let \(m=|W_r|\). Then
+\begin{equation}
+\delta\theta_{W_r}\in\R^{m\times1},
+\qquad
+c_r\in\R^{m\times1},
+\qquad
+\mathbf R_r\in\R^{m\times m}.
+\label{eq:block_dimensions}
+\end{equation}
+The mixed term is a scalar:
+\begin{equation}
+c_r^\top\delta\theta_{W_r}
+\in(1\times m)(m\times1)=1\times1.
+\label{eq:mixed_scalar}
+\end{equation}
+The quadratic term is also a scalar:
+\begin{equation}
+\delta\theta_{W_r}^\top \mathbf R_r\delta\theta_{W_r}
+\in(1\times m)(m\times m)(m\times1)=1\times1.
+\label{eq:quad_scalar}
+\end{equation}
+The derivative rule used below is
+\begin{equation}
+\nabla_{\delta\theta}
+\left(
+\frac12\delta\theta^\top\mathbf R_r\delta\theta
+\right)
+=\mathbf R_r\delta\theta
+\quad\text{when }\mathbf R_r=\mathbf R_r^\top.
+\label{eq:quad_derivative_rule}
+\end{equation}
+The mixed term derivative is
+\begin{equation}
+\nabla_{\delta\theta}
+\left(\alpha c_r^\top\delta\theta\right)
+=\alpha c_r.
+\label{eq:mixed_derivative_rule}
+\end{equation}
+These two derivative rules produce the Schur response.
+
+\section{Eliminating the inherited window}
+
+For fixed \(\alpha\), minimize \eqref{eq:regularized_local_model} over \(\delta\theta_{W_r}\). Differentiate:
+\begin{align}
+\nabla_{\delta\theta_{W_r}}E_{\rm loc}
+&=
+\alpha c_r+\mathbf R_r\delta\theta_{W_r}.
+\label{eq:window_derivative}
+\end{align}
+Set the derivative to zero:
+\begin{equation}
+\alpha c_r+\mathbf R_r\delta\theta_W^\star=0.
+\label{eq:window_stationarity}
+\end{equation}
+Thus
+\begin{equation}
+\boxed{
+\delta\theta_W^\star=-\alpha\mathbf R_r^{-1}c_r.
+}
+\label{eq:paper_window_star}
+\end{equation}
+This is the Paper-I compensating window displacement. It is proportional to \(\alpha\), so the old parameters respond linearly to the trial candidate amplitude in the local model.
+
+Substitute \eqref{eq:paper_window_star} into \eqref{eq:regularized_local_model}:
+\begin{align}
+E_{\rm loc}(\alpha,\delta\theta_W^\star)-E_0
+={}&g_r\alpha+\frac12h_r\alpha^2
+\alpha c_r^\top(-\alpha\mathbf R_r^{-1}c_r)
+\notag\\
+&+\frac12(-\alpha\mathbf R_r^{-1}c_r)^\top
+\mathbf R_r
+(-\alpha\mathbf R_r^{-1}c_r)
+\notag\\
+={}&g_r\alpha+\frac12h_r\alpha^2
+-\alpha^2c_r^\top\mathbf R_r^{-1}c_r
+\notag\\
+&+\frac12\alpha^2c_r^\top\mathbf R_r^{-1}c_r
+\notag\\
+={}&g_r\alpha+\frac12
+\left(h_r-c_r^\top\mathbf R_r^{-1}c_r\right)\alpha^2.
+\label{eq:schur_substitution_paper}
+\end{align}
+The Schur-relaxed curvature is
+\begin{equation}
+\boxed{
+h_r^\star
+=h_r-c_r^\top\mathbf R_r^{-1}c_r.
+}
+\label{eq:h_tilde_paper}
+\end{equation}
+
+\begin{jargonbox}
+Phase III is a block quadratic trust-region model followed by analytic elimination of the inherited-window coordinates. The Schur complement is the curvature left in the candidate coordinate after the local refit response has been optimized out.
+\end{jargonbox}
+
+\section{Optimal-refit Fubini--Study tangent scale}
+
+The refit response changes the state-space direction produced by one unit of candidate amplitude. Divide \eqref{eq:paper_window_star} by \(\alpha\):
+\begin{equation}
+\frac{\delta\theta_W^\star}{\alpha}
+=-\mathbf R_r^{-1}c_r.
+\label{eq:window_response_per_alpha}
+\end{equation}
+Define the response-per-amplitude vector
+\begin{equation}
+\gamma_r^\star
+:=\frac{\delta\theta_W^\star}{\alpha}
+=-\mathbf R_r^{-1}c_r.
+\label{eq:gamma_star_nocedal}
+\end{equation}
+The first-order refitted tangent is
+\begin{align}
+\tau_r^\star
+&=
+Q_\psi\tau_r
++T_{W_r}\gamma_r^\star
+\notag\\
+&=
+Q_\psi\tau_r
+-T_{W_r}\mathbf R_r^{-1}c_r.
+\label{eq:tau_star_paper}
+\end{align}
+Using the existing Phase-II primitives \(F_r,q_r,Q_r\), the star norm expands as
+\begin{align}
+F_r^\star
+&=
+\left\|
+Q_\psi\tau_r
++T_{W_r}\gamma_r^\star
+\right\|^2
+\notag\\
+&=
+F_r
++2q_r^\top\gamma_r^\star
++(\gamma_r^\star)^\top Q_r\gamma_r^\star
+\notag\\
+&=
+F_r-2q_r^\top\mathbf R_r^{-1}c_r
++c_r^\top\mathbf R_r^{-1}Q_r\mathbf R_r^{-1}c_r.
+\label{eq:F_star_paper}
+\end{align}
+The star candidate-window overlap vector is
+\begin{equation}
+q_r^\star
+=q_r+Q_r\gamma_r^\star
+=q_r-Q_r\mathbf R_r^{-1}c_r.
+\label{eq:q_star_paper}
+\end{equation}
+These are exactly the Paper-I star-geometry quantities.
+
+The Phase-III trust-region radius is obtained by restricting the block Fubini--Study norm to the Schur-refit response. Before eliminating the inherited-window coordinates, the local state-space displacement has squared norm
+\begin{align}
+\left\|
+\alpha Q_\psi\tau_r+T_{W_r}\delta\theta_W
+\right\|^2
+&=
+\alpha^2F_r
++2\alpha q_r^\top\delta\theta_W
++\delta\theta_W^\top Q_r\delta\theta_W .
+\label{eq:phase3_block_fs_nocedal}
+\end{align}
+Insert the Schur response \(\delta\theta_W^\star=\alpha\gamma_r^\star\):
+\begin{align}
+\left\|
+\alpha Q_\psi\tau_r+T_{W_r}\delta\theta_W^\star
+\right\|^2
+&=
+\alpha^2
+\left[
+F_r+2q_r^\top\gamma_r^\star
++(\gamma_r^\star)^\top Q_r\gamma_r^\star
+\right]
+\notag\\
+&=\alpha^2F_r^\star.
+\label{eq:phase3_trust_region_collapse_nocedal}
+\end{align}
+Thus Nocedal's radius constraint becomes
+\begin{equation}
+\left\|
+\alpha Q_\psi\tau_r+T_{W_r}\delta\theta_W^\star
+\right\|\le\rho
+\quad\Longleftrightarrow\quad
+|\alpha|\sqrt{F_r^\star}\le\rho,
+\qquad
+|\alpha|\le\frac{\rho}{\sqrt{F_r^\star}}.
+\label{eq:phase3_alpha_bound_nocedal}
+\end{equation}
+
+\begin{intuitionbox}
+The raw candidate tangent is \(Q_\psi\tau_r\). Phase III asks for the tangent after the nearby inherited coordinates have already moved according to their predicted best refit response. That refitted tangent is shorter or differently aligned when old coordinates can compensate the candidate.
+\end{intuitionbox}
+
+\section{Phase-III novelty and gain}
+
+The Phase-III novelty factor is the same residual-span idea applied to the star candidate tangent. The inherited window again tries to synthesize the tested tangent, now using a projection coefficient \(\beta\):
+\begin{equation}
+\beta_{3,r}^\star\in
+\argmin_\beta
+\left\|
+\tau_r^\star-T_{W_r}\beta
+\right\|^2.
+\label{eq:N3_ls_nocedal}
+\end{equation}
+This \(\beta\) is the geometric projection coefficient. The Schur response \(\delta\theta_W^\star\) has already been used to build \(\tau_r^\star\). Expanding the least-squares objective gives
+\begin{align}
+\mathcal J_{3,r}(\beta)
+&:=
+\left\|
+\tau_r^\star-T_{W_r}\beta
+\right\|^2
+\notag\\
+&=
+\Re\langle\tau_r^\star,\tau_r^\star\rangle
+-2\sum_{i\in W_r}\beta_i\Re\langle\tau_i,\tau_r^\star\rangle
++\sum_{i,j\in W_r}\beta_i\beta_j\Re\langle\tau_i,\tau_j\rangle
+\notag\\
+&=F_r^\star-2\beta^\top q_r^\star+\beta^\top Q_r\beta .
+\label{eq:N3_expand_nocedal}
+\end{align}
+Stationarity gives the normal equation
+\begin{align}
+\nabla_\beta\mathcal J_{3,r}(\beta)
+&=-2q_r^\star+2Q_r\beta=0,
+\notag\\
+Q_r\beta_{3,r}^\star&=q_r^\star,
+\qquad
+\beta_{3,r}^\star=Q_r^+q_r^\star
+\label{eq:N3_normal_nocedal}
+\end{align}
+on the resolved support of \(Q_r\).
+Substituting the optimized coefficient back into the objective leaves
+\begin{align}
+\min_\beta
+\left\|
+\tau_r^\star-T_{W_r}\beta
+\right\|^2
+&=
+F_r^\star
+-2(q_r^\star)^\top Q_r^+q_r^\star
++(q_r^\star)^\top Q_r^+Q_rQ_r^+q_r^\star
+\notag\\
+&=F_r^\star-(q_r^\star)^\top Q_r^+q_r^\star.
+\label{eq:N3_residual_nocedal}
+\end{align}
+Thus
+\begin{equation}
+\boxed{
+\mathcal N_3(r;t)
+=1-\frac{(q_r^\star)^\top Q_r^+q_r^\star}
+{F_r^\star}.
+}
+\label{eq:N3_paper}
+\end{equation}
+The Phase-III energy gain uses the Schur curvature and refit-star Fubini--Study scale:
+\begin{equation}
+\boxed{
+\Delta E_3(r)
+=
+\max_{|\alpha|\le \rho/\sqrt{F_r^\star}}
+\left[
+\widetilde g_r(t)|\alpha|
+-\frac{h_r^\star\alpha^2}{2}
+\right].
+}
+\label{eq:phase3_gain_paper}
+\end{equation}
+
+The phase progression is now visible:
+\begin{align}
+\Delta E_1(r)
+&:\quad \lambda F_r\text{ proxy curvature},\notag\\
+\Delta E_2(r)
+&:\quad h_r\text{ candidate-only curvature},\notag\\
+\Delta E_3(r)
+&:\quad h_r^\star\text{ Schur curvature and }F_r^\star.
+\label{eq:phase_progression}
+\end{align}
+
+\begin{paperbox}
+Phase II asks: if only the candidate coordinate moves, what is the trusted gain and novelty? Phase III asks: if the candidate coordinate moves and the inherited window refits, what trusted gain and novelty remain?
+\end{paperbox}
+
+\section{Batching as a reduced-plane trust region}
+
+The batch equation in the group-presentation slides is Chapter 4 with a vector
+step.  After Phase III has produced a near-degenerate shell, choose a
+structurally feasible set
+\[
+B=\{r_1,\ldots,r_s\},
+\qquad
+\alpha_B=(\alpha_{r_1},\ldots,\alpha_{r_s})^\top .
+\]
+The inherited coordinates are collected into the common window
+\[
+W_B=\bigcup_{r\in B}W_r,
+\qquad
+T_B=[\tau_a]_{a\in W_B},
+\qquad
+D_B=[\tau_{r_1}\ \cdots\ \tau_{r_s}].
+\]
+The local state displacement has the block form
+\begin{equation}
+\delta\psi_B
+\approx
+D_B\alpha_B+T_B\delta\theta_{W_B}.
+\label{eq:nocedal_batch_step_before_refit}
+\end{equation}
+
+The Chapter 4 quadratic model before eliminating the old window is
+\begin{align}
+m_B(\alpha_B,\delta\theta_{W_B})
+&=E_0-\widetilde g_B^\top\alpha_B
++\frac12\alpha_B^\top H_{BB}\alpha_B
+\notag\\
+&\quad
++\alpha_B^\top H_{BW_B}\delta\theta_{W_B}
++\frac12\delta\theta_{W_B}^\top R_B\delta\theta_{W_B}.
+\label{eq:nocedal_batch_block_model}
+\end{align}
+For a fixed candidate-amplitude vector, the inherited-window variable is
+optimized out by
+\begin{equation}
+R_B\delta\theta_{W_B}^\star
+=-H_{W_BB}\alpha_B,
+\qquad
+\delta\theta_{W_B}^\star
+=-R_B^{-1}H_{W_BB}\alpha_B.
+\label{eq:nocedal_batch_window_solve}
+\end{equation}
+This is the multi-record version of the single-candidate Schur response.  The
+same normal-equation grammar appears: a window-space matrix converts mixed
+candidate-window couplings into the old-coordinate response.
+
+Substitution gives the Schur-reduced Hessian
+\begin{equation}
+H_B^\star
+=H_{BB}-H_{BW_B}R_B^{-1}H_{W_BB}.
+\label{eq:nocedal_batch_hstar}
+\end{equation}
+It also gives the reduced displacement plane
+\begin{equation}
+\delta\psi_B^\star(\alpha_B)
+=
+\left(D_B-T_BR_B^{-1}H_{W_BB}\right)\alpha_B
+=U_B\alpha_B,
+\label{eq:nocedal_batch_reduced_step}
+\end{equation}
+with metric
+\begin{equation}
+G_B^\star=U_B^\top U_B.
+\label{eq:nocedal_batch_metric}
+\end{equation}
+
+Now read Chapter 4's scaled trust-region problem
+\[
+\max_{p^\top M p\le\Delta^2}
+\left[g^\top p-\frac12p^\top Bp\right]
+\]
+as
+\begin{equation}
+\boxed{
+\Delta E_3(B)
+=
+\max_{\alpha_B^\top G_B^\star\alpha_B\le\rho_B^2}
+\left[
+\widetilde g_B^\top|\alpha_B|
+-\frac12\alpha_B^\top H_B^\star\alpha_B
+\right].
+}
+\label{eq:nocedal_batch_gain}
+\end{equation}
+The dictionary is
+\begin{equation}
+p\leadsto\alpha_B,
+\qquad
+M\leadsto G_B^\star,
+\qquad
+B\leadsto H_B^\star,
+\qquad
+\Delta\leadsto\rho_B.
+\label{eq:nocedal_batch_dictionary}
+\end{equation}
+This is why batching belongs in the trust-region note: after Schur elimination,
+the accepted batch is a small reduced-plane trust-region problem whose radius
+is measured by Fubini--Study displacement.
+
+\begin{paperbox}
+Disjoint support and commutation nominate plausible batch partners.  The
+trust-region test decides whether their Schur-refitted directions form a stable
+plane and whether the joint amplitude solve preserves the predicted gain.
+\end{paperbox}
+
+\section{How Nocedal's predicted-vs-actual ratio maps}
+
+Nocedal defines a ratio of actual decrease to predicted decrease. In Paper-I language, after choosing a proposed local move, the same logic is
+\begin{equation}
+\rho_{\rm model}
+=
+\frac{
+E(\theta_t)-E(\theta_t^{\rm proposed})
+}{
+\Delta E_{\rm model}
+}.
+\label{eq:model_quality_ratio_paper}
+\end{equation}
+For Phase II,
+\begin{equation}
+\Delta E_{\rm model}=\Delta E_2(r),
+\label{eq:model_phase2}
+\end{equation}
+and for Phase III,
+\begin{equation}
+\Delta E_{\rm model}=\Delta E_3(r).
+\label{eq:model_phase3}
+\end{equation}
+This ratio controls trust in the local quadratic model. It is conceptually different from the paper-facing energy threshold used in resource tables.
+
+\begin{equation}
+\rho
+=\text{trusted Fubini--Study radius},
+\qquad
+\tau_E^{\rm phys}
+=\text{target energy accuracy}.
+\label{eq:rho_vs_tau}
+\end{equation}
+The radius \(\rho\) governs local step reliability. The target \(\tau_E^{\rm phys}\) governs when a run has reached the reporting threshold.
+
+\section{Reading Chapter 4 with Paper-I annotations}
+
+When Chapter 4 writes \(x_k+p\), read
+\begin{equation}
+x_k+p
+\quad\leadsto\quad
+\theta_t^{\rm aug}(r)+\alpha e_r
+\label{eq:xkp_reading_scalar}
+\end{equation}
+for Phase I/II. For Phase III, read
+\begin{equation}
+x_k+p
+\quad\leadsto\quad
+\theta_t^{\rm aug}(r)
++\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix}.
+\label{eq:xkp_reading_block}
+\end{equation}
+When Chapter 4 writes \(g_k^\top p\), read
+\begin{equation}
+g_k^\top p
+\quad\leadsto\quad
+g_r(t)\alpha
+\label{eq:gtp_scalar_read}
+\end{equation}
+in candidate-only scoring, and
+\begin{equation}
+g_k^\top p
+\quad\leadsto\quad
+g_r(t)\alpha+g_W^\top\delta\theta_{W_r}
+\label{eq:gtp_block_read}
+\end{equation}
+in the full block model. Paper I usually takes \(g_W\approx0\) for the inherited refit window in the local scoring model.
+
+When Chapter 4 writes the quadratic term \(p^\top B_kp\), read
+\begin{equation}
+p^\top B_kp
+\quad\leadsto\quad
+h_r\alpha^2
+\label{eq:quad_scalar_read}
+\end{equation}
+for candidate-only scoring, and
+\begin{equation}
+p^\top B_kp
+\quad\leadsto\quad
+h_r\alpha^2
++2\alpha c_r^\top\delta\theta_{W_r}
++\delta\theta_{W_r}^\top\mathbf R_r\delta\theta_{W_r}
+\label{eq:quad_block_read}
+\end{equation}
+for Phase III. The factor \(2\) appears because the total model has \(\frac12p^\top Bp\), so the cross term becomes \(\alpha c_r^\top\delta\theta_{W_r}\).
+
+\section{The score-level placement}
+
+The master phase score in Paper I is
+\begin{equation}
+S_{k,\ell}(r)
+=
+\frac{\Delta E_k(r)\mathcal N_k(r)}{1+K_k(r)}.
+\label{eq:master_score_paper}
+\end{equation}
+The trust-region material only constructs the numerator's energy-gain piece:
+\begin{equation}
+\Delta E_1(r),\qquad
+\Delta E_2(r),\qquad
+\Delta E_3(r).
+\label{eq:energy_pieces}
+\end{equation}
+The geometric novelty pieces are
+\begin{equation}
+\mathcal N_k(r)=1\quad(k=0,1),
+\qquad
+\mathcal N_2(r;t)\text{ from \eqref{eq:N2_paper}},
+\qquad
+\mathcal N_3(r;t)\text{ from \eqref{eq:N3_paper}}.
+\label{eq:novelty_pieces}
+\end{equation}
+The cost penalty \(K_k(r)\) is outside Chapter 4. The trust-region connection explains how a candidate's gradient and curvature become a predicted energy-gain scalar before novelty and cost are applied.
+
+\appendix
+
+\section{Example: scalar trust-region maximizer}
+
+Let
+\begin{equation}
+\widetilde g_r(t)=0.08,\qquad
+F_r=4,\qquad
+\rho=0.1,\qquad
+\lambda=1.
+\label{eq:ex1_data}
+\end{equation}
+The Phase-I radius is
+\begin{equation}
+|\alpha|\le\frac{\rho}{\sqrt{F_r}}=\frac{0.1}{2}=0.05.
+\label{eq:ex1_radius}
+\end{equation}
+The Phase-I objective as a function of \(s=|\alpha|\) is
+\begin{equation}
+\phi_1(s)=0.08s-\frac12(1)(4)s^2
+=0.08s-2s^2.
+\label{eq:ex1_phi}
+\end{equation}
+The unconstrained optimum solves
+\begin{equation}
+\phi_1'(s)=0.08-4s=0,
+\qquad
+s=0.02.
+\label{eq:ex1_uncon}
+\end{equation}
+Since \(0.02<0.05\), the trust-region bound is inactive. The predicted gain is
+\begin{equation}
+\Delta E_1(r)=0.08(0.02)-2(0.02)^2=8.0\times10^{-4}.
+\label{eq:ex1_gain}
+\end{equation}
+
+\section{Example: trust-region bound active}
+
+Let
+\begin{equation}
+\widetilde g_r(t)=0.4,\qquad
+F_r=4,\qquad
+\rho=0.1,\qquad
+\lambda=1.
+\label{eq:ex2_data}
+\end{equation}
+The same radius gives \(s\le0.05\). The unconstrained optimum is
+\begin{equation}
+s=\frac{0.4}{4}=0.1,
+\label{eq:ex2_uncon}
+\end{equation}
+which lies outside the trusted region. Therefore
+\begin{equation}
+s^\star=0.05,
+\qquad
+\Delta E_1(r)=0.4(0.05)-2(0.05)^2=0.015.
+\label{eq:ex2_gain}
+\end{equation}
+The algorithm uses the boundary because the quadratic model predicts more improvement farther away than the local Fubini--Study radius allows.
+
+\section{Example: how \(F_r\) changes raw amplitude}
+
+Take two candidates with the same resolved gradient and same radius:
+\begin{equation}
+\widetilde g_a(t)=\widetilde g_b(t),
+\qquad
+\rho=0.1.
+\label{eq:ex3_same}
+\end{equation}
+Let
+\begin{equation}
+F(a)=1,\qquad F(b)=25.
+\label{eq:ex3_F}
+\end{equation}
+Then
+\begin{equation}
+|\alpha_a|\le0.1,
+\qquad
+|\alpha_b|\le0.02.
+\label{eq:ex3_bounds}
+\end{equation}
+Candidate \(b\) gets a smaller raw amplitude because one unit of its parameter moves the state five times farther in Fubini--Study length.
+
+\section{Example: Schur curvature with one window coordinate}
+
+Use the Phase-III local model
+\begin{equation}
+E_{\rm loc}-E_0
+=g_r\alpha+\frac12h_r\alpha^2
+\alpha c_r\delta\theta
+\frac12\mathbf R_r\delta\theta^2.
+\label{eq:ex4_model}
+\end{equation}
+Let
+\begin{equation}
+h_r=6,\qquad c_r=2,\qquad \mathbf R_r=4.
+\label{eq:ex4_data}
+\end{equation}
+The refit response is
+\begin{equation}
+\delta\theta^\star=-\alpha\frac{2}{4}=-\frac{\alpha}{2}.
+\label{eq:ex4_response}
+\end{equation}
+The Schur curvature is
+\begin{equation}
+h_r^\star=6-2\left(\frac14\right)2=5.
+\label{eq:ex4_schur}
+\end{equation}
+After inherited-window refit, the candidate curve is less curved in the local model.
+
+\section{Example: Schur curvature with two window coordinates}
+
+Let
+\begin{equation}
+h_r=5,\qquad
+c_r=\twovec{2}{1},
+\qquad
+\mathbf R_r=
+\begin{pmatrix}
+4&0\\
+0&2
+\end{pmatrix}.
+\label{eq:ex5_data}
+\end{equation}
+Then
+\begin{equation}
+\mathbf R_r^{-1}c_r
+=
+\begin{pmatrix}
+1/4&0\\
+0&1/2
+\end{pmatrix}
+\twovec{2}{1}
+=\twovec{1/2}{1/2}.
+\label{eq:ex5_Rinv_c}
+\end{equation}
+Hence
+\begin{equation}
+c_r^\top\mathbf R_r^{-1}c_r
+=
+\begin{pmatrix}2&1\end{pmatrix}
+\twovec{1/2}{1/2}
+=1.5.
+\label{eq:ex5_relax}
+\end{equation}
+The Schur curvature is
+\begin{equation}
+h_r^\star=5-1.5=3.5.
+\label{eq:ex5_htilde}
+\end{equation}
+
+\section{Example: reduced \(F_r^\star\)}
+
+Use one inherited-window tangent with
+\begin{equation}
+F_r=9,\qquad
+q_r=3,\qquad
+Q_r=4.
+\label{eq:ex6_geom}
+\end{equation}
+Suppose the refit response per candidate amplitude is
+\begin{equation}
+w=\frac{\delta\theta_W^\star}{\alpha}=-\frac12.
+\label{eq:ex6_w}
+\end{equation}
+Then
+\begin{align}
+F_r^\star
+&=F_r+2q_rw+wQ_rw\notag\\
+&=9+2(3)(-1/2)+(-1/2)(4)(-1/2)\notag\\
+&=9-3+1=7.
+\label{eq:ex6_Fstar}
+\end{align}
+The inherited-window response refit response changes the state-space size of one unit of candidate amplitude from \(9\) to \(7\).
+
+\section{Example: Phase-II novelty from a Gram solve}
+
+Let
+\begin{equation}
+Q_r=
+\begin{pmatrix}
+1&1\\
+1&2
+\end{pmatrix},
+\qquad
+q_r=\twovec{1}{3},
+\qquad
+F_r=5.
+\label{eq:ex7_data}
+\end{equation}
+The inverse is
+\begin{equation}
+Q_r^{-1}=
+\begin{pmatrix}
+2&-1\\
+-1&1
+\end{pmatrix}.
+\label{eq:ex7_inv}
+\end{equation}
+Then
+\begin{equation}
+Q_r^{-1}q_r
+=
+\twovec{-1}{2},
+\label{eq:ex7_beta}
+\end{equation}
+and
+\begin{equation}
+q_r^\top Q_r^{-1}q_r
+=
+\begin{pmatrix}1&3\end{pmatrix}
+\twovec{-1}{2}
+=5.
+\label{eq:ex7_explained}
+\end{equation}
+So \(\mathcal N_2(r;t)=1-5/5=0\). The candidate is fully synthesized by the inherited-window tangents.
+
+\section{Example: predicted-vs-actual model quality}
+
+Suppose Phase III predicts
+\begin{equation}
+\Delta E_3(r)=0.010.
+\label{eq:ex8_pred}
+\end{equation}
+After admitting and refitting, the measured energy decrease is
+\begin{equation}
+E(\theta_t)-E(\theta_{t+1})=0.008.
+\label{eq:ex8_actual}
+\end{equation}
+Then the model-quality ratio is
+\begin{equation}
+\rho_{\rm model}=\frac{0.008}{0.010}=0.8.
+\label{eq:ex8_ratio}
+\end{equation}
+This says the local quadratic model was reasonably predictive. If the ratio were very small or negative, the trust radius should contract in the Nocedal-style logic.
+
+\section{Compact reading checklist}
+
+When reading Chapter 4 next to Paper I, use this checklist:
+\begin{enumerate}
+\item Replace \(x_k\) by the current ansatz coordinate vector, usually augmented by the candidate coordinate at zero.
+\item Replace \(p\) by \(\alpha\) for Phase I/II.
+\item Replace \(p\) by \((\alpha,\delta\theta_{W_r})\) for Phase III.
+\item Replace \(g_k^\top p\) by \(g_r(t)\alpha\), then choose the descent sign to get \(\widetilde g_r(t)|\alpha|\) in the gain.
+\item Replace \(p^\top B_kp\) by \(h_r\alpha^2\) in Phase II.
+\item Replace \(p^\top B_kp\) by the block quadratic in \(\alpha,\delta\theta_{W_r}\) in Phase III.
+\item Replace \(\|p\|\le\Delta_k\) by \(|\alpha|\sqrt{F_r}\le\rho\), or by \(|\alpha|\sqrt{F_r^\star}\le\rho\) after Schur refit.
+\item Read \(\rho_{\rm model}\) as a model-quality diagnostic. Read \(\rho\) as the Fubini--Study trust radius.
+\end{enumerate}
+
+\section{Line-by-line Paper-I reading of the Nocedal model}
+
+Nocedal's model is written once:
+\begin{equation}
+m_k(p)=f_k+g_k^\top p+\frac12p^\top B_kp.
+\label{eq:appendix_nocedal_once}
+\end{equation}
+For Paper I, read it through the candidate chart. The current coordinate point is
+\begin{equation}
+x_k
+\quad\leadsto\quad
+\theta_t^{\rm aug}(r)=(\theta_t,0).
+\label{eq:line_xk}
+\end{equation}
+The objective value is
+\begin{equation}
+f_k=f(x_k)
+\quad\leadsto\quad
+E_r(0;t)=E(\theta_t^{\rm aug}(r)).
+\label{eq:line_fk}
+\end{equation}
+The scalar candidate step is
+\begin{equation}
+p
+\quad\leadsto\quad
+\alpha.
+\label{eq:line_p_alpha}
+\end{equation}
+The model becomes
+\begin{align}
+m_k(p)-f_k
+&\quad\leadsto\quad
+E_r(\alpha;t)-E_r(0;t)
+\notag\\
+&\approx
+g_r(t)\alpha+\frac12h_r\alpha^2.
+\label{eq:line_scalar_model}
+\end{align}
+Then the trust-region subproblem
+\begin{equation}
+\min_{\|p\|\le\Delta_k}m_k(p)
+\label{eq:nocedal_subproblem_again}
+\end{equation}
+is read in Paper-I gain form as maximizing predicted drop:
+\begin{equation}
+\max_{|\alpha|\sqrt{F_r}\le\rho}
+\left[
+\widetilde g_r(t)|\alpha|-\frac12h_r\alpha^2
+\right].
+\label{eq:line_gain_form}
+\end{equation}
+This is exactly \(\Delta E_2(r)\). Replacing \(h_r\) by \(\lambda F_r\) gives \(\Delta E_1(r)\). Replacing \(h_r,F_r\) by \(h_r^\star,F_r^\star\) gives \(\Delta E_3(r)\).
+
+\section{The shared phase template}
+
+All three Paper-I trust-region gains have the same one-dimensional template:
+\begin{equation}
+\Delta E_k(r)
+=
+\max_{0\le s\le s_{k,\max}}
+\left[
+\widetilde g_r(t)s-\frac12L_{k,r}s^2
+\right],
+\qquad s=|\alpha|.
+\label{eq:shared_template}
+\end{equation}
+The phase-specific entries are
+\begin{center}
+\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.17\columnwidth}
+>{\raggedright\arraybackslash}p{0.34\columnwidth}
+>{\raggedright\arraybackslash}p{0.35\columnwidth}}
+\toprule
+Phase & Curvature \(L_{k,r}\) & Radius \(s_{k,\max}\)\\
+\midrule
+I & \(\lambda F_r\) & \(\rho/\sqrt{F_r}\)\\
+II & \(h_r\) & \(\rho/\sqrt{F_r}\)\\
+III & \(h_r^\star\) & \(\rho/\sqrt{F_r^\star}\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+The unconstrained scalar maximizer is
+\begin{equation}
+s_{k,{\rm unc}}^\star=\frac{\widetilde g_r(t)}{L_{k,r}}
+\label{eq:shared_uncon}
+\end{equation}
+when \(L_{k,r}>0\). The trust-region step length is
+\begin{equation}
+s_k^\star
+=
+\min\left\{
+\frac{\widetilde g_r(t)}{L_{k,r}},
+s_{k,\max}
+\right\}.
+\label{eq:shared_step}
+\end{equation}
+Substitution gives
+\begin{equation}
+\Delta E_k(r)
+=
+\widetilde g_r(t)s_k^\star
+-\frac12L_{k,r}(s_k^\star)^2.
+\label{eq:shared_gain_closed}
+\end{equation}
+
+\begin{cautionbox}
+The compact template is a reading device. The manuscript can use extra floors, damping, finite-resolution clipping, and backend-aware guards in implementation. The mathematical trust-region idea is the scalar quadratic gain under a Fubini--Study radius.
+\end{cautionbox}
+
+\section{Expanding the Phase-III block quadratic by hand}
+
+Set
+\begin{equation}
+u_r=
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix},
+\qquad
+B_r=
+\begin{pmatrix}
+h_r&c_r^\top\\
+c_r&\mathbf R_r
+\end{pmatrix}.
+\label{eq:block_objects_appendix}
+\end{equation}
+The quadratic form is
+\begin{align}
+u_r^\top B_ru_r
+&=
+\begin{pmatrix}
+\alpha&\delta\theta_{W_r}^\top
+\end{pmatrix}
+\begin{pmatrix}
+h_r&c_r^\top\\
+c_r&\mathbf R_r
+\end{pmatrix}
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix}
+\notag\\
+&=
+\begin{pmatrix}
+\alpha&\delta\theta_{W_r}^\top
+\end{pmatrix}
+\begin{pmatrix}
+h_r\alpha+c_r^\top\delta\theta_{W_r}\\
+\alpha c_r+\mathbf R_r\delta\theta_{W_r}
+\end{pmatrix}
+\notag\\
+&=
+h_r\alpha^2
+\alpha c_r^\top\delta\theta_{W_r}
+\alpha\delta\theta_{W_r}^\top c_r
+\delta\theta_{W_r}^\top\mathbf R_r\delta\theta_{W_r}.
+\label{eq:block_expand_appendix}
+\end{align}
+The middle two terms are equal as scalars:
+\begin{equation}
+\alpha c_r^\top\delta\theta_{W_r}
+=
+\alpha\delta\theta_{W_r}^\top c_r.
+\label{eq:mixed_scalar_equal}
+\end{equation}
+Therefore
+\begin{equation}
+\frac12u_r^\top B_ru_r
+=
+\frac12h_r\alpha^2
++\alpha c_r^\top\delta\theta_{W_r}
++\frac12\delta\theta_{W_r}^\top\mathbf R_r\delta\theta_{W_r}.
+\label{eq:block_half_expand}
+\end{equation}
+This is the quadratic part of Eq.~\eqref{eq:regularized_local_model}.
+
+\section{Why the Schur term subtracts curvature}
+
+The inherited-window response is
+\begin{equation}
+\delta\theta_W^\star=-\alpha\mathbf R_r^{-1}c_r.
+\label{eq:subtract_response_repeat}
+\end{equation}
+The mixed term after substitution is
+\begin{equation}
+\alpha c_r^\top\delta\theta_W^\star
+=-\alpha^2c_r^\top\mathbf R_r^{-1}c_r.
+\label{eq:mixed_subtract}
+\end{equation}
+The window quadratic term after substitution is
+\begin{align}
+\frac12(\delta\theta_W^\star)^\top\mathbf R_r\delta\theta_W^\star
+&=
+\frac12\alpha^2
+c_r^\top\mathbf R_r^{-1}\mathbf R_r\mathbf R_r^{-1}c_r
+\notag\\
+&=
+\frac12\alpha^2c_r^\top\mathbf R_r^{-1}c_r.
+\label{eq:window_add_half}
+\end{align}
+Adding them gives
+\begin{equation}
+-\alpha^2c_r^\top\mathbf R_r^{-1}c_r
++\frac12\alpha^2c_r^\top\mathbf R_r^{-1}c_r
+=-\frac12\alpha^2c_r^\top\mathbf R_r^{-1}c_r.
+\label{eq:subtract_total}
+\end{equation}
+That combines with \(\frac12h_r\alpha^2\):
+\begin{equation}
+\frac12h_r\alpha^2
+-\frac12\alpha^2c_r^\top\mathbf R_r^{-1}c_r
+=
+\frac12h_r^\star\alpha^2.
+\label{eq:subtract_curvature}
+\end{equation}
+The subtraction appears because the inherited window has already taken the part of the local curvature that it can absorb.
+
+\section{Example: append-at-zero as coordinates}
+
+Suppose the current ansatz has three coordinates:
+\begin{equation}
+\theta_t=(\theta_1,\theta_2,\theta_3)^\top.
+\label{eq:app_zero_theta}
+\end{equation}
+A candidate record \(r\) creates a fourth coordinate:
+\begin{equation}
+\theta_t^{\rm aug}(r)
+=
+(\theta_1,\theta_2,\theta_3,0)^\top.
+\label{eq:app_zero_aug}
+\end{equation}
+A candidate-only step is
+\begin{equation}
+\theta_t^{\rm aug}(r)+\alpha e_r
+=
+(\theta_1,\theta_2,\theta_3,\alpha)^\top.
+\label{eq:app_zero_scalar}
+\end{equation}
+If \(W_r=\{2,3\}\), a Phase-III local block step is
+\begin{equation}
+\theta_t^{\rm aug}(r)+
+\begin{pmatrix}
+0\\
+\delta\theta_2\\
+\delta\theta_3\\
+\alpha
+\end{pmatrix}.
+\label{eq:app_zero_block}
+\end{equation}
+This is the concrete meaning of \(p\leftrightarrow(\alpha,\delta\theta_{W_r})\).
+
+\section{Example: Phase I, II, and III on one candidate}
+
+Let
+\begin{equation}
+\widetilde g_r(t)=0.06,\quad
+F_r=4,\quad
+\rho=0.1,\quad
+\lambda=1,\quad
+h_r=3.
+\label{eq:phase_compare_data}
+\end{equation}
+Phase I has
+\begin{equation}
+L_{1,r}=\lambda F_r=4,
+\qquad
+s_{1,\max}=0.05.
+\label{eq:phase_compare_p1}
+\end{equation}
+The unconstrained Phase-I length is \(0.06/4=0.015\), so
+\begin{equation}
+\Delta E_1(r)=0.06(0.015)-\frac12(4)(0.015)^2
+=4.5\times10^{-4}.
+\label{eq:phase_compare_d1}
+\end{equation}
+Phase II has
+\begin{equation}
+L_{2,r}=h_r=3,
+\qquad
+s_{2,\max}=0.05.
+\label{eq:phase_compare_p2}
+\end{equation}
+The unconstrained Phase-II length is \(0.06/3=0.02\), so
+\begin{equation}
+\Delta E_2(r)=0.06(0.02)-\frac12(3)(0.02)^2
+=6.0\times10^{-4}.
+\label{eq:phase_compare_d2}
+\end{equation}
+Now suppose Phase III gives
+\begin{equation}
+h_r^\star=2,\qquad
+F_r^\star=1.
+\label{eq:phase_compare_p3_data}
+\end{equation}
+Then \(s_{3,\max}=0.1\), and the unconstrained Phase-III length is \(0.06/2=0.03\). Hence
+\begin{equation}
+\Delta E_3(r)=0.06(0.03)-\frac12(2)(0.03)^2
+=9.0\times10^{-4}.
+\label{eq:phase_compare_d3}
+\end{equation}
+The same candidate can receive a larger Phase-III gain because the refit window changed both the curvature and the Fubini--Study scale.
+
+\section{Example: \(\mathcal N_2\) and \(\mathcal N_3\) differ}
+
+Let the Phase-II geometry be
+\begin{equation}
+F_r=10,\qquad
+q_r=6,\qquad
+Q_r=9,
+\label{eq:N23_data}
+\end{equation}
+with no ridge for arithmetic. Then
+\begin{equation}
+\mathcal N_2(r;t)
+=1-\frac{6(1/9)6}{10}
+=1-\frac{4}{10}=0.6.
+\label{eq:N2_example}
+\end{equation}
+Now suppose Phase III has
+\begin{equation}
+\frac{\delta\theta_W^\star}{\alpha}=-\frac13.
+\label{eq:N23_w}
+\end{equation}
+Then
+\begin{align}
+F_r^\star
+&=10+2(6)(-1/3)+(-1/3)(9)(-1/3)
+\notag\\
+&=10-4+1=7,
+\label{eq:N23_Fred}
+\end{align}
+and
+\begin{equation}
+q_r^\star=6+9(-1/3)=3.
+\label{eq:N23_qred}
+\end{equation}
+Therefore
+\begin{equation}
+\mathcal N_3(r;t)
+=1-\frac{3(1/9)3}{7}
+=1-\frac{1}{7}
+=\frac67.
+\label{eq:N3_example}
+\end{equation}
+The reduced-window response made the candidate look more novel because the part aligned with the old window was partially removed by refit.
+
+\section{Example: model-quality ratio and radius update intuition}
+
+Assume a proposed Phase-II move used predicted decrease
+\begin{equation}
+\Delta E_2(r)=1.0\times10^{-3}.
+\label{eq:ratio_pred}
+\end{equation}
+After the candidate is inserted and locally optimized, suppose the measured decrease is
+\begin{equation}
+E(\theta_t)-E(\theta_{t+1})=7.5\times10^{-4}.
+\label{eq:ratio_actual}
+\end{equation}
+The ratio is
+\begin{equation}
+\rho_{\rm model}=0.75.
+\label{eq:ratio_good}
+\end{equation}
+The local model predicted the correct scale of improvement. If the measured decrease were
+\begin{equation}
+E(\theta_t)-E(\theta_{t+1})=1.0\times10^{-4},
+\label{eq:ratio_bad_actual}
+\end{equation}
+then
+\begin{equation}
+\rho_{\rm model}=0.10.
+\label{eq:ratio_bad}
+\end{equation}
+That indicates the radius or local model should be treated as too aggressive for the current geometry. This is the Chapter 4 accept/radius-update logic expressed in Paper-I terms.
+
+\section{Glossary of Paper-I symbols used here}
+
+\begin{center}
+\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\columnwidth}
+>{\raggedright\arraybackslash}p{0.62\columnwidth}}
+\toprule
+Symbol & Meaning in this note\\
+\midrule
+\(r\) & Candidate generator-position record.\\
+\(\vartheta_r\) & New coordinate created by appending candidate record \(r\).\\
+\(\alpha\) & Trial amplitude in the candidate coordinate.\\
+\(\tau_r\) & Candidate tangent at \(\alpha=0\).\\
+\(F_r\) & Fubini--Study norm of candidate tangent.\\
+\(g_r(t)\) & Signed directional energy derivative along \(\alpha\).\\
+\(\widetilde g_r(t)\) & Resolved gradient magnitude after the manuscript's resolution allowance.\\
+\(h_r\) & Candidate-only directional curvature.\\
+\(W_r\) & Inherited local refit/overlap window.\\
+\(Q_r\) & Fubini--Study Gram matrix over inherited-window tangents.\\
+\(q_r\) & Candidate-window overlap vector.\\
+\(c_r\) & Mixed curvature between candidate coordinate and window coordinates.\\
+\(\mathbf R_r\) & Symmetrized, damped window Hessian used for the refit solve.\\
+\(h_r^\star\) & Schur-relaxed candidate curvature.\\
+\(F_r^\star\) & Fubini--Study norm after inherited-window refit response.\\
+\(q_r^\star\) & Candidate-window overlap after the same refit response.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Scaling section mapped to the Fubini--Study metric}
+
+Nocedal's scaling discussion allows the trust-region radius to be measured by a weighted norm. In abstract coordinates, this means replacing
+\begin{equation}
+\|p\|^2\le\Delta_k^2
+\label{eq:euclidean_region_appendix}
+\end{equation}
+by
+\begin{equation}
+p^\top M_kp\le\Delta_k^2,
+\label{eq:scaled_region_appendix}
+\end{equation}
+where \(M_k\) is a positive semidefinite metric for the step. Paper I chooses \(M_k\) from the Fubini--Study tangent metric.
+
+For a scalar candidate step, the step is \(p=\alpha\), so the metric is a \(1\times1\) matrix:
+\begin{equation}
+M_k\quad\leadsto\quad F_r.
+\label{eq:scalar_metric_F}
+\end{equation}
+The scaled region becomes
+\begin{equation}
+\alpha F_r\alpha\le\rho^2,
+\qquad
+|\alpha|\sqrt{F_r}\le\rho.
+\label{eq:scalar_scaled_region}
+\end{equation}
+
+For Phase III, the coordinate step is the block
+\begin{equation}
+u_r=
+\begin{pmatrix}
+\alpha\\
+\delta\theta_{W_r}
+\end{pmatrix}.
+\label{eq:block_step_metric}
+\end{equation}
+The Fubini--Study metric for this block has the form
+\begin{equation}
+G_r^{\rm FS}
+=
+\begin{pmatrix}
+F_r&q_r^\top\\
+q_r&Q_r
+\end{pmatrix}.
+\label{eq:block_FS_metric}
+\end{equation}
+Indeed,
+\begin{align}
+u_r^\top G_r^{\rm FS}u_r
+&=
+F_r\alpha^2
++2\alpha q_r^\top\delta\theta_{W_r}
++\delta\theta_{W_r}^\top Q_r\delta\theta_{W_r}.
+\label{eq:block_FS_expand}
+\end{align}
+If the inherited window responds according to
+\begin{equation}
+\delta\theta_{W_r}=\delta\theta_W^\star
+=\alpha\frac{\delta\theta_W^\star}{\alpha},
+\label{eq:block_response_metric}
+\end{equation}
+then divide \eqref{eq:block_FS_expand} by \(\alpha^2\):
+\begin{align}
+\frac{1}{\alpha^2}u_r^\top G_r^{\rm FS}u_r
+&=
+F_r
++2q_r^\top\frac{\delta\theta_W^\star}{\alpha}
+\notag\\
+&\quad
++\frac{(\delta\theta_W^\star)^\top}{\alpha}
+Q_r
+\frac{\delta\theta_W^\star}{\alpha}
+\notag\\
+&=F_r^\star.
+\label{eq:block_metric_to_Fstar}
+\end{align}
+Thus the Phase-III radius
+\begin{equation}
+u_r^\top G_r^{\rm FS}u_r\le\rho^2
+\label{eq:block_radius}
+\end{equation}
+collapses, after the Schur refit response, to
+\begin{equation}
+\alpha^2F_r^\star\le\rho^2,
+\qquad
+|\alpha|\sqrt{F_r^\star}\le\rho.
+\label{eq:block_radius_star}
+\end{equation}
+
+\begin{paperbox}
+This is the cleanest Chapter 4 scaling translation. Phase I/II use the scalar Fubini--Study metric \(F_r\). Phase III starts from the block Fubini--Study metric \(\begin{psmallmatrix}F_r&q_r^\top\\ q_r&Q_r\end{psmallmatrix}\), inserts the Schur window response, and obtains the star scalar metric \(F_r^\star\).
+\end{paperbox}
+
+\section{Example: block Fubini--Study metric reduction}
+
+Let
+\begin{equation}
+F_r=10,\qquad
+q_r=\twovec{2}{1},
+\qquad
+Q_r=
+\begin{pmatrix}
+5&1\\
+1&2
+\end{pmatrix}.
+\label{eq:block_metric_ex_data}
+\end{equation}
+Let the Schur response per amplitude be
+\begin{equation}
+w=\frac{\delta\theta_W^\star}{\alpha}
+=\twovec{-0.2}{-0.1}.
+\label{eq:block_metric_w}
+\end{equation}
+Then
+\begin{align}
+F_r^\star
+&=F_r+2q_r^\top w+w^\top Q_rw
+\notag\\
+&=10+2
+\begin{pmatrix}2&1\end{pmatrix}
+\twovec{-0.2}{-0.1}
+\notag\\
+&\quad
++
+\begin{pmatrix}-0.2&-0.1\end{pmatrix}
+\begin{pmatrix}
+5&1\\
+1&2
+\end{pmatrix}
+\twovec{-0.2}{-0.1}
+\notag\\
+&=10-1.0+0.26
+=9.26.
+\label{eq:block_metric_Fstar_ex}
+\end{align}
+The candidate-only trust radius would use
+\begin{equation}
+|\alpha|\le\frac{\rho}{\sqrt{10}},
+\label{eq:block_metric_raw_bound}
+\end{equation}
+while the star Phase-III radius uses
+\begin{equation}
+|\alpha|\le\frac{\rho}{\sqrt{9.26}}.
+\label{eq:block_metric_star_bound}
+\end{equation}
+The change is modest in this example because the inherited-window response removes only a small part of the candidate's state displacement.
+
+\section{Cauchy-point intuition in candidate-record language}
+
+Chapter 4 often discusses obtaining guaranteed decrease from a simple step along a descent direction, sometimes called a Cauchy step. In Paper-I candidate scoring, the analogue is the one-dimensional descent step along the candidate coordinate:
+\begin{equation}
+\alpha=-s\,\sgn(g_r(t)).
+\label{eq:cauchy_alpha}
+\end{equation}
+The one-dimensional model is
+\begin{equation}
+\phi_k(s)=\widetilde g_r(t)s-\frac12L_{k,r}s^2,
+\qquad
+0\le s\le s_{k,\max}.
+\label{eq:cauchy_phi}
+\end{equation}
+The candidate score does not need a full \(n\)-dimensional subproblem solver because the candidate record has already selected a one-dimensional search direction. The trust-region question becomes:
+\begin{equation}
+\text{how far along this candidate coordinate is locally trustworthy?}
+\label{eq:cauchy_question}
+\end{equation}
+The answer is
+\begin{equation}
+s\le\frac{\rho}{\sqrt{F_r}}
+\quad\text{or}\quad
+s\le\frac{\rho}{\sqrt{F_r^\star}}.
+\label{eq:cauchy_answer}
+\end{equation}
+This is why Paper I can write closed scalar gain models for \(\Delta E_1,\Delta E_2,\Delta E_3\) rather than solving a large trust-region problem over the full ansatz at every candidate score.
+
+\section*{Reference}
+
+Jorge Nocedal and Stephen J. Wright, \emph{Numerical Optimization}, Second Edition, Springer, 2006. Chapter 4, ``Trust-Region Methods.'' PDF used only for page anchoring: \url{https://convexoptimization.com/TOOLS/nocedal.pdf}, accessed May 18, 2026.
+
+\end{document}

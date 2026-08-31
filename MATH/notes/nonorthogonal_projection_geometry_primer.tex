@@ -1,0 +1,1622 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.3em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\newcommand{\proj}{\mathsf P}
+\newcommand{\nov}{\mathcal N}
+\newcommand{\eps}{\varepsilon}
+
+\definecolor{ink}{HTML}{16212B}
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{paperbox}{colback=greenbox,colframe=green!45!black,title=Paper-compatible translation,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+
+\title{A Dense Linear-Algebra Primer for Nonorthogonal Projection Geometry\\[-1mm]
+\large Gram Metrics, Overlap Vectors, Ridge Damping, Schur Complements, and Supported Inverses}
+\author{Local pedagogical note}
+\date{May 16, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note isolates the linear algebra that recurs throughout the static ADAPT, McLachlan dynamics, and QSE manuscripts. The common object is a nonorthogonal span with Gram metric. A new vector, force, tangent, or excitation is useful according to its unexplained component relative to the old span. The core calculation is therefore
+\[
+\begin{gathered}
+T=[t_1\ \cdots\ t_m],\qquad x,\\[-1mm]
+G=T^\top T,\qquad q=T^\top x,\qquad F=x^\top x,
+\end{gathered}
+\]
+followed by the projection identity
+\[
+\|x-P_Tx\|^2=F-q^\top G^+q.
+\]
+These objects arise from the normal-equation question ``what coefficient mixture of old directions best explains \(x\)?'' The normalized unexplained fraction is the geometric prototype behind tangent novelty, expressivity miss, excitation-basis novelty, and Schur-refitted residual geometry. The presentation is real-Euclidean first; Hilbert-space and paper notation appear only as compact translation boxes.
+\end{abstract}
+
+\section{The core question}
+
+\begin{intuitionbox}
+A current model has already bought a set of directions. A proposed new direction is valuable when it points somewhere the current directions cannot already reach. The operative question is: after the old nonorthogonal directions are allowed to combine optimally, how much of the new vector remains? In variational language, the old directions are tangent responses to small parameter fluctuations, and the coefficients below are the small parameter displacements used to synthesize an old-span response.
+\end{intuitionbox}
+
+Let
+\begin{equation}
+T=\begin{bmatrix}t_1&\cdots&t_m\end{bmatrix}\in\R^{n\times m},
+\qquad x\in\R^n.
+\label{eq:primitive_Tx}
+\end{equation}
+The columns of $T$ are the already available directions; $x$ is the candidate, target drift, residual, or new basis vector. To test whether \(x\) is new, first let the old directions try to reproduce it:
+\begin{equation}
+T\beta
+=\beta_1t_1+\cdots+\beta_m t_m
+\approx x.
+\label{eq:old_span_synthesis}
+\end{equation}
+The vector \(\beta\) records the coefficient vector for the best old-span explanation of \(x\). In an ansatz tangent space, \(\beta_i\) is the infinitesimal fluctuation of the old parameter direction \(t_i\); in QSE, it is the linear-combination coefficient of old basis vectors; in McLachlan dynamics, it is the variational velocity coordinate.
+
+The best explanation is the least-squares fit
+\begin{equation}
+\beta^\star\in\arg\min_\beta \|x-T\beta\|^2.
+\label{eq:opening_ls}
+\end{equation}
+Expanding the square forces the three primitive objects:
+\begin{align}
+\|x-T\beta\|^2
+&=x^\top x-2\beta^\top T^\top x+\beta^\top T^\top T\beta\notag\\
+&=F-2\beta^\top q+\beta^\top G\beta,
+\label{eq:opening_expansion}
+\end{align}
+where
+\begin{equation}
+G:=T^\top T,
+\qquad
+q:=T^\top x,
+\qquad
+F:=x^\top x=\|x\|^2.
+\label{eq:GqF}
+\end{equation}
+Thus \(G\) is the old-old overlap matrix, \(q\) is the old-new overlap vector, and \(F\) is the candidate's own squared length. Differentiating Eq.~\eqref{eq:opening_expansion} gives the normal equation
+\begin{equation}
+\begin{aligned}
+G\beta^\star&=q,\\
+\beta^\star&=G^+q.
+\end{aligned}
+\label{eq:opening_normal}
+\end{equation}
+The second line uses the minimum-norm pseudoinverse convention.
+This is the source of the inverse. It appears because raw overlaps \(q\) must be converted into coefficients in a nonorthogonal coordinate system.
+
+\begin{cautionbox}
+The vector \(q\) records how \(x\) shadows each old direction one at a time. The solve \(G\beta=q\) corrects for the old directions shadowing each other and converts those shadows into old-span coefficients.
+\end{cautionbox}
+
+\begin{jargonbox}
+The quotient-space residual norm of $x$ modulo $\range(T)$ is
+\begin{equation}
+\|(I-P_T)x\|^2
+=F-q^\top G^+q,
+\label{eq:headline_residual}
+\end{equation}
+where $P_T=T(T^\top T)^+T^\top$ is the orthogonal projector onto $\range(T)$ and $G^+$ is the Moore--Penrose inverse. When $G$ is nonsingular, $G^+=G^{-1}$.
+\end{jargonbox}
+
+The normalized novelty fraction is
+\begin{equation}
+\boxed{
+\begin{aligned}
+\nov_T(x)
+&:=\frac{\min_\beta\|x-T\beta\|^2}{x^\top x}\\
+&=\frac{x^\top x-(T^\top x)^\top(T^\top T)^+(T^\top x)}{x^\top x}\\
+&=1-\frac{q^\top G^+q}{F}.
+\end{aligned}
+}
+\label{eq:novelty_basic}
+\end{equation}
+The minimization is where the coefficient vector goes: \(\beta\) is optimized out before the novelty is reported.
+This is the primitive formula. Everything else in this note is either a derivation, a stabilization, or a specialized interpretation of Eq.~\eqref{eq:novelty_basic}.
+
+\begin{paperbox}
+This note uses \(G,q,F\) as generic teaching notation. The manuscripts instantiate the same pattern with local conventions: static ADAPT uses \(Q_r,q_r,F(r)\) for inherited-window tangent geometry; McLachlan dynamics uses \(G_k\) or \(K_k=G_k+\Lambda_k\) with force vector \(f_k\); QSE uses the overlap matrix \(S_{\mathcal A}\), candidate overlap vector \(s_r\), and basis-vector norm \(F_r\).
+\end{paperbox}
+
+\section{A four-step reading algorithm}
+
+Any time a formula contains a term like $q^\top G^{-1}q$, $q^\top G^+q$, or $q^\top(G+\lambda I)^{-1}q$, read it in four steps:
+\begin{enumerate}
+\item identify the old span, namely the columns of $T$;
+\item identify the object being tested, namely $x$;
+\item build the old-span metric, $G=T^\top T$;
+\item build the old-new overlap vector, $q=T^\top x$.
+\end{enumerate}
+Then the inverse is the correction required because the old span is nonorthogonal. The expression $q^\top G^+q$ means: solve for the best old-span coefficients, synthesize the explained component, and measure its length.
+
+\begin{jargonbox}
+The map $x\mapsto q=T^\top x$ is an analysis map: it converts a vector into overlaps with the current dictionary. The map $\beta\mapsto T\beta$ is a synthesis map: it converts coefficients back into a vector. The Gram solve $G\beta=q$ reconciles analysis and synthesis when the dictionary is nonorthogonal.
+\end{jargonbox}
+
+Operationally, the matrices only exist to produce one scalar:
+\begin{equation}
+\begin{aligned}
+G\beta^\star=q
+&\Longrightarrow
+\beta^\star=G^+q\\
+&\Longrightarrow
+P_Tx=T\beta^\star\\
+&\Longrightarrow
+\|(I-P_T)x\|^2=F-q^\top G^+q.
+\end{aligned}
+\label{eq:matrix_to_scalar_algorithm}
+\end{equation}
+For the algorithm, \(G\) stores redundancy among old directions, \(q\) stores candidate shadows, and \(F-q^\top G^+q\) is the scalar new component that gets scored.
+
+The same phrase appears in different costumes:
+\begin{equation}
+\begin{array}{ll}
+\text{projection}: & \text{explained length},\\
+\text{novelty}: & \text{unexplained length},\\
+\text{Schur}: & \text{residual after elimination},\\
+\text{supported inverse}: & \text{trusted-mode explanation}.
+\end{array}
+\end{equation}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/nonorthogonal_projection_geometry/orthogonal_projection.svg.png}
+\caption{Orthogonal projection as the geometric prototype. Source: Wikimedia Commons, \emph{Orthogonal Projection qtl2.svg}, accessed May 16, 2026, \url{https://commons.wikimedia.org/wiki/File:Orthogonal_Projection_qtl2.svg}.}
+\label{fig:orthogonal_projection}
+\end{figure}
+
+In Fig.~\ref{fig:orthogonal_projection}, the plane is \(\range(T)\), the blue vector is \(x\), and the closest point in the plane is \(P_Tx=T\beta^\star\). The residual \(x-P_Tx\) is perpendicular to the plane; in algorithm language, it is the candidate component that survives after the old span has cooperatively refit.
+
+\section{Least squares gives the Gram system}
+
+The opening section used least squares to motivate the notation. This section repeats the same calculation as a compact derivation, because it is the algebraic source of every later Gram solve. The best approximation to $x$ from the current span has the form $T\beta$. The coefficients are chosen by
+\begin{equation}
+\beta^\star\in\arg\min_\beta \|x-T\beta\|^2.
+\label{eq:least_squares_problem}
+\end{equation}
+Expanding the objective gives
+\begin{align}
+\|x-T\beta\|^2
+&=(x-T\beta)^\top(x-T\beta)\notag\\
+&=x^\top x-2\beta^\top T^\top x+\beta^\top T^\top T\beta\notag\\
+&=F-2\beta^\top q+\beta^\top G\beta.
+\label{eq:ls_expansion}
+\end{align}
+Differentiating with respect to $\beta$ yields
+\begin{equation}
+\nabla_\beta\bigl(F-2\beta^\top q+\beta^\top G\beta\bigr)
+=-2q+2G\beta.
+\end{equation}
+Hence the normal equations are
+\begin{equation}
+\boxed{G\beta^\star=q.}
+\label{eq:normal_equations}
+\end{equation}
+If $G$ is invertible,
+\begin{equation}
+\beta^\star=G^{-1}q.
+\label{eq:beta_star_inverse}
+\end{equation}
+If $G$ is singular, the minimum-norm least-squares coefficient vector is
+\begin{equation}
+\beta^\star=G^+q.
+\label{eq:beta_star_pinv}
+\end{equation}
+
+\begin{cautionbox}
+The vector $q$ lists overlaps with the current nonorthogonal directions. Projection coefficients are obtained by solving through the Gram metric: $\beta^\star=G^+q$. This step corrects for the old directions overlapping with each other.
+\end{cautionbox}
+
+Once the coefficient vector is known, the fitted old-span vector is synthesized by putting those coefficients back into the old directions:
+\begin{equation}
+\begin{aligned}
+P_Tx
+&:=T\beta^\star\\
+&=TG^+q\\
+&=T(T^\top T)^+T^\top x.
+\end{aligned}
+\label{eq:projector_form}
+\end{equation}
+This synthesized vector is the projection of \(x\) onto \(\range(T)\).
+The explained squared length is
+\begin{align}
+\|P_Tx\|^2
+&=(TG^+q)^\top(TG^+q)\notag\\
+&=q^\top G^+T^\top T G^+q\notag\\
+&=q^\top G^+GG^+q
+=q^\top G^+q,
+\label{eq:explained_length}
+\end{align}
+using $G^+GG^+=G^+$. Therefore
+\begin{align}
+\|x-P_Tx\|^2
+&=\|x\|^2-\|P_Tx\|^2\notag\\
+&=F-q^\top G^+q.
+\label{eq:residual_derivation_short}
+\end{align}
+
+\section{The overlap vector is a covariance-like object}
+
+The entries of $q$ are
+\begin{equation}
+q_i=t_i^\top x.
+\label{eq:q_entries}
+\end{equation}
+If $q_i$ is large, then $x$ has a large raw overlap with $t_i$. When the $t_i$ are nonorthogonal, the entries of $q$ are coupled pieces of evidence. Several entries can be large because several old directions detect the same shadow of $x$.
+
+The Gram matrix records this internal overlap:
+\begin{equation}
+G_{ij}=t_i^\top t_j.
+\label{eq:G_entries}
+\end{equation}
+Thus the expression
+\begin{equation}
+q^\top G^+q
+\label{eq:qGq}
+\end{equation}
+is a corrected overlap. It asks: after the old directions are allowed to coordinate through their own metric $G$, how much length of $x$ can they explain?
+
+\begin{intuitionbox}
+$q$ is the shadow of $x$ against each column of $T$. $G^+$ removes double-counting caused by tilted, repeated, or nearly repeated columns. The quadratic form $q^\top G^+q$ is the length of the best explainable part rather than the sum of raw overlap squares.
+\end{intuitionbox}
+
+\section{Normalized novelty}
+
+The residual length $F-q^\top G^+q$ has the same units as $F$. To compare candidates of different size, normalize by $F$:
+\begin{equation}
+\begin{aligned}
+\nov_T(x)
+&=\frac{\min_\beta\|x-T\beta\|^2}{F}\\
+&=\frac{F-q^\top G^+q}{F}\\
+&=1-\frac{q^\top G^+q}{F}.
+\end{aligned}
+\label{eq:novelty_again}
+\end{equation}
+The range is $0\le \nov_T(x)\le1$ in exact arithmetic when $F>0$ and $G^+$ is the Moore--Penrose inverse.
+
+The paper-compatible stabilized version replaces $G^+$ or $G^{-1}$ by a ridge solve:
+\begin{equation}
+\boxed{
+\begin{aligned}
+\nov_T^{(\lambda)}(x)
+&:=\frac{F-q^\top(G+\lambda I)^{-1}q}{F}\\
+&=1-\frac{q^\top(G+\lambda I)^{-1}q}{F},
+\qquad \lambda>0.
+\end{aligned}
+}
+\label{eq:ridge_novelty}
+\end{equation}
+The same residual fraction is being estimated, with $(G+\lambda I)^{-1}$ used as the safer finite-precision solve.
+
+\begin{cautionbox}
+With $\lambda=0$ and full rank, Eq.~\eqref{eq:ridge_novelty} is the exact orthogonal residual fraction. With $\lambda>0$, it is a ridge-damped explained fraction. Ridge damping prevents unstable amplification from near-null directions, but it also changes the geometry: it can make a candidate look more novel than the exact projection would.
+\end{cautionbox}
+
+\section{Schur complement: the same residual in block form}
+
+The Schur complement reports the same residual before normalization by treating $x$ as one more column appended to the old span. Append $x$ to the old directions. The enlarged Gram matrix is
+\begin{equation}
+\mathcal G
+=\begin{pmatrix}
+T^\top T&T^\top x\\
+x^\top T&x^\top x
+\end{pmatrix}
+=\begin{pmatrix}
+G&q\\
+q^\top&F
+\end{pmatrix}.
+\label{eq:block_gram}
+\end{equation}
+When $G$ is invertible, the Schur complement of $G$ in $\mathcal G$ is
+\begin{equation}
+\boxed{
+\begin{aligned}
+\mathcal G/G
+&=F-q^\top G^{-1}q\\
+&=\min_\beta\|x-T\beta\|^2
+\qquad(G\ \text{invertible}).
+\end{aligned}
+}
+\label{eq:gram_schur}
+\end{equation}
+Consequently,
+\begin{equation}
+\nov_T(x)
+=\frac{\mathcal G/G}{F}
+\qquad(G\ \text{invertible}).
+\label{eq:schur_to_novelty}
+\end{equation}
+
+\subsection{Quotient-space reading}
+
+\begin{intuitionbox}
+The slash in \(\mathcal G/G\) is the same idea as ``ignore anything already in the old span.'' In quotient language, vectors that differ only by an old-span vector represent the same remaining direction.
+\end{intuitionbox}
+
+Define the equivalence relation
+\begin{equation}
+x\sim y
+\quad\Longleftrightarrow\quad
+x-y\in\range(T).
+\label{eq:quotient_relation}
+\end{equation}
+The quotient space is
+\begin{equation}
+\R^n/\range(T)
+=\{[x]\mid x\in\R^n\},
+\qquad
+[x]=x+\range(T).
+\label{eq:quotient_space}
+\end{equation}
+Each class \([x]\) contains every vector obtained by adding an old-span correction to \(x\):
+\begin{equation}
+[x]=\{x-T\beta\mid \beta\in\R^m\}.
+\label{eq:quotient_class_ls}
+\end{equation}
+The quotient norm chooses the shortest representative in that class,
+\begin{equation}
+\begin{aligned}
+\|[x]\|_{\R^n/\range(T)}^2
+&:=\min_\beta \|x-T\beta\|^2\\
+&=\|x-P_Tx\|^2\\
+&=F-q^\top G^+q\\
+&=x^\top x-(T^\top x)^\top(T^\top T)^+(T^\top x).
+\end{aligned}
+\label{eq:quotient_norm}
+\end{equation}
+When \(G\) is invertible, the quotient norm, Schur complement, and novelty quotient are the same scalar at three scales:
+\begin{equation}
+\begin{aligned}
+G\ \text{invertible}
+&\Longrightarrow
+\mathcal G/G=\|[x]\|_{\R^n/\range(T)}^2\\
+&\Longrightarrow
+\nov_T(x)=\frac{\mathcal G/G}{F}.
+\end{aligned}
+\label{eq:quotient_schur_novelty_chain}
+\end{equation}
+The vector \((I-P_T)x\) is the orthogonal representative of \([x]\), and its squared length is the scalar left after dividing out the old span.
+
+\begin{jargonbox}
+The Gram-Schur complement is the squared norm of the component of the new vector outside the old span. It is positive when the augmented set gains a new independent direction, zero when the new vector is already represented, and numerically delicate when the old span is nearly singular.
+\end{jargonbox}
+
+For the static-ADAPT novelty test, read Eq.~\eqref{eq:gram_schur} as the scalar computed from the inherited-window geometry:
+\begin{equation}
+\begin{aligned}
+T&=[\text{inherited-window tangents}],\\
+x&=\text{candidate tangent},\\
+G&\leadsto Q_r,\qquad q\leadsto q_r,\qquad F\leadsto F(r),
+\end{aligned}
+\end{equation}
+so that
+\begin{equation}
+\begin{aligned}
+F(r)-q_r^\top Q_r^{-1}q_r
+&=\min_{\delta\theta_W}
+\|\tau_r-T_W\delta\theta_W\|^2.
+\end{aligned}
+\label{eq:static_schur_reading}
+\end{equation}
+This scalar is the candidate tangent left after the old window refits. The matrix block is a compact way to compute the scalar used by the selector.
+
+A direct block factorization shows why the Schur complement means ``what remains.'' If $G$ is invertible,
+\begin{align}
+\begin{pmatrix}G&q\\q^\top&F\end{pmatrix}
+&=
+\begin{pmatrix}I&0\\q^\top G^{-1}&1\end{pmatrix}
+\begin{pmatrix}G&0\\0&F-q^\top G^{-1}q\end{pmatrix}
+\begin{pmatrix}I&G^{-1}q\\0&1\end{pmatrix}.
+\label{eq:block_ldl}
+\end{align}
+The block $G$ accounts for all old directions. The scalar leftover is the part of $x$ that survives after the best old-span explanation has been removed.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/nonorthogonal_projection_geometry/gram_schmidt.svg.png}
+\caption{Gram-Schmidt is a sequential visual form of the same idea: subtract already explained components and keep the residual direction. Source: Wikimedia Commons, \emph{Gram--Schmidt process.svg}, accessed May 16, 2026, \url{https://commons.wikimedia.org/wiki/File:Gram-Schmidt_process.svg}.}
+\label{fig:gram_schmidt}
+\end{figure}
+
+\section{Ridge damping and what it changes}
+
+Ridge damping replaces the exact coefficient solve
+\begin{equation}
+G\beta=q
+\end{equation}
+by
+\begin{equation}
+(G+\lambda I)\beta_\lambda=q.
+\label{eq:ridge_system}
+\end{equation}
+Equivalently,
+\begin{equation}
+\beta_\lambda=(G+\lambda I)^{-1}q.
+\label{eq:ridge_coefficients}
+\end{equation}
+This is also the solution to the penalized least-squares problem
+\begin{equation}
+\beta_\lambda
+=\arg\min_\beta
+\left(\|x-T\beta\|^2+\lambda\|\beta\|^2\right).
+\label{eq:ridge_ls}
+\end{equation}
+Indeed,
+\begin{align}
+\|x-T\beta\|^2+\lambda\|\beta\|^2
+&=F-2\beta^\top q+\beta^\top(G+\lambda I)\beta,
+\end{align}
+and differentiation gives Eq.~\eqref{eq:ridge_system}.
+
+The damped explained fraction is
+\begin{equation}
+E_\lambda(x;T):=\frac{q^\top(G+\lambda I)^{-1}q}{F},
+\label{eq:damped_explained_fraction}
+\end{equation}
+and the damped novelty is $1-E_\lambda$. Since $G+\lambda I$ is better conditioned than $G$, the solve is less sensitive to noise in $q$ and $G$. The price is bias: the old span receives a deliberately limited ability to explain $x$.
+
+\begin{cautionbox}
+Ridge damping is a structural robustness choice. It makes the score robust by limiting directions whose coefficients would be huge because the Gram matrix is nearly singular. The damped novelty is therefore an implementation-safe geometry that differs from the exact quotient norm.
+\end{cautionbox}
+
+\section{Supported inverses: invert resolved geometry}
+
+Let $G$ be symmetric positive semidefinite with eigendecomposition
+\begin{equation}
+G=V\diag(s_1,\dots,s_m)V^\top,
+\qquad s_i\ge0.
+\label{eq:eigendecomp_G}
+\end{equation}
+The columns of \(V\) are obtained by solving the Gram eigenproblem
+\begin{equation}
+Gv_i=s_i v_i,
+\qquad
+\|v_i\|=1,
+\qquad
+V=[v_1\ \cdots\ v_m].
+\label{eq:gram_eigenproblem}
+\end{equation}
+Each \(v_i\) is a coefficient-space recipe for mixing old directions:
+\begin{equation}
+Tv_i=(v_i)_1t_1+\cdots+(v_i)_m t_m.
+\label{eq:vi_synthesizes_old_mixture}
+\end{equation}
+Its physical synthesized tangent is \(Tv_i\), and
+\begin{equation}
+\|Tv_i\|^2
+=v_i^\top T^\top T v_i
+=v_i^\top Gv_i
+=v_i^\top(s_i v_i)
+=s_i.
+\label{eq:singular_value_physical_length}
+\end{equation}
+Thus a small \(s_i\) means a sizeable coefficient mixture creates only a tiny physical displacement. The coordinate is poorly identified by the geometry.
+
+The Moore--Penrose inverse is
+\begin{equation}
+G^+=V\diag(s_i^+)V^\top,
+\qquad
+s_i^+=\begin{cases}
+1/s_i,&s_i>0,\\
+0,&s_i=0.
+\end{cases}
+\label{eq:pinv_eigen}
+\end{equation}
+In exact arithmetic this is clean. In measured or noisy geometry, tiny eigenvalues are dangerous because $1/s_i$ is large. A small perturbation in the overlap vector can produce a large coefficient along a nearly null direction.
+In eigen-coordinates, if \(\tilde q_i=v_i^\top q\), then
+\begin{equation}
+\beta_i^\star=\frac{\tilde q_i}{s_i},
+\qquad
+\delta\beta_i=\frac{v_i^\top\delta q}{s_i}.
+\label{eq:small_mode_noise_amplification}
+\end{equation}
+The issue is non-identifiability: many coefficient vectors differ strongly along a near-null \(v_i\) while synthesizing almost the same physical vector \(T\beta\). Noise can choose one of those coefficient explanations arbitrarily.
+
+A supported inverse keeps only resolved modes. Define
+\begin{equation}
+\chi_i(\tau)=\mathbf 1[s_i\ge\tau s_{\max}],
+\qquad s_{\max}=\max_i s_i.
+\label{eq:support_indicator}
+\end{equation}
+Then
+\begin{equation}
+\boxed{
+G_\tau^+
+=V\diag\!\left(\frac{\chi_i(\tau)}{s_i}\right)V^\top.
+}
+\label{eq:supported_inverse}
+\end{equation}
+A damped supported inverse uses
+\begin{equation}
+G_{\tau,\eps}^{\oplus}
+=V\diag\!\left(\frac{\chi_i(\tau)}{s_i+\eps}\right)V^\top.
+\label{eq:damped_supported_inverse}
+\end{equation}
+
+\begin{intuitionbox}
+The supported inverse says: if a mode barely moves the state, barely changes the residual, or is unresolved by measurement, divide only by trusted modes. Project onto trusted modes first; invert only those modes.
+\end{intuitionbox}
+
+The supported explained fraction becomes
+\begin{equation}
+E_\tau(x;T)=\frac{q^\top G_\tau^+q}{F},
+\qquad
+\nov_{T,\tau}(x)=1-E_\tau(x;T).
+\label{eq:supported_novelty}
+\end{equation}
+This quantity is conservative with respect to unresolved modes: it explains only what the retained geometry can safely explain.
+
+\section{The metric translation layer}
+
+The note has used real vectors because that is the cleanest way to learn the geometry. The manuscripts use quantum-state tangent vectors, so the real dot product becomes a real part of an inner product. The translation is
+\begin{equation}
+t_i^\top t_j
+\quad\leadsto\quad
+\Re\langle \tau_i,\tau_j\rangle.
+\label{eq:real_to_quantum_metric}
+\end{equation}
+When global phase and normalization should not count, tangent vectors are projected horizontally:
+\begin{equation}
+\bar\tau_i=Q_\psi\tau_i,
+\qquad
+Q_\psi=I-\ket{\psi}\bra{\psi}.
+\label{eq:horizontal_projector}
+\end{equation}
+Then the Fubini--Study Gram entries are
+\begin{equation}
+G_{ij}^{\rm FS}
+=\Re\langle Q_\psi\tau_i,Q_\psi\tau_j\rangle.
+\label{eq:fs_metric}
+\end{equation}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.74\columnwidth]{figures/nonorthogonal_projection_geometry/bloch_sphere.svg.png}
+\caption{The Bloch sphere is a visual reminder that quantum states are rays rather than raw vectors with arbitrary global phase. Source: Wikimedia Commons, \emph{Bloch sphere.svg}, accessed May 16, 2026, \url{https://commons.wikimedia.org/wiki/File:Bloch_sphere.svg}.}
+\label{fig:bloch_sphere}
+\end{figure}
+
+\begin{paperbox}
+For static ADAPT novelty, read
+\[
+G\to Q_r,
+\qquad q\to q_r,
+\qquad F\to F(r).
+\]
+Here $Q_r$ is the inherited-window tangent Gram matrix, $q_r$ is the candidate-window overlap vector, and $F(r)$ is the candidate tangent length.
+\end{paperbox}
+
+\begin{paperbox}
+For McLachlan dynamics, read
+\[
+G\to K,
+\qquad q\to f,
+\qquad x\to \text{Schrodinger drift target}.
+\]
+The equation $K\dot\theta=f$ is a normal equation for projecting the physical velocity onto the current tangent span.
+\end{paperbox}
+
+\begin{paperbox}
+For QSE, read
+\[
+G\to S,
+\qquad T\to \Phi_{\mathcal A},
+\qquad x\to \phi_r.
+\]
+The overlap matrix $S$ is the nonorthogonal basis metric. Whitening, support truncation, and GEP conditioning are all metric-management operations.
+\end{paperbox}
+
+\section{Static ADAPT: candidate novelty}
+
+The static ADAPT Phase-II novelty expression is a direct instance of Eq.~\eqref{eq:ridge_novelty}. Let $W_r$ be the inherited overlap window and let $\tau_r$ be the candidate tangent. Define
+\begin{align}
+(Q_r)_{ij}&=\Re\langle \tau_i,\tau_j\rangle,\notag\\
+(q_r)_i&=\Re\langle \tau_i,\tau_r\rangle,\notag\\
+F(r)&=\|Q_\psi\tau_r\|^2.
+\label{eq:static_translation}
+\end{align}
+Then the novelty score is
+\begin{equation}
+\boxed{
+\nov_2(r;t)
+=1-\frac{q_r^\top(Q_r+\lambda_{\rm nov}I)^{-1}q_r}{F(r)}.
+}
+\label{eq:static_novelty}
+\end{equation}
+
+The coefficient vector
+\begin{equation}
+\beta_r=(Q_r+\lambda_{\rm nov}I)^{-1}q_r
+\label{eq:static_beta}
+\end{equation}
+is the ridge-regularized best explanation of the candidate tangent by the inherited window. Thus
+\begin{equation}
+\sum_{i\in W_r}(\beta_r)_i\tau_i
+\label{eq:static_window_fit}
+\end{equation}
+is the window-span explanation, and Eq.~\eqref{eq:static_novelty} is one minus the explained fraction.
+
+\begin{intuitionbox}
+Static ADAPT asks both whether a generator has a large gradient and whether the generator creates a state-space direction that nearby existing coordinates cannot already reproduce.
+\end{intuitionbox}
+
+\section{Static ADAPT: Schur-refitted curvature}
+
+The same algebra appears on the energy side. The candidate tangent from the novelty section becomes an actual scalar insertion coordinate:
+\begin{equation}
+\begin{aligned}
+\alpha&=\text{candidate amplitude},\\
+\delta\theta_W&=\text{inherited-window coordinate update},\\
+\delta\psi(\alpha,\delta\theta_W)
+&\approx \alpha\tau_r+\sum_{i\in W_r}\delta\theta_i\tau_i.
+\end{aligned}
+\label{eq:alpha_tangent_bridge}
+\end{equation}
+Thus \(\alpha\) is the coefficient multiplying the candidate direction \(x=\tau_r\), and
+\begin{equation}
+\|\alpha\tau_r\|^2=\alpha^2F(r).
+\label{eq:alpha_F_bridge}
+\end{equation}
+The trust-region form \(|\alpha|\le\rho/\sqrt{F(r)}\) is therefore the state-displacement bound \(|\alpha|\sqrt{F(r)}\le\rho\).
+
+Suppose this candidate coordinate couples to a local refit window $\delta\theta_W$. A quadratic model has the form
+\begin{equation}
+E(\alpha,\delta\theta_W)
+\approx E_0+g\alpha+\frac12h\alpha^2
++\alpha c^\top\delta\theta_W
++\frac12\delta\theta_W^\top R\delta\theta_W.
+\label{eq:quadratic_model}
+\end{equation}
+Here the derivatives are evaluated at \((\alpha,\delta\theta_W)=0\):
+\begin{equation}
+\begin{aligned}
+g&=\partial_\alpha E,
+\qquad
+h=\partial_{\alpha\alpha}^2E,\\
+c_i&=\partial_{\alpha\theta_i}^2E,
+\qquad
+R_{ij}=\partial_{\theta_i\theta_j}^2E,
+\end{aligned}
+\label{eq:local_energy_derivatives}
+\end{equation}
+The window-gradient line uses one scalar-transpose fact. For
+\(u,du\in\R^n\) and \(R\in\R^{n\times n}\),
+\begin{equation}
+(du)^\top R u\in\R^{1\times1},
+\qquad
+(du)^\top R u
+=\big((du)^\top R u\big)^\top
+=u^\top R^\top du,
+\label{eq:scalar_transpose_note}
+\end{equation}
+using \((ABC)^\top=C^\top B^\top A^\top\). Hence, when \(R=R^\top\),
+\begin{equation}
+d\!\left(\frac12 u^\top R u\right)
+=\frac12\big((du)^\top R u+u^\top R\,du\big)
+=u^\top R\,du,
+\qquad
+\nabla_u\frac12u^\top Ru=Ru.
+\label{eq:quadratic_gradient_note}
+\end{equation}
+For fixed $\alpha$, minimize over the window variables:
+\begin{align}
+0&=\nabla_{\delta\theta_W}E
+=\alpha c+R\delta\theta_W,\notag\\
+\delta\theta_W^\star&=-\alpha R^{-1}c.
+\label{eq:window_star}
+\end{align}
+Substitution gives
+\begin{align}
+E(\alpha,\delta\theta_W^\star)
+&=E_0+g\alpha+\frac12h\alpha^2
+-\alpha^2c^\top R^{-1}c
++\frac12\alpha^2c^\top R^{-1}c\notag\\
+&=E_0+g\alpha+\frac12h\alpha^2
+-\frac12\alpha^2c^\top R^{-1}c\notag\\
+&=E_0+g\alpha
++\frac12\left(h-c^\top R^{-1}c\right)\alpha^2.
+\label{eq:schur_curvature_derivation}
+\end{align}
+Thus the Schur-relaxed curvature is
+\begin{equation}
+\widetilde h=h-c^\top R^{-1}c.
+\label{eq:h_schur}
+\end{equation}
+
+\begin{jargonbox}
+The Hessian Schur complement asks: after the inherited refit window has moved optimally, what curvature remains along the candidate coordinate? The Gram Schur complement removes already represented direction. The Hessian Schur complement removes already refittable energy response.
+\end{jargonbox}
+
+\subsection{Reduced Phase-III novelty}
+
+Phase III applies the same quotient calculation to the tangent that remains after the inherited refit window responds. From Eq.~\eqref{eq:window_star},
+\begin{equation}
+\frac{d}{d\alpha}\delta\theta_W^\star(0)=-R^{-1}c.
+\label{eq:window_response_derivative}
+\end{equation}
+Let \(T_W=[\tau_i]_{i\in W_r}\) collect the inherited-window tangents. The refit-adjusted candidate tangent is
+\begin{equation}
+\begin{aligned}
+\tau_r^{\rm red}
+&=\tau_r+
+T_W\frac{d}{d\alpha}\delta\theta_W^\star(0)\\
+&=\tau_r-T_WR^{-1}c.
+\end{aligned}
+\label{eq:reduced_tangent}
+\end{equation}
+This is the tangent traced by the one-dimensional Schur-refitted curve
+\(\alpha\mapsto(\alpha,\delta\theta_W^\star(\alpha))\). Define its self-length and overlap vector by
+\begin{align}
+F_{\rm red}(r)&=\Re\langle\tau_r^{\rm red},\tau_r^{\rm red}\rangle,
+\notag\\
+(q_r^{\rm red})_i&=\Re\langle\tau_i,\tau_r^{\rm red}\rangle,
+\qquad i\in W_r.
+\label{eq:reduced_F_q}
+\end{align}
+Substituting these reduced primitives into Eq.~\eqref{eq:ridge_novelty} gives the Paper-I Phase-III novelty:
+\begin{equation}
+\boxed{
+\mathcal N_3(r;t)
+=
+1-
+\frac{
+(q_r^{\rm red})^\top
+(Q_r+\epsilon_{\rm nov}I)^{-1}
+q_r^{\rm red}
+}{
+F_{\rm red}(r)
+}.
+}
+\label{eq:phase3_reduced_novelty}
+\end{equation}
+The algorithmic scalar has the same anatomy as Phase II:
+\begin{equation}
+\begin{array}{ccl}
+\mathcal N_2&:&
+\text{raw candidate tangent }\tau_r
+\text{ modulo the inherited span},\\[1mm]
+\mathcal N_3&:&
+\text{Schur-refitted tangent }\tau_r^{\rm red}
+\text{ modulo the inherited span}.
+\end{array}
+\label{eq:n2_n3_reading}
+\end{equation}
+
+\section{Static ADAPT: batch reduced plane}
+
+Batching repeats the same ``old variables first'' idea with several Phase-III
+records at once.  A batch is considered only after the individual records have
+survived the Phase-III shortlist and structural prescreens.  Disjoint Pauli
+support and mutual commutation make the records plausible co-admission
+partners; the geometric test asks whether the surviving directions still span a
+well-conditioned reduced plane after the same inherited coordinates are allowed
+to refit.
+
+Let
+\[
+\begin{gathered}
+B=\{r_1,\ldots,r_s\},
+\qquad
+W_B=\bigcup_{r\in B}W_r,\\
+T_B=[\tau_a]_{a\in W_B},
+\qquad
+D_B=[\tau_{r_1}\ \cdots\ \tau_{r_s}].
+\end{gathered}
+\]
+The batch amplitude vector is
+\(\alpha_B=(\alpha_{r_1},\ldots,\alpha_{r_s})^\top\).  Before refit, the
+first-order state displacement is
+\[
+\delta\psi(D_B,T_B)
+\approx D_B\alpha_B+T_B\delta\theta_{W_B}.
+\]
+The common inherited-window refit is found from the batch quadratic energy
+model.  Write
+\[
+C_B=[b_{r_1}\ \cdots\ b_{r_s}],
+\qquad
+M_B=\frac12(H_{W_BW_B}+H_{W_BW_B}^\top)+\lambda_HI,
+\]
+where each \(b_r\) is the candidate-window mixed curvature vector.  For fixed
+\(\alpha_B\), the old-window response solves
+\[
+0=C_B\alpha_B+M_B\delta\theta_{W_B},
+\qquad
+\delta\theta_{W_B}^\star(\alpha_B)
+=-M_B^{-1}C_B\alpha_B.
+\]
+This is the batch analogue of a normal equation: the common old window is given
+one optimized coefficient vector for the whole proposed multi-record move.
+
+Substitute this optimized response into the state displacement:
+\[
+\delta\psi^\star_B(\alpha_B)
+=\left(D_B-T_BM_B^{-1}C_B\right)\alpha_B
+ =U_B\alpha_B.
+\]
+The columns of
+\[
+U_B=[u_{r_1}^{(B)}\ \cdots\ u_{r_s}^{(B)}],
+\qquad
+u_r^{(B)}=\tau_r-T_BM_B^{-1}b_r,
+\]
+are the Schur-refitted batch tangents.  Their reduced Fubini--Study Gram matrix
+is
+\[
+G_B^\star=U_B^\top U_B,\qquad
+(G_B^\star)_{rs}=\Re\langle u_r^{(B)},u_s^{(B)}\rangle.
+\]
+The diagonal entries are the refit-aware lengths of individual batch records.
+The off-diagonal entries are the residual interference between two proposed
+records after the common old window has already helped both of them.
+
+The energy model is Schur-reduced by the same window solve:
+\[
+H_B^\star
+=H_{BB}-C_B^\top M_B^{-1}C_B.
+\]
+The batch gain is then a small trust-region problem on the reduced plane:
+\[
+\boxed{
+\Delta E_3(B)
+=
+\max_{\alpha_B^\top G_B^\star\alpha_B\le\rho_B^2}
+\left[
+\widetilde g_B^\top|\alpha_B|
+-\frac12\alpha_B^\top H_B^\star\alpha_B
+\right].
+}
+\]
+Thus the batching test has three geometric ingredients: solve out the common
+window, measure the joint displacement by \(G_B^\star\), and optimize the
+candidate amplitudes together.
+
+\begin{intuitionbox}
+The single-record question is ``does this candidate survive after the old
+window explains it?'' The batch question is ``do these several survivors form a
+stable little plane after one common old-window response, and is the joint
+energy gain close to the sum of their contextual single gains?''
+\end{intuitionbox}
+
+The rank gate checks that the reduced plane has not collapsed:
+\[
+\lambda_{\min}(G_B^\star)
+\ge
+\tau_{\rm rank}\frac{\tr(G_B^\star)}{|B|}.
+\]
+The additivity defect compares the joint trust-region gain with contextual
+single-record gains computed in the same common reduction:
+\[
+\delta_{\rm add}(B)
+=
+\left[
+1-\frac{\Delta E_3(B)}
+{\sum_{r\in B}\Delta E_{r\mid B}+\eps}
+\right]_+.
+\]
+Small \(\delta_{\rm add}\) says the records can be co-admitted without the joint
+reduced model destroying the gain that made them attractive individually.
+
+\section{McLachlan as least-squares projection}
+
+The McLachlan problem is also a least-squares projection. Let $T$ collect tangent vectors and let $b$ be the target velocity. The variational velocity is $T\dot\theta$. The mismatch is
+\begin{equation}
+\mathfrak m(\dot\theta)=\|T\dot\theta-b\|^2.
+\label{eq:mclachlan_mismatch_basic}
+\end{equation}
+Expanding gives
+\begin{align}
+\mathfrak m(\dot\theta)
+&=\dot\theta^\top T^\top T\dot\theta
+-2\dot\theta^\top T^\top b+b^\top b\notag\\
+&=\dot\theta^\top K\dot\theta-2\dot\theta^\top f+\|b\|^2,
+\label{eq:mclachlan_expanded}
+\end{align}
+with
+\begin{equation}
+K=T^\top T,
+\qquad f=T^\top b.
+\label{eq:mclachlan_Kf}
+\end{equation}
+Differentiation gives
+\begin{equation}
+\boxed{K\dot\theta=f.}
+\label{eq:mclachlan_normal}
+\end{equation}
+The residual expressivity miss is
+\begin{equation}
+\|b-P_Tb\|^2=\|b\|^2-f^\top K^+f.
+\label{eq:mclachlan_miss}
+\end{equation}
+
+\begin{paperbox}
+In the dynamics manuscript, $T$ is the horizontal tangent block and $b$ is the horizontal Schrodinger drift. Append decisions ask whether a candidate block explains the residual drift left after the current tangent span has been projected out.
+\end{paperbox}
+
+\section{Append-block Schur gain}
+
+Split tangent columns into old directions $T$ and candidate append directions $U$. Let the target be $b$. Define
+\begin{align}
+K&=T^\top T,&
+B&=T^\top U,&
+C&=U^\top U,\notag\\
+f&=T^\top b,&
+q&=U^\top b.
+\label{eq:append_blocks}
+\end{align}
+The augmented normal matrix is
+\begin{equation}
+\begin{pmatrix}
+K&B\\B^\top&C
+\end{pmatrix}.
+\label{eq:augmented_normal}
+\end{equation}
+Eliminating the old coordinates gives the candidate residual normal geometry
+\begin{equation}
+S=C-B^\top K^+B,
+\label{eq:append_schur_block}
+\end{equation}
+and the residual force seen by the candidate block
+\begin{equation}
+w=q-B^\top K^+f.
+\label{eq:append_residual_force}
+\end{equation}
+The explained residual gain is
+\begin{equation}
+\boxed{\Delta^{\rm Schur}=w^\top S^+w.}
+\label{eq:append_schur_gain}
+\end{equation}
+This is the block version of $q^\top G^+q$: it is the amount of remaining target drift the candidate block can explain after old tangent coordinates have already had their best chance.
+
+
+\section{QSE as the same projection engine}
+
+QSE uses the same primitive objects as the opening projection lemma. At QSE construction step \(\ell\), the old span is the selected excitation basis and the candidate is one more excitation vector:
+\begin{equation}
+T=\Phi_{\mathcal A_\ell},
+\qquad
+x=\phi_r.
+\label{eq:qse_Tx_bridge}
+\end{equation}
+Therefore the primitive projection symbols become
+\begin{equation}
+\begin{aligned}
+G&=T^\top T
+=\Phi_{\mathcal A_\ell}^\top\Phi_{\mathcal A_\ell}
+=:S_\ell,\\
+q&=T^\top x
+=\Phi_{\mathcal A_\ell}^\top\phi_r
+=:s_r,\\
+F&=x^\top x
+=\phi_r^\top\phi_r
+=:F_r.
+\end{aligned}
+\label{eq:qse_primitive_bridge}
+\end{equation}
+The metric projector from Eq.~\eqref{eq:projector_form} specializes to
+\begin{equation}
+P_T=T G^+T^\top
+\quad\leadsto\quad
+P_{\ell,\tau}
+=\Phi_{\mathcal A_\ell}S_{\ell,\tau}^{+}
+\Phi_{\mathcal A_\ell}^{\top}.
+\label{eq:qse_projector_bridge}
+\end{equation}
+The candidate residual and novelty quotient are exactly the earlier residual formula with QSE names substituted:
+\begin{equation}
+\begin{aligned}
+\bar\phi_r
+&=(I-P_{\ell,\tau})\phi_r,\\
+\|\bar\phi_r\|^2
+&=F_r-s_r^\top S_{\ell,\tau}^{+}s_r,\\
+\nov_{\rm QSE}(r;\ell)
+&=1-\frac{s_r^\top S_{\ell,\tau}^{+}s_r}{F_r}.
+\end{aligned}
+\label{eq:qse_novelty_bridge}
+\end{equation}
+
+\begin{paperbox}
+QSE novelty is the same quotient-space residual as static-ADAPT novelty. The old columns are selected excitation vectors, the candidate vector is a new excitation direction, and the Gram metric is the QSE overlap matrix.
+\end{paperbox}
+
+\subsection{QSE roots are coefficient mixtures}
+
+The selected QSE basis also supports a projected eigenproblem. Define the Hamiltonian matrix on the same columns:
+\begin{equation}
+M_\ell=\Phi_{\mathcal A_\ell}^{\top}H\Phi_{\mathcal A_\ell},
+\qquad
+S_\ell=\Phi_{\mathcal A_\ell}^{\top}\Phi_{\mathcal A_\ell}.
+\label{eq:qse_MS_bridge}
+\end{equation}
+A QSE root is synthesized from selected columns by a coefficient vector:
+\begin{equation}
+\Psi_\nu^{(\ell)}
+=\Phi_{\mathcal A_\ell}c^{(\nu)}
+=\sum_{a\in\mathcal A_\ell}c_a^{(\nu)}\phi_a.
+\label{eq:qse_root_coefficients_bridge}
+\end{equation}
+The coefficients are chosen by the generalized eigenproblem
+\begin{equation}
+\boxed{M_\ell c^{(\nu)}=\epsilon_\nu S_\ell c^{(\nu)}.}
+\label{eq:qse_gep_bridge}
+\end{equation}
+The coefficient vector \(c^{(\nu)}\) is the QSE analogue of a synthesis coordinate: it tells how the selected nonorthogonal columns combine to make root \(\nu\).
+
+\subsection{The eigen-equation residual is another target vector}
+
+After solving Eq.~\eqref{eq:qse_gep_bridge}, form the full-space eigen-equation error
+\begin{equation}
+y_\nu=(H-\epsilon_\nu)\Psi_\nu^{(\ell)}.
+\label{eq:qse_y_residual_target}
+\end{equation}
+Now reuse the same projection operator. The outside-span residual is
+\begin{equation}
+\begin{aligned}
+R_\nu^{(\ell)}
+&=(I-P_{\ell,\tau})y_\nu\\
+&=(I-P_{\ell,\tau})(H-\epsilon_\nu)\Phi_{\mathcal A_\ell}c^{(\nu)}.
+\end{aligned}
+\label{eq:qse_outside_residual_bridge}
+\end{equation}
+This is a second application of the same geometry: first residualize the candidate \(\phi_r\), then residualize the root error \(y_\nu\), and compare the two surviving directions.
+
+\subsection{Residual capture and the two-dimensional Ritz test}
+
+Residual capture is a normalized alignment between the surviving candidate direction and the surviving root residual:
+\begin{equation}
+C_{\nu}^{\rm res}(r;\ell)
+=
+\frac{
+|\bar\phi_r^\top R_\nu^{(\ell)}|^2
+}{
+(\bar\phi_r^\top\bar\phi_r+\lambda_S)
+((R_\nu^{(\ell)})^\top R_\nu^{(\ell)}+\epsilon_R)
+}.
+\label{eq:qse_residual_capture_bridge}
+\end{equation}
+Thus the scalar test uses the same projected pieces:
+\begin{equation}
+\phi_r\mapsto\bar\phi_r=(I-P_{\ell,\tau})\phi_r,
+\qquad
+y_\nu\mapsto R_\nu^{(\ell)}=(I-P_{\ell,\tau})y_\nu.
+\label{eq:qse_two_residuals}
+\end{equation}
+For a local Ritz update, normalize the surviving candidate direction
+\begin{equation}
+u_r=\frac{\bar\phi_r}{\sqrt{\bar\phi_r^\top\bar\phi_r+\lambda_S}}.
+\label{eq:qse_candidate_unit_bridge}
+\end{equation}
+The two scalars are
+\begin{equation}
+\eta_{\nu r}=u_r^\top(H-\epsilon_\nu)\Psi_\nu^{(\ell)},
+\qquad
+\delta_{\nu r}=u_r^\top(H-\epsilon_\nu)u_r.
+\label{eq:qse_eta_delta_bridge}
+\end{equation}
+Read them as
+\begin{equation}
+\eta_{\nu r}=\text{root--candidate coupling},
+\qquad
+\delta_{\nu r}=\text{candidate shifted energy separation}.
+\label{eq:qse_eta_delta_reading}
+\end{equation}
+In the two-direction subspace \(\operatorname{span}\{\Psi_\nu^{(\ell)},u_r\}\), the shifted Hamiltonian block is
+\begin{equation}
+\begin{pmatrix}
+0&\eta_{\nu r}\\
+\eta_{\nu r}^{*}&\delta_{\nu r}
+\end{pmatrix}.
+\label{eq:qse_shifted_block_bridge}
+\end{equation}
+The lower-branch improvement is
+\begin{equation}
+\boxed{
+G_{\nu r}^{2\times2}
+=
+\frac{
+\sqrt{\delta_{\nu r}^{2}+4|\eta_{\nu r}|^2}
+-\delta_{\nu r}
+}{2}
+\approx
+\frac{|\eta_{\nu r}|^2}{\delta_{\nu r}}
+}
+\label{eq:qse_2x2_gain_bridge}
+\end{equation}
+for \(\delta_{\nu r}>0\) and \(|\eta_{\nu r}|\ll\delta_{\nu r}\). The QSE Phase-III scalar therefore asks whether the new residualized direction couples to the current root strongly enough, relative to its shifted separation, to improve the Ritz root.
+
+\section{Whitening and metric-supported coordinates}
+
+If $S$ is positive semidefinite, diagonalize
+\begin{equation}
+S=V\diag(s_i)V^\top.
+\label{eq:S_eigen}
+\end{equation}
+On a retained support $\mathcal I=\{i:s_i\ge\tau s_{\max}\}$, define the whitening map
+\begin{equation}
+B=V_{\mathcal I}\diag(s_i^{-1/2})_{i\in\mathcal I}.
+\label{eq:whitening_B}
+\end{equation}
+Then
+\begin{equation}
+B^\top S B=I_{|\mathcal I|}.
+\label{eq:whitened_metric}
+\end{equation}
+The GEP becomes an ordinary eigenproblem on the retained support:
+\begin{equation}
+\widehat M y=\epsilon y,
+\qquad
+\widehat M=B^\top M B,
+\qquad
+c=By.
+\label{eq:whitened_gep}
+\end{equation}
+This is the spectral analogue of the supported inverse: retain resolved metric modes, discard or damp unresolved modes, then solve.
+
+\section{One compact dictionary}
+
+\begin{center}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{p{0.19\columnwidth}p{0.23\columnwidth}p{0.21\columnwidth}p{0.27\columnwidth}}
+\toprule
+Context & Current columns $T$ & Target/new vector $x$ & Main metric expression\\
+\midrule
+Linear algebra & old directions $t_i$ & candidate $x$ & $1-q^\top G^+q/F$\\
+Static ADAPT novelty & inherited tangents $\tau_i$ & candidate tangent $\tau_r$ & $1-q_r^\top(Q_r+\lambda I)^{-1}q_r/F(r)$\\
+Static ADAPT refit & window coordinates & candidate coordinate & $\widetilde h=h-c^\top R^{-1}c$\\
+Static ADAPT batch & common refit window & reduced batch plane & reduced-plane TR $\Delta E_3(B)$\\
+McLachlan & tangent block $T$ & drift $b$ & $\|b\|^2-f^\top K^+f$\\
+Append Schur & old tangents vs. new block & residual force & $w^\top S^+w$\\
+QSE & selected basis $\Phi$ & excitation vector $\phi_r$ & $1-s^\top S^+s/F$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The repeated pattern is:
+\begin{equation}
+\boxed{
+\begin{gathered}
+\text{explained fraction}\\[-1mm]
+=\frac{\text{metric-corrected old-span projection}}{\text{target norm}}.
+\end{gathered}
+}
+\end{equation}
+and
+\begin{equation}
+\boxed{
+\text{novelty, miss, or residual fraction}
+=1-\text{explained fraction}.
+}
+\end{equation}
+The Schur complement is the block-matrix form of the same removal operation. It says: let the old variables explain everything they can, then score what remains.
+
+\section{Common mistakes}
+
+\begin{cautionbox}
+Mistake 1: treating $q$ as the projection. The vector $q=T^\top x$ is only the raw overlap list. It becomes a projection only after the metric solve $G^+q$ is applied and synthesized back as $TG^+q$.
+\end{cautionbox}
+
+\begin{cautionbox}
+Mistake 2: replacing $q^\top G^+q$ by $\sum_i q_i^2$. That replacement is valid only when the old directions are orthonormal, so $G=I$. In a nonorthogonal span, it double-counts repeated directions and mis-scales tilted ones.
+\end{cautionbox}
+
+\begin{cautionbox}
+Mistake 3: treating ridge damping as exact projection. The expression $q^\top(G+\lambda I)^{-1}q$ is a stabilized explained length. It is usually the right implementation object and differs from the exact quotient-space residual.
+\end{cautionbox}
+
+\section{One formula, four regimes}
+
+The same primitive can be read at increasing levels of abstraction:
+\begin{align}
+\text{Euclidean:}\quad
+&t_i^\top t_j,\quad T^\top T,\quad P_T=T(T^\top T)^+T^\top,\\
+\text{Fubini--Study:}\quad
+&\Re\langle Q_\psi\tau_i,Q_\psi\tau_j\rangle,\\
+\text{McLachlan:}\quad
+&\min_v\|Tv-b\|^2,\quad K v=f,\\
+\text{QSE/Galerkin:}\quad
+&\Phi^\top H\Phi c=\epsilon\,\Phi^\top\Phi c.
+\end{align}
+The Euclidean line is the primitive. The later lines change what the columns and targets mean while preserving the linear-algebra engine.
+
+\begin{intuitionbox}
+If the notation feels different across manuscripts, reduce it back to $T$, $x$, $G$, $q$, and $F$. The question is always: what is the old span, what is the target or candidate, what is the Gram metric, and what remains after projection?
+\end{intuitionbox}
+
+\appendix
+\section{Numerical examples}
+
+\subsection{Two nonorthogonal directions and one candidate}
+
+Let
+\begin{equation}
+t_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+t_2=\begin{pmatrix}1\\1\end{pmatrix},
+\qquad
+x=\begin{pmatrix}0\\1\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+T=\begin{pmatrix}1&1\\0&1\end{pmatrix},
+\qquad
+\begin{aligned}
+G&=T^\top T=\begin{pmatrix}1&1\\1&2\end{pmatrix},\\
+q&=T^\top x=\begin{pmatrix}0\\1\end{pmatrix},
+\qquad F=1.
+\end{aligned}
+\end{equation}
+The inverse is
+\begin{equation}
+G^{-1}=\begin{pmatrix}2&-1\\-1&1\end{pmatrix}.
+\end{equation}
+Thus
+\begin{equation}
+\beta^\star=G^{-1}q
+=\begin{pmatrix}-1\\1\end{pmatrix},
+\qquad
+T\beta^\star
+= -t_1+t_2
+=\begin{pmatrix}0\\1\end{pmatrix}=x.
+\end{equation}
+The explained length is
+\begin{equation}
+q^\top G^{-1}q
+=\begin{pmatrix}0&1\end{pmatrix}
+\begin{pmatrix}-1\\1\end{pmatrix}
+=1.
+\end{equation}
+Therefore
+\begin{equation}
+\nov_T(x)=1-\frac{1}{1}=0.
+\end{equation}
+Although $x$ differs from both $t_1$ and $t_2$, their nonorthogonal combination exactly explains it.
+
+\subsection{A genuinely new component}
+
+Let
+\begin{equation}
+t_1=\begin{pmatrix}1\\0\\0\end{pmatrix},
+\qquad
+t_2=\begin{pmatrix}1\\1\\0\end{pmatrix},
+\qquad
+x=\begin{pmatrix}0\\1\\1\end{pmatrix}.
+\end{equation}
+The same $G$ appears, but
+\begin{equation}
+q=T^\top x=\begin{pmatrix}0\\1\end{pmatrix},
+\qquad
+F=2.
+\end{equation}
+Thus $q^\top G^{-1}q=1$ and
+\begin{equation}
+\nov_T(x)=1-\frac{1}{2}=\frac12.
+\end{equation}
+Half of the squared length is explained by the current span; half is outside it.
+
+\subsection{Nearly singular Gram matrix}
+
+Let
+\begin{equation}
+t_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+t_2=\begin{pmatrix}1\\\delta\end{pmatrix},
+\qquad
+x=\begin{pmatrix}0\\1\end{pmatrix},
+\qquad 0<\delta\ll1.
+\end{equation}
+Then
+\begin{equation}
+G=\begin{pmatrix}1&1\\1&1+\delta^2\end{pmatrix},
+\qquad
+q=\begin{pmatrix}0\\\delta\end{pmatrix},
+\qquad
+F=1.
+\end{equation}
+The exact inverse is
+\begin{equation}
+G^{-1}=\frac1{\delta^2}
+\begin{pmatrix}1+\delta^2&-1\\-1&1\end{pmatrix}.
+\end{equation}
+So
+\begin{equation}
+G^{-1}q
+=\frac1{\delta^2}
+\begin{pmatrix}-\delta\\\delta\end{pmatrix}
+=\begin{pmatrix}-1/\delta\\1/\delta\end{pmatrix}.
+\end{equation}
+The vector $x$ is exactly represented as a difference of two nearly identical directions, but the coefficients are huge. This is the numerical danger. A tiny error in $q$ or $G$ is amplified by $1/\delta$ or $1/\delta^2$.
+
+With ridge damping,
+\begin{equation}
+\beta_\lambda=(G+\lambda I)^{-1}q.
+\end{equation}
+For $\delta^2\ll\lambda$, the tiny difference direction receives limited trust, so the explained fraction drops and the damped novelty rises. This is intentional when the geometry is measured or finite precision.
+
+\subsection{Numerical Schur complement}
+
+Let
+\begin{equation}
+G=\begin{pmatrix}2&1\\1&2\end{pmatrix},
+\qquad
+q=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+F=2.
+\end{equation}
+Then
+\begin{equation}
+G^{-1}=\frac13\begin{pmatrix}2&-1\\-1&2\end{pmatrix},
+\qquad
+q^\top G^{-1}q=\frac23.
+\end{equation}
+The Schur residual is
+\begin{equation}
+F-q^\top G^{-1}q=2-\frac23=\frac43,
+\end{equation}
+and the normalized novelty is
+\begin{equation}
+\nov_T(x)=1-\frac{(2/3)}{2}=\frac23.
+\end{equation}
+Thus one third of the candidate squared length is explained by the old span, and two thirds remains new.
+
+\subsection{Ridge damping with actual numbers}
+
+Take the nearly singular example with
+\begin{equation}
+\delta=10^{-2},\qquad
+\begin{aligned}
+G&=\begin{pmatrix}1&1\\1&1.0001\end{pmatrix},\\
+q&=\begin{pmatrix}0\\0.01\end{pmatrix},
+\qquad F=1.
+\end{aligned}
+\end{equation}
+The exact projection explains all of $x$, but only by using coefficients of size $100$:
+\begin{equation}
+G^{-1}q=\begin{pmatrix}-100\\100\end{pmatrix},
+\qquad
+q^\top G^{-1}q=1.
+\end{equation}
+Thus the exact novelty is zero:
+\begin{equation}
+\nov_T(x)=0.
+\end{equation}
+Now add a ridge $\lambda=10^{-2}$. Then
+\begin{equation}
+G+\lambda I
+=
+\begin{pmatrix}1.01&1\\1&1.0101\end{pmatrix},
+\end{equation}
+and
+\begin{equation}
+(G+\lambda I)^{-1}
+\approx
+\begin{pmatrix}
+50.0025&-49.5025\\
+-49.5025&50.0000
+\end{pmatrix}.
+\end{equation}
+Therefore
+\begin{equation}
+(G+\lambda I)^{-1}q
+\approx
+\begin{pmatrix}-0.4950\\0.5000\end{pmatrix},
+\qquad
+q^\top(G+\lambda I)^{-1}q
+\approx 0.0050.
+\end{equation}
+The ridge-damped novelty is approximately
+\begin{equation}
+\nov_T^{(\lambda)}(x)\approx0.995.
+\end{equation}
+The two statements are compatible. The exact old span can represent $x$, but only through a difference of nearly identical directions. The ridge treats that representation as unreliable under finite precision or measurement noise.
+
+\subsection{Supported inverse example}
+
+Let
+\begin{equation}
+G=V\begin{pmatrix}2&0\\0&10^{-5}\end{pmatrix}V^\top,
+\qquad
+\begin{aligned}
+V&=I,\\
+q&=\begin{pmatrix}1\\10^{-3}\end{pmatrix},
+\qquad F=1.
+\end{aligned}
+\end{equation}
+The exact inverse gives
+\begin{equation}
+q^\top G^+q
+=
+\frac{1^2}{2}
++\frac{(10^{-3})^2}{10^{-5}}
+=0.5+0.1=0.6.
+\end{equation}
+The small second eigenmode contributes $0.1$ to the explained length. If the support threshold is $\tau=10^{-3}$, then the retained set keeps only $s_1=2$ because
+\begin{equation}
+10^{-5}<10^{-3}\cdot2.
+\end{equation}
+Thus
+\begin{equation}
+G_\tau^+
+=
+\begin{pmatrix}1/2&0\\0&0\end{pmatrix},
+\qquad
+q^\top G_\tau^+q=0.5.
+\end{equation}
+The supported novelty is
+\begin{equation}
+\nov_{T,\tau}(x)=1-0.5=0.5.
+\end{equation}
+The exact novelty would be $0.4$. The supported inverse is more conservative because it refuses to count explained length from an unresolved mode.
+
+\subsection{McLachlan toy solve}
+
+Let the tangent block and target velocity be
+\begin{equation}
+T=\begin{pmatrix}
+1&1\\
+0&1\\
+0&0
+\end{pmatrix},
+\qquad
+b=\begin{pmatrix}0\\1\\1\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+K=T^\top T=
+\begin{pmatrix}1&1\\1&2\end{pmatrix},
+\qquad
+f=T^\top b=
+\begin{pmatrix}0\\1\end{pmatrix},
+\qquad
+\|b\|^2=2.
+\end{equation}
+Since
+\begin{equation}
+K^{-1}=
+\begin{pmatrix}2&-1\\-1&1\end{pmatrix},
+\end{equation}
+the McLachlan velocity is
+\begin{equation}
+\dot\theta=K^{-1}f
+=
+\begin{pmatrix}-1\\1\end{pmatrix}.
+\end{equation}
+The realized tangent velocity is
+\begin{equation}
+T\dot\theta
+=
+-t_1+t_2
+=
+\begin{pmatrix}0\\1\\0\end{pmatrix}.
+\end{equation}
+The explained drift length is
+\begin{equation}
+f^\top K^{-1}f=1,
+\end{equation}
+and the missed drift is
+\begin{equation}
+\|b\|^2-f^\top K^{-1}f=2-1=1.
+\end{equation}
+The current tangent plane explains the first two coordinates of the drift but misses the third coordinate completely.
+
+\subsection{Append-block Schur toy}
+
+Continue the previous example and append a candidate direction
+\begin{equation}
+u=\begin{pmatrix}0\\0\\1\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+U=u,\qquad
+\begin{aligned}
+B&=T^\top U=\begin{pmatrix}0\\0\end{pmatrix},\\
+C&=U^\top U=1,\qquad q=U^\top b=1.
+\end{aligned}
+\end{equation}
+The Schur block and residual force are
+\begin{equation}
+S=C-B^\top K^{-1}B=1,
+\qquad
+w=q-B^\top K^{-1}f=1.
+\end{equation}
+The append gain is
+\begin{equation}
+\Delta^{\rm Schur}=w^\top S^{-1}w=1.
+\end{equation}
+This exactly equals the missed drift from the old tangent plane. In this toy case the append direction captures the entire residual.
+
+\subsection{QSE toy metric instability}
+
+Let two QSE basis vectors be nearly equal:
+\begin{equation}
+\phi_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+\phi_2=\begin{pmatrix}1\\\delta\end{pmatrix},
+\qquad
+0<\delta\ll1.
+\end{equation}
+The overlap matrix is
+\begin{equation}
+S=\begin{pmatrix}1&1\\1&1+\delta^2\end{pmatrix}.
+\end{equation}
+Its eigenvalues are approximately
+\begin{equation}
+s_+\approx2,\qquad s_-\approx\frac{\delta^2}{2}.
+\end{equation}
+They come from solving \(Sv=s v\). The two normalized coefficient recipes are approximately
+\begin{equation}
+v_+\approx\frac1{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix},
+\qquad
+v_-\approx\frac1{\sqrt2}\begin{pmatrix}1\\-1\end{pmatrix}.
+\end{equation}
+Synthesizing them gives
+\begin{equation}
+\Phi v_+\approx \sqrt2\begin{pmatrix}1\\\delta/2\end{pmatrix},
+\qquad
+\Phi v_-\approx \frac1{\sqrt2}\begin{pmatrix}0\\-\delta\end{pmatrix}.
+\end{equation}
+Thus \(v_+\) is the resolved common direction and \(v_-\) is the near-null difference direction:
+\begin{equation}
+v_-\approx\frac1{\sqrt2}\begin{pmatrix}1\\-1\end{pmatrix}.
+\end{equation}
+In coefficient space, this mode has small metric length because it subtracts two almost identical basis vectors. A GEP solve that inverts this mode can produce large, unstable coefficients. Support truncation removes $v_-$ and solves only on the resolved direction $v_+$.
+
+\subsection{A one-line diagnostic checklist}
+
+For any formula in the manuscripts, reduce it to this checklist:
+\begin{enumerate}
+\item What is the old span \(T\)?
+\item What is the candidate or target \(x\)?
+\item What metric gives \(G=T^\top T\)?
+\item What overlap gives \(q=T^\top x\)?
+\item Is the inverse exact, ridge-damped, or support-truncated?
+\item Is the result an explained fraction, novelty fraction, or Schur gain?
+\end{enumerate}
+
+\section{Source notes for embedded visuals}
+
+\begin{itemize}
+\item Orthogonal projection asset: Wikimedia Commons, \emph{Orthogonal Projection qtl2.svg}, \url{https://commons.wikimedia.org/wiki/File:Orthogonal_Projection_qtl2.svg}, accessed May 16, 2026.
+\item Gram-Schmidt asset: Wikimedia Commons, \emph{Gram--Schmidt process.svg}, \url{https://commons.wikimedia.org/wiki/File:Gram-Schmidt_process.svg}, accessed May 16, 2026.
+\item Bloch sphere asset: Wikimedia Commons, \emph{Bloch sphere.svg}, \url{https://commons.wikimedia.org/wiki/File:Bloch_sphere.svg}, accessed May 16, 2026.
+\end{itemize}
+
+\end{document}
