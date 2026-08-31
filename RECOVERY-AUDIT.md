@@ -1,0 +1,127 @@
+# Holstein_test — Repository Recovery Audit
+
+**Date:** 2026-08-31 · **Auditor:** Claude (read-only audit; nothing has been merged, pushed, or deleted)
+**Context:** The computer holding the working copy was lost. This clone at `/Users/Patron/Holstein_test` was recovered from GitHub (`git@github.com:20jastrobel/Holstein_test.git`) and is currently the **only local copy**. 52 remote branches, 1 tag (`route-c-preimpl-2026-06-08`), 5 PRs (all pointing at branch tips we already have — nothing hidden there).
+
+---
+
+## 1. Executive summary
+
+- **`origin/paper-ii-exchange-selector` is the real main.** Last commit 2026-08-30, 653 commits ahead of stale `origin/main` (frozen 2026-03-25). It already fully contains `RA`, `Simplied-Refactored`, `golden-rescue-20260824`, `codex/paper-ii-route-diagrams`, `codex/hardcoded-test-retirement`, `perf/sector-audit-memoization`, `claude/paper-i-20260824`, and `codex/paper-iii-exchange-manuscript-20260826`. There is no branch literally named "paper-ii-refactor"; this is the one.
+- **The trunk is healthy and runnable** once a Python 3.12 environment is installed (details §7). All 18,779 tracked files check out; 426 test files; only 2 files need Python ≥3.12 syntax; nothing looks code-broken.
+- **But the trunk is NOT the whole story.** The agents worked in parallel worktrees and several branches are the *sole* holders of irreplaceable material — most critically the **Paper I evidence base (~2M lines of completed CHTC campaign results)** on `claude/paper-i-consolidated-20260826` / `ra-refactor-stage2`, and the **Paper II SIAM r00–r06 results + a newer (08-27) Paper II manuscript revision** on `codex/paper-ii-search-profiles-20260824`.
+- **Security:** old `main` has a committed `.ibm_runtime.env` with a **filled-in IBM Quantum API token + instance CRN**. It is in GitHub history and was on the lost machine. **Revoke/rotate that token at IBM Quantum / IBM Cloud.** (File does not exist on the trunk; the history keeps it regardless.)
+- **Time-sensitive:** the `infidelity-gate-shadow` branch records CHTC submit-node archive paths (e.g. `/home/jsstrobel/Holstein_paper_ii_staged_accuracy_euler_v1_resume_fix_20260826/paper_ii_t20_resume_fix_cluster9698264_12.tar.gz`). Raw run archives were only fetched to the lost machine — the copies on the CHTC submit node may still exist **until the cluster purges them**. Fetch soon if wanted.
+
+## 2. How the repo got here (timeline)
+
+| Era | What happened |
+|---|---|
+| Feb 2026 | Original `Fermi-Hamil-JW-VQE-TROTTER-PIPELINE` architecture; replaced by the new `pipelines/` architecture on 2026-02-28. `main` continues to 2026-03-25, then freezes. |
+| Mar–Jun 2026 | "Snake" era: realtime time-dynamics routes, static-ADAPT registry, Route C plateau work on `Snake` → `route-c-plateau-acquisition-v1` (+ safety diff snapshots 06-29). |
+| Jul 2026 | SR-SNAKE v4 era in a separate July worktree (unrelated-history root `476dbbdc`): `codex/sr-*`, `copilot/worktree-*`, formal-manifold experiments. |
+| 2026-08-07 | Trunk ingests the Snake worktree ("Replace Snake snapshot with RA") — legacy code content reaches the trunk. |
+| 2026-08-18 | Fork point `9f55e696`: the Paper I campaign lane (`ra-refactor-stage2`, `appendix-demos`, `noise-nonpositive-shortlist`, `paper-i-factual-audit`, `paper-i-consolidated`) splits off while the trunk pursues Paper II/III. |
+| 2026-08-24 | Fork point `260e1531`: the Paper II campaign lane (`exchange-layer-cleanup` → `infidelity-gate-shadow`, and `paper-ii-search-profiles`) splits off. Trunk does a partial "golden rescue" of Paper I evidence. |
+| 2026-08-25–28 | Agents seal retiring worktrees with "preserve … state" tip commits across many branches. |
+| 2026-08-29–30 | Final activity: `search-profiles` seals HH APM preflight data (08-29); trunk records SIAM nb4 observables, best-verified Paper II PDF snapshot, scheduler note (08-30). |
+
+## 3. Security finding
+
+`origin/main:.ibm_runtime.env` contains filled `QISKIT_IBM_TOKEN`, `QISKIT_IBM_CHANNEL`, `QISKIT_IBM_INSTANCE` (CRN). Present in pushed GitHub history; was present on the lost machine. **Action (user): revoke/rotate the token.** Optional later: history scrub (destructive rewrite — separate decision, not needed if the token is revoked).
+
+## 4. Promotion plan (approved by user, not yet executed)
+
+1. Preserve old main: create branch `archive/main-pre-recovery` at current `origin/main` tip (`50474137`). Old main holds trunk-required modules and sole-copy artifacts — see §5a last row and §6.1.
+2. Point `main` at `origin/paper-ii-exchange-selector` tip (`cde67194`) and push (non-fast-forward update of `main`; GitHub default branch stays `main`).
+3. Delete nothing (user decision: keep all branches for now).
+4. Then execute the rescue merges/cherry-picks below onto the new `main`.
+
+## 5. Branch dispositions (audit verdicts)
+
+### 5a. Rescue into trunk — highest value first
+
+| Branch | Unique | What it uniquely holds | How to take it |
+|---|---|---|---|
+| `claude/paper-i-consolidated-20260826` | 190 | **Sole holder of the finished Paper I evidence base** (~2.05M lines): CHTC Bundles 3–9, B3-MR, B9 costexp, L=3 appendix v2–v10, noise + Powell-tolerance results, newest `kstar_tables.json` (22,640 lines vs trunk's stale golden 19,649), 6,215-line failure atlas, bundle-page LaTeX tooling, PDF_INVARIANT.md | **Graft the add-only paths** (all `chtc/paper_i_*`, `chtc/ra_adapt_*`, results_tooling, agent_guidance docs) — zero conflicts. Do NOT merge its code: its static_adapt refactor and the trunk's are two incompatible refactors (14 conflicts) → user decision §6. |
+| `ra-refactor-stage2` | 131 | Same campaign lane, complementary: 668 files of CHTC checkpoint/history receipts whose upstream raw data was deliberately deleted (27GB local + 4.3GB CHTC freed) — only surviving copy; B3-supersedes-B5 ruling; stage-2/3 ra_adapt refactor | **Merge** (audit verdict): only 8 conflicts with clear per-file resolution — take TRUNK for monolith/CLI/integration-test files, take BRANCH for `semantic_closure_routes.py` (+852 lines powering B8/B9). Regenerate parity fixtures; run tests after. |
+| `codex/paper-ii-search-profiles-20260824` | 156 | **Sole copy** of SIAM r00–r06 evaluated scores/receipts (clusters 9713618–9715147), most HH/Hubbard acquisition evidence, 263k-line Hubbard L4 exact-reference dataset, staged-campaign/acquisition-supervisor pipeline + ~104-file test suite, **08-27 Paper II manuscript revision (newer than trunk's)** | **Path-level cherry-picks**: branch-only `output/` evidence trees + pipeline modules/tests (clean); manual reconciliation of `time_dynamics_paper_II.tex` (§6). Trunk is authoritative for the 32 conflicting files (evolved exchange core, newer SIAM state JSONs). Preserve the ref — trunk manifests cite its commit hashes as provenance. |
+| `codex/paper-ii-infidelity-gate-shadow-20260826` | 62 | Staged Paper II accuracy-campaign stack; CHTC t20/t5 receipts (5 clusters); **provisional t20 frontier numbers** (12 rows in `t20_provisional_author_override_receipt.json` + generated table + figure) — sole in-git record of that compute | **Cherry-pick** the results/provenance set (conflict-free adds) + optionally the staged-campaign modules. Do not merge wholesale (20 conflicts vs live trunk). Fetch CHTC submit-node archives before purge (§1). |
+| `appendix-demos-20260820` | 117 | Tip-only (+10k lines): 08-23–25 L=3/L=4 campaign dirs (`l3_run_inventory.json`, `l3_pareto_frontiers.json`), prune-sweep results, and `marginal_qiskit_cost.py` — which the trunk's own golden doc names as an uncommitted manuscript-results dependency | **Merge its tip into `claude/paper-i-consolidated-20260826`** (verified conflict-free), then take everything via the consolidated graft. Not into trunk directly (14 conflicts). |
+| `codex/noise-nonpositive-shortlist-20260824` | 117 | Tip-only (+1.8k lines): two L=3 noise campaign dirs incl. `RESULTS_SUMMARY.md` with the **measured noise-sweep numbers flagged as the manuscript noise-figure provenance**; nonpositive phase-shortlist feature + test | **Cherry-pick** the 2 chtc noise dirs + shortlist module/tests after the appendix merge (6 overlapping pipeline files to skip/resolve). |
+| `codex/paper-i-factual-audit-20260822` | 99 | Top 3 commits only: 2,039-line Paper I factual/mathematical/QPU provenance audit — includes a **pre-release blocker** (Figure-2 provenance re-bound from authenticated cluster-9664325 evidence to the later b3mr family; "must be corrected before release") + AVQE estimator-count verification handoff | **Cherry-pick `0db00282`, `77c39791`, `83ccbc40`** — conflict-free, doc-only. Rest is shared history superseded by the consolidated branch. |
+| `paper-i-l4-batch-debug-20260826` | 7 | Complete source-locked Hubbard L4 five-arm campaign code + tests (~2k lines); no data; trunk has none of it | **Merge — textually clean.** Run touched tests after. (Contains all of `paper-i-l4-five-arm`.) |
+| `codex/paper-ii-positioned-tangent-audit-20260824` | 4 | 119-line positioned-insertion audit report + 134 lines of verification tests backing Paper II manuscript claims | **Merge — clean.** Tests target the 08-24 API; fix signatures if they break. |
+| `claude/exchange-layer-cleanup-20260825` | 26 | Only tip `788efa48`: golden-run-parity-verified exchange-config/round-rule refactor (absent from trunk and sibling) | **Port tip if wanted** (generalized_exchange.py near-clean; 2 files need manual porting). Else keep as archive. |
+| `codex/static-adapt-beam-refactor` | 182 | Terminal tip of the whole Feb–Jul static-adapt chain (7 other branches are interior ancestors). Unique: **PHYS 765 final report** (tex + PDF) + its 79 result files, 33 Apr-2026 notes, early Overleaf manuscript uploads | **Cherry-pick the named files** (e.g. into `archive/`); keep the ref as the archive of the whole chain. Never merge (247 conflicts). |
+| **`main` (old)** | 13 | **The trunk's live code depends on it**: `pipelines/scaffold/imported_artifact_resolution.py` hardcodes artifact JSONs (nighthawk/pareto-lean/marrakesh) that exist only here, and trunk's `hh_staged_noise_workflow.py` imports 4 modules (`hh_staged_workflow`, `hh_realtime_checkpoint_{controller,types}`, `hh_realtime_measurement`) that exist **only on old main** — trunk tests currently `importorskip` and silently skip. Also: 1,978 tracked artifact files (~30M lines) of HH L2/L3 noisy-run outputs — sole surviving copies (trunk gitignores `artifacts/`) — and the CFQM time-propagation package (`src/quantum/time_propagation/` + tests), which has no counterpart anywhere in trunk. | **Cherry-pick**: (a) the 9 main-only `pipelines/hardcoded/` modules to un-break the staged-noise lane, (b) the curated `artifacts/json` inputs the trunk resolver names (needs `git add -f` or a `.gitignore` exception — policy decision), (c) the CFQM package if that line matters. Never full-merge (58 conflicts, trunk newer in all). Keep the ref as `archive/main-pre-recovery` per plan — it is the permanent archive of the 30M-line artifact corpus. |
+
+### 5b. Keep as archive (unique content; do not merge, do not delete)
+
+| Branch | Why |
+|---|---|
+| `codex/paper-i-worklog-audit-20260824` | Sole copy of the Q45 STOP record (ledger fingerprints the later Q53 diagnosis references). Optionally cherry-pick the worklog hunk. |
+| `safety/codex-diff-snapshot-20260629T031325Z` | 6.5MB dirty-worktree patch blob (pre overnight run) + keeps the whole 111-commit Snake line reachable. |
+| `safety/codex-diff-snapshot-20260629T040640Z` | Sibling 4.2MB patch + **3,145-line inventory of untracked/gitignored files that lived on the lost machine's disk** — useful map of what was lost. |
+| `copilot/worktree-2026-07-23T21-51-12` | 83 files that exist nowhere else: formal-manifold pipeline family + tests, sr_snake campaign scripts, Paper I provenance exports. Also preserves the SR v4 chain. |
+| `codex/sr-v4-phase3-lowgrad-repair-20260717` | Only ref holding `b2400825` (SR full-response phase-retirement fix). SR lane retired, but the fix exists nowhere else. |
+| `codex/fm-sr-snake-20260714` | Only record of the qbroyd 20260714 CHTC campaign submission (build/submit scripts + matrix audit/manifest JSONs). |
+| `codex/formal-manifold-snake-20260711` | Complementary seal (only 77/193 files overlap with the sibling): jr_snake canonical runtime settings + larger qbroyd audit. |
+| `codex/wip-local-active-source-snapshot-20260706-120000` | Sole copy of IDEAS.md, IMPLEMENT_NEXT.md, 2,352-line exact-citations ledger, Nocedal trust-region derivation notes, 13 plan critiques. Easy to hand-copy into trunk later if wanted. |
+| `backup/pre-delete-20260221_213720` | 157 files found nowhere else: earliest HH architecture/plan docs, L2_hh_smart result data, Obsidian vault. The designated pre-cleanup backup. |
+| `snapshot/fullspace-20260306T031421` | Sole holder of 144 early-March HH L2/L3 noise-robustness/validation result files (plus 9,712 committed `.venv` junk files — a future history-filter candidate, destructive, user's call). |
+
+### 5c. Needs your decision (§6)
+
+| Branch | Decision |
+|---|---|
+| `codex/paper-i-q45-diagnosis-20260825` (16) | The corrected, *completed* Q45 implementation (global shortlists, shared cost oracle, Aer fail-closed, −4,300 lines) never landed on trunk, and trunk's worklog still says Q45 "in progress". Trunk rewrote the same files, so it must be **re-applied by hand** using the branch as reference — is Q45 still wanted on the current architecture? At minimum take the worklog closure (merges clean). |
+
+### 5d. Safe to drop (fully contained elsewhere — kept anyway per your instruction)
+
+`paper-i-l4-five-arm-20260826` (⊂ l4-batch-debug) · `codex/adaptive-qse-20260826` (ported to trunk 7 min after tip, evolved to schema v2) · `codex/paper-ii-gamma-symbol-definitions-20260823` (concept absorbed in newer trunk prose) · `codex/remove-step-overlap-20260824` (deleted code already absent from trunk) · `codex/adapt-generator-geometry-speedups-20260613`, `feature/static-adapt-problem-registry-phase1`, `Refactor`, `checkpoint/pre-generic-adapt-refactor-2026-04-17`, `<Best-ADAPT-EVER>`, `<Janitorial-Duties>` (all interior ancestors of `static-adapt-beam-refactor`; the last two are the *same commit*) · `Simplied-Refactored` (ancestor of trunk, 0 unique) · `Snake`, `route-c-plateau-acquisition-v1`, `backup/non-artifact-code-docs-20260328` (⊂ safety snapshots) · `codex/sr-snake-v3-foundation-20260716` (manuscript-editor skill exists newer on trunk), `codex/sr-v4-rankgate-repair-20260717`, `copilot/worktree-2026-07-23T21-51-02`, `codex/local-repo-health-20260706` (⊂ kept SR refs) · `codex/minimize-absolute-error-for-l=2`, `…-gd6bk8`, `codex/add-l=2,3-to-hh_hva_tw` (target the pipeline deleted 2026-02-28).
+
+Fully merged into trunk (0 unique commits): `RA`, `Simplied-Refactored`, `golden-rescue-20260824`, `codex/paper-ii-route-diagrams`, `codex/hardcoded-test-retirement-20260824`, `perf/sector-audit-memoization`, `claude/paper-i-20260824`, `codex/paper-iii-exchange-manuscript-20260826`.
+
+## 6. Open items
+
+1. **Old `main` rescue scope** (audit complete — see §5a last row): its shared code is fully superseded, but the trunk *silently depends* on 9 modules and several curated artifact JSONs that exist only there, and it is the sole archive of ~30M lines of March HH noise artifacts. Decisions: re-track the curated artifacts in trunk against its `artifacts/` gitignore policy (recommended: yes, `git add -f` just the resolver-named files), and whether to bring the CFQM time-propagation package forward.
+2. **Paper II manuscript reconciliation:** trunk's `time_dynamics_paper_II.tex` (08-26, + Paper III comparator fix, matches the 08-29/30 built PDFs) vs `search-profiles`' (08-27, matched-accuracy promotion, −551/+138 vs trunk) vs `infidelity-gate-shadow`'s t20-frontier rewrite. Three divergent versions — user must pick the canonical line; the others become archived variants.
+3. **Paper I code lineage:** trunk's post-08-24 decomposition vs the campaign lane's run-axes/costexp/measured-lane refactor (consolidated + ra-refactor-stage2). The audit recommends: data grafts now; code lineage decision before the next Paper I rerun.
+4. **Q45**: see §5c.
+5. **Figure-2 provenance pre-release blocker** from the factual audit (§5a) — must be resolved before Paper I release.
+6. **CHTC submit-node archives** — fetch before purge (§1).
+7. **IBM Quantum token** — revoke (§3).
+
+## 7. Getting it running on this Mac (fresh machine)
+
+Machine currently has ONLY Apple's Python 3.9.6 — unusable here (numpy 2.3.5 needs ≥3.11; two reporting scripts need ≥3.12 f-strings). No Homebrew, no Node, no conda.
+
+1. Install **Python 3.12** (python.org installer or Homebrew).
+2. `python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && pip install pytest ijson` (pytest and ijson are missing from requirements.txt; `.venv/` is already gitignored).
+3. From the repo root (imports require cwd = root): `python -m pytest test --collect-only -q`, then targeted (`python -m pytest test/test_ap_mclachlan_exchange_selector.py -q`) before the full suite — it contains heavy integration tests; respect the documented 10 GB RAM budget (`pipelines/shell/ram_guard.py`).
+4. Smoke runs: `python pipelines/exact_bench/cross_check_suite.py --problem hh --L 2 --omega0 1.0 --g-ep 0.5 --n-ph-max 1` (no artifacts needed), then `python pipelines/static_adapt/adapt_pipeline.py --L 2 --problem hh … --skip-pdf --output-json artifacts/json/smoke.json`. Paper II dynamics runners need an ADAPT artifact JSON produced first — all pre-existing `artifacts/` were on the lost machine.
+
+## 8. Repo-local agent tooling status
+
+- **`CLAUDE.md`** imports **`AGENTS.md`** (the real router: 5 paper lanes under `agent_guidance/`, 10 GB RAM invariant, per-agent worktrees). **Drift:** AGENTS.md "Active checkout" points at the lost machine (`/Users/jakestrobel/local_repos/Holstein_test_fullclone_3`) — needs updating to this clone. README references several retired scripts (list in audit data; the legacy pipeline survives only as archived `.txt` and in `chtc/*/runtime_source/`).
+- **`.claude/skills/gitnexus/*` (6 skills):** intact, but need Node.js + `npx gitnexus analyze` (rebuilds the gitignored `.gitnexus/` index) + the GitNexus MCP server registered in Claude Code. Until then the "MUST run impact before editing" rules in CLAUDE.md are unsatisfiable — treat as inoperative.
+- **`agent_guidance/skills/manuscript-editor/SKILL.md`** exists on the trunk (newer than the July branch copy) — the manuscript-editor skill was NOT lost.
+- **Lost with the machine (not in any branch):** user-level skills referenced as gates (`$journal-math-manuscript-refiner`, `$gpt-pro-handoff`, `$pedagogical-math-primer`, paper-specific run skills), all gitignored `artifacts/` evidence trees, `.gitnexus/` index, CHTC `.sif` images. The safety-snapshot branch's untracked-file inventory (§5b) maps what was there.
+
+## 9. Execution log (Stage 1, 2026-08-31)
+
+**Pushed:** `main` → trunk tip `cde67194` (old main preserved at `archive/main-pre-recovery`); new branch `paper-i-integration-20260831` (= consolidated + appendix + noise tips, holds the deferred Paper I code lineage and its tests).
+
+**Built locally on `main`, NOT yet pushed — 13 rescue commits:** the two clean merges (L4 campaign, positioned-tangent audit); factual-audit docs cherry-picks; t20 evidence graft (seed.json duplicates excluded); stage2 + consolidated Paper I evidence grafts (**data only** — the stage2 code merge was attempted, failed test verification 26-vs-7, and was rebuilt as data-only; the code lineage decision of §6.3 stands); Q45 worklog closure; AGENTS.md checkout repoint; and the **full legacy staged-noise lane resurrection**: 9 + 18 modules, `report_labels`, CFQM package, `polaron_paop`, `checkpoint_measurement`, `json_parity`, 5 fixed-manifold modules, 6 curated `artifacts/json` files (force-added), with the July beam-refactor era's alias-shim modernization adopted wholesale.
+
+**Verification** (Python 3.12.14 venv, this Mac): full-suite collection **6,225 tests / 35 errors** vs untouched-trunk baseline 5,540 / 57 (22 pre-existing errors fixed, +685 tests). Resurrected staged-noise suites: **406 pass / 7 fail** (were 100% silently skipped on trunk); the 7 are era drift (driven-neutral seam checks, oracle scheduler semantics). CFQM suite 22/22. cfqm4 is retired per user ruling 2026-08-31 — its tests no longer execute. Targeted rescue suites (L4, exchange selector/oracle/structural-cache): 22/22.
+
+**Continuation (same day, pushed as commits `b1ee21da..e70397c8` + this file):** search-profiles Paper II evidence graft (678 branch-only files, 37MB — SIAM r00–r06 scores, Hubbard L4 exact reference, acquisition evidence, CHTC lineage; trunk-newer state files untouched); 28 sole-copy research docs (IDEAS/IMPLEMENT_NEXT, citations ledger, derivation notes, plan critiques); PHYS 765 report + 71 run files + 33 spring notes (under `archive/`) + early Overleaf upload sets; Q45 STOP record merged into the worklog; **27 retired-but-imported modules restored** (each verified to have live production importers; `plots/` package force-added past the gitignore that lost it) and pytest/ijson/clarabel/cvxpy added to requirements.txt. Final state: **6,519 tests collected / 10 errors** (trunk baseline 5,540 / 57). The 10 residual errors are missing data files and module drift; the 7 era-drift failures in the resurrected staged suites remain documented above. Full-suite *run* (not just collection) deliberately deferred to the new Mac — heavy integration tests vs the 10 GB RAM invariant.
+
+## 10. qdynamics (checked 2026-08-31, user-provided)
+
+`jacopos86/qdynamics` was the collaboration sync target (the March "Sync … to qdynamics" commits). Verdict: **nothing to recover.** Its `RA` (08-26) and `paper-ii-exchange-selector` (08-18) branches are strictly contained in the new Holstein main (0 unique commits; main is 86 and 610 ahead respectively). The other branches are the collaborators' own psi4/pyscf lineage, not Holstein work. If the collaboration repo should see the recovered main, that's a push to someone else's repo — user's call.
+
+---
+*Full per-branch agent reports: workflow `wf_3badde6b-c1a` (12 agents, ~1M tokens of analysis). This file is untracked.*
