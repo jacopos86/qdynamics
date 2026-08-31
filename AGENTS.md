@@ -13,17 +13,18 @@ machine-readable manifests, and regression-backed behavior.
 
 Use:
 
-`/Users/jakestrobel/local_repos/Holstein_test_fullclone_3`
+`/Users/Patron/Holstein_test`
 
-The checkout under
-`/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3`
-is FileProvider/iCloud-managed recovery material unless the current task
-explicitly revalidates it. Before a run, confirm the active path and verify that
+(Recovered clone, 2026-08-31, after the previous machine and its
+`Holstein_test_fullclone_3` checkouts were lost. `origin/main` was promoted
+from `paper-ii-exchange-selector`; the pre-recovery main is preserved at
+`archive/main-pre-recovery`. See `RECOVERY-AUDIT.md` at the repo root for
+branch dispositions.) Before a run, confirm the active path and verify that
 Python sources under `src/` and `pipelines/` are not `compressed,dataless`.
 
 Invariant: other agent sessions may be active in this checkout at any
 time. For repo-changing work, create your own git worktree (under
-`Holstein_test_fullclone_3.worktrees/`) on your own branch, and stage
+`Holstein_test.worktrees/`) on your own branch, and stage
 commits with explicit paths only — never `git add -A` here. See Hard
 invariants.
 
