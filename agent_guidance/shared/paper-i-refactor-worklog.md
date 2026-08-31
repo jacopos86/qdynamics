@@ -5696,6 +5696,38 @@ source-shape assertion. Q43 adds no failing test.
 isolated GitNexus `detect-changes` reports eight files, four mapped symbols,
 zero affected processes, and LOW risk.
 
+### 2026-08-25 — Q45 — STOPPED at estimator-ledger identity gate
+
+**Attempt:** from clean baseline `3e2cfd53`, the isolated worktree removed the
+five physical-lane scoring parameters, the lane-wise Phase-I/II shortlist
+restriction machinery, and the retired macro-only physical-lane profile
+family while retaining `physical_operator_lane` classification as generator
+provenance. The uncommitted attempt adds 358 lines and deletes 3,935:
+**3,577 net lines removed**.
+
+**Collection and focused tests:** collection changes from `5461 tests
+collected, 54 errors` to `5443 tests collected, 54 errors`. The complete
+`ERROR test/...` list diff is empty; the 18-test decrease is the dedicated
+retired-profile and lane-restriction coverage removed with the implementation.
+The focused shortlist, lane-provenance, guarded-pool, and insertion-profile
+surface passes `44 passed`.
+
+**Stop condition:** the completed one-round route still resolves contract
+digest
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`,
+but its estimator ledger changes from 256 entries and 266 ordered occurrences
+to 332 entries and 356 occurrences. The fingerprint changes from
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`
+to
+`0b1c08d3a647fcc6dbde5745023582a2b1ea3f681c887e98be357ae1f90371fb`,
+and the primitive-id hash changes from
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`
+to
+`c94b9db326ef25de9b59bf56b441b442c643143753ce129226caee135f33fef2`.
+Per the work-plan stop rule, no implementation commit was made and no
+algorithmic workaround was attempted. The failed attempt remains uncommitted
+only in the isolated Codex worktree for inspection.
+
 ### 2026-08-25 — Q45 — global phase shortlists and lane-restriction cleanup
 
 **Correction to 6ar:** its numerical conclusion about the historical shortlist
