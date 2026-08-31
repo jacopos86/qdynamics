@@ -1,0 +1,97 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+  "action_json_sha256": "da625f8b29d14e7b72b9cb177028b8f88b74acca09e6be427271901b7e94f8df",
+  "activation_cut_ladder": [
+    "0.001",
+    "0.0003",
+    "0.0001",
+    "3e-05",
+    "1e-05",
+    "3e-06",
+    "1e-06",
+    "3e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/siam-nb4-full_apm-screen-r00-cut1em03/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_exchange_cut0.001",
+  "files": {
+    "action": {
+      "bytes": 183998,
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/action.json",
+      "sha256": "da625f8b29d14e7b72b9cb177028b8f88b74acca09e6be427271901b7e94f8df"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1377,
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/submit.sub",
+      "sha256": "2891736b131bcc21a4d2b75102a81a895524a50685d5612bfffc217fd3947b84"
+    },
+    "worker": {
+      "bytes": 867,
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/run_action.py",
+      "sha256": "f6a13933bfc188e75c7cd4d32392b7a0c3c72ebf1580a6bb418a73bf27e68a74"
+    },
+    "wrapper": {
+      "bytes": 1734,
+      "path": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/run_action_apptainer.sh",
+      "sha256": "3ebc84c9ce9bbe4b0c52f7f357f4570b201de4685b089891eb4885f4d24fd00e"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828",
+  "prepared_at": "2026-08-28T17:23:25.722655+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "runner_argv_sha256": "5dd489d882821c00cf6ee00445370590fced06addd96ed7dfba396b8d4dacad2",
+  "schema": "siam_nb4_chtc_package_manifest_v4",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+    "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc"
+  },
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "2891736b131bcc21a4d2b75102a81a895524a50685d5612bfffc217fd3947b84",
+  "worker_sha256": "f6a13933bfc188e75c7cd4d32392b7a0c3c72ebf1580a6bb418a73bf27e68a74",
+  "wrapper_sha256": "3ebc84c9ce9bbe4b0c52f7f357f4570b201de4685b089891eb4885f4d24fd00e"
+}

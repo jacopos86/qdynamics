@@ -1,0 +1,16 @@
+{
+  "schema": "paper_ii_source_epoch_receipt_v1",
+  "source_epoch": {
+    "lane_id": "paper_ii_hh_product_v1",
+    "source_archive_sha256": "49a1a0298bd9241568fbc7fc3daa0dc21d3153c21edbc34d467a4cfcb76ad30c",
+    "source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+    "source_epoch_identity_sha256": "36bea0d5708cef4229f71f66987c9af7a1b8e08a1b08909eaf6d164eafdf395e",
+    "source_revision": "267516eab3b35c2cfb495e543246b48196179322"
+  },
+  "source_epoch_receipt_sha256": "f8b5b20fa64021c42e3eb99c73f1658d284d2216f5837225c34b197a45d36d8d",
+  "source_tree_manifest": {
+    "path": "output/paper_ii_hh_product_v1/source_epochs/seedfix_267516ea/source_tree_manifest.json",
+    "sha256": "9eef0b68a611083fdf300a64f543d70ab9b6e460f3faef39412fb4b418be98ed"
+  },
+  "source_tree_sha256": "ecc181dd4bce65dc62bf707e12f5bb3570e0400edd27d16cd454a5e51b2b2f0c"
+}

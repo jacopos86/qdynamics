@@ -1,0 +1,63 @@
+{
+  "archive": {
+    "atomic_rename_verified": true,
+    "gzip_verified": true,
+    "member_count": 706,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/rebaseline_upload.tar.gz",
+    "sha256": "cf47a3d56a253c9293a2e0f15f0da5ed920144c40c155d2e7f428fc2e9219961",
+    "size_bytes": 5328176,
+    "tar_verified": true,
+    "transferred_through_part": true,
+    "uncompressed_bytes": 29109998,
+    "xattrs_absent": true
+  },
+  "checks": {
+    "condor_dry_run": true,
+    "container_seed_regeneration": true,
+    "exact_reference_blind": true,
+    "image_hard_link_verified": true,
+    "lifecycle_validation_local": true,
+    "output_paths_clear": true,
+    "package_file_digests_verified": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "source_tree_verified": true
+  },
+  "duplicate_action_audit": {
+    "classification": "intentional_source_rebaseline",
+    "new_output_paths_clear": true,
+    "prior_avqds": {
+      "cluster_id": 9712800,
+      "retained_role": "diagnostic_candidate",
+      "source_revision": "39cd411efe18a5605675876655c8d7b9fa01b579"
+    },
+    "prior_full_apm": {
+      "cluster_id": 9712866,
+      "retained_role": "diagnostic_candidate",
+      "source_revision": "ebdf7ca593f0ea56e06300341b5d408f7961da00"
+    },
+    "reason": "Continuation lineage and stitching require both canonical screens to share one exact source revision."
+  },
+  "expected_image": {
+    "inode": 477991353,
+    "link_count_after": 24,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "size_bytes": 216371200
+  },
+  "package_manifest_sha256": {
+    "siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9",
+    "siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828": "e7d706f6d50bff94c07d2526adb387f1904ea48cb0075455ab6afceecb08c969"
+  },
+  "quota": {
+    "home_limit_mib": 51200,
+    "home_quota_mib": 40960,
+    "home_used_mib": 30650
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "schema": "siam_nb4_rebaseline_remote_upload_receipt_v1",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "VERIFIED_EXTRACTED_NOT_SUBMITTED",
+  "timestamp": "2026-08-28T05:48:48Z"
+}

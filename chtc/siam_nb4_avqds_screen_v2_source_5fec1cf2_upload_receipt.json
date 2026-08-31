@@ -1,0 +1,18 @@
+{
+  "archive_path": "chtc/siam_nb4_avqds_screen_v2_source_5fec1cf2_upload.tar.gz",
+  "gzip_verified": true,
+  "member_count": 692,
+  "package_manifest_sha256": "69604714d484fa62289e14d0a04c4df8be7c006561c13631757fe30c8dc10d59",
+  "schema": "siam_source_locked_upload_receipt_v2",
+  "sha256": "12e92b313109694b9beacfe576dd4b847ab8f9136b8ce3ca1d4014da2c8787c6",
+  "size_bytes": 5117851,
+  "source_revision": "5fec1cf271428d0726fadf251fd9f299bc5799ee",
+  "source_sentinels": {
+    "pipelines/time_dynamics/siam_runtime.py": "ac1f93c5756626d734771b4203656edc2548501c98376ea608a430f87253effc",
+    "pipelines/time_dynamics/siam_seed.py": "2fe5717d7efaedaa133936eb3b6ec9ca5846f07b2bf9ce3514634757276abe18",
+    "src/quantum/siam_model.py": "87c3d5140ddf94221dc535fec77e8011790987e8f61684c8fc5e9c0ef79dbf05"
+  },
+  "tar_verified": true,
+  "timestamp": "2026-08-27T16:43:52-05:00",
+  "uncompressed_bytes": 28978688
+}

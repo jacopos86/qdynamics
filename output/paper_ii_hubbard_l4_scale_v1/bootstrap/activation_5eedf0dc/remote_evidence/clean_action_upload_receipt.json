@@ -1,0 +1,15 @@
+{
+  "appledouble_members": false,
+  "bytes": 559287,
+  "gzip_integrity": true,
+  "local_source_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/shared/hubbard_seed_action_contract_5eedf0dc.clean.tar.gz",
+  "receipt_sha256": "b49cb60f14f02ecad75e571b7515ef294383200ea9a2e162f9ecd5657619e1bd",
+  "recorded_at": "2026-08-29T06:00:14.787830+00:00",
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/input/hubbard_seed_action_contract_5eedf0dc.tar.gz",
+  "remote_raw_preservation": true,
+  "schema": "paper_ii_remote_upload_receipt_v1",
+  "sha256": "e8a1d90ebb6b5d6990304d22df9bbefeec157b3603d9c975075518066c2dd7b1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 8
+}

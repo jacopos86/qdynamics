@@ -1,0 +1,16 @@
+{
+  "action_id": "screen_avqds_nb4_t1_cut1e-3_seedv2",
+  "activation_cut": 0.001,
+  "arm": "avqds",
+  "compile_terminal_cost": false,
+  "exact_reference_blind": true,
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.001",
+  "expected_runner_argv_sha256": "d1d206f7f192861b52e6b43af07902e09e6183e5145524afc65964caef38d62e",
+  "schema": "siam_nb4_chtc_action_v2",
+  "seed_path": "chtc/siam_nb4_avqds_screen_v2_source_5fec1cf2_20260827/input/seed.json",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "segment": "screen_t0_t1_101",
+  "source_revision": "5fec1cf271428d0726fadf251fd9f299bc5799ee",
+  "trajectory_json": "raw_outputs/screen_avqds_nb4_t1_cut1e-3_seedv2/run.json"
+}

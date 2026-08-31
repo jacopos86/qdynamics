@@ -1,0 +1,67 @@
+[
+{
+  "ClusterId": 9714499,
+  "DiskUsage_RAW": 234108,
+  "EnteredCurrentStatus": 1788021383,
+  "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+  "JobStatus": 2,
+  "MemoryUsage": "\/Expr(((ResidentSetSize + 1023) / 1024))\/",
+  "PaperIIActionId": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+  "PaperIIExecutionRequestSha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1788021356,
+  "RequestCpus": 1,
+  "RequestDisk": 8388608,
+  "RequestMemory": 16384,
+  "ResidentSetSize_RAW": 407840
+}
+,
+{
+  "ClusterId": 9714501,
+  "DiskUsage_RAW": 234108,
+  "EnteredCurrentStatus": 1788021421,
+  "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+  "JobStatus": 2,
+  "MemoryUsage": "\/Expr(((ResidentSetSize + 1023) / 1024))\/",
+  "PaperIIActionId": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+  "PaperIIExecutionRequestSha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1788021397,
+  "RequestCpus": 1,
+  "RequestDisk": 8388608,
+  "RequestMemory": 16384,
+  "ResidentSetSize_RAW": 379440
+}
+,
+{
+  "ClusterId": 9714524,
+  "DiskUsage_RAW": 246253,
+  "EnteredCurrentStatus": 1788024097,
+  "JobBatchName": "siam-nb4-continue-t1-t5-401-avqds-rung2",
+  "JobStatus": 2,
+  "ProcId": 0,
+  "QDate": 1788024080,
+  "RequestCpus": 2,
+  "RequestDisk": 41943040,
+  "RequestMemory": 10240,
+  "SIAMScientificActionId": "siam-nb4-avqds-continue-r02-cut1em03",
+  "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+}
+,
+{
+  "ClusterId": 9714525,
+  "DiskUsage_RAW": 240641,
+  "EnteredCurrentStatus": 1788024097,
+  "JobBatchName": "siam-nb4-screen-t0-t1-101-exchange-rung2",
+  "JobStatus": 2,
+  "ProcId": 0,
+  "QDate": 1788024090,
+  "RequestCpus": 2,
+  "RequestDisk": 41943040,
+  "RequestMemory": 10240,
+  "SIAMScientificActionId": "siam-nb4-full_apm-screen-r02-cut1em03",
+  "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+}
+]

@@ -1,0 +1,84 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 270701,
+    "captured_at": "2026-08-29T22:53:58.991564Z",
+    "captured_at_unix_ns": 1788044038992143366,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_175155/combined_snapshot.json",
+    "sha256": "3652956f82ad7d5ebd4fdc83da66e8f8b67d8b58799eb589d5984e45dcf478b2",
+    "snapshot_sha256": "cbc8de2b4c6c3027344ff9f196f854effb8f0a0493c7c0a3a848053f9257ddfc",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "fb64a634b2eb0c98883507364d40cceb2b021fb6cf7ccd7e6a562e64d6c310f2",
+    "bytes": 4698,
+    "path": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/submission_intent_bridge.json",
+    "sha256": "4b8cc420bff68b8da39de0384a597f1d0670bc0748bfdc2361e7ae8368d47c11"
+  },
+  "intent_identity_sha256": "e87e7c5b8a5bd74b85c9cffe03752a5692f177c9aebd821ba1af31e9318cf8d1",
+  "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung5",
+  "receipt_sha256": "1b6846e8b90767f90086ea2fca3db043eee4cca62e677b3deebcbb5c8c087c06",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_required_before_submit": true,
+    "path": "raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r05-cut3em05",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1661,
+    "path": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "7491e71efcc2d55a1f22c2a53cc56bf2cf04ed2d66be3d73c1a9f4c7e1518b3c"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "e87e7c5b8a5bd74b85c9cffe03752a5692f177c9aebd821ba1af31e9318cf8d1",
+      "prior_captured_at": "2026-08-29T22:53:58.991564Z",
+      "prior_captured_at_unix_ns": 1788044038992143366,
+      "prior_snapshot_sha256": "cbc8de2b4c6c3027344ff9f196f854effb8f0a0493c7c0a3a848053f9257ddfc",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 271804,
+    "captured_at": "2026-08-29T23:02:44.346894Z",
+    "captured_at_unix_ns": 1788044564347456033,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_180106/combined_snapshot.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 47194,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_180106/raw/history.json",
+        "returncode": 0,
+        "row_count": 59,
+        "sha256": "d0d4d244ab9c9923ffa48d48541170682c5f9dd2313380818923d8b01ef86fda",
+        "stdout_sha256": "d0d4d244ab9c9923ffa48d48541170682c5f9dd2313380818923d8b01ef86fda"
+      },
+      "queue": {
+        "bytes": 1460,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_180106/raw/queue.json",
+        "returncode": 0,
+        "row_count": 2,
+        "sha256": "13b20a08516fe9b7081d6bf7b2c5441493653ab5433387336e2bdbc53e5bdbe6",
+        "stdout_sha256": "13b20a08516fe9b7081d6bf7b2c5441493653ab5433387336e2bdbc53e5bdbe6"
+      }
+    },
+    "sha256": "c5259c189a99a82c1a2dd06a0dc4f5240f7878b63352a22fe4dd8e41dfd36341",
+    "snapshot_sha256": "c8ba613c60304b2a322fd3afe96eb8d0d1fce0207ebbde12027cb9ddd20fb0c0"
+  }
+}

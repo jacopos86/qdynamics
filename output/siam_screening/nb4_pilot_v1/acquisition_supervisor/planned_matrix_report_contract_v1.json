@@ -1,0 +1,103 @@
+{
+  "cells": [
+    {
+      "cell_id": "siam__nb4__screening_quench",
+      "controller": "state_motion_5e-5",
+      "drive": "hybridization_quench",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "siam_nb4_pilot_v1::reference::siam__nb4__screening_quench",
+        "reference_identity_sha256": "baa2550ce49035cacc9230f59bce28c326d9f097702689b1c1e5c13935a4d86e",
+        "slot_id": "siam__nb4__screening_quench::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 5.0
+      },
+      "horizon": 5.0,
+      "lane_id": "siam_nb4_pilot_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "siam__nb4__screening_quench::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "siam__nb4__screening_quench::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "single_impurity_anderson",
+      "physics": {
+        "U": 1.5,
+        "V": 0.7071067811865475,
+        "V_pre_quench": 0.0,
+        "n_bath": 4,
+        "n_down": 2,
+        "n_up": 3,
+        "ordering": "spin_blocked_jordan_wigner",
+        "pool_families": [
+          "K",
+          "J",
+          "Qd",
+          "A",
+          "X",
+          "P"
+        ],
+        "source_epoch": "siam-nb4-source-ba50339c15ffe1aa6507",
+        "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+        "t_b": 1.0
+      }
+    }
+  ],
+  "contract_id": "paper_ii_parallel_benchmarks_20260828:siam_nb4_pilot_v1",
+  "controller": "state_motion_5e-5",
+  "cost_authority": "logical_n_theta_and_routing_independent_graph_tuple",
+  "counts": {
+    "candidate_method_slots": 0,
+    "pending_exact_references": 1,
+    "pending_method_slots": 2,
+    "planned_cells": 1,
+    "planned_exact_references": 1,
+    "planned_method_slots": 2,
+    "qualified_method_slots": 0,
+    "unresolved_method_slots": 0
+  },
+  "lane_id": "siam_nb4_pilot_v1",
+  "matrix": {
+    "expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+    "path": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+    "payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2"
+  },
+  "methods": [
+    "apm",
+    "avqds"
+  ],
+  "qiskit_compilation": {
+    "canonical": false,
+    "requested": false,
+    "used": false
+  },
+  "report_contract_sha256": "9cc10fe2f336f4659b2de9a7940ab3c9e04ffcc65bb868a7eb07b1d25c72744e",
+  "schema": "paper_ii_planned_report_contract_v1",
+  "slot_state_contract": {
+    "completed_values_are_never_hidden_by_a_failed_gate": true,
+    "method_states": [
+      "pending",
+      "candidate",
+      "qualified",
+      "unresolved"
+    ],
+    "pending_means": "no_valid_completed_trajectory"
+  },
+  "tuple_structure_sha256": "46745fa2c30b15f390be18b79e1df2b7f6e9992089a5a409bf3802f83d1c4228"
+}

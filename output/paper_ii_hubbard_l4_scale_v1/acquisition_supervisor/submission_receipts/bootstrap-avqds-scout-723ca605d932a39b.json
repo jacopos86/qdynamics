@@ -1,0 +1,53 @@
+{
+  "action_ids": [
+    "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33"
+  ],
+  "intent_sha256": "af32cf10349a38fbf150af273d7e247ad5ed71d47229eac9b3154ab94aac4c86",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "recorded_at": "2026-08-29T20:29:44.761300218Z",
+  "recovered_from_scheduler": true,
+  "remote": {
+    "action_ids": [
+      "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33"
+    ],
+    "cluster_id": 9714499,
+    "job_batch_name": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+    "process_ids": [
+      0
+    ],
+    "recovery_evidence": {
+      "intent": {
+        "file_sha256": "613b570107e672c1b1c83fe52e3d04d68c7e9ea7e1073a4b3cb32ebb2d7c7de2",
+        "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/bootstrap-avqds-scout-723ca605d932a39b.json",
+        "sha256": "af32cf10349a38fbf150af273d7e247ad5ed71d47229eac9b3154ab94aac4c86"
+      },
+      "scheduler_acceptance_query_performed_by_coordinator": false,
+      "scheduler_match_sha256": "3c7ccc6e7230a2a4f4b4052d0e6534fbf004f3f12c185fa8310a63b55d99097c",
+      "snapshot": {
+        "captured_at": "2026-08-29T20:29:44.761300218Z",
+        "captured_at_unix_ns": 1788035384762387768,
+        "file_sha256": "305be834e646d6f052210775cd913b940e5c15d9ca481b1b1716c64a79ce9d85",
+        "history_stdout": {
+          "bytes": 45064,
+          "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_152835/raw/history.json",
+          "sha256": "28352378ad4db2861d0253e6a50e5e8bfc46b34a9db2903e2fc090d1ab8a16bb"
+        },
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_152835/combined_snapshot_hubbard_scouts.json",
+        "prior_snapshot": null,
+        "queue_stdout": {
+          "bytes": 2589,
+          "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_152835/raw/queue.json",
+          "sha256": "46e2e617c78985a10edaa4c31bd17abb61bcb908cafccc8ee934b5732fe57e14"
+        },
+        "sha256": "f83484d783524de5715e27ca79ff2a35a0c7db33b62fd2dc408c99bae8f95635"
+      }
+    },
+    "remote_raw_evidence_policy": "preserve",
+    "scheduler_identity": "9714499.0",
+    "source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+    "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+    "unit_id": "bootstrap-avqds-scout-723ca605d932a39b"
+  },
+  "schema": "time_dynamics_submission_receipt_v1",
+  "unit_id": "bootstrap-avqds-scout-723ca605d932a39b"
+}

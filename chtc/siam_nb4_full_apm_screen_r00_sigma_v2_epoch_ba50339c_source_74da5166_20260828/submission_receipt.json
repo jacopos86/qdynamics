@@ -1,0 +1,38 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+  "arm": "full_apm",
+  "checks": {
+    "comparator_first": true,
+    "composite_identity_duplicate_excluded": true,
+    "condor_dry_run_passed": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "output_path_absent_before_submission": true,
+    "package_and_source_tree_integrity_passed": true,
+    "qiskit_compilation_requested": false,
+    "quota_passed": true,
+    "resume_completion_receipt_verified": false
+  },
+  "cluster_id": 9713251,
+  "initial_scheduler_snapshot": {
+    "status": "deferred_to_next_combined_snapshot"
+  },
+  "package_id": "siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828",
+  "planner_receipt": {
+    "path": "output/siam_screening/nb4_pilot_v1/plans/source_ba50339c_frontier_9713113/ladder_plan.json",
+    "sha256": "9e05e02772caa32436209b07f00ef1e3821cf056f6421e2d95474452224a17d0"
+  },
+  "recorded_at_utc": "2026-08-28T17:44:52.973438+00:00",
+  "remote_upload_receipt": "chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/remote_upload_receipt.json",
+  "remote_upload_receipt_sha256": "5371365637d624205ec8e8403f00e186a0ea4d71c30e2aef977fc60f7011281e",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_ba50339c_20260828",
+  "schema": "siam_nb4_submission_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "segment": "screen_t0_t1_101",
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "status": "SUBMITTED"
+}

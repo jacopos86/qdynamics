@@ -1,0 +1,1994 @@
+{
+  "capture_counts": {
+    "history": 1,
+    "queue": 1
+  },
+  "captured_at": "2026-08-29T19:24:13Z",
+  "captured_at_unix_ns": 1788031453641329585,
+  "hh_rows": [
+    {
+      "ClusterId": 9714677,
+      "DiskUsage_RAW": 213650,
+      "EnteredCurrentStatus": 1788031359,
+      "JobBatchName": "paper-ii-avqds-paper-ii-hh-product-v1-2affbc1d0c6df19b",
+      "JobStatus": 2,
+      "PaperIIActionId": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+      "PaperIIExecutionRequestSha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788031327,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384
+    },
+    {
+      "ClusterId": 9714676,
+      "CompletionDate": 1788031359,
+      "DiskUsage_RAW": 265376,
+      "EnteredCurrentStatus": 1788031359,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-reference-paper-ii-hh-product-v1-cef7bec229e360c5",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_exact_reference::paper_ii_hh_product_v1::reference::hh__nph1__crossover__midres::d64b2d2b606f08cd",
+      "PaperIIExecutionRequestSha256": "cef7bec229e360c55a96b97d2903571848af08f0d674173326f915874dc28252",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788031327,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384,
+      "ResidentSetSize_RAW": 0
+    },
+    {
+      "ClusterId": 9714493,
+      "CompletionDate": 1788022816,
+      "DiskUsage_RAW": 264272,
+      "EnteredCurrentStatus": 1788022816,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-b8ef017fe514b52a",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::6a5db30f0f138681",
+      "PaperIIExecutionRequestSha256": "b8ef017fe514b52aa5091f20d470597a2f48861ab2445bbde4499a8c691816f0",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 402752
+    },
+    {
+      "ClusterId": 9714494,
+      "CompletionDate": 1788022777,
+      "DiskUsage_RAW": 264272,
+      "EnteredCurrentStatus": 1788022777,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-4ef58ca09a46403b",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::e3b33bebbab5d733",
+      "PaperIIExecutionRequestSha256": "4ef58ca09a46403bf2b610bbb9bad9d426efc15f3ebb67fe3a1d7bba2fc8998a",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 400600
+    },
+    {
+      "ClusterId": 9714495,
+      "CompletionDate": 1788022606,
+      "DiskUsage_RAW": 262245,
+      "EnteredCurrentStatus": 1788022606,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-22296be9ac616a4e",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::3d3b94154d0a9393",
+      "PaperIIExecutionRequestSha256": "22296be9ac616a4e206c16a507433752c64670c1cf83474f86cdcfd28aa195d4",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 399744
+    },
+    {
+      "ClusterId": 9714491,
+      "CompletionDate": 1788021328,
+      "DiskUsage_RAW": 263512,
+      "EnteredCurrentStatus": 1788021328,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-2be62f0da1e6d9a3",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::54eb62ae8e392552",
+      "PaperIIExecutionRequestSha256": "2be62f0da1e6d9a3cf396926a8cd1dcced9de57968b832ac72036126dd34fc50",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 98116
+    },
+    {
+      "ClusterId": 9714492,
+      "CompletionDate": 1788021297,
+      "DiskUsage_RAW": 263520,
+      "EnteredCurrentStatus": 1788021297,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-19355f016ee8de8f",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::aabe244d5cf23cb0",
+      "PaperIIExecutionRequestSha256": "19355f016ee8de8f74dcf3c4395f5ebfeb0e6f33e8fe5e93f6aeb9bcd2905dc8",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 91812
+    },
+    {
+      "ClusterId": 9714490,
+      "CompletionDate": 1788021250,
+      "DiskUsage_RAW": 263520,
+      "EnteredCurrentStatus": 1788021250,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-c8f04083702d87f5",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::86ac2ee063b009ec",
+      "PaperIIExecutionRequestSha256": "c8f04083702d87f5bdca999b221a4e71e5f20843302cb83297459f695949bdb7",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+      "ProcId": 0,
+      "QDate": 1788021187,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 92420
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-0d6cf17e6e45c62d",
+      "ClusterId": 9713880,
+      "CompletionDate": 1787987270,
+      "DiskUsage_RAW": 261592,
+      "EnteredCurrentStatus": 1787987270,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3",
+      "PaperIIExecutionRequestSha256": "0d6cf17e6e45c62df1d253217f4fe2c087627564ff636dd27cdd1bf90625a214",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982377,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 400800
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-bc6eb3afcf29f6b2",
+      "ClusterId": 9713879,
+      "CompletionDate": 1787987010,
+      "DiskUsage_RAW": 259659,
+      "EnteredCurrentStatus": 1787987010,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6",
+      "PaperIIExecutionRequestSha256": "bc6eb3afcf29f6b2c39d7f74fc8aee025b3af3617e5cb6d5712d597d858eeb61",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982377,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 400304
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-06b5ba100adf8d26",
+      "ClusterId": 9713878,
+      "CompletionDate": 1787986593,
+      "DiskUsage_RAW": 259659,
+      "EnteredCurrentStatus": 1787986593,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::01fe11a5195d6420",
+      "PaperIIExecutionRequestSha256": "06b5ba100adf8d269e352151fdc1527afbe9c45768145e0ed0401290f09f0973",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982376,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 399520
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-d78f3ea7c7f5d58c",
+      "ClusterId": 9713877,
+      "CompletionDate": 1787986170,
+      "DiskUsage_RAW": 259659,
+      "EnteredCurrentStatus": 1787986170,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::1a77bfa4e0d6b60f",
+      "PaperIIExecutionRequestSha256": "d78f3ea7c7f5d58c029a066a392c5823cf110614c904b512fd79d2e4aaea2003",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982376,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 91516
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-604078f31bda8681",
+      "ClusterId": 9713876,
+      "CompletionDate": 1787986093,
+      "DiskUsage_RAW": 259659,
+      "EnteredCurrentStatus": 1787986093,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::c6a336c122b7f3cb",
+      "PaperIIExecutionRequestSha256": "604078f31bda86815ac7b99ea8cb4d7b02976518267bf1817d8626e8a4066478",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982376,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 91068
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hh_product_v1",
+      "AcquisitionUnitId": "hh-seed-6aaccc2efdb724a6",
+      "ClusterId": 9713875,
+      "CompletionDate": 1787986020,
+      "DiskUsage_RAW": 259658,
+      "EnteredCurrentStatus": 1787986020,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658",
+      "PaperIIExecutionRequestSha256": "6aaccc2efdb724a66e753c70122e30541dbc439d79af560546264a5994ada247",
+      "PaperIILaneId": "paper_ii_hh_product_v1",
+      "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+      "ProcId": 0,
+      "QDate": 1787982376,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 92668
+    }
+  ],
+  "hubbard_rows": [
+    {
+      "ClusterId": 9714499,
+      "DiskUsage_RAW": 234108,
+      "EnteredCurrentStatus": 1788021383,
+      "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+      "JobStatus": 2,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+      "PaperIIExecutionRequestSha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+      "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+      "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "ProcId": 0,
+      "QDate": 1788021356,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384,
+      "ResidentSetSize_RAW": 657396
+    },
+    {
+      "ClusterId": 9714501,
+      "DiskUsage_RAW": 234112,
+      "EnteredCurrentStatus": 1788021421,
+      "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+      "JobStatus": 2,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+      "PaperIIExecutionRequestSha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+      "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+      "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "ProcId": 0,
+      "QDate": 1788021397,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384,
+      "ResidentSetSize_RAW": 395452
+    },
+    {
+      "ClusterId": 9714500,
+      "CompletionDate": 1788021426,
+      "DiskUsage_RAW": 260154,
+      "EnteredCurrentStatus": 1788021426,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+      "PaperIIExecutionRequestSha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+      "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+      "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "ProcId": 0,
+      "QDate": 1788021397,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384,
+      "ResidentSetSize_RAW": 0
+    },
+    {
+      "ClusterId": 9714498,
+      "CompletionDate": 1788021396,
+      "DiskUsage_RAW": 262108,
+      "EnteredCurrentStatus": 1788021396,
+      "ExitCode": 1,
+      "JobBatchName": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+      "PaperIIExecutionRequestSha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+      "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+      "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "ProcId": 0,
+      "QDate": 1788021356,
+      "RequestCpus": 1,
+      "RequestDisk": 8388608,
+      "RequestMemory": 16384,
+      "ResidentSetSize_RAW": 0
+    },
+    {
+      "AcquisitionLaneId": "paper_ii_hubbard_l4_scale_v1",
+      "AcquisitionUnitId": "hubbard-seed-ee58df1fb13e9669",
+      "ClusterId": 9714040,
+      "CompletionDate": 1787988808,
+      "DiskUsage_RAW": 260470,
+      "EnteredCurrentStatus": 1787988808,
+      "ExitCode": 0,
+      "JobBatchName": "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "PaperIIActionId": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+      "PaperIIExecutionRequestSha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+      "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+      "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "ProcId": 0,
+      "QDate": 1787983672,
+      "RequestCpus": 4,
+      "RequestDisk": 41943040,
+      "RequestMemory": 24576,
+      "ResidentSetSize_RAW": 319008
+    }
+  ],
+  "polling_performed": false,
+  "queries": {
+    "history": {
+      "argv": [
+        "condor_history",
+        "jsstrobel",
+        "-json",
+        "-attributes",
+        "ClusterId,ProcId,JobStatus,ExitCode,HoldReason,JobBatchName,AcquisitionUnitId,AcquisitionLaneId,PaperIIActionId,PaperIIExecutionRequestSha256,PaperIISourceEpochId,PaperIILaneId,SIAMSourceEpochId,SIAMScientificActionId,EnteredCurrentStatus,CompletionDate,QDate,RequestCpus,RequestMemory,MemoryUsage,ResidentSetSize_RAW,RequestDisk,DiskUsage_RAW,RemoteWallClock",
+        "-constraint",
+        "member(ClusterId,{9713875,9713876,9713877,9713878,9713879,9713880,9714040,9714484,9714490,9714491,9714492,9714493,9714494,9714495,9714498,9714499,9714500,9714501,9714524,9714525}) || member(AcquisitionLaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || member(PaperIILaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || regexp(\"^(build_seed|build_exact_reference)::paper_ii_(hh_product_v1|hubbard_l4_scale_v1)::|^screen_avqds::(hh__|hubbard__)\",PaperIIActionId) || (SIAMSourceEpochId == \"siam-nb4-source-446b75f3edc235404bf9\" && member(SIAMScientificActionId,{\"siam-nb4-avqds-continue-r02-cut1em03\",\"siam-nb4-avqds-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r03-cut3em04\"}))"
+      ],
+      "returncode": 0,
+      "rows": [
+        {
+          "ClusterId": 9714676,
+          "CompletionDate": 1788031359,
+          "DiskUsage_RAW": 265376,
+          "EnteredCurrentStatus": 1788031359,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-reference-paper-ii-hh-product-v1-cef7bec229e360c5",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_exact_reference::paper_ii_hh_product_v1::reference::hh__nph1__crossover__midres::d64b2d2b606f08cd",
+          "PaperIIExecutionRequestSha256": "cef7bec229e360c55a96b97d2903571848af08f0d674173326f915874dc28252",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788031327,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384,
+          "ResidentSetSize_RAW": 0
+        },
+        {
+          "ClusterId": 9714524,
+          "CompletionDate": 1788028909,
+          "DiskUsage_RAW": 274079,
+          "EnteredCurrentStatus": 1788028909,
+          "ExitCode": 0,
+          "JobBatchName": "siam-nb4-continue-t1-t5-401-avqds-rung2",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "ProcId": 0,
+          "QDate": 1788024080,
+          "RequestCpus": 2,
+          "RequestDisk": 41943040,
+          "RequestMemory": 10240,
+          "ResidentSetSize_RAW": 260184,
+          "SIAMScientificActionId": "siam-nb4-avqds-continue-r02-cut1em03",
+          "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+        },
+        {
+          "ClusterId": 9714525,
+          "CompletionDate": 1788024648,
+          "DiskUsage_RAW": 252672,
+          "EnteredCurrentStatus": 1788024648,
+          "ExitCode": 0,
+          "JobBatchName": "siam-nb4-screen-t0-t1-101-exchange-rung2",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "ProcId": 0,
+          "QDate": 1788024090,
+          "RequestCpus": 2,
+          "RequestDisk": 41943040,
+          "RequestMemory": 10240,
+          "ResidentSetSize_RAW": 286680,
+          "SIAMScientificActionId": "siam-nb4-full_apm-screen-r02-cut1em03",
+          "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+        },
+        {
+          "ClusterId": 9714493,
+          "CompletionDate": 1788022816,
+          "DiskUsage_RAW": 264272,
+          "EnteredCurrentStatus": 1788022816,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-b8ef017fe514b52a",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::6a5db30f0f138681",
+          "PaperIIExecutionRequestSha256": "b8ef017fe514b52aa5091f20d470597a2f48861ab2445bbde4499a8c691816f0",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 402752
+        },
+        {
+          "ClusterId": 9714494,
+          "CompletionDate": 1788022777,
+          "DiskUsage_RAW": 264272,
+          "EnteredCurrentStatus": 1788022777,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-4ef58ca09a46403b",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::e3b33bebbab5d733",
+          "PaperIIExecutionRequestSha256": "4ef58ca09a46403bf2b610bbb9bad9d426efc15f3ebb67fe3a1d7bba2fc8998a",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 400600
+        },
+        {
+          "ClusterId": 9714495,
+          "CompletionDate": 1788022606,
+          "DiskUsage_RAW": 262245,
+          "EnteredCurrentStatus": 1788022606,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-22296be9ac616a4e",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::3d3b94154d0a9393",
+          "PaperIIExecutionRequestSha256": "22296be9ac616a4e206c16a507433752c64670c1cf83474f86cdcfd28aa195d4",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 399744
+        },
+        {
+          "ClusterId": 9714500,
+          "CompletionDate": 1788021426,
+          "DiskUsage_RAW": 260154,
+          "EnteredCurrentStatus": 1788021426,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+          "PaperIIExecutionRequestSha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+          "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+          "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "ProcId": 0,
+          "QDate": 1788021397,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384,
+          "ResidentSetSize_RAW": 0
+        },
+        {
+          "ClusterId": 9714498,
+          "CompletionDate": 1788021396,
+          "DiskUsage_RAW": 262108,
+          "EnteredCurrentStatus": 1788021396,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+          "PaperIIExecutionRequestSha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+          "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+          "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "ProcId": 0,
+          "QDate": 1788021356,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384,
+          "ResidentSetSize_RAW": 0
+        },
+        {
+          "ClusterId": 9714491,
+          "CompletionDate": 1788021328,
+          "DiskUsage_RAW": 263512,
+          "EnteredCurrentStatus": 1788021328,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-2be62f0da1e6d9a3",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::54eb62ae8e392552",
+          "PaperIIExecutionRequestSha256": "2be62f0da1e6d9a3cf396926a8cd1dcced9de57968b832ac72036126dd34fc50",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 98116
+        },
+        {
+          "ClusterId": 9714492,
+          "CompletionDate": 1788021297,
+          "DiskUsage_RAW": 263520,
+          "EnteredCurrentStatus": 1788021297,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-19355f016ee8de8f",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::aabe244d5cf23cb0",
+          "PaperIIExecutionRequestSha256": "19355f016ee8de8f74dcf3c4395f5ebfeb0e6f33e8fe5e93f6aeb9bcd2905dc8",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 91812
+        },
+        {
+          "ClusterId": 9714490,
+          "CompletionDate": 1788021250,
+          "DiskUsage_RAW": 263520,
+          "EnteredCurrentStatus": 1788021250,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-c8f04083702d87f5",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::86ac2ee063b009ec",
+          "PaperIIExecutionRequestSha256": "c8f04083702d87f5bdca999b221a4e71e5f20843302cb83297459f695949bdb7",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788021187,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 92420
+        },
+        {
+          "ClusterId": 9714484,
+          "CompletionDate": 1788019850,
+          "DiskUsage_RAW": 250441,
+          "EnteredCurrentStatus": 1788019850,
+          "ExitCode": 0,
+          "JobBatchName": "siam-nb4-screen-t0-t1-101-avqds-rung2",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "ProcId": 0,
+          "QDate": 1788019298,
+          "RequestCpus": 2,
+          "RequestDisk": 41943040,
+          "RequestMemory": 10240,
+          "ResidentSetSize_RAW": 222040,
+          "SIAMScientificActionId": "siam-nb4-avqds-screen-r02-cut1em03",
+          "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hubbard_l4_scale_v1",
+          "AcquisitionUnitId": "hubbard-seed-ee58df1fb13e9669",
+          "ClusterId": 9714040,
+          "CompletionDate": 1787988808,
+          "DiskUsage_RAW": 260470,
+          "EnteredCurrentStatus": 1787988808,
+          "ExitCode": 0,
+          "JobBatchName": "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+          "PaperIIExecutionRequestSha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+          "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+          "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "ProcId": 0,
+          "QDate": 1787983672,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 319008
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-0d6cf17e6e45c62d",
+          "ClusterId": 9713880,
+          "CompletionDate": 1787987270,
+          "DiskUsage_RAW": 261592,
+          "EnteredCurrentStatus": 1787987270,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3",
+          "PaperIIExecutionRequestSha256": "0d6cf17e6e45c62df1d253217f4fe2c087627564ff636dd27cdd1bf90625a214",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982377,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 400800
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-bc6eb3afcf29f6b2",
+          "ClusterId": 9713879,
+          "CompletionDate": 1787987010,
+          "DiskUsage_RAW": 259659,
+          "EnteredCurrentStatus": 1787987010,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6",
+          "PaperIIExecutionRequestSha256": "bc6eb3afcf29f6b2c39d7f74fc8aee025b3af3617e5cb6d5712d597d858eeb61",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982377,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 400304
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-06b5ba100adf8d26",
+          "ClusterId": 9713878,
+          "CompletionDate": 1787986593,
+          "DiskUsage_RAW": 259659,
+          "EnteredCurrentStatus": 1787986593,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::01fe11a5195d6420",
+          "PaperIIExecutionRequestSha256": "06b5ba100adf8d269e352151fdc1527afbe9c45768145e0ed0401290f09f0973",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982376,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 399520
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-d78f3ea7c7f5d58c",
+          "ClusterId": 9713877,
+          "CompletionDate": 1787986170,
+          "DiskUsage_RAW": 259659,
+          "EnteredCurrentStatus": 1787986170,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::1a77bfa4e0d6b60f",
+          "PaperIIExecutionRequestSha256": "d78f3ea7c7f5d58c029a066a392c5823cf110614c904b512fd79d2e4aaea2003",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982376,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 91516
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-604078f31bda8681",
+          "ClusterId": 9713876,
+          "CompletionDate": 1787986093,
+          "DiskUsage_RAW": 259659,
+          "EnteredCurrentStatus": 1787986093,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::c6a336c122b7f3cb",
+          "PaperIIExecutionRequestSha256": "604078f31bda86815ac7b99ea8cb4d7b02976518267bf1817d8626e8a4066478",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982376,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 91068
+        },
+        {
+          "AcquisitionLaneId": "paper_ii_hh_product_v1",
+          "AcquisitionUnitId": "hh-seed-6aaccc2efdb724a6",
+          "ClusterId": 9713875,
+          "CompletionDate": 1787986020,
+          "DiskUsage_RAW": 259658,
+          "EnteredCurrentStatus": 1787986020,
+          "ExitCode": 1,
+          "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+          "JobStatus": 4,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658",
+          "PaperIIExecutionRequestSha256": "6aaccc2efdb724a66e753c70122e30541dbc439d79af560546264a5994ada247",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+          "ProcId": 0,
+          "QDate": 1787982376,
+          "RequestCpus": 4,
+          "RequestDisk": 41943040,
+          "RequestMemory": 24576,
+          "ResidentSetSize_RAW": 92668
+        }
+      ],
+      "stderr": "",
+      "stdout_sha256": "0810b7ba2c763619ddf455165f304c43a2fbbf0ad749723f392812393c8a86d4"
+    },
+    "queue": {
+      "argv": [
+        "condor_q",
+        "jsstrobel",
+        "-json",
+        "-attributes",
+        "ClusterId,ProcId,JobStatus,ExitCode,HoldReason,JobBatchName,AcquisitionUnitId,AcquisitionLaneId,PaperIIActionId,PaperIIExecutionRequestSha256,PaperIISourceEpochId,PaperIILaneId,SIAMSourceEpochId,SIAMScientificActionId,EnteredCurrentStatus,CompletionDate,QDate,RequestCpus,RequestMemory,MemoryUsage,ResidentSetSize_RAW,RequestDisk,DiskUsage_RAW,RemoteWallClock",
+        "-constraint",
+        "member(ClusterId,{9713875,9713876,9713877,9713878,9713879,9713880,9714040,9714484,9714490,9714491,9714492,9714493,9714494,9714495,9714498,9714499,9714500,9714501,9714524,9714525}) || member(AcquisitionLaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || member(PaperIILaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || regexp(\"^(build_seed|build_exact_reference)::paper_ii_(hh_product_v1|hubbard_l4_scale_v1)::|^screen_avqds::(hh__|hubbard__)\",PaperIIActionId) || (SIAMSourceEpochId == \"siam-nb4-source-446b75f3edc235404bf9\" && member(SIAMScientificActionId,{\"siam-nb4-avqds-continue-r02-cut1em03\",\"siam-nb4-avqds-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r03-cut3em04\"}))"
+      ],
+      "returncode": 0,
+      "rows": [
+        {
+          "ClusterId": 9714499,
+          "DiskUsage_RAW": 234108,
+          "EnteredCurrentStatus": 1788021383,
+          "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+          "JobStatus": 2,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+          "PaperIIExecutionRequestSha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+          "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+          "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "ProcId": 0,
+          "QDate": 1788021356,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384,
+          "ResidentSetSize_RAW": 657396
+        },
+        {
+          "ClusterId": 9714501,
+          "DiskUsage_RAW": 234112,
+          "EnteredCurrentStatus": 1788021421,
+          "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+          "JobStatus": 2,
+          "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+          "PaperIIActionId": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+          "PaperIIExecutionRequestSha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+          "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+          "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "ProcId": 0,
+          "QDate": 1788021397,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384,
+          "ResidentSetSize_RAW": 395452
+        },
+        {
+          "ClusterId": 9714675,
+          "DiskUsage_RAW": 240641,
+          "EnteredCurrentStatus": 1788031056,
+          "JobBatchName": "siam-nb4-screen-t0-t1-101-exchange-rung3",
+          "JobStatus": 2,
+          "ProcId": 0,
+          "QDate": 1788030945,
+          "RequestCpus": 2,
+          "RequestDisk": 41943040,
+          "RequestMemory": 10240,
+          "SIAMScientificActionId": "siam-nb4-full_apm-screen-r03-cut3em04",
+          "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+        },
+        {
+          "ClusterId": 9714677,
+          "DiskUsage_RAW": 213650,
+          "EnteredCurrentStatus": 1788031359,
+          "JobBatchName": "paper-ii-avqds-paper-ii-hh-product-v1-2affbc1d0c6df19b",
+          "JobStatus": 2,
+          "PaperIIActionId": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+          "PaperIIExecutionRequestSha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+          "PaperIILaneId": "paper_ii_hh_product_v1",
+          "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "ProcId": 0,
+          "QDate": 1788031327,
+          "RequestCpus": 1,
+          "RequestDisk": 8388608,
+          "RequestMemory": 16384
+        }
+      ],
+      "stderr": "",
+      "stdout_sha256": "b056eab52f39991bc01789bcccc8c0a08a0035c77e6468d7f42e22400be1acd1"
+    }
+  },
+  "reconciliation": {
+    "paper-ii-avqds-paper-ii-hh-product-v1-00dcd7c21b81f709": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-06ce3277e6fda24f": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-0ce72c3c053049dd": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-11e50f9e1b1ff11e": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-1a1570fd276e9022": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-1b4f85832b1fd9d9": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-1b89afe3dd67e4de": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-1f6ff5e3fa3d2823": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-21a07d393eb928cc": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-24ca1f14ac79a7d2": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-2affbc1d0c6df19b": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714677,
+          "job_status": 2,
+          "paper_ii_action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+          "paper_ii_execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "queue"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-317f51e9d995f935": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-3f720128c67915ce": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-4db25b13f949f33d": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-5356194c8e0c43b5": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-5384139838f8072b": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-62a91d7fa1f8646a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-68a6fa4f5f051fc8": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-6b2cc906ecea39f2": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-6fdf69cefc1515a4": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-70296bf379858509": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-70b78fe5c8aa9755": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-7c216b2955dad512": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-82ec2f6b0f3dd017": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-9b25e5a498bea38c": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-a301f61696c8b695": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-ab2bf017cc208eb9": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-aed7bc3417858036": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-b85687c8066c853a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-c313c1d26e0703c8": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-cbada24f18c7e3cc": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-cf43a733e46d859f": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-e43ab294f1aef7cb": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-e786be8d99faba9b": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-ea364ba79de1874a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hh-product-v1-f98f7ebd72cae633": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714501,
+          "job_status": 2,
+          "paper_ii_action_id": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+          "paper_ii_execution_request_sha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+          "paper_ii_source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "proc_id": 0,
+          "query": "queue"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714499,
+          "job_status": 2,
+          "paper_ii_action_id": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+          "paper_ii_execution_request_sha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+          "paper_ii_source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "proc_id": 0,
+          "query": "queue"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-111094dac7311185": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-17a806838cba2818": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-1a8990fc2334f9e3": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-2d6d12b317619ff6": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-3efeb568f31febb3": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-3ff7e770c5251295": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-4696542114682fcb": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-5cdc71d0a94339ca": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-5e35540bf610880f": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-69a7ef7e710ad899": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-6db494c838e2ac2a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-7506a4051f9d34de": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-76a577b81f62a3eb": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-7d6a33c50cd342ef": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-83263d76d423f664": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-855b3920d520c0f9": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-89ca90f84ddf3c9a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-8a6e22eb6da605ca": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-8b91351a86efced5": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-8ba34ed8c1c4c19f": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-91455af3da2146c5": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-bbe3e3bdbc2d4c47": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-be3da1761bb0f55a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-cef7bec229e360c5": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714676,
+          "job_status": 4,
+          "paper_ii_action_id": "build_exact_reference::paper_ii_hh_product_v1::reference::hh__nph1__crossover__midres::d64b2d2b606f08cd",
+          "paper_ii_execution_request_sha256": "cef7bec229e360c55a96b97d2903571848af08f0d674173326f915874dc28252",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-d16db20c2ba59fd2": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-e1fd6045a31c0a63": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-e2ad186fcf1cf48e": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-e3190feac334e82e": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-e4f549eb1930ef3a": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-ef220c80d02e868b": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-fa8dc07b89150a14": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-fc0ee55db28cada9": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-fc7ca74ee6c51e7c": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-fd7c753578aa69df": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-ff615efb4e058f7b": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hh-product-v1-ffd7b7798916bef4": {
+      "indeterminate_reason": "no_durable_intent_identity_bound_to_capture",
+      "match_count": 0,
+      "matches": [],
+      "status": "indeterminate"
+    },
+    "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714500,
+          "job_status": 4,
+          "paper_ii_action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+          "paper_ii_execution_request_sha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+          "paper_ii_source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2": {
+      "absence_proof": {
+        "intent_identity_sha256": "5f3014ebb592816380c958ab5f3790d11ffe69d166ec9be60ca9db18b5e5ec6e",
+        "prior_captured_at": "2026-08-29T19:12:42Z",
+        "prior_captured_at_unix_ns": 1788030762369943218,
+        "prior_snapshot_sha256": "9e28f01fc88f34686f3f874e99ed08c4f59d87ab4570216e7bf55e70999ed150",
+        "prior_snapshot_status": "indeterminate",
+        "schema": "paper_ii_intent_first_absence_proof_v1"
+      },
+      "intent_identity_sha256": "5f3014ebb592816380c958ab5f3790d11ffe69d166ec9be60ca9db18b5e5ec6e",
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714498,
+          "job_status": 4,
+          "paper_ii_action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+          "paper_ii_execution_request_sha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+          "paper_ii_source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2": {
+      "absence_proof": {
+        "intent_identity_sha256": "f66a846f3bb18cec5943db86ebf469ecd18d7904c0edac64cc590c891103a3d0",
+        "prior_captured_at": "2026-08-29T19:12:42Z",
+        "prior_captured_at_unix_ns": 1788030762369943218,
+        "prior_snapshot_sha256": "9e28f01fc88f34686f3f874e99ed08c4f59d87ab4570216e7bf55e70999ed150",
+        "prior_snapshot_status": "indeterminate",
+        "schema": "paper_ii_intent_first_absence_proof_v1"
+      },
+      "intent_identity_sha256": "f66a846f3bb18cec5943db86ebf469ecd18d7904c0edac64cc590c891103a3d0",
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-19355f016ee8de8f": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714492,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::aabe244d5cf23cb0",
+          "paper_ii_execution_request_sha256": "19355f016ee8de8f74dcf3c4395f5ebfeb0e6f33e8fe5e93f6aeb9bcd2905dc8",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-22296be9ac616a4e": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714495,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::3d3b94154d0a9393",
+          "paper_ii_execution_request_sha256": "22296be9ac616a4e206c16a507433752c64670c1cf83474f86cdcfd28aa195d4",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-2be62f0da1e6d9a3": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714491,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::54eb62ae8e392552",
+          "paper_ii_execution_request_sha256": "2be62f0da1e6d9a3cf396926a8cd1dcced9de57968b832ac72036126dd34fc50",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-4ef58ca09a46403b": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714494,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::e3b33bebbab5d733",
+          "paper_ii_execution_request_sha256": "4ef58ca09a46403bf2b610bbb9bad9d426efc15f3ebb67fe3a1d7bba2fc8998a",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-b8ef017fe514b52a": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714493,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::6a5db30f0f138681",
+          "paper_ii_execution_request_sha256": "b8ef017fe514b52aa5091f20d470597a2f48861ab2445bbde4499a8c691816f0",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-c8f04083702d87f5": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714490,
+          "job_status": 4,
+          "paper_ii_action_id": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::86ac2ee063b009ec",
+          "paper_ii_execution_request_sha256": "c8f04083702d87f5bdca999b221a4e71e5f20843302cb83297459f695949bdb7",
+          "paper_ii_source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "siam-nb4-continue-t1-t5-401-avqds-rung2": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714524,
+          "job_status": 4,
+          "paper_ii_action_id": null,
+          "paper_ii_execution_request_sha256": null,
+          "paper_ii_source_epoch_id": null,
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "siam-nb4-screen-t0-t1-101-avqds-rung2": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714484,
+          "job_status": 4,
+          "paper_ii_action_id": null,
+          "paper_ii_execution_request_sha256": null,
+          "paper_ii_source_epoch_id": null,
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "siam-nb4-screen-t0-t1-101-exchange-rung2": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714525,
+          "job_status": 4,
+          "paper_ii_action_id": null,
+          "paper_ii_execution_request_sha256": null,
+          "paper_ii_source_epoch_id": null,
+          "proc_id": 0,
+          "query": "history"
+        }
+      ],
+      "status": "found"
+    },
+    "siam-nb4-screen-t0-t1-101-exchange-rung3": {
+      "match_count": 1,
+      "matches": [
+        {
+          "acquisition_lane_id": null,
+          "acquisition_unit_id": null,
+          "cluster_id": 9714675,
+          "job_status": 2,
+          "paper_ii_action_id": null,
+          "paper_ii_execution_request_sha256": null,
+          "paper_ii_source_epoch_id": null,
+          "proc_id": 0,
+          "query": "queue"
+        }
+      ],
+      "status": "found"
+    }
+  },
+  "reconciliation_context": {
+    "intents": {
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2": {
+        "acquisition_unit_id": "bootstrap-exact-reference-770401ecc1a3a211--g2",
+        "intent_identity_sha256": "5f3014ebb592816380c958ab5f3790d11ffe69d166ec9be60ca9db18b5e5ec6e",
+        "intent_sha256": "46537dede45f11934901cd8597d5c62cdefe1672468aa6c4b022165347346e89",
+        "job_batch_name": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2",
+        "paper_ii_action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+        "paper_ii_execution_request_sha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+        "recorded_at": "2026-08-29T18:04:53.422127+00:00"
+      },
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2": {
+        "acquisition_unit_id": "bootstrap-exact-reference-95653022394d8da0--g2",
+        "intent_identity_sha256": "f66a846f3bb18cec5943db86ebf469ecd18d7904c0edac64cc590c891103a3d0",
+        "intent_sha256": "4a302b017dc53872cd8d95141a8f1fd5a686dab066cbf5d66eced7340bbffdb2",
+        "job_batch_name": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2",
+        "paper_ii_action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+        "paper_ii_execution_request_sha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+        "recorded_at": "2026-08-29T18:04:53.422126+00:00"
+      }
+    },
+    "prior_snapshot": {
+      "captured_at": "2026-08-29T19:12:42Z",
+      "captured_at_unix_ns": 1788030762369943218,
+      "intent_outcomes": {
+        "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2": {
+          "intent_identity_sha256": "5f3014ebb592816380c958ab5f3790d11ffe69d166ec9be60ca9db18b5e5ec6e",
+          "status": "indeterminate"
+        },
+        "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2": {
+          "intent_identity_sha256": "f66a846f3bb18cec5943db86ebf469ecd18d7904c0edac64cc590c891103a3d0",
+          "status": "indeterminate"
+        }
+      },
+      "snapshot_sha256": "9e28f01fc88f34686f3f874e99ed08c4f59d87ab4570216e7bf55e70999ed150"
+    },
+    "schema": "paper_ii_intent_first_reconciliation_context_v1"
+  },
+  "schema": "paper_ii_combined_scoped_scheduler_snapshot_v1",
+  "scope": {
+    "active_siam_cluster_ids": [
+      9714484,
+      9714524,
+      9714525
+    ],
+    "condition": "member(ClusterId,{9713875,9713876,9713877,9713878,9713879,9713880,9714040,9714484,9714490,9714491,9714492,9714493,9714494,9714495,9714498,9714499,9714500,9714501,9714524,9714525}) || member(AcquisitionLaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || member(PaperIILaneId,{\"paper_ii_hh_product_v1\",\"paper_ii_hubbard_l4_scale_v1\"}) || regexp(\"^(build_seed|build_exact_reference)::paper_ii_(hh_product_v1|hubbard_l4_scale_v1)::|^screen_avqds::(hh__|hubbard__)\",PaperIIActionId) || (SIAMSourceEpochId == \"siam-nb4-source-446b75f3edc235404bf9\" && member(SIAMScientificActionId,{\"siam-nb4-avqds-continue-r02-cut1em03\",\"siam-nb4-avqds-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r02-cut1em03\",\"siam-nb4-full_apm-screen-r03-cut3em04\"}))",
+    "lanes": {
+      "hh": {
+        "acquisition_lane_ids": [
+          "paper_ii_hh_product_v1"
+        ],
+        "cluster_ids": [
+          9713875,
+          9713876,
+          9713877,
+          9713878,
+          9713879,
+          9713880,
+          9714490,
+          9714491,
+          9714492,
+          9714493,
+          9714494,
+          9714495
+        ],
+        "job_batch_names": [
+          "paper-ii-avqds-paper-ii-hh-product-v1-00dcd7c21b81f709",
+          "paper-ii-avqds-paper-ii-hh-product-v1-06ce3277e6fda24f",
+          "paper-ii-avqds-paper-ii-hh-product-v1-0ce72c3c053049dd",
+          "paper-ii-avqds-paper-ii-hh-product-v1-11e50f9e1b1ff11e",
+          "paper-ii-avqds-paper-ii-hh-product-v1-1a1570fd276e9022",
+          "paper-ii-avqds-paper-ii-hh-product-v1-1b4f85832b1fd9d9",
+          "paper-ii-avqds-paper-ii-hh-product-v1-1b89afe3dd67e4de",
+          "paper-ii-avqds-paper-ii-hh-product-v1-1f6ff5e3fa3d2823",
+          "paper-ii-avqds-paper-ii-hh-product-v1-21a07d393eb928cc",
+          "paper-ii-avqds-paper-ii-hh-product-v1-24ca1f14ac79a7d2",
+          "paper-ii-avqds-paper-ii-hh-product-v1-2affbc1d0c6df19b",
+          "paper-ii-avqds-paper-ii-hh-product-v1-317f51e9d995f935",
+          "paper-ii-avqds-paper-ii-hh-product-v1-3f720128c67915ce",
+          "paper-ii-avqds-paper-ii-hh-product-v1-4db25b13f949f33d",
+          "paper-ii-avqds-paper-ii-hh-product-v1-5356194c8e0c43b5",
+          "paper-ii-avqds-paper-ii-hh-product-v1-5384139838f8072b",
+          "paper-ii-avqds-paper-ii-hh-product-v1-62a91d7fa1f8646a",
+          "paper-ii-avqds-paper-ii-hh-product-v1-68a6fa4f5f051fc8",
+          "paper-ii-avqds-paper-ii-hh-product-v1-6b2cc906ecea39f2",
+          "paper-ii-avqds-paper-ii-hh-product-v1-6fdf69cefc1515a4",
+          "paper-ii-avqds-paper-ii-hh-product-v1-70296bf379858509",
+          "paper-ii-avqds-paper-ii-hh-product-v1-70b78fe5c8aa9755",
+          "paper-ii-avqds-paper-ii-hh-product-v1-7c216b2955dad512",
+          "paper-ii-avqds-paper-ii-hh-product-v1-82ec2f6b0f3dd017",
+          "paper-ii-avqds-paper-ii-hh-product-v1-9b25e5a498bea38c",
+          "paper-ii-avqds-paper-ii-hh-product-v1-a301f61696c8b695",
+          "paper-ii-avqds-paper-ii-hh-product-v1-ab2bf017cc208eb9",
+          "paper-ii-avqds-paper-ii-hh-product-v1-aed7bc3417858036",
+          "paper-ii-avqds-paper-ii-hh-product-v1-b85687c8066c853a",
+          "paper-ii-avqds-paper-ii-hh-product-v1-c313c1d26e0703c8",
+          "paper-ii-avqds-paper-ii-hh-product-v1-cbada24f18c7e3cc",
+          "paper-ii-avqds-paper-ii-hh-product-v1-cf43a733e46d859f",
+          "paper-ii-avqds-paper-ii-hh-product-v1-e43ab294f1aef7cb",
+          "paper-ii-avqds-paper-ii-hh-product-v1-e786be8d99faba9b",
+          "paper-ii-avqds-paper-ii-hh-product-v1-ea364ba79de1874a",
+          "paper-ii-avqds-paper-ii-hh-product-v1-f98f7ebd72cae633",
+          "paper-ii-reference-paper-ii-hh-product-v1-111094dac7311185",
+          "paper-ii-reference-paper-ii-hh-product-v1-17a806838cba2818",
+          "paper-ii-reference-paper-ii-hh-product-v1-1a8990fc2334f9e3",
+          "paper-ii-reference-paper-ii-hh-product-v1-2d6d12b317619ff6",
+          "paper-ii-reference-paper-ii-hh-product-v1-3efeb568f31febb3",
+          "paper-ii-reference-paper-ii-hh-product-v1-3ff7e770c5251295",
+          "paper-ii-reference-paper-ii-hh-product-v1-4696542114682fcb",
+          "paper-ii-reference-paper-ii-hh-product-v1-5cdc71d0a94339ca",
+          "paper-ii-reference-paper-ii-hh-product-v1-5e35540bf610880f",
+          "paper-ii-reference-paper-ii-hh-product-v1-69a7ef7e710ad899",
+          "paper-ii-reference-paper-ii-hh-product-v1-6db494c838e2ac2a",
+          "paper-ii-reference-paper-ii-hh-product-v1-7506a4051f9d34de",
+          "paper-ii-reference-paper-ii-hh-product-v1-76a577b81f62a3eb",
+          "paper-ii-reference-paper-ii-hh-product-v1-7d6a33c50cd342ef",
+          "paper-ii-reference-paper-ii-hh-product-v1-83263d76d423f664",
+          "paper-ii-reference-paper-ii-hh-product-v1-855b3920d520c0f9",
+          "paper-ii-reference-paper-ii-hh-product-v1-89ca90f84ddf3c9a",
+          "paper-ii-reference-paper-ii-hh-product-v1-8a6e22eb6da605ca",
+          "paper-ii-reference-paper-ii-hh-product-v1-8b91351a86efced5",
+          "paper-ii-reference-paper-ii-hh-product-v1-8ba34ed8c1c4c19f",
+          "paper-ii-reference-paper-ii-hh-product-v1-91455af3da2146c5",
+          "paper-ii-reference-paper-ii-hh-product-v1-bbe3e3bdbc2d4c47",
+          "paper-ii-reference-paper-ii-hh-product-v1-be3da1761bb0f55a",
+          "paper-ii-reference-paper-ii-hh-product-v1-cef7bec229e360c5",
+          "paper-ii-reference-paper-ii-hh-product-v1-d16db20c2ba59fd2",
+          "paper-ii-reference-paper-ii-hh-product-v1-e1fd6045a31c0a63",
+          "paper-ii-reference-paper-ii-hh-product-v1-e2ad186fcf1cf48e",
+          "paper-ii-reference-paper-ii-hh-product-v1-e3190feac334e82e",
+          "paper-ii-reference-paper-ii-hh-product-v1-e4f549eb1930ef3a",
+          "paper-ii-reference-paper-ii-hh-product-v1-ef220c80d02e868b",
+          "paper-ii-reference-paper-ii-hh-product-v1-fa8dc07b89150a14",
+          "paper-ii-reference-paper-ii-hh-product-v1-fc0ee55db28cada9",
+          "paper-ii-reference-paper-ii-hh-product-v1-fc7ca74ee6c51e7c",
+          "paper-ii-reference-paper-ii-hh-product-v1-fd7c753578aa69df",
+          "paper-ii-reference-paper-ii-hh-product-v1-ff615efb4e058f7b",
+          "paper-ii-reference-paper-ii-hh-product-v1-ffd7b7798916bef4",
+          "paper-ii-seed-paper-ii-hh-product-v1-19355f016ee8de8f",
+          "paper-ii-seed-paper-ii-hh-product-v1-22296be9ac616a4e",
+          "paper-ii-seed-paper-ii-hh-product-v1-2be62f0da1e6d9a3",
+          "paper-ii-seed-paper-ii-hh-product-v1-4ef58ca09a46403b",
+          "paper-ii-seed-paper-ii-hh-product-v1-b8ef017fe514b52a",
+          "paper-ii-seed-paper-ii-hh-product-v1-c8f04083702d87f5"
+        ]
+      },
+      "hubbard": {
+        "acquisition_lane_ids": [
+          "paper_ii_hubbard_l4_scale_v1"
+        ],
+        "cluster_ids": [
+          9714040,
+          9714498,
+          9714499,
+          9714500,
+          9714501
+        ],
+        "job_batch_names": [
+          "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+          "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+          "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211",
+          "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2",
+          "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0",
+          "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2"
+        ]
+      },
+      "siam": {
+        "acquisition_lane_ids": [],
+        "cluster_ids": [
+          9714484,
+          9714524,
+          9714525
+        ],
+        "job_batch_names": [
+          "siam-nb4-continue-t1-t5-401-avqds-rung2",
+          "siam-nb4-screen-t0-t1-101-avqds-rung2",
+          "siam-nb4-screen-t0-t1-101-exchange-rung2",
+          "siam-nb4-screen-t0-t1-101-exchange-rung3"
+        ]
+      }
+    },
+    "projected_attributes": [
+      "ClusterId",
+      "ProcId",
+      "JobStatus",
+      "ExitCode",
+      "HoldReason",
+      "JobBatchName",
+      "AcquisitionUnitId",
+      "AcquisitionLaneId",
+      "PaperIIActionId",
+      "PaperIIExecutionRequestSha256",
+      "PaperIISourceEpochId",
+      "PaperIILaneId",
+      "SIAMSourceEpochId",
+      "SIAMScientificActionId",
+      "EnteredCurrentStatus",
+      "CompletionDate",
+      "QDate",
+      "RequestCpus",
+      "RequestMemory",
+      "MemoryUsage",
+      "ResidentSetSize_RAW",
+      "RequestDisk",
+      "DiskUsage_RAW",
+      "RemoteWallClock"
+    ],
+    "prospective_cluster_ids": [
+      9713875,
+      9713876,
+      9713877,
+      9713878,
+      9713879,
+      9713880,
+      9714040,
+      9714490,
+      9714491,
+      9714492,
+      9714493,
+      9714494,
+      9714495,
+      9714498,
+      9714499,
+      9714500,
+      9714501
+    ],
+    "prospective_job_batch_names": [
+      "paper-ii-avqds-paper-ii-hh-product-v1-00dcd7c21b81f709",
+      "paper-ii-avqds-paper-ii-hh-product-v1-06ce3277e6fda24f",
+      "paper-ii-avqds-paper-ii-hh-product-v1-0ce72c3c053049dd",
+      "paper-ii-avqds-paper-ii-hh-product-v1-11e50f9e1b1ff11e",
+      "paper-ii-avqds-paper-ii-hh-product-v1-1a1570fd276e9022",
+      "paper-ii-avqds-paper-ii-hh-product-v1-1b4f85832b1fd9d9",
+      "paper-ii-avqds-paper-ii-hh-product-v1-1b89afe3dd67e4de",
+      "paper-ii-avqds-paper-ii-hh-product-v1-1f6ff5e3fa3d2823",
+      "paper-ii-avqds-paper-ii-hh-product-v1-21a07d393eb928cc",
+      "paper-ii-avqds-paper-ii-hh-product-v1-24ca1f14ac79a7d2",
+      "paper-ii-avqds-paper-ii-hh-product-v1-2affbc1d0c6df19b",
+      "paper-ii-avqds-paper-ii-hh-product-v1-317f51e9d995f935",
+      "paper-ii-avqds-paper-ii-hh-product-v1-3f720128c67915ce",
+      "paper-ii-avqds-paper-ii-hh-product-v1-4db25b13f949f33d",
+      "paper-ii-avqds-paper-ii-hh-product-v1-5356194c8e0c43b5",
+      "paper-ii-avqds-paper-ii-hh-product-v1-5384139838f8072b",
+      "paper-ii-avqds-paper-ii-hh-product-v1-62a91d7fa1f8646a",
+      "paper-ii-avqds-paper-ii-hh-product-v1-68a6fa4f5f051fc8",
+      "paper-ii-avqds-paper-ii-hh-product-v1-6b2cc906ecea39f2",
+      "paper-ii-avqds-paper-ii-hh-product-v1-6fdf69cefc1515a4",
+      "paper-ii-avqds-paper-ii-hh-product-v1-70296bf379858509",
+      "paper-ii-avqds-paper-ii-hh-product-v1-70b78fe5c8aa9755",
+      "paper-ii-avqds-paper-ii-hh-product-v1-7c216b2955dad512",
+      "paper-ii-avqds-paper-ii-hh-product-v1-82ec2f6b0f3dd017",
+      "paper-ii-avqds-paper-ii-hh-product-v1-9b25e5a498bea38c",
+      "paper-ii-avqds-paper-ii-hh-product-v1-a301f61696c8b695",
+      "paper-ii-avqds-paper-ii-hh-product-v1-ab2bf017cc208eb9",
+      "paper-ii-avqds-paper-ii-hh-product-v1-aed7bc3417858036",
+      "paper-ii-avqds-paper-ii-hh-product-v1-b85687c8066c853a",
+      "paper-ii-avqds-paper-ii-hh-product-v1-c313c1d26e0703c8",
+      "paper-ii-avqds-paper-ii-hh-product-v1-cbada24f18c7e3cc",
+      "paper-ii-avqds-paper-ii-hh-product-v1-cf43a733e46d859f",
+      "paper-ii-avqds-paper-ii-hh-product-v1-e43ab294f1aef7cb",
+      "paper-ii-avqds-paper-ii-hh-product-v1-e786be8d99faba9b",
+      "paper-ii-avqds-paper-ii-hh-product-v1-ea364ba79de1874a",
+      "paper-ii-avqds-paper-ii-hh-product-v1-f98f7ebd72cae633",
+      "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+      "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+      "paper-ii-reference-paper-ii-hh-product-v1-111094dac7311185",
+      "paper-ii-reference-paper-ii-hh-product-v1-17a806838cba2818",
+      "paper-ii-reference-paper-ii-hh-product-v1-1a8990fc2334f9e3",
+      "paper-ii-reference-paper-ii-hh-product-v1-2d6d12b317619ff6",
+      "paper-ii-reference-paper-ii-hh-product-v1-3efeb568f31febb3",
+      "paper-ii-reference-paper-ii-hh-product-v1-3ff7e770c5251295",
+      "paper-ii-reference-paper-ii-hh-product-v1-4696542114682fcb",
+      "paper-ii-reference-paper-ii-hh-product-v1-5cdc71d0a94339ca",
+      "paper-ii-reference-paper-ii-hh-product-v1-5e35540bf610880f",
+      "paper-ii-reference-paper-ii-hh-product-v1-69a7ef7e710ad899",
+      "paper-ii-reference-paper-ii-hh-product-v1-6db494c838e2ac2a",
+      "paper-ii-reference-paper-ii-hh-product-v1-7506a4051f9d34de",
+      "paper-ii-reference-paper-ii-hh-product-v1-76a577b81f62a3eb",
+      "paper-ii-reference-paper-ii-hh-product-v1-7d6a33c50cd342ef",
+      "paper-ii-reference-paper-ii-hh-product-v1-83263d76d423f664",
+      "paper-ii-reference-paper-ii-hh-product-v1-855b3920d520c0f9",
+      "paper-ii-reference-paper-ii-hh-product-v1-89ca90f84ddf3c9a",
+      "paper-ii-reference-paper-ii-hh-product-v1-8a6e22eb6da605ca",
+      "paper-ii-reference-paper-ii-hh-product-v1-8b91351a86efced5",
+      "paper-ii-reference-paper-ii-hh-product-v1-8ba34ed8c1c4c19f",
+      "paper-ii-reference-paper-ii-hh-product-v1-91455af3da2146c5",
+      "paper-ii-reference-paper-ii-hh-product-v1-bbe3e3bdbc2d4c47",
+      "paper-ii-reference-paper-ii-hh-product-v1-be3da1761bb0f55a",
+      "paper-ii-reference-paper-ii-hh-product-v1-cef7bec229e360c5",
+      "paper-ii-reference-paper-ii-hh-product-v1-d16db20c2ba59fd2",
+      "paper-ii-reference-paper-ii-hh-product-v1-e1fd6045a31c0a63",
+      "paper-ii-reference-paper-ii-hh-product-v1-e2ad186fcf1cf48e",
+      "paper-ii-reference-paper-ii-hh-product-v1-e3190feac334e82e",
+      "paper-ii-reference-paper-ii-hh-product-v1-e4f549eb1930ef3a",
+      "paper-ii-reference-paper-ii-hh-product-v1-ef220c80d02e868b",
+      "paper-ii-reference-paper-ii-hh-product-v1-fa8dc07b89150a14",
+      "paper-ii-reference-paper-ii-hh-product-v1-fc0ee55db28cada9",
+      "paper-ii-reference-paper-ii-hh-product-v1-fc7ca74ee6c51e7c",
+      "paper-ii-reference-paper-ii-hh-product-v1-fd7c753578aa69df",
+      "paper-ii-reference-paper-ii-hh-product-v1-ff615efb4e058f7b",
+      "paper-ii-reference-paper-ii-hh-product-v1-ffd7b7798916bef4",
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211",
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2",
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0",
+      "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2",
+      "paper-ii-seed-paper-ii-hh-product-v1-19355f016ee8de8f",
+      "paper-ii-seed-paper-ii-hh-product-v1-22296be9ac616a4e",
+      "paper-ii-seed-paper-ii-hh-product-v1-2be62f0da1e6d9a3",
+      "paper-ii-seed-paper-ii-hh-product-v1-4ef58ca09a46403b",
+      "paper-ii-seed-paper-ii-hh-product-v1-b8ef017fe514b52a",
+      "paper-ii-seed-paper-ii-hh-product-v1-c8f04083702d87f5"
+    ]
+  },
+  "siam_rows": [
+    {
+      "ClusterId": 9714675,
+      "DiskUsage_RAW": 240641,
+      "EnteredCurrentStatus": 1788031056,
+      "JobBatchName": "siam-nb4-screen-t0-t1-101-exchange-rung3",
+      "JobStatus": 2,
+      "ProcId": 0,
+      "QDate": 1788030945,
+      "RequestCpus": 2,
+      "RequestDisk": 41943040,
+      "RequestMemory": 10240,
+      "SIAMScientificActionId": "siam-nb4-full_apm-screen-r03-cut3em04",
+      "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+    },
+    {
+      "ClusterId": 9714524,
+      "CompletionDate": 1788028909,
+      "DiskUsage_RAW": 274079,
+      "EnteredCurrentStatus": 1788028909,
+      "ExitCode": 0,
+      "JobBatchName": "siam-nb4-continue-t1-t5-401-avqds-rung2",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "ProcId": 0,
+      "QDate": 1788024080,
+      "RequestCpus": 2,
+      "RequestDisk": 41943040,
+      "RequestMemory": 10240,
+      "ResidentSetSize_RAW": 260184,
+      "SIAMScientificActionId": "siam-nb4-avqds-continue-r02-cut1em03",
+      "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+    },
+    {
+      "ClusterId": 9714525,
+      "CompletionDate": 1788024648,
+      "DiskUsage_RAW": 252672,
+      "EnteredCurrentStatus": 1788024648,
+      "ExitCode": 0,
+      "JobBatchName": "siam-nb4-screen-t0-t1-101-exchange-rung2",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "ProcId": 0,
+      "QDate": 1788024090,
+      "RequestCpus": 2,
+      "RequestDisk": 41943040,
+      "RequestMemory": 10240,
+      "ResidentSetSize_RAW": 286680,
+      "SIAMScientificActionId": "siam-nb4-full_apm-screen-r02-cut1em03",
+      "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+    },
+    {
+      "ClusterId": 9714484,
+      "CompletionDate": 1788019850,
+      "DiskUsage_RAW": 250441,
+      "EnteredCurrentStatus": 1788019850,
+      "ExitCode": 0,
+      "JobBatchName": "siam-nb4-screen-t0-t1-101-avqds-rung2",
+      "JobStatus": 4,
+      "MemoryUsage": "/Expr(((ResidentSetSize + 1023) / 1024))/",
+      "ProcId": 0,
+      "QDate": 1788019298,
+      "RequestCpus": 2,
+      "RequestDisk": 41943040,
+      "RequestMemory": 10240,
+      "ResidentSetSize_RAW": 222040,
+      "SIAMScientificActionId": "siam-nb4-avqds-screen-r02-cut1em03",
+      "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+    }
+  ],
+  "single_combined_snapshot": true,
+  "snapshot_sha256": "82d1f125704a0be0305556a60ab700004f4b62e31386c1cde34e61159945d9e1"
+}

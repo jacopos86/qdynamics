@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 3742,
+  "archive_sha256": "e763a15f41cb9a6b5109e03eca9d26183a7267244c87a00ff3f62a8c1b51966e",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/time_dynamics_acquisition/evidence_transfers/prospective_cycle_20260829_0104.transfer_finalization_intent.json",
+    "sha256": "bc5a71de3cc879d39f40589935256b423e78779d64d253de4c4a2abb397e4c2f"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/time_dynamics_acquisition/evidence_transfers/prospective_cycle_20260829_0104_and_hubbard_submission.tar.gz",
+  "receipt_sha256": "4bec384690229fb3b36779b9eb548be1f05eac903d055e81bdb1e087e6264a63",
+  "recorded_at": "2026-08-29T01:08:59.109657-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/evidence_transfers/prospective_cycle_20260829_0104_and_hubbard_submission.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 5
+}

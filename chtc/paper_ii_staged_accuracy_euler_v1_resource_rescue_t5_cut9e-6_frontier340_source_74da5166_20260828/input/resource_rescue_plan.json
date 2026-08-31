@@ -1,0 +1,84 @@
+{
+  "canonical_ledger": {
+    "path": "output/paper_ii_staged/ledger_current.json",
+    "record_count": 340,
+    "sha256": "ae4349f080df64ad0492c1cdd08ea0430e1279478f3f749c8fbd06a9c8c33e21"
+  },
+  "canonical_policy": "exact_response_normalized_matched_pair_v1",
+  "controller_policy": "unchanged",
+  "cut_rationale": {
+    "new_activation_l2_cut": 0.000009,
+    "prior_safeguard_cut": 0.000003,
+    "reason": "A factor-three coarsening of the method-owned activation cut reduces structural growth after an uncured local-subdivision safeguard while leaving the Hamiltonian, drive, controller, Euler integrator, ridge 1e-6 inverse convention, search profile, pruning policy, seed, grid, and accuracy policy unchanged.",
+    "registered_precedent": "The 9e-6 rung has already been exercised as a runnable threshold in preserved historical work, but the live result is classified only under the canonical response-normalized matched-pair policy.",
+    "threshold_monotonicity_assumed": false
+  },
+  "deferred_actions": [
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "fastfast",
+      "method": "exchange",
+      "reason": "Wait for the same-cell AVQDS resource-rescue screen and any resulting continuation before opening new full-APM work."
+    },
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "fastweak",
+      "method": "exchange",
+      "reason": "Wait for the same-cell AVQDS resource-rescue screen and any resulting continuation before opening new full-APM work."
+    },
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "strongfast",
+      "method": "exchange",
+      "reason": "Wait for the same-cell AVQDS resource-rescue screen and any resulting continuation before opening new full-APM work."
+    },
+    {
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "method": "exchange",
+      "reason": "Wait for the same-cell AVQDS resource-rescue screen and any resulting continuation before opening new full-APM work."
+    },
+    {
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "method": "exchange",
+      "reason": "Comparator-first t20 work remains blocked until the AVQDS arm in this cell supplies admissible comparator evidence."
+    },
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "midres",
+      "method": "exchange",
+      "reason": "Comparator-first work remains blocked until the AVQDS arm in this cell supplies admissible comparator evidence; preserve the earlier APM safeguard as provenance."
+    },
+    {
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "method": "exchange",
+      "reason": "Comparator-first t20 work remains blocked until the AVQDS arm in this cell supplies admissible comparator evidence."
+    }
+  ],
+  "next_measured_decision": {
+    "if_completed_and_accuracy_missed": "Evaluate the completed 9e-6 candidate under the canonical policy, retain its numerical values, and test a separately recorded intermediate tighter rung such as 6e-6 only when the measured miss warrants it.",
+    "if_resource_limited_again": "Preserve any valid partial evidence and test the next separately recorded coarser resource rung, nominally 2.7e-5, without changing controller or pruning settings.",
+    "if_qualified_or_pair_admissible": "Emit the exact decision-identical t20 continuation or comparator action allowed by the canonical ledger and comparator-first policy.",
+    "never": "Do not infer threshold monotonicity, hide a completed candidate, tune pruning reactively, or classify this resource rung under a superseded policy."
+  },
+  "prior_root": {
+    "state": "absent"
+  },
+  "schema": "paper_ii_resource_rescue_plan_v1",
+  "seed": {
+    "path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+  },
+  "selected_action_ids": [
+    "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastfast__t5__cut9e-06",
+    "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t5__cut9e-06",
+    "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__midres__t5__cut9e-06",
+    "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06",
+    "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__strongfast__t5__cut9e-06",
+    "screen_apm_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t5__cut9e-06"
+  ],
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "status": "PREPARED_NOT_SUBMITTED"
+}

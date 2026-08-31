@@ -1,0 +1,20 @@
+{
+  "archive": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_upload.tar.gz",
+  "archive_bytes": 5113097,
+  "archive_members": 690,
+  "archive_sha256": "44b923f34d307c8d52b5fa2e5679ff0e30e745fb55e8e6fa1ee7745609b607de",
+  "archive_uncompressed_bytes": 28958720,
+  "checks": {
+    "embedded_package_manifest": true,
+    "gzip_integrity": true,
+    "portable_package_entries": true,
+    "source_from_git_archive": true,
+    "tar_integrity": true
+  },
+  "package": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827",
+  "package_manifest_sha256": "5ebff67a3cba6cfdc641136d0e250b74c17c0b17969d1c9b2c85914166f5a08b",
+  "prepared_at": "2026-08-27T15:55:11-05:00",
+  "schema": "siam_nb4_source_locked_upload_receipt_v1",
+  "source_revision": "21b129b9c4a1743c58b221f5770eada17a3a19cc",
+  "status": "VERIFIED_LOCAL_NOT_UPLOADED"
+}

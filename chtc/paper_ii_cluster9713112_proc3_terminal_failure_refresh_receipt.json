@@ -1,0 +1,43 @@
+{
+  "action_id": "screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06",
+  "alternate_remote_archive": {
+    "bytes": 475293,
+    "preserved": true,
+    "sha256": "b85b1c75c45c5a87d2adca9b4943b65de59aa79b5c5a7d017c7a67d9993571d9"
+  },
+  "canonical_archive": {
+    "bytes": 477097,
+    "remote_path": "/home/jsstrobel/Holstein_paper_ii_resource_rescue_t5_frontier340_74da5166_20260828/incremental_exports/cluster_9713112/proc3/paper_ii_cluster9713112_proc3_delta_20260828.tar.gz",
+    "remote_preserved": true,
+    "sha256": "b43b41783c08b5ec25119084d7b062e058cbf87a77104da38b64a8a4f3da2f4a"
+  },
+  "cluster_id": 9713112,
+  "live_ledger": {
+    "ledger_sha256": "918ad67ca9adf1a20082d4f0db436d7757be3f9718e2c42a8ac35cb848ffb963",
+    "mutated": false,
+    "path": "output/paper_ii_staged/ledger_current.json",
+    "record_count": 345
+  },
+  "normal_validator_result": "stale_frozen_prefix_rejected",
+  "process_id": 3,
+  "qiskit_compilation_used": false,
+  "recorded_at_utc": "2026-08-29T03:03:17+00:00",
+  "run": {
+    "bytes": 4352496,
+    "point_count": 126,
+    "sha256": "a7ae63182b5e203ff882863a9986e04b750a4bd2abfa3ba7601aadd4d6143cb0",
+    "trajectory_accuracy_trustworthy": false,
+    "uncured_local_subdivision_count": 3
+  },
+  "scheduler": {
+    "exit_code": 3,
+    "job_status": 4
+  },
+  "schema": "paper_ii_proc_terminal_failure_refresh_receipt_v1",
+  "status": "TERMINAL_FAILURE_EVIDENCE_PRESERVED_NOT_INGESTED",
+  "terminal_failure_receipt": {
+    "bytes": 3651,
+    "path": "output/paper_ii_staged/attempts/cluster_9713112/increments/proc3/evidence/terminal_failure_receipt.json",
+    "sha256": "d627084c450b9d4bc9e4b42ecb52aa1e5676834f2e065f205f4cf7cce430a2f0"
+  }
+}

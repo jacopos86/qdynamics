@@ -1,0 +1,23 @@
+{
+  "corrected_archive": {
+    "member_count": 23,
+    "path": "chtc/siam_nb4_next_frontier_packages_source_4e5eba53_upload.tar.gz",
+    "pax_headers_absent": true,
+    "sha256": "9286a10548af697b596a24399c70134e7e0175ab591728e019b47e886767b157",
+    "size_bytes": 977746,
+    "uncompressed_bytes": 6142464
+  },
+  "detected_by": "remote GNU tar rejected LIBARCHIVE.xattr.com.apple.provenance headers during pre-extraction integrity verification",
+  "invalid_archive": {
+    "extracted": false,
+    "local_preserved_path": "chtc/siam_nb4_next_frontier_packages_source_4e5eba53_upload_invalid_xattrs.tar.gz",
+    "remote_preserved_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/next_frontier_packages_upload_invalid_xattrs.tar.gz",
+    "sha256": "d0ce2b187ee0c012fd7790390b9d14e97917b18b0a736b07260a07fd96cdfd3c",
+    "size_bytes": 979194,
+    "submitted": false
+  },
+  "repack_method": "COPYFILE_DISABLE=1 tar --no-xattrs",
+  "repack_receipt_sha256": "70aa6e9ce681ae98f7daa3cc1b755b371361ff75fae013f5092a49a2945f85c1",
+  "schema": "siam_nb4_incremental_package_xattr_repack_receipt_v1",
+  "status": "CORRECTED_BEFORE_EXTRACTION_OR_SUBMISSION"
+}

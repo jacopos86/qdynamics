@@ -1,0 +1,118 @@
+{
+  "archive": {
+    "bytes": 982448,
+    "path": "chtc/siam_nb4_source_446b75f3_frontier9714484_upload_20260829.tar.gz",
+    "sha256": "9f5e78a29bfc39eb3f927a15e826825d5f7b3743c135f286a4af088a824656b2"
+  },
+  "generated_at_utc": "2026-08-29T16:49:12.795320+00:00",
+  "plan": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9714484_v1_20260829/ladder_plan.json",
+  "plan_sha256": "0bafaf9c2bf9085e3ca69b1dff438c315e1f72dad2ba6ed65514e99909b60bb0",
+  "prepared_actions": [
+    {
+      "action": {
+        "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+        "activation_cut": 0.001,
+        "arm": "avqds",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 2,
+        "qiskit_compilation_requested": false,
+        "reason": "Resume the valid avqds screen at the same method-owned cut through T=5.",
+        "resume_from_action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+        "segment": "continue_t1_t5_401"
+      },
+      "action_json": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "action_json_sha256": "a5c0093f910c846c163f72a4b1619a9ad9fee9409d0874cbe87ff92b57ee3fe0",
+      "checks": {
+        "complete_logical_pool": true,
+        "exact_reference_blind": true,
+        "portable_seed_schema": true,
+        "qiskit_compilation_requested": false,
+        "record_statevectors": true,
+        "resume_input_present": true,
+        "source_locked": true,
+        "source_rebaseline_evidence_present": false,
+        "unique_output": true
+      },
+      "expected_output": "raw_outputs/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-continue-r02-cut1em03/run.json",
+      "manifest": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "manifest_sha256": "a55bc3001ae36233705418892af19ce568bef05b49ccd89ddcbf413df437d021",
+      "package": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829",
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      },
+      "submit": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "submit_sha256": "27182f9a23cbfef48b252f19c741da112873f67d03df1a24413431105ce8d2e2"
+    },
+    {
+      "action": {
+        "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+        "activation_cut": 0.001,
+        "arm": "full_apm",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 2,
+        "qiskit_compilation_requested": false,
+        "reason": "Open full APM at the AVQDS scout cut; the structural arm then owns its ladder.",
+        "resume_from_action_id": null,
+        "segment": "screen_t0_t1_101"
+      },
+      "action_json": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "action_json_sha256": "40df83d9f16f2a3ae7c6cd22263b24d44d695c12b28e2a377ac4e130211b81bc",
+      "checks": {
+        "complete_logical_pool": true,
+        "exact_reference_blind": true,
+        "portable_seed_schema": true,
+        "qiskit_compilation_requested": false,
+        "record_statevectors": true,
+        "resume_input_present": false,
+        "source_locked": true,
+        "source_rebaseline_evidence_present": false,
+        "unique_output": true
+      },
+      "expected_output": "raw_outputs/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r02-cut1em03/run.json",
+      "manifest": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "manifest_sha256": "a30e8d4b399be8e47004cdf5a0951ecdbbf818fe61a235bf64bbec98f886b80f",
+      "package": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829",
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      },
+      "submit": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "submit_sha256": "524decc0aea9bada8f1ebf7db1e9f660f2fe00d4a3d57e3648f9915fb252a49b"
+    }
+  ],
+  "qiskit_compilation_requested": false,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_prepared_frontier_v1",
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "SUBMITTED",
+  "submissions": [
+    {
+      "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+      "cluster_id": 9714524,
+      "package": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829",
+      "submission_receipt": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/submission_receipt.json",
+      "submission_receipt_sha256": "0eeebe79afdfa8c638da14d718fae9cde047ee09224f293e9d9b6fc31e795491"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+      "cluster_id": 9714525,
+      "package": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829",
+      "submission_receipt": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submission_receipt.json",
+      "submission_receipt_sha256": "4066453dc7705c45cfc72cb9268280838ca9b5535b7c7035bcde4e74ef4f0d0e"
+    }
+  ],
+  "prepared_frontier_receipt": {
+    "bytes": 4908,
+    "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9714484_v1_20260829/prepared_frontier_receipt.json",
+    "sha256": "663fec3f5d93645e55601cf4ad3d0f16de555ae89637aa2e2779e3fcbc420a4a"
+  },
+  "submitted_at_utc": "2026-08-29T17:21:30Z"
+}

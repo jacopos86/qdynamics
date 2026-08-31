@@ -1,0 +1,52 @@
+{
+  "acceptance_evidence": "condor_submit_zero_exit_and_cluster_id_stdout",
+  "action_ids": [
+    "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e"
+  ],
+  "automatic_retry_authorized": false,
+  "claim_generation": 1,
+  "cluster_id": 9714681,
+  "condor_submit_returncode": 0,
+  "condor_submit_stderr": "To monitor your job(s), run: condor_watch_q -clusters 9714681\n",
+  "condor_submit_stdout": "Submitting job(s).\n1 job(s) submitted to cluster 9714681.\n",
+  "execution_request_sha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+  "expected_process_ids": [
+    0
+  ],
+  "intent": {
+    "file_sha256": "533611ef37bcff96a6b5e46ca2f40d22aea2575b1b2a881dd87079fe06ca5b9e",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/bootstrap-exact-reference-95653022394d8da0--g2.json",
+    "sha256": "4a302b017dc53872cd8d95141a8f1fd5a686dab066cbf5d66eced7340bbffdb2"
+  },
+  "intent_sha256": "4a302b017dc53872cd8d95141a8f1fd5a686dab066cbf5d66eced7340bbffdb2",
+  "job_batch_name": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-95653022394d8da0-g2",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "package": {
+    "bytes": 620455,
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/exact_recovery_cec89e20/cell-4b9846f436399dd7/package_g2/exact_reference_action_package.tar.gz",
+    "sha256": "d6bb53d8391cf1a107f6de08c88266ca05081db13a429b36f634e6c1de155388"
+  },
+  "pre_submit_claim_consumption": {
+    "file_sha256": "096ee66b9c90f5c4ab612ee9c6fb99fb8e34b433468f7cc162caa0d504d65db4",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/pre_submit_claim_consumptions/bootstrap-exact-reference-95653022394d8da0--g2.json",
+    "sha256": "f444ec91f8518ec0c92dda253235a18fdfdb6ea4a0cf10a8b64cbcc64c08dc4e"
+  },
+  "remote_raw_evidence_policy": "preserve",
+  "scheduler_acceptance_query_performed": false,
+  "schema": "paper_ii_bootstrap_provisional_submission_result_v1",
+  "single_condor_submit_invocation": true,
+  "status": "submitted",
+  "submission_attempt_sha256": "22af5e33076f115fdf166c51eeb6e99b6c0b69d3e51d36a8f4a634847dc815f9",
+  "submission_authorization": {
+    "file_sha256": "b7a237522c030c6641a20708d6efba58ba865554dea16fad3ddc7b6cdd9d5ad9",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_authorizations/bootstrap-exact-reference-95653022394d8da0--g2.json",
+    "sha256": "a2045cdfd78fbc1f95a68c3421feebbc31b0ccecc603da7f2c70158b1d0eb2ca"
+  },
+  "submission_result_sha256": "9b22ba0d03c3de54f9cb9dc38a18d8c42241e058dac27b1335415c07749d3245",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/exact_recovery_cec89e20/cell-4b9846f436399dd7/package_g2/submit.sub",
+    "sha256": "87585835dfb9bdbdb17299731b5bf948d6e0b2122677a28f1d11cc8c6f3f3838"
+  },
+  "submitted_at": "2026-08-29T19:35:51+00:00",
+  "unit_id": "bootstrap-exact-reference-95653022394d8da0--g2"
+}

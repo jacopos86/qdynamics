@@ -1,0 +1,50 @@
+{
+  "lane_id": "paper_ii_hh_product_v1",
+  "next_scheduler_contact": "one_combined_scoped_snapshot_in_a_later_cycle",
+  "pre_submit_snapshot_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/scheduler_snapshots/pre_submit_f99b702f/combined_snapshot.json",
+  "pre_submit_snapshot_sha256": "b83c3877978129c7148762d3da773953e5b4a6e048a35a035c8770995eebb8f6",
+  "scheduler_acceptance_queries_performed": 0,
+  "schema": "paper_ii_hh_seed_submission_batch_v1",
+  "source_revision": "f99b702fb9fd320b2cfac1ded60f79bad3d97b07",
+  "status": "submitted",
+  "submission_batch_sha256": "da176a1920e4dce9f93bc910deb85db2d8fe4ea14c5f35937e79cca80b78fb2b",
+  "submission_count": 6,
+  "submissions": [
+    {
+      "cluster_id": 9713875,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+      "submission_result_sha256": "c1f64cdb2b9b13f9491ac2587abc0dcf1fd1736b466a9bc3aed47789ba18f2b1",
+      "unit_id": "hh-seed-6aaccc2efdb724a6"
+    },
+    {
+      "cluster_id": 9713876,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+      "submission_result_sha256": "6975c1f4d81d577265f0c1788965753f72fca47d21ee3515d94892bf7da1f036",
+      "unit_id": "hh-seed-604078f31bda8681"
+    },
+    {
+      "cluster_id": 9713877,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+      "submission_result_sha256": "c95056ad610977ee5e4d54f931e02b3d1a9bd7ebcb0991d35714e4e396690c16",
+      "unit_id": "hh-seed-d78f3ea7c7f5d58c"
+    },
+    {
+      "cluster_id": 9713878,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+      "submission_result_sha256": "acce33b7baf15f19837a14c6b36c2ff631a69c58088e4d9235c7e9a091d47ab0",
+      "unit_id": "hh-seed-06b5ba100adf8d26"
+    },
+    {
+      "cluster_id": 9713879,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+      "submission_result_sha256": "2d6930c9616d260423d6e6fbef76bf4853f0f3428d69ec4b90f938975143bf6e",
+      "unit_id": "hh-seed-bc6eb3afcf29f6b2"
+    },
+    {
+      "cluster_id": 9713880,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+      "submission_result_sha256": "972af90811276c36adc69f93244d38a1e881442f4fb640d2fc6b90faf9033225",
+      "unit_id": "hh-seed-0d6cf17e6e45c62d"
+    }
+  ]
+}

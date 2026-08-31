@@ -1,0 +1,72 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+  "checks": {
+    "exactly_one_submit_issued": true,
+    "intent_first_verified_absence": true,
+    "qiskit_compilation_requested": false,
+    "remote_output_absence_rechecked_immediately_before_submit": true
+  },
+  "cluster_id": 9714525,
+  "condor_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "returncode": 0,
+    "stdout_summary": "1 job(s) submitted to cluster 9714525."
+  },
+  "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung2",
+  "package": {
+    "action": {
+      "bytes": 189790,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "sha256": "40df83d9f16f2a3ae7c6cd22263b24d44d695c12b28e2a377ac4e130211b81bc"
+    },
+    "manifest": {
+      "bytes": 4268,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "sha256": "a30e8d4b399be8e47004cdf5a0951ecdbbf818fe61a235bf64bbec98f886b80f"
+    },
+    "remote_upload_receipt": {
+      "bytes": 4015,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/remote_upload_receipt.json",
+      "sha256": "9357c50c68da0dad1e83741e541c6ab1a4d45e9c1f606367894f9eb46da9ba86"
+    },
+    "submit_descriptor": {
+      "bytes": 1317,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "sha256": "524decc0aea9bada8f1ebf7db1e9f660f2fe00d4a3d57e3648f9915fb252a49b"
+    }
+  },
+  "package_id": "siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829",
+  "process_ids": [
+    0
+  ],
+  "recorded_at_utc": "2026-08-29T17:21:30Z",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "scheduler_observation_after_submit": {
+    "query_performed": false,
+    "state": "not_queried_by_contract"
+  },
+  "schema": "siam_nb4_submission_receipt_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "SUBMITTED",
+  "submission_intent": {
+    "bytes": 1654,
+    "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "49e9d4bf811ea5d04d122b1356a13f1e3ad8a62427b1457d1280f54815256bb0"
+  },
+  "submission_receipt_sha256": "1a2459c553b13a0e5f69b53f82f6f0c980d48726f9e9219619e633fc9ce93316",
+  "submitted_jobs": 1,
+  "verified_absent_reconciliation": {
+    "bytes": 4027,
+    "path": "chtc/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/submission_reconciliation_verified_absent.json",
+    "receipt_sha256": "77b6ded673ffad5f4e5c2bbeae2a3647489989b291cda450622aafc07886e37c",
+    "sha256": "5e2499deed19a4286c0076076625722b27bd7759149a5421eb398a99afcf6dec"
+  }
+}

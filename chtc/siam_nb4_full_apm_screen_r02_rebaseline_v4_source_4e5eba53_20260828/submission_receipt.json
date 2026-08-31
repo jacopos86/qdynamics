@@ -1,0 +1,33 @@
+{
+  "action_id": "siam-nb4-full_apm-screen-r02-cut1em04",
+  "action_json_sha256": "1a4429fe4188aee122b92ef849f9eda23c355b53636f5fcca3b69de294ecae42",
+  "cluster_id": 9712906,
+  "exact_reference_blind": true,
+  "initial_scheduler_state": {
+    "entered_current_status_epoch": 1787903195,
+    "hold_reason": null,
+    "job_status": 2,
+    "label": "RUNNING",
+    "started_at": "2026-08-28T07:46:35Z"
+  },
+  "ladder_replay_receipt": {
+    "internal_sha256": "4a24e9c78f02b011171aaa6334983187d52e093d42100953ea672893e255b2a9",
+    "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9712895/next_actions_receipt.json",
+    "sha256": "600fbad0d4f26f93e6948dac244649b020bafb4b12e44fa747ae9bcc85fb4ad1"
+  },
+  "package_id": "siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828",
+  "package_manifest_sha256": "ae8c54274fcf027666cd00b06f21b036ce7c19fb9cd31aa467f8d1d687e5cb33",
+  "process_id": 0,
+  "qiskit_compilation_requested": false,
+  "remote_upload_receipt": {
+    "internal_sha256": "22691ac946fbfc6fb58a977811c29896702cf849956d0578973d6aaa1322084b",
+    "path": "chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/remote_upload_receipt.json",
+    "sha256": "a0c3b4b7d9e210275b65acf7a328cb3cdb8691315c9dd17a8a164f3ac51c7a17"
+  },
+  "schema": "siam_nb4_chtc_submission_receipt_v3",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "SUBMITTED",
+  "submission_receipt_sha256": "647bbfb29698d727346e2369e37af60cb325f63712db3a587b00a19f8e0892ef",
+  "submitted_at": "2026-08-28T07:46:14Z"
+}

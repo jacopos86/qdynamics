@@ -1,0 +1,32 @@
+{
+  "action_count": 1,
+  "action_id": "screen_avqds_nb4_t1_cut1e-3_seedv2",
+  "action_json_sha256": "e5ac40cf39ff111e97108fcca5bbd214ed851e0b0b9d1a9d76b5c7c6ac703717",
+  "batch_name": "siam-nb4-avqds-screen-v2",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/screen_avqds_nb4_t1_cut1e-3_seedv2/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.001",
+  "package_id": "siam_nb4_avqds_screen_v2_source_5fec1cf2_20260827",
+  "prepared_at": "2026-08-27T16:36:56-05:00",
+  "run_screen_apptainer_sha256": "e902a61f9c71aa8f5f6bc11f8fa64155bdc7a5656266b087b32c80e84e133395",
+  "run_screen_sha256": "417512ae3deac75c59bc945b56836784c1487ad437daba8d0a7ab4349249bd92",
+  "runner_argv_sha256": "d1d206f7f192861b52e6b43af07902e09e6183e5145524afc65964caef38d62e",
+  "schema": "siam_nb4_chtc_package_manifest_v2",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "5fec1cf271428d0726fadf251fd9f299bc5799ee",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "c8d7ae5d5d4e5eaf926640831ef74b11fe4fd6da2c0dfae85c209c0210cb319e"
+}

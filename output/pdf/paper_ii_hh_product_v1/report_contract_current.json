@@ -1,0 +1,1883 @@
+{
+  "cells": [
+    {
+      "cell_id": "hh__nph1__mott_dominated__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__fastweak",
+        "reference_identity_sha256": "1498192bea010d3e49de1c75b09aa9e95b8427eeef177a9d76c1ded8b65778a3",
+        "slot_id": "hh__nph1__mott_dominated__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__mott_dominated__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__slowstrong",
+        "reference_identity_sha256": "08ad7facab2e046e66cce1b220db2d8dc846e92fd29b52bb5bf2bd71e954d5e6",
+        "slot_id": "hh__nph1__mott_dominated__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__mott_dominated__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__weakslow",
+        "reference_identity_sha256": "10e373fc8c6ff992a62dc8014ca19974f7ab751353c1fd245df9557e20203f51",
+        "slot_id": "hh__nph1__mott_dominated__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__mott_dominated__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__strongfast",
+        "reference_identity_sha256": "72517211e10bcd2de5272dfe868f67a507d6b1755d04b0c71ae042899f32a3e0",
+        "slot_id": "hh__nph1__mott_dominated__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__mott_dominated__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__midres",
+        "reference_identity_sha256": "24cb26879d9c072bf2bcaae00c78a02e348184c295567c5043df18c6e7e785c2",
+        "slot_id": "hh__nph1__mott_dominated__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__mott_dominated__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__mott_dominated__fastfast",
+        "reference_identity_sha256": "3fa61520f134d34ca97d2ae40808fa1bf461eaff7d08974797295936a26a7226",
+        "slot_id": "hh__nph1__mott_dominated__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__mott_dominated__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__fastweak",
+        "reference_identity_sha256": "988bb2b7c46278885c6d3b4d83213687cd53f055f1b3535468698b1a88203ba8",
+        "slot_id": "hh__nph1__crossover__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__slowstrong",
+        "reference_identity_sha256": "cc385eaaa7222fdaa08fa562e1aa330e0479a84cbc0201e50ed23a6310f20c1b",
+        "slot_id": "hh__nph1__crossover__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__weakslow",
+        "reference_identity_sha256": "bc532e0a8d4dbd82b105bb66fed04340464b81ddaf206644e172ddbee0c99320",
+        "slot_id": "hh__nph1__crossover__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__strongfast",
+        "reference_identity_sha256": "e606315506736f35066775d3ad4283f659df98a11c1b61b54fc0b022234f36ad",
+        "slot_id": "hh__nph1__crossover__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__midres",
+        "reference_identity_sha256": "9538dcdaabac2cb55c0a7ef02d0d1744c034328f806368c0ea70bb5ffaab0b49",
+        "slot_id": "hh__nph1__crossover__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__crossover__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__fastfast",
+        "reference_identity_sha256": "09dc42b9996193c3b6b01a92dae481cb7cd54518a2580a500e62cc16d7fa97e7",
+        "slot_id": "hh__nph1__crossover__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__crossover__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__fastweak",
+        "reference_identity_sha256": "d7a22822495cc34b7984b87aec07e7bc1fed2c48edf1380448c2f0e6a7e9d629",
+        "slot_id": "hh__nph1__phonon_dominated__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__slowstrong",
+        "reference_identity_sha256": "3975dcfb17a57f435f5053d37c9c30172648de93a6a4dc694b605fa5b0581add",
+        "slot_id": "hh__nph1__phonon_dominated__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__weakslow",
+        "reference_identity_sha256": "fa77e362c0822e184dcc12a293647fefca3b85116d740d17bcb7f935534c5b5b",
+        "slot_id": "hh__nph1__phonon_dominated__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__strongfast",
+        "reference_identity_sha256": "deb5fe4af6e6a06687d46b6dc546e1f1c952b6809c720fdb2c6328c2cbb9c919",
+        "slot_id": "hh__nph1__phonon_dominated__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__midres",
+        "reference_identity_sha256": "1c579b3af5976ea901e994c6bd5841d5b378b8fb17235614c4703ffac3bcd596",
+        "slot_id": "hh__nph1__phonon_dominated__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph1__phonon_dominated__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__phonon_dominated__fastfast",
+        "reference_identity_sha256": "06a356a5dbf6f16addc786e017146695b71878dda337b7ebb98cb84c6f049a3b",
+        "slot_id": "hh__nph1__phonon_dominated__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph1__phonon_dominated__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 1,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__fastweak",
+        "reference_identity_sha256": "6c7211800f1ed749b44bd1dab5a97fc5b35062182c262ca3db49c5ef1f5b9165",
+        "slot_id": "hh__nph3__mott_dominated__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__slowstrong",
+        "reference_identity_sha256": "e501c240de778ffbb5454fb1243c1784d23d1bc9d379354d99593ccd406a0b5a",
+        "slot_id": "hh__nph3__mott_dominated__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__weakslow",
+        "reference_identity_sha256": "dc5eaceacf343b87fdbde631bb575c991fad92ba975df3a0032bcc59e20b6123",
+        "slot_id": "hh__nph3__mott_dominated__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__strongfast",
+        "reference_identity_sha256": "04356992d42c1a5b93215e8a5e5fb27bce5ccc78075036310e2e070e71b7122e",
+        "slot_id": "hh__nph3__mott_dominated__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__midres",
+        "reference_identity_sha256": "9d4f5ce0c572b4b1b69c4ffba4f922faad730af9a49e35f671cdb14d50cf745f",
+        "slot_id": "hh__nph3__mott_dominated__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__mott_dominated__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__mott_dominated__fastfast",
+        "reference_identity_sha256": "16e747158e960684bdca848d8e2496292b124cecd35e13a166dfdd9a873341b6",
+        "slot_id": "hh__nph3__mott_dominated__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__mott_dominated__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 8.0,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.353553390593,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "mott_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__fastweak",
+        "reference_identity_sha256": "233a55313a845b1238104c8670b306e023c155844b260a98880c713aa9dc7dde",
+        "slot_id": "hh__nph3__crossover__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__slowstrong",
+        "reference_identity_sha256": "2a921d924e13881f798803c7a9215f166f59481454f01d8b024a87df43504cd6",
+        "slot_id": "hh__nph3__crossover__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__weakslow",
+        "reference_identity_sha256": "8d083314e7e0563ce65be07535ccd94d5ec0862c8ab558d038b379f5598a92be",
+        "slot_id": "hh__nph3__crossover__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__strongfast",
+        "reference_identity_sha256": "50b2d5a91b04a5d338f25f871a37e9c1ac375458870eb0d87a3c99fb0c6298c4",
+        "slot_id": "hh__nph3__crossover__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__midres",
+        "reference_identity_sha256": "6969c1b8b5bdc2f2c8429b0500129d7294069a934ed657f7a352a99f1eac0fcb",
+        "slot_id": "hh__nph3__crossover__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__crossover__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__crossover__fastfast",
+        "reference_identity_sha256": "ace445df592c2ab5de2070b8f1e48d022e05aa7f056aa572ef6243d94490051b",
+        "slot_id": "hh__nph3__crossover__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__crossover__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 1.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "crossover",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__fastweak",
+      "controller": "state_motion_5e-5",
+      "drive": "fastweak",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__fastweak",
+        "reference_identity_sha256": "2c0fa5e7e75b151df8d018004a427cc88a9c216bb06be8317d561366535fb41f",
+        "slot_id": "hh__nph3__phonon_dominated__fastweak::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__fastweak::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__fastweak::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__slowstrong",
+      "controller": "state_motion_5e-5",
+      "drive": "slowstrong",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__slowstrong",
+        "reference_identity_sha256": "ca690c45d1fecd558d746e62a27e88bb1699194e38c4c37094ff389dc1afaf7a",
+        "slot_id": "hh__nph3__phonon_dominated__slowstrong::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__slowstrong::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__slowstrong::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__weakslow",
+        "reference_identity_sha256": "d50b814c628b6fc0e4e157d65e6782c65b8aa856b79b86c5aaf97c7591c30f10",
+        "slot_id": "hh__nph3__phonon_dominated__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__strongfast",
+        "reference_identity_sha256": "4e8cb8707e0384c267e1f40f92793306668698a722dafd9d156e684051cbb05d",
+        "slot_id": "hh__nph3__phonon_dominated__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__midres",
+      "controller": "state_motion_5e-5",
+      "drive": "midres",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__midres",
+        "reference_identity_sha256": "7bf0906ec31b636f5f6bac209a5e51083eb8901d0a1bf7d10669060f33d4d899",
+        "slot_id": "hh__nph3__phonon_dominated__midres::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__midres::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__midres::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hh__nph3__phonon_dominated__fastfast",
+      "controller": "state_motion_5e-5",
+      "drive": "fastfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hh_product_v1::reference::hh__nph3__phonon_dominated__fastfast",
+        "reference_identity_sha256": "3660ccb2e7bcd9d7d919c5e810fc9b0a8fe7bdb92f82eee70529c8b770e89562",
+        "slot_id": "hh__nph3__phonon_dominated__fastfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hh_product_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__fastfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hh__nph3__phonon_dominated__fastfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard_holstein",
+      "physics": {
+        "U": 0.25,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "g": 0.790569415042,
+        "lattice_sites": 2,
+        "n_down": 1,
+        "n_ph_max": 3,
+        "n_up": 1,
+        "omega0": 1.0,
+        "ordering": "blocked",
+        "regime": "phonon_dominated",
+        "staggered_potential": 0.0,
+        "t_hop": 1.0
+      }
+    }
+  ],
+  "contract_id": "paper_ii_parallel_benchmarks_20260828:paper_ii_hh_product_v1",
+  "controller": "state_motion_5e-5",
+  "cost_authority": "logical_n_theta_and_routing_independent_graph_tuple",
+  "counts": {
+    "candidate_method_slots": 0,
+    "pending_exact_references": 36,
+    "pending_method_slots": 72,
+    "planned_cells": 36,
+    "planned_exact_references": 36,
+    "planned_method_slots": 72,
+    "qualified_method_slots": 0,
+    "unresolved_method_slots": 0
+  },
+  "lane_id": "paper_ii_hh_product_v1",
+  "matrix": {
+    "expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+    "path": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+    "payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2"
+  },
+  "methods": [
+    "apm",
+    "avqds"
+  ],
+  "qiskit_compilation": {
+    "canonical": false,
+    "requested": false,
+    "used": false
+  },
+  "report_contract_sha256": "67087310796081676761c68c0733500a926732fd8a4bd9218486cbd300e124a5",
+  "schema": "paper_ii_planned_report_contract_v1",
+  "slot_state_contract": {
+    "completed_values_are_never_hidden_by_a_failed_gate": true,
+    "method_states": [
+      "pending",
+      "candidate",
+      "qualified",
+      "unresolved"
+    ],
+    "pending_means": "no_valid_completed_trajectory"
+  },
+  "tuple_structure_sha256": "c66aaa21ac9b4608ae0993d00d714c012ab1791266572231aadc5825e22ea608"
+}

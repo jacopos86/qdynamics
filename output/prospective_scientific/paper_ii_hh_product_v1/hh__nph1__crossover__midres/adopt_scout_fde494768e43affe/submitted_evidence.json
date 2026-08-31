@@ -1,0 +1,24 @@
+{
+  "bootstrap_action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+  "bootstrap_completion_receipt": {
+    "path": "output/prospective_bootstrap/hh_product_v1/hh__nph1__crossover__midres/avqds_prefix_2affbc1d0c6df19b/completion_receipt.json",
+    "sha256": "fde494768e43affe56a3fb60d7135c118a011381c9ab7ff8f9faf0c176a8c193"
+  },
+  "bootstrap_completion_receipt_self_sha256": "c1eee44ed83675258315e363a53936ce59bcdb7460731223170a3a9659b4142e",
+  "bootstrap_execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+  "bootstrap_work_order_sha256": "a42fa192aff47226aa9f35961511b37dd5f68d252075ec68414ce0aa4960be45",
+  "evidence_kind": "verified_bootstrap_scout_evidence_reuse",
+  "execution_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::avqds::t5::r00::cut1em02::bind155d3f310b1211c2::attempt0::mem8g",
+  "remote_raw_evidence_policy": "preserve",
+  "reused_run": {
+    "path": "output/prospective_bootstrap/hh_product_v1/hh__nph1__crossover__midres/avqds_prefix_2affbc1d0c6df19b/run.json",
+    "sha256": "beb2cc849c5c37bec6bd16d6153a616f857e1c54f3f8c9b07bcc805ca18eca49"
+  },
+  "run_state_evidence_sha256": "7b4d8fa587f5a0225f13ef9dfb59bcbed87df63b61ec1e2b819f0707534f352a",
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_run_state_evidence_v1",
+  "scientific_action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::avqds::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "scientific_qualification": null,
+  "state": "submitted",
+  "submitted_lifecycle": null
+}

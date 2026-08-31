@@ -1,0 +1,52 @@
+{
+  "generated_at_utc": "2026-08-29T06:12:46.197991+00:00",
+  "plan": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9713835_v1_20260829/ladder_plan.json",
+  "plan_sha256": "a7f6c78bfbfc26f2ab2d9ba2fc7c6e299f27d81224233dfc6bc6a83c55480343",
+  "prepared_actions": [
+    {
+      "action": {
+        "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+        "activation_cut": 0.001,
+        "arm": "avqds",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 2,
+        "qiskit_compilation_requested": false,
+        "reason": "Tighten avqds by one exact rung after its measured screen miss; no threshold monotonicity is inferred.",
+        "resume_from_action_id": null,
+        "segment": "screen_t0_t1_101"
+      },
+      "action_json": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "action_json_sha256": "c75e037f269e665702a738ac3fbcd3e48e4ee7a02c46ae178c5328501950e889",
+      "checks": {
+        "complete_logical_pool": true,
+        "exact_reference_blind": true,
+        "portable_seed_schema": true,
+        "qiskit_compilation_requested": false,
+        "record_statevectors": true,
+        "resume_input_present": false,
+        "source_locked": true,
+        "source_rebaseline_evidence_present": false,
+        "unique_output": true
+      },
+      "expected_output": "raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/run.json",
+      "manifest": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "manifest_sha256": "944b62800dd8bd78aaa305fabb1cc2de39d8dc0340da8ee989afaf9a607a10ac",
+      "package": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829",
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      },
+      "submit": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "submit_sha256": "684d35100411c2edaa3090ba73a43ebca70cd71ae81b36930193834042bdce62"
+    }
+  ],
+  "qiskit_compilation_requested": false,
+  "schema": "siam_nb4_prepared_frontier_v1",
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "PREPARED",
+  "submissions": []
+}

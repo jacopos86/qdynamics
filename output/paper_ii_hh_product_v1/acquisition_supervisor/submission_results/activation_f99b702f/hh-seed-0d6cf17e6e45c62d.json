@@ -1,0 +1,48 @@
+{
+  "acceptance_evidence": "condor_submit_zero_exit_and_cluster_id_stdout",
+  "action_ids": [
+    "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3"
+  ],
+  "cluster_id": 9713880,
+  "condor_submit_returncode": 0,
+  "condor_submit_stderr": "To monitor your job(s), run: condor_watch_q -clusters 9713880\n",
+  "condor_submit_stdout": "Submitting job(s).\n1 job(s) submitted to cluster 9713880.\n",
+  "dry_run_ad_sha256": "cf2e01dd8b834d2dbcf917345e5efc8f6b33eace07073e2911e5cd954c590501",
+  "dry_run_status": "pass",
+  "expected_process_ids": [
+    0
+  ],
+  "intent_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-0d6cf17e6e45c62d.json",
+  "intent_sha256": "7c977c63d9f2a0f60069bbacec6b25caf10dff1871d1e17fcfe03cc04848bcb7",
+  "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+  "lane_id": "paper_ii_hh_product_v1",
+  "lifecycle_validator_status": "pass",
+  "package": {
+    "bytes": 555387,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__phonon_dominated/seed_action_package.tar.gz",
+    "sha256": "b87aba66325c1854986f2e3dd3d45ffcf563974cdc8058e8a106bbcfe4627200"
+  },
+  "pre_submit_snapshot_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/scheduler_snapshots/pre_submit_f99b702f/combined_snapshot.json",
+  "pre_submit_snapshot_sha256": "b83c3877978129c7148762d3da773953e5b4a6e048a35a035c8770995eebb8f6",
+  "remote_raw_evidence_policy": "preserve",
+  "runtime_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "runtime_source_archive": {
+    "bytes": 5318674,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/shared/source_f99b702f_runtime.tar.gz",
+    "sha256": "1c4a953f2555989eadac93f1c7736dbc0014a865f3a1b2f907f7412313be5b1f"
+  },
+  "scheduler_acceptance_query_performed": false,
+  "schema": "paper_ii_submission_result_v1",
+  "status": "submitted",
+  "submission_result_sha256": "972af90811276c36adc69f93244d38a1e881442f4fb640d2fc6b90faf9033225",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__phonon_dominated/submit.sub",
+    "sha256": "908c2ad55c1ae2b650ad31c22c430054f59542605436606ad50611645b42759b"
+  },
+  "submitted_at": "2026-08-29T00:46:17.284692-05:00",
+  "unit_id": "hh-seed-0d6cf17e6e45c62d"
+}

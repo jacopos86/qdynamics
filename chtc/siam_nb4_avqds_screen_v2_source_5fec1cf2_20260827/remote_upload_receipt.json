@@ -1,0 +1,38 @@
+{
+  "archive": {
+    "gzip_verified": true,
+    "member_count": 692,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v2_5fec1cf2_20260827/siam_nb4_avqds_screen_v2_source_5fec1cf2_upload.tar.gz",
+    "sha256": "12e92b313109694b9beacfe576dd4b847ab8f9136b8ce3ca1d4014da2c8787c6",
+    "size_bytes": 5117851,
+    "tar_verified": true,
+    "uncompressed_bytes": 28978688
+  },
+  "checks": {
+    "archive_atomic_rename": true,
+    "container_seed_schema": "siam_screening_seed_v2",
+    "container_semantic_state_sha256": "0a388a9735aa4d88c6fd8ed1cc7d6d6f38adc4ced8c5a3b0757a55fad5eda1bf",
+    "container_runner_argv_sha256": "d1d206f7f192861b52e6b43af07902e09e6183e5145524afc65964caef38d62e",
+    "exact_reference_absent": true,
+    "image_hard_link_verified": true,
+    "package_manifest_verified": true,
+    "source_sentinels_verified": true
+  },
+  "expected_image": {
+    "inode": 477991353,
+    "link_count_after": 19,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "size_bytes": 216371200
+  },
+  "package_manifest_sha256": "69604714d484fa62289e14d0a04c4df8be7c006561c13631757fe30c8dc10d59",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v2_5fec1cf2_20260827",
+  "schema": "siam_nb4_remote_upload_receipt_v2",
+  "source_revision": "5fec1cf271428d0726fadf251fd9f299bc5799ee",
+  "status": "VERIFIED_EXTRACTED_NOT_SUBMITTED",
+  "timestamp": "2026-08-27T16:43:52-05:00",
+  "validator": {
+    "source_revision_exact": true,
+    "sha256": "4eb17bd7cd7e70a83244c4718fd0dfd9c82a28c5e86f4bec15f68a7d2f7390c0",
+    "transferred_through_part": true
+  }
+}

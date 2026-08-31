@@ -1,0 +1,51 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "archive_sha256": "48d2ce963113f7fa66fb9c211ce73847577e59150246b80b9dffe398bfebc1ce",
+  "audit": {
+    "condor_dry_run": true,
+    "duplicate_action_disjoint_remote": true,
+    "exact_reference_blind": true,
+    "failed_predecessors_excluded": true,
+    "image_verified": true,
+    "lifecycle_validation": true,
+    "nonempty_command": true,
+    "output_path_clear": true,
+    "portable_seed_container_regeneration": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "source_locked": true
+  },
+  "cluster_id": 9712800,
+  "condor_dry_run": {
+    "bytes": 2756,
+    "sha256": "9d2d3f9787c39e6a675aab3a0a125ccef795fb07d08dabc1a673fcbf69a4b677"
+  },
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 1,
+    "label": "IDLE",
+    "process_id": 0
+  },
+  "package_manifest_sha256": "1f8225c65e8b9552ab3521cabfcc0ea3da19b756e283375dcbd3c4e328279249",
+  "predecessors": [
+    {
+      "cluster_id": 9710340,
+      "exit_code": 1,
+      "status": "FAILED_PORTABILITY_GUARD"
+    },
+    {
+      "cluster_id": 9710362,
+      "exit_code": 1,
+      "status": "FAILED_WRAPPER_COMPLETION_PROOF"
+    }
+  ],
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v3_39cd411e_20260827",
+  "schema": "siam_nb4_chtc_submission_receipt_v3",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "39cd411efe18a5605675876655c8d7b9fa01b579",
+  "status": "SUBMITTED",
+  "submit_descriptor_sha256": "4228ac8cefb2ddaf1c55f5d5887e2bc003bec6f75a768140b1369407e0c7432e",
+  "submitted_at": "2026-08-28T04:08:23Z"
+}

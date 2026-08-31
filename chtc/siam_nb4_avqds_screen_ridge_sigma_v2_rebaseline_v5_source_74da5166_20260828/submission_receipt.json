@@ -1,0 +1,39 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "arm": "avqds",
+  "checks": {
+    "comparator_first": true,
+    "composite_identity_duplicate_excluded": true,
+    "condor_dry_run_passed": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "output_path_absent_before_submission": true,
+    "package_and_source_tree_integrity_passed": true,
+    "qiskit_compilation_requested": false,
+    "quota_passed": true
+  },
+  "cluster_id": 9713113,
+  "initial_scheduler_snapshot": {
+    "held_process_count": 0,
+    "idle_process_count": 1,
+    "process_count": 1,
+    "running_process_count": 0
+  },
+  "package_id": "siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828",
+  "planner_receipt": {
+    "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/planner_receipt.json",
+    "sha256": "283a8c209be8ae4c459bf39bb3f5945eebada40c2a6067a8659df12dd6c0c80f"
+  },
+  "recorded_at_utc": "2026-08-28T16:03:00Z",
+  "remote_upload_receipt": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/remote_upload_receipt.json",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_ba50339c_20260828",
+  "schema": "siam_nb4_submission_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "segment": "screen_t0_t1_101",
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "status": "SUBMITTED"
+}

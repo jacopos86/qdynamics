@@ -1,0 +1,76 @@
+{
+  "cell_id": "hubbard__l4__u4__strongfast",
+  "data": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/21c4e6df219598b5f5aed2173974f4b9d9606f5c0028f04beee5eb0a4b784910/reference_data.json",
+    "sha256": "df9ed420269b0e518edbec91cb6c3083a13748fb4179528a6dfbfdf213554add"
+  },
+  "exact_reference_receipt_sha256": "72ebb0389cfaa1b61c45bbbc4cf2e060d1e7c76153c7214a5d7cbc99ae8da0c2",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "manifest": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/21c4e6df219598b5f5aed2173974f4b9d9606f5c0028f04beee5eb0a4b784910/manifest.json",
+    "sha256": "237d5cd88f513e71976c9683f17f6455e49e2a55ce19a3cb32ced08bd5f86318"
+  },
+  "materialized_reference_key": "21c4e6df219598b5f5aed2173974f4b9d9606f5c0028f04beee5eb0a4b784910",
+  "reference_contract": {
+    "cell_id": "hubbard__l4__u4__strongfast",
+    "drive": {
+      "amplitude": 2.4,
+      "drive_id": "strongfast",
+      "include_identity": false,
+      "omega": 3.0,
+      "operator": "staggered_site_density",
+      "pattern": "staggered",
+      "phi": 0.0,
+      "t0": 0.0,
+      "tbar": 1.0,
+      "time_sampling": "midpoint"
+    },
+    "grid": {
+      "construction": "ordered_uniform_index_times_step",
+      "ordered_prefix_sha256": "e338bd7fb0d4a3852ff07d79de1fcad106138426c5b7c33cc37be5eaee64bfe7",
+      "ordered_times_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+      "points": 501,
+      "prefix_points": 126,
+      "prefix_stop": 5.0,
+      "start": 0.0,
+      "step": 0.04,
+      "stop": 20.0
+    },
+    "lane_id": "paper_ii_hubbard_l4_scale_v1",
+    "model": "hubbard",
+    "observable_schema": "paper_ii_hubbard_energy_doublon_site_occupation_statevector_v1",
+    "physical": {
+      "U_over_t": 4.0,
+      "boundary": "open",
+      "lattice_sites": 4,
+      "n_down": 2,
+      "n_up": 2,
+      "ordering": "blocked",
+      "t_hop": 1.0
+    },
+    "propagator": "paper_ii_exact_driven_reference_v1",
+    "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast",
+    "reference_identity_sha256": "4b9846f436399dd7c8544120874f513096871e48e36e16f56d5556b177177a55",
+    "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+    "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6"
+  },
+  "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast",
+  "reference_identity_sha256": "4b9846f436399dd7c8544120874f513096871e48e36e16f56d5556b177177a55",
+  "response_scales": {
+    "t20": {
+      "doublon_rms_excursion": 0.5704630637609466,
+      "energy_rms_excursion": 4.631561555712274,
+      "max_site_occupation_rms_excursion": 0.21422429373297316
+    },
+    "t5": {
+      "doublon_rms_excursion": 0.5625792290144621,
+      "energy_rms_excursion": 4.235193484225779,
+      "max_site_occupation_rms_excursion": 0.22155497551495354
+    }
+  },
+  "response_scales_sha256": "bda39315426fc4bc87367d99bcc145b63ae1536ce1d4b4d050c78a87deb99535",
+  "schema": "paper_ii_exact_reference_receipt_v1",
+  "seed_artifact_sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63",
+  "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235"
+}

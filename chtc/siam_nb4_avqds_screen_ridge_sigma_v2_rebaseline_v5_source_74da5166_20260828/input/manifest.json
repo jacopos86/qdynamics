@@ -1,0 +1,156 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "action_json_sha256": "fa1300f89088fb32708db8f7c25b636e818c781923950cd41ae8fa6556aff379",
+  "activation_cut_ladder": [
+    "0.001",
+    "0.0003",
+    "0.0001",
+    "3e-05",
+    "1e-05",
+    "3e-06",
+    "1e-06",
+    "3e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": true,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/siam-nb4-avqds-screen-r00-cut1em03/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.001",
+  "files": {
+    "action": {
+      "bytes": 186741,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/action.json",
+      "sha256": "fa1300f89088fb32708db8f7c25b636e818c781923950cd41ae8fa6556aff379"
+    },
+    "predecessor_epoch_closure_receipt": {
+      "bytes": 883,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_epoch_closure_receipt.json",
+      "sha256": "be68bcab0d479fa99f5bbbe140e2a3746855c1c98bd52250ab893abbc2d2f6c8"
+    },
+    "predecessor_package_manifest": {
+      "bytes": 3549,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_package_manifest.json",
+      "sha256": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9"
+    },
+    "predecessor_submission_receipt": {
+      "bytes": 1900,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_submission_receipt.json",
+      "sha256": "63f0a848a28d31c5fb5ae8a79936124d9ef992f8f6e7e49f21734f72f6a0d876"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1348,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/submit.sub",
+      "sha256": "fb21a9634264bd76cfa6fa62b9cdf3a8a44c570beb041be66950798ba28a0f5f"
+    },
+    "worker": {
+      "bytes": 862,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/run_action.py",
+      "sha256": "1fda3866d0817b30f7fcedc830122b1a8ea72fc35009a806e7f745ce0faa3979"
+    },
+    "wrapper": {
+      "bytes": 1727,
+      "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/run_action_apptainer.sh",
+      "sha256": "9c359fe85e5243f9ca4e0c3829cb5fa4caed14348e158dda0ce760506914b639"
+    }
+  },
+  "intentional_source_rebaseline": {
+    "artifacts": {
+      "predecessor_epoch_closure_receipt": {
+        "bytes": 883,
+        "packaged_path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_epoch_closure_receipt.json",
+        "sha256": "be68bcab0d479fa99f5bbbe140e2a3746855c1c98bd52250ab893abbc2d2f6c8",
+        "source_path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/predecessor_4e5eba53_closure.json"
+      },
+      "predecessor_package_manifest": {
+        "bytes": 3549,
+        "packaged_path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_package_manifest.json",
+        "sha256": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9",
+        "source_path": "chtc/siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828/input/manifest.json"
+      },
+      "predecessor_submission_receipt": {
+        "bytes": 1900,
+        "packaged_path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/source_rebaseline/predecessor_submission_receipt.json",
+        "sha256": "63f0a848a28d31c5fb5ae8a79936124d9ef992f8f6e7e49f21734f72f6a0d876",
+        "source_path": "chtc/siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828/submission_receipt.json"
+      }
+    },
+    "checks": {
+      "identical_scientific_action_id": true,
+      "new_output_path": true,
+      "new_package_path": true,
+      "new_source_revision": true,
+      "new_source_tree": true,
+      "predecessor_epoch_closed_to_new_actions": true,
+      "predecessor_epoch_superseded_by_new_epoch": true
+    },
+    "mode": "intentional_source_rebaseline",
+    "new_source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "predecessor_epoch_closure_receipt_sha256": "be68bcab0d479fa99f5bbbe140e2a3746855c1c98bd52250ab893abbc2d2f6c8",
+    "predecessor_output": "raw_outputs/siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-avqds-screen-r00-cut1em03/run.json",
+    "predecessor_package_id": "siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828",
+    "predecessor_package_manifest_sha256": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9",
+    "predecessor_source_epoch_id": "siam-nb4-source-781e5f0aef86986146fb",
+    "predecessor_source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+    "predecessor_source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+    "predecessor_submission_receipt_sha256": "63f0a848a28d31c5fb5ae8a79936124d9ef992f8f6e7e49f21734f72f6a0d876",
+    "schema": "siam_source_epoch_rebaseline_v1",
+    "scientific_action_id": "siam-nb4-avqds-screen-r00-cut1em03"
+  },
+  "package_id": "siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828",
+  "prepared_at": "2026-08-28T10:29:38.873433Z",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_composite_source_epoch_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_historical_same_action_ids_use_distinct_source_epochs_and_bind_immediate_predecessor",
+    "verify_predecessor_epoch_closed_or_superseded",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "runner_argv_sha256": "374a81d1be7328b9a5da80bcf6ecd3aa6bff83f7bb7774f25a9ead390ca8fd6d",
+  "schema": "siam_nb4_chtc_package_manifest_v4",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+    "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc"
+  },
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "fb21a9634264bd76cfa6fa62b9cdf3a8a44c570beb041be66950798ba28a0f5f",
+  "worker_sha256": "1fda3866d0817b30f7fcedc830122b1a8ea72fc35009a806e7f745ce0faa3979",
+  "wrapper_sha256": "9c359fe85e5243f9ca4e0c3829cb5fa4caed14348e158dda0ce760506914b639"
+}

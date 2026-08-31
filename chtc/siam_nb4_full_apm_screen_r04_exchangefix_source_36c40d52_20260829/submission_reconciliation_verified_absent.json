@@ -1,0 +1,84 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 204289,
+    "captured_at": "2026-08-29T20:11:13Z",
+    "captured_at_unix_ns": 1788034273993526505,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151059/combined_snapshot.json",
+    "sha256": "c2942a34ec13af874f6092c8bed91cbc5b9a3a6ee1de871a73c8610a1f46d465",
+    "snapshot_sha256": "b2a5334c0a36544893f58c710a65eed73d3c54997a049dd929f5a8c771535d4a",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "088e7b0753623cdeefacb0821cb8b22987278cb7056898eff64a7c411a0d8273",
+    "bytes": 4698,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151059/siam_full_apm_r04_intent_bridge.json",
+    "sha256": "e413876a9bf38ab9fb0669271c58776cf2b2748b688ac76a7a4ef23176b1b409"
+  },
+  "intent_identity_sha256": "4e7d5b751dbe706a091bc90e0c4465cd5bcb418121cfe82cb9ddf88a389de553",
+  "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung4",
+  "receipt_sha256": "8abb73ecb9097b66cc78a852f873bc51b804c8d0f232da6ade34e32f819e7885",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_required_before_submit": true,
+    "path": "raw_outputs/siam_nb4_full_apm_screen_r04_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r04-cut1em04/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_full_apm_screen_r04_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r04-cut1em04/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_screen_r04_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r04-cut1em04",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1661,
+    "path": "chtc/siam_nb4_full_apm_screen_r04_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "ad08edb082a1c001be6d99d9c9dcc69ff49519fdb06653c2b37dd655e2aac2ac"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "4e7d5b751dbe706a091bc90e0c4465cd5bcb418121cfe82cb9ddf88a389de553",
+      "prior_captured_at": "2026-08-29T20:11:13Z",
+      "prior_captured_at_unix_ns": 1788034273993526505,
+      "prior_snapshot_sha256": "b2a5334c0a36544893f58c710a65eed73d3c54997a049dd929f5a8c771535d4a",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 265053,
+    "captured_at": "2026-08-29T20:19:57.469284518Z",
+    "captured_at_unix_ns": 1788034797470392037,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151915/combined_snapshot_siam_r04_verified_absent.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 45064,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151915/raw/history.json",
+        "returncode": 0,
+        "row_count": 56,
+        "sha256": "28352378ad4db2861d0253e6a50e5e8bfc46b34a9db2903e2fc090d1ab8a16bb",
+        "stdout_sha256": "28352378ad4db2861d0253e6a50e5e8bfc46b34a9db2903e2fc090d1ab8a16bb"
+      },
+      "queue": {
+        "bytes": 2172,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151915/raw/queue.json",
+        "returncode": 0,
+        "row_count": 3,
+        "sha256": "00976a65cccc6547673f3749425aa7bbc17eb56d9112565580f21d7354995913",
+        "stdout_sha256": "00976a65cccc6547673f3749425aa7bbc17eb56d9112565580f21d7354995913"
+      }
+    },
+    "sha256": "78e1b95418629a68415579e8b78408199db091229bcbdac4fbcf5f4c14fac264",
+    "snapshot_sha256": "e325afe929b61c9eb1cbd7e13d95477727a2b92c7cbc925b855af7abd178cd3c"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+  "argv": [
+    "condor_submit",
+    "-dry-run",
+    "Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2/dryrun.ad",
+    "Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2/submit.sub"
+  ],
+  "dry_run_ad": {
+    "bytes": 4188,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/avqds_successor_d128c05f_from_9714677/remote_preflight/paper_ii_hh_g2_d128c05f.dryrun.classad",
+    "sha256": "b12aac5d24a22ff8afc781c228b28f2abf792ed3bb74d9f5ed31ad4382c9773f"
+  },
+  "dry_run_result_sha256": "9d57ec1131e171ba5f45906ba16bc5f070d216b2739bb19adf69e6161b7b6632",
+  "execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+  "intent": {
+    "file_sha256": "86d89e8254605797d7d5b0d09364642bda2fe7e6178376982c4cca2b0fcf4496",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/bootstrap-avqds-scout-2affbc1d0c6df19b--g2.json",
+    "sha256": "1ad42e8a63676f8960b93ca64b616751e61a623546add66a388ec7fab773851b"
+  },
+  "lane_id": "paper_ii_hh_product_v1",
+  "package_preflight": {
+    "path": "output/paper_ii_hh_product_v1/bootstrap/avqds_successor_d128c05f_from_9714677/paper_ii_hh_product_v1/cell-9538dcdaabac2cb5/avqds_scout/package/local_preflight_receipt.json",
+    "sha256": "3c7f7c92e01fd2e0541198db38693cf4869281d715f26d11a0504a5b5c5243b8"
+  },
+  "recorded_at": "2026-08-29T22:50:15.060393+00:00",
+  "remote_submit_descriptor": {
+    "bytes": 2509,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/avqds_successor_d128c05f_from_9714677/remote_preflight/remote_submit_descriptor.sub",
+    "sha256": "1215de643c0ca0612e78847bf9165d64a2caba844ea2ba10775654b63e569d9f"
+  },
+  "returncode": 0,
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_bootstrap_condor_dry_run_result_v1",
+  "single_dry_run_invocation": true,
+  "status": "pass",
+  "stderr": "",
+  "stdout": "Dry-Run job(s).\n1 job(s) dry-run to cluster 1.",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hh_product_v1/bootstrap/avqds_successor_d128c05f_from_9714677/paper_ii_hh_product_v1/cell-9538dcdaabac2cb5/avqds_scout/package/submit.sub",
+    "sha256": "1215de643c0ca0612e78847bf9165d64a2caba844ea2ba10775654b63e569d9f"
+  },
+  "unit_id": "bootstrap-avqds-scout-2affbc1d0c6df19b--g2",
+  "upload_verification": {
+    "file_sha256": "9496a4b76534d3cc2865ec0949a44f9ec0c131a171b63a09ecc42b12b83c7966",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/upload_verifications/bootstrap-avqds-scout-2affbc1d0c6df19b--g2.json",
+    "sha256": "610b9e77762a2abaeaeb893445a6d6c6c77281ec033e8bbd8d36526aeabc73fc"
+  }
+}

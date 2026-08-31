@@ -1,0 +1,41 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r01-cut3em04",
+  "archive_sha256": "9286a10548af697b596a24399c70134e7e0175ab591728e019b47e886767b157",
+  "audit": {
+    "condor_dry_run": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "lifecycle_validation": true,
+    "nonempty_command": true,
+    "output_path_clear": true,
+    "package_integrity": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "source_locked": true
+  },
+  "cluster_id": 9712895,
+  "condor_dry_run": {
+    "bytes": 2864,
+    "sha256": "96005633a1c9b24cb472f4d990840db9be883b6009725275b0bc6ad4c1f6f78f"
+  },
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 1,
+    "label": "IDLE",
+    "process_id": 0
+  },
+  "package_id": "siam_nb4_full_apm_screen_r01_rebaseline_v4_source_4e5eba53_20260828",
+  "package_manifest_sha256": "65d8cc6333ae9157a0e7a340b0a5a3e7b2e0b22f811d6e8c979a454f7bdd3cd3",
+  "remote_upload_receipt_sha256": "fcc1db195fe4e3c23d4e575109faa905289beaea8ee77dac538b170481d2ecf2",
+  "remote_upload_receipt_internal_sha256": "2c7127eb2a01dc0a8b10f04e80fe556ac6a6370ee062958c387f092b8597a2af",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "schema": "siam_nb4_chtc_submission_receipt_v4",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "SUBMITTED",
+  "submit_descriptor_sha256": "3b45a37610bc50c60f753a46e2cab7186d69b8bcc5dd0c38da64a433ad7dd4f5",
+  "submitted_at": "2026-08-28T06:49:57Z"
+}

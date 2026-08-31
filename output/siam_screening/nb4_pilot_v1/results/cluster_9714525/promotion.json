@@ -1,0 +1,319 @@
+{
+  "accuracy_policy": {
+    "energy_guard": "sector_spectral_width_normalized_max_drift",
+    "energy_in_aggregate_burden": false,
+    "energy_in_componentwise_matching": true,
+    "schema": "siam_response_matched_accuracy_policy_v2"
+  },
+  "canonical_resource_accounting": {
+    "qiskit_compilation_required": false,
+    "qiskit_compilation_role": "optional_diagnostic_only",
+    "terminal_graph_proxy_order": [
+      "C_hat_2q",
+      "C_hat_d",
+      "C_hat_1q"
+    ],
+    "terminal_n_theta": "independent_logical_shared_coordinates"
+  },
+  "cell_id": "6030dc0e971af719e6de2d63444f3f4ef9d185dfb0d17c96d7d3915948888274",
+  "comparison_identity": {
+    "comparison_fingerprint": "0e7ba1968f7724012caac1a561050975388e63eed1b4f20cd6ba2624e5a1be77",
+    "exact_reference": {
+      "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+      "key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+      "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+      "observable_schema": "siam_screening_observables_v2",
+      "propagator_schema": "siam_exact_sector_eigh_v1",
+      "reference_schema": "siam_exact_sector_reference_v2",
+      "store_schema": "siam_exact_reference_store_v2"
+    },
+    "grid": {
+      "initial_time": 0.0,
+      "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+      "point_count": 101,
+      "terminal_time": 1.0
+    },
+    "physics_fingerprint": "85e77ed89323e3d05358641b018bd00469665d02519cf02cfbebabeb305b4884",
+    "post_quench_hamiltonian_sha256": "f34c82a0109af455f744ba90071cebb2906712c15f42831f5db9a387adfe2a63",
+    "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+  },
+  "counts": {
+    "candidate": 2,
+    "pending": 0,
+    "qualified": 0
+  },
+  "exact": {
+    "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+    "energy_guard_g_E": 0.0,
+    "key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+    "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+    "mean_infidelity": 0.0,
+    "observable_schema": "siam_screening_observables_v2",
+    "propagator_schema": "siam_exact_sector_eigh_v1",
+    "reference_schema": "siam_exact_sector_reference_v2",
+    "response_normalized_derived_screening_errors": {
+      "Sigma_1": 0.0,
+      "Sigma_2": 0.0,
+      "Sigma_3": 0.0,
+      "Sigma_4": 0.0
+    },
+    "response_normalized_primitive_errors": {
+      "C_1": 0.0,
+      "C_2": 0.0,
+      "C_3": 0.0,
+      "C_4": 0.0,
+      "D_d": 0.0,
+      "m_d": 0.0
+    },
+    "state": "reference",
+    "store_schema": "siam_exact_reference_store_v2"
+  },
+  "latex_fragment": {
+    "schema": "siam_results_latex_fragment_v2",
+    "sha256": "e0d9ebc67259d778a1485c31414fff2a7088106a0d6f6868ba89b60f21a8c000"
+  },
+  "manuscript_contract": {
+    "all_numerical_slots_validated_stitched_t5": false,
+    "screen_t1_role": "diagnostic_only",
+    "validated_stitched_t5_required": false
+  },
+  "observable_contract": {
+    "impurity_number": "N_d=n_d_up+n_d_down",
+    "impurity_spin_square": "S_d2=3/4*(N_d-2*D_d)",
+    "integrated_screening": "Sigma_r=S_d2+sum_{j<=r}C_j",
+    "primitive_gate_set_unchanged": true,
+    "reporting_role": "offline_derived_from_checkpoint_statevectors",
+    "schema": "siam_screening_observables_v2"
+  },
+  "pair_comparison": {
+    "both_inside_broad_guard": false,
+    "both_pass_energy_conservation": true,
+    "both_pass_fidelity": true,
+    "burden_ratio": 16.261566280782795,
+    "burden_ratio_ceiling": 2.0,
+    "burdens_matched": false,
+    "classification": "rejected_accuracy_confounded_pair",
+    "components_matched": false,
+    "componentwise_deadband": 0.1,
+    "componentwise_ratio_ceiling": 2.0,
+    "componentwise_ratios": {
+      "C_1": 2.7341725474028555,
+      "C_2": 1.0990422033916556,
+      "C_3": 17.9406021341763,
+      "C_4": 2.8620510333198705,
+      "D_d": 1.0,
+      "energy": 2.1728775866852317,
+      "fidelity": 1.2069206507834807,
+      "m_d": 1.0
+    },
+    "cost_comparison_admissible": false,
+    "pair_sha256": "215517129d97eb1bb02dc9fd817967879d828569b839aaa1ee96ad66f168dfb1",
+    "reader_verdict": "accuracy-confounded",
+    "state": "complete"
+  },
+  "promotion_role": "diagnostic_screening",
+  "promotion_sha256": "6af75ea8ca2b9442a1e7dfa977018a5997970eb9e7679affc4a8de8231735d1b",
+  "schema": "siam_results_promotion_v2",
+  "slots": {
+    "avqds": {
+      "accepted_integration_steps": 25600,
+      "completion_proof_role": "diagnostic_screen",
+      "completion_segment": "screen_t0_t1_101",
+      "energy_guard": {
+        "ceiling": 0.001,
+        "g_E": 8.603219534154445e-05,
+        "pass": true
+      },
+      "failed_gates": [
+        "individual_response_target_pass"
+      ],
+      "gates": {
+        "all_declared_gates_pass": false,
+        "energy_guard_pass": true,
+        "fidelity_ceiling_pass": true,
+        "individual_response_target_pass": false
+      },
+      "individual_failed_gates": [
+        "individual_response_target_pass"
+      ],
+      "individual_gate_pass": false,
+      "inputs": {
+        "completion_receipt": {
+          "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+          "file_sha256": "772a7086e2c8297b9248ed30dd0bc1ce3ffe964c1b31c53e958adea5149a0101",
+          "initial_time": 0.0,
+          "manuscript_eligible": false,
+          "package_id": "siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/action_receipt.json",
+          "point_count": 101,
+          "proof_kind": "raw_action",
+          "proof_role": "diagnostic_screen",
+          "schema": "siam_nb4_chtc_action_receipt_v4",
+          "segment": "screen_t0_t1_101",
+          "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+          "terminal_time": 1.0,
+          "trajectory_sha256": "6d2b3da6e4d2a152dded8de66d7b4d166565c335a80597165be893f81b5179ce"
+        },
+        "score": {
+          "exact_view_receipt": {
+            "file_sha256": "ee2b45eed58e6d9d1674534f94a0c3af26d0cff9dd18c1f29aeac4b1c64f168e",
+            "initial_time": 0.0,
+            "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+            "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_prefix_t0_t1_sigma_v2_receipt.json",
+            "point_count": 101,
+            "receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f",
+            "reference_key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+            "schema": "siam_exact_reference_prefix_view_v2",
+            "start_index": 0,
+            "stop_index_exclusive": 101,
+            "terminal_time": 1.0,
+            "view_kind": "prefix"
+          },
+          "file_sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/score.json",
+          "score_sha256": "bbf209426949ee7ca5023ced464642d6c73af7ac582b91511af3a4ce78169c29"
+        },
+        "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+        "terminal_resource": {
+          "file_sha256": "c5b870a8ae7fa96dca5d9046e487ce784ec20d599bba33dae4dc0cc175e4e9ce",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/terminal_resources.json",
+          "resource_sha256": "5340cf67736de7531192fc63e0189273caa9fae1acfd6ce8627f7003f22ef6e9"
+        },
+        "trajectory_sha256": "6d2b3da6e4d2a152dded8de66d7b4d166565c335a80597165be893f81b5179ce"
+      },
+      "manuscript_eligible": false,
+      "mean_infidelity": 2.602334712589172e-05,
+      "method": "avqds",
+      "pending_reason": null,
+      "qualification_basis": null,
+      "reader_label": "AVQDS",
+      "response_normalized_derived_screening_errors": {
+        "Sigma_1": 0.0027024553292097036,
+        "Sigma_2": 0.004048820184649293,
+        "Sigma_3": 0.004209443680030889,
+        "Sigma_4": 0.0005924983226149311
+      },
+      "response_normalized_primitive_errors": {
+        "C_1": 0.003525914334199323,
+        "C_2": 0.009979929874394989,
+        "C_3": 0.07938284801357574,
+        "C_4": 0.022741544582768815,
+        "D_d": 0.003574246320207159,
+        "m_d": 0.002001336596149408
+      },
+      "state": "candidate",
+      "terminal_graph_proxy": [
+        370.0,
+        704.0,
+        687.0
+      ],
+      "terminal_graph_proxy_order": [
+        "C_hat_2q",
+        "C_hat_d",
+        "C_hat_1q"
+      ],
+      "terminal_n_theta": 24,
+      "terminal_time": 1.0
+    },
+    "full_apm": {
+      "accepted_integration_steps": 25600,
+      "completion_proof_role": "diagnostic_screen",
+      "completion_segment": "screen_t0_t1_101",
+      "energy_guard": {
+        "ceiling": 0.001,
+        "g_E": 0.0002172877586685232,
+        "pass": true
+      },
+      "failed_gates": [
+        "individual_response_target_pass"
+      ],
+      "gates": {
+        "all_declared_gates_pass": false,
+        "energy_guard_pass": true,
+        "fidelity_ceiling_pass": true,
+        "individual_response_target_pass": false
+      },
+      "individual_failed_gates": [
+        "individual_response_target_pass"
+      ],
+      "individual_gate_pass": false,
+      "inputs": {
+        "completion_receipt": {
+          "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+          "file_sha256": "9b44a9ad75d64b5d92e440d6f1f8533d76d5f06b361dc671ee7aa41f49cdd9f6",
+          "initial_time": 0.0,
+          "manuscript_eligible": false,
+          "package_id": "siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714525/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r02-cut1em03/action_receipt.json",
+          "point_count": 101,
+          "proof_kind": "raw_action",
+          "proof_role": "diagnostic_screen",
+          "schema": "siam_nb4_chtc_action_receipt_v4",
+          "segment": "screen_t0_t1_101",
+          "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+          "terminal_time": 1.0,
+          "trajectory_sha256": "cf307a6ce330a89b6ac9965052e1cabc754d75798ca42d9e0ec976e8696a871f"
+        },
+        "score": {
+          "exact_view_receipt": {
+            "file_sha256": "ee2b45eed58e6d9d1674534f94a0c3af26d0cff9dd18c1f29aeac4b1c64f168e",
+            "initial_time": 0.0,
+            "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+            "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_prefix_t0_t1_sigma_v2_receipt.json",
+            "point_count": 101,
+            "receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f",
+            "reference_key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+            "schema": "siam_exact_reference_prefix_view_v2",
+            "start_index": 0,
+            "stop_index_exclusive": 101,
+            "terminal_time": 1.0,
+            "view_kind": "prefix"
+          },
+          "file_sha256": "8b71303eab631579813a92c8b1f2502f187d29d99ae6eb0ec6354a88bab33b91",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714525/increments/proc0/evaluated/score.json",
+          "score_sha256": "f8585c3919d1bf13d99e7783e1dcfeba3306109e0f3a93a81bc64cbd8bd3a236"
+        },
+        "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+        "terminal_resource": {
+          "file_sha256": "a98e9ad611512a3dcfd488cecf2a7a3f902bd69a65a81180440d298291ef8f96",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714525/increments/proc0/evaluated/terminal_resources.json",
+          "resource_sha256": "12d35fac010a0306dd17b0668caa60161e057180519513a0b302e63084091562"
+        },
+        "trajectory_sha256": "cf307a6ce330a89b6ac9965052e1cabc754d75798ca42d9e0ec976e8696a871f"
+      },
+      "manuscript_eligible": false,
+      "mean_infidelity": 3.140811504874565e-05,
+      "method": "full_apm",
+      "pending_reason": null,
+      "qualification_basis": null,
+      "reader_label": "Full APM",
+      "response_normalized_derived_screening_errors": {
+        "Sigma_1": 0.005673516663213936,
+        "Sigma_2": 0.0060047674226040215,
+        "Sigma_3": 0.002074809415195466,
+        "Sigma_4": 0.0007495212088136693
+      },
+      "response_normalized_primitive_errors": {
+        "C_1": 0.013670862737014278,
+        "C_2": 0.00908057019429902,
+        "C_3": 1.4241760924893496,
+        "C_4": 0.007945890663028983,
+        "D_d": 0.0019304281412210829,
+        "m_d": 0.0008080179586501214
+      },
+      "state": "candidate",
+      "terminal_graph_proxy": [
+        588.0,
+        1092.0,
+        1064.0
+      ],
+      "terminal_graph_proxy_order": [
+        "C_hat_2q",
+        "C_hat_d",
+        "C_hat_1q"
+      ],
+      "terminal_n_theta": 24,
+      "terminal_time": 1.0
+    }
+  }
+}

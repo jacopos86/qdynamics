@@ -1,0 +1,12 @@
+{
+  "archive_bytes": 18467,
+  "archive_sha256": "aa3618ed3a4b0d2d5f879aafd3a47e4800eaa1aa374b97946532c9dd34d537fc",
+  "intent_sha256": "c06464602374dda8ed554ef788e96333162a158c43d65353d486825219ccd0c0",
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714040/archives/proc0_seed_paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669f90c.tar.gz",
+  "local_part_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714040/archives/proc0_seed_paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669f90c.tar.gz.part",
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/source/transfer_archives/paper_ii_seed/paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669f90c.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_intent_v1",
+  "status": "verified_part_ready_for_atomic_rename",
+  "tar_member_count": 5
+}

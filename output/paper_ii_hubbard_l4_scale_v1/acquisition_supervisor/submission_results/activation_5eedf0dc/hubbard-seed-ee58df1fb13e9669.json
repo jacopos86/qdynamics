@@ -1,0 +1,48 @@
+{
+  "acceptance_evidence": "condor_submit_zero_exit_and_cluster_id_stdout",
+  "action_ids": [
+    "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f"
+  ],
+  "cluster_id": 9714040,
+  "condor_submit_returncode": 0,
+  "condor_submit_stderr": "To monitor your job(s), run: condor_watch_q -clusters 9714040\n",
+  "condor_submit_stdout": "Submitting job(s).\n1 job(s) submitted to cluster 9714040.\n",
+  "dry_run_ad_sha256": "bf3facb1867fb694a5a033168ada721629c3abf8c40fe06d9ecf677bea41a760",
+  "dry_run_status": "pass",
+  "expected_process_ids": [
+    0
+  ],
+  "intent_path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/hubbard-seed-ee58df1fb13e9669.json",
+  "intent_sha256": "a5cdc5d7f51f375adb1199e23d8fb11a38d4348df74fb0967d968e4fda7d5e9a",
+  "job_batch_name": "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "lifecycle_validator_status": "pass",
+  "package": {
+    "bytes": 555495,
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/seed_action_package.tar.gz",
+    "sha256": "75fd38286f7a4eadc2f3be95a352e4f110b0ac9635e27220788409947e81e794"
+  },
+  "pre_submit_snapshot_path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_0104/combined_snapshot.json",
+  "pre_submit_snapshot_sha256": "5f9d6a9a24e8ad5829dcde697163ff9db71b7f0267853b25140ac168887c9a17",
+  "remote_raw_evidence_policy": "preserve",
+  "runtime_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "runtime_source_archive": {
+    "bytes": 5324792,
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/shared/source_5eedf0dc_runtime.tar.gz",
+    "sha256": "da056abce6f9c15d3352ad08a06baa78964e31b338df74c83d1d8bf39429db76"
+  },
+  "scheduler_acceptance_query_performed": false,
+  "schema": "paper_ii_submission_result_v1",
+  "status": "submitted",
+  "submission_result_sha256": "4658a28739b7457633b29534c14b75e6a1e3af6b5cec45bbb09621cc0db8c32e",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/submit.sub",
+    "sha256": "e5ff03e14ebcbabeae4f2bfc36726f606fdd38be8baa73038b9d5094fc7f9064"
+  },
+  "submitted_at": "2026-08-29T01:07:52.573155-05:00",
+  "unit_id": "hubbard-seed-ee58df1fb13e9669"
+}

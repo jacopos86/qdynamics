@@ -1,0 +1,64 @@
+{
+  "intent_sha256": "835bca8cfcb0caa5eab8af3d3586bcacf36bf69a5196ff2b5e219c1751c5ebec",
+  "lane_id": "paper_ii_hh_product_v1",
+  "recorded_at": "2026-08-30T02:39:50.444898+00:00",
+  "schema": "time_dynamics_submission_intent_v1",
+  "unit": {
+    "action_ids": [
+      "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2"
+    ],
+    "payload": {
+      "action_registry": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix/action_registry.json",
+        "sha256": "2930461f6e6f82dee9d6278dd3c2188d1d8667429920c8f58b8f184729b1ba5e"
+      },
+      "execution_request": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix/execution_request.json",
+        "sha256": "86f3d030153e3f0e1434255471f20ef57a73d9379bfbf08549696757d51b6566"
+      },
+      "first_reconciliation_outcome": "indeterminate",
+      "intent_template": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/package/submission_intent_template.json",
+        "sha256": "dc276c8ddac2bdc7339c49c1aef4cf9ee250cc0f91b27ef275aa2224de4d64fc"
+      },
+      "job_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8",
+      "package": {
+        "bytes": 631196,
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/package/apm_exchange_action.tar.gz",
+        "sha256": "95e896cc117c4376a193afff092655fdb47f564f98e91753d747bdb2c1e00006"
+      },
+      "package_kind": "apm_exchange",
+      "package_manifest": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/package/package_manifest.json",
+        "sha256": "a725f91dea6c830649fd65ad402e7940663afaa94f8bd26d682f8ed432343576"
+      },
+      "package_preflight": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/package/local_preflight_receipt.json",
+        "sha256": "092e6a17278d0e2eb4e61baa55cd54a0afb0dc69cc20462c4421b7e7187180d6"
+      },
+      "planner_receipt": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix/planner_receipt.json",
+        "sha256": "8e6723a4c85c12d2e0ed2beae6afecd8dd65f3fdb8dde25e512d6d8696b2a473"
+      },
+      "production_submission_enabled": false,
+      "qiskit_compilation": false,
+      "remote_package_path": "Holstein_paper_ii_prospective_hh_apm_3eb8fc53_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/apm_exchange_r00/apm_exchange_action.tar.gz",
+      "remote_workdir": "Holstein_paper_ii_prospective_hh_apm_3eb8fc53_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/apm_exchange_r00",
+      "score_receipt": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/score/score_receipt.json",
+        "sha256": "a28fb1ec137c75b4ec1be0f1142d3db3def5a1ad1b6bcb55b5de6632c9622369"
+      },
+      "source_epoch_identity_sha256": "36bea0d5708cef4229f71f66987c9af7a1b8e08a1b08909eaf6d164eafdf395e",
+      "submission_permitted": false,
+      "submit_descriptor": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/package/submit.sub",
+        "sha256": "c4d84b63894efae0e5f4bc0834d2fb35ba5c2e0789ecece768cdd9f5350b5eea"
+      },
+      "work_order": {
+        "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_3eb8fc53/work_order.json",
+        "sha256": "0d96442d1a0d8e5c6d12d813341a7fb51da951bc3cdd9923312c0a48840732f3"
+      }
+    },
+    "unit_id": "prospective-apm-exchange-488646822fcf40e8"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "archive": {
+    "gzip_verified": true,
+    "member_count": 23,
+    "path": "chtc/siam_nb4_next_frontier_packages_source_4e5eba53_upload.tar.gz",
+    "pax_headers_absent": true,
+    "sha256": "9286a10548af697b596a24399c70134e7e0175ab591728e019b47e886767b157",
+    "size_bytes": 977746,
+    "tar_verified": true,
+    "uncompressed_bytes": 6142464,
+    "xattrs_absent": true
+  },
+  "checks": {
+    "exact_reference_blind": true,
+    "lifecycle_validation_local": true,
+    "nonempty_commands": true,
+    "package_integrity": true,
+    "qiskit_compilation_disabled": true,
+    "resume_action_receipt_basename": "action_receipt.json",
+    "resume_completion_receipt_validated": true,
+    "resume_run_lock_validated": true,
+    "source_tree_reuse_explicit": true
+  },
+  "failed_action_supersession": {
+    "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9712885/failed_action_supersession_receipt.json",
+    "sha256": "3e27542d6c3c3285c23516e343a051b02efe124a879ea6e00572d644be17b909",
+    "supersession_sha256": "a0d18f805ae5a2b86dd55ba93c7d14032a4e82d5e00a4fda0f1eb728bcea43e2"
+  },
+  "ladder_replay": {
+    "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9712885/next_actions_receipt.json",
+    "replay_receipt_sha256": "7174d06c122f48a385eb2bb672549feafb248eff8c05b9d429f09560593c837f",
+    "sha256": "becfaeb33ecb52f0a1a41f833c54fa56fea362312a39cb689ab79714135d5c86"
+  },
+  "packages": [
+    {
+      "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+      "action_sha256": "c63c3cbfdd0c18e54a04f4cdc9ff5ac363afe19cb37576e75a23d99e67cd9588",
+      "manifest_sha256": "89f06e4e47220f27409c07e7c168b3243a282672933027bc8254732bb67872d6",
+      "package_id": "siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r01-cut3em04",
+      "action_sha256": "ae7798eb747748842146db2b1ed4f33f3b12dcdebfd1da8cd6afc081e135bf17",
+      "manifest_sha256": "65d8cc6333ae9157a0e7a340b0a5a3e7b2e0b22f811d6e8c979a454f7bdd3cd3",
+      "package_id": "siam_nb4_full_apm_screen_r01_rebaseline_v4_source_4e5eba53_20260828"
+    }
+  ],
+  "remote_source_anchor": {
+    "remote_upload_receipt_path": "chtc/siam_nb4_rebaseline_source_4e5eba53_remote_upload_receipt.json",
+    "remote_upload_receipt_sha256": "d6a14d19ef4836a6488008f10a87fc4fc69fb17c6dbd4aab0419436f9c08bc45",
+    "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+    "source_tree_file_count": 646,
+    "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397"
+  },
+  "repack_receipt": {
+    "path": "chtc/siam_nb4_next_frontier_packages_xattr_repack_receipt.json",
+    "repack_receipt_sha256": "70aa6e9ce681ae98f7daa3cc1b755b371361ff75fae013f5092a49a2945f85c1",
+    "sha256": "3afbd168c45a16efb68e7ee8a60a2862b14f2aaac7f637a1989ae6da02febd7f"
+  },
+  "schema": "siam_nb4_incremental_package_upload_receipt_v1",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "status": "VERIFIED_READY_FOR_INCREMENTAL_UPLOAD",
+  "upload_receipt_sha256": "814a68f69bf7ac5215e3d0d04d0b3f2226b4967dea133122825050e372d736e0"
+}

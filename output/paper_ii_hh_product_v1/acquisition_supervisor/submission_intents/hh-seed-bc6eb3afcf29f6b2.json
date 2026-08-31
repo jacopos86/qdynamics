@@ -1,0 +1,43 @@
+{
+  "intent_sha256": "3b008fff39db1d1b967f7a01565effab9fcb1305d2b2fba1cb316c1e29bbfb08",
+  "lane_id": "paper_ii_hh_product_v1",
+  "recorded_at": "2026-08-29T00:36:46.863959-05:00",
+  "schema": "time_dynamics_submission_intent_v1",
+  "unit": {
+    "action_ids": [
+      "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6"
+    ],
+    "payload": {
+      "execution_request_sha256": "bc6eb3afcf29f6b2c39d7f74fc8aee025b3af3617e5cb6d5712d597d858eeb61",
+      "expected_process_count": 1,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+      "package": {
+        "bytes": 555375,
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__mott_dominated/seed_action_package.tar.gz",
+        "sha256": "c75418c2fc049b73e759c5145519268c1619ad9e917314dba7a59ce85970fad0"
+      },
+      "package_manifest": {
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__mott_dominated/package_manifest.json",
+        "sha256": "8e58be19e3a321d24933279340e6547453a50d9e39e564e5172aa96ce8d6b024"
+      },
+      "remote_raw_evidence_policy": "preserve",
+      "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_prospective_seeds_f99b702f_20260829/source",
+      "runtime_source_archive": {
+        "bytes": 5318674,
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/shared/source_f99b702f_runtime.tar.gz",
+        "sha256": "1c4a953f2555989eadac93f1c7736dbc0014a865f3a1b2f907f7412313be5b1f"
+      },
+      "source_epoch_identity_sha256": "81b25c7fa6be167cf137b94435f4cf8337cc91a84d84410aac2258619d02280c",
+      "submission_scope": {
+        "action_ids": [
+          "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6"
+        ],
+        "process_ids": [
+          0
+        ]
+      },
+      "submit_descriptor": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__mott_dominated/submit.sub"
+    },
+    "unit_id": "hh-seed-bc6eb3afcf29f6b2"
+  }
+}

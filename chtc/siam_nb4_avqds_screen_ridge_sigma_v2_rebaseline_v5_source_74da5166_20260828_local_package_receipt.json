@@ -1,0 +1,62 @@
+{
+  "action": {
+    "bytes": 186741,
+    "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/action.json",
+    "sha256": "fa1300f89088fb32708db8f7c25b636e818c781923950cd41ae8fa6556aff379"
+  },
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "checks": {
+    "action_count_one": true,
+    "composite_identity_verified": true,
+    "exact_reference_blind": true,
+    "manifest_file_table_verified": true,
+    "nonempty_command": true,
+    "output_path_absent": true,
+    "package_integrity": true,
+    "predecessor_epoch_closed": true,
+    "qiskit_compilation_disabled": true,
+    "source_locked": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/siam-nb4-avqds-screen-r00-cut1em03/run.json",
+  "local_package_receipt_sha256": "ede0f852bc532d1b925b8350bf9355e384c12c3d98b2ba86717535375709ea4c",
+  "package_id": "siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828",
+  "package_manifest": {
+    "bytes": 8106,
+    "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/input/manifest.json",
+    "sha256": "5b2cdb1fbd0cf9f67fca4524ff3d7b046715cd14dd51bc512f19797914e085fa"
+  },
+  "planner_receipt": {
+    "bytes": 4713,
+    "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/planner_receipt.json",
+    "planner_receipt_sha256": "cdc2ae7febad0e0c41de5ee064e7bbc5fe195d5ef3e9375587519cd610ffc62c",
+    "sha256": "283a8c209be8ae4c459bf39bb3f5945eebada40c2a6067a8659df12dd6c0c80f"
+  },
+  "predecessor_closure_receipt": {
+    "bytes": 883,
+    "closure_receipt_sha256": "41b840e7828fa57e0ca46eafd6a9a37d3df7e95c3f027a054a59009c2a63538e",
+    "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/predecessor_4e5eba53_closure.json",
+    "sha256": "be68bcab0d479fa99f5bbbe140e2a3746855c1c98bd52250ab893abbc2d2f6c8"
+  },
+  "prepared_at_utc": "2026-08-28T10:29:38.873433Z",
+  "runner_argv_sha256": "374a81d1be7328b9a5da80bcf6ecd3aa6bff83f7bb7774f25a9ead390ca8fd6d",
+  "schema": "siam_nb4_local_package_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+    "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc"
+  },
+  "source_tree_file_count": 646,
+  "status": "PREPARED_NOT_SUBMITTED"
+}

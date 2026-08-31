@@ -1,0 +1,107 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+  "action_json_sha256": "014d41e96ba3d3db79eb38ea241c7b8219123a7e695d6113b72930ee82bc7f7f",
+  "activation_cut_ladder": [
+    "0.001",
+    "0.0003",
+    "0.0001",
+    "3e-05",
+    "1e-05",
+    "3e-06",
+    "1e-06",
+    "3e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": true,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/siam-nb4-avqds-continue-r00-cut1em03/run.json",
+  "expected_run_id": "siam_nb4_continue_t1_t5_401_avqds_cut0.001",
+  "files": {
+    "action": {
+      "bytes": 186057,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/action.json",
+      "sha256": "014d41e96ba3d3db79eb38ea241c7b8219123a7e695d6113b72930ee82bc7f7f"
+    },
+    "resume": {
+      "bytes": 5533800,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/resume/screen_run.json",
+      "sha256": "4d376702a901cf090e2c3af346757c161d3d170ba3d6a64c7b4e6acbc41a7b70"
+    },
+    "resume_action_receipt": {
+      "bytes": 214400,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/resume/action_receipt.json",
+      "sha256": "724aed65ef2d68e4c294abeaf419c9a117f5630cd042150a788376c095065cb4"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1366,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/submit.sub",
+      "sha256": "1c2c513c74747590dc7dcb3223ad7d025ca1533c2748482d9104226ce577e826"
+    },
+    "worker": {
+      "bytes": 865,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/run_action.py",
+      "sha256": "870afd0ba8335bfc1b1ba4612b8e9f8aec37b5a9f2692df19ec35b2bb6d6414b"
+    },
+    "wrapper": {
+      "bytes": 1731,
+      "path": "chtc/siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/run_action_apptainer.sh",
+      "sha256": "6785fcc8d63409e841a63b0a51be2d0b821696145bf410717104c25159af5bb1"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_avqds_continue_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828",
+  "prepared_at": "2026-08-28T17:23:23.267003+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "runner_argv_sha256": "7f8d748464f0a6de1bdf907757faf33e5c1e44dada6e6b5e79a055d50a4dbe47",
+  "schema": "siam_nb4_chtc_package_manifest_v4",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+    "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc"
+  },
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "1c2c513c74747590dc7dcb3223ad7d025ca1533c2748482d9104226ce577e826",
+  "worker_sha256": "870afd0ba8335bfc1b1ba4612b8e9f8aec37b5a9f2692df19ec35b2bb6d6414b",
+  "wrapper_sha256": "6785fcc8d63409e841a63b0a51be2d0b821696145bf410717104c25159af5bb1"
+}

@@ -1,0 +1,97 @@
+{
+  "archive": {
+    "atomic_rename_verified": true,
+    "gzip_verified": true,
+    "member_count": 23,
+    "pax_headers_absent": true,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/next_frontier_packages_upload.tar.gz",
+    "sha256": "9286a10548af697b596a24399c70134e7e0175ab591728e019b47e886767b157",
+    "size_bytes": 977746,
+    "tar_verified": true,
+    "transferred_through_part": true,
+    "uncompressed_bytes": 6142464,
+    "xattrs_absent": true
+  },
+  "checks": {
+    "condor_dry_run": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "lifecycle_validation_local": true,
+    "lifecycle_validation_remote_equivalent": true,
+    "nonempty_commands": true,
+    "output_paths_clear": true,
+    "package_file_digests_verified": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "source_tree_verified_in_runtime_image": true
+  },
+  "dry_runs": {
+    "siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828": {
+      "bytes": 2865,
+      "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/dryrun_avqds_continue_retry.log",
+      "sha256": "2e2c7c541e445a08058a673ec605f8d3c97783f4ba6139cfbbe11cd7d04cf200"
+    },
+    "siam_nb4_full_apm_screen_r01_rebaseline_v4_source_4e5eba53_20260828": {
+      "bytes": 2864,
+      "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/dryrun_full_apm_screen_r01.log",
+      "sha256": "96005633a1c9b24cb472f4d990840db9be883b6009725275b0bc6ad4c1f6f78f"
+    }
+  },
+  "duplicate_action_audit": {
+    "active_queue_matches": 0,
+    "full_apm_r01_prior_positive_completion": false,
+    "known_failed_avqds_attempt": {
+      "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+      "cluster_id": 9712865,
+      "exit_code": 1,
+      "job_status": 4,
+      "positive_completion_receipt_present": false,
+      "trajectory_present": false
+    },
+    "new_output_paths_clear": true,
+    "supersession_receipt": {
+      "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9712885/failed_action_supersession_receipt.json",
+      "sha256": "3e27542d6c3c3285c23516e343a051b02efe124a879ea6e00572d644be17b909",
+      "supersession_sha256": "a0d18f805ae5a2b86dd55ba93c7d14032a4e82d5e00a4fda0f1eb728bcea43e2"
+    }
+  },
+  "expected_image": {
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "size_bytes": 216371200
+  },
+  "local_upload_receipt": {
+    "path": "chtc/siam_nb4_next_frontier_packages_source_4e5eba53_upload_receipt.json",
+    "sha256": "8944bed11d3caaa347197d7ee1f65fb8ce6d3e8f54de5aa024881acec3906498",
+    "upload_receipt_sha256": "814a68f69bf7ac5215e3d0d04d0b3f2226b4967dea133122825050e372d736e0"
+  },
+  "observed_at": "2026-08-28T06:46:40Z",
+  "packages": [
+    {
+      "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+      "action_sha256": "c63c3cbfdd0c18e54a04f4cdc9ff5ac363afe19cb37576e75a23d99e67cd9588",
+      "manifest_sha256": "89f06e4e47220f27409c07e7c168b3243a282672933027bc8254732bb67872d6",
+      "package_id": "siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r01-cut3em04",
+      "action_sha256": "ae7798eb747748842146db2b1ed4f33f3b12dcdebfd1da8cd6afc081e135bf17",
+      "manifest_sha256": "65d8cc6333ae9157a0e7a340b0a5a3e7b2e0b22f811d6e8c979a454f7bdd3cd3",
+      "package_id": "siam_nb4_full_apm_screen_r01_rebaseline_v4_source_4e5eba53_20260828"
+    }
+  ],
+  "quota": {
+    "home_limit_mib": 51200,
+    "home_quota_mib": 40960,
+    "home_used_mib": 30709
+  },
+  "remote_upload_receipt_sha256": "2c7127eb2a01dc0a8b10f04e80fe556ac6a6370ee062958c387f092b8597a2af",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "schema": "siam_nb4_incremental_remote_upload_receipt_v1",
+  "source_anchor": {
+    "remote_upload_receipt_sha256": "d6a14d19ef4836a6488008f10a87fc4fc69fb17c6dbd4aab0419436f9c08bc45",
+    "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+    "source_tree_file_count": 646,
+    "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397"
+  },
+  "status": "VERIFIED_EXTRACTED_READY_FOR_SUBMISSION"
+}

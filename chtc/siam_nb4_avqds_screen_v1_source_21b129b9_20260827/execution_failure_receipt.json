@@ -1,0 +1,33 @@
+{
+  "action_id": "screen_avqds_nb4_t1_cut1e-3",
+  "archive": {
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827/evidence/cluster_9710340_proc0_failure.tar.gz",
+    "size_bytes": 2891,
+    "sha256": "2383a15a7cb1fe46bf78507df2dd2390be1c9a53d608cd911e3822b68b01e87d",
+    "tar_gzip_verified_local": true,
+    "tar_gzip_verified_remote": true
+  },
+  "cluster_id": 9710340,
+  "diagnosis": {
+    "differing_field": "digests.initial_state_sha256",
+    "local_declared_digest": "0e8a2c323d27660f7ce9c2876680e9711f886b80dabf06cfca6421a991aaf036",
+    "remote_regenerated_digest": "a17b052f9f4436e1a262c89b551e75a560a382a59cfa9d9f69179d930ffbdc17",
+    "unchanged_fields": [
+      "physical",
+      "layout",
+      "preparation",
+      "pool",
+      "digests.pre_quench_hamiltonian_sha256",
+      "digests.post_quench_hamiltonian_sha256",
+      "digests.ordered_logical_pool_sha256"
+    ]
+  },
+  "exit_code": 1,
+  "process_id": 0,
+  "resolution": "Preserve this failed action and introduce a portable initial-state identity under a new source lock before resubmission. Do not ingest this attempt.",
+  "schema": "siam_chtc_execution_failure_receipt_v1",
+  "scientific_configuration_changed": false,
+  "status": "FAILED_PORTABILITY_GUARD",
+  "timestamp_utc": "2026-08-27T21:25:21Z",
+  "trajectory_present": false
+}

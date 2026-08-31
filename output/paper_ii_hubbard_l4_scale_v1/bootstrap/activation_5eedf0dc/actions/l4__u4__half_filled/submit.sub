@@ -1,0 +1,27 @@
+universe = vanilla
+executable = output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/launch.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = False
+transfer_input_files = output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/seed_action_package.tar.gz, output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/shared/source_5eedf0dc_runtime.tar.gz, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs
+log = output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/logs/paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669.$(Cluster).$(Process).log
+output = output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/logs/paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669.$(Cluster).$(Process).out
+error = output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/logs/paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 24GB
+request_disk = 40GB
+leave_in_queue = False
++PaperIILaneId = "paper_ii_hubbard_l4_scale_v1"
++PaperIIActionId = "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f"
++PaperIIExecutionRequestSha256 = "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd"
++PaperIIRemoteRawPreservation = True
++PaperIISourceEpochId = "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205"
++PaperIIQiskitCompilationRequested = False
++MaxRuntime = 86400
++JobBatchName = "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669"
+queue 1

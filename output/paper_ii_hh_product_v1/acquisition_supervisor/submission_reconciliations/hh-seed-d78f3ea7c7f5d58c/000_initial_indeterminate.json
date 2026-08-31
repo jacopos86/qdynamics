@@ -1,0 +1,20 @@
+{
+  "action_ids": [
+    "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::1a77bfa4e0d6b60f"
+  ],
+  "action_ids_sha256": "17af771bfdd0eb2bbc85fb7ff3f1a8fc19e610e1494251eb1250461321a25547",
+  "detail": "new durable intent has not yet appeared in any scheduler snapshot",
+  "intent": {
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-d78f3ea7c7f5d58c.json",
+    "sha256": "c0c0a4a69d94ca7283ef6334f71752b5d5ac7b1ef7bf1b382cf42a9214d37294"
+  },
+  "lane_id": "paper_ii_hh_product_v1",
+  "reconciliation_sha256": "b1953f5c3b86a7fbc1040f4944698f4e7911b26239e4ac2582a03734d10c6be0",
+  "recorded_at": "2026-08-29T00:36:46.861954-05:00",
+  "scheduler_contacted": false,
+  "schema": "paper_ii_bootstrap_submission_reconciliation_v1",
+  "snapshot_sequence": 0,
+  "status": "indeterminate",
+  "submission_authorized": false,
+  "unit_id": "hh-seed-d78f3ea7c7f5d58c"
+}

@@ -1,0 +1,47 @@
+{
+  "archive": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827/siam_nb4_avqds_screen_v1_source_21b129b9_upload.tar.gz",
+  "archive_bytes": 5113097,
+  "archive_members": 690,
+  "archive_sha256": "44b923f34d307c8d52b5fa2e5679ff0e30e745fb55e8e6fa1ee7745609b607de",
+  "checks": {
+    "condor_dry_run": "pass_1_job",
+    "duplicate_batch_local": true,
+    "duplicate_batch_remote_history": true,
+    "duplicate_batch_remote_queue": true,
+    "exact_reference_absent": true,
+    "gzip_integrity": true,
+    "quota": true,
+    "source_sentinels": true,
+    "tar_integrity": true,
+    "target_output_absent": true
+  },
+  "image": {
+    "bytes": 216371200,
+    "link_count": 18,
+    "link_type": "hard_link",
+    "path": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827/chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "local_source_upload_receipt": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_upload_receipt.json",
+  "local_source_upload_receipt_sha256": "4e13c984acf641579e672cb06e9a07d6ac86c3b7a239e275da3912fc1a146f1b",
+  "package": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827/chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827",
+  "package_manifest_sha256": "5ebff67a3cba6cfdc641136d0e250b74c17c0b17969d1c9b2c85914166f5a08b",
+  "quota_snapshot": {
+    "home_limit": "256M",
+    "home_used": "6712K",
+    "project_limit": "51200M",
+    "project_quota": "40960M",
+    "project_used": "24496M",
+    "workspace_size": "240M"
+  },
+  "recorded_at": "2026-08-27T16:09:48-05:00",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827",
+  "schema": "siam_nb4_source_locked_remote_upload_receipt_v1",
+  "source_revision": "21b129b9c4a1743c58b221f5770eada17a3a19cc",
+  "source_sentinels": {
+    "pipelines/time_dynamics/paper_ii_runs.py": "789b650b888b99c083c8b3050ae1a6b0947281b01646df903c393dda3901618b",
+    "pipelines/time_dynamics/siam_seed.py": "ddf8fb1826b65184e257b8d89d9538a60cbab35ec01aa307d6f55542870f4ba4",
+    "src/quantum/siam_model.py": "87c3d5140ddf94221dc535fec77e8011790987e8f61684c8fc5e9c0ef79dbf05"
+  },
+  "status": "VERIFIED_EXTRACTED_IMAGE_READY"
+}

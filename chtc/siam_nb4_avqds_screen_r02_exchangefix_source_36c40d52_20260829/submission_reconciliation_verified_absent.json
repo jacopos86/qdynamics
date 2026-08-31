@@ -1,0 +1,84 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 21266,
+    "captured_at": "2026-08-29T10:20:07.360721513-05:00",
+    "captured_at_unix_ns": 1788016807360721513,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_101836/combined_snapshot_siam_r02_intent_bound.json",
+    "sha256": "dfa05f9871f802e4441e3ef50a6d41a15a013bc6ac0223a429e8cd4c7bfc33af",
+    "snapshot_sha256": "c0be25e6f1ac17c326c21303a8e8fa7e1afea51b82fcc0f689cf4955f545de21",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "7703739d33fc69017ecc5e359469c841dfe568f13ff53ca9420e1777f812e8fb",
+    "bytes": 4634,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/siam_r02_intent_bridge.json",
+    "sha256": "8beb126d71d199d0d5f1f6a63631ade4ac1399b1a73f90e3ab6726a75e2aa153"
+  },
+  "intent_identity_sha256": "5d29561f5ab5039a6edef50e2772b9747186fa184548bdc1c8dbf775046210e8",
+  "job_batch_name": "siam-nb4-screen-t0-t1-101-avqds-rung2",
+  "receipt_sha256": "f4a1b613784ff43c5a13c8c91871836db5fc8898187f4a697d69541d64f796d1",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_required_before_submit": true,
+    "path": "raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1633,
+    "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "304b1470f316dc7163b2c38efcd79a190041a7287689a9c6a0c2a5f4cff2435a"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "5d29561f5ab5039a6edef50e2772b9747186fa184548bdc1c8dbf775046210e8",
+      "prior_captured_at": "2026-08-29T10:20:07.360721513-05:00",
+      "prior_captured_at_unix_ns": 1788016807360721513,
+      "prior_snapshot_sha256": "c0be25e6f1ac17c326c21303a8e8fa7e1afea51b82fcc0f689cf4955f545de21",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 24961,
+    "captured_at": "2026-08-29T15:52:54Z",
+    "captured_at_unix_ns": 1788018774000000000,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/combined_snapshot_siam_r02_verified_absent.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 4504,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/raw/history.json",
+        "returncode": 0,
+        "row_count": 7,
+        "sha256": "34acaea7590f116e8f51bee251a24817f0a6c78d6e379255ce086157a4b9d9d5",
+        "stdout_sha256": "34acaea7590f116e8f51bee251a24817f0a6c78d6e379255ce086157a4b9d9d5"
+      },
+      "queue": {
+        "bytes": 0,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/raw/queue.json",
+        "returncode": 0,
+        "row_count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "sha256": "90071b13aca47beda64280b9a8b74a13f4f20240d7ac5228cbb2bb24367bdd78",
+    "snapshot_sha256": "82b65efb7f6332223bbee331e678adec8ee1403c053e1553c6f54aaed324f0b0"
+  }
+}

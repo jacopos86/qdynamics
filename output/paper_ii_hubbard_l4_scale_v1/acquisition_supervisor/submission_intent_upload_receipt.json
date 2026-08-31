@@ -1,0 +1,18 @@
+{
+  "files": [
+    {
+      "bytes": 2096,
+      "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/hubbard-seed-ee58df1fb13e9669.json",
+      "sha256": "7906f94caa4756522f89899445b5239baa446c888a9dbc5150f4a3062b2d9080"
+    },
+    {
+      "bytes": 941,
+      "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_reconciliations/hubbard-seed-ee58df1fb13e9669/000_initial_indeterminate.json",
+      "sha256": "e7c9f4cbdaadee0273521c2bf86373442a6a9bba90ecce4fb6920d411af530f8"
+    }
+  ],
+  "receipt_sha256": "9164c798941b059ce3a67a0832656e1812890091ff6f64809373148833c0a274",
+  "recorded_at": "2026-08-29T06:03:28.596681+00:00",
+  "schema": "paper_ii_remote_intent_upload_receipt_v1",
+  "status": "verified"
+}

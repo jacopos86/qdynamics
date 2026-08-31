@@ -1,0 +1,192 @@
+{
+  "bootstrap_scope_manifest_sha256": "a0e8566e3b1b3970299d63df00b2624e52a750ba97cbcc70e41fe5b497ee1fcb",
+  "lane_id": "paper_ii_hh_product_v1",
+  "production_submission_enabled": false,
+  "registry_id": "paper_ii_parallel_benchmarks_authorized_v2",
+  "scheduler_confirmation": false,
+  "scheduler_confirmation_snapshot": null,
+  "schema": "time_dynamics_scheduler_scope_authority_v1",
+  "scope_origin": "condor_submit_zero_exit_and_cluster_id_stdout",
+  "scope_purpose": "monitoring_and_recovery_only",
+  "scopes": [
+    {
+      "cluster_id": 9713875,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    },
+    {
+      "cluster_id": 9713876,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    },
+    {
+      "cluster_id": 9713877,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    },
+    {
+      "cluster_id": 9713878,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    },
+    {
+      "cluster_id": 9713879,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    },
+    {
+      "cluster_id": 9713880,
+      "lane_id": "paper_ii_hh_product_v1",
+      "process_ids": [
+        0
+      ]
+    }
+  ],
+  "status": "provisional_submission_scope_only",
+  "submission_authorized": false,
+  "unit_count": 6,
+  "units": [
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::01fe11a5195d6420"
+      ],
+      "cluster_id": 9713878,
+      "intent": {
+        "file_sha256": "ebdd14d2d5a453537eeee60151550965d56a76ed363c39a9099359ee56fc2a3f",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-06b5ba100adf8d26.json",
+        "sha256": "169eaa21527d2df873f2c4a0318d1288fcbfb675749aa23c3ce7ebb8f0bbc54a"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "38bf4e9dc358137748edebcbad9e373ae0d4b5965ec87128a0b806aa241cb6af",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-06b5ba100adf8d26.json",
+        "sha256": "acce33b7baf15f19837a14c6b36c2ff631a69c58088e4d9235c7e9a091d47ab0"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-06b5ba100adf8d26"
+    },
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3"
+      ],
+      "cluster_id": 9713880,
+      "intent": {
+        "file_sha256": "3a45db101b36f0f1052868db2e7a2c38dc6262ba4e23fd1f29b73a0cd90df310",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-0d6cf17e6e45c62d.json",
+        "sha256": "7c977c63d9f2a0f60069bbacec6b25caf10dff1871d1e17fcfe03cc04848bcb7"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "140dcfdcea79ac9e25f7c73ee15ff4c1a28abe7e5b4cb5414be6a93481fff77c",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-0d6cf17e6e45c62d.json",
+        "sha256": "972af90811276c36adc69f93244d38a1e881442f4fb640d2fc6b90faf9033225"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-0d6cf17e6e45c62d"
+    },
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::c6a336c122b7f3cb"
+      ],
+      "cluster_id": 9713876,
+      "intent": {
+        "file_sha256": "3ab0c8d6f3bcc7ed7fd6bb911d3da2fb4e74b52dc1456f0e8025000af661a1f3",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-604078f31bda8681.json",
+        "sha256": "e5066adfa1d736c275a82f83317e37d361942379c88b77beb8273e8178de5242"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "a258f355528b52115846ff471d626f609b9b67374a6af513a5a0727cca2baca6",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-604078f31bda8681.json",
+        "sha256": "6975c1f4d81d577265f0c1788965753f72fca47d21ee3515d94892bf7da1f036"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-604078f31bda8681"
+    },
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658"
+      ],
+      "cluster_id": 9713875,
+      "intent": {
+        "file_sha256": "c3ab98f4fd3898218833e61a68940c4cc3754e463db9e7f3ae437fdfa46873b4",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-6aaccc2efdb724a6.json",
+        "sha256": "399c6e85079603d00b1b3f2a6d6df99982b81402844b87c26e4a4ac7eafce0ac"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "f06c8f172a26f4ad952a2e894855e380db21b8b32e6ee139b82ae6cb5fbf9a65",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-6aaccc2efdb724a6.json",
+        "sha256": "c1f64cdb2b9b13f9491ac2587abc0dcf1fd1736b466a9bc3aed47789ba18f2b1"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-6aaccc2efdb724a6"
+    },
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6"
+      ],
+      "cluster_id": 9713879,
+      "intent": {
+        "file_sha256": "bc8711f4ae4f3a7f8cd6813c7919627f801dcab09fa0a774a4e0efc9ae64d25a",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-bc6eb3afcf29f6b2.json",
+        "sha256": "3b008fff39db1d1b967f7a01565effab9fcb1305d2b2fba1cb316c1e29bbfb08"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "ecd9b589f0a1fd956ec54c70b9f11e11ed0fdd9c783726ec9a880dd0a87913b4",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-bc6eb3afcf29f6b2.json",
+        "sha256": "2d6930c9616d260423d6e6fbef76bf4853f0f3428d69ec4b90f938975143bf6e"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-bc6eb3afcf29f6b2"
+    },
+    {
+      "action_ids": [
+        "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::1a77bfa4e0d6b60f"
+      ],
+      "cluster_id": 9713877,
+      "intent": {
+        "file_sha256": "4fa28f210f52058a24aaea0784db8eb98e905418d9f863f99cb40909dd504129",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-d78f3ea7c7f5d58c.json",
+        "sha256": "c0c0a4a69d94ca7283ef6334f71752b5d5ac7b1ef7bf1b382cf42a9214d37294"
+      },
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+      "process_ids": [
+        0
+      ],
+      "provisional_submission_result": {
+        "file_sha256": "d63d59357282e98ad7bdae349e094d83cf876cbd4d39dfbdf0d77453c194e6b2",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-d78f3ea7c7f5d58c.json",
+        "sha256": "c95056ad610977ee5e4d54f931e02b3d1a9bd7ebcb0991d35714e4e396690c16"
+      },
+      "scheduler_confirmation": false,
+      "unit_id": "hh-seed-d78f3ea7c7f5d58c"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "action_registry": {
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/action_registry.json",
+    "sha256": "ab384589a9b88a251757967bccad97876fe7dde1a74f8a56cdc639b1017e2d13"
+  },
+  "bindings_sha256": "155d3f310b1211c24abec1e815388c16bd019d21589a1829013406d90b7f6229",
+  "bootstrap_action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+  "bootstrap_completion_receipt": {
+    "path": "output/prospective_bootstrap/hh_product_v1/hh__nph1__crossover__midres/avqds_prefix_2affbc1d0c6df19b/completion_receipt.json",
+    "sha256": "fde494768e43affe56a3fb60d7135c118a011381c9ab7ff8f9faf0c176a8c193"
+  },
+  "bootstrap_execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+  "bootstrap_work_order_sha256": "a42fa192aff47226aa9f35961511b37dd5f68d252075ec68414ce0aa4960be45",
+  "completed_lifecycle": {
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/completed_lifecycle.json",
+    "sha256": "a8073f7c0597acf0f26e5df1d3f164358eacd69adefe2877d7cf30f7c60f807c"
+  },
+  "execution_request_sha256": "cfc3134e1f03062f99bb8c3c1557e3fa0bdd83d421dad8040673d8850e92deca",
+  "qiskit_compilation_used": false,
+  "remote_raw_evidence_policy": "preserve",
+  "run": {
+    "path": "output/prospective_bootstrap/hh_product_v1/hh__nph1__crossover__midres/avqds_prefix_2affbc1d0c6df19b/run.json",
+    "sha256": "beb2cc849c5c37bec6bd16d6153a616f857e1c54f3f8c9b07bcc805ca18eca49"
+  },
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_avqds_scout_adoption_receipt_v1",
+  "scientific_action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::avqds::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "scientific_qualification": null,
+  "scout_adoption_receipt_sha256": "2341de53606753a9a132d187a02474966fbda86a5a128848e52ccdcad31801f8",
+  "status": "adopted_completed_unscored",
+  "submitted_lifecycle": {
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/submitted_lifecycle.json",
+    "sha256": "24514fbfdc36959cacbf8d456e77e1a0b24d47209402d8827a0db012976a7bcd"
+  }
+}

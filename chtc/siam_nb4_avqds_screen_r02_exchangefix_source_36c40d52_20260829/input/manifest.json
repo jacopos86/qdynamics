@@ -1,0 +1,99 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+  "action_json_sha256": "c75e037f269e665702a738ac3fbcd3e48e4ee7a02c46ae178c5328501950e889",
+  "activation_cut_ladder": [
+    "0.01",
+    "0.00333333333333",
+    "0.001",
+    "0.000333333333333",
+    "0.0001",
+    "3.33333333333e-05",
+    "1e-05",
+    "3.33333333333e-06",
+    "1e-06",
+    "3.33333333333e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.001",
+  "files": {
+    "action": {
+      "bytes": 189764,
+      "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "sha256": "c75e037f269e665702a738ac3fbcd3e48e4ee7a02c46ae178c5328501950e889"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1284,
+      "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "sha256": "684d35100411c2edaa3090ba73a43ebca70cd71ae81b36930193834042bdce62"
+    },
+    "worker": {
+      "bytes": 849,
+      "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/run_action.py",
+      "sha256": "60e5d92ac6a70020de7687c28ca1016229030fbc1e0c7f629116ef4083e8f9f6"
+    },
+    "wrapper": {
+      "bytes": 1701,
+      "path": "chtc/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/run_action_apptainer.sh",
+      "sha256": "751f677fd858dbee6756c924f20431ab6b5c4a7b441527d86c762c9933c6f67a"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829",
+  "prepared_at": "2026-08-29T06:12:19+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "runner_argv_sha256": "091a552cb76fafd1d6da785f39ea525527639e5d9904c2a1da8692429868a0c7",
+  "schema": "siam_nb4_chtc_package_manifest_v4",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+    "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+    "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 667,
+  "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "684d35100411c2edaa3090ba73a43ebca70cd71ae81b36930193834042bdce62",
+  "worker_sha256": "60e5d92ac6a70020de7687c28ca1016229030fbc1e0c7f629116ef4083e8f9f6",
+  "wrapper_sha256": "751f677fd858dbee6756c924f20431ab6b5c4a7b441527d86c762c9933c6f67a"
+}

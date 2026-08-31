@@ -1,0 +1,89 @@
+{
+  "archive": {
+    "atomic_rename_verified": true,
+    "bytes": 982448,
+    "gzip_integrity": true,
+    "member_count": 23,
+    "path": "chtc/siam_nb4_source_446b75f3_frontier9714484_upload_20260829.tar.gz",
+    "remote_bytes": 982448,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/incoming/siam_nb4_source_446b75f3_frontier9714484_upload_20260829.tar.gz",
+    "remote_sha256": "9f5e78a29bfc39eb3f927a15e826825d5f7b3743c135f286a4af088a824656b2",
+    "sha256": "9f5e78a29bfc39eb3f927a15e826825d5f7b3743c135f286a4af088a824656b2",
+    "tar_integrity": true,
+    "transferred_through_part": true
+  },
+  "bindings": {
+    "action": {
+      "bytes": 191799,
+      "path": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/input/action.json",
+      "sha256": "a5c0093f910c846c163f72a4b1619a9ad9fee9409d0874cbe87ff92b57ee3fe0"
+    },
+    "manifest": {
+      "bytes": 4766,
+      "path": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "sha256": "a55bc3001ae36233705418892af19ce568bef05b49ccd89ddcbf413df437d021"
+    },
+    "submit": {
+      "bytes": 1306,
+      "path": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/submit.sub",
+      "sha256": "27182f9a23cbfef48b252f19c741da112873f67d03df1a24413431105ce8d2e2"
+    }
+  },
+  "checks": {
+    "condor_dry_run_passed": true,
+    "local_package_manifest_verified": true,
+    "local_source_epoch_control_plane_verified": true,
+    "local_source_tree_contract_verified": true,
+    "local_submit_lifecycle_verified": true,
+    "qiskit_compilation_requested": false,
+    "quota_checked": true,
+    "remote_archive_digest_verified": true,
+    "remote_image_digest_verified": true,
+    "remote_output_path_absent": true,
+    "remote_package_file_digests_verified": true,
+    "remote_source_archive_digest_verified": true,
+    "remote_source_tree_contract_verified": true,
+    "submission_autopilot_absent": true
+  },
+  "condor_dry_run": {
+    "bytes": 2986,
+    "path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/preflight/siam_frontier9714484_avqds.dryrun.classad",
+    "sha256": "7d1e8e8ffc26e71a9b57afa86a7890e6c41360280765f92545144319a3de7313"
+  },
+  "image": {
+    "bytes": 216371200,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "recorded_at_utc": "2026-08-29T17:09:37Z",
+  "remote_raw_evidence_preserved": true,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "scheduler_reconciliation": {
+    "required_next_state": "verified_absent",
+    "state": "indeterminate",
+    "submission_permitted": false
+  },
+  "schema": "siam_nb4_remote_upload_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_archive": {
+    "bytes": 5539814,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/siam_nb4_source_446b75f3_r00_upload_20260828.tar.gz",
+    "sha256": "a6f1f8d0ff2b5d5c4514a2df0872fe3aca41b7ce2ca416512517baac9fd83988"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+  "status": "REMOTE_PACKAGE_VERIFIED_AWAITING_RECONCILIATION_NOT_SUBMITTED",
+  "warnings": [
+    {
+      "code": "login_node_numpy_unavailable",
+      "disposition": "the complete source contract and package digests were validated with the standard library; the execute-node wrapper revalidates inside the digest-bound image"
+    },
+    {
+      "code": "combined_upload_omitted_lifecycle_validator",
+      "disposition": "the exact previously verified 6854-byte validator was copied only after destination absence was established; both package lifecycle validations then passed"
+    }
+  ]
+}

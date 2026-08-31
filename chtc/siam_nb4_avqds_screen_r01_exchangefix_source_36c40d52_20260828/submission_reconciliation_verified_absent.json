@@ -1,0 +1,27 @@
+{
+  "history_query": {
+    "result_count": 0,
+    "scope": "exact_source_epoch_and_scientific_action"
+  },
+  "intent": {
+    "bytes": 1405,
+    "path": "chtc/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/submission_intent.json",
+    "sha256": "13a419025e31186592a87bddb527c843a19dee86669528a59d05c6a9db9eadf1"
+  },
+  "queue_query": {
+    "result_count": 0,
+    "scope": "exact_source_epoch_and_scientific_action"
+  },
+  "remote_output_path": {
+    "path": "raw_outputs/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r01-cut3em03/run.json",
+    "state": "verified_absent"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_permitted": true,
+  "verified_at_utc": "2026-08-29T03:50:38+00:00"
+}

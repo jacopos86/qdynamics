@@ -1,0 +1,15 @@
+{
+  "cell_id": "6030dc0e971af719e6de2d63444f3f4ef9d185dfb0d17c96d7d3915948888274",
+  "pdf": {
+    "bytes": 3001,
+    "page_count": 1,
+    "sha256": "f511f8998802a289c583f34baa24942fd3b08928be0abe0134e99f79cdf41b4d"
+  },
+  "promotion_role": "diagnostic_screening",
+  "promotion_sha256": "cef19bce6fcac35b0ad1ef2c30cc2c225e7c81fba0ce41c0ddd8a0c656e7a44b",
+  "qiskit_compilation_used": false,
+  "receipt_sha256": "134d3345c8893729401adc02cb9d0a75fccff553f8764cf0c8a23a5f8ae2f3a2",
+  "render_schema": "siam_results_pdf_v2",
+  "schema": "siam_results_pdf_receipt_v2",
+  "source_contract": "verified_results_promotion_only_no_raw_trajectory"
+}

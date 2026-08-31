@@ -1,0 +1,78 @@
+{
+  "absence_proof": {
+    "intent_identity_sha256": "ad38c6532c4cdd04e6a8dfaafd946261cf008dfa21df08046ed80e00ca9d4532",
+    "prior_captured_at": "2026-08-29T18:01:18Z",
+    "prior_captured_at_unix_ns": 1788026478000000000,
+    "prior_snapshot_sha256": "53de7cec6e1732432068c12cafb7855809bcd803534dfe4fb8df5fabc8047fd8",
+    "prior_snapshot_status": "indeterminate",
+    "schema": "paper_ii_intent_first_absence_proof_v1"
+  },
+  "action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+  "authorization_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_authorizations/bootstrap-avqds-scout-2affbc1d0c6df19b.json",
+  "automatic_retry_authorized": false,
+  "claim_generation": 1,
+  "claim_resolution": null,
+  "dry_run_result": {
+    "file_sha256": "4eae3569728115e31859b9cb26cd8365600170e2765d9882bd75fe62ca2d1633",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/dry_run_results/bootstrap-avqds-scout-2affbc1d0c6df19b.json",
+    "sha256": "bd0347c02710af79479711be6f7ab19c6a30c3cb26d94558220d9d045cf27e45"
+  },
+  "execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+  "intent": {
+    "file_sha256": "273ac5aa23bd936d455051ca5676f5ee5aa9e176816215f7f7089ced36ac8fd4",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/bootstrap-avqds-scout-2affbc1d0c6df19b.json",
+    "sha256": "edd18204d999f5577be1afe9c49864530f12ab1b9af25c4f17c7af4427f69cce"
+  },
+  "lane_id": "paper_ii_hh_product_v1",
+  "pre_submit_claim": {
+    "file_sha256": "de71699e0ecf3ccda608cc63993e943039f9abea3b85a53ed4b27c9bc3ea2c90",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/pre_submit_claims/bootstrap-avqds-scout-2affbc1d0c6df19b.json",
+    "sha256": "238c064536f8b88cd003b60e000f06b455ae3d38bafde7619e58de7d95a46ae6"
+  },
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-29T19:12:42Z",
+  "schema": "paper_ii_bootstrap_submission_authorization_v1",
+  "single_condor_submit_authorized": true,
+  "status": "authorized_single_submit",
+  "submission_authorization_sha256": "b1b7cb96f5a09035ed8f70a80eadbdac520375aeac7b896a574fe448ea47556c",
+  "unit_id": "bootstrap-avqds-scout-2affbc1d0c6df19b",
+  "upload_verification": {
+    "file_sha256": "6727933ee716fea52066d00d4b16d5c98e394604cb6d7c9e51d50a54df58df3b",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/upload_verifications/bootstrap-avqds-scout-2affbc1d0c6df19b.json",
+    "sha256": "39de9800785888fc222d443b6fe39e43a61dda331c03c9783405fb6043a880da"
+  },
+  "verified_absent_snapshot": {
+    "captured_at": "2026-08-29T19:12:42Z",
+    "captured_at_unix_ns": 1788030762369943218,
+    "file_sha256": "6d3e32d15b536463def73b4f58d5e97259c53fcd4061171652e329d14d19ce0f",
+    "history_stdout": {
+      "bytes": 14219,
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_141212/raw/history.json",
+      "sha256": "1ea943cb83a1e0ff125f0ac6da256e0b607663b16b5ea94231991f9e576e5766"
+    },
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_141212/combined_snapshot.json",
+    "prior_snapshot": {
+      "captured_at": "2026-08-29T18:01:18Z",
+      "captured_at_unix_ns": 1788026478000000000,
+      "file_sha256": "1dedb513e74ead592c4ee5319893e53138f4c5a805b5b3439d03d3bbf59c56f3",
+      "history_stdout": {
+        "bytes": 12965,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_130013/raw/history.json",
+        "sha256": "cd5fc4178e3891673b07a8bd5e8f02caebb9341ddb187066ea0b0f932ce5ea13"
+      },
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_130013/combined_snapshot.json",
+      "queue_stdout": {
+        "bytes": 1870,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_130013/raw/queue.json",
+        "sha256": "6414c61b258a3ba961382df7c88d8248dc05f36c02a6d36f5ea64f15777969a1"
+      },
+      "sha256": "53de7cec6e1732432068c12cafb7855809bcd803534dfe4fb8df5fabc8047fd8"
+    },
+    "queue_stdout": {
+      "bytes": 1460,
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_141212/raw/queue.json",
+      "sha256": "77fb8474960c496bbf6a33bf1bf81f13b3c50bc1c6264ac4154f8a42dfb457e4"
+    },
+    "sha256": "97fe99df5f231a415088c7ad32e637caefb1e68d676138cacb3972025b942c70"
+  }
+}

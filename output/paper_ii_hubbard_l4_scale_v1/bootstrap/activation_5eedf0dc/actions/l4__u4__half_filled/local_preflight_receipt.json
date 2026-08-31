@@ -1,0 +1,117 @@
+{
+  "action_count": 1,
+  "action_id": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+  "condor_dry_run_argv": [
+    "condor_submit",
+    "-dry-run",
+    "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/dryrun.ad",
+    "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/submit.sub"
+  ],
+  "condor_dry_run_executed": false,
+  "execution_id": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+  "execution_request_sha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+  "intent_first": {
+    "first_snapshot_outcome": "indeterminate",
+    "found_recovers_without_resubmission": true,
+    "indeterminate_blocks_submission": true,
+    "later_submission_requires_reconciliation": "verified_absent",
+    "submission_intent_required_before_scheduler_contact": true
+  },
+  "intent_template": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/submission_intent_template.json",
+    "sha256": "170ee9425e480a0eefa9fb10a5da68f8bdb873244550c14b77a0fec7f99e6c35"
+  },
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "launcher": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/launch.sh",
+    "sha256": "e3aace118bc85276152ca20cc6610b78eb5e5e666c5bfa3f5dcae0bec2d09ac0"
+  },
+  "lifecycle_validator": "chtc/validate_condor_submit_lifecycle.py",
+  "lifecycle_validator_executed": true,
+  "lifecycle_validator_status": "pass",
+  "one_action_per_submission": true,
+  "ordinary_queue_count": 1,
+  "package": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/seed_action_package.tar.gz",
+    "sha256": "75fd38286f7a4eadc2f3be95a352e4f110b0ac9635e27220788409947e81e794"
+  },
+  "package_bytes": 555495,
+  "package_manifest": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/package_manifest.json",
+    "sha256": "b3c65851393a2974433eccc7627e257abce41db6ed75af0913a2261ecf7ca05d"
+  },
+  "production_submission_enabled": false,
+  "qiskit_compilation_requested": false,
+  "remote_raw_evidence_policy": "preserve",
+  "request": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/prepared_seed_action/execution_request.json",
+    "sha256": "f0629e19371a04ad5784ab712e8d3c9382ec9b4f4f71a92b33a87fec24de9a2f"
+  },
+  "required_remote_preflight": [
+    "verify_package_manifest_bytes_and_sha256",
+    "verify_runtime_image_bytes_and_sha256",
+    "verify_source_revision_archive_and_work_order_digests",
+    "verify_remote_workdirectory_isolated_and_output_absent",
+    "write_submission_intent_before_scheduler_contact",
+    "record_first_reconciliation_snapshot_as_indeterminate",
+    "require_later_verified_absent_before_submission",
+    "run_lifecycle_validator_on_exact_descriptor",
+    "run_condor_submit_dry_run_on_exact_descriptor",
+    "preserve_remote_raw_evidence"
+  ],
+  "resources": {
+    "max_runtime_seconds": 86400,
+    "request_cpus": 4,
+    "request_disk_gib": 40,
+    "request_memory_gib": 24
+  },
+  "runtime_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "runtime_image_identity": {
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/shared/runtime_image_identity.json",
+    "sha256": "ba0a01109dd7d233499ac451a672b4eef0e9e999f4ca893bbcd0ec548dff3d85"
+  },
+  "runtime_source_archive": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/shared/source_5eedf0dc_runtime.tar.gz",
+    "sha256": "da056abce6f9c15d3352ad08a06baa78964e31b338df74c83d1d8bf39429db76"
+  },
+  "runtime_source_archive_bytes": 5324792,
+  "runtime_source_archive_prefix": "source/",
+  "runtime_source_subset": [
+    "pipelines",
+    "src",
+    "requirements.txt"
+  ],
+  "scheduler_contacted": false,
+  "scheduler_submission_authorized": false,
+  "schema": "paper_ii_seed_package_local_preflight_v1",
+  "seed_package_preflight_sha256": "da7dd2ab4e73aa0fc24ed66fac0157739b55a71599f6ca0eba7fc3c8705d4a5b",
+  "source_epoch_full_archive_sha256": "ff04cbcf89363d9c4c0e1f72d8866657a9cfa9981ee14582b6dbeedaf70cd512",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "source_epoch_receipt_path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/source_epoch_receipt.json",
+  "source_epoch_receipt_sha256": "cc65dda01379cf8a6125eec1e082acb40e6b1121ad70d98c3e293d62e24efe96",
+  "status": "passed_local_only_dry_run_pending",
+  "storage_assessment": {
+    "allowed": true,
+    "archive_bytes": 555495,
+    "estimated_peak_bytes": 555495,
+    "expected_extracted_bytes": 0,
+    "free_bytes": 80766824448,
+    "free_floor_bytes": 10737418240,
+    "headroom_after_peak_bytes": 70028850713,
+    "reason": "fetch fits above the declared free-space reserve"
+  },
+  "storage_free_bytes_source": "filesystem_probe",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/submit.sub",
+    "sha256": "e5ff03e14ebcbabeae4f2bfc36726f606fdd38be8baa73038b9d5094fc7f9064"
+  },
+  "work_order": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/prepared_seed_action/seed_work_order.json",
+    "sha256": "8f9641ca2f2c78427e8c2eeb957d4504a27fca1fd2e9fd5e8af01ae1f853687f"
+  },
+  "work_order_sha256": "01684fa2979fd44455a598306b0a62ce1c496817db3c849173407ef4469382a3"
+}

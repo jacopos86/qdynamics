@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 1000842,
+  "archive_sha256": "ec3a0a9e45862ad1cc8820f437f9ca32b24592ec3ccf5d87aa78558c4fe9357a",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715147/increments/proc0/evidence/transfer_finalization_intent.json",
+    "sha256": "3f16bc64e6825ba035eb64f8a98362faee84dbc5e41c59b49a8d6b5a9122e627"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715147/increments/proc0/evidence/siam_cluster_9715147_proc0_delta_20260830.tar.gz",
+  "receipt_sha256": "5780bc51bf43d92e83d14ef7a719ca5fe1107bce0e3c42bff04477adc91d9e45",
+  "recorded_at": "2026-08-29T20:07:26.085366-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715147/proc0/siam_nb4_full_apm_r06_9715147_proc0.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 5
+}

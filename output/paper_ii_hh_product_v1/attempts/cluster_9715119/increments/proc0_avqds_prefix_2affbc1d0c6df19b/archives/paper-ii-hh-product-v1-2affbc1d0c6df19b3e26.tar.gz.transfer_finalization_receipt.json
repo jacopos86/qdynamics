@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 1639644,
+  "archive_sha256": "761ad45789c64d0121c6147b9280a9139e7d7325c7b760fe24d2c20eb9d00145",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hh_product_v1/attempts/cluster_9715119/increments/proc0_avqds_prefix_2affbc1d0c6df19b/archives/paper-ii-hh-product-v1-2affbc1d0c6df19b3e26.tar.gz.transfer_finalization_intent.json",
+    "sha256": "0b0870525ff7a49ed0855dd7f5e48ffa4cd88b36a7b3bfabca34f5c79316b902"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hh_product_v1/attempts/cluster_9715119/increments/proc0_avqds_prefix_2affbc1d0c6df19b/archives/paper-ii-hh-product-v1-2affbc1d0c6df19b3e26.tar.gz",
+  "receipt_sha256": "fde5b35c2595d58a52b6fd310027f2e0dfa380ae35db3d3bc9c6d0be90f4e3cb",
+  "recorded_at": "2026-08-29T21:10:24.900505-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2/transfer_archives/prospective_results/paper-ii-hh-product-v1-2affbc1d0c6df19b3e26.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 7
+}

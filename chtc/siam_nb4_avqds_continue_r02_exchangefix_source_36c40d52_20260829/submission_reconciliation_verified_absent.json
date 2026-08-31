@@ -1,0 +1,84 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 43490,
+    "captured_at": "2026-08-29T17:15:04Z",
+    "captured_at_unix_ns": 1788023704000000000,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_121449/combined_snapshot.json",
+    "sha256": "1459e5c63fc636883678db9cdf608efebcb360ca56c4a1cd1c90fd1574d5d08e",
+    "snapshot_sha256": "60789c07dc6150e90d9bf98f7d8ba2f3a27aeca1f5593198d0689e25c21436c0",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "15f4262abf8299e3dca797a0640a511196f53408b529ae2ab1d39d1cf206b0ce",
+    "bytes": 4672,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_121449/siam_avqds_intent_bridge.json",
+    "sha256": "25337f6a3bdd73af4c2d02b814d6d1b185ce4aea2c568af31c04fa4ff388bd41"
+  },
+  "intent_identity_sha256": "6df300d0ad1a134f428c5a438820ddec35eda4ba69fc8a41449f9a3d250db4ee",
+  "job_batch_name": "siam-nb4-continue-t1-t5-401-avqds-rung2",
+  "receipt_sha256": "11046af79342cdda7fe7845ac18374afd8ecd4978ec717c1395c16e6f9abaf63",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_required_before_submit": true,
+    "path": "raw_outputs/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-continue-r02-cut1em03/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-continue-r02-cut1em03/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1647,
+    "path": "chtc/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "edcc5c8bf5699b4b511d33e760dcaad30866eafbc9787b80128875f11c63ab82"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "6df300d0ad1a134f428c5a438820ddec35eda4ba69fc8a41449f9a3d250db4ee",
+      "prior_captured_at": "2026-08-29T17:15:04Z",
+      "prior_captured_at_unix_ns": 1788023704000000000,
+      "prior_snapshot_sha256": "60789c07dc6150e90d9bf98f7d8ba2f3a27aeca1f5593198d0689e25c21436c0",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 44894,
+    "captured_at": "2026-08-29T17:18:55Z",
+    "captured_at_unix_ns": 1788023935000000000,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_121840/combined_snapshot.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 9268,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_121840/raw/history.json",
+        "returncode": 0,
+        "row_count": 16,
+        "sha256": "479914129374e6f8c46d3405b389e0ae0dc7c114dcfdb8a82ae551a585742d59",
+        "stdout_sha256": "479914129374e6f8c46d3405b389e0ae0dc7c114dcfdb8a82ae551a585742d59"
+      },
+      "queue": {
+        "bytes": 966,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_121840/raw/queue.json",
+        "returncode": 0,
+        "row_count": 2,
+        "sha256": "8ec786edd9c1f91a2a0d15c640461c6b041bb68a4be4546cb2c5b59cc082c876",
+        "stdout_sha256": "8ec786edd9c1f91a2a0d15c640461c6b041bb68a4be4546cb2c5b59cc082c876"
+      }
+    },
+    "sha256": "57f1b73de4e76358fe5e8413b8c04bbaebb489e1efde51429139f67efcfac39f",
+    "snapshot_sha256": "af3ed656227245341f4c5531e1b119e60e3818fbdf28899d1f6ad421a11a3c85"
+  }
+}

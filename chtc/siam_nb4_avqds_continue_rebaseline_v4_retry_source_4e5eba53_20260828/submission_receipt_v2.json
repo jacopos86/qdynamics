@@ -1,0 +1,29 @@
+{
+  "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+  "cluster_id": 9712894,
+  "correction_receipt_sha256": "411f1c184b39059ede46f6e8c74603d086eafe5ddd995558ecc0501763526efb",
+  "corrects": {
+    "path": "chtc/siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828/submission_receipt.json",
+    "reason": "the original receipt bound a remote-upload receipt whose self-digest included a noncanonical trailing newline",
+    "sha256": "974b71665ea901175e21992483708b00d13ef280c3610c31a1b2042bcc173397"
+  },
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 1,
+    "label": "IDLE",
+    "process_id": 0
+  },
+  "package_id": "siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828",
+  "package_manifest_sha256": "89f06e4e47220f27409c07e7c168b3243a282672933027bc8254732bb67872d6",
+  "qiskit_compilation_disabled": true,
+  "remote_upload_receipt": {
+    "internal_sha256": "73ba8037203064534d90d6dfeaf7e1a6f46028d83d549c0ce75b7d178fbd697f",
+    "path": "chtc/siam_nb4_next_frontier_packages_source_4e5eba53_remote_upload_receipt_v2.json",
+    "sha256": "38a97d1f02fd57c42ddbba296f2789b0ef20a548904a2e6c89380e1c403046a0"
+  },
+  "schema": "siam_nb4_chtc_submission_receipt_correction_v2",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "SUBMITTED_RECEIPT_CORRECTED",
+  "submitted_at": "2026-08-28T06:49:18Z"
+}

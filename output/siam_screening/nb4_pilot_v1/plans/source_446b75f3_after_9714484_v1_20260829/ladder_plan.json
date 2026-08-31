@@ -1,0 +1,169 @@
+{
+  "activation_cut_ladder_contract": {
+    "canonical_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+    "canonical_values": [
+      0.01,
+      0.00333333333333,
+      0.001,
+      0.000333333333333,
+      0.0001,
+      3.33333333333e-05,
+      1e-05,
+      3.33333333333e-06,
+      1e-06,
+      3.33333333333e-07,
+      1e-07
+    ],
+    "legacy_compatibility": {
+      "immutable_action_aliases": {
+        "r00_cut1e-3": {
+          "activation_cut": 0.001,
+          "canonical_index": 2,
+          "legacy_index": 0,
+          "relabel": false
+        }
+      },
+      "noncanonical_cut_semantics": "readable_historical_evidence_without_canonical_action_coverage",
+      "schema": "siam_nb4_activation_cut_ladder_legacy_v1",
+      "sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+      "values": [
+        0.001,
+        0.0003,
+        0.0001,
+        3e-05,
+        1e-05,
+        3e-06,
+        1e-06,
+        3e-07,
+        1e-07
+      ]
+    },
+    "schema": "siam_nb4_activation_cut_ladder_v2"
+  },
+  "blocked": false,
+  "candidate_action_ids": [],
+  "complete": false,
+  "cost_comparison_admissible": false,
+  "dispositions": [
+    {
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "disposition": "scheduled",
+      "reason": "Resume the valid avqds screen at the same method-owned cut through T=5.",
+      "segment": "continue_t1_t5_401",
+      "subject_id": "siam-nb4-avqds-continue-r02-cut1em03"
+    },
+    {
+      "activation_cut": 0.01,
+      "arm": "avqds",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard, fidelity_ceiling; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r00-cut1em02"
+    },
+    {
+      "activation_cut": 0.00333333333333,
+      "arm": "avqds",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed fidelity_ceiling; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r01-cut3em03"
+    },
+    {
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "disposition": "valid_screen",
+      "reason": "The screen passes the broad response, fidelity, and energy guards.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r02-cut1em03"
+    },
+    {
+      "activation_cut": 0.001,
+      "arm": "full_apm",
+      "disposition": "scheduled",
+      "reason": "Open full APM at the AVQDS scout cut; the structural arm then owns its ladder.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r02-cut1em03"
+    }
+  ],
+  "generated_at_utc": "2026-08-29T16:46:36.806986+00:00",
+  "history": [
+    {
+      "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+      "activation_cut": 0.01,
+      "arm": "avqds",
+      "cluster_id": 9713618,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713618/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r00-cut1em02/action_receipt.json",
+      "completion_receipt_bytes": 210842,
+      "completion_receipt_sha256": "39e67b635e094b0f643a0ea9caed3f86043677cdd4a3548b19a79da103caad1f",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713618/increments/proc0/evaluated/score.json",
+      "score_bytes": 137950,
+      "score_sha256": "bc9efbdaf1cbd43b9f36c80c874bc948099aa5b6aec6dc18f116805f51d9fb51",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+      "activation_cut": 0.00333333333333,
+      "arm": "avqds",
+      "cluster_id": 9713835,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r01-cut3em03/action_receipt.json",
+      "completion_receipt_bytes": 210962,
+      "completion_receipt_sha256": "2777bf31d1f3c5ab11879577a7d13f42c38a1133c62640ebf4274ae22dda6c43",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/evaluated/score.json",
+      "score_bytes": 138379,
+      "score_sha256": "42b8b004669829732543f4511ecf690f5bc3129e72efeea4a251836be6f4cbd3",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "cluster_id": 9714484,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/action_receipt.json",
+      "completion_receipt_bytes": 210852,
+      "completion_receipt_sha256": "772a7086e2c8297b9248ed30dd0bc1ce3ffe964c1b31c53e958adea5149a0101",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/score.json",
+      "score_bytes": 138528,
+      "score_sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    }
+  ],
+  "next_actions": [
+    {
+      "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "exact_reference_blind": true,
+      "kind": "run",
+      "ladder_index": 2,
+      "qiskit_compilation_requested": false,
+      "reason": "Resume the valid avqds screen at the same method-owned cut through T=5.",
+      "resume_from_action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+      "segment": "continue_t1_t5_401"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "full_apm",
+      "exact_reference_blind": true,
+      "kind": "run",
+      "ladder_index": 2,
+      "qiskit_compilation_requested": false,
+      "reason": "Open full APM at the AVQDS scout cut; the structural arm then owns its ladder.",
+      "resume_from_action_id": null,
+      "segment": "screen_t0_t1_101"
+    }
+  ],
+  "phase": "two_arm_screening",
+  "recorded_safeguard_ids": [],
+  "schema": "siam_nb4_comparator_first_ladder_plan_v1",
+  "selected_full_horizon_action_ids": {},
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3"
+}

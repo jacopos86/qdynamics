@@ -1,0 +1,84 @@
+{
+  "archive": {
+    "atomic_rename_verified": true,
+    "bytes": 5539814,
+    "gzip_integrity": true,
+    "member_count": 716,
+    "path": "chtc/siam_nb4_source_446b75f3_r00_upload_20260828.tar.gz",
+    "remote_bytes": 5539814,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/siam_nb4_source_446b75f3_r00_upload_20260828.tar.gz",
+    "remote_sha256": "a6f1f8d0ff2b5d5c4514a2df0872fe3aca41b7ce2ca416512517baac9fd83988",
+    "sha256": "a6f1f8d0ff2b5d5c4514a2df0872fe3aca41b7ce2ca416512517baac9fd83988",
+    "tar_integrity": true,
+    "transferred_through_part": true
+  },
+  "bindings": {
+    "action": {
+      "bytes": 189759,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/input/action.json",
+      "sha256": "980807502edd2a18b3e7b3e4482de933bbd0ad0421eee1f8963a5c2ea9a8bbcd"
+    },
+    "manifest": {
+      "bytes": 4227,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/input/manifest.json",
+      "sha256": "6a49ae28ab02a9e6d2930b3f7416b03e682c13c9e51fc8d98ae069d105b60864"
+    },
+    "submission_intent": {
+      "bytes": 1405,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submission_intent.json",
+      "sha256": "0fdfba0a726ecb5429db12887dce80ec5e84bc9746a5b5e858bffe42d2606bb2"
+    },
+    "submit": {
+      "bytes": 1284,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submit.sub",
+      "sha256": "f6ea299385b7fcc50de8a593fafa4ad79ee846cdccd044970c43deaa7e05d637"
+    },
+    "verified_absent_reconciliation": {
+      "bytes": 963,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submission_reconciliation_verified_absent.json",
+      "sha256": "b5ea9763e828bd68950eb0c267ce84218a79685ac9567b6231714cfbdfd9fa64"
+    }
+  },
+  "checks": {
+    "condor_dry_run_passed": true,
+    "exact_history_identity_absent": true,
+    "exact_queue_identity_absent": true,
+    "local_package_manifest_verified": true,
+    "local_source_epoch_control_plane_verified": true,
+    "local_source_tree_contract_verified": true,
+    "local_submit_lifecycle_verified": true,
+    "qiskit_compilation_requested": false,
+    "quota_checked": true,
+    "remote_archive_digest_verified": true,
+    "remote_image_digest_verified": true,
+    "remote_output_path_absent": true,
+    "stale_monitor_or_autopilot_absent": true
+  },
+  "image": {
+    "bytes": 216371200,
+    "hard_linked_from_verified_predecessor_workspace": true,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "recorded_at_utc": "2026-08-29T02:58:39+00:00",
+  "remote_raw_evidence_preserved": true,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_remote_upload_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+  "status": "REMOTE_PACKAGE_VERIFIED_NOT_SUBMITTED",
+  "warnings": [
+    {
+      "code": "upload_tar_macos_provenance_pax_headers",
+      "disposition": "gnu_tar_ignored_metadata; extracted source/package bytes are independently digest-bound; no AppleDouble or DS_Store members were present"
+    },
+    {
+      "code": "login_node_numpy_unavailable",
+      "disposition": "full Python package validation passed locally against the committed source tree; execute-node wrapper performs the same source lock inside the verified Apptainer image"
+    }
+  ]
+}

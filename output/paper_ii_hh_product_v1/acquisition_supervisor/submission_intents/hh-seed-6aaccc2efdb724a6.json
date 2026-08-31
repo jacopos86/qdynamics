@@ -1,0 +1,43 @@
+{
+  "intent_sha256": "399c6e85079603d00b1b3f2a6d6df99982b81402844b87c26e4a4ac7eafce0ac",
+  "lane_id": "paper_ii_hh_product_v1",
+  "recorded_at": "2026-08-29T00:36:46.858230-05:00",
+  "schema": "time_dynamics_submission_intent_v1",
+  "unit": {
+    "action_ids": [
+      "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658"
+    ],
+    "payload": {
+      "execution_request_sha256": "6aaccc2efdb724a66e753c70122e30541dbc439d79af560546264a5994ada247",
+      "expected_process_count": 1,
+      "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+      "package": {
+        "bytes": 555366,
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph1__crossover/seed_action_package.tar.gz",
+        "sha256": "b9bcab4af93118104bb46c578934a38dd1c22ee608133133a3dba874ccff9700"
+      },
+      "package_manifest": {
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph1__crossover/package_manifest.json",
+        "sha256": "858de980a286b6bafab0b520ac455ed3b873d87e130b4dfc2dd9e243a88e4064"
+      },
+      "remote_raw_evidence_policy": "preserve",
+      "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_prospective_seeds_f99b702f_20260829/source",
+      "runtime_source_archive": {
+        "bytes": 5318674,
+        "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/shared/source_f99b702f_runtime.tar.gz",
+        "sha256": "1c4a953f2555989eadac93f1c7736dbc0014a865f3a1b2f907f7412313be5b1f"
+      },
+      "source_epoch_identity_sha256": "81b25c7fa6be167cf137b94435f4cf8337cc91a84d84410aac2258619d02280c",
+      "submission_scope": {
+        "action_ids": [
+          "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658"
+        ],
+        "process_ids": [
+          0
+        ]
+      },
+      "submit_descriptor": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph1__crossover/submit.sub"
+    },
+    "unit_id": "hh-seed-6aaccc2efdb724a6"
+  }
+}

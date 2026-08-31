@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 4178,
+  "archive_sha256": "114eedf08a614b0729afd72e972e98cb78dbcdf97811135b56ccb587b55c2a7a",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hh_product_v1/acquisition_supervisor/evidence_transfers/hh_activation_f99b702f_submission_evidence.transfer_finalization_intent.json",
+    "sha256": "faa400d475edf2d598d27502b2d3c3c7432a34e4a426daef5030476693c9ee1f"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hh_product_v1/acquisition_supervisor/evidence_transfers/hh_activation_f99b702f_submission_evidence.tar.gz",
+  "receipt_sha256": "148c849c7f405862f31d09ec04a201a0af5835dd05e567f71da4ebd159a5215b",
+  "recorded_at": "2026-08-29T00:48:43.011362-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_seeds_f99b702f_20260829/source/output/paper_ii_hh_product_v1/acquisition_supervisor/evidence_transfers/hh_activation_f99b702f_submission_evidence.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 9
+}

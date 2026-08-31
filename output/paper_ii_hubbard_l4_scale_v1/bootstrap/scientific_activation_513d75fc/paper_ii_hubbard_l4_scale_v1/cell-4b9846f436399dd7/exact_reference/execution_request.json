@@ -1,0 +1,79 @@
+{
+  "action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+  "arm": null,
+  "attempt": 0,
+  "binding_id": "paper_ii.hubbard_l4.full_horizon_exact_reference_v1",
+  "declared_outputs": [
+    "reference_manifest",
+    "reference_data",
+    "reference_receipt"
+  ],
+  "exact_reference_blind": false,
+  "execution_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+  "execution_request_sha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+  "handler": "pipelines.time_dynamics.prospective_exact_reference_worker:materialization_request",
+  "inputs": {
+    "artifact_path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/21c4e6df219598b5f5aed2173974f4b9d9606f5c0028f04beee5eb0a4b784910/manifest.json",
+    "cell_id": "hubbard__l4__u4__strongfast",
+    "drive": {
+      "amplitude": 2.4,
+      "drive_id": "strongfast",
+      "include_identity": false,
+      "omega": 3.0,
+      "operator": "staggered_site_density",
+      "pattern": "staggered",
+      "phi": 0.0,
+      "t0": 0.0,
+      "tbar": 1.0,
+      "time_sampling": "midpoint"
+    },
+    "exact_data_schema": "paper_ii_prospective_exact_reference_data_v1",
+    "lane_id": "paper_ii_hubbard_l4_scale_v1",
+    "materialized_reference_key": "21c4e6df219598b5f5aed2173974f4b9d9606f5c0028f04beee5eb0a4b784910",
+    "matrix_expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "matrix_raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+    "model": "hubbard",
+    "observable_schema": "paper_ii_hubbard_energy_doublon_site_occupation_statevector_v1",
+    "ordered_grid": {
+      "construction": "ordered_uniform_index_times_step",
+      "ordered_prefix_sha256": "e338bd7fb0d4a3852ff07d79de1fcad106138426c5b7c33cc37be5eaee64bfe7",
+      "ordered_times_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+      "points": 501,
+      "prefix_points": 126,
+      "prefix_stop": 5.0,
+      "start": 0.0,
+      "step": 0.04,
+      "stop": 20.0
+    },
+    "physical": {
+      "U_over_t": 4.0,
+      "boundary": "open",
+      "lattice_sites": 4,
+      "n_down": 2,
+      "n_up": 2,
+      "ordering": "blocked",
+      "t_hop": 1.0
+    },
+    "propagator": "paper_ii_exact_driven_reference_v1",
+    "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast",
+    "reference_identity_sha256": "4b9846f436399dd7c8544120874f513096871e48e36e16f56d5556b177177a55",
+    "reporting_only": true,
+    "seed_artifact_sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63",
+    "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+    "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6",
+    "source_epoch": {
+      "lane_id": "paper_ii_hubbard_l4_scale_v1",
+      "source_archive_sha256": "ff04cbcf89363d9c4c0e1f72d8866657a9cfa9981ee14582b6dbeedaf70cd512",
+      "source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+      "source_revision": "5eedf0dc546cb8379b2a12f609d5eef8eaf3540b"
+    }
+  },
+  "kind": "build_exact_reference",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "planner_sequence": 0,
+  "qiskit_compilation_requested": false,
+  "requested_memory_gib": null,
+  "schema": "paper_ii_prospective_execution_request_v1"
+}

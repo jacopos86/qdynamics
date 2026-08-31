@@ -1,0 +1,18 @@
+{
+  "automatic_retry_authorized": false,
+  "correct_remote_workdir": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2",
+  "moved_at_utc": "2026-08-29T23:25:45Z",
+  "quarantined_files": {
+    "dry_run_result.json": "52e0f1e9030673ab26f21d99e453f000193bbfbbcd52a8c7d2694d19d1a43d34",
+    "pre_submit_claim.json": "0e7ef2db32dea937be62091da88e97af70e0bf8fbb39bcf829f49807d63c7926",
+    "remote_preflight/paper_ii_hh_g2_d128c05f.dryrun.classad": "b12aac5d24a22ff8afc781c228b28f2abf792ed3bb74d9f5ed31ad4382c9773f",
+    "remote_preflight/remote_submit_descriptor.sub": "1215de643c0ca0612e78847bf9165d64a2caba844ea2ba10775654b63e569d9f",
+    "submission_authorization.json": "1731157a562c611206eafe8e0bb0cd84c3a42e06d2bea5b8ae56a56c11cd054a",
+    "upload_verification.json": "9496a4b76534d3cc2865ec0949a44f9ec0c131a171b63a09ecc42b12b83c7966"
+  },
+  "reason": "The package and descriptor bytes were valid, but the first remote dry-run used the upload staging root instead of the submission intent's bound remote_workdir. No condor_submit invocation occurred. The evidence was preserved here before recreating the preflight at the exact bound workdirectory.",
+  "remote_raw_evidence_preserved": true,
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_pre_submit_evidence_quarantine_v1",
+  "unit_id": "bootstrap-avqds-scout-2affbc1d0c6df19b--g2"
+}

@@ -1,0 +1,126 @@
+[
+{
+  "ClusterId": 9714484,
+  "CompletionDate": 1788019850,
+  "EnteredCurrentStatus": 1788019850,
+  "ExitCode": 0,
+  "JobBatchName": "siam-nb4-screen-t0-t1-101-avqds-rung2",
+  "JobStatus": 4,
+  "ProcId": 0,
+  "QDate": 1788019298,
+  "SIAMScientificActionId": "siam-nb4-avqds-screen-r02-cut1em03",
+  "SIAMSourceEpochId": "siam-nb4-source-446b75f3edc235404bf9"
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hubbard_l4_scale_v1",
+  "AcquisitionUnitId": "hubbard-seed-ee58df1fb13e9669",
+  "ClusterId": 9714040,
+  "CompletionDate": 1787988808,
+  "EnteredCurrentStatus": 1787988808,
+  "ExitCode": 0,
+  "JobBatchName": "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+  "PaperIIExecutionRequestSha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1787983672
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-0d6cf17e6e45c62d",
+  "ClusterId": 9713880,
+  "CompletionDate": 1787987270,
+  "EnteredCurrentStatus": 1787987270,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3",
+  "PaperIIExecutionRequestSha256": "0d6cf17e6e45c62df1d253217f4fe2c087627564ff636dd27cdd1bf90625a214",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982377
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-bc6eb3afcf29f6b2",
+  "ClusterId": 9713879,
+  "CompletionDate": 1787987010,
+  "EnteredCurrentStatus": 1787987010,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6",
+  "PaperIIExecutionRequestSha256": "bc6eb3afcf29f6b2c39d7f74fc8aee025b3af3617e5cb6d5712d597d858eeb61",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982377
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-06b5ba100adf8d26",
+  "ClusterId": 9713878,
+  "CompletionDate": 1787986593,
+  "EnteredCurrentStatus": 1787986593,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph3__crossover::01fe11a5195d6420",
+  "PaperIIExecutionRequestSha256": "06b5ba100adf8d269e352151fdc1527afbe9c45768145e0ed0401290f09f0973",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982376
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-d78f3ea7c7f5d58c",
+  "ClusterId": 9713877,
+  "CompletionDate": 1787986170,
+  "EnteredCurrentStatus": 1787986170,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__phonon_dominated::1a77bfa4e0d6b60f",
+  "PaperIIExecutionRequestSha256": "d78f3ea7c7f5d58c029a066a392c5823cf110614c904b512fd79d2e4aaea2003",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982376
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-604078f31bda8681",
+  "ClusterId": 9713876,
+  "CompletionDate": 1787986093,
+  "EnteredCurrentStatus": 1787986093,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__mott_dominated::c6a336c122b7f3cb",
+  "PaperIIExecutionRequestSha256": "604078f31bda86815ac7b99ea8cb4d7b02976518267bf1817d8626e8a4066478",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982376
+}
+,
+{
+  "AcquisitionLaneId": "paper_ii_hh_product_v1",
+  "AcquisitionUnitId": "hh-seed-6aaccc2efdb724a6",
+  "ClusterId": 9713875,
+  "CompletionDate": 1787986020,
+  "EnteredCurrentStatus": 1787986020,
+  "ExitCode": 1,
+  "JobBatchName": "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+  "JobStatus": 4,
+  "PaperIIActionId": "build_seed::paper_ii_hh_product_v1::seed::nph1__crossover::1ba5e67e2da4e658",
+  "PaperIIExecutionRequestSha256": "6aaccc2efdb724a66e753c70122e30541dbc439d79af560546264a5994ada247",
+  "PaperIISourceEpochId": "paper-ii-hh-product-v1-source-f99b702fb9fd-9764399e09d4",
+  "ProcId": 0,
+  "QDate": 1787982376
+}
+]

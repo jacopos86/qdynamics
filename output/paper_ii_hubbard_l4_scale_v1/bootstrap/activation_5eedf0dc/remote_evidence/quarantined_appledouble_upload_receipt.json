@@ -1,0 +1,13 @@
+{
+  "bytes": 559571,
+  "original_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/input/hubbard_seed_action_contract_5eedf0dc.tar.gz.part",
+  "preserved": true,
+  "quarantine_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/quarantine/hubbard_seed_action_contract_5eedf0dc.attempt1.e7749f7017e67cc6.part",
+  "reason": "macos_appledouble_members_present_archive_superseded_before_extraction",
+  "receipt_sha256": "1a99b5ffc70178070b0f7dc6095d1acd2e1e6ec34723c3f9c7f5b0916c831525",
+  "recorded_at": "2026-08-29T05:58:16.404432+00:00",
+  "schema": "paper_ii_upload_quarantine_receipt_v1",
+  "sha256": "e7749f7017e67cc6e87ecf72390e37e3feb03bfbdf5e317a136f7032a01d8fbb",
+  "status": "quarantined",
+  "tar_member_count": 16
+}

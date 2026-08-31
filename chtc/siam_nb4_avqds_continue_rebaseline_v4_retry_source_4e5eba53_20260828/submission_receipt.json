@@ -1,0 +1,51 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+  "archive_sha256": "9286a10548af697b596a24399c70134e7e0175ab591728e019b47e886767b157",
+  "audit": {
+    "condor_dry_run": true,
+    "exact_reference_blind": true,
+    "failed_preexecution_attempt_superseded": true,
+    "image_verified": true,
+    "lifecycle_validation": true,
+    "nonempty_command": true,
+    "output_path_clear": true,
+    "package_integrity": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "resume_completion_receipt_validated": true,
+    "resume_run_lock_validated": true,
+    "source_locked": true
+  },
+  "cluster_id": 9712894,
+  "condor_dry_run": {
+    "bytes": 2865,
+    "sha256": "2e2c7c541e445a08058a673ec605f8d3c97783f4ba6139cfbbe11cd7d04cf200"
+  },
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 1,
+    "label": "IDLE",
+    "process_id": 0
+  },
+  "package_id": "siam_nb4_avqds_continue_rebaseline_v4_retry_source_4e5eba53_20260828",
+  "package_manifest_sha256": "89f06e4e47220f27409c07e7c168b3243a282672933027bc8254732bb67872d6",
+  "remote_upload_receipt_sha256": "fcc1db195fe4e3c23d4e575109faa905289beaea8ee77dac538b170481d2ecf2",
+  "remote_upload_receipt_internal_sha256": "2c7127eb2a01dc0a8b10f04e80fe556ac6a6370ee062958c387f092b8597a2af",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "retry_of": {
+    "cluster_id": 9712865,
+    "exit_code": 1,
+    "failure_receipt_sha256": "f1e8b9a3881e34bf6192526573c43ebabe1560c2a0a1fdbb195053212f012aae",
+    "positive_completion_receipt_present": false,
+    "trajectory_present": false
+  },
+  "schema": "siam_nb4_chtc_submission_receipt_v4",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "SUBMITTED",
+  "submit_descriptor_sha256": "a12c0b97ecadd996a1630975d8048f10585041b60681414abcbf41fbff8f0c4a",
+  "submitted_at": "2026-08-28T06:49:18Z"
+}

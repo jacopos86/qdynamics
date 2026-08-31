@@ -1,0 +1,75 @@
+{
+  "authentication_attempt": {
+    "automatic_retry_performed": false,
+    "duo_push_count": 1,
+    "duo_result": "timed_out",
+    "ssh_authenticated": false,
+    "ssh_session_closed": true
+  },
+  "blocked_receipt_sha256": "c9faca64cbf3dc366bf651c3a2604af6fb04cac88980765e027caaf1fb7dcde5",
+  "checks": {
+    "archive_unchanged_after_authentication_timeout": true,
+    "no_remote_submission_claim": true,
+    "no_second_duo_push": true,
+    "qiskit_compilation_disabled": true
+  },
+  "local_source_upload_receipt": {
+    "bytes": 2825,
+    "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828_source_upload_receipt.json",
+    "sha256": "a7367f29d10552c89504ddcd762b69af25497a7998d4f1ee11320841ace11d73",
+    "source_upload_receipt_sha256": "a664698456a9d6bb17ffc0d796115baa06d82b14e88b78f209f1fb1caed150c0"
+  },
+  "next_exact_action": "Run a fresh trusted preflight and one newly authorized SSH/Duo login; then upload this exact archive, verify it remotely, audit the composite source-epoch/action identity, quota, image, output path, and Condor dry-run before submission.",
+  "package_id": "siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828",
+  "planner_receipt": {
+    "bytes": 4713,
+    "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/planner_receipt.json",
+    "planner_receipt_sha256": "cdc2ae7febad0e0c41de5ee064e7bbc5fe195d5ef3e9375587519cd610ffc62c",
+    "sha256": "283a8c209be8ae4c459bf39bb3f5945eebada40c2a6067a8659df12dd6c0c80f"
+  },
+  "predecessor_reporting_refresh": {
+    "bytes": 5492,
+    "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/report_refresh_receipt.json",
+    "receipt_sha256": "6f003a251bea4e6161481d10eb63805781bef8e157b08bded3687a7c97011551",
+    "sha256": "ccd794dd5852c38b01e44d08f55f5fdb801290f21285d8ad24209368204afe2c"
+  },
+  "recorded_at_utc": "2026-08-28T10:40:16.639072Z",
+  "remote_state": {
+    "archive_uploaded": false,
+    "cluster_id": null,
+    "condor_dry_run_performed": false,
+    "condor_submission_performed": false,
+    "remote_package_extracted": false,
+    "remote_workspace_created_by_this_attempt": false
+  },
+  "reporting_state": {
+    "completed_new_source_epoch_trajectory_exists": false,
+    "historical_sigma_v2_reports_retained": true,
+    "new_source_epoch_avqds_screen": "pending",
+    "qiskit_compilation_used": false
+  },
+  "schema": "siam_nb4_remote_submission_blocked_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+    "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc"
+  },
+  "status": "AUTHENTICATION_TIMEOUT_NO_REMOTE_MUTATION",
+  "trusted_access_preflight": {
+    "access_mode": "globalprotect_tunnel",
+    "host": "ap2001.chtc.wisc.edu",
+    "host_key_fingerprint": "SHA256:a/A10+LOGZktu6thLVCa6SzVLtU0LUkPQXkePEErJNg",
+    "port": 22,
+    "resolved_ipv4": "128.105.68.112",
+    "route_interface": "utun7",
+    "schema": "chtc_secure_access_preflight_v1",
+    "status": "passed",
+    "trust_manifest_sha256": "84f90dceb4900997f129918721cdb71e3a61abc4b44797dc02fc18a76f39ab16"
+  }
+}

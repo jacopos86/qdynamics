@@ -1,0 +1,270 @@
+{
+  "activation_cut_ladder_contract": {
+    "canonical_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+    "canonical_values": [
+      0.01,
+      0.00333333333333,
+      0.001,
+      0.000333333333333,
+      0.0001,
+      3.33333333333e-05,
+      1e-05,
+      3.33333333333e-06,
+      1e-06,
+      3.33333333333e-07,
+      1e-07
+    ],
+    "legacy_compatibility": {
+      "immutable_action_aliases": {
+        "r00_cut1e-3": {
+          "activation_cut": 0.001,
+          "canonical_index": 2,
+          "legacy_index": 0,
+          "relabel": false
+        }
+      },
+      "noncanonical_cut_semantics": "readable_historical_evidence_without_canonical_action_coverage",
+      "schema": "siam_nb4_activation_cut_ladder_legacy_v1",
+      "sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+      "values": [
+        0.001,
+        0.0003,
+        0.0001,
+        3e-05,
+        1e-05,
+        3e-06,
+        1e-06,
+        3e-07,
+        1e-07
+      ]
+    },
+    "schema": "siam_nb4_activation_cut_ladder_v2"
+  },
+  "blocked": false,
+  "candidate_action_ids": [
+    "siam-nb4-avqds-continue-r02-cut1em03"
+  ],
+  "complete": false,
+  "cost_comparison_admissible": false,
+  "dispositions": [
+    {
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "disposition": "full_horizon_candidate",
+      "reason": "The proof-valid numerical T=5 result is retained for pair matching.",
+      "segment": "continue_t1_t5_401",
+      "subject_id": "siam-nb4-avqds-continue-r02-cut1em03"
+    },
+    {
+      "activation_cut": 0.01,
+      "arm": "avqds",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard, fidelity_ceiling; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r00-cut1em02"
+    },
+    {
+      "activation_cut": 0.00333333333333,
+      "arm": "avqds",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed fidelity_ceiling; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r01-cut3em03"
+    },
+    {
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "disposition": "valid_screen",
+      "reason": "The screen passes the broad response, fidelity, and energy guards.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-avqds-screen-r02-cut1em03"
+    },
+    {
+      "activation_cut": 0.001,
+      "arm": "full_apm",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r02-cut1em03"
+    },
+    {
+      "activation_cut": 0.000333333333333,
+      "arm": "full_apm",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r03-cut3em04"
+    },
+    {
+      "activation_cut": 0.0001,
+      "arm": "full_apm",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r04-cut1em04"
+    },
+    {
+      "activation_cut": 3.33333333333e-05,
+      "arm": "full_apm",
+      "disposition": "screen_requires_tighter_rung",
+      "reason": "The scored screen failed broad_response_guard; preserve its numbers and advance exactly one registered rung.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r05-cut3em05"
+    },
+    {
+      "activation_cut": 1e-05,
+      "arm": "full_apm",
+      "disposition": "scheduled",
+      "reason": "Tighten full_apm by one exact rung after its measured screen miss; no threshold monotonicity is inferred.",
+      "segment": "screen_t0_t1_101",
+      "subject_id": "siam-nb4-full_apm-screen-r06-cut1em05"
+    }
+  ],
+  "generated_at_utc": "2026-08-30T00:06:44.142381Z",
+  "history": [
+    {
+      "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+      "activation_cut": 0.01,
+      "arm": "avqds",
+      "cluster_id": 9713618,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713618/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r00-cut1em02/action_receipt.json",
+      "completion_receipt_bytes": 210842,
+      "completion_receipt_sha256": "39e67b635e094b0f643a0ea9caed3f86043677cdd4a3548b19a79da103caad1f",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713618/increments/proc0/evaluated/score.json",
+      "score_bytes": 137950,
+      "score_sha256": "bc9efbdaf1cbd43b9f36c80c874bc948099aa5b6aec6dc18f116805f51d9fb51",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+      "activation_cut": 0.00333333333333,
+      "arm": "avqds",
+      "cluster_id": 9713835,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r01-cut3em03/action_receipt.json",
+      "completion_receipt_bytes": 210962,
+      "completion_receipt_sha256": "2777bf31d1f3c5ab11879577a7d13f42c38a1133c62640ebf4274ae22dda6c43",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/evaluated/score.json",
+      "score_bytes": 138379,
+      "score_sha256": "42b8b004669829732543f4511ecf690f5bc3129e72efeea4a251836be6f4cbd3",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "cluster_id": 9714484,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-screen-r02-cut1em03/action_receipt.json",
+      "completion_receipt_bytes": 210852,
+      "completion_receipt_sha256": "772a7086e2c8297b9248ed30dd0bc1ce3ffe964c1b31c53e958adea5149a0101",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/score.json",
+      "score_bytes": 138528,
+      "score_sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "full_apm",
+      "cluster_id": 9714525,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714525/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r02_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r02-cut1em03/action_receipt.json",
+      "completion_receipt_bytes": 211179,
+      "completion_receipt_sha256": "9b44a9ad75d64b5d92e440d6f1f8533d76d5f06b361dc671ee7aa41f49cdd9f6",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714525/increments/proc0/evaluated/score.json",
+      "score_bytes": 138551,
+      "score_sha256": "8b71303eab631579813a92c8b1f2502f187d29d99ae6eb0ec6354a88bab33b91",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-avqds-continue-r02-cut1em03",
+      "activation_cut": 0.001,
+      "arm": "avqds",
+      "cluster_id": 9714524,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714524/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_continue_r02_exchangefix_source_36c40d52_20260829/siam-nb4-avqds-continue-r02-cut1em03/action_receipt.json",
+      "completion_receipt_bytes": 215726,
+      "completion_receipt_sha256": "dcbbb31e181b9392beb6e09b0ad268d1ab633ca5401013e7f5d0f352876d1549",
+      "process_id": 0,
+      "resume_from_action_id": "siam-nb4-avqds-screen-r02-cut1em03",
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714524/increments/proc0/evaluated/score.json",
+      "score_bytes": 643676,
+      "score_completion_proof": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714524/increments/proc0/evaluated/stitch_completion_receipt.json",
+      "score_completion_proof_bytes": 974653,
+      "score_completion_proof_sha256": "8c301665e9305ddbd13f08d3bdc3d13f95aac25b30a22406ce7fdd99fc92159e",
+      "score_sha256": "6873ece958463625a08deedbade39baabd28942ded851d2b1cade4dad39070fa",
+      "segment": "continue_t1_t5_401",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r03-cut3em04",
+      "activation_cut": 0.000333333333333,
+      "arm": "full_apm",
+      "cluster_id": 9714675,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714675/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r03-cut3em04/action_receipt.json",
+      "completion_receipt_bytes": 211310,
+      "completion_receipt_sha256": "fa665a192545c2ce410094f85a8c31b3c3899fa135a3406b6dad87ab2361bde1",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714675/increments/proc0/evaluated/score.json",
+      "score_bytes": 138509,
+      "score_sha256": "42377cbb2d51429901e90f5469488d8981113b7faf105128c60160d7c3775d42",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r04-cut1em04",
+      "activation_cut": 0.0001,
+      "arm": "full_apm",
+      "cluster_id": 9714816,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714816/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r04_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r04-cut1em04/action_receipt.json",
+      "completion_receipt_bytes": 211189,
+      "completion_receipt_sha256": "a13b76344a3ddab9712d4b28a51fffe0a5d6b1a5ce581721decacd350066f57c",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9714816/increments/proc0/evaluated/score.json",
+      "score_bytes": 138775,
+      "score_sha256": "d603fbafa16bdfebb2fedb6085789db38ea2e4ef9c18ba62f2feed84f5e561cc",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    },
+    {
+      "action_id": "siam-nb4-full_apm-screen-r05-cut3em05",
+      "activation_cut": 3.33333333333e-05,
+      "arm": "full_apm",
+      "cluster_id": 9715075,
+      "completion_receipt": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715075/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/action_receipt.json",
+      "completion_receipt_bytes": 211292,
+      "completion_receipt_sha256": "c4aee7404b4243cddb220fc9229adfb65e10a84d4aef8f07f82b1898dad521b1",
+      "process_id": 0,
+      "score": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715075/increments/proc0/evaluated/score.json",
+      "score_bytes": 138598,
+      "score_sha256": "69f4c486c2164142255e50b78ef7f453e1f82158c2be69b28ea4877e99923375",
+      "segment": "screen_t0_t1_101",
+      "state": "completed"
+    }
+  ],
+  "next_actions": [
+    {
+      "action_id": "siam-nb4-full_apm-screen-r06-cut1em05",
+      "activation_cut": 1e-05,
+      "arm": "full_apm",
+      "exact_reference_blind": true,
+      "kind": "run",
+      "ladder_index": 6,
+      "qiskit_compilation_requested": false,
+      "reason": "Tighten full_apm by one exact rung after its measured screen miss; no threshold monotonicity is inferred.",
+      "resume_from_action_id": null,
+      "segment": "screen_t0_t1_101"
+    }
+  ],
+  "phase": "full_horizon",
+  "recorded_safeguard_ids": [],
+  "schema": "siam_nb4_comparator_first_ladder_plan_v1",
+  "selected_full_horizon_action_ids": {},
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3"
+}

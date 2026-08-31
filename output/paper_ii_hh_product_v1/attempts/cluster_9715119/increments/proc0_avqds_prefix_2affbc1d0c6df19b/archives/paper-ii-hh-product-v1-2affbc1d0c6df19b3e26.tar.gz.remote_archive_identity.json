@@ -1,0 +1,51 @@
+{
+  "archive_bytes": 1639644,
+  "archive_identity_sha256": "5d075681330e237b51ef226ef6a4e2bdcd0820dc460d03b9555b54263f0fd605",
+  "archive_sha256": "761ad45789c64d0121c6147b9280a9139e7d7325c7b760fe24d2c20eb9d00145",
+  "gzip_integrity": true,
+  "members": {
+    "BASE_SOURCE_VERIFIED_BEFORE_OVERLAY": {
+      "bytes": 60,
+      "sha256": "e6561c50eb5418c1c1325d13be84d2e8fd0dc95fa725f08864c9dee8ff714cea",
+      "type": "regular"
+    },
+    "REMOTE_RAW_PRESERVED": {
+      "bytes": 53,
+      "sha256": "22ae8ce6b29c3c910417e4d87b0d98bdd2655fa4749b30a75b6f2afcea5f9046",
+      "type": "regular"
+    },
+    "completion_receipt.json": {
+      "bytes": 1993,
+      "sha256": "fde494768e43affe56a3fb60d7135c118a011381c9ab7ff8f9faf0c176a8c193",
+      "type": "regular"
+    },
+    "executor_overlay_identity.json": {
+      "bytes": 1814,
+      "sha256": "7a101ae7870fd49aaf075b3a7556dbee1d7480700b45cc01254724a25818e78e",
+      "type": "regular"
+    },
+    "run.json": {
+      "bytes": 8858836,
+      "sha256": "beb2cc849c5c37bec6bd16d6153a616f857e1c54f3f8c9b07bcc805ca18eca49",
+      "type": "regular"
+    },
+    "worker_stderr.log": {
+      "bytes": 36629,
+      "sha256": "51437ae56bd57324c4209452cf8ebd7468132c3afcb4fbee0b0a8812b20d72c8",
+      "type": "regular"
+    },
+    "worker_stdout.json": {
+      "bytes": 598,
+      "sha256": "ae93bf35a0f12ec8b9e5246564b1fc409615be31eea0fc555e7d5be8ff563352",
+      "type": "regular"
+    }
+  },
+  "promotion_plan_sha256": "35712ce4d31beb6ea2241ea13ff596aabd3280bd92a156677b7a9a3c6e23d9e1",
+  "remote_cleanup_performed": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2/transfer_archives/prospective_results/paper-ii-hh-product-v1-2affbc1d0c6df19b3e26.tar.gz",
+  "remote_raw_preserved": true,
+  "schema": "paper_ii_prospective_result_archive_identity_v1",
+  "source_raw_subtree": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_avqds_g2_d128c05f_20260829/paper_ii_hh_product_v1/9538dcdaabac2cb5/avqds_scout_g2/raw_outputs/paper_ii_avqds/paper-ii-hh-product-v1-2affbc1d0c6df19b3e26",
+  "tar_integrity": true,
+  "tar_member_count": 7
+}

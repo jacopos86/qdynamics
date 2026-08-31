@@ -1,0 +1,136 @@
+{
+  "action_id": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+  "arm": null,
+  "attempt": 0,
+  "binding_id": "paper_ii.hubbard_l4.state_motion_avqds_calibration_v1",
+  "declared_outputs": [
+    "run_json",
+    "trajectory_statevectors",
+    "run_receipt"
+  ],
+  "exact_reference_blind": true,
+  "execution_id": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+  "execution_request_sha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+  "handler": "pipelines.time_dynamics.prospective_avqds_scout_worker:materialization_request",
+  "inputs": {
+    "accuracy_policy": {
+      "absolute_guards_by_lane": {
+        "paper_ii_hh_product_v1": {
+          "mean_abs_doublon_error": 0.005,
+          "mean_abs_energy_error": 0.01,
+          "mean_max_abs_site_occupation_error": 0.005
+        },
+        "paper_ii_hubbard_l4_scale_v1": {
+          "mean_abs_doublon_error": 0.005,
+          "mean_abs_energy_error": 0.01,
+          "mean_max_abs_site_occupation_error": 0.005
+        }
+      },
+      "aggregate": "rms_of_normalized_q_components",
+      "component_deadband": 0.1,
+      "componentwise_match_required": true,
+      "infidelity_scale": 0.0001,
+      "matched_factor": 2.0,
+      "observable_relative_guard": 0.15,
+      "observable_relative_target": 0.05,
+      "policy_id": "response_normalized_matched_pair_v2",
+      "response_scale_floor": 1e-12,
+      "retain_model_absolute_guards": true
+    },
+    "accuracy_policy_sha256": "7065dc2e535864adc1eae43923f688171a2215bd3fbf0515daf1df172f5de8ec",
+    "activation_cut": 0.01,
+    "activation_ladder": {
+      "contract": {
+        "floor": 1e-12,
+        "include_floor": true,
+        "monotonicity_assumed": false,
+        "ratio": 3.0,
+        "start": 0.01
+      },
+      "ordered_values": [
+        0.01,
+        0.003,
+        0.001,
+        0.0003,
+        0.0001,
+        3e-05,
+        1e-05,
+        3e-06,
+        1e-06,
+        3e-07,
+        1e-07,
+        3e-08,
+        1e-08,
+        3e-09,
+        1e-09,
+        3e-10,
+        1e-10,
+        3e-11,
+        1e-11,
+        3e-12,
+        1e-12
+      ]
+    },
+    "activation_ladder_sha256": "6db7c6df72f7962757f06dbec3b94b76b4e65effbdf17687b06295242708c38c",
+    "cell_id": "hubbard__l4__u4__weakslow",
+    "controller": "state_motion_5e-5",
+    "drive": {
+      "amplitude": 0.3,
+      "drive_id": "weakslow",
+      "include_identity": false,
+      "omega": 1.0,
+      "operator": "staggered_site_density",
+      "pattern": "staggered",
+      "phi": 0.0,
+      "t0": 0.0,
+      "tbar": 1.0,
+      "time_sampling": "midpoint"
+    },
+    "ladder_index": 0,
+    "lane_id": "paper_ii_hubbard_l4_scale_v1",
+    "matrix_expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "matrix_raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+    "method": "avqds",
+    "ordered_grid": {
+      "construction": "ordered_uniform_index_times_step",
+      "ordered_prefix_sha256": "e338bd7fb0d4a3852ff07d79de1fcad106138426c5b7c33cc37be5eaee64bfe7",
+      "ordered_times_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+      "points": 501,
+      "prefix_points": 126,
+      "prefix_stop": 5.0,
+      "start": 0.0,
+      "step": 0.04,
+      "stop": 20.0
+    },
+    "physical": {
+      "U_over_t": 4.0,
+      "boundary": "open",
+      "lattice_sites": 4,
+      "n_down": 2,
+      "n_up": 2,
+      "ordering": "blocked",
+      "t_hop": 1.0
+    },
+    "record_statevector": true,
+    "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow",
+    "reference_identity_sha256": "20719ac7f89c7f12da2ea09edb452e4144eacdae00cf619a0236b2859bf199a7",
+    "seed_artifact_sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63",
+    "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6",
+    "segment": "calibration_prefix_t0_t5_126",
+    "source_epoch": {
+      "lane_id": "paper_ii_hubbard_l4_scale_v1",
+      "source_archive_sha256": "ff04cbcf89363d9c4c0e1f72d8866657a9cfa9981ee14582b6dbeedaf70cd512",
+      "source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+      "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+      "source_revision": "5eedf0dc546cb8379b2a12f609d5eef8eaf3540b"
+    },
+    "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235"
+  },
+  "kind": "screen_avqds",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "planner_sequence": 0,
+  "qiskit_compilation_requested": false,
+  "requested_memory_gib": null,
+  "schema": "paper_ii_prospective_execution_request_v1"
+}

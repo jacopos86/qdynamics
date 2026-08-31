@@ -1,0 +1,72 @@
+{
+  "archive": {
+    "bytes": 45759,
+    "path": "chtc/siam_nb4_source_446b75f3_frontier9714816_upload_20260829.tar.gz",
+    "sha256": "88f48cb2ec8d04db084eaeb6b3940f8a6a258c7d6ee5d1fcb970118f647dc60e"
+  },
+  "generated_at_utc": "2026-08-29T22:07:51.713623Z",
+  "plan": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9714816_v1_20260829/ladder_plan.json",
+  "plan_sha256": "b6392a644e4d622c4a74fb98c67c078c830d1c84ebcb32b08a86edbad60b5699",
+  "prepared_actions": [
+    {
+      "action": {
+        "action_id": "siam-nb4-full_apm-screen-r05-cut3em05",
+        "activation_cut": 3.33333333333e-05,
+        "arm": "full_apm",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 5,
+        "qiskit_compilation_requested": false,
+        "reason": "Tighten full_apm by one exact rung after its measured screen miss; no threshold monotonicity is inferred.",
+        "resume_from_action_id": null,
+        "segment": "screen_t0_t1_101"
+      },
+      "action_json": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/input/action.json",
+      "action_json_sha256": "e3bebfd37188bc2c64e1568776c51161ed4172396f9d0023461ba8b4ebaedce8",
+      "checks": {
+        "complete_logical_pool": true,
+        "exact_reference_blind": true,
+        "portable_seed_schema": true,
+        "qiskit_compilation_requested": false,
+        "record_statevectors": true,
+        "resume_input_present": false,
+        "source_locked": true,
+        "source_rebaseline_evidence_present": false,
+        "unique_output": true
+      },
+      "expected_output": "raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/run.json",
+      "manifest": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "manifest_sha256": "05fc29ba123a94ea9af4ba9621a1ccc438c36a4e5eb2f66d1158fc28f40d03ac",
+      "package": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829",
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      },
+      "submit": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/submit.sub",
+      "submit_sha256": "31da74c71b57e0b91502c71adc39790bf486d7e36604ff7eb35c8b9e1f1c271b"
+    }
+  ],
+  "prepared_frontier_receipt": {
+    "bytes": 2896,
+    "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9714816_v1_20260829/prepared_frontier_receipt.json",
+    "sha256": "c6a267c3fa6c36845a814a75b087630758bb8adeb7e6d673f9ec5a08a3b9ea43"
+  },
+  "qiskit_compilation_requested": false,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_prepared_frontier_v1",
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "SUBMITTED",
+  "submissions": [
+    {
+      "action_id": "siam-nb4-full_apm-screen-r05-cut3em05",
+      "cluster_id": 9715075,
+      "package": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829",
+      "submission_receipt": "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/submission_receipt.json",
+      "submission_receipt_sha256": "652fa03a06f91a6bfee20260170f98c8086a155cbd527fcbbfb77254ac0bb1b8"
+    }
+  ],
+  "submitted_at_utc": "2026-08-29T23:07:15.190677Z"
+}

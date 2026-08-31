@@ -1,0 +1,41 @@
+{
+  "archive": {
+    "bytes": 982836,
+    "local_path": "chtc/siam_nb4_source_ba50339c_frontier9713113_upload_20260828.tar.gz",
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_ba50339c_20260828/siam_nb4_frontier9713113_upload_20260828.tar.gz",
+    "sha256": "6b9f55b6a7a676b9a913473364260e97a651be7355bbee00d4919e05d698d9fe"
+  },
+  "checks": {
+    "archive_member_count": 23,
+    "composite_source_epoch_action_identity_unique": true,
+    "condor_dry_run_passed": true,
+    "gzip_integrity": true,
+    "hard_linked_image_sha256_verified": true,
+    "package_manifest_verified": true,
+    "quota_checked": true,
+    "remote_output_path_absent_before_submission": true,
+    "remote_sha256_verified": true,
+    "source_tree_contract_verified": true,
+    "tar_integrity": true
+  },
+  "image": {
+    "bytes": 216371200,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_ba50339c_20260828/chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "prior_source_upload_receipt": {
+    "path": "chtc/siam_nb4_avqds_screen_ridge_sigma_v2_rebaseline_v5_source_74da5166_20260828/remote_upload_receipt.json",
+    "sha256": "22d6110ccca902a4b4e29416ef73ce1905245fcc1b32a5db90a4b9f582e4eb1c"
+  },
+  "recorded_at_utc": "2026-08-28T17:44:52.973438+00:00",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_ba50339c_20260828",
+  "reused_verified_source_workspace": true,
+  "schema": "siam_nb4_remote_upload_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-continue-r00-cut1em03",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "source_tree_files_sha256": "e7036e920e96521bee568bc8e530df8d07c62f50a092e30cb5257eaddd1e02fc",
+  "status": "REMOTE_PACKAGE_VERIFIED_AND_SUBMITTED"
+}

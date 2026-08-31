@@ -1,0 +1,81 @@
+{
+  "archive": {
+    "appledouble_members_absent": true,
+    "atomic_rename_verified": true,
+    "bytes": 44736,
+    "extracted_under_ram_guard_mb": 8000,
+    "gzip_verified": true,
+    "local_path": "/private/tmp/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828_upload_clean.tar.gz",
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828_upload.tar.gz",
+    "sha256": "5386033e6c5de912e5bdab89fcd6f84b07afc8aaaa86718f39efec33df962c4a",
+    "tar_verified": true,
+    "transferred_through_part": true
+  },
+  "checks": {
+    "action_duplicate_absent_from_other_remote_packages": true,
+    "action_duplicate_absent_from_queue_and_scoped_history": true,
+    "condor_dry_run_passed": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "output_path_absent_before_submission": true,
+    "package_file_digests_verified_in_runtime_image": true,
+    "qiskit_compilation_requested": false,
+    "quota_passed": true,
+    "source_anchor_reused_without_mutation": true
+  },
+  "condor_dry_run": {
+    "bytes": 2864,
+    "remote_path": "/tmp/siam_nb4_full_apm_r02_20260828.dry",
+    "sha256": "4e39a2b2d5a5dada2d92bc1f0b55376d23c479365cae14ebd0c564cb00a8dd2e"
+  },
+  "created_at": "2026-08-28T07:51:20+00:00",
+  "expected_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "local_storage_guard": {
+    "allowed": true,
+    "estimated_peak_bytes": 249536,
+    "free_bytes": 12249833472,
+    "free_floor_bytes": 10737418240
+  },
+  "package": {
+    "action": {
+      "bytes": 183437,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/input/action.json",
+      "sha256": "1a4429fe4188aee122b92ef849f9eda23c355b53636f5fcca3b69de294ecae42"
+    },
+    "action_id": "siam-nb4-full_apm-screen-r02-cut1em04",
+    "manifest": {
+      "bytes": 3608,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/input/manifest.json",
+      "sha256": "ae8c54274fcf027666cd00b06f21b036ce7c19fb9cd31aa467f8d1d687e5cb33"
+    },
+    "package_id": "siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828",
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    }
+  },
+  "quota": {
+    "home_limit_mib": 51200,
+    "home_quota_mib": 40960,
+    "home_used_mib": 30716
+  },
+  "rejected_upload_preserved": {
+    "bytes": 45157,
+    "reason": "archive contained AppleDouble members and was not extracted",
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828_upload_with_appledouble_rejected.tar.gz",
+    "sha256": "f8d232bc8aef96e6b703dfbfb56ef43577550123e28feba3bf4574811b4159da"
+  },
+  "remote_upload_receipt_sha256": "22691ac946fbfc6fb58a977811c29896702cf849956d0578973d6aaa1322084b",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "schema": "siam_nb4_incremental_remote_upload_receipt_v3",
+  "source_anchor": {
+    "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+    "source_tree_file_count": 646,
+    "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397"
+  },
+  "status": "VERIFIED_EXTRACTED_AND_SUBMITTED"
+}

@@ -1,0 +1,65 @@
+{
+  "action_ids": [
+    "siam-nb4-avqds-continue-r00-cut1em03",
+    "siam-nb4-full_apm-screen-r00-cut1em03"
+  ],
+  "archive": {
+    "atomic_rename_verified": true,
+    "gzip_verified": true,
+    "member_count": 708,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_frontier_after_9712800_ebdf7ca5_20260827/frontier_upload.tar.gz",
+    "sha256": "1d20047e2b4ee4526e263deb42b8c61457f6641bbd2ab36e027f3cb5056cb448",
+    "size_bytes": 6149790,
+    "tar_verified": true,
+    "transferred_through_part": true,
+    "uncompressed_bytes": 35414528,
+    "xattrs_absent": true
+  },
+  "checks": {
+    "container_seed_regeneration": true,
+    "duplicate_action_disjoint_remote": true,
+    "exact_reference_blind": true,
+    "image_hard_link_verified": true,
+    "output_paths_clear": true,
+    "package_file_digests_verified": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "resume_completion_receipt_verified": true,
+    "source_tree_verified": true
+  },
+  "container_seed": {
+    "pool_block_count": 24,
+    "schema": "siam_screening_seed_v2",
+    "sector_dimension": 100,
+    "semantic_state_sha256": "0a388a9735aa4d88c6fd8ed1cc7d6d6f38adc4ced8c5a3b0757a55fad5eda1bf",
+    "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+  },
+  "expected_image": {
+    "inode": 477991353,
+    "link_count_after": 21,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "size_bytes": 216371200
+  },
+  "package_manifest_sha256": {
+    "siam_nb4_avqds_continue_v3_source_ebdf7ca5_20260827": "049706d507af3ab872c1262f2db533c4fda8ac827ec341e0d1ce74840386addb",
+    "siam_nb4_full_apm_screen_v3_source_ebdf7ca5_20260827": "219511a546f8fbb3600b5f4dc9700bc3cdcd4c2723d1784fac31f20196340053"
+  },
+  "quota": {
+    "home_limit_mib": 51200,
+    "home_quota_mib": 40960,
+    "home_used_mib": 24759
+  },
+  "rejected_predecessor_archive": {
+    "reason": "macOS provenance extended headers detected by the remote GNU tar audit",
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_frontier_after_9712800_ebdf7ca5_20260827/frontier_upload.rejected_xattrs.tar.gz",
+    "sha256": "de4b6cad7f3dca87140cf665aac7ae62491d000506ee6c93b76c1e8d8bdb6d85",
+    "status": "REJECTED_NOT_SUBMITTED"
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_frontier_after_9712800_ebdf7ca5_20260827",
+  "schema": "siam_nb4_frontier_remote_upload_receipt_v1",
+  "source_revision": "ebdf7ca593f0ea56e06300341b5d408f7961da00",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "6fbaf54772cdda35496014af8af8c36459be831f62c0d86cd9749c5c9a3a5f1b",
+  "status": "VERIFIED_EXTRACTED_SUBMITTED",
+  "timestamp": "2026-08-28T04:55:48Z"
+}

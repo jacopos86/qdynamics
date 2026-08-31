@@ -1,0 +1,27 @@
+{
+  "action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast::9474f2a7a73ff43e",
+  "execution_request_sha256": "95653022394d8da03c192921e6add5b09dfafae01230b373ab12c223039e9584",
+  "intent": {
+    "file_sha256": "533611ef37bcff96a6b5e46ca2f40d22aea2575b1b2a881dd87079fe06ca5b9e",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/bootstrap-exact-reference-95653022394d8da0--g2.json",
+    "sha256": "4a302b017dc53872cd8d95141a8f1fd5a686dab066cbf5d66eced7340bbffdb2"
+  },
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "local_package": {
+    "bytes": 620455,
+    "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/exact_recovery_cec89e20/cell-4b9846f436399dd7/package_g2/exact_reference_action_package.tar.gz",
+    "sha256": "d6bb53d8391cf1a107f6de08c88266ca05081db13a429b36f634e6c1de155388"
+  },
+  "recorded_at": "2026-08-29T18:11:14+00:00",
+  "remote_package": {
+    "bytes": 620455,
+    "path": "Holstein_paper_ii_prospective_hubbard_scientific_513d75fc_20260829/paper_ii_hubbard_l4_scale_v1/4b9846f436399dd7/exact_reference_g2/exact_reference_action_package.tar.gz",
+    "sha256": "d6bb53d8391cf1a107f6de08c88266ca05081db13a429b36f634e6c1de155388"
+  },
+  "remote_raw_evidence_policy": "preserve",
+  "schema": "paper_ii_bootstrap_upload_verification_v1",
+  "status": "verified",
+  "transport_contact_performed_by_coordinator": false,
+  "unit_id": "bootstrap-exact-reference-95653022394d8da0--g2",
+  "upload_verification_sha256": "4e365de6b4860e01d746e3ffe452d82fceef21c4286ac63fb0f3b79171f249a5"
+}

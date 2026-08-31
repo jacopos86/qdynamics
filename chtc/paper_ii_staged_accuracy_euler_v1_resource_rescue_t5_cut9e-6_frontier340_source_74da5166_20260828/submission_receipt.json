@@ -1,0 +1,35 @@
+{
+  "action_count": 6,
+  "action_stages": {
+    "screen_apm_t5": 1,
+    "screen_avqds_t5": 5
+  },
+  "checks": {
+    "condor_dry_run_passed": true,
+    "duplicate_actions_excluded": true,
+    "image_verified": true,
+    "nonempty_commands": true,
+    "output_paths_absent_before_submission": true,
+    "package_integrity_passed": true,
+    "quota_passed": true,
+    "source_seed_ledger_and_policy_locks_passed": true
+  },
+  "cluster_id": 9713112,
+  "initial_scheduler_snapshot": {
+    "held_process_count": 0,
+    "idle_process_count": 6,
+    "process_count": 6,
+    "running_process_count": 0
+  },
+  "local_submission_audit": {
+    "path": "chtc/paper_ii_staged_accuracy_euler_v1_resource_rescue_t5_cut9e-6_frontier340_source_74da5166_20260828/local_submission_audit.json",
+    "sha256": "5308d4c236a88c179d968c780ba3ed92a28127ab24c73969e9a7eccf021e8f16"
+  },
+  "package_id": "paper_ii_staged_accuracy_euler_v1_resource_rescue_t5_cut9e-6_frontier340_source_74da5166_20260828",
+  "recorded_at_utc": "2026-08-28T16:03:00Z",
+  "remote_upload_receipt": "chtc/paper_ii_staged_accuracy_euler_v1_resource_rescue_t5_cut9e-6_frontier340_source_74da5166_20260828/remote_upload_receipt.json",
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_resource_rescue_t5_frontier340_74da5166_20260828",
+  "schema": "paper_ii_resource_rescue_submission_receipt_v1",
+  "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "status": "SUBMITTED"
+}

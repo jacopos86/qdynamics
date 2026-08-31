@@ -1,0 +1,64 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+  "arm": "avqds",
+  "checks": {
+    "canonical_next_rung": true,
+    "comparator_first": true,
+    "condor_dry_run_passed": true,
+    "exact_queue_and_history_identity_absent_before_submission": true,
+    "exact_reference_blind": true,
+    "focused_pre_submit_test_count": 193,
+    "focused_pre_submit_tests_passed": true,
+    "image_verified": true,
+    "output_path_absent_before_submission": true,
+    "package_and_source_tree_integrity_passed": true,
+    "qiskit_compilation_requested": false,
+    "quota_passed": true,
+    "source_epoch_locked": true
+  },
+  "cluster_id": 9713835,
+  "initial_scheduler_snapshot": {
+    "captured_at_utc": "2026-08-29T04:09:49+00:00",
+    "cluster_id": 9713835,
+    "hold_reason": null,
+    "job_status": 1,
+    "process_id": 0,
+    "state": "idle"
+  },
+  "package_id": "siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828",
+  "planner_receipt": {
+    "bytes": 3862,
+    "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9713618_v2_20260828/ladder_plan.json",
+    "sha256": "f7eb740adee7b04c2e2276f112024b79662ac3abd68b47d69bf7c33678de7ad4"
+  },
+  "recorded_at_utc": "2026-08-29T04:11:55+00:00",
+  "remote_upload_receipt": {
+    "bytes": 3783,
+    "path": "chtc/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/remote_upload_receipt.json",
+    "sha256": "8145338681baba69ddb8db66cfb9cc80b7006f2e13bcfe34e0c4d343b0c13ed9"
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_submission_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "segment": "screen_t0_t1_101",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "SUBMITTED",
+  "submission_intent": {
+    "bytes": 1405,
+    "path": "chtc/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/submission_intent.json",
+    "sha256": "13a419025e31186592a87bddb527c843a19dee86669528a59d05c6a9db9eadf1"
+  },
+  "verified_absent_reconciliation": {
+    "bytes": 946,
+    "path": "chtc/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/submission_reconciliation_verified_absent.json",
+    "sha256": "01761764fa8dda21f89f4c419252c1f60149e62fc2d63a9a5369a32005bb6059"
+  },
+  "warnings_carried": [
+    "preexisting_no_argument_condor_watch_q_processes_on_other_ptys_left_untouched",
+    "login_node_numpy_unavailable_full_validation_deferred_to_execute_node_wrapper_after_local_validation"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+  "archive_sha256": "cf47a3d56a253c9293a2e0f15f0da5ed920144c40c155d2e7f428fc2e9219961",
+  "audit": {
+    "condor_dry_run": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "intentional_source_rebaseline": true,
+    "lifecycle_validation": true,
+    "nonempty_command": true,
+    "output_path_clear": true,
+    "package_integrity": true,
+    "portable_seed_container_regeneration": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "source_locked": true
+  },
+  "cluster_id": 9712885,
+  "condor_dry_run": {
+    "bytes": 2840,
+    "sha256": "9213e5c0be86bec00e78b4daa5c441db635725287388291b965a53ae932fd97a"
+  },
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 1,
+    "label": "IDLE",
+    "process_id": 0
+  },
+  "package_id": "siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828",
+  "package_manifest_sha256": "e7d706f6d50bff94c07d2526adb387f1904ea48cb0075455ab6afceecb08c969",
+  "rebaseline_of": {
+    "cluster_id": 9712866,
+    "retained_role": "diagnostic_candidate",
+    "source_revision": "ebdf7ca593f0ea56e06300341b5d408f7961da00"
+  },
+  "remote_upload_receipt_sha256": "d6a14d19ef4836a6488008f10a87fc4fc69fb17c6dbd4aab0419436f9c08bc45",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_rebaseline_4e5eba53_20260828",
+  "schema": "siam_nb4_chtc_submission_receipt_v4",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "SUBMITTED",
+  "submit_descriptor_sha256": "f837c5ee622c810eae7d480afdfa8d801e1ba145656cf1f894e80c205e2c0a1d",
+  "submitted_at": "2026-08-28T05:49:19Z"
+}

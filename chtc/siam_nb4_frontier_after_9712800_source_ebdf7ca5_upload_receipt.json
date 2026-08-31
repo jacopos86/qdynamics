@@ -1,0 +1,38 @@
+{
+  "action_ids": [
+    "siam-nb4-avqds-continue-r00-cut1em03",
+    "siam-nb4-full_apm-screen-r00-cut1em03"
+  ],
+  "archive_path": "chtc/siam_nb4_frontier_after_9712800_source_ebdf7ca5_upload.tar.gz",
+  "exact_reference_included": false,
+  "gzip_verified": true,
+  "image_included": false,
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "member_count": 708,
+  "package_manifest_sha256": {
+    "siam_nb4_avqds_continue_v3_source_ebdf7ca5_20260827": "049706d507af3ab872c1262f2db533c4fda8ac827ec341e0d1ce74840386addb",
+    "siam_nb4_full_apm_screen_v3_source_ebdf7ca5_20260827": "219511a546f8fbb3600b5f4dc9700bc3cdcd4c2723d1784fac31f20196340053"
+  },
+  "qiskit_compilation_requested": false,
+  "schema": "siam_source_locked_frontier_upload_receipt_v1",
+  "sha256": "1d20047e2b4ee4526e263deb42b8c61457f6641bbd2ab36e027f3cb5056cb448",
+  "size_bytes": 6149790,
+  "source_revision": "ebdf7ca593f0ea56e06300341b5d408f7961da00",
+  "source_sentinels": {
+    "pipelines/time_dynamics/siam_chtc_package.py": "6403e591e84fdca7577beffb41a5a7cc97275ccc9f166af3eb739541c5d9007e",
+    "pipelines/time_dynamics/siam_nb4_ladder.py": "de24c8b677ed8459fd89470e72a6663b3b53f80895f9b2acd9b6854ad3a895c8",
+    "pipelines/time_dynamics/siam_runtime.py": "ac1f93c5756626d734771b4203656edc2548501c98376ea608a430f87253effc",
+    "pipelines/time_dynamics/siam_seed.py": "2fe5717d7efaedaa133936eb3b6ec9ca5846f07b2bf9ce3514634757276abe18",
+    "src/quantum/siam_model.py": "87c3d5140ddf94221dc535fec77e8011790987e8f61684c8fc5e9c0ef79dbf05"
+  },
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "6fbaf54772cdda35496014af8af8c36459be831f62c0d86cd9749c5c9a3a5f1b",
+  "storage_guard": {
+    "free_floor_gib": 10,
+    "passed": true
+  },
+  "tar_verified": true,
+  "timestamp": "2026-08-28T04:49:25Z",
+  "uncompressed_bytes": 35414528,
+  "xattrs_absent": true
+}

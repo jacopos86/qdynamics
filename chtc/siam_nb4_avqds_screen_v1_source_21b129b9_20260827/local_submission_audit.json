@@ -1,0 +1,31 @@
+{
+  "action_count": 1,
+  "action_id": "screen_avqds_nb4_t1_cut1e-3",
+  "checks": {
+    "action_digest_lock": true,
+    "complete_pool": true,
+    "duplicate_action_disjoint_local": true,
+    "exact_reference_blind": true,
+    "lifecycle_validation": true,
+    "nonempty_command": true,
+    "package_integrity": true,
+    "qiskit_compilation_disabled": true,
+    "record_statevectors": true,
+    "seed_digest": true,
+    "source_locked_archive_integrity": true,
+    "source_revision": true,
+    "storage_guard_10_gib_floor": true
+  },
+  "package": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827",
+  "package_manifest_sha256": "5ebff67a3cba6cfdc641136d0e250b74c17c0b17969d1c9b2c85914166f5a08b",
+  "prepared_at": "2026-08-27T15:55:11-05:00",
+  "schema": "siam_nb4_local_submission_audit_v1",
+  "seed_sha256": "c664f90c8f6f284a593a9347596f2f3c19b7dec29055977a0bbbe5c22b9dad72",
+  "source_revision": "21b129b9c4a1743c58b221f5770eada17a3a19cc",
+  "source_upload_archive": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_upload.tar.gz",
+  "source_upload_archive_bytes": 5113097,
+  "source_upload_archive_members": 690,
+  "source_upload_archive_sha256": "44b923f34d307c8d52b5fa2e5679ff0e30e745fb55e8e6fa1ee7745609b607de",
+  "status": "PASS_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "1b657b4a9e5fd24f62f39e3dcbace2739b3dd05c7cc5da7c80cea9ad23d7986b"
+}

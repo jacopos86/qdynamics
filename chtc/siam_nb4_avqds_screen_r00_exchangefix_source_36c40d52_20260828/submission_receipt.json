@@ -1,0 +1,61 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+  "arm": "avqds",
+  "checks": {
+    "canonical_coarsest_rung": true,
+    "comparator_first": true,
+    "condor_dry_run_passed": true,
+    "exact_queue_and_history_identity_absent_before_submission": true,
+    "exact_reference_blind": true,
+    "image_verified": true,
+    "output_path_absent_before_submission": true,
+    "package_and_source_tree_integrity_passed": true,
+    "qiskit_compilation_requested": false,
+    "quota_passed": true,
+    "source_epoch_locked": true
+  },
+  "cluster_id": 9713618,
+  "initial_scheduler_snapshot": {
+    "cluster_id": 9713618,
+    "hold_reason": null,
+    "job_status": 1,
+    "process_id": 0,
+    "state": "idle"
+  },
+  "package_id": "siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828",
+  "planner_receipt": {
+    "bytes": 2546,
+    "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_corrected_exchange_20260828/ladder_plan.json",
+    "sha256": "6cb9da496fa4f903b69b2d9d9fcdf52eae3a444868721e0a8bdd782b27f1e227"
+  },
+  "recorded_at_utc": "2026-08-29T03:00:48+00:00",
+  "remote_upload_receipt": {
+    "bytes": 3803,
+    "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/remote_upload_receipt.json",
+    "sha256": "86a0226994aa3ce55c359ca125b3d3804548a6e7558be4a8539d7a24a9d549e2"
+  },
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_submission_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "segment": "screen_t0_t1_101",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "SUBMITTED",
+  "submission_intent": {
+    "bytes": 1405,
+    "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submission_intent.json",
+    "sha256": "0fdfba0a726ecb5429db12887dce80ec5e84bc9746a5b5e858bffe42d2606bb2"
+  },
+  "verified_absent_reconciliation": {
+    "bytes": 963,
+    "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submission_reconciliation_verified_absent.json",
+    "sha256": "b5ea9763e828bd68950eb0c267ce84218a79685ac9567b6231714cfbdfd9fa64"
+  },
+  "warnings_carried": [
+    "upload_tar_macos_provenance_pax_headers_ignored_after_independent_digest_validation",
+    "login_node_numpy_unavailable_full_validation_deferred_to_execute_node_wrapper_after_local_validation"
+  ]
+}

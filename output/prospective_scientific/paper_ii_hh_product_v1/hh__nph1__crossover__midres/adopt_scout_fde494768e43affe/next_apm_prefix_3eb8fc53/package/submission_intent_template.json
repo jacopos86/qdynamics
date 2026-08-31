@@ -1,0 +1,26 @@
+{
+  "acquisition_unit_id": "prospective-apm-exchange-488646822fcf40e8",
+  "action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "base_source_epoch_identity_sha256": "36bea0d5708cef4229f71f66987c9af7a1b8e08a1b08909eaf6d164eafdf395e",
+  "composite_source_identity_sha256": "5aa4ddb8f9095ab7b992250e04e9f8f96df1dae41e30e4926422137344481e0f",
+  "execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+  "executor_overlay_identity_sha256": "10478496284d396da671cd717ed7714d8cfa936370571f8b01498e037d4c93f5",
+  "executor_overlay_revision": "3eb8fc530d90056a4fee545a195fb0989f273157",
+  "first_reconciliation_outcome": "indeterminate",
+  "intent_first": {
+    "first_snapshot_outcome": "indeterminate",
+    "found_recovers_without_resubmission": true,
+    "indeterminate_blocks_submission": true,
+    "later_submission_requires_reconciliation": "verified_absent",
+    "submission_intent_required_before_scheduler_contact": true
+  },
+  "job_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8",
+  "lane_id": "paper_ii_hh_product_v1",
+  "production_submission_enabled": false,
+  "scheduler_contacted": false,
+  "scheduler_submission_authorized": false,
+  "schema": "paper_ii_apm_exchange_submission_intent_template_v1",
+  "status": "template_not_submitted",
+  "submission_intent_template_sha256": "08f5d657e800ff09cf5296a3b93b0bef318744a7fce52991a9113c71afbb4713",
+  "work_order_sha256": "469a6575680b3b4d766d68ea383bff67ca80c29f7dd5006a5ab4d7c335f134ec"
+}

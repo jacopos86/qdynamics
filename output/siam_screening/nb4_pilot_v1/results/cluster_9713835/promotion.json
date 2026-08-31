@@ -1,0 +1,223 @@
+{
+  "accuracy_policy": {
+    "energy_guard": "sector_spectral_width_normalized_max_drift",
+    "energy_in_aggregate_burden": false,
+    "energy_in_componentwise_matching": true,
+    "schema": "siam_response_matched_accuracy_policy_v2"
+  },
+  "canonical_resource_accounting": {
+    "qiskit_compilation_required": false,
+    "qiskit_compilation_role": "optional_diagnostic_only",
+    "terminal_graph_proxy_order": [
+      "C_hat_2q",
+      "C_hat_d",
+      "C_hat_1q"
+    ],
+    "terminal_n_theta": "independent_logical_shared_coordinates"
+  },
+  "cell_id": "6030dc0e971af719e6de2d63444f3f4ef9d185dfb0d17c96d7d3915948888274",
+  "comparison_identity": {
+    "comparison_fingerprint": "0e7ba1968f7724012caac1a561050975388e63eed1b4f20cd6ba2624e5a1be77",
+    "exact_reference": {
+      "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+      "key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+      "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+      "observable_schema": "siam_screening_observables_v2",
+      "propagator_schema": "siam_exact_sector_eigh_v1",
+      "reference_schema": "siam_exact_sector_reference_v2",
+      "store_schema": "siam_exact_reference_store_v2"
+    },
+    "grid": {
+      "initial_time": 0.0,
+      "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+      "point_count": 101,
+      "terminal_time": 1.0
+    },
+    "physics_fingerprint": "85e77ed89323e3d05358641b018bd00469665d02519cf02cfbebabeb305b4884",
+    "post_quench_hamiltonian_sha256": "f34c82a0109af455f744ba90071cebb2906712c15f42831f5db9a387adfe2a63",
+    "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+  },
+  "counts": {
+    "candidate": 1,
+    "pending": 1,
+    "qualified": 0
+  },
+  "exact": {
+    "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+    "energy_guard_g_E": 0.0,
+    "key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+    "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+    "mean_infidelity": 0.0,
+    "observable_schema": "siam_screening_observables_v2",
+    "propagator_schema": "siam_exact_sector_eigh_v1",
+    "reference_schema": "siam_exact_sector_reference_v2",
+    "response_normalized_derived_screening_errors": {
+      "Sigma_1": 0.0,
+      "Sigma_2": 0.0,
+      "Sigma_3": 0.0,
+      "Sigma_4": 0.0
+    },
+    "response_normalized_primitive_errors": {
+      "C_1": 0.0,
+      "C_2": 0.0,
+      "C_3": 0.0,
+      "C_4": 0.0,
+      "D_d": 0.0,
+      "m_d": 0.0
+    },
+    "state": "reference",
+    "store_schema": "siam_exact_reference_store_v2"
+  },
+  "latex_fragment": {
+    "schema": "siam_results_latex_fragment_v2",
+    "sha256": "ac23c24157e333e4178d9103338b8d510a6dd3edc75f74d476e412267afde3a1"
+  },
+  "manuscript_contract": {
+    "all_numerical_slots_validated_stitched_t5": false,
+    "screen_t1_role": "diagnostic_only",
+    "validated_stitched_t5_required": false
+  },
+  "observable_contract": {
+    "impurity_number": "N_d=n_d_up+n_d_down",
+    "impurity_spin_square": "S_d2=3/4*(N_d-2*D_d)",
+    "integrated_screening": "Sigma_r=S_d2+sum_{j<=r}C_j",
+    "primitive_gate_set_unchanged": true,
+    "reporting_role": "offline_derived_from_checkpoint_statevectors",
+    "schema": "siam_screening_observables_v2"
+  },
+  "pair_comparison": {
+    "classification": "pending",
+    "cost_comparison_admissible": false,
+    "pending_reason": "one_method_slot_has_no_verified_completed_trajectory",
+    "reader_verdict": "pending",
+    "state": "pending"
+  },
+  "promotion_role": "diagnostic_screening",
+  "promotion_sha256": "e5a5cea0c51a2b756cac6562403a3fa9f8df2609fa130994746325142f2d03c2",
+  "schema": "siam_results_promotion_v2",
+  "slots": {
+    "avqds": {
+      "accepted_integration_steps": 25600,
+      "completion_proof_role": "diagnostic_screen",
+      "completion_segment": "screen_t0_t1_101",
+      "energy_guard": {
+        "ceiling": 0.001,
+        "g_E": 0.00021313901568429,
+        "pass": true
+      },
+      "failed_gates": [
+        "fidelity_ceiling_pass",
+        "individual_response_target_pass"
+      ],
+      "gates": {
+        "all_declared_gates_pass": false,
+        "energy_guard_pass": true,
+        "fidelity_ceiling_pass": false,
+        "individual_response_target_pass": false
+      },
+      "individual_failed_gates": [
+        "fidelity_ceiling_pass",
+        "individual_response_target_pass"
+      ],
+      "individual_gate_pass": false,
+      "inputs": {
+        "completion_receipt": {
+          "action_id": "siam-nb4-avqds-screen-r01-cut3em03",
+          "file_sha256": "2777bf31d1f3c5ab11879577a7d13f42c38a1133c62640ebf4274ae22dda6c43",
+          "initial_time": 0.0,
+          "manuscript_eligible": false,
+          "package_id": "siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_r01_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r01-cut3em03/action_receipt.json",
+          "point_count": 101,
+          "proof_kind": "raw_action",
+          "proof_role": "diagnostic_screen",
+          "schema": "siam_nb4_chtc_action_receipt_v4",
+          "segment": "screen_t0_t1_101",
+          "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+          "terminal_time": 1.0,
+          "trajectory_sha256": "61da46916a8996e24ac0e23777f932022c2e342aa9dc08dee77fa87e98f0e9b0"
+        },
+        "score": {
+          "exact_view_receipt": {
+            "file_sha256": "ee2b45eed58e6d9d1674534f94a0c3af26d0cff9dd18c1f29aeac4b1c64f168e",
+            "initial_time": 0.0,
+            "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+            "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_prefix_t0_t1_sigma_v2_receipt.json",
+            "point_count": 101,
+            "receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f",
+            "reference_key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+            "schema": "siam_exact_reference_prefix_view_v2",
+            "start_index": 0,
+            "stop_index_exclusive": 101,
+            "terminal_time": 1.0,
+            "view_kind": "prefix"
+          },
+          "file_sha256": "42b8b004669829732543f4511ecf690f5bc3129e72efeea4a251836be6f4cbd3",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/evaluated/score.json",
+          "score_sha256": "e7206c99b74bb559e4afb791022a035232fd88bc3001c6fa82e152307a9a0f79"
+        },
+        "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+        "terminal_resource": {
+          "file_sha256": "2262044ded53dc603c7e1fc170ed50c01cb7077e4fbda4ad879193117014440d",
+          "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9713835/increments/proc0/evaluated/terminal_resources.json",
+          "resource_sha256": "eb5d86a15ff571e31cae3643dafa3b2f31b4fc24584b515f9c37c85f690a442f"
+        },
+        "trajectory_sha256": "61da46916a8996e24ac0e23777f932022c2e342aa9dc08dee77fa87e98f0e9b0"
+      },
+      "manuscript_eligible": false,
+      "mean_infidelity": 0.00010827767712454606,
+      "method": "avqds",
+      "pending_reason": null,
+      "qualification_basis": null,
+      "reader_label": "AVQDS",
+      "response_normalized_derived_screening_errors": {
+        "Sigma_1": 0.012727064144004858,
+        "Sigma_2": 0.011848946475879195,
+        "Sigma_3": 0.012050908354754034,
+        "Sigma_4": 0.0029947473965079674
+      },
+      "response_normalized_primitive_errors": {
+        "C_1": 0.013725437178384271,
+        "C_2": 0.01273122961112982,
+        "C_3": 0.135609453438814,
+        "C_4": 0.05543486951844335,
+        "D_d": 0.0020598400420804774,
+        "m_d": 0.0022011184299103245
+      },
+      "state": "candidate",
+      "terminal_graph_proxy": [
+        402.0,
+        780.0,
+        737.0
+      ],
+      "terminal_graph_proxy_order": [
+        "C_hat_2q",
+        "C_hat_d",
+        "C_hat_1q"
+      ],
+      "terminal_n_theta": 20,
+      "terminal_time": 1.0
+    },
+    "full_apm": {
+      "accepted_integration_steps": null,
+      "completion_proof_role": null,
+      "completion_segment": null,
+      "energy_guard": null,
+      "individual_failed_gates": null,
+      "individual_gate_pass": null,
+      "inputs": null,
+      "manuscript_eligible": null,
+      "mean_infidelity": null,
+      "method": "full_apm",
+      "pending_reason": "no_verified_completed_trajectory",
+      "qualification_basis": null,
+      "reader_label": "Full APM",
+      "response_normalized_derived_screening_errors": null,
+      "response_normalized_primitive_errors": null,
+      "state": "pending",
+      "terminal_graph_proxy": null,
+      "terminal_n_theta": null,
+      "terminal_time": null
+    }
+  }
+}

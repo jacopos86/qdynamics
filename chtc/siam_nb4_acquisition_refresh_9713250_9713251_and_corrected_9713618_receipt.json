@@ -1,0 +1,127 @@
+{
+  "completed_clusters": [
+    9713250,
+    9713251
+  ],
+  "corrected_source_epoch": {
+    "cluster_id": 9713618,
+    "frontier": {
+      "bytes": 3279,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_corrected_exchange_20260828/prepared_frontier_receipt.json",
+      "sha256": "14c4b13299a2a803f77dffc596fc36d1eddc561027a2c28ec305b111b178d115"
+    },
+    "initial_state": "idle",
+    "next_action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+    "planner_receipt": {
+      "bytes": 5065,
+      "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-446b75f3edc235404bf9/planner_receipt.json",
+      "sha256": "799b2fcca700484f7cd24c1c7c4b6006fdabd0b8e5e728bd775444f3023f7d2a"
+    },
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+    "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+    "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+    "submission_receipt": {
+      "bytes": 2491,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submission_receipt.json",
+      "sha256": "2dfcc6174d6ba138f1b21e0450d76f4ae390c498f5086ab79fd73f81d78d1043"
+    }
+  },
+  "old_epoch_closed_frontier": {
+    "frontier": {
+      "bytes": 1626,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_ba50339c_closed_exchange_fix_20260828/prepared_frontier_receipt.json",
+      "sha256": "862cb78c8b81327da55660de5971b97b29159bfbd2860907a52452f074b8bd6d"
+    },
+    "plan": {
+      "bytes": 4396,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_ba50339c_closed_exchange_fix_20260828/ladder_plan.json",
+      "sha256": "6c6caed51726d0054f1278a0b540ad902226965897fab691846428894e55aee7"
+    }
+  },
+  "old_source_epoch": {
+    "closed_to_new_actions": true,
+    "cost_comparison_admissible": false,
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507",
+    "source_revision": "74da516646798e2243934bed89d8f65ccd6543d4"
+  },
+  "qiskit_compilation_used": false,
+  "recorded_at_utc": "2026-08-29T03:03:17+00:00",
+  "remote_raw_evidence_preserved": true,
+  "schema": "siam_nb4_acquisition_refresh_receipt_v1",
+  "stable_bindings": {
+    "report_contract": {
+      "bytes": 6150,
+      "path": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/report_contract_current.json",
+      "sha256": "cc00e99bc72ca98a385c006efad01c63b2387c9a1a9b30b37e05d702787d771c"
+    },
+    "scientific_state": {
+      "bytes": 6127,
+      "path": "output/siam_screening/nb4_pilot_v1/acquisition_supervisor/scientific_state_current.json",
+      "sha256": "77362e84aa4e153bf8d4ca787a2b2db650bd4cbac3e5d0c78749c7a158099149"
+    }
+  },
+  "status": "HISTORICAL_EVIDENCE_INGESTED_OLD_EPOCH_CLOSED_CORRECTED_EPOCH_SUBMITTED",
+  "verified_results": {
+    "avqds_continuation": {
+      "archive": {
+        "bytes": 3919320,
+        "sha256": "4d81c5945598460d9b28d8f9479f0a98293c18d9062d95f22927fb1337a005b4"
+      },
+      "cluster_id": 9713250,
+      "evidence_role": "full_horizon_numerical_candidate_outside_fidelity_guard",
+      "increment_receipt": {
+        "bytes": 7738,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713250/increments/proc0/evidence/increment_receipt.json",
+        "sha256": "fefd0e722fbbeaf1830ffa387635109aa07bb524e4e5891d077425818089aff1"
+      },
+      "pdf": {
+        "bytes": 2944,
+        "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_full_horizon_results_cluster9713250.pdf",
+        "sha256": "26b670f3bfeedc4fae0fd2b2719debb19a39e2c192a827d9cfaf311222cd2680"
+      },
+      "promotion": {
+        "bytes": 8349,
+        "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9713250/promotion.json",
+        "sha256": "05bcbc6c0dfbe245dd037bb2a64803ffcbaebaedad96eca392faa5455dfcc5e6"
+      },
+      "score": {
+        "bytes": 643652,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713250/increments/proc0/evaluated/score.json",
+        "sha256": "375e6275052494f080b499a0c0d8a46236cf6b781d3658697197dd9881e2b606"
+      }
+    },
+    "full_apm_screen": {
+      "archive": {
+        "bytes": 937360,
+        "sha256": "915bcb66f3c6011579f419c2925b4a47ee76b06fe4bcc2bb929dbd234bbe346c"
+      },
+      "cluster_id": 9713251,
+      "evidence_role": "historical_pre_fix_exchange_source",
+      "increment_receipt": {
+        "bytes": 7299,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713251/increments/proc0/evidence/increment_receipt.json",
+        "sha256": "1e80ed03764d34ef76e76226cd21d0a96f20dde37ec549e4b1a74e8891a13fda"
+      },
+      "pdf": {
+        "bytes": 2959,
+        "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9713251.pdf",
+        "sha256": "a9669712ab4efb4e3ac24d513301adda9c5de3396ff01c75eac580833806a850"
+      },
+      "promotion": {
+        "bytes": 9489,
+        "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9713251/promotion.json",
+        "sha256": "1a28868f51e14b9d2e7fa203d8eee68bd6c0e4fdabc71e495b053807daf453c6"
+      },
+      "promotion_eligible": false,
+      "score": {
+        "bytes": 138626,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9713251/increments/proc0/evaluated/score.json",
+        "sha256": "64e9cbce7685a9110427e850257040487ec90cd34c56a93deda731debccb7b90"
+      }
+    }
+  },
+  "warnings_carried": [
+    "upload_tar_macos_provenance_pax_headers_ignored_after_independent_digest_validation",
+    "login_node_numpy_unavailable_full_validation_deferred_to_execute_node_wrapper_after_local_validation"
+  ]
+}

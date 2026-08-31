@@ -1,0 +1,137 @@
+{
+  "cells": [
+    {
+      "cell_id": "hubbard__l4__u4__weakslow",
+      "controller": "state_motion_5e-5",
+      "drive": "weakslow",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow",
+        "reference_identity_sha256": "20719ac7f89c7f12da2ea09edb452e4144eacdae00cf619a0236b2859bf199a7",
+        "slot_id": "hubbard__l4__u4__weakslow::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hubbard_l4_scale_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hubbard__l4__u4__weakslow::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hubbard__l4__u4__weakslow::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard",
+      "physics": {
+        "U_over_t": 4.0,
+        "boundary": "open",
+        "lattice_sites": 4,
+        "n_down": 2,
+        "n_up": 2,
+        "ordering": "blocked",
+        "t_hop": 1.0
+      }
+    },
+    {
+      "cell_id": "hubbard__l4__u4__strongfast",
+      "controller": "state_motion_5e-5",
+      "drive": "strongfast",
+      "exact_reference": {
+        "artifact": null,
+        "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__strongfast",
+        "reference_identity_sha256": "4b9846f436399dd7c8544120874f513096871e48e36e16f56d5556b177177a55",
+        "slot_id": "hubbard__l4__u4__strongfast::exact",
+        "state": "pending"
+      },
+      "grid": {
+        "points": 501,
+        "start": 0.0,
+        "stop": 20.0
+      },
+      "horizon": 20.0,
+      "lane_id": "paper_ii_hubbard_l4_scale_v1",
+      "method_slots": [
+        {
+          "method": "apm",
+          "provenance": null,
+          "slot_id": "hubbard__l4__u4__strongfast::apm",
+          "state": "pending",
+          "values": null
+        },
+        {
+          "method": "avqds",
+          "provenance": null,
+          "slot_id": "hubbard__l4__u4__strongfast::avqds",
+          "state": "pending",
+          "values": null
+        }
+      ],
+      "model": "hubbard",
+      "physics": {
+        "U_over_t": 4.0,
+        "boundary": "open",
+        "lattice_sites": 4,
+        "n_down": 2,
+        "n_up": 2,
+        "ordering": "blocked",
+        "t_hop": 1.0
+      }
+    }
+  ],
+  "contract_id": "paper_ii_parallel_benchmarks_20260828:paper_ii_hubbard_l4_scale_v1",
+  "controller": "state_motion_5e-5",
+  "cost_authority": "logical_n_theta_and_routing_independent_graph_tuple",
+  "counts": {
+    "candidate_method_slots": 0,
+    "pending_exact_references": 2,
+    "pending_method_slots": 4,
+    "planned_cells": 2,
+    "planned_exact_references": 2,
+    "planned_method_slots": 4,
+    "qualified_method_slots": 0,
+    "unresolved_method_slots": 0
+  },
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "matrix": {
+    "expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+    "path": "pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json",
+    "payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2"
+  },
+  "methods": [
+    "apm",
+    "avqds"
+  ],
+  "qiskit_compilation": {
+    "canonical": false,
+    "requested": false,
+    "used": false
+  },
+  "report_contract_sha256": "ea3b9de3fc4df231d4e938d2fcd6d7e28cfca522a1eaf9d80da6f397eaf8d84d",
+  "schema": "paper_ii_planned_report_contract_v1",
+  "slot_state_contract": {
+    "completed_values_are_never_hidden_by_a_failed_gate": true,
+    "method_states": [
+      "pending",
+      "candidate",
+      "qualified",
+      "unresolved"
+    ],
+    "pending_means": "no_valid_completed_trajectory"
+  },
+  "tuple_structure_sha256": "0eed48b7823ec9e4d0c1fc87e7446c8b7027ebaa0a008ee5f436e74997ff9118"
+}

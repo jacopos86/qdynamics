@@ -1,0 +1,69 @@
+{
+  "accuracy_policy": {
+    "absolute_doublon_error_ceiling": 0.005,
+    "absolute_energy_error_ceiling": 0.01,
+    "absolute_safety_components": [
+      "mean_abs_energy_error",
+      "mean_abs_doublon_error",
+      "mean_max_abs_site_occupation_error"
+    ],
+    "absolute_site_occupation_error_ceiling": 0.005,
+    "aggregate_burden": "rms_q_components",
+    "comparison_guard_components": "all_target_normalized_q_including_fidelity",
+    "component_normalization": "target_normalized_q",
+    "infidelity_ceiling": 0.0001,
+    "infidelity_role": "target_normalized_component_with_broad_guard_not_absolute_safety",
+    "matched_accuracy_factor": 2.0,
+    "matched_component_deadband": 0.1,
+    "matched_policy_version": 2,
+    "mode": "response_normalized_matched_pair",
+    "pair_admission": "both arms inside the comparison guard, aggregate q burdens matched within the declared factor, and every deadbanded q component matched within that factor",
+    "require_infidelity": true,
+    "response_relative_guard": 0.15,
+    "response_relative_target": 0.05,
+    "response_scale_floor": 1e-12,
+    "response_scales": {
+      "midres": {
+        "t20": {
+          "doublon_rms_excursion": 0.18837355644723955,
+          "energy_rms_excursion": 1.2314061171703965,
+          "max_site_occupation_rms_excursion": 0.30931823050364615
+        },
+        "t5": {
+          "doublon_rms_excursion": 0.18882771056069672,
+          "energy_rms_excursion": 1.0785763606468848,
+          "max_site_occupation_rms_excursion": 0.4156518672615748
+        }
+      }
+    }
+  },
+  "accuracy_policy_mode": "response_normalized_matched_pair",
+  "accuracy_policy_sha256": "a87f4370f77999c29ef8076ab7b89c9a29684b33555d8fbd0068da0c537ca5c4",
+  "bindings_sha256": "155d3f310b1211c24abec1e815388c16bd019d21589a1829013406d90b7f6229",
+  "cell_id": "hh__nph1__crossover__midres",
+  "cell_identity_sha256": "9538dcdaabac2cb55c0a7ef02d0d1744c034328f806368c0ea70bb5ffaab0b49",
+  "controller": "state_motion_5e-5",
+  "drive": "midres",
+  "lane_id": "paper_ii_hh_product_v1",
+  "matrix_accuracy_policy_id": "response_normalized_matched_pair_v2",
+  "matrix_accuracy_policy_sha256": "7065dc2e535864adc1eae43923f688171a2215bd3fbf0515daf1df172f5de8ec",
+  "matrix_expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+  "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+  "matrix_payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+  "matrix_raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+  "policy_regime": "crossover",
+  "qiskit_compilation": false,
+  "reference_data_sha256": "db187393297b645b05ce5f71b1b9c9fbfb6b4caac8b2e99ef2af722c1d80354b",
+  "reference_id": "paper_ii_hh_product_v1::reference::hh__nph1__crossover__midres",
+  "reference_identity_sha256": "9538dcdaabac2cb55c0a7ef02d0d1744c034328f806368c0ea70bb5ffaab0b49",
+  "reference_manifest_sha256": "5b6839ded0b18bee9ae08810d1b1c586f97d14e00ced92e106c5d79b92674a00",
+  "reference_receipt_sha256": "4d797c3e90aac0ebcd32be9024d88906f800041dc1709d57ed5064eaa1f0f983",
+  "schema": "paper_ii_prospective_scientific_bindings_v1",
+  "seed_artifact_sha256": "8d668810c4f98471ac90a9ef428ef525be3d3472c3f96d6f4c17e9554e9b51a5",
+  "seed_id": "paper_ii_hh_product_v1::seed::nph1__crossover",
+  "seed_identity_sha256": "c85dc53238bcdefaa7518784eea52ffbc2b4a41bcc34d35546a330598f5c3c0c",
+  "seed_receipt_sha256": "ec4ec534aa5835cef7531d3ab06e2736efbec83def5a2aac7a664c97e75c033a",
+  "source_epoch_identity_sha256": "36bea0d5708cef4229f71f66987c9af7a1b8e08a1b08909eaf6d164eafdf395e",
+  "source_revision": "267516eab3b35c2cfb495e543246b48196179322",
+  "source_tree_sha256": "ecc181dd4bce65dc62bf707e12f5bb3570e0400edd27d16cd454a5e51b2b2f0c"
+}

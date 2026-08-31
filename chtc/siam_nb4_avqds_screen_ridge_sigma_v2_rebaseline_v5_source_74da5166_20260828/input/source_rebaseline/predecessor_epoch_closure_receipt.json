@@ -1,0 +1,15 @@
+{
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "closed_at": "2026-08-28T10:29:38.873433Z",
+  "closed_to_new_actions": true,
+  "closure_receipt_sha256": "41b840e7828fa57e0ca46eafd6a9a37d3df7e95c3f027a054a59009c2a63538e",
+  "package_id": "siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828",
+  "package_manifest_sha256": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9",
+  "schema": "siam_source_epoch_closure_v1",
+  "source_epoch_id": "siam-nb4-source-781e5f0aef86986146fb",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "CLOSED_SUPERSEDED",
+  "submission_receipt_sha256": "63f0a848a28d31c5fb5ae8a79936124d9ef992f8f6e7e49f21734f72f6a0d876",
+  "superseded_by_source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+}

@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 474818,
+  "archive_sha256": "504912fa7b4b4e7adc58aae6c63f98a5d460c5a64760ef508a51ea83ef53fe64",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/archives/paper-ii-hubbard-l4-scale-v1-770401ecc1a3a2114e70.tar.gz.transfer_finalization_intent.json",
+    "sha256": "18fc2b6388cebfa28631ec0152ff22e1888c9eb56fc63dc6ecf1cb287ddc6ae4"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/archives/paper-ii-hubbard-l4-scale-v1-770401ecc1a3a2114e70.tar.gz",
+  "receipt_sha256": "266eefd8edf02b3d1d7b3a8e7838c54ab40fd5e2a8afccbcba7ba1d74cfa4a27",
+  "recorded_at": "2026-08-29T15:31:54.381839-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_scientific_513d75fc_20260829/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/exact_reference_g2/transfer_archives/prospective_results/paper-ii-hubbard-l4-scale-v1-770401ecc1a3a2114e70.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 11
+}

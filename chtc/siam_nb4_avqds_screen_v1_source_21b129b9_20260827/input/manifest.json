@@ -1,0 +1,30 @@
+{
+  "action_count": 1,
+  "action_id": "screen_avqds_nb4_t1_cut1e-3",
+  "action_json_sha256": "99d1cb4a8d267eb469bdf20be813bdc698281bd4fa0afa29ea01544b2ef6aa03",
+  "batch_name": "siam-nb4-avqds-screen-v1",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/screen_avqds_nb4_t1_cut1e-3/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.001",
+  "package_id": "siam_nb4_avqds_screen_v1_source_21b129b9_20260827",
+  "prepared_at": "2026-08-27T15:55:11-05:00",
+  "run_screen_apptainer_sha256": "74856cbe56ff6afdf8a05474db1fe17f4d415096a8167e4cdc8bcd9334612f96",
+  "run_screen_sha256": "4d74cdcaff0d3eb1ecca49ef0dedb6badbfaec203109215380222f0380f79799",
+  "runner_argv_sha256": "b2a19a13962d537f3a7e48cc9cafa934879f24dd476c65566ec795ab10bb131b",
+  "schema": "siam_nb4_chtc_package_manifest_v1",
+  "seed_sha256": "c664f90c8f6f284a593a9347596f2f3c19b7dec29055977a0bbbe5c22b9dad72",
+  "source_revision": "21b129b9c4a1743c58b221f5770eada17a3a19cc",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "1b657b4a9e5fd24f62f39e3dcbace2739b3dd05c7cc5da7c80cea9ad23d7986b"
+}

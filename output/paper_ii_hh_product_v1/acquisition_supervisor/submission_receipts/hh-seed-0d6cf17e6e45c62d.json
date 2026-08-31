@@ -1,0 +1,38 @@
+{
+  "action_ids": [
+    "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3"
+  ],
+  "intent_sha256": "7c977c63d9f2a0f60069bbacec6b25caf10dff1871d1e17fcfe03cc04848bcb7",
+  "lane_id": "paper_ii_hh_product_v1",
+  "recorded_at": "2026-08-29T01:06:04.894687-05:00",
+  "recovered_from_scheduler": true,
+  "remote": {
+    "action_ids": [
+      "build_seed::paper_ii_hh_product_v1::seed::nph3__phonon_dominated::45204202828784e3"
+    ],
+    "cluster_id": 9713880,
+    "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d",
+    "process_ids": [
+      0
+    ],
+    "recovery_evidence": {
+      "provisional_submission_result": {
+        "file_sha256": "140dcfdcea79ac9e25f7c73ee15ff4c1a28abe7e5b4cb5414be6a93481fff77c",
+        "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_results/activation_f99b702f/hh-seed-0d6cf17e6e45c62d.json",
+        "sha256": "972af90811276c36adc69f93244d38a1e881442f4fb640d2fc6b90faf9033225"
+      },
+      "query": "queue",
+      "scheduler_confirmation": true,
+      "scheduler_row_sha256": "947dec2799850ff1e379a323d3091b64b1fe47308218d466a98e5f2746bd51e5",
+      "snapshot": {
+        "file_sha256": "345bf09bd53cc79dec3a803b9a465dd70f12ebea3f5202102dd28da0ed3049e8",
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_0104/combined_snapshot.json",
+        "sha256": "5f9d6a9a24e8ad5829dcde697163ff9db71b7f0267853b25140ac168887c9a17"
+      }
+    },
+    "scheduler_identity": "9713880.0",
+    "unit_id": "hh-seed-0d6cf17e6e45c62d"
+  },
+  "schema": "time_dynamics_submission_receipt_v1",
+  "unit_id": "hh-seed-0d6cf17e6e45c62d"
+}

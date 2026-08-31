@@ -1,0 +1,56 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-avqds-screen-r00-cut1em03",
+  "action_sha256": "c5c7b9a911474166a6fa216bd74924bacc78f8ad8cd17d6906d61703178ba917",
+  "checks": {
+    "action_digest_lock": true,
+    "complete_pool": true,
+    "duplicate_action_disjoint_local": true,
+    "exact_reference_blind": true,
+    "image_hard_link_verified": true,
+    "lifecycle_validation_local": true,
+    "lifecycle_validation_remote": true,
+    "nonempty_command": true,
+    "output_path_clear": true,
+    "package_integrity": true,
+    "portable_seed_container_regeneration": true,
+    "qiskit_compilation_disabled": true,
+    "quota_checked": true,
+    "record_statevectors": true,
+    "resume_input_absent": true,
+    "seed_digest": true,
+    "source_locked_archive_integrity": true,
+    "source_revision": true,
+    "source_tree_contract": true,
+    "storage_guard_10_gib_floor": true
+  },
+  "failed_predecessors": [
+    {
+      "cluster_id": 9710340,
+      "exit_code": 1,
+      "status": "FAILED_PORTABILITY_GUARD"
+    },
+    {
+      "cluster_id": 9710362,
+      "exit_code": 1,
+      "status": "FAILED_WRAPPER_COMPLETION_PROOF"
+    }
+  ],
+  "package": "chtc/siam_nb4_avqds_screen_v3_source_39cd411e_20260827",
+  "package_manifest_sha256": "1f8225c65e8b9552ab3521cabfcc0ea3da19b756e283375dcbd3c4e328279249",
+  "prepared_at": "2026-08-28T03:48:01Z",
+  "runner_argv_sha256": "f09278ec0dddad6e56f495bd938d5c5ae5e7c334c82dbc6055c79da5f9b5fd36",
+  "schema": "siam_nb4_local_submission_audit_v3",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "39cd411efe18a5605675876655c8d7b9fa01b579",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "6fbaf54772cdda35496014af8af8c36459be831f62c0d86cd9749c5c9a3a5f1b",
+  "source_upload_archive": "chtc/siam_nb4_avqds_screen_v3_source_39cd411e_upload.tar.gz",
+  "source_upload_archive_bytes": 5216206,
+  "source_upload_archive_members": 705,
+  "source_upload_archive_sha256": "48d2ce963113f7fa66fb9c211ce73847577e59150246b80b9dffe398bfebc1ce",
+  "source_upload_uncompressed_bytes": 29481472,
+  "status": "PASS_BEFORE_SUBMISSION",
+  "submit_descriptor_sha256": "4228ac8cefb2ddaf1c55f5d5887e2bc003bec6f75a768140b1369407e0c7432e"
+}

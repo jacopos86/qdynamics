@@ -1,0 +1,49 @@
+{
+  "action_id": "screen_avqds_nb4_t1_cut1e-3",
+  "audits": {
+    "action_digest_lock": "pass",
+    "condor_dry_run": "pass_1_job",
+    "duplicate_action": "pass_local_queue_history",
+    "exact_reference_blind": "pass",
+    "image": "pass_hard_link_sha256",
+    "lifecycle": "pass",
+    "nonempty_command": "pass",
+    "package_integrity": "pass",
+    "qiskit_compilation": "disabled",
+    "quota": "pass",
+    "run_lock": "pass_builder_and_parser",
+    "seed": "pass",
+    "source": "pass_git_archive_and_sentinels",
+    "storage": "pass_10_gib_floor"
+  },
+  "batch_name": "siam-nb4-avqds-screen-v1",
+  "cluster_id": 9710340,
+  "initial_scheduler_state": {
+    "hold_reason": null,
+    "job_status": 2,
+    "process_id": 0,
+    "remote_host": "slot1_28@e4057.chtc.wisc.edu",
+    "state": "RUNNING"
+  },
+  "package": {
+    "action_json_sha256": "99d1cb4a8d267eb469bdf20be813bdc698281bd4fa0afa29ea01544b2ef6aa03",
+    "local_submission_audit_sha256": "4c8a024a4d46882e93c89f17ea32f591ecbed9413dd0741bc191e3996f383d6b",
+    "manifest_sha256": "5ebff67a3cba6cfdc641136d0e250b74c17c0b17969d1c9b2c85914166f5a08b",
+    "remote_upload_receipt_sha256": "f831ca9a7cf7d8a776454a532a8581410bcd84cbe6d28464ea4206314370db91",
+    "seed_sha256": "c664f90c8f6f284a593a9347596f2f3c19b7dec29055977a0bbbe5c22b9dad72",
+    "submit_descriptor_sha256": "1b657b4a9e5fd24f62f39e3dcbace2739b3dd05c7cc5da7c80cea9ad23d7986b"
+  },
+  "qiskit_compilation_policy": "optional_diagnostic_only_not_requested",
+  "remote_raw_evidence_policy": "preserve",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_avqds_screen_v1_21b129b9_20260827",
+  "schema": "siam_nb4_chtc_submission_receipt_v1",
+  "source_revision": "21b129b9c4a1743c58b221f5770eada17a3a19cc",
+  "status": "SUBMITTED",
+  "submitted_at": "2026-08-27T16:13:12-05:00",
+  "submitted_jobs": 1,
+  "upload_archive": {
+    "bytes": 5113097,
+    "path": "chtc/siam_nb4_avqds_screen_v1_source_21b129b9_upload.tar.gz",
+    "sha256": "44b923f34d307c8d52b5fa2e5679ff0e30e745fb55e8e6fa1ee7745609b607de"
+  }
+}

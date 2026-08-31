@@ -1,0 +1,25 @@
+[
+{
+  "ClusterId": 9714499,
+  "EnteredCurrentStatus": 1788021383,
+  "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+  "JobStatus": 2,
+  "PaperIIActionId": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+  "PaperIIExecutionRequestSha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1788021356
+}
+,
+{
+  "ClusterId": 9714501,
+  "EnteredCurrentStatus": 1788021421,
+  "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e9",
+  "JobStatus": 2,
+  "PaperIIActionId": "screen_avqds::hubbard__l4__u4__weakslow::a5469af9257d1c51",
+  "PaperIIExecutionRequestSha256": "6cee01ebddc648e92ac6d0dff9a462cdbc91f6588ba7940dcf2d079e0e87806d",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1788021397
+}
+]

@@ -1,0 +1,84 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 276274,
+    "captured_at": "2026-08-30T00:19:35.644680Z",
+    "captured_at_unix_ns": 1788049175644757409,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_191856/combined_snapshot.json",
+    "sha256": "98be0c720adada917ffbca2d6c3d1d7465b9d66fec066bc2bd8667011ab50f22",
+    "snapshot_sha256": "86166711cd193c734253610513df448d203c2e57aa9be465d11651c27400f19d",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "ff9ba5f2c2f6193e670ea8a8a383f58aac5935252fb01c052330ecfc2efc233d",
+    "bytes": 4691,
+    "path": "chtc/siam_nb4_full_apm_screen_r06_exchangefix_source_36c40d52_20260829/submission_intent_bridge.json",
+    "sha256": "22a85a7873674346b9c81388f5e9bf61703819cd8c3edba377f5a34d744fece1"
+  },
+  "intent_identity_sha256": "81275fcbcd4903630d31f1fcdf18982ae301b873413961f5cfc4f49c323d90e1",
+  "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung6",
+  "receipt_sha256": "1cca86a2b4e28620343ce3a968fbd5e0576aad96124e38f33db975352081c7ae",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_required_before_submit": true,
+    "path": "raw_outputs/siam_nb4_full_apm_screen_r06_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r06-cut1em05/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_full_apm_screen_r06_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r06-cut1em05/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_screen_r06_exchangefix_source_36c40d52_20260829/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r06-cut1em05",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1654,
+    "path": "chtc/siam_nb4_full_apm_screen_r06_exchangefix_source_36c40d52_20260829/submission_intent.json",
+    "sha256": "ecb5d44079cb92f1f1411a6e1ecc7458639f7e26d3c1330aaca2e02b33f15f0f"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "81275fcbcd4903630d31f1fcdf18982ae301b873413961f5cfc4f49c323d90e1",
+      "prior_captured_at": "2026-08-30T00:19:35.644680Z",
+      "prior_captured_at_unix_ns": 1788049175644757409,
+      "prior_snapshot_sha256": "86166711cd193c734253610513df448d203c2e57aa9be465d11651c27400f19d",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 276871,
+    "captured_at": "2026-08-30T00:22:05.329733Z",
+    "captured_at_unix_ns": 1788049325329805095,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_192128/combined_snapshot.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 47757,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_192128/raw/history.json",
+        "returncode": 0,
+        "row_count": 60,
+        "sha256": "d08ac89f5ec92b4b743ab24953bf85dc9ed1216b13618e4615dbcbc98d0e5524",
+        "stdout_sha256": "d08ac89f5ec92b4b743ab24953bf85dc9ed1216b13618e4615dbcbc98d0e5524"
+      },
+      "queue": {
+        "bytes": 2294,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_192128/raw/queue.json",
+        "returncode": 0,
+        "row_count": 3,
+        "sha256": "fc3c8246edb810fef30c90b3d664f21ce0dd11530f8b1876e1b4b976f7ecdc1f",
+        "stdout_sha256": "fc3c8246edb810fef30c90b3d664f21ce0dd11530f8b1876e1b4b976f7ecdc1f"
+      }
+    },
+    "sha256": "2ce241942690632cb3183410ff912b021ff3f1ab85ed891f8e759e6a43971c4e",
+    "snapshot_sha256": "9a70961a8625846707965f6e86ce8ae8a82aedd0b01da40eafd1f294e7b2f740"
+  }
+}

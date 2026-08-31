@@ -1,0 +1,84 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-full_apm-screen-r00-cut1em03",
+  "action_json_sha256": "b8432f2537dbdd369dcf1457def0235bed0098b500fa46754cecb79a13eb8c82",
+  "activation_cut_ladder": [
+    "0.001",
+    "0.0003",
+    "0.0001",
+    "3e-05",
+    "1e-05",
+    "3e-06",
+    "1e-06",
+    "3e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-full_apm-screen-r00-cut1em03/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_exchange_cut0.001",
+  "files": {
+    "action": {
+      "bytes": 183420,
+      "path": "chtc/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/input/action.json",
+      "sha256": "b8432f2537dbdd369dcf1457def0235bed0098b500fa46754cecb79a13eb8c82"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1140,
+      "path": "chtc/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/submit.sub",
+      "sha256": "f837c5ee622c810eae7d480afdfa8d801e1ba145656cf1f894e80c205e2c0a1d"
+    },
+    "worker": {
+      "bytes": 853,
+      "path": "chtc/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/run_action.py",
+      "sha256": "2098a25acfd164e33fa14528bad574f1e9b3c7b8032fdedaec4b242c2dfbc0b9"
+    },
+    "wrapper": {
+      "bytes": 1706,
+      "path": "chtc/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/run_action_apptainer.sh",
+      "sha256": "0e5a841e834d68dd4f58796061263c2e7de44292786d45748a5a68776e3c0cf7"
+    }
+  },
+  "package_id": "siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828",
+  "prepared_at": "2026-08-28T05:31:01+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "runner_argv_sha256": "345c8deb64bc5ce695f40289ea580f102bef7aa8f46412d2c19e4dca52fc7d3c",
+  "schema": "siam_nb4_chtc_package_manifest_v3",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "f837c5ee622c810eae7d480afdfa8d801e1ba145656cf1f894e80c205e2c0a1d",
+  "worker_sha256": "2098a25acfd164e33fa14528bad574f1e9b3c7b8032fdedaec4b242c2dfbc0b9",
+  "wrapper_sha256": "0e5a841e834d68dd4f58796061263c2e7de44292786d45748a5a68776e3c0cf7"
+}

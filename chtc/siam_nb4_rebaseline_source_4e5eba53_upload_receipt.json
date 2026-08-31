@@ -1,0 +1,41 @@
+{
+  "action_ids": [
+    "siam-nb4-avqds-screen-r00-cut1em03",
+    "siam-nb4-full_apm-screen-r00-cut1em03"
+  ],
+  "archive_path": "chtc/siam_nb4_rebaseline_source_4e5eba53_upload.tar.gz",
+  "exact_reference_included": false,
+  "gzip_verified": true,
+  "image_included": false,
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "member_count": 706,
+  "package_manifest_sha256": {
+    "siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828": "831008e886ea904c5372263cd5154d7664cae812b041ef14aa6fbf682b51f4c9",
+    "siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828": "e7d706f6d50bff94c07d2526adb387f1904ea48cb0075455ab6afceecb08c969"
+  },
+  "qiskit_compilation_requested": false,
+  "rebaseline_reason": "The prior completed screens used different code revisions, while continuation lineage and final stitching require one exact revision. Both short screens are therefore replayed at the packaging-fix revision before any continuation is opened.",
+  "schema": "siam_source_locked_rebaseline_upload_receipt_v1",
+  "sha256": "cf47a3d56a253c9293a2e0f15f0da5ed920144c40c155d2e7f428fc2e9219961",
+  "size_bytes": 5328176,
+  "source_revision": "4e5eba53ed98d13a4213bd4699d7a0922d088b1a",
+  "source_sentinels": {
+    "pipelines/time_dynamics/siam_chtc_package.py": "8bb0f204275d2aa60f086eefcfcf2d0e64f044b622d9055f6cadd94999c4fc05",
+    "pipelines/time_dynamics/siam_nb4_ladder.py": "de24c8b677ed8459fd89470e72a6663b3b53f80895f9b2acd9b6854ad3a895c8",
+    "pipelines/time_dynamics/siam_runtime.py": "ac1f93c5756626d734771b4203656edc2548501c98376ea608a430f87253effc",
+    "pipelines/time_dynamics/siam_seed.py": "2fe5717d7efaedaa133936eb3b6ec9ca5846f07b2bf9ce3514634757276abe18",
+    "src/quantum/siam_model.py": "87c3d5140ddf94221dc535fec77e8011790987e8f61684c8fc5e9c0ef79dbf05"
+  },
+  "source_tree_file_count": 646,
+  "source_tree_files_sha256": "915d621a7e2c7bd477f2cdd08aa07cc431fba208bd810a17be20a188fe2d3397",
+  "status": "VERIFIED_LOCAL_NOT_UPLOADED",
+  "storage_guard": {
+    "free_floor_gib": 10,
+    "headroom_after_peak_bytes": 175125474,
+    "passed": true
+  },
+  "tar_verified": true,
+  "timestamp": "2026-08-28T05:41:43Z",
+  "uncompressed_bytes": 29109998,
+  "xattrs_absent": true
+}

@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/run_action_apptainer.sh
+arguments = siam-nb4-full_apm-screen-r02-cut1em04
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs
+log = chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/logs/siam-nb4-screen-t0-t1-101-exchange-rung2.$(Cluster).$(Process).log
+output = chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/logs/siam-nb4-screen-t0-t1-101-exchange-rung2.$(Cluster).$(Process).out
+error = chtc/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/logs/siam-nb4-screen-t0-t1-101-exchange-rung2.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 10GB
+request_disk = 40GB
++MaxRuntime = 43200
++JobBatchName = "siam-nb4-screen-t0-t1-101-exchange-rung2"
+queue 1

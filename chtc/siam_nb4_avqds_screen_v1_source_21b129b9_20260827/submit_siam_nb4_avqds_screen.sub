@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827/run_screen_apptainer.sh
+arguments = screen_avqds_nb4_t1_cut1e-3
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs
+log = chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827/logs/siam-nb4-avqds-screen.$(Cluster).$(Process).log
+output = chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827/logs/siam-nb4-avqds-screen.$(Cluster).$(Process).out
+error = chtc/siam_nb4_avqds_screen_v1_source_21b129b9_20260827/logs/siam-nb4-avqds-screen.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 10GB
+request_disk = 40GB
++MaxRuntime = 43200
++JobBatchName = "siam-nb4-avqds-screen-v1"
+queue 1

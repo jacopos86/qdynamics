@@ -1,0 +1,43 @@
+{
+  "intent_sha256": "a5cdc5d7f51f375adb1199e23d8fb11a38d4348df74fb0967d968e4fda7d5e9a",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "recorded_at": "2026-08-29T01:03:01.645674-05:00",
+  "schema": "time_dynamics_submission_intent_v1",
+  "unit": {
+    "action_ids": [
+      "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f"
+    ],
+    "payload": {
+      "execution_request_sha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+      "expected_process_count": 1,
+      "job_batch_name": "paper-ii-seed-paper-ii-hubbard-l4-scale-v1-ee58df1fb13e9669",
+      "package": {
+        "bytes": 555495,
+        "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/seed_action_package.tar.gz",
+        "sha256": "75fd38286f7a4eadc2f3be95a352e4f110b0ac9635e27220788409947e81e794"
+      },
+      "package_manifest": {
+        "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/package_manifest.json",
+        "sha256": "b3c65851393a2974433eccc7627e257abce41db6ed75af0913a2261ecf7ca05d"
+      },
+      "remote_raw_evidence_policy": "preserve",
+      "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_5eedf0dc_20260829/source",
+      "runtime_source_archive": {
+        "bytes": 5324792,
+        "path": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/shared/source_5eedf0dc_runtime.tar.gz",
+        "sha256": "da056abce6f9c15d3352ad08a06baa78964e31b338df74c83d1d8bf39429db76"
+      },
+      "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+      "submission_scope": {
+        "action_ids": [
+          "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f"
+        ],
+        "process_ids": [
+          0
+        ]
+      },
+      "submit_descriptor": "output/paper_ii_hubbard_l4_scale_v1/bootstrap/activation_5eedf0dc/actions/l4__u4__half_filled/submit.sub"
+    },
+    "unit_id": "hubbard-seed-ee58df1fb13e9669"
+  }
+}

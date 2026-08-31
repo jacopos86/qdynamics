@@ -1,0 +1,48 @@
+{
+  "acceptance_evidence": "condor_submit_zero_exit_and_cluster_id_stdout",
+  "action_ids": [
+    "build_seed::paper_ii_hh_product_v1::seed::nph3__mott_dominated::1bfcc992308a1bd6"
+  ],
+  "cluster_id": 9713879,
+  "condor_submit_returncode": 0,
+  "condor_submit_stderr": "To monitor your job(s), run: condor_watch_q -clusters 9713879\n",
+  "condor_submit_stdout": "Submitting job(s).\n1 job(s) submitted to cluster 9713879.\n",
+  "dry_run_ad_sha256": "9ee5772d299f8677592da022e3d7c2de525577c0f47079d35c5dde835f9b61ef",
+  "dry_run_status": "pass",
+  "expected_process_ids": [
+    0
+  ],
+  "intent_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/hh-seed-bc6eb3afcf29f6b2.json",
+  "intent_sha256": "3b008fff39db1d1b967f7a01565effab9fcb1305d2b2fba1cb316c1e29bbfb08",
+  "job_batch_name": "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+  "lane_id": "paper_ii_hh_product_v1",
+  "lifecycle_validator_status": "pass",
+  "package": {
+    "bytes": 555375,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__mott_dominated/seed_action_package.tar.gz",
+    "sha256": "c75418c2fc049b73e759c5145519268c1619ad9e917314dba7a59ce85970fad0"
+  },
+  "pre_submit_snapshot_path": "output/paper_ii_hh_product_v1/acquisition_supervisor/scheduler_snapshots/pre_submit_f99b702f/combined_snapshot.json",
+  "pre_submit_snapshot_sha256": "b83c3877978129c7148762d3da773953e5b4a6e048a35a035c8770995eebb8f6",
+  "remote_raw_evidence_policy": "preserve",
+  "runtime_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "runtime_source_archive": {
+    "bytes": 5318674,
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/shared/source_f99b702f_runtime.tar.gz",
+    "sha256": "1c4a953f2555989eadac93f1c7736dbc0014a865f3a1b2f907f7412313be5b1f"
+  },
+  "scheduler_acceptance_query_performed": false,
+  "schema": "paper_ii_submission_result_v1",
+  "status": "submitted",
+  "submission_result_sha256": "2d6930c9616d260423d6e6fbef76bf4853f0f3428d69ec4b90f938975143bf6e",
+  "submit_descriptor": {
+    "path": "output/paper_ii_hh_product_v1/bootstrap/activation_f99b702f/actions/nph3__mott_dominated/submit.sub",
+    "sha256": "0e63857d8fc103388ec80fc9442135c6cf015dac6b8a537bc96ae3b5db50dd4e"
+  },
+  "submitted_at": "2026-08-29T00:46:17.054086-05:00",
+  "unit_id": "hh-seed-bc6eb3afcf29f6b2"
+}

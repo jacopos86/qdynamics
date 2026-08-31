@@ -1,0 +1,36 @@
+{
+  "bindings": {
+    "action": {
+      "bytes": 189850,
+      "path": "chtc/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/input/action.json",
+      "sha256": "d78be52155b22991bb7479c555ad05054ac201b3fd0533b5e45ab8184856b77c"
+    },
+    "manifest": {
+      "bytes": 4273,
+      "path": "chtc/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/input/manifest.json",
+      "sha256": "20c63dfaecd3bb3f947d4538110b2c880e4f99830b76b657abaf1413f649a296"
+    },
+    "remote_upload_receipt": {
+      "path": "chtc/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/remote_upload_receipt.json",
+      "sha256": "6f84d27e106121bb0f04392978329fcb4a7968c7445ec9ed419dc44fe7091b82"
+    },
+    "submit": {
+      "bytes": 1317,
+      "path": "chtc/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/submit.sub",
+      "sha256": "04b2e2c564464a7a34cbb018ac2bddcc8f6aee73d598e0fed49f225a4cf5d814"
+    }
+  },
+  "created_at_utc": "2026-08-29T17:58:26Z",
+  "qiskit_compilation_requested": false,
+  "remote_output_path": "raw_outputs/siam_nb4_full_apm_screen_r03_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r03-cut3em04/run.json",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "required_next_reconciliation": "verified_absent",
+  "schema": "siam_nb4_submission_intent_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r03-cut3em04",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "state": "indeterminate",
+  "submission_permitted": false
+}

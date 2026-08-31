@@ -1,0 +1,73 @@
+{
+  "absence_proof": {
+    "intent_identity_sha256": "5c7384b57c3004b902fe44d041470ec5b849db6a3ded66c3d36ebfff4d555a58",
+    "prior_captured_at": "2026-08-29T15:52:54Z",
+    "prior_captured_at_unix_ns": 1788018774000000000,
+    "prior_snapshot_sha256": "e1883f7efed1a40ce424c2d84560d1752de5166e32c9240779d14b21f6a5a3e2",
+    "prior_snapshot_status": "indeterminate",
+    "schema": "paper_ii_intent_first_absence_proof_v1"
+  },
+  "action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+  "automatic_retry_authorized": false,
+  "claim_generation": 1,
+  "claim_path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/pre_submit_claims/bootstrap-exact-reference-770401ecc1a3a211.json",
+  "claimed_at": "2026-08-29T16:18:44Z",
+  "dry_run_result": {
+    "file_sha256": "9ff3821222dc3808d4114282475e2903a915633391b8367c9f0aeee23830e94b",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/dry_run_results/bootstrap-exact-reference-770401ecc1a3a211.json",
+    "sha256": "c12c2ffc06bb8b48a5ea4ccd78723b9db3bc72b66c6f3f16ef078ff7fa3b192c"
+  },
+  "execution_request_sha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+  "intent": {
+    "file_sha256": "7d56da8f40f30d99f55170dd06a1c624cacbde09315afca403283322034fc3c5",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/bootstrap-exact-reference-770401ecc1a3a211.json",
+    "sha256": "3087c3bc207682003e17f40fec85bed6597b3525ff24d33cebd865eb5e1df40f"
+  },
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "pre_submit_claim_sha256": "6d7df0596a429fe515d6b89b7691288bb82558d915c0825c2aeb030da33d5a5a",
+  "predecessor_resolution": null,
+  "schema": "paper_ii_bootstrap_pre_submit_execution_claim_v1",
+  "single_external_submit_may_be_attempted": true,
+  "status": "claimed_for_single_external_submit",
+  "unit_id": "bootstrap-exact-reference-770401ecc1a3a211",
+  "unknown_outcome_requires_later_reconciliation": true,
+  "upload_verification": {
+    "file_sha256": "10abf1bbc4cf98730eef1419cfef808824783d21cfc1d30176d889f8234b1f25",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/upload_verifications/bootstrap-exact-reference-770401ecc1a3a211.json",
+    "sha256": "3d2bb4cefda35896a2baf8a5993e088ab6b2df1ffbc30949fe460de2feda4707"
+  },
+  "verified_absent_snapshot": {
+    "captured_at": "2026-08-29T16:18:44Z",
+    "captured_at_unix_ns": 1788020324000000000,
+    "file_sha256": "99b6f0ac76eec12f65191bd669db661adb7e4b5e23085e00a375568a0d5e430a",
+    "history_stdout": {
+      "bytes": 4864,
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_111709/raw/history.json",
+      "sha256": "aade6a6220439638b3526f4693272522cdba1f7e7338bbed2fe570fb9de94c4c"
+    },
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_111709/combined_snapshot_hubbard_postpreflight_hh_first.json",
+    "prior_snapshot": {
+      "captured_at": "2026-08-29T15:52:54Z",
+      "captured_at_unix_ns": 1788018774000000000,
+      "file_sha256": "eb51bcb2fbe065e8cd9e94457c2195f546b4256a6b13200e299e6b21c898f7e6",
+      "history_stdout": {
+        "bytes": 4504,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/raw/history.json",
+        "sha256": "34acaea7590f116e8f51bee251a24817f0a6c78d6e379255ce086157a4b9d9d5"
+      },
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/combined_snapshot_hubbard_bootstrap_intents_bound.json",
+      "queue_stdout": {
+        "bytes": 0,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_105121/raw/queue.json",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "sha256": "e1883f7efed1a40ce424c2d84560d1752de5166e32c9240779d14b21f6a5a3e2"
+    },
+    "queue_stdout": {
+      "bytes": 0,
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_111709/raw/queue.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sha256": "0b26e7cb8407ab291ab0bebbb68731300218afd782801dc30963c68d66f3d481"
+  }
+}

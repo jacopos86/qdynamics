@@ -1,0 +1,107 @@
+{
+  "captured_at": "2026-08-29T00:40:20.987518-05:00",
+  "captured_at_unix_ns": 1787982020987557795,
+  "polling_performed": false,
+  "queries": {
+    "history": {
+      "argv": [
+        "condor_history",
+        "-constraint",
+        "(ClusterId == 9713835) || (JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d\")",
+        "-json",
+        "-attributes",
+        "ClusterId,ProcId,JobStatus,ExitCode,HoldReason,JobBatchName,AcquisitionUnitId,AcquisitionLaneId,PaperIIActionId,PaperIIExecutionRequestSha256,EnteredCurrentStatus,CompletionDate,QDate"
+      ],
+      "returncode": 0,
+      "rows": [
+        {
+          "ClusterId": 9713835,
+          "CompletionDate": 1787980928,
+          "EnteredCurrentStatus": 1787980928,
+          "ExitCode": 0,
+          "JobBatchName": "siam-nb4-screen-t0-t1-101-avqds-rung1",
+          "JobStatus": 4,
+          "ProcId": 0,
+          "QDate": 1787976554
+        }
+      ],
+      "stderr": "",
+      "stdout_sha256": "b535468db589269dc0672d3c4cf275dfd51a675648ca340a55b8303a9be18b9d"
+    },
+    "queue": {
+      "argv": [
+        "condor_q",
+        "-constraint",
+        "(ClusterId == 9713835) || (JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d\")",
+        "-json",
+        "-attributes",
+        "ClusterId,ProcId,JobStatus,ExitCode,HoldReason,JobBatchName,AcquisitionUnitId,AcquisitionLaneId,PaperIIActionId,PaperIIExecutionRequestSha256,EnteredCurrentStatus,CompletionDate,QDate"
+      ],
+      "returncode": 0,
+      "rows": [],
+      "stderr": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "reconciliation": {
+    "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    },
+    "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c": {
+      "match_count": 0,
+      "matches": [],
+      "status": "verified_absent"
+    }
+  },
+  "schema": "paper_ii_combined_scoped_scheduler_snapshot_v1",
+  "scope": {
+    "active_siam_cluster_ids": [
+      9713835
+    ],
+    "condition": "(ClusterId == 9713835) || (JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2\" || JobBatchName == \"paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d\")",
+    "prospective_job_batch_names": [
+      "paper-ii-seed-paper-ii-hh-product-v1-6aaccc2efdb724a6",
+      "paper-ii-seed-paper-ii-hh-product-v1-604078f31bda8681",
+      "paper-ii-seed-paper-ii-hh-product-v1-d78f3ea7c7f5d58c",
+      "paper-ii-seed-paper-ii-hh-product-v1-06b5ba100adf8d26",
+      "paper-ii-seed-paper-ii-hh-product-v1-bc6eb3afcf29f6b2",
+      "paper-ii-seed-paper-ii-hh-product-v1-0d6cf17e6e45c62d"
+    ]
+  },
+  "siam_rows": [
+    {
+      "ClusterId": 9713835,
+      "CompletionDate": 1787980928,
+      "EnteredCurrentStatus": 1787980928,
+      "ExitCode": 0,
+      "JobBatchName": "siam-nb4-screen-t0-t1-101-avqds-rung1",
+      "JobStatus": 4,
+      "ProcId": 0,
+      "QDate": 1787976554
+    }
+  ],
+  "single_combined_snapshot": true,
+  "snapshot_sha256": "b83c3877978129c7148762d3da773953e5b4a6e048a35a035c8770995eebb8f6"
+}

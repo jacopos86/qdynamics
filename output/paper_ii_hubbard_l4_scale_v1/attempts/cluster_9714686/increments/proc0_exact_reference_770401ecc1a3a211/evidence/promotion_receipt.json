@@ -1,0 +1,128 @@
+{
+  "action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+  "archive": {
+    "bytes": 474818,
+    "finalization_receipt": {
+      "path": "output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/archives/paper-ii-hubbard-l4-scale-v1-770401ecc1a3a2114e70.tar.gz.transfer_finalization_receipt.json",
+      "sha256": "344f86f6541b6265d78be70183564f5646df8178e1f27b14ff5b75b97e3be12d"
+    },
+    "gzip_integrity": true,
+    "path": "output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/archives/paper-ii-hubbard-l4-scale-v1-770401ecc1a3a2114e70.tar.gz",
+    "sha256": "504912fa7b4b4e7adc58aae6c63f98a5d460c5a64760ef508a51ea83ef53fe64",
+    "tar_integrity": true,
+    "tar_member_count": 11
+  },
+  "canonical_artifacts": [
+    {
+      "path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/43c093b5d5f4f1d89cdd93f9f010a2ab15281b82e93759e66d5a0e24fd55a798/reference_data.json",
+      "sha256": "1896a094e6045dc0d89cfb71cfef83e9f3ddf6a1279906cc62aea5258bccd319"
+    },
+    {
+      "path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/43c093b5d5f4f1d89cdd93f9f010a2ab15281b82e93759e66d5a0e24fd55a798/manifest.json",
+      "sha256": "04f81eb448ac89606f676e4007bcc56e4facde8526875d529e039906687b14dc"
+    },
+    {
+      "path": "output/paper_ii_hubbard_l4_scale_v1/exact_references/43c093b5d5f4f1d89cdd93f9f010a2ab15281b82e93759e66d5a0e24fd55a798/exact_reference_receipt.json",
+      "sha256": "dc826d8943c052bdc3641f6bddc287160231f15da82ffb6aaa1b99a01eb094ef"
+    }
+  ],
+  "cell_id": "hubbard__l4__u4__weakslow",
+  "execution_request_sha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "mode": "exact_reference",
+  "production_submission_enabled": false,
+  "promotion_plan": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/evidence/promotion_plan.json",
+    "promotion_plan_sha256": "da7b4c3cee1bf482f4b5dcdcaa19a957d5e40c11b67d69a0fc282511be937867",
+    "sha256": "7244e7dab1626e5eaf7ff8803c889fb189a31d7a52d0691493697c60ce6a2fc1"
+  },
+  "promotion_receipt_sha256": "8cf46aee6ea4f9048d05a3f58fda2875af4dfc052dfafee973aac29da8ad2628",
+  "qiskit_compilation": false,
+  "raw_inventory": {
+    "REMOTE_RAW_PRESERVED": {
+      "bytes": 53,
+      "sha256": "22ae8ce6b29c3c910417e4d87b0d98bdd2655fa4749b30a75b6f2afcea5f9046",
+      "type": "regular"
+    },
+    "exact_reference_receipt.json": {
+      "bytes": 3339,
+      "sha256": "dc826d8943c052bdc3641f6bddc287160231f15da82ffb6aaa1b99a01eb094ef",
+      "type": "regular"
+    },
+    "exact_reference_work_order.json": {
+      "bytes": 8249,
+      "sha256": "896f8b104394da70d87cc5cfab066d58a99bd1e8fb0eef8c97233ce60680e3d3",
+      "type": "regular"
+    },
+    "execution_request.json": {
+      "bytes": 3654,
+      "sha256": "afbb88c8bdda3b3d45767678a473ff291203b9fc1b5439891beeb8db5e2eed53",
+      "type": "regular"
+    },
+    "manifest.json": {
+      "bytes": 4049,
+      "sha256": "04f81eb448ac89606f676e4007bcc56e4facde8526875d529e039906687b14dc",
+      "type": "regular"
+    },
+    "reference_data.json": {
+      "bytes": 3527705,
+      "sha256": "1896a094e6045dc0d89cfb71cfef83e9f3ddf6a1279906cc62aea5258bccd319",
+      "type": "regular"
+    },
+    "seed.json": {
+      "bytes": 380952,
+      "sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63",
+      "type": "regular"
+    },
+    "seed_qualification_receipt.json": {
+      "bytes": 1107,
+      "sha256": "b9e34d07f819acc885e93e3e7fbdcb4a8315a69244e5ef25466dc3ff7bbcf1c3",
+      "type": "regular"
+    },
+    "source_epoch_receipt.json": {
+      "bytes": 895,
+      "sha256": "cc65dda01379cf8a6125eec1e082acb40e6b1121ad70d98c3e293d62e24efe96",
+      "type": "regular"
+    },
+    "worker_stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "type": "regular"
+    },
+    "worker_stdout.json": {
+      "bytes": 600,
+      "sha256": "64b343939beecf6356f373c8ee2544101fb4777940cb5fbac01982f27183b295",
+      "type": "regular"
+    }
+  },
+  "raw_output_root": "output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/raw/paper_ii_exact_reference",
+  "recorded_at": "2026-08-29T15:33:44.781214-05:00",
+  "remote_archive_identity": {
+    "archive_identity_sha256": "2533a9d982136245ec72011be1448d2bf9dda055011981147a10ab9f87c6eb18",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/attempts/cluster_9714686/increments/proc0_exact_reference_770401ecc1a3a211/evidence/remote_archive_identity.json",
+    "sha256": "4c71f9600f7e112a4fb2689f86f45bd93077516c27138a793e96f0ae6360f25f"
+  },
+  "remote_cleanup_authorized": false,
+  "remote_raw_evidence_policy": "preserve",
+  "remote_raw_preserved": true,
+  "scheduler_identity": {
+    "cluster_id": 9714686,
+    "job_batch_name": "paper-ii-reference-paper-ii-hubbard-l4-scale-v1-770401ecc1a3a211-g2",
+    "process_id": 0
+  },
+  "scheduler_success": {
+    "captured_at": "2026-08-29T20:11:13Z",
+    "query": "history",
+    "scheduler_row_sha256": "6dd37c3adf1603fc24ab2cbdacc5bbbfafc500ee858a72da608abac77b691ce2",
+    "snapshot": {
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_151059/combined_snapshot.json",
+      "sha256": "c2942a34ec13af874f6092c8bed91cbc5b9a3a6ee1de871a73c8610a1f46d465",
+      "snapshot_sha256": "b2a5334c0a36544893f58c710a65eed73d3c54997a049dd929f5a8c771535d4a"
+    }
+  },
+  "schema": "paper_ii_prospective_result_promotion_receipt_v1",
+  "scientific_status": "completed_unscored",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "status": "promoted_completed_unscored",
+  "work_order_sha256": "bf2d15b0bbd86fc38522f1a4ad49df2d26b2821f566e5f9c9d1f38e20806baca"
+}

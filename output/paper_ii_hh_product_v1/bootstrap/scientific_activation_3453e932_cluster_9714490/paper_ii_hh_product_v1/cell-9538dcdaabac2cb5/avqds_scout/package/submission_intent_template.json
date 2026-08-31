@@ -1,0 +1,23 @@
+{
+  "action_id": "screen_avqds::hh__nph1__crossover__midres::417fbe6b5a85164f",
+  "base_source_epoch_identity_sha256": "36bea0d5708cef4229f71f66987c9af7a1b8e08a1b08909eaf6d164eafdf395e",
+  "composite_source_identity_sha256": "9390ec6dca6ef0cd46b113e52a9272f3c2b4830e629fdbb627bfc611dd348d15",
+  "execution_request_sha256": "2affbc1d0c6df19b3e2657e7f38c15734e81fe1255cba907edc2f746451ce52c",
+  "executor_overlay_identity_sha256": "f472676c5c266e3d1d288a7d357e47f316c42df240f93c1e68ea619ef49e2cd2",
+  "executor_overlay_revision": "3453e93277e8e6ef51bfb68ce3cd69895c70a914",
+  "first_reconciliation_outcome": "indeterminate",
+  "intent_first": {
+    "first_snapshot_outcome": "indeterminate",
+    "found_recovers_without_resubmission": true,
+    "indeterminate_blocks_submission": true,
+    "later_submission_requires_reconciliation": "verified_absent",
+    "submission_intent_required_before_scheduler_contact": true
+  },
+  "production_submission_enabled": false,
+  "scheduler_contacted": false,
+  "scheduler_submission_authorized": false,
+  "schema": "paper_ii_avqds_prefix_submission_intent_template_v1",
+  "status": "template_not_submitted",
+  "submission_intent_template_sha256": "8d777e920f0e958d2abef7577e050be9cc4a6a4d6241bda96773304b92c80a9f",
+  "work_order_sha256": "c4c2c0d4abe1e031ed67f41243717a6deee7fd9f1d60f1712bb2def58ed94e1f"
+}

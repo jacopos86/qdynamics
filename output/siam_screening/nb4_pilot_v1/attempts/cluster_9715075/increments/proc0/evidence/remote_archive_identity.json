@@ -1,0 +1,51 @@
+{
+  "action_id": "siam-nb4-full_apm-screen-r05-cut3em05",
+  "action_json_sha256": "e3bebfd37188bc2c64e1568776c51161ed4172396f9d0023461ba8b4ebaedce8",
+  "archive_bytes": 980913,
+  "archive_identity_sha256": "2e8cfca80b0a44e02b7d0d9b6bda9c3632b875a1eb63b817df43e9278dbf6734",
+  "archive_sha256": "c720d6e0a8b753d944a48e84b68f0d8d5c179627e5be92252d42cf0710f098a7",
+  "cluster_id": 9715075,
+  "gzip_integrity": true,
+  "members": {
+    "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/logs/siam-nb4-screen-t0-t1-101-exchange-rung5.9715075.0.err": {
+      "bytes": 30486,
+      "sha256": "1878ad1f8d87013c8e249aa4e08f58e1f5fa6a47c7ffec990ff8735599c36f4a",
+      "type": "regular"
+    },
+    "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/logs/siam-nb4-screen-t0-t1-101-exchange-rung5.9715075.0.log": {
+      "bytes": 2730,
+      "sha256": "c8ac043b11c0c3b375c5f6697b747ee61d3ee5b89dcebd2c945645a7d62cd241",
+      "type": "regular"
+    },
+    "chtc/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/logs/siam-nb4-screen-t0-t1-101-exchange-rung5.9715075.0.out": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "type": "regular"
+    },
+    "raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/action_receipt.json": {
+      "bytes": 211292,
+      "sha256": "c4aee7404b4243cddb220fc9229adfb65e10a84d4aef8f07f82b1898dad521b1",
+      "type": "regular"
+    },
+    "raw_outputs/siam_nb4_full_apm_screen_r05_exchangefix_source_36c40d52_20260829/siam-nb4-full_apm-screen-r05-cut3em05/run.json": {
+      "bytes": 6196969,
+      "sha256": "96dee70d5aa1b57428a70cf6efd501bba086c4b66ec500ea641e767d3d771fde",
+      "type": "regular"
+    }
+  },
+  "package_manifest_sha256": "05fc29ba123a94ea9af4ba9621a1ccc438c36a4e5eb2f66d1158fc28f40d03ac",
+  "process_id": 0,
+  "remote_cleanup_performed": false,
+  "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715075/proc0/siam_nb4_full_apm_r05_9715075_proc0.tar.gz",
+  "remote_raw_preserved": true,
+  "scheduler_snapshot_file_sha256": "556368d226fe6282a8f55585b723911ca68ddee8a8a784765130078049f9aaa7",
+  "scheduler_snapshot_sha256": "2c5f69b8332cb1fc73bed5d28d10d2084ea8e12cdbaa244dbb3a34b9d63b00ee",
+  "schema": "siam_nb4_remote_archive_identity_v1",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+  "tar_integrity": true,
+  "tar_member_count": 5,
+  "uncompressed_member_bytes": 6441477
+}

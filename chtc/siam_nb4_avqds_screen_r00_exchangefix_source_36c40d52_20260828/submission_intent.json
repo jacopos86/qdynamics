@@ -1,0 +1,32 @@
+{
+  "bindings": {
+    "action": {
+      "bytes": 189759,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/input/action.json",
+      "sha256": "980807502edd2a18b3e7b3e4482de933bbd0ad0421eee1f8963a5c2ea9a8bbcd"
+    },
+    "manifest": {
+      "bytes": 4227,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/input/manifest.json",
+      "sha256": "6a49ae28ab02a9e6d2930b3f7416b03e682c13c9e51fc8d98ae069d105b60864"
+    },
+    "submit": {
+      "bytes": 1284,
+      "path": "chtc/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/submit.sub",
+      "sha256": "f6ea299385b7fcc50de8a593fafa4ad79ee846cdccd044970c43deaa7e05d637"
+    }
+  },
+  "created_at_utc": "2026-08-29T02:56:32+00:00",
+  "qiskit_compilation_requested": false,
+  "remote_output_path": "raw_outputs/siam_nb4_avqds_screen_r00_exchangefix_source_36c40d52_20260828/siam-nb4-avqds-screen-r00-cut1em02/run.json",
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "required_next_reconciliation": "verified_absent",
+  "schema": "siam_nb4_submission_intent_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "state": "indeterminate",
+  "submission_permitted": false
+}
