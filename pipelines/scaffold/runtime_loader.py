@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import json
 from pathlib import Path
@@ -45,6 +46,9 @@ DIAGNOSTIC_REPLAY_FAMILY_POOL_MODES = {
     "replay_family_pool",
 }
 LEGAL_SUBSPACE_APPEND_GUARD_SCHEMA_V1 = "ap_candidate_pool_legal_subspace_hard_guard_v1"
+PROSPECTIVE_HH_COMPLETE_POOL_SCHEMA_V1 = (
+    "paper_ii_hh_declared_complete_generator_pool_v1"
+)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -797,6 +801,245 @@ def _resolve_generic_family_info(
     )
 
 
+def _apply_declared_pure_hubbard_pool_filter(
+    candidate_pool_terms: Sequence[AnsatzTerm],
+    candidate_pool_meta: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    request: ProblemRequest,
+    pool_kwargs: Mapping[str, Any],
+    resolved_pool_key: str,
+) -> tuple[tuple[AnsatzTerm, ...], dict[str, Any]]:
+    """Materialize the exact admissible pool declared by a Paper-II seed.
+
+    The generic Hubbard builder intentionally exposes the entire repository
+    UCCSD/QEB/HVA family.  A prospective pure-Hubbard seed declares a narrower
+    fixed-spin-sector pool.  An explicit replay-family override must therefore
+    rebuild that declared pool, not merely relabel the unfiltered family (or an
+    empty selected-only tuple) as complete.
+    """
+
+    prospective_seed = (
+        payload.get("schema")
+        in {
+            "paper_ii_seed_artifact_v1",
+            "paper_ii_vqe_seed_artifact_v1",
+        }
+        and str(request.problem_key) == "hubbard"
+    )
+    adapt_vqe = payload.get("adapt_vqe", {})
+    fixed_meta = (
+        adapt_vqe.get("fixed_scaffold_metadata", {})
+        if isinstance(adapt_vqe, Mapping)
+        else {}
+    )
+    declared_filter = (
+        str(fixed_meta.get("generator_filter", "")).strip()
+        if isinstance(fixed_meta, Mapping)
+        else ""
+    )
+    if prospective_seed and not isinstance(fixed_meta, Mapping):
+        raise ValueError(
+            "Paper-II pure-Hubbard seed generator filter declaration is missing."
+        )
+    if prospective_seed and declared_filter == "":
+        raise ValueError(
+            "Paper-II pure-Hubbard seed generator filter declaration is missing."
+        )
+    if declared_filter == "":
+        return tuple(candidate_pool_terms), dict(candidate_pool_meta)
+
+    from pipelines.time_dynamics.pure_hubbard_fixed_vqe import (
+        PURE_HUBBARD_GENERATOR_EXECUTION,
+        PURE_HUBBARD_GENERATOR_FILTER,
+        PURE_HUBBARD_GENERATOR_ORDER,
+        PURE_HUBBARD_GENERATOR_POOL,
+        PureHubbardFixedVQEConfig,
+        build_spin_sector_preserving_hubbard_generator_pool,
+    )
+
+    if prospective_seed and declared_filter != PURE_HUBBARD_GENERATOR_FILTER:
+        raise ValueError(
+            "Paper-II pure-Hubbard seed generator filter declaration is unknown."
+        )
+    if declared_filter != PURE_HUBBARD_GENERATOR_FILTER:
+        return tuple(candidate_pool_terms), dict(candidate_pool_meta)
+    if (
+        str(request.problem_key) != "hubbard"
+        or str(resolved_pool_key) != PURE_HUBBARD_GENERATOR_POOL
+    ):
+        raise ValueError(
+            "The fixed-spin-sector pure-Hubbard generator filter may only be "
+            "used with problem='hubbard' and pool='uccsd_qeb_hva_blocks'."
+        )
+
+    num_particles = tuple(int(x) for x in pool_kwargs["num_particles"])
+    config = PureHubbardFixedVQEConfig(
+        num_sites=int(request.num_sites),
+        t=float(request.t),
+        u=float(request.u),
+        n_up=int(num_particles[0]),
+        n_down=int(num_particles[1]),
+        ordering=str(request.ordering),
+        boundary=str(request.boundary),
+        reps=1,
+        restarts=1,
+        maxiter=1,
+    )
+    admissible_terms = tuple(
+        build_spin_sector_preserving_hubbard_generator_pool(config)
+    )
+    if prospective_seed:
+        architecture = payload.get("architecture_binding")
+        if not isinstance(architecture, Mapping):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed architecture binding is missing."
+            )
+        policy = architecture.get("policy")
+        if not isinstance(policy, Mapping):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed architecture binding policy is missing."
+            )
+        declared_policy_filter = str(policy.get("generator_filter", "")).strip()
+        if (
+            declared_policy_filter != PURE_HUBBARD_GENERATOR_FILTER
+            or declared_policy_filter != declared_filter
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator filter declaration diverged."
+            )
+        if (
+            str(policy.get("generator_pool", "")).strip()
+            != PURE_HUBBARD_GENERATOR_POOL
+            or str(adapt_vqe.get("pool_type", "")).strip()
+            != PURE_HUBBARD_GENERATOR_POOL
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator pool declaration diverged."
+            )
+        if (
+            str(policy.get("generator_order", "")).strip()
+            != PURE_HUBBARD_GENERATOR_ORDER
+            or str(fixed_meta.get("term_order_basis", "")).strip()
+            != PURE_HUBBARD_GENERATOR_ORDER
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator order declaration diverged."
+            )
+        if (
+            str(policy.get("generator_execution", "")).strip()
+            != PURE_HUBBARD_GENERATOR_EXECUTION
+            or str(fixed_meta.get("generator_execution", "")).strip()
+            != PURE_HUBBARD_GENERATOR_EXECUTION
+            or any(
+                str(term.execution_mode) != "grouped_exact"
+                for term in admissible_terms
+            )
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator execution declaration diverged."
+            )
+        try:
+            architecture_count = int(architecture["unique_generator_count"])
+            policy_count = int(policy["expected_unique_generator_count"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator count declaration is missing."
+            ) from exc
+        if architecture_count != policy_count or architecture_count != len(
+            admissible_terms
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator count declaration diverged."
+            )
+        ordered_pool_payload = [
+            {
+                "label": str(term.label),
+                "execution_mode": str(term.execution_mode),
+                "polynomial": sorted(
+                    (
+                        {
+                            "pauli_exyz": str(child.pw2strng()),
+                            "coefficient_real": float(
+                                complex(child.p_coeff).real
+                            ),
+                            "coefficient_imag": float(
+                                complex(child.p_coeff).imag
+                            ),
+                        }
+                        for child in term.polynomial.return_polynomial()
+                    ),
+                    key=lambda row: str(row["pauli_exyz"]),
+                ),
+            }
+            for term in admissible_terms
+        ]
+        rebuilt_pool_sha256 = hashlib.sha256(
+            json.dumps(
+                ordered_pool_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        fixed_pool_sha256 = str(
+            fixed_meta.get("generator_pool_sha256", "")
+        ).strip()
+        architecture_pool_sha256 = str(
+            architecture.get("generator_pool_sha256", "")
+        ).strip()
+        if (
+            fixed_pool_sha256 != rebuilt_pool_sha256
+            or architecture_pool_sha256 != rebuilt_pool_sha256
+        ):
+            raise ValueError(
+                "Paper-II pure-Hubbard seed generator pool digest diverged."
+            )
+    raw_signatures = {
+        (str(term.label), _polynomial_signature(term.polynomial))
+        for term in candidate_pool_terms
+    }
+    missing = [
+        str(term.label)
+        for term in admissible_terms
+        if (str(term.label), _polynomial_signature(term.polynomial))
+        not in raw_signatures
+    ]
+    if missing:
+        raise ValueError(
+            "Declared pure-Hubbard admissible pool is not a subset of the "
+            f"resolved repository pool; examples: {', '.join(missing[:8])}."
+        )
+    meta = dict(candidate_pool_meta)
+    meta.update(
+        {
+            "declared_generator_filter": PURE_HUBBARD_GENERATOR_FILTER,
+            "declared_generator_filter_source": (
+                "adapt_vqe.fixed_scaffold_metadata.generator_filter"
+            ),
+            "dedup_total_before_declared_filter": int(len(candidate_pool_terms)),
+            "dedup_total_after_declared_filter": int(len(admissible_terms)),
+            "declared_filter_dropped_count": int(
+                len(candidate_pool_terms) - len(admissible_terms)
+            ),
+            "declared_generator_pool_sha256": (
+                rebuilt_pool_sha256 if prospective_seed else None
+            ),
+            "declared_generator_pool_order": (
+                PURE_HUBBARD_GENERATOR_ORDER if prospective_seed else None
+            ),
+            "declared_generator_pool_execution": (
+                PURE_HUBBARD_GENERATOR_EXECUTION if prospective_seed else None
+            ),
+            "declared_generator_pool_count": (
+                int(len(admissible_terms)) if prospective_seed else None
+            ),
+            "prospective_seed_declarations_verified": bool(prospective_seed),
+        }
+    )
+    return admissible_terms, meta
+
+
 def _load_generic_runtime_input_from_payload(
     payload: Mapping[str, Any],
     *,
@@ -830,7 +1073,13 @@ def _load_generic_runtime_input_from_payload(
         if isinstance(payload.get("adapt_vqe", None), Mapping)
         else None
     )
-    candidate_pool_complete = not isinstance(layout_parameterization, Mapping)
+    requested_pool_mode = str(
+        payload.get("replay_candidate_pool_mode", "") or ""
+    ).strip()
+    explicit_complete_pool = requested_pool_mode in DIAGNOSTIC_REPLAY_FAMILY_POOL_MODES
+    candidate_pool_complete = (
+        not isinstance(layout_parameterization, Mapping) or explicit_complete_pool
+    )
     if candidate_pool_complete:
         candidate_pool_terms, candidate_pool_meta = build_runtime_pool_terms(
             pool_key=str(family_info["resolved"]),
@@ -838,6 +1087,27 @@ def _load_generic_runtime_input_from_payload(
             h_poly=resolved_problem.hamiltonian,
             **pool_kwargs,
         )
+        if explicit_complete_pool:
+            candidate_pool_terms, candidate_pool_meta = (
+                _apply_declared_pure_hubbard_pool_filter(
+                    candidate_pool_terms,
+                    candidate_pool_meta,
+                    payload=payload,
+                    request=request,
+                    pool_kwargs=pool_kwargs,
+                    resolved_pool_key=str(family_info["resolved"]),
+                )
+            )
+            candidate_pool_meta = dict(candidate_pool_meta)
+            candidate_pool_meta["explicit_complete_pool_override"] = {
+                "schema": "generic_explicit_complete_pool_override_v1",
+                "requested_mode": requested_pool_mode,
+                "candidate_pool_build_executed": True,
+                "selected_term_source": "serialized_parameterization",
+                "resolved_candidate_pool_term_count": int(
+                    len(candidate_pool_terms)
+                ),
+            }
     else:
         candidate_pool_terms = ()
         candidate_pool_meta = {
@@ -953,6 +1223,40 @@ def _load_generic_runtime_input_from_payload(
         else False
     )
     if candidate_pool_complete:
+        complete_filter_payload: dict[str, Any] = {
+            "resolution_source": family_info.get("resolution_source"),
+            "fallback_used": bool(family_info.get("fallback_used", False)),
+        }
+        if explicit_complete_pool:
+            complete_filter_payload["explicit_complete_pool_override"] = {
+                "schema": "generic_explicit_complete_pool_override_v1",
+                "requested_mode": requested_pool_mode,
+                "candidate_pool_build_executed": True,
+                "selected_term_count": int(len(selected_terms)),
+                "resolved_candidate_pool_term_count": int(
+                    len(candidate_pool_terms)
+                ),
+                "declared_generator_filter": candidate_pool_meta.get(
+                    "declared_generator_filter"
+                ),
+                "declared_generator_pool_sha256": candidate_pool_meta.get(
+                    "declared_generator_pool_sha256"
+                ),
+                "declared_generator_pool_count": candidate_pool_meta.get(
+                    "declared_generator_pool_count"
+                ),
+                "declared_generator_pool_order": candidate_pool_meta.get(
+                    "declared_generator_pool_order"
+                ),
+                "declared_generator_pool_execution": candidate_pool_meta.get(
+                    "declared_generator_pool_execution"
+                ),
+                "prospective_seed_declarations_verified": bool(
+                    candidate_pool_meta.get(
+                        "prospective_seed_declarations_verified", False
+                    )
+                ),
+            }
         candidate_pool_source = CandidatePoolSource(
             source_kind="resolved_pool",
             pool_key=str(family_info["resolved"]),
@@ -964,10 +1268,7 @@ def _load_generic_runtime_input_from_payload(
                 ),
                 resolved_problem=resolved_problem,
             ),
-            filter_payload={
-                "resolution_source": family_info.get("resolution_source"),
-                "fallback_used": bool(family_info.get("fallback_used", False)),
-            },
+            filter_payload=complete_filter_payload,
         )
     else:
         candidate_pool_source = CandidatePoolSource(
@@ -1003,6 +1304,10 @@ def _load_generic_runtime_input_from_payload(
             "input_artifact_json": str(artifact_json),
             "problem_family": str(resolved_problem.family_key),
             "candidate_pool_complete": bool(candidate_pool_complete),
+            "explicit_complete_pool_requested": bool(explicit_complete_pool),
+            "replay_candidate_pool_mode": (
+                requested_pool_mode if requested_pool_mode else None
+            ),
             "family_pool_origin": (
                 "build_runtime_pool_terms"
                 if candidate_pool_complete
@@ -1414,6 +1719,152 @@ def _candidate_pool_source(loaded: LoadedRunContext, *, loader_mode: str) -> Can
     )
 
 
+def _declared_prospective_hh_candidate_pool(
+    loaded: LoadedRunContext,
+    *,
+    loader_mode: str,
+) -> tuple[tuple[AnsatzTerm, ...], CandidatePoolSource] | None:
+    """Rebuild a prospective HH seed's declared complete generator pool.
+
+    Ordinary fixed-scaffold artifacts expose selected support only.  The
+    prospective HH seeds are narrower: their immutable architecture binding
+    records the exact source-built ``full_meta`` generator-pool contract.  An
+    explicit replay-family-pool request may expose that pool only after this
+    function independently rebuilds it and verifies the complete ordered
+    digest and metadata contract.
+    """
+
+    payload = loaded.payload
+    requested_pool_mode = str(
+        payload.get("replay_candidate_pool_mode", "") or ""
+    ).strip()
+    if (
+        str(loader_mode) != "fixed_scaffold"
+        or requested_pool_mode not in DIAGNOSTIC_REPLAY_FAMILY_POOL_MODES
+    ):
+        return None
+    if not (
+        payload.get("schema") == "paper_ii_vqe_seed_artifact_v1"
+        and payload.get("lane_id") == "paper_ii_hh_product_v1"
+        and payload.get("model") == "hubbard_holstein"
+        and str(payload.get("seed_id") or "").startswith(
+            "paper_ii_hh_product_v1::seed::"
+        )
+    ):
+        return None
+
+    architecture_binding = payload.get("architecture_binding")
+    settings = payload.get("settings")
+    if not isinstance(architecture_binding, Mapping) or not isinstance(
+        settings, Mapping
+    ):
+        raise ValueError(
+            "Prospective HH seed is missing its declared generator-pool contract."
+        )
+
+    from pipelines.time_dynamics.fixed_vqe_conditioning import (
+        FixedVQEModelConfig,
+        GeneratorPoolConfig,
+        build_fixed_vqe_generator_pool,
+    )
+    from pipelines.time_dynamics.prospective_hh_seed_worker import (
+        architecture_policy,
+    )
+
+    policy = architecture_policy()
+    if architecture_binding.get("policy") != policy:
+        raise ValueError("Prospective HH seed architecture policy diverged.")
+    model = FixedVQEModelConfig(
+        num_sites=int(settings.get("L")),
+        t=float(settings.get("t")),
+        u=float(settings.get("u")),
+        dv=float(settings.get("dv")),
+        omega0=float(settings.get("omega0")),
+        g_ep=float(settings.get("g_ep")),
+        n_ph_max=int(settings.get("n_ph_max")),
+        boson_encoding=str(settings.get("boson_encoding")),
+        ordering=str(settings.get("ordering")),
+        boundary=str(settings.get("boundary")),
+        sector_n_up=int(settings.get("sector_n_up")),
+        sector_n_dn=int(settings.get("sector_n_dn")),
+        paop_r=int(settings.get("paop_r")),
+        paop_split_paulis=bool(settings.get("paop_split_paulis")),
+        paop_prune_eps=float(settings.get("paop_prune_eps")),
+        paop_normalization=str(settings.get("paop_normalization")),
+    )
+    expected_settings = model.to_settings_payload()
+    expected_settings["adapt_pool"] = "fixed_scaffold_locked"
+    if dict(settings) != expected_settings:
+        raise ValueError("Prospective HH seed model/settings contract diverged.")
+    pool = build_fixed_vqe_generator_pool(
+        cfg=loaded.replay_context.cfg,
+        h_poly=loaded.replay_context.h_poly,
+        model=model,
+        pool_config=GeneratorPoolConfig(
+            pool_key=str(policy["pool_key"]),
+            include_pauli_children=bool(policy["include_pauli_children"]),
+            include_polyterm_children=bool(policy["include_polyterm_children"]),
+            polyterm_subset_sizes=tuple(
+                int(value) for value in policy["polyterm_subset_sizes"]
+            ),
+            max_atoms_per_parent=None,
+            max_pool_atoms=None,
+            priority_parent_labels=tuple(
+                str(value) for value in policy["parent_labels"]
+            ),
+        ),
+    )
+    declared_pool = architecture_binding.get("generator_pool")
+    declared_digest = str(
+        architecture_binding.get("generator_pool_ordered_atom_contract_sha256")
+        or ""
+    )
+    if (
+        not isinstance(declared_pool, Mapping)
+        or dict(declared_pool) != pool.to_json_dict()
+        or declared_digest != pool.ordered_atom_contract_sha256
+        or declared_pool.get("ordered_atom_contract_sha256") != declared_digest
+        or int(declared_pool.get("atom_count", -1)) != len(pool.atoms)
+    ):
+        raise ValueError(
+            "Prospective HH declared generator-pool digest or metadata diverged."
+        )
+    terms = tuple(
+        AnsatzTerm(
+            label=str(atom.atom_label),
+            polynomial=atom.build_polynomial(),
+            execution_mode="termwise_product",
+        )
+        for atom in pool.atoms
+    )
+    source = CandidatePoolSource(
+        source_kind="resolved_pool",
+        pool_key=str(pool.pool_key),
+        completeness="complete",
+        pool_build_kwargs=_pool_build_kwargs(loaded),
+        filter_payload={
+            "explicit_complete_pool_override": {
+                "schema": PROSPECTIVE_HH_COMPLETE_POOL_SCHEMA_V1,
+                "requested_mode": requested_pool_mode,
+                "candidate_pool_build_executed": True,
+                "selected_term_count": int(
+                    len(tuple(loaded.replay_context.replay_terms))
+                ),
+                "declared_generator_pool_count": int(len(terms)),
+                "declared_generator_pool_sha256": declared_digest,
+                "declared_generator_pool_order": str(
+                    pool.meta.get("atom_order") or ""
+                ),
+                "hard_symmetry_guard": str(
+                    pool.meta.get("symmetry_guard") or ""
+                ),
+                "prospective_seed_declarations_verified": True,
+            }
+        },
+    )
+    return terms, source
+
+
 def _legal_subspace_dropped_labels(payload: Mapping[str, Any]) -> tuple[str, ...]:
     adapt = payload.get("adapt_vqe", None)
     if not isinstance(adapt, Mapping):
@@ -1531,7 +1982,15 @@ def _scaffold_runtime_input_from_loaded(
         _problem_request_from_payload(loaded.payload),
         hamiltonian=loaded.replay_context.h_poly,
     )
-    candidate_pool_source = _candidate_pool_source(loaded, loader_mode=loader_mode)
+    declared_hh_pool = _declared_prospective_hh_candidate_pool(
+        loaded,
+        loader_mode=loader_mode,
+    )
+    candidate_pool_source = (
+        _candidate_pool_source(loaded, loader_mode=loader_mode)
+        if declared_hh_pool is None
+        else declared_hh_pool[1]
+    )
 
     replay_context = loaded.replay_context
     family_info = dict(replay_context.family_info)
@@ -1567,7 +2026,9 @@ def _scaffold_runtime_input_from_loaded(
         theta_logical = np.asarray(replay_context.adapt_theta_logical, dtype=float).reshape(-1)
 
     candidate_pool_terms: tuple[AnsatzTerm, ...]
-    if candidate_pool_source.candidate_pool_complete:
+    if declared_hh_pool is not None:
+        candidate_pool_terms = declared_hh_pool[0]
+    elif candidate_pool_source.candidate_pool_complete:
         candidate_pool_terms = tuple(replay_context.family_pool)
     elif str(candidate_pool_source.completeness) == "selected_only":
         candidate_pool_terms = tuple(replay_context.replay_terms)

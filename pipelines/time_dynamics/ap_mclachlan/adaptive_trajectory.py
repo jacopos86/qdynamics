@@ -764,6 +764,7 @@ class AppendMclachlanTrajectory:
     final_state: APMcLachlanState
     support_patch_config: SupportPatchControllerConfig | None = None
     solve_repair_config: SolveRepairConfig | None = None
+    controller_resume_state: Mapping[str, Any] | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     @property
@@ -790,6 +791,11 @@ class AppendMclachlanTrajectory:
                 None
                 if self.solve_repair_config is None
                 else self.solve_repair_config.to_json_dict()
+            ),
+            "controller_resume_state": (
+                None
+                if self.controller_resume_state is None
+                else _json_safe(dict(self.controller_resume_state))
             ),
             "points": [point.to_json_dict() for point in self.points],
             "metadata": _json_safe(dict(self.metadata or {})),
@@ -871,6 +877,7 @@ def run_append_mclachlan_trajectory(
     controller_config: AppendControllerConfig = AppendControllerConfig(),
     support_patch_config: SupportPatchControllerConfig | None = None,
     solve_repair_config: SolveRepairConfig = SolveRepairConfig(),
+    controller_resume_state: Mapping[str, Any] | None = None,
     metadata: Mapping[str, Any] | None = None,
     progress_callback: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> AppendMclachlanTrajectory:
@@ -881,12 +888,21 @@ def run_append_mclachlan_trajectory(
     theta_current = np.asarray(state.theta_runtime, dtype=float).reshape(-1)
     points: list[AdaptiveTrajectoryPoint] = []
     prune_count = 0
-    repair_hold_state: _RepairHoldState | None = None
-    previous_accepted_theta_dot: np.ndarray | None = None
+    (
+        checkpoint_index_offset,
+        prune_runtime_state,
+        repair_hold_state,
+        previous_accepted_theta_dot,
+    ) = _restore_controller_resume_state(controller_resume_state)
     append_min_time = _append_min_time(
         controller_config=controller_config,
     )
-    prune_runtime_state = _PruneControllerRuntimeState()
+    terminal_controller_resume_state = _controller_resume_snapshot(
+        checkpoint_index=int(checkpoint_index_offset),
+        prune_runtime_state=prune_runtime_state,
+        repair_hold_state=repair_hold_state,
+        previous_accepted_theta_dot=previous_accepted_theta_dot,
+    )
     # Generalized exchange is the single current route;
     # a missing support-patch config resolves to its typed defaults.
     effective_support_config = (
@@ -927,6 +943,17 @@ def run_append_mclachlan_trajectory(
         )
 
     for index, time_value in enumerate(time_grid):
+        global_index = int(checkpoint_index_offset + index)
+        # A split run stops before the terminal checkpoint's solve and
+        # structural decision because there is no following interval.  Store
+        # the state from immediately before that solve so a continuation can
+        # evaluate the shared boundary exactly once, just as a single run does.
+        terminal_controller_resume_state = _controller_resume_snapshot(
+            checkpoint_index=global_index,
+            prune_runtime_state=prune_runtime_state,
+            repair_hold_state=repair_hold_state,
+            previous_accepted_theta_dot=previous_accepted_theta_dot,
+        )
         dt_to_next = (
             None if index + 1 >= len(time_grid) else float(time_grid[index + 1] - time_value)
         )
@@ -958,7 +985,7 @@ def run_append_mclachlan_trajectory(
             progress_callback(
                 {
                     "phase": "checkpoint_start",
-                    "index": int(index),
+                    "index": global_index,
                     "time": float(time_value),
                     "energy_expectation": float(evaluation.energy_expectation),
                     "runtime_parameter_count": int(current_state.runtime_parameter_count),
@@ -1027,7 +1054,7 @@ def run_append_mclachlan_trajectory(
                         inverse_policy=decision_inverse_policy,
                         support_config=effective_support_config,
                         runtime_state=prune_runtime_state,
-                        time_index=int(index),
+                        time_index=global_index,
                         solve_repair_config=solve_repair_config,
                     )
                 else:
@@ -1055,7 +1082,7 @@ def run_append_mclachlan_trajectory(
                                 inverse_policy=decision_inverse_policy,
                                 support_config=effective_support_config,
                                 runtime_state=prune_runtime_state,
-                                time_index=int(index),
+                                time_index=global_index,
                                 solve_repair_config=solve_repair_config,
                             )
                         (
@@ -1192,7 +1219,7 @@ def run_append_mclachlan_trajectory(
             theta_next = theta_current
 
         point = AdaptiveTrajectoryPoint(
-            index=int(index),
+            index=global_index,
             time=float(time_value),
             theta_runtime=np.asarray(theta_current, dtype=float).reshape(-1),
             energy_expectation=float(evaluation.energy_expectation),
@@ -1218,6 +1245,7 @@ def run_append_mclachlan_trajectory(
         final_state=current_state,
         support_patch_config=support_patch_config,
         solve_repair_config=solve_repair_config,
+        controller_resume_state=terminal_controller_resume_state,
         metadata={
             "trajectory_kind": "generalized_exchange_support_patch",
             "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,

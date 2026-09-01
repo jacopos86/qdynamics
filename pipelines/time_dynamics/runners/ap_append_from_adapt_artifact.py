@@ -26,8 +26,13 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
 )
+from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+    build_candidate_pool_contract,
+)
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
+    DriveAlignedAugmentation,
     augment_state_with_drive_aligned_generator,
+    drive_aligned_generator_label,
 )
 from pipelines.time_dynamics.ap_mclachlan.hamiltonian import (
     time_dependent_hamiltonian_from_runtime_input,
@@ -55,11 +60,16 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
     reference_energy_trajectory_from_payload,
 )
 from pipelines.time_dynamics.run_lock import build_run_lock
+from pipelines.time_dynamics.diagnostics.siam_segment_stitching import (
+    finalize_siam_resume_lineage,
+    prepare_siam_resume_lineage,
+)
 from pipelines.time_dynamics.resume import (
     build_resume_state,
     runtime_input_from_resume_state,
 )
 from pipelines.time_dynamics.ap_mclachlan.state import (
+    AP_PARAMETERIZATION_LOGICAL_SHARED,
     AP_PARAMETERIZATION_PER_PAULI_TERM,
     AP_SUPPORTED_PARAMETERIZATION_MODES,
     state_from_scaffold_runtime_input,
@@ -134,6 +144,7 @@ def run_append_ap_mclachlan_from_runtime_input(
     controller_config: AppendControllerConfig = AppendControllerConfig(),
     support_patch_config: SupportPatchControllerConfig | None = None,
     solve_repair_config: SolveRepairConfig = SolveRepairConfig(),
+    controller_resume_state: Mapping[str, Any] | None = None,
     reference_energy_trajectory: Any | None = None,
     reference_energy_atol: float = 1.0e-12,
     seed_reference_energy_trajectory: Any | None = None,
@@ -142,6 +153,7 @@ def run_append_ap_mclachlan_from_runtime_input(
     progress_log_events: bool = True,
     normalized_candidate_pool_profile: str | None = None,
     runner_metadata: Mapping[str, Any] | None = None,
+    code_revision: str | None = None,
 ) -> dict[str, Any]:
     """Run generalized-exchange AP-McLachlan from a loaded scaffold contract."""
 
@@ -169,12 +181,46 @@ def run_append_ap_mclachlan_from_runtime_input(
         runtime_input,
         parameterization_mode=str(parameterization_mode),
     )
-    drive_augmentation = augment_state_with_drive_aligned_generator(
-        state,
-        hamiltonian=hamiltonian,
-        enabled=bool(enable_drive) and bool(drive_aligned_ansatz),
+    # A resume input is already the complete terminal support of the prior
+    # leg.  In particular, ``build_resume_state`` serializes every runtime
+    # child of the drive-aligned block.  Appending that block again here adds a
+    # second copy at the shared boundary: its child labels collide with the
+    # serialized copies, and even runs that never edit support again propagate
+    # on the wrong manifold.  Fresh runs still receive the requested zero-angle
+    # augmentation; continuations preserve the supplied support exactly.
+    resumed_terminal_support = "resumed_from_time" in dict(
+        getattr(runtime_input, "provenance", {}) or {}
     )
+    if resumed_terminal_support:
+        drive_model = getattr(hamiltonian, "drive_model", None)
+        drive_augmentation = DriveAlignedAugmentation(
+            state=state,
+            applied=False,
+            reason="resume_terminal_support_already_contains_drive_alignment",
+            label=(
+                None
+                if drive_model is None
+                else drive_aligned_generator_label(drive_model)
+            ),
+            runtime_delta=0,
+            logical_delta=0,
+        )
+    else:
+        drive_augmentation = augment_state_with_drive_aligned_generator(
+            state,
+            hamiltonian=hamiltonian,
+            enabled=bool(enable_drive) and bool(drive_aligned_ansatz),
+        )
     state = drive_augmentation.state
+    effective_support_patch_config = (
+        support_patch_config
+        if support_patch_config is not None
+        else SupportPatchControllerConfig()
+    )
+    candidate_pool_contract = build_candidate_pool_contract(
+        state,
+        support_config=effective_support_patch_config,
+    )
     inverse_policy = McLachlanInversePolicy(
         pinv_rcond=float(pinv_rcond),
         ridge_lambda=float(ridge_lambda),
@@ -201,6 +247,7 @@ def run_append_ap_mclachlan_from_runtime_input(
         controller_config=controller_config,
         support_patch_config=support_patch_config,
         solve_repair_config=solve_repair_config,
+        controller_resume_state=controller_resume_state,
         metadata={
             "runner_schema": RUNNER_SCHEMA_V1,
             **dict(runner_metadata or {}),
@@ -242,11 +289,17 @@ def run_append_ap_mclachlan_from_runtime_input(
     summary["fixed_vqe_conditioning_stress"] = _fixed_vqe_conditioning_stress_provenance(
         runtime_input
     )
+    runtime_provenance = dict(
+        getattr(runtime_input, "provenance", {}) or {}
+    )
     run_lock = build_run_lock(
-        seed_artifact_json=str(
-            dict(getattr(runtime_input, "provenance", {}) or {}).get("artifact_json")
-            or ""
-        ) or None,
+        seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
+        or None,
+        verified_seed_sha256=(
+            str(runtime_provenance["verified_seed_sha256"])
+            if runtime_provenance.get("verified_seed_sha256") not in {None, ""}
+            else None
+        ),
         family_key=getattr(
             getattr(runtime_input, "resolved_problem", None), "family_key", None
         ),
@@ -273,12 +326,10 @@ def run_append_ap_mclachlan_from_runtime_input(
             else None
         ),
         structural_policy=str(
-            getattr(support_patch_config, "dynamics_policy", "exchange")
-            if support_patch_config is not None
-            else "exchange"
+            getattr(effective_support_patch_config, "dynamics_policy", "exchange")
         ),
         guards={
-            key: getattr(support_patch_config, key, None)
+            key: getattr(effective_support_patch_config, key, None)
             for key in (
                 "max_joint_patch_evaluations",
                 "max_certification_attempts_per_level",
@@ -287,12 +338,31 @@ def run_append_ap_mclachlan_from_runtime_input(
                 "max_insertion_batch_size",
                 "residual_ratio_threshold",
             )
-        } if support_patch_config is not None else {},
+        },
+        time_step_controller={
+            "parameter_displacement_max": getattr(
+                effective_support_patch_config, "avqds_delta_theta_max", None
+            ),
+            "state_motion_l2_step_max": getattr(
+                solve_repair_config, "state_motion_l2_step_max", None
+            ),
+            "composed_parameter_step_max": getattr(
+                solve_repair_config, "parameter_step_max", None
+            ),
+            "local_subdivision_enabled": bool(
+                getattr(solve_repair_config, "local_subdivision_enabled", False)
+            ),
+            "max_local_subdivisions": int(
+                getattr(solve_repair_config, "max_local_subdivisions", 0)
+            ),
+        },
+        candidate_pool=candidate_pool_contract,
         exact_reference_json=(
             str(reference_energy_trajectory)
             if isinstance(reference_energy_trajectory, (str, Path))
             else None
         ),
+        code_revision=code_revision,
     )
     try:
         resume_state = build_resume_state(
@@ -300,8 +370,23 @@ def run_append_ap_mclachlan_from_runtime_input(
             theta_runtime=trajectory.points[-1].theta_runtime,
             time=float(trajectory.points[-1].time),
             seed_artifact_json=run_lock["physics"]["seed_artifact_json"],
+            controller_state=trajectory.controller_resume_state,
         )
-    except Exception as exc:  # never lose a completed trajectory over telemetry
+    except Exception as exc:
+        family_key = str(
+            getattr(
+                getattr(runtime_input, "resolved_problem", None),
+                "family_key",
+                "",
+            )
+        ).strip().lower()
+        if family_key == "siam":
+            raise RuntimeError(
+                "SIAM runs must emit a resumable final state; resume "
+                "serialization failed."
+            ) from exc
+        # Preserve the historical best-effort telemetry behavior for other
+        # problem families until their legacy payloads have the same contract.
         resume_state = {"unavailable": str(exc)}
     return {
         "schema": RUNNER_SCHEMA_V1,
@@ -1464,7 +1549,10 @@ def _load_runtime_input_or_raise(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run generalized-exchange AP-McLachlan from a scaffold artifact."
+        description=(
+            "Run generalized-exchange AP-McLachlan from a verified scaffold "
+            "artifact or SIAM prepared-state seed."
+        )
     )
     parser.add_argument(
         "--resume-from-run-json",
@@ -1476,8 +1564,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "support and parameters come from the prior run."
         ),
     )
-    parser.add_argument("--artifact-json", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--artifact-json")
+    source.add_argument("--siam-seed-json")
     parser.add_argument("--output-json", required=True)
+    parser.add_argument(
+        "--code-revision",
+        default=None,
+        help=(
+            "Explicit committed source revision for transferred-source runs. "
+            "When omitted, the runner discovers the local Git revision."
+        ),
+    )
     parser.add_argument("--loader-mode", default=None)
     parser.add_argument("--tag", default=None)
     parser.add_argument("--generator-family", default="match_adapt")
@@ -1834,7 +1932,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--solve-repair-strict-finite-shot-validation", action="store_true")
     parser.add_argument("--solve-repair-theta-dot-l2-max", type=float, default=None)
     parser.add_argument("--solve-repair-rho-num-max", type=float, default=1.0e-2)
-    parser.add_argument("--solve-repair-state-motion-l2-step-max", type=float, default=5.0e-2)
+    parser.add_argument(
+        "--solve-repair-state-motion-l2-step-max",
+        type=float,
+        default=None,
+        help=(
+            "Optional explicit state-motion subdivision bound. When supplied, "
+            "it overrides the selected solve-repair profile; otherwise the "
+            "profile's own bound is used."
+        ),
+    )
     parser.add_argument("--solve-repair-kink-eta-max", type=float, default=1.0e-2)
     parser.add_argument(
         "--solve-repair-local-subdivision",
@@ -2027,14 +2134,121 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
     )
 
 
+def _solve_repair_config_from_args(args: argparse.Namespace) -> SolveRepairConfig:
+    """Resolve a profile baseline, then apply explicit controller bounds."""
+
+    state_motion_override = args.solve_repair_state_motion_l2_step_max
+    _repair_kwargs = dict(
+        enabled=bool(args.solve_repair),
+        parameter_step_max=(
+            None
+            if args.solve_repair_parameter_step_max is None
+            else float(args.solve_repair_parameter_step_max)
+        ),
+        condition_number_max=float(args.solve_repair_condition_number_max),
+        condition_number_fail=(
+            None
+            if args.solve_repair_condition_number_fail is None
+            else float(args.solve_repair_condition_number_fail)
+        ),
+        strict_finite_shot_validation=bool(
+            args.solve_repair_strict_finite_shot_validation
+        ),
+        theta_dot_l2_max=(
+            None
+            if args.solve_repair_theta_dot_l2_max is None
+            else float(args.solve_repair_theta_dot_l2_max)
+        ),
+        rho_num_max=float(args.solve_repair_rho_num_max),
+        state_motion_l2_step_max=(
+            SolveRepairConfig().state_motion_l2_step_max
+            if state_motion_override is None
+            else float(state_motion_override)
+        ),
+        state_space_kink_eta_max=float(args.solve_repair_kink_eta_max),
+        local_subdivision_enabled=bool(args.solve_repair_local_subdivision),
+        max_local_subdivisions=int(args.solve_repair_max_local_subdivisions),
+        local_subdivision_factor=int(args.solve_repair_local_subdivision_factor),
+        min_local_dt=float(args.solve_repair_min_local_dt),
+        release_patience_min=int(args.solve_repair_release_patience_min),
+        release_patience_max=int(args.solve_repair_release_patience_max),
+        release_kink_threshold_scale=float(
+            args.solve_repair_release_kink_threshold_scale
+        ),
+        release_kink_severity_scale=float(
+            args.solve_repair_release_kink_severity_scale
+        ),
+        ridge_ladder=_parse_float_ladder(args.solve_repair_ridge_ladder),
+        pinv_rcond_ladder=_parse_float_ladder(args.solve_repair_pinv_rcond_ladder),
+        solve_damping_ladder=_parse_float_ladder(args.solve_repair_damping_ladder),
+    )
+    if str(args.solve_repair_profile) == "minimal":
+        minimal = SolveRepairConfig.minimal_profile(
+            enabled=bool(args.solve_repair),
+            ridge_ladder=(float(args.ridge_lambda),),
+            pinv_rcond_ladder=(float(args.pinv_rcond),),
+            solve_damping_ladder=(float(args.solve_damping),),
+        )
+        for field in (
+            "condition_number_max",
+            "rho_num_max",
+            "state_space_kink_eta_max",
+            "state_motion_l2_step_max",
+            "ridge_ladder",
+            "pinv_rcond_ladder",
+            "solve_damping_ladder",
+        ):
+            _repair_kwargs[field] = getattr(minimal, field)
+    if state_motion_override is not None:
+        _repair_kwargs["state_motion_l2_step_max"] = float(state_motion_override)
+    return SolveRepairConfig(**_repair_kwargs)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     reject_removed_online_redundancy_flags(raw_argv)
     parser = _build_parser()
     args = parser.parse_args(raw_argv)
-    artifact_path = Path(args.artifact_json)
+    is_siam_seed = args.siam_seed_json not in {None, ""}
+    artifact_path = Path(
+        args.siam_seed_json if is_siam_seed else args.artifact_json
+    )
     try:
         replay_candidate_pool_mode = args.replay_candidate_pool_mode
+        if is_siam_seed:
+            if str(args.diagnostic_append_pool_mode) != "none":
+                raise ValueError(
+                    "SIAM seeds already bind a complete logical pool; diagnostic "
+                    "append-pool overrides are forbidden."
+                )
+            if replay_candidate_pool_mode not in {None, ""}:
+                raise ValueError("SIAM seeds do not support scaffold pool replay flags.")
+            if str(args.normalized_candidate_pool_profile) != "none":
+                raise ValueError(
+                    "SIAM logical generators must not be replaced by a normalized "
+                    "Pauli-child pool."
+                )
+            if str(args.parameterization_mode) != AP_PARAMETERIZATION_LOGICAL_SHARED:
+                raise ValueError(
+                    "SIAM requires --parameterization-mode logical_shared."
+                )
+            if bool(args.enable_drive):
+                raise ValueError(
+                    "The SIAM hybridization quench is an initial-condition change; "
+                    "--enable-drive is not permitted."
+                )
+            if not bool(args.record_statevector):
+                raise ValueError(
+                    "SIAM raw production runs require --record-statevector for "
+                    "reference-blind post-run scoring."
+                )
+            if args.reference_energy_json not in {None, ""} or (
+                args.seed_reference_energy_json not in {None, ""}
+            ):
+                raise ValueError(
+                    "SIAM controllers are reference-blind; exact references attach "
+                    "only in the post-run scorer."
+                )
         if str(args.diagnostic_append_pool_mode) == "replay_family_pool":
             if replay_candidate_pool_mode not in {None, "", "diagnostic_replay_family_pool", "family_pool", "replay_family_pool"}:
                 raise ValueError(
@@ -2042,20 +2256,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"with --replay-candidate-pool-mode={replay_candidate_pool_mode!r}."
                 )
             replay_candidate_pool_mode = "diagnostic_replay_family_pool"
-        runtime_input = _load_runtime_input_or_raise(
-            artifact_path,
-            loader_mode=args.loader_mode,
-            tag=args.tag,
-            generator_family=str(args.generator_family),
-            fallback_family=str(args.fallback_family),
-            replay_candidate_pool_mode=replay_candidate_pool_mode,
-        )
+        if is_siam_seed:
+            from pipelines.time_dynamics.siam_seed import load_siam_runtime_input
+
+            runtime_input = load_siam_runtime_input(artifact_path)
+        else:
+            runtime_input = _load_runtime_input_or_raise(
+                artifact_path,
+                loader_mode=args.loader_mode,
+                tag=args.tag,
+                generator_family=str(args.generator_family),
+                fallback_family=str(args.fallback_family),
+                replay_candidate_pool_mode=replay_candidate_pool_mode,
+            )
+        controller_resume_state = None
+        prepared_siam_lineage = None
         if args.resume_from_run_json:
             # Continue a prior trajectory: the seed still supplies the problem
             # and reference state, while support and parameters come from where
             # the previous run stopped.
             with open(args.resume_from_run_json, encoding="utf-8") as handle:
                 prior = json.load(handle)
+            if is_siam_seed:
+                prepared_siam_lineage = prepare_siam_resume_lineage(
+                    args.resume_from_run_json,
+                    prior,
+                )
             resume_state = prior.get("resume_state") or {}
             if "coordinates" not in resume_state:
                 raise SystemExit(
@@ -2065,6 +2291,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             runtime_input = runtime_input_from_resume_state(
                 resume_state, base_runtime_input=runtime_input
             )
+            controller_resume_state = resume_state.get("controller_state")
+            if controller_resume_state is None:
+                raise SystemExit(
+                    f"{args.resume_from_run_json} carries physical resume data "
+                    "but no controller history. Re-run its screening leg with "
+                    "decision-identical resume support before promotion."
+                )
             if args.t_initial is None:
                 args.t_initial = float(resume_state["time"])
             print(
@@ -2081,61 +2314,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
         support_patch_config = _support_patch_config_from_args(args)
-        _repair_kwargs = dict(
-            enabled=bool(args.solve_repair),
-            parameter_step_max=(
-                None
-                if args.solve_repair_parameter_step_max is None
-                else float(args.solve_repair_parameter_step_max)
-            ),
-            condition_number_max=float(args.solve_repair_condition_number_max),
-            condition_number_fail=(
-                None
-                if args.solve_repair_condition_number_fail is None
-                else float(args.solve_repair_condition_number_fail)
-            ),
-            strict_finite_shot_validation=bool(
-                args.solve_repair_strict_finite_shot_validation
-            ),
-            theta_dot_l2_max=(
-                None
-                if args.solve_repair_theta_dot_l2_max is None
-                else float(args.solve_repair_theta_dot_l2_max)
-            ),
-            rho_num_max=float(args.solve_repair_rho_num_max),
-            state_motion_l2_step_max=float(args.solve_repair_state_motion_l2_step_max),
-            state_space_kink_eta_max=float(args.solve_repair_kink_eta_max),
-            local_subdivision_enabled=bool(args.solve_repair_local_subdivision),
-            max_local_subdivisions=int(args.solve_repair_max_local_subdivisions),
-            local_subdivision_factor=int(args.solve_repair_local_subdivision_factor),
-            min_local_dt=float(args.solve_repair_min_local_dt),
-            release_patience_min=int(args.solve_repair_release_patience_min),
-            release_patience_max=int(args.solve_repair_release_patience_max),
-            release_kink_threshold_scale=float(
-                args.solve_repair_release_kink_threshold_scale
-            ),
-            release_kink_severity_scale=float(
-                args.solve_repair_release_kink_severity_scale
-            ),
-            ridge_ladder=_parse_float_ladder(args.solve_repair_ridge_ladder),
-            pinv_rcond_ladder=_parse_float_ladder(args.solve_repair_pinv_rcond_ladder),
-            solve_damping_ladder=_parse_float_ladder(args.solve_repair_damping_ladder),
-        )
-        if str(args.solve_repair_profile) == "minimal":
-            _minimal = SolveRepairConfig.minimal_profile(
-                enabled=bool(args.solve_repair)
+        solve_repair_config = _solve_repair_config_from_args(args)
+        if is_siam_seed:
+            runtime_provenance = dict(
+                getattr(runtime_input, "provenance", {}) or {}
             )
-            for _field in (
-                "condition_number_max",
-                "rho_num_max",
-                "state_space_kink_eta_max",
-                "state_motion_l2_step_max",
-                "ridge_ladder",
-                "pinv_rcond_ladder",
-                "solve_damping_ladder",
-            ):
-                _repair_kwargs[_field] = getattr(_minimal, _field)
-        solve_repair_config = SolveRepairConfig(**_repair_kwargs)
+            input_source_metadata = {
+                "artifact_json": str(artifact_path),
+                "input_source_kind": "siam_seed_manifest",
+                "loader_mode": "siam_seed_manifest",
+                "seed_schema": runtime_provenance.get("seed_schema"),
+                "verified_seed_sha256": runtime_provenance.get(
+                    "verified_seed_sha256"
+                ),
+            }
+        else:
+            input_source_metadata = {
+                "artifact_json": str(artifact_path),
+                "input_source_kind": "scaffold_artifact",
+                "loader_mode": args.loader_mode,
+                "tag": args.tag,
+                "generator_family": str(args.generator_family),
+                "fallback_family": str(args.fallback_family),
+                "replay_candidate_pool_mode": replay_candidate_pool_mode,
+            }
         payload = run_append_ap_mclachlan_from_runtime_input(
             runtime_input,
             record_statevector=bool(args.record_statevector),
@@ -2151,6 +2353,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             controller_config=controller_config,
             support_patch_config=support_patch_config,
             solve_repair_config=solve_repair_config,
+            controller_resume_state=controller_resume_state,
             reference_energy_trajectory=(
                 None
                 if args.reference_energy_json in {None, ""}
@@ -2170,13 +2373,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if str(args.normalized_candidate_pool_profile) == "none"
                 else str(args.normalized_candidate_pool_profile)
             ),
+            code_revision=args.code_revision,
             runner_metadata={
-                "artifact_json": str(artifact_path),
-                "loader_mode": args.loader_mode,
-                "tag": args.tag,
-                "generator_family": str(args.generator_family),
-                "fallback_family": str(args.fallback_family),
-                "replay_candidate_pool_mode": replay_candidate_pool_mode,
+                **input_source_metadata,
                 "diagnostic_append_pool_mode": str(args.diagnostic_append_pool_mode),
                 "normalized_candidate_pool_profile": str(
                     args.normalized_candidate_pool_profile
@@ -2217,6 +2416,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "progress_log_events": bool(args.progress_log_events),
             },
         )
+        if prepared_siam_lineage is not None:
+            segment_lineage = finalize_siam_resume_lineage(
+                prepared_siam_lineage,
+                payload,
+                controller_input=controller_resume_state,
+            )
+            payload["segment_lineage"] = segment_lineage
+            trajectory = dict(payload.get("trajectory") or {})
+            trajectory_metadata = dict(trajectory.get("metadata") or {})
+            trajectory_metadata["resume_lineage"] = {
+                "schema": segment_lineage["schema"],
+                "source_run_path": segment_lineage["source_run_path"],
+                "source_run_sha256": segment_lineage["source_run_sha256"],
+                "source_resume_payload_sha256": segment_lineage[
+                    "source_resume_payload_sha256"
+                ],
+                "lineage_sha256": segment_lineage["lineage_sha256"],
+            }
+            trajectory["metadata"] = trajectory_metadata
+            payload["trajectory"] = trajectory
         payload["source_artifact_json"] = str(artifact_path)
         output_path = Path(args.output_json)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2319,75 +2538,3 @@ __all__ = [
     "reject_removed_online_redundancy_flags",
     "run_append_ap_mclachlan_from_runtime_input",
 ]
-
-
-# Ported 2026-08-31 from codex/paper-ii-search-profiles-20260824 for the
-# prospective APM exchange worker (RECOVERY-AUDIT.md sec 11).
-def _solve_repair_config_from_args(args: argparse.Namespace) -> SolveRepairConfig:
-    """Resolve a profile baseline, then apply explicit controller bounds."""
-
-    state_motion_override = args.solve_repair_state_motion_l2_step_max
-    _repair_kwargs = dict(
-        enabled=bool(args.solve_repair),
-        parameter_step_max=(
-            None
-            if args.solve_repair_parameter_step_max is None
-            else float(args.solve_repair_parameter_step_max)
-        ),
-        condition_number_max=float(args.solve_repair_condition_number_max),
-        condition_number_fail=(
-            None
-            if args.solve_repair_condition_number_fail is None
-            else float(args.solve_repair_condition_number_fail)
-        ),
-        strict_finite_shot_validation=bool(
-            args.solve_repair_strict_finite_shot_validation
-        ),
-        theta_dot_l2_max=(
-            None
-            if args.solve_repair_theta_dot_l2_max is None
-            else float(args.solve_repair_theta_dot_l2_max)
-        ),
-        rho_num_max=float(args.solve_repair_rho_num_max),
-        state_motion_l2_step_max=(
-            SolveRepairConfig().state_motion_l2_step_max
-            if state_motion_override is None
-            else float(state_motion_override)
-        ),
-        state_space_kink_eta_max=float(args.solve_repair_kink_eta_max),
-        local_subdivision_enabled=bool(args.solve_repair_local_subdivision),
-        max_local_subdivisions=int(args.solve_repair_max_local_subdivisions),
-        local_subdivision_factor=int(args.solve_repair_local_subdivision_factor),
-        min_local_dt=float(args.solve_repair_min_local_dt),
-        release_patience_min=int(args.solve_repair_release_patience_min),
-        release_patience_max=int(args.solve_repair_release_patience_max),
-        release_kink_threshold_scale=float(
-            args.solve_repair_release_kink_threshold_scale
-        ),
-        release_kink_severity_scale=float(
-            args.solve_repair_release_kink_severity_scale
-        ),
-        ridge_ladder=_parse_float_ladder(args.solve_repair_ridge_ladder),
-        pinv_rcond_ladder=_parse_float_ladder(args.solve_repair_pinv_rcond_ladder),
-        solve_damping_ladder=_parse_float_ladder(args.solve_repair_damping_ladder),
-    )
-    if str(args.solve_repair_profile) == "minimal":
-        minimal = SolveRepairConfig.minimal_profile(
-            enabled=bool(args.solve_repair),
-            ridge_ladder=(float(args.ridge_lambda),),
-            pinv_rcond_ladder=(float(args.pinv_rcond),),
-            solve_damping_ladder=(float(args.solve_damping),),
-        )
-        for field in (
-            "condition_number_max",
-            "rho_num_max",
-            "state_space_kink_eta_max",
-            "state_motion_l2_step_max",
-            "ridge_ladder",
-            "pinv_rcond_ladder",
-            "solve_damping_ladder",
-        ):
-            _repair_kwargs[field] = getattr(minimal, field)
-    if state_motion_override is not None:
-        _repair_kwargs["state_motion_l2_step_max"] = float(state_motion_override)
-    return SolveRepairConfig(**_repair_kwargs)

@@ -233,6 +233,9 @@ def build_candidate_pool(
         "candidate_pool_raw": int(len(raw_atoms)),
         "candidate_pool_deduplicated": int(len(atoms)),
         "candidate_pool_order": "frozen_pool_order",
+        "append_occurrence_policy": str(
+            exchange_config.eligibility.occurrence_policy
+        ),
         "insertions_enabled": bool(insertions_enabled),
     }
     return tuple(atoms), pauli_by_atom, telemetry
