@@ -179,12 +179,10 @@ def test_sidecar_digest_and_exact_manifest_bindings_fail_closed(
         _loader(tampered, expected_sha256=EXACT_RESPONSE_SCALES_SHA256)
 
     payload = json.loads(EXACT_RESPONSE_SCALES.read_text(encoding="utf-8"))
-    payload["drives"]["weakslow"]["t5"][
-        "exact_reference_manifest_sha256"
-    ] = "0" * 64
+    payload["drives"]["weakslow"]["t5"]["exact_reference_data_sha256"] = "0" * 64
     tampered.write_text(json.dumps(payload), encoding="utf-8")
     tampered_sha256 = hashlib.sha256(tampered.read_bytes()).hexdigest()
-    with pytest.raises(ResponseScaleIntegrityError, match="manifest SHA-256"):
+    with pytest.raises(ResponseScaleIntegrityError, match="data SHA-256"):
         _loader(tampered, expected_sha256=tampered_sha256)
 
 

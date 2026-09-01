@@ -71,19 +71,25 @@ manifest, the live campaign module, or `benchmarks/common.py`.
   pass.
 - **Promoting a newer lock.** `paper-ii-run` SKILL.md owns that; the runner only
   enforces whichever lock it is pointed at.
-- **Exact-reference store absence.** The canonical policy construction verifies
-  the tracked response-scale sidecar against
-  `output/paper_ii_staged/exact_references/`, which lives in gitignored
-  `output/` and is therefore routinely missing on a fresh clone or machine
-  (`EVIDENCE_PARITY_AUDIT_20260831.md` §2.2). Regenerate it first with
-  `pipelines/time_dynamics/diagnostics/exact_reference_store.py` (~22 s, six
-  references) — since the 2026-09-01 rebaseline (`7ca8df10`, sidecar pins
-  adopted onto the regenerated store), regeneration verifies cleanly and the
-  runner reaches `OK` on the response-scale check without any flag.
-  `--allow-unverified-response-scales` remains only an escape hatch for a
-  machine that cannot regenerate; that degraded mode never reports `OK`.
-  (Note: response-scale `OK` does not make the whole run `OK` — sameness axes
-  undeclared by CHTC-side payloads still hold it at `WARN`/`INCOMPLETE`.)
+- **Exact-reference store.** The canonical policy construction verifies the
+  tracked response-scale sidecar against
+  `output/paper_ii_staged/exact_references/`. **The six references are now
+  tracked in git** (2026-09-01 pin-migration ruling), so a fresh clone has them
+  already: no regeneration, no flag, and the runner reaches `OK` on the
+  response-scale check out of the box. The store is force-added inside the
+  otherwise-gitignored `output/` tree, following the same convention as the
+  other evidence there — so if a *worktree* or CI checkout somehow lacks it,
+  confirm the files are present rather than assuming they must be rebuilt.
+  Regeneration with `pipelines/time_dynamics/diagnostics/exact_reference_store.py`
+  (~22 s, six references) is still supported for rebuilding or extending the
+  store, and now verifies regardless of which driver produced it: the sidecar
+  pins each reference's `data_sha256` (the `reference.npz` float payload), not
+  the manifest's byte digest, which encoded the regenerating driver's JSON key
+  order. `--allow-unverified-response-scales` remains only an escape hatch for
+  a checkout that has neither the store nor the ability to rebuild it; that
+  degraded mode never reports `OK`. (Note: response-scale `OK` does not make
+  the whole run `OK` — sameness axes undeclared by CHTC-side payloads still
+  hold it at `WARN`/`INCOMPLETE`.)
 
 ## Order of operations
 

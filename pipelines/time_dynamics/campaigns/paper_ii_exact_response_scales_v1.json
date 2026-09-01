@@ -43,10 +43,43 @@
     "response_scales_refreshed": "All 36 scale values are re-derived from the adopted store, so the ledger stays internally consistent with the references it now pins. 35 of the 36 were already within the verifier's tolerance (response_scales.py math.isclose rel_tol=1e-13, abs_tol=1e-15); weakslow/t20/doublon_rms_excursion was not -- its 1.27e-15 absolute difference exceeds the 1e-15 absolute floor that dominates at this drive's small excursion magnitude -- so a digest-only rebaseline would have left the integrity check failing.",
     "correction_20260901": "CORRECTION, same day, after these pins were merged. This block previously attributed the byte divergence to 'M4 BLAS byte drift' and implied local regeneration is nondeterministic. That was wrong, and it mattered: a second agent regenerated the store in another worktree and got manifest digests that disagreed with these pins (b0d1e60f: dccf1550... vs the pinned c20744ad...), which read as confirmation of ongoing drift. Measurement disproves it. Two further independent regenerations on this machine under the pinned single-threaded env produced reference.npz files that are BYTE-IDENTICAL to each other and to the run these pins came from, and all six manifest digests reproduced exactly. Comparing the two divergent stores directly: all six reference.npz files are byte-identical, the float payloads are bit-identical (max |diff| exactly 0.0 across every array), and the manifests are semantically equal with identical data_sha256. The ONLY difference is the key ORDER of the drive_profile object inside manifest.json. Local regeneration is deterministic; the manifest digest simply is not a pure function of the physics. See reproduction_requirements.",
     "reproduction_requirements": {
-      "manifest_digest_is_serialization_sensitive": "exact_reference_store.py computes the content key with _canonical_bytes(..., sort_keys=True) (line 40) but writes manifest.json with json.dumps(manifest, indent=2) and NO sort_keys (line 119). The manifest therefore inherits the key order of the drive_profile dict it was handed, which comes verbatim from the driver's run.json. A driver that serializes run.json with sort_keys=True yields a semantically identical manifest with a DIFFERENT sha256, and these byte pins fail against a physically correct store. Regenerate through the documented producer chain in regenerated_by, which yields the runner's natural insertion order; do not sort the drive_profile keys.",
+      "manifest_digest_is_serialization_sensitive": "RESOLVED 2026-09-01 by the pin migration: the ledger no longer pins the manifest's bytes, so a driver that serializes drive_profile with sort_keys=True now verifies clean. Kept on record because the underlying producer asymmetry still exists -- exact_reference_store.py computes the content key with _canonical_bytes(..., sort_keys=True) but writes manifest.json with json.dumps(manifest, indent=2) and no sort_keys, so manifest digests remain driver-dependent and must not be re-pinned.",
       "environment": "Recorded for reproduction: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 BLIS_NUM_THREADS=1 PYTHONHASHSEED=0, numpy 2.3.5 / scipy 1.16.3 on Apple Accelerate. Thread pinning was tested and is NOT what makes the result deterministic -- the run these pins came from was unpinned and produced identical bytes -- but pin it anyway so the recipe is closed. Note that Accelerate does not honour the OpenBLAS/MKL variables at all.",
-      "store_is_gitignored_and_dies_with_its_worktree": "The store lives under output/, which is gitignored, so it is NOT carried by any commit. A store regenerated inside a git worktree is destroyed when that worktree is removed, which is exactly what happened to the run these pins were taken from. Any checkout that must pass the response-scale integrity tests needs its own regeneration into output/paper_ii_staged/exact_references (about 22 s for all six).",
+      "store_is_gitignored_and_dies_with_its_worktree": "RESOLVED 2026-09-01: the store is now tracked in git (see pin_migration_20260901.store_now_tracked), so a fresh checkout has it already and needs no regeneration. Regeneration is still supported for rebuilding or extending the store (about 22 s for all six) and now verifies via data_sha256 regardless of serializer; a regenerated store must still land under output/paper_ii_staged/exact_references/, which remains inside the gitignored output/ tree.",
       "open_design_question": "Byte-pinning manifest.json pins an incidental serialization artifact alongside the science. The content-address key already pins physical identity canonically, and response_scales.py already re-derives and tolerance-checks the observables. Whether to keep the byte pin, pin data_sha256 instead, or write the manifest with sort_keys=True and re-pin once is a user decision -- every option changes these digests, and the sort_keys option would also touch siam_exact_reference_store.py."
+    },
+    "pin_migration_20260901": {
+      "ruling": "User ruling 2026-09-01: pin data_sha256 (the reference.npz float payload) instead of the manifest byte digest, and track the store in git so trunk is self-contained. Adopted from the option set raised by the same-day correction; consistent with the rebaseline ruling that already adopted these floats as the baseline.",
+      "what_changed": "Each drive row now carries exact_reference_data_sha256 in place of exact_reference_manifest_sha256, and response_scales.py's _verified_reference checks the data digest. The manifest is still read and still gates identity (schema, key, seed_sha256, drive_profile, amplitude/omega, the data_file path and its own recorded data_sha256), and the content-address key check is unchanged. Only the manifest's BYTE digest stopped being a pin.",
+      "why": "The manifest digest was never a function of the physics: exact_reference_store.py writes manifest.json without sort_keys, so it encodes the JSON key order of whichever driver regenerated the store. Two byte-identical reference.npz files under semantically equal manifests hashed differently (c20744ad... vs dccf1550... for b0d1e60f), which is what broke the merged pins on 2026-09-01. data_sha256 binds the float payload itself and is immune to the serializer.",
+      "superseded_manifest_pins": {
+        "fastfast": {
+          "superseded_manifest_sha256": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2",
+          "data_sha256": "a03456e732ee9e4d86e09296d9361dac480fce542c6885e776335ab65f1f68dd"
+        },
+        "fastweak": {
+          "superseded_manifest_sha256": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832",
+          "data_sha256": "734373d93cda6c10717407708f23e610a7ea470365e34d54c6d718a5d5410bdb"
+        },
+        "midres": {
+          "superseded_manifest_sha256": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991",
+          "data_sha256": "952bffb55cc11ee4801bedb1bdb40bca0d9ca3b93057a491705edb15056867e5"
+        },
+        "slowstrong": {
+          "superseded_manifest_sha256": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c",
+          "data_sha256": "ac669be5b61cbaee43189c13f9fcc60661b885e416ece55664222e5c34bffff9"
+        },
+        "strongfast": {
+          "superseded_manifest_sha256": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232",
+          "data_sha256": "57c67f2a72c3dee3cdc2c3ea1281fcaa45fbe49173c573d07fe0de7cdb7e7353"
+        },
+        "weakslow": {
+          "superseded_manifest_sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e",
+          "data_sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c"
+        }
+      },
+      "store_now_tracked": "The six references (12 files, 975,135 bytes) are force-added under output/paper_ii_staged/exact_references/, following the repo's existing convention for output/ evidence (.gitignore:67; ~630 files already tracked there). Trunk no longer depends on a gitignored store that dies with the worktree that built it. Fresh regeneration remains fully supported and now verifies regardless of the driver's JSON key order -- see reproduction_requirements.",
+      "remaining_byte_pin": "OUT OF SCOPE per the ruling, left for the queue: pipelines/time_dynamics/diagnostics/siam_exact_reference_store.py is the other instance of this serializer pattern and its digests are untouched here."
     }
   },
   "drives": {
@@ -55,14 +88,14 @@
         "doublon_rms_excursion": 0.0413304023391824,
         "energy_rms_excursion": 0.24639089331131722,
         "exact_reference_key": "b0d1e60f5a8cd51becbd8ea78e2e0cfd93e88488efd1ee079ecafd4d357ebd30",
-        "exact_reference_manifest_sha256": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2",
+        "exact_reference_data_sha256": "a03456e732ee9e4d86e09296d9361dac480fce542c6885e776335ab65f1f68dd",
         "max_site_occupation_rms_excursion": 0.11177951845582543
       },
       "t5": {
         "doublon_rms_excursion": 0.03778889273584834,
         "energy_rms_excursion": 0.23457967628071255,
         "exact_reference_key": "b0d1e60f5a8cd51becbd8ea78e2e0cfd93e88488efd1ee079ecafd4d357ebd30",
-        "exact_reference_manifest_sha256": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2",
+        "exact_reference_data_sha256": "a03456e732ee9e4d86e09296d9361dac480fce542c6885e776335ab65f1f68dd",
         "max_site_occupation_rms_excursion": 0.10402924152775636
       }
     },
@@ -71,14 +104,14 @@
         "doublon_rms_excursion": 0.027309106277958198,
         "energy_rms_excursion": 0.11517860242883667,
         "exact_reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
-        "exact_reference_manifest_sha256": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832",
+        "exact_reference_data_sha256": "734373d93cda6c10717407708f23e610a7ea470365e34d54c6d718a5d5410bdb",
         "max_site_occupation_rms_excursion": 0.07757530269472455
       },
       "t5": {
         "doublon_rms_excursion": 0.026992479487962268,
         "energy_rms_excursion": 0.10691405481198178,
         "exact_reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
-        "exact_reference_manifest_sha256": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832",
+        "exact_reference_data_sha256": "734373d93cda6c10717407708f23e610a7ea470365e34d54c6d718a5d5410bdb",
         "max_site_occupation_rms_excursion": 0.07824085455294884
       }
     },
@@ -87,14 +120,14 @@
         "doublon_rms_excursion": 0.07217138951025374,
         "energy_rms_excursion": 0.23973303804227986,
         "exact_reference_key": "097c97503ad839abf50df55d0a65aa5eb91711c9a8ba8bebe88cf3536b5f98b5",
-        "exact_reference_manifest_sha256": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991",
+        "exact_reference_data_sha256": "952bffb55cc11ee4801bedb1bdb40bca0d9ca3b93057a491705edb15056867e5",
         "max_site_occupation_rms_excursion": 0.0804352269972575
       },
       "t5": {
         "doublon_rms_excursion": 0.07248534082572218,
         "energy_rms_excursion": 0.22053957664973753,
         "exact_reference_key": "097c97503ad839abf50df55d0a65aa5eb91711c9a8ba8bebe88cf3536b5f98b5",
-        "exact_reference_manifest_sha256": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991",
+        "exact_reference_data_sha256": "952bffb55cc11ee4801bedb1bdb40bca0d9ca3b93057a491705edb15056867e5",
         "max_site_occupation_rms_excursion": 0.10246365821463431
       }
     },
@@ -103,14 +136,14 @@
         "doublon_rms_excursion": 0.024882308556634803,
         "energy_rms_excursion": 0.03436493600528336,
         "exact_reference_key": "f83fc25a31fb2930ea1eb4eefdd5e0276607521027cad58a9f2c7c4f7d537308",
-        "exact_reference_manifest_sha256": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c",
+        "exact_reference_data_sha256": "ac669be5b61cbaee43189c13f9fcc60661b885e416ece55664222e5c34bffff9",
         "max_site_occupation_rms_excursion": 0.03506273985331115
       },
       "t5": {
         "doublon_rms_excursion": 0.028270079922143712,
         "energy_rms_excursion": 0.030228242650652354,
         "exact_reference_key": "f83fc25a31fb2930ea1eb4eefdd5e0276607521027cad58a9f2c7c4f7d537308",
-        "exact_reference_manifest_sha256": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c",
+        "exact_reference_data_sha256": "ac669be5b61cbaee43189c13f9fcc60661b885e416ece55664222e5c34bffff9",
         "max_site_occupation_rms_excursion": 0.055360126377727505
       }
     },
@@ -119,14 +152,14 @@
         "doublon_rms_excursion": 0.3884307761627549,
         "energy_rms_excursion": 2.502079988892084,
         "exact_reference_key": "4826d7df9fdfdb4f09e54cf1473b1a90f7704310588e5e6ab569510e741fb29a",
-        "exact_reference_manifest_sha256": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232",
+        "exact_reference_data_sha256": "57c67f2a72c3dee3cdc2c3ea1281fcaa45fbe49173c573d07fe0de7cdb7e7353",
         "max_site_occupation_rms_excursion": 0.24102155007058548
       },
       "t5": {
         "doublon_rms_excursion": 0.38179657820339447,
         "energy_rms_excursion": 2.3374660767335356,
         "exact_reference_key": "4826d7df9fdfdb4f09e54cf1473b1a90f7704310588e5e6ab569510e741fb29a",
-        "exact_reference_manifest_sha256": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232",
+        "exact_reference_data_sha256": "57c67f2a72c3dee3cdc2c3ea1281fcaa45fbe49173c573d07fe0de7cdb7e7353",
         "max_site_occupation_rms_excursion": 0.25749108523784203
       }
     },
@@ -135,14 +168,14 @@
         "doublon_rms_excursion": 0.0021870347787904857,
         "energy_rms_excursion": 0.0012331735094926867,
         "exact_reference_key": "e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc",
-        "exact_reference_manifest_sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e",
+        "exact_reference_data_sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c",
         "max_site_occupation_rms_excursion": 0.008717026605635881
       },
       "t5": {
         "doublon_rms_excursion": 0.0021686891125255684,
         "energy_rms_excursion": 0.0011335122334497857,
         "exact_reference_key": "e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc",
-        "exact_reference_manifest_sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e",
+        "exact_reference_data_sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c",
         "max_site_occupation_rms_excursion": 0.012561874240715873
       }
     }

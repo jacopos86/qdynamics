@@ -260,12 +260,24 @@ def _verified_reference(
     *,
     exact_reference_root: Path,
     reference_key: str,
-    expected_manifest_sha256: str,
+    expected_data_sha256: str,
     expected_seed_sha256: str,
     expected_model: str,
     expected_amplitude: float,
     expected_omega: float,
 ) -> tuple[dict[str, Any], Mapping[str, np.ndarray], dict[str, Any]]:
+    """Verify one stored exact reference against the tracked ledger row.
+
+    The pin is the *data* digest, not the manifest's bytes.  ``manifest.json``
+    is written without ``sort_keys`` (exact_reference_store.py), so its digest
+    also encodes the JSON key order of whichever driver regenerated the store:
+    two byte-identical ``reference.npz`` files can sit under semantically equal
+    manifests whose SHA-256 differ.  Pinning ``data_sha256`` binds the float
+    payload itself and is immune to that.  Physical identity is still pinned
+    twice over -- by the content-address key, which is canonical
+    (``sort_keys=True``), and by the manifest identity fields checked below.
+    """
+
     reference_dir = (exact_reference_root / reference_key).resolve()
     try:
         reference_dir.relative_to(exact_reference_root.resolve())
@@ -277,13 +289,6 @@ def _verified_reference(
     if not manifest_path.is_file():
         raise ResponseScaleIntegrityError(
             f"exact-reference manifest is missing: {manifest_path}"
-        )
-    manifest_sha256 = _sha256(manifest_path)
-    if manifest_sha256 != expected_manifest_sha256:
-        raise ResponseScaleIntegrityError(
-            "exact-reference manifest SHA-256 mismatch for "
-            f"{reference_key}: expected {expected_manifest_sha256}, "
-            f"got {manifest_sha256}"
         )
     manifest = _read_json(manifest_path, label="exact-reference manifest")
     if manifest.get("schema") != _REFERENCE_SCHEMA_V1:
@@ -334,9 +339,22 @@ def _verified_reference(
         raise ResponseScaleIntegrityError(
             f"exact-reference data escapes its store for {reference_key}"
         ) from exc
-    if not data_path.is_file() or _sha256(data_path) != manifest.get("data_sha256"):
+    if not data_path.is_file():
         raise ResponseScaleIntegrityError(
-            f"exact-reference data SHA-256 mismatch for {reference_key}"
+            f"exact-reference data is missing: {data_path}"
+        )
+    data_sha256 = _sha256(data_path)
+    if data_sha256 != manifest.get("data_sha256"):
+        raise ResponseScaleIntegrityError(
+            "exact-reference data SHA-256 disagrees with its own manifest for "
+            f"{reference_key}: manifest records {manifest.get('data_sha256')}, "
+            f"got {data_sha256}"
+        )
+    if data_sha256 != expected_data_sha256:
+        raise ResponseScaleIntegrityError(
+            "exact-reference data SHA-256 mismatch for "
+            f"{reference_key}: expected {expected_data_sha256}, "
+            f"got {data_sha256}"
         )
     try:
         loaded = np.load(data_path, allow_pickle=False)
@@ -497,20 +515,18 @@ def load_verified_response_scale_index(
                     f"response-scale row is invalid for {drive_id}/{horizon}"
                 )
             reference_key = str(raw_row.get("exact_reference_key") or "")
-            manifest_sha256 = str(
-                raw_row.get("exact_reference_manifest_sha256") or ""
-            )
+            data_sha256 = str(raw_row.get("exact_reference_data_sha256") or "")
             if not reference_key:
                 raise ResponseScaleIntegrityError(
                     f"response-scale provenance is incomplete for {drive_id}/{horizon}"
                 )
-            manifest_sha256 = _sha256_value(
-                manifest_sha256,
-                label=f"{drive_id}/{horizon} exact-reference manifest SHA-256",
+            data_sha256 = _sha256_value(
+                data_sha256,
+                label=f"{drive_id}/{horizon} exact-reference data SHA-256",
             )
             cache_key = (
                 reference_key,
-                manifest_sha256,
+                data_sha256,
                 seed_sha256,
                 str(physical["model"]),
                 amplitude,
@@ -520,17 +536,21 @@ def load_verified_response_scale_index(
                 reference_cache[cache_key] = _verified_reference(
                     exact_reference_root=reference_root,
                     reference_key=reference_key,
-                    expected_manifest_sha256=manifest_sha256,
+                    expected_data_sha256=data_sha256,
                     expected_seed_sha256=seed_sha256,
                     expected_model=str(physical["model"]),
                     expected_amplitude=amplitude,
                     expected_omega=omega,
                 )
             manifest, arrays, drive_identity = reference_cache[cache_key]
-            manifest_path = reference_root / reference_key / "manifest.json"
-            if _sha256(manifest_path) != manifest_sha256:
+            data_path = (
+                reference_root
+                / reference_key
+                / str(manifest.get("data_file") or "")
+            )
+            if _sha256(data_path) != data_sha256:
                 raise ResponseScaleIntegrityError(
-                    f"exact-reference manifest SHA-256 mismatch for {reference_key}"
+                    f"exact-reference data SHA-256 mismatch for {reference_key}"
                 )
             calculated = _calculated_scales(arrays, final_time=final_time)
             row: dict[str, Any] = {
@@ -550,7 +570,12 @@ def load_verified_response_scale_index(
             row.update(
                 {
                     "exact_reference_key": reference_key,
-                    "exact_reference_manifest_sha256": manifest_sha256,
+                    # Observed, not pinned: the manifest digest depends on the
+                    # JSON key order the regenerating driver happened to use.
+                    # Reported for provenance; the pin is the data digest.
+                    "exact_reference_manifest_sha256": _sha256(
+                        reference_root / reference_key / "manifest.json"
+                    ),
                     "exact_reference_data_sha256": _sha256_value(
                         manifest.get("data_sha256"),
                         label=f"{reference_key} data SHA-256",
