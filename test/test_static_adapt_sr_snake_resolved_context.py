@@ -197,10 +197,14 @@ def test_public_run_resolves_canonical_runtime_without_cli_translation(
             "run_sr_snake must resolve its canonical runtime without CLI translation"
         )
 
+    # 2026-09-01 (ruling f79dd20c): adapt_pipeline.parse_args was deleted with the
+    # retired CLI surface, so this guard now asserts the absence of a translation
+    # hook rather than patching a live one -- raising=False keeps it meaningful.
     monkeypatch.setattr(
         adapt_pipeline,
         "parse_args",
         _unexpected_cli_translation,
+        raising=False,
     )
     monkeypatch.setattr(
         sr_context,
