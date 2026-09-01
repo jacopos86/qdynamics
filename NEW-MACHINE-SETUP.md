@@ -1,6 +1,6 @@
 # New machine bootstrap
 
-Target hardware (user, 2026-08-31): Apple M4, 14-core CPU / 20-core GPU,
+Target hardware (verified on the machine, 2026-08-31): Apple M3, 8-core CPU,
 24 GB RAM, 1 TB SSD. Implications:
 
 - **RAM invariant (user-set 2026-08-31): 18 GB aggregate ceiling** for all
@@ -11,10 +11,15 @@ Target hardware (user, 2026-08-31): Apple M4, 14-core CPU / 20-core GPU,
   go to CHTC — one heavy local job at a time remains the rule.
 - **Disk:** 1 TB comfortably holds the full CHTC rescue fetch (~65–78 GB,
   `CHTC-FETCH.md`) alongside the repo.
-- **CPU:** 14 cores help compiles and collection, but RAM, not CPU, is the
-  binding constraint for the heavy integration tests — run the full suite
-  serially first; parallel workers multiply resident memory.
+- **CPU:** 8 cores; RAM, not CPU, is the binding constraint for the heavy
+  integration tests — run the full suite serially; parallel workers multiply
+  resident memory.
 - **GPU:** irrelevant to this stack (qiskit-aer CPU path).
+- **Migration note:** this machine was set up with Migration Assistant from
+  the recovery session's environment, so `~/.ssh` (GitHub key "Patron-Mac"),
+  `~/Holstein_test` with its `.venv`, and uv all carried over — steps 1–3
+  below were already satisfied on arrival (verified 2026-08-31: SSH auth OK,
+  collection 7,535 tests / 9 known errors).
 
 Contract for a fresh agent session on a new machine. Execute top to bottom;
 each step states its verification. Context: this repo was recovered on
