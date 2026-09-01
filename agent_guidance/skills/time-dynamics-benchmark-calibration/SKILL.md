@@ -73,11 +73,17 @@ manifest, the live campaign module, or `benchmarks/common.py`.
   enforces whichever lock it is pointed at.
 - **Exact-reference store absence.** The canonical policy construction verifies
   the tracked response-scale sidecar against
-  `output/paper_ii_staged/exact_references/`, which is regenerable-local and
-  routinely missing (`EVIDENCE_PARITY_AUDIT_20260831.md` §2.2). Regenerate it
-  with `pipelines/time_dynamics/diagnostics/exact_reference_store.py`, or pass
-  `--allow-unverified-response-scales` to score against the sidecar's recorded
-  scales — that degraded mode never reports `OK`.
+  `output/paper_ii_staged/exact_references/`, which lives in gitignored
+  `output/` and is therefore routinely missing on a fresh clone or machine
+  (`EVIDENCE_PARITY_AUDIT_20260831.md` §2.2). Regenerate it first with
+  `pipelines/time_dynamics/diagnostics/exact_reference_store.py` (~22 s, six
+  references) — since the 2026-09-01 rebaseline (`7ca8df10`, sidecar pins
+  adopted onto the regenerated store), regeneration verifies cleanly and the
+  runner reaches `OK` on the response-scale check without any flag.
+  `--allow-unverified-response-scales` remains only an escape hatch for a
+  machine that cannot regenerate; that degraded mode never reports `OK`.
+  (Note: response-scale `OK` does not make the whole run `OK` — sameness axes
+  undeclared by CHTC-side payloads still hold it at `WARN`/`INCOMPLETE`.)
 
 ## Order of operations
 
