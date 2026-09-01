@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import math
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Sequence
 
@@ -46,6 +47,7 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     word_keys,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.performance import count, phase
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     StructuralInsertionCache,
     memoized_solve_metadata,
@@ -54,6 +56,61 @@ from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
 
 
 GENERALIZED_EXCHANGE_STRUCTURAL_POLICY_V2 = "paper_ii_generalized_exchange_structural_v2"
+
+
+def _scoring_worker_count(requested: int, task_count: int) -> int:
+    """Effective thread count for one family's memo warm.
+
+    Mirrors the trajectory-level clamp semantics: one task or one requested
+    worker means the serial path; otherwise never more workers than tasks.
+    """
+
+    if int(requested) < 1:
+        raise ValueError("scoring_workers must be positive.")
+    if int(task_count) <= 1 or int(requested) <= 1:
+        return 1
+    return min(int(requested), int(task_count))
+
+
+def _warm_solve_memo(
+    q_of: Callable[[tuple[int, ...], tuple[tuple[str, int], ...]], float],
+    keys: Sequence[tuple[tuple[int, ...], tuple[tuple[str, int], ...]]],
+    solve_memo: Mapping[tuple, Any],
+    requested_workers: int,
+) -> int:
+    """Speculatively populate the checkpoint solve memo for one family.
+
+    Workers only *warm* the memo: every key is deduplicated first-occurrence
+    and filtered against entries that already exist, so each remaining key is
+    solved exactly once, by exactly one worker, writing a disjoint memo entry.
+    The authoritative scoring loop then replays serially with pure memo hits,
+    which keeps candidates, scores, ordering, telemetry, and exception
+    positions bitwise identical to the single-worker path.  A worker failure
+    writes nothing; the serial replay recomputes that key at the exact
+    position the serial code would have, raising the identical exception.
+
+    Returns the effective worker count used (1 means the warm was skipped).
+    """
+
+    missing = [key for key in dict.fromkeys(keys) if key not in solve_memo]
+    workers = _scoring_worker_count(requested_workers, len(missing))
+    if workers <= 1:
+        return 1
+
+    def warm_one(key: tuple) -> None:
+        try:
+            q_of(key[0], key[1])
+        except Exception:
+            # Fail closed later, deterministically: the serial replay hits
+            # the missing memo entry and raises at the serial position.
+            pass
+
+    with phase("patch.exchange.solve_warm"):
+        count("patch.exchange.solve_warm.tasks", len(missing))
+        count(f"patch.exchange.solve_warm.worker_count_{int(workers)}")
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            list(executor.map(warm_one, missing))
+    return int(workers)
 
 
 @dataclass(frozen=True)
@@ -162,6 +219,8 @@ class StructuralEnumeration:
     frontier_schedule: tuple[int, ...]
     frontiers_used: int
     q_base: float
+    scoring_workers_requested: int = 1
+    scoring_workers_effective_max: int = 1
 
     def ranked(self, *, score_floor: float = 0.0) -> tuple[StructuralCandidate, ...]:
         """Non-stay candidates above the floor, score-descending, frozen ties."""
@@ -232,6 +291,7 @@ def iter_structural_families(
     max_insertion_batch_size: int = 1,
     interaction_frontier_widths: Sequence[int] | None = None,
     max_joint_patch_evaluations: int | None = None,
+    scoring_workers: int = 1,
 ):
     """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
 
@@ -257,6 +317,10 @@ def iter_structural_families(
     guard = JointWorkGuard(max_joint_patch_evaluations=max_joint_patch_evaluations)
     conditioning = deletion_conditioning or (lambda removed: 0.0)
     history_loss = deletion_history_loss or (lambda removed: 0.0)
+    workers_requested = int(scoring_workers)
+    if workers_requested < 1:
+        raise ValueError("scoring_workers must be positive.")
+    workers_effective_max = 1
 
     def q_of(removed: tuple[int, ...], selection: tuple[tuple[str, int], ...]) -> float:
         keep = tuple(i for i in all_indices if i not in set(removed))
@@ -377,6 +441,18 @@ def iter_structural_families(
     pure_pool = candidate_pool_for_deletion(())
     d0_size = 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pure_pool)
     if guard.admit("singleton_d0", d0_size):
+        if workers_requested > 1:
+            warm_keys = [
+                ((), ((str(atom_id), int(cut)),))
+                for atom_id in pure_pool
+                for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ()))
+            ]
+            workers_effective_max = max(
+                workers_effective_max,
+                _warm_solve_memo(
+                    q_of, warm_keys, cache.solve_memo, workers_requested
+                ),
+            )
         family_out = [scored((), (), None, "singleton_d0")]
         for atom_id in pure_pool:
             for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
@@ -408,6 +484,26 @@ def iter_structural_families(
         # rungs while scoring nothing.
         if not guard.admit(family, size):
             break
+        if workers_requested > 1:
+            # Permission stays coordinator-only (its evaluator memoizes, so
+            # the replay below re-reads identical decisions); only the
+            # permitted members' solves are warmed.
+            warm_keys: list[tuple] = []
+            for removed, pool in members:
+                if deletion_permission is not None:
+                    if not bool(deletion_permission(removed).permitted):
+                        continue
+                warm_keys.append((removed, ()))
+                for atom_id in pool:
+                    for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
+                        warm_keys.append(((), ((str(atom_id), int(cut)),)))
+                        warm_keys.append((removed, ((str(atom_id), int(cut)),)))
+            workers_effective_max = max(
+                workers_effective_max,
+                _warm_solve_memo(
+                    q_of, warm_keys, cache.solve_memo, workers_requested
+                ),
+            )
         family_out = []
         for removed, pool in members:
             if deletion_permission is not None:
@@ -500,6 +596,18 @@ def iter_structural_families(
             if not guard.admit(family, len(batch)):
                 break
             frontiers_used = level + 1
+            if workers_requested > 1:
+                warm_keys = []
+                for removed, _plan, selection in batch:
+                    warm_keys.append((removed, selection))
+                    warm_keys.append((removed, ()))
+                    warm_keys.append(((), selection))
+                workers_effective_max = max(
+                    workers_effective_max,
+                    _warm_solve_memo(
+                        q_of, warm_keys, cache.solve_memo, workers_requested
+                    ),
+                )
             family_out = [
                 scored(removed, selection, plan, family)
                 for removed, plan, selection in batch
@@ -515,6 +623,8 @@ def iter_structural_families(
         frontier_schedule=schedule,
         frontiers_used=frontiers_used,
         q_base=q_base,
+        scoring_workers_requested=workers_requested,
+        scoring_workers_effective_max=workers_effective_max,
     )
 
 

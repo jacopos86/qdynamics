@@ -260,3 +260,41 @@ def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
     for point in payload["trajectory"]["points"]:
         metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
         assert int(metadata.get("checkpoint_commit_count", 0)) <= 2
+def test_exchange_route_parallel_workers_reproduce_golden_trajectory() -> None:
+    # Scoring workers are execution-resource only: the parallel trajectory
+    # must be bitwise identical to the serial one — decisions, support
+    # evolution, energies, and permission telemetry all compare with ==.
+    serial = _run()
+    parallel = _run(support_patch_scoring_workers=4)
+
+    assert _decisions(parallel) == _decisions(serial)
+    serial_energies = [row["energy_expectation"] for row in serial["plot_rows"]]
+    parallel_energies = [
+        row["energy_expectation"] for row in parallel["plot_rows"]
+    ]
+    assert parallel_energies == serial_energies
+    serial_params = [
+        p["runtime_parameter_count"] for p in serial["trajectory"]["points"]
+    ]
+    parallel_params = [
+        p["runtime_parameter_count"] for p in parallel["trajectory"]["points"]
+    ]
+    assert parallel_params == serial_params
+    for key in (
+        "runtime_parameter_count_final",
+        "deletion_permission_evaluated_set_count",
+        "deletion_permission_permitted_set_count",
+        "deletion_permission_rejected_set_count",
+        "max_mclachlan_residual_ratio",
+    ):
+        assert parallel["summary"][key] == serial["summary"][key]
+    assert (
+        parallel["decision_data_flow"]["uses_exact_reference_for_decision"]
+        is False
+    )
+    assert (
+        parallel["trajectory"]["support_patch_config"][
+            "support_patch_scoring_workers"
+        ]
+        == 4
+    )

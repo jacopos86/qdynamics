@@ -12,7 +12,9 @@ from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInp
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
 from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
     StructuralScoreWeights,
+    _warm_solve_memo,
     enumerate_structural_candidates,
+    iter_structural_families,
     resolve_frontier_schedule,
 )
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
@@ -389,3 +391,181 @@ def test_history_term_enters_deletion_denominator_exactly() -> None:
         )
         assert c.deletion_utility == pytest.approx(expected, rel=1.0e-9)
         assert c.deletion_utility < ref.deletion_utility
+
+
+# ---------------------------------------------------------------------------
+# Deterministic parallel scoring (speculative memo warm)
+# ---------------------------------------------------------------------------
+
+
+def _candidate_fingerprint(candidate) -> tuple:
+    return (
+        candidate.removed_runtime_indices,
+        candidate.inserted_selection,
+        candidate.family,
+        candidate.order_key,
+        candidate.q,
+        candidate.insertion_gain,
+        candidate.deletion_loss,
+        candidate.delta,
+        candidate.insertion_utility,
+        candidate.deletion_utility,
+        candidate.score,
+        candidate.rank_primary,
+        candidate.rank_secondary,
+    )
+
+
+def _family_stream(kwargs) -> tuple[list, object]:
+    families = []
+    telemetry = None
+    for family, members, final in iter_structural_families(**kwargs):
+        if family == "__telemetry__":
+            telemetry = final
+            continue
+        families.append(
+            (family, tuple(_candidate_fingerprint(c) for c in members))
+        )
+    return families, telemetry
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        WEIGHTS,
+        StructuralScoreWeights(
+            lambda_cond_relief=5.0, lambda_cond_damage=3.0
+        ),
+    ],
+    ids=["default_weights", "conditioning_weights"],
+)
+def test_parallel_scoring_matches_serial_candidates_bitwise(weights) -> None:
+    # Bitwise contract: parallel warm must execute the same arithmetic on the
+    # same inputs, so every float compares with ==, never approx.  The
+    # conditioning-weight leg turns any memo-population ordering defect into a
+    # hard score difference.
+    _s1, _e1, _c1, _cuts1, serial_kwargs = _setup(
+        max_insertion_batch_size=2, weights=weights
+    )
+    _s2, _e2, _c2, _cuts2, parallel_kwargs = _setup(
+        max_insertion_batch_size=2, weights=weights, scoring_workers=4
+    )
+    serial_families, serial_tel = _family_stream(serial_kwargs)
+    parallel_families, parallel_tel = _family_stream(parallel_kwargs)
+
+    assert parallel_families == serial_families
+    assert any(f.startswith("singleton_d1") for f, _m in serial_families)
+    assert any(f.startswith("frontier_") for f, _m in serial_families)
+    assert dict(parallel_tel.priorities) == dict(serial_tel.priorities)
+    assert parallel_tel.eligible_universe == serial_tel.eligible_universe
+    assert parallel_tel.frontier_schedule == serial_tel.frontier_schedule
+    assert parallel_tel.frontiers_used == serial_tel.frontiers_used
+    assert parallel_tel.q_base == serial_tel.q_base
+    assert (
+        parallel_tel.guard.to_json_dict() == serial_tel.guard.to_json_dict()
+    )
+    assert serial_tel.scoring_workers_requested == 1
+    assert serial_tel.scoring_workers_effective_max == 1
+    assert parallel_tel.scoring_workers_requested == 4
+    assert parallel_tel.scoring_workers_effective_max > 1
+
+
+def test_parallel_scoring_is_repeatable_across_runs() -> None:
+    first = _family_stream(_setup(scoring_workers=4)[4])
+    second = _family_stream(_setup(scoring_workers=4)[4])
+    assert first[0] == second[0]
+    assert first[1].guard.to_json_dict() == second[1].guard.to_json_dict()
+
+
+def test_warm_solve_memo_dedupes_and_ignores_completion_order() -> None:
+    import threading
+    import time as time_module
+
+    calls: list[tuple] = []
+    lock = threading.Lock()
+    memo: dict = {(("seeded",), ()): (0.0, 0.0, None, 0)}
+
+    def fake_q_of(removed, selection):
+        with lock:
+            calls.append((removed, selection))
+        # Later-submitted tasks finish first: completion order is adversarial.
+        time_module.sleep(0.002 if not removed else 0.0)
+        memo[(removed, selection)] = (1.0, 1.0, None, 1)
+        return 1.0
+
+    keys = [
+        ((), (("a", 0),)),
+        ((1,), ()),
+        ((), (("a", 0),)),  # duplicate: must be warmed once
+        (("seeded",), ()),  # already memoized: must not be warmed
+        ((2,), (("b", 1),)),
+    ]
+    effective = _warm_solve_memo(fake_q_of, keys, memo, 4)
+    assert effective == 3
+    assert sorted(calls) == sorted(
+        [((), (("a", 0),)), ((1,), ()), ((2,), (("b", 1),))]
+    )
+    assert len(calls) == 3
+    assert (("seeded",), ()) in memo and len(memo) == 4
+
+
+def test_warm_solve_memo_clamps_to_serial_for_degenerate_tasks() -> None:
+    memo: dict = {}
+    calls: list = []
+
+    def fake_q_of(removed, selection):
+        calls.append((removed, selection))
+        memo[(removed, selection)] = (1.0, 1.0, None, 1)
+        return 1.0
+
+    # One missing task: serial path, no pool.
+    assert _warm_solve_memo(fake_q_of, [((), (("a", 0),))], memo, 8) == 1
+    assert calls == []  # skipped entirely; the replay computes it
+    # Zero missing tasks: serial path.
+    memo[((), (("a", 0),))] = (1.0, 1.0, None, 1)
+    assert _warm_solve_memo(fake_q_of, [((), (("a", 0),))], memo, 8) == 1
+    with pytest.raises(ValueError):
+        _warm_solve_memo(fake_q_of, [], memo, 0)
+
+
+def test_scoring_workers_zero_is_rejected() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup(scoring_workers=0)
+    with pytest.raises(ValueError, match="scoring_workers"):
+        list(iter_structural_families(**kwargs))
+
+
+def test_scoring_solve_exception_propagates_at_serial_position(
+    monkeypatch,
+) -> None:
+    import pipelines.time_dynamics.ap_mclachlan.exchange_structural as module
+
+    real_solve = module.structural_candidate_solve
+    poison_selection_atom = "cb"
+
+    def poisoned_solve(**kwargs):
+        memo_key = kwargs.get("memo_key")
+        if memo_key is not None and memo_key[1] and memo_key[1][0][0] == (
+            poison_selection_atom
+        ):
+            raise ValueError("poisoned candidate solve")
+        return real_solve(**kwargs)
+
+    outcomes = []
+    for workers in (1, 4):
+        monkeypatch.setattr(module, "structural_candidate_solve", poisoned_solve)
+        _s, _e, _c, _cuts, kwargs = _setup(scoring_workers=workers)
+        families = []
+        with pytest.raises(ValueError, match="poisoned candidate solve"):
+            for family, members, _final in iter_structural_families(**kwargs):
+                families.append(
+                    (family, tuple(_candidate_fingerprint(c) for c in members))
+                )
+        outcomes.append(families)
+        monkeypatch.setattr(module, "structural_candidate_solve", real_solve)
+    # Fail-closed at the identical serial position: same yielded prefix, and
+    # no member of the failing family ever escapes.
+    assert outcomes[0] == outcomes[1]
+    assert all(
+        not any(f.startswith("singleton_d0") for f, _m in fams)
+        for fams in outcomes
+    )

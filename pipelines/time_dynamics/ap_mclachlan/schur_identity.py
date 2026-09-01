@@ -98,8 +98,18 @@ def exact_deletion_loss(
 
     if len(list(deleted)) == 0:
         return 0.0
-    S = schur_novelty_block(K, retained, deleted)
-    r = schur_drive_residual(K, f, retained, deleted)
+    # One shared pinv(K_RR) serves both the novelty block and the drive
+    # residual; the expressions and operand order below are exactly those of
+    # schur_novelty_block / schur_drive_residual, so the results are bitwise
+    # identical to the two-call form while paying one SVD instead of two.
+    K_RR, K_RD, K_DD, f_R, f_D = _blocks(K, f, retained, deleted)
+    if K_RR.size == 0:
+        S = np.asarray(K_DD, dtype=float)
+        r = np.asarray(f_D, dtype=float)
+    else:
+        P = np.linalg.pinv(K_RR)
+        S = np.asarray(K_DD - K_RD.T @ P @ K_RD, dtype=float)
+        r = np.asarray(f_D - K_RD.T @ P @ f_R, dtype=float)
     return float(max(0.0, r @ np.linalg.pinv(S) @ r))
 
 

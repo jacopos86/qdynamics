@@ -41,6 +41,7 @@ from typing import Any, Mapping
 
 import hashlib
 import json
+import os
 
 import numpy as np
 
@@ -103,6 +104,19 @@ from pipelines.time_dynamics.generalized_exchange import (
     GeneralizedPatch,
     REALIZED_REFUSE,
     REALIZED_RETRY_INSERT_FACE,
+)
+
+
+# BLAS-thread environment recorded with every selection's parallelism
+# telemetry (same variable set the runtime-benchmark harness pins/records).
+# A worker fan-out multiplies against whatever ambient BLAS threading these
+# describe, so the receipt must carry them for oversubscription audits.
+BLAS_THREAD_ENV_VARS: tuple[str, ...] = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
 )
 
 
@@ -552,6 +566,7 @@ def build_selector_inputs(
         max_insertion_batch_size=max_batch,
         interaction_frontier_widths=exchange_config.search.interaction_frontier_widths,
         max_joint_patch_evaluations=exchange_config.search.joint_patch_evaluations,
+        scoring_workers=int(exchange_config.search.scoring_workers),
     )
     return {
         "atoms_by_id": atoms_by_id,
@@ -769,6 +784,24 @@ def select_generalized_exchange_patch(
         "attempts": [a.to_json_dict() for a in selection.attempts[-16:]],
         "cost_normalization": "per_candidate_raw_v1",
         "deletion_permission": permission_evaluator.summary(),
+        "structural_scoring_parallelism": {
+            "schema": "paper_ii_exchange_scoring_parallelism_v1",
+            "requested_workers": int(exchange_config.search.scoring_workers),
+            "effective_workers_max": (
+                None
+                if selection.telemetry is None
+                else int(selection.telemetry.scoring_workers_effective_max)
+            ),
+            "execution_mode": (
+                "serial"
+                if int(exchange_config.search.scoring_workers) == 1
+                else "speculative_memo_threads"
+            ),
+            "worker_clamp_policy": "min_requested_and_family_missing_solve_count",
+            "blas_thread_env": {
+                name: os.environ.get(name) for name in BLAS_THREAD_ENV_VARS
+            },
+        },
     }
     if selection.telemetry is not None:
         payload["work_guard"] = selection.telemetry.guard.to_json_dict()

@@ -1893,16 +1893,18 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=2,
         help=(
-            "Classical support-patch candidate scoring workers. Threads cover "
-            "append/prune/exchange candidate scoring only, and reduce in "
-            "canonical task order, so worker count never changes a decision; "
-            "1 remains the serial reference execution of the same code path. "
-            "The default of 2 is calibrated rather than assumed: on an 8-core "
-            "Apple-Accelerate host one L=2 conditioning-stress trajectory "
-            "measured 10.7s at 1 worker, 8.5s at 2, 9.3s at 4 and 10.3s at 8, "
-            "because candidate scoring is GIL-bound and extra workers cost "
-            "more contention than they recover. Recalibrate for another host "
-            "or problem size with "
+            "Classical support-patch scoring workers for the generalized-"
+            "exchange structural search. Workers above 1 only pre-warm the "
+            "checkpoint solve memo over deduplicated candidate solves; the "
+            "authoritative scoring loop always replays serially in canonical "
+            "order with memo hits, so worker count never changes a decision, "
+            "score, ordering, or telemetry count. 1 is the untouched serial "
+            "reference path. The numeric kernels (eigh/pinv) release the GIL, "
+            "so useful concurrency requires an ambient BLAS thread count of "
+            "1 (OMP/OPENBLAS/MKL/VECLIB/NUMEXPR *_NUM_THREADS); the ambient "
+            "values are recorded per selection in "
+            "structural_scoring_parallelism. Recalibrate for another host or "
+            "problem size with "
             "pipelines.time_dynamics.diagnostics.ap_runtime_benchmark."
         ),
     )

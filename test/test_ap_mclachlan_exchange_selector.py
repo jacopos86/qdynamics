@@ -264,3 +264,41 @@ def test_selection_is_deterministic() -> None:
         x.to_json_dict() for x in b.attempts
     ]
     assert a.committed.order_key == b.committed.order_key
+
+
+def test_selection_parallel_matches_serial_attempts_and_commit() -> None:
+    # Bitwise contract: scoring workers must not change any attempt, score,
+    # order, or commit; floats compare with ==, never approx.
+    scenarios = (
+        dict(gates=CertificationGates(ray_distance_max=1.0, smoothness_eta_max=1e6)),
+        dict(
+            gates=CertificationGates(
+                ray_distance_max=1.0e-15, smoothness_eta_max=1.0e-15
+            ),
+            structural=dict(
+                candidate_pool_for_deletion=lambda removed: (),
+                cuts_by_atom={},
+            ),
+        ),
+    )
+    for scenario in scenarios:
+        results = []
+        for workers in (1, 4):
+            overrides = dict(scenario.get("structural", {}))
+            overrides["scoring_workers"] = workers
+            kwargs = _selection_kwargs(**overrides)
+            selection = select_exchange_patch(
+                gates=scenario["gates"], **kwargs
+            )
+            results.append(selection)
+        serial, parallel = results
+        assert [a.to_json_dict() for a in parallel.attempts] == [
+            a.to_json_dict() for a in serial.attempts
+        ]
+        assert parallel.stop_reason == serial.stop_reason
+        assert parallel.structural_scored_count == serial.structural_scored_count
+        if serial.committed is None:
+            assert parallel.committed is None
+        else:
+            assert parallel.committed.order_key == serial.committed.order_key
+            assert parallel.committed.score == serial.committed.score

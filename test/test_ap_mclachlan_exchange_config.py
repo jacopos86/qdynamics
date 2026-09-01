@@ -65,3 +65,15 @@ def test_retired_selector_fields_are_not_transport_configuration() -> None:
         "prune_patch_smoothness_enabled",
     ):
         assert not hasattr(route, retired), retired
+
+
+def test_scoring_workers_flow_from_route_config_into_search_budget() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        SupportPatchControllerConfig,
+    )
+
+    config = APGeneralizedExchangeConfig.from_route_config(
+        SupportPatchControllerConfig(support_patch_scoring_workers=4)
+    )
+    assert config.search.scoring_workers == 4
+    assert config.to_json_dict()["search"]["scoring_workers"] == 4

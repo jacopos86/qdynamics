@@ -416,3 +416,43 @@ def test_measurement_free_permission_blocks_deletion_before_certification() -> N
             "evaluated_deletion_set_count"
         ]
     }
+
+
+def test_generalized_exchange_payload_identical_and_worker_telemetry_recorded() -> None:
+    import json as json_module
+
+    serial_selection, serial_payload = _run(_config())
+    parallel_selection, parallel_payload = _run(
+        _config(support_patch_scoring_workers=4)
+    )
+
+    def stripped(payload):
+        out = dict(payload)
+        out.pop("structural_scoring_parallelism")
+        return json_module.dumps(out, sort_keys=True, default=str)
+
+    # Every scientific field — committed patch, attempts, scores, work guard,
+    # q_base, permission summary — is identical; only the parallelism
+    # telemetry block may differ.
+    assert stripped(parallel_payload) == stripped(serial_payload)
+    assert parallel_selection.kind == serial_selection.kind
+
+    serial_tel = serial_payload["structural_scoring_parallelism"]
+    assert serial_tel["schema"] == "paper_ii_exchange_scoring_parallelism_v1"
+    assert serial_tel["requested_workers"] == 1
+    assert serial_tel["execution_mode"] == "serial"
+    parallel_tel = parallel_payload["structural_scoring_parallelism"]
+    assert parallel_tel["requested_workers"] == 4
+    assert parallel_tel["execution_mode"] == "speculative_memo_threads"
+    for tel in (serial_tel, parallel_tel):
+        assert set(tel["blas_thread_env"]) == {
+            "OMP_NUM_THREADS",
+            "OPENBLAS_NUM_THREADS",
+            "MKL_NUM_THREADS",
+            "VECLIB_MAXIMUM_THREADS",
+            "NUMEXPR_NUM_THREADS",
+        }
+        assert (
+            tel["worker_clamp_policy"]
+            == "min_requested_and_family_missing_solve_count"
+        )
