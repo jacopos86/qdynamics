@@ -572,3 +572,73 @@ def test_small_systems_reuse_the_same_table_object() -> None:
     first, _ = _permutation_and_signs(action)
     second, _ = _permutation_and_signs(action)
     assert first is second
+
+
+def test_logical_shared_batched_all_tangents_bitwise_match_serial_path() -> None:
+    # The all-logical-tangent request takes the batched suffix-propagation
+    # path; requesting one index at a time takes the per-tangent serial path.
+    # The batched pass restructures the loop order only, so every tangent and
+    # the prepared state must be BITWISE identical (array_equal, no
+    # tolerance), including a zero-angle plan and a grouped_exact plan (which
+    # falls back to per-column single-vector application).
+    terms = [
+        AnsatzTerm(
+            label="multi",
+            polynomial=PauliPolynomial(
+                "JW",
+                [
+                    PauliTerm(2, ps="xx", pc=1.0),
+                    PauliTerm(2, ps="zz", pc=0.5),
+                    PauliTerm(2, ps="ye", pc=0.25),
+                ],
+            ),
+        ),
+        AnsatzTerm(
+            label="single",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="yy", pc=0.75)]),
+        ),
+        AnsatzTerm(
+            label="grouped",
+            polynomial=PauliPolynomial(
+                "JW",
+                [
+                    PauliTerm(2, ps="xx", pc=0.6),
+                    PauliTerm(2, ps="zz", pc=0.3),
+                ],
+            ),
+            execution_mode="grouped_exact",
+        ),
+        AnsatzTerm(
+            label="zeroangle",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="ex", pc=0.5)]),
+        ),
+        AnsatzTerm(
+            label="tail",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="ze", pc=0.9)]),
+        ),
+    ]
+    theta_logical = np.array([0.2, -0.1, 0.35, 0.0, -0.27], dtype=float)
+    psi_ref = _random_state(2, seed=811)
+    executor = CompiledAnsatzExecutor(
+        terms,
+        coefficient_tolerance=1e-12,
+        ignore_identity=True,
+        sort_terms=True,
+        parameterization_mode="logical_shared",
+    )
+
+    psi_batched, tangents_batched = executor.prepare_state_with_parameter_tangents(
+        theta_logical,
+        psi_ref,
+    )
+    assert sorted(tangents_batched) == list(range(len(terms)))
+    for logical_idx in range(len(terms)):
+        psi_serial, tangent_serial = executor.prepare_state_with_parameter_tangents(
+            theta_logical,
+            psi_ref,
+            parameter_indices=[logical_idx],
+        )
+        assert np.array_equal(psi_batched, psi_serial)
+        assert np.array_equal(
+            tangents_batched[logical_idx], tangent_serial[logical_idx]
+        )

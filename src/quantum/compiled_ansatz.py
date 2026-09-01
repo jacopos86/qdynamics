@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import math
 from typing import TYPE_CHECKING, Any, Literal, Sequence
 
 import numpy as np
@@ -662,6 +663,43 @@ class CompiledAnsatzExecutor:
             )
         return np.asarray(out, dtype=complex)
 
+    def _apply_plan_to_columns(
+        self,
+        matrix: np.ndarray,
+        plan: CompiledPolynomialRotationPlan,
+        dt: float,
+    ) -> np.ndarray:
+        """Column-batched :meth:`_apply_plan`, bitwise identical per column.
+
+        Termwise plans apply each rotation step to every column at once with
+        the same ``math.cos``/``math.sin`` scalars, row gather, sign
+        broadcast, and operand order as the single-vector
+        ``apply_exp_term``, so each output column carries exactly the bits
+        the per-vector path produces.  ``grouped_exact`` plans fall back to
+        the per-column single-vector path: their dense application is a
+        matrix product whose batched (GEMM) reduction order is not provably
+        bitwise equal to the per-vector (GEMV) one.
+        """
+
+        if float(dt) == 0.0:
+            return np.asarray(matrix, dtype=complex)
+        if str(plan.execution_mode).strip().lower() == "grouped_exact":
+            out = np.asarray(matrix, dtype=complex).copy()
+            for col in range(int(out.shape[1])):
+                out[:, col] = self._apply_plan(out[:, col], plan, float(dt))
+            return out
+        out = np.asarray(matrix, dtype=complex)
+        for step in plan.steps:
+            coeff_c = complex(step.coeff_real)
+            if abs(coeff_c.imag) > float(self.coefficient_tolerance):
+                raise ValueError(
+                    f"Imaginary coefficient encountered for {step.action.label_exyz}: {coeff_c}"
+                )
+            theta = float(dt) * float(coeff_c.real)
+            pauli_values = apply_compiled_pauli_to_columns(out, step.action)
+            out = math.cos(theta) * out - 1j * math.sin(theta) * pauli_values
+        return np.asarray(out, dtype=complex)
+
     @staticmethod
     def _apply_generator_hamiltonian(
         psi: np.ndarray,
@@ -1039,6 +1077,12 @@ class CompiledAnsatzExecutor:
                     f"psi_ref length mismatch: got {psi.size}, expected {expected_dim} for nq={self.nq}."
                 )
 
+        if requested_unique == list(range(int(self.logical_parameter_count))):
+            return self._prepare_state_with_all_logical_tangents_batched(
+                theta_vec,
+                psi,
+            )
+
         requested_set = set(requested_unique)
         local_tangent_after_plan: dict[int, np.ndarray] = {}
         for logical_idx, plan in enumerate(self._plans):
@@ -1060,6 +1104,41 @@ class CompiledAnsatzExecutor:
                 )
             tangents[int(logical_idx)] = np.asarray(tangent, dtype=complex)
 
+        return np.asarray(psi, dtype=complex), tangents
+
+    def _prepare_state_with_all_logical_tangents_batched(
+        self,
+        theta_vec: np.ndarray,
+        psi: np.ndarray,
+    ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
+        """All-logical-tangent pass with batched suffix propagation.
+
+        The per-tangent serial path applies every later plan to each tangent
+        one vector at a time — an O(L^2) walk of single-vector rotations that
+        dominates AP-McLachlan propagation wall time.  Here each plan is
+        applied once to the accumulated column matrix instead.  For a fixed
+        column the operation sequence, scalars, and operand order are exactly
+        the serial ones (see :meth:`_apply_plan_to_columns`), so every
+        tangent is bitwise identical to the per-tangent path.
+        """
+
+        logical_count = int(self.logical_parameter_count)
+        tangent_matrix = np.zeros((int(psi.size), logical_count), dtype=complex)
+        for logical_idx, plan in enumerate(self._plans):
+            dt = float(theta_vec[logical_idx])
+            if logical_idx > 0 and dt != 0.0:
+                tangent_matrix[:, :logical_idx] = self._apply_plan_to_columns(
+                    tangent_matrix[:, :logical_idx], plan, dt
+                )
+            psi, tangent = self._apply_plan_with_logical_tangent(psi, plan, dt)
+            tangent_matrix[:, logical_idx] = np.asarray(tangent, dtype=complex)
+
+        tangents = {
+            int(logical_idx): np.asarray(
+                tangent_matrix[:, logical_idx], dtype=complex
+            ).copy()
+            for logical_idx in range(logical_count)
+        }
         return np.asarray(psi, dtype=complex), tangents
 
 
