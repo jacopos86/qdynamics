@@ -483,6 +483,11 @@ def build_selector_inputs(
         )
 
     def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
+        if state.parameterization_mode == "logical_shared":
+            return (
+                f"{atom.atom_label}::insr{int(time_index)}c{int(cut)}o{int(ordinal)}"
+                "::logical::generator"
+            )
         # Stable child form ("::r0::<pauli>" suffix) so the rebuilt layout
         # keeps the label verbatim instead of re-suffixing it.
         pauli = pauli_by_atom[str(atom.atom_id)]

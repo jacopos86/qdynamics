@@ -10,6 +10,7 @@ the recorded values in one place, with the change visible in review.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from types import SimpleNamespace
 
 import numpy as np
@@ -161,3 +162,79 @@ def test_avqds_policy_golden_trajectory() -> None:
     counts = [p["runtime_parameter_count"] for p in payload["trajectory"]["points"]]
     assert all(b >= a for a, b in zip(counts, counts[1:]))
     assert summary["runtime_parameter_count_final"] >= 2
+
+
+@pytest.mark.parametrize(
+    ("integrator", "solve_repair", "parameter_displacement_max"),
+    (
+        ("rk4", SolveRepairConfig.minimal_profile(), None),
+        ("euler", SolveRepairConfig(), 5.0e-3),
+        (
+            "rk4",
+            replace(SolveRepairConfig.minimal_profile(), parameter_step_max=5.0e-3),
+            None,
+        ),
+    ),
+)
+def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
+    integrator,
+    solve_repair,
+    parameter_displacement_max,
+) -> None:
+    from pipelines.time_dynamics.run_lock import assert_comparable
+
+    common = dict(
+        deletion_enabled=False,
+        insertion_gate_mode="mclachlan_l2",
+        insertion_l2_cut=1.0e9,
+        avqds_l2_cut=1.0e9,
+        avqds_delta_theta_max=parameter_displacement_max,
+        max_structural_pool_size=2,
+    )
+    payloads = []
+    for policy in ("exchange", "avqds"):
+        payloads.append(
+            run_append_ap_mclachlan_from_runtime_input(
+                _runtime_input(),
+                times=tuple(0.05 * k for k in range(5)),
+                integrator_method=integrator,
+                pinv_rcond=1.0e-10,
+                ridge_lambda=1.0e-7,
+                controller_config=AppendControllerConfig(max_append_candidates=0),
+                support_patch_config=SupportPatchControllerConfig(
+                    **common, dynamics_policy=policy
+                ),
+                solve_repair_config=solve_repair,
+            )
+        )
+
+    assert assert_comparable([payload["run_lock"] for payload in payloads])
+    exchange_points, avqds_points = (
+        payload["trajectory"]["points"] for payload in payloads
+    )
+    assert len(exchange_points) == len(avqds_points)
+    for exchange_point, avqds_point in zip(exchange_points, avqds_points):
+        assert exchange_point["theta_runtime"] == pytest.approx(
+            avqds_point["theta_runtime"], abs=1.0e-12
+        )
+        assert exchange_point["energy_expectation"] == pytest.approx(
+            avqds_point["energy_expectation"], abs=1.0e-12
+        )
+        assert exchange_point["integration_to_next"] == avqds_point[
+            "integration_to_next"
+        ]
+        assert exchange_point["parameter_stepping_to_next"] == avqds_point[
+            "parameter_stepping_to_next"
+        ]
+
+
+def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
+    payload = _run(
+        deletion_enabled=False,
+        insertion_gate_mode="mclachlan_l2",
+        insertion_l2_cut=1.0e-15,
+        max_insertion_rounds_per_checkpoint=2,
+    )
+    for point in payload["trajectory"]["points"]:
+        metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
+        assert int(metadata.get("checkpoint_commit_count", 0)) <= 2

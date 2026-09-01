@@ -478,13 +478,17 @@ def state_with_appended_runtime_coordinates(
 
 
 def _per_coordinate_terms(state: APMcLachlanState) -> tuple[Any, ...]:
-    """One single-child term per runtime coordinate, in runtime order.
+    """One term per active coordinate, in runtime order.
 
-    Multi-child parent blocks are split into their ordered Pauli children.
-    The executor applies term plans as an ordered product, so the split
-    preserves the implemented unitary and every tangent exactly; labels stay
-    the stable per-coordinate labels.
+    In ``logical_shared`` mode a coordinate is the intact macro generator, so
+    its ordered Pauli children must remain together.  In ``per_pauli_term``
+    mode multi-child parent blocks are split into their ordered Pauli children.
+    The latter preserves the implemented unitary and every tangent exactly;
+    labels stay the stable per-coordinate labels.
     """
+
+    if state.parameterization_mode == AP_PARAMETERIZATION_LOGICAL_SHARED:
+        return tuple(state.terms)
 
     labels = state.runtime_coordinate_labels
     out: list[Any] = []
@@ -524,18 +528,13 @@ def state_with_inserted_runtime_coordinates(
     unchanged — the identity every zero-angle structural patch relies on, and
     verified here after the rebuild.
 
-    Only ``per_pauli_term`` states are supported: the exchange selector's
-    support granularity is the Pauli child, and internal insertion may split a
-    multi-child parent block into its ordered children (implemented-unitary
-    preserving; see :func:`_per_coordinate_terms`).
+    Cuts always index the state's configured support granularity.  Thus a
+    ``per_pauli_term`` insertion is one Pauli child, while a
+    ``logical_shared`` insertion retains the complete macro generator as one
+    coordinate.  Existing parent blocks are split only on the per-Pauli route
+    (implemented-unitary preserving; see :func:`_per_coordinate_terms`).
     """
 
-    if state.parameterization_mode != AP_PARAMETERIZATION_PER_PAULI_TERM:
-        raise ValueError(
-            "state_with_inserted_runtime_coordinates requires "
-            "parameterization_mode='per_pauli_term'; got "
-            f"{state.parameterization_mode!r}."
-        )
     theta_base = (
         np.asarray(state.theta_runtime, dtype=float).reshape(-1)
         if theta_runtime is None
@@ -555,8 +554,21 @@ def state_with_inserted_runtime_coordinates(
                 f"insertion cut {int(cut)} out of range [0, {n}] for label {label!r}."
             )
 
+    inserted_runtime_labels = tuple(
+        (
+            f"{_term_label_for_appended_coordinate(state, str(label))}"
+            "::logical::generator"
+            if state.parameterization_mode == AP_PARAMETERIZATION_LOGICAL_SHARED
+            else str(label)
+        )
+        for _cut, _term, label in entries
+    )
     inserted_terms = tuple(
-        _term_with_label(term, label=str(label)) for _cut, term, label in entries
+        _term_with_label(
+            term,
+            label=_term_label_for_appended_coordinate(state, str(label)),
+        )
+        for _cut, term, label in entries
     )
     inserted_layout = build_parameter_layout(
         inserted_terms,
@@ -564,21 +576,26 @@ def state_with_inserted_runtime_coordinates(
         coefficient_tolerance=float(state.layout.coefficient_tolerance),
         sort_terms=(str(state.layout.term_order).strip().lower() == "sorted"),
     )
-    multi = [
-        str(block.candidate_label)
-        for block in inserted_layout.blocks
-        if int(block.runtime_count) != 1
-    ]
-    if multi:
-        raise ValueError(
-            "per_pauli_term runtime-coordinate insertion requires one Pauli "
-            f"child per inserted term; invalid labels: {multi}."
-        )
+    if state.parameterization_mode == AP_PARAMETERIZATION_PER_PAULI_TERM:
+        multi = [
+            str(block.candidate_label)
+            for block in inserted_layout.blocks
+            if int(block.runtime_count) != 1
+        ]
+        if multi:
+            raise ValueError(
+                "per_pauli_term runtime-coordinate insertion requires one Pauli "
+                f"child per inserted term; invalid labels: {multi}."
+            )
 
     survivor_terms = _per_coordinate_terms(state)
     inserted_by_cut: dict[int, list[tuple[Any, str]]] = {}
-    for (cut, _term, label), resolved in zip(entries, inserted_terms):
-        inserted_by_cut.setdefault(int(cut), []).append((resolved, str(label)))
+    for (cut, _term, _label), resolved, runtime_label in zip(
+        entries, inserted_terms, inserted_runtime_labels
+    ):
+        inserted_by_cut.setdefault(int(cut), []).append(
+            (resolved, str(runtime_label))
+        )
 
     interleaved_terms: list[Any] = []
     interleaved_labels: list[str] = []

@@ -2144,6 +2144,11 @@ def _avqds_decision_at_checkpoint(
     atoms = {str(atom.atom_id): atom for atom in pool_atoms}
 
     def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
+        if state.parameterization_mode == "logical_shared":
+            return (
+                f"{atom.atom_label}::avqds{int(time_index)}c{int(cut)}o{int(ordinal)}"
+                "::logical::generator"
+            )
         return (
             f"{atom.atom_label}::avqds{int(time_index)}c{int(cut)}o{int(ordinal)}"
             f"::r0::{pauli_by_atom[str(atom.atom_id)]}"
