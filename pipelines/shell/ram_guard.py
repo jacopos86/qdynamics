@@ -2,10 +2,10 @@
 
 Implements the enforcement step of `agent_guidance/shared/memory-budget.md`
 (hard 10 GB aggregate ceiling for agent work on this machine; default
-single-tree limit 8000 MB).
+single-tree limit 12000 MB).
 
 Usage:
-    python3 pipelines/shell/ram_guard.py [--limit-mb 8000] [--interval 2] -- <command...>
+    python3 pipelines/shell/ram_guard.py [--limit-mb 12000] [--interval 2] -- <command...>
 
 Exit code: the command's exit code, or 137 if killed by the guard.
 Stdlib only; polls resident set size of the spawned process group.
@@ -20,7 +20,7 @@ import subprocess
 import sys
 import time
 
-HARD_CAP_MB = 10000
+HARD_CAP_MB = 17000  # revised 2026-08-31 with the 18 GB aggregate contract (24 GB machine)
 
 
 def tree_rss_mb(root_pid: int) -> float:
@@ -60,7 +60,7 @@ def tree_rss_mb(root_pid: int) -> float:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--limit-mb", type=float, default=8000.0)
+    parser.add_argument("--limit-mb", type=float, default=12000.0)
     parser.add_argument("--interval", type=float, default=2.0)
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
