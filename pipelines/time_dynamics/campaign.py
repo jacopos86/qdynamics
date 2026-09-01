@@ -44,6 +44,20 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _optional_float_matches(actual: Any, expected: float | None) -> bool:
+    if expected is None:
+        return actual is None
+    try:
+        return math.isclose(
+            float(actual),
+            float(expected),
+            rel_tol=1.0e-12,
+            abs_tol=0.0,
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def _cut_label(value: float) -> str:
     return f"{float(value):.1e}".replace("+", "").replace(".", "p")
 
@@ -812,28 +826,37 @@ def audit_completed_campaign(
                 - int(summary.get("accepted_internal_substep_count") or 0)
             ),
         }
-        if controller_id == "delta_theta_5e-3":
-            checks["controller"] = bool(
-                support.get("avqds_delta_theta_max") == 5.0e-3
-                and not bool(repair.get("enabled"))
-                and int(summary.get("parameter_controlled_interval_count") or 0) > 0
-            )
-        elif controller_id == "state_motion_1e-2":
+        selected_control = _runs.STEP_CONTROLS.get(controller_id)
+        if selected_control is None:
+            checks["controller"] = False
+        elif selected_control.solve_repair_enabled:
             checks["controller"] = bool(
                 support.get("avqds_delta_theta_max") is None
                 and bool(repair.get("enabled"))
-                and repair.get("parameter_step_max") is None
-                and repair.get("state_motion_l2_step_max") == 1.0e-2
-            )
-        elif controller_id == "state_motion_1e-2_plus_parameter_5e-3":
-            checks["controller"] = bool(
-                support.get("avqds_delta_theta_max") is None
-                and bool(repair.get("enabled"))
-                and repair.get("parameter_step_max") == 5.0e-3
-                and repair.get("state_motion_l2_step_max") == 1.0e-2
+                and _optional_float_matches(
+                    repair.get("parameter_step_max"),
+                    selected_control.parameter_step_max,
+                )
+                and _optional_float_matches(
+                    repair.get("state_motion_l2_step_max"),
+                    selected_control.state_motion_l2_step_max,
+                )
+                and (
+                    selected_control.max_local_subdivisions is None
+                    or int(repair.get("max_local_subdivisions", -1))
+                    == int(selected_control.max_local_subdivisions)
+                )
             )
         else:
-            checks["controller"] = False
+            checks["controller"] = bool(
+                not bool(repair.get("enabled"))
+                and _optional_float_matches(
+                    support.get("avqds_delta_theta_max"),
+                    selected_control.parameter_step_max,
+                )
+                and int(summary.get("parameter_controlled_interval_count") or 0)
+                > 0
+            )
 
         cost_path = run_path.with_name("terminal_qiskit_cost.json")
         cost_metrics: dict[str, Any] | None = None

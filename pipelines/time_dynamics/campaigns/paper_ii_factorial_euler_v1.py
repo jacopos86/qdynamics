@@ -36,10 +36,15 @@ from pipelines.time_dynamics.campaign import (
 )
 
 METHOD_IDS = ("exchange", "avqds")
-CONTROLLER_IDS = (
+SOURCE_VALUE_CONTROLLER_IDS = (
     "state_motion_1e-2",
     "delta_theta_5e-3",
     "state_motion_1e-2_plus_parameter_5e-3",
+)
+CONTROLLER_IDS = (
+    "state_motion_5e-5",
+    "delta_theta_5e-5",
+    "state_motion_1e-3_plus_parameter_5e-5",
 )
 DRIVE_IDS = (
     "fastweak",
@@ -149,6 +154,7 @@ __all__ = [
     "METHOD_IDS",
     "NUMERICS_ID",
     "SEED",
+    "SOURCE_VALUE_CONTROLLER_IDS",
     "SMOKE_DRIVE",
     "SMOKE_THRESHOLD",
     "TARGET_MEAN_ABS_ENERGY_ERROR",

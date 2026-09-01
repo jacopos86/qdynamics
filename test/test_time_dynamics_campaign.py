@@ -106,15 +106,15 @@ def test_three_controller_protocols_resolve_to_distinct_live_settings(
             parsed.solve_repair_state_motion_l2_step_max,
             parsed.solve_repair_parameter_step_max,
         )
-    assert values["delta_theta_5e-3"][0:2] == (
+    assert values["delta_theta_5e-5"][0:2] == (
         False,
-        pytest.approx(5.0e-3),
+        pytest.approx(5.0e-5),
     )
-    assert values["state_motion_1e-2"][0] is True
-    assert values["state_motion_1e-2"][2] == pytest.approx(1.0e-2)
-    assert values["state_motion_1e-2_plus_parameter_5e-3"][2:] == (
-        pytest.approx(1.0e-2),
-        pytest.approx(5.0e-3),
+    assert values["state_motion_5e-5"][0] is True
+    assert values["state_motion_5e-5"][2] == pytest.approx(5.0e-5)
+    assert values["state_motion_1e-3_plus_parameter_5e-5"][2:] == (
+        pytest.approx(1.0e-3),
+        pytest.approx(5.0e-5),
     )
 
 
@@ -148,12 +148,12 @@ def test_prior_planner_anchors_target_hits_and_extends_target_misses(
         drive_ids=("fastweak", "weakslow"),
     )
     fast = plan.thresholds_by_configuration[
-        "exchange__state_motion_1e-2__fastweak"
+        "exchange__state_motion_5e-5__fastweak"
     ]
     assert 3.0e-5 in fast  # resource-cheapest old target hit
     assert 1.0e-6 in fast  # next rung after the old AVQDS target miss
     assert plan.thresholds_by_configuration[
-        "avqds__delta_theta_5e-3__weakslow"
+        "avqds__delta_theta_5e-5__weakslow"
     ] == (
         1.0e-2, 3.0e-3, 1.0e-3, 3.0e-4, 1.0e-4, 3.0e-5, 1.0e-5, 3.0e-6
     )
@@ -178,7 +178,7 @@ def test_prior_planner_deduplicates_overlapping_neighbor_rungs(
         drive_ids=("fastweak",),
     )
     cuts = plan.thresholds_by_configuration[
-        "exchange__state_motion_1e-2__fastweak"
+        "exchange__state_motion_5e-5__fastweak"
     ]
     assert cuts == (1.0e-4, 3.0e-5, 1.0e-5, 3.0e-6)
     assert len(cuts) == len(set(cuts))
