@@ -1,0 +1,43 @@
+# SIAM nb4 incremental_exports campaign tarballs -- FIRST sha256 anchor
+# (bytes not committed)
+#
+# Set: RESCUE_FETCH_VERIFICATION_20260901.md sec 7.1 "Anchor gap -- 12 SIAM
+# incremental_exports tarballs": the 11 per-cluster proc0 tarballs
+# (clusters 9713618, 9713835 x2, 9714484, 9714524, 9714525, 9714675, 9714816,
+# 9715075, 9715147, 9715270) plus incoming/...frontier9714675_upload_20260829_v2.tar.gz.
+#
+# WHY THIS TABLE MATTERS: these are the actual per-cluster SIAM raw trajectories -- the
+# substantive fetch -- and before this table NO sha256 for any of them existed anywhere
+# in chtc/, MATH/ or docs/. They are the only set in sec 7.1 with zero anchors of any
+# kind, which is the same anchor gap that already cost fetch items 3 and 5 (the 18 b3mr
+# and 12 sixregime tarballs, now unrecoverable because their bytes vanished before any
+# sha was recorded). Every row below is a FIRST anchor.
+#
+# Not restored as bytes: fails both restore criteria (no recorded sha to match, no
+# second independent source to corroborate against). Anchored here instead.
+#
+# Additional co-located tarballs NOT in sec 7.1's named 12 and still unanchored --
+# incremental_exports/quarantine/r05_manual_archive_20260829T2358Z/siam_nb4_full_apm_r05_9715075_proc0.tar.gz,
+# incremental_exports/quarantine/r06_noncanonical_member_order_20260830T010328Z/siam_nb4_full_apm_r06_9715147_proc0.tar.gz,
+# and the r05 .part fragment. Flagged for a follow-up pass.
+#
+# Provenance: ~/chtc_rescue/home/Holstein_siam_nb4_source_446b75f3_20260828/
+# Bytes remain in the read-only rescue tree at ~/chtc_rescue/ and are NOT committed here.
+# This table is the sha256 anchor for them, pending the user's decision on an
+# off-machine backup of ~/chtc_rescue (RESCUE_FETCH_VERIFICATION_20260901.md sec 7.1).
+# Rescue root: ~/chtc_rescue/ ; the path column is relative to that root.
+# Hashes computed 2026-09-01 directly from the rescue tree; the tree was not modified.
+# rows: 12   total bytes: 13,223,692
+sha256	size_bytes	path_relative_to_rescue_root
+32b4cea7ed2ad9a22b05927a79accde16b1154c111b2932895a726025c718dbc	771181	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9713618/proc0/siam_cluster_9713618_proc0_delta_20260828.tar.gz
+965660a05f9af55d13e6054a6bf977f5507b2741b1969f2a78570c6ee51fc083	817032	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9713835/proc0/siam_nb4_avqds_r01_9713835_proc0.max.tar.gz
+ac5815ff172c42b81c9436b25c2e24cc569ae99ee147e89d7d007e1175953d2b	843736	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9713835/proc0/siam_nb4_avqds_r01_9713835_proc0.tar.gz
+69bf453ab29e1ef0dd5a5b8b896c1eed75702b74eb069ddc2f57d747996ddf5c	894477	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9714484/proc0/siam_nb4_avqds_r02_9714484_proc0.tar.gz
+ec77e03ef1a7775da6d86406a433c6d8243f77afc4f17fd3698d0058a98bf15b	3920593	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9714524/proc0/siam_nb4_avqds_continue_r02_9714524_proc0.tar.gz
+ee67b22719404ddfeecdd5cba6a32e8bbd279e42149b0f5f0ad7e3b1c47314dd	937693	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9714525/proc0/siam_nb4_full_apm_r02_9714525_proc0.tar.gz
+c4141c6d2b9df6a01f22b0c1747229e841202f56dcc8cd8db10afc3ecc0d462d	954581	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9714675/proc0/siam_nb4_full_apm_r03_9714675_proc0.tar.gz
+43ad641bdcba2bf1fdfc977bd7f55ed0d8d18bbf47325b7d4ac98fbe7482d441	1035068	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9714816/proc0/siam_nb4_full_apm_r04_9714816_proc0.tar.gz
+c720d6e0a8b753d944a48e84b68f0d8d5c179627e5be92252d42cf0710f098a7	980913	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715075/proc0/siam_nb4_full_apm_r05_9715075_proc0.tar.gz
+ec3a0a9e45862ad1cc8820f437f9ca32b24592ec3ccf5d87aa78558c4fe9357a	1000842	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715147/proc0/siam_nb4_full_apm_r06_9715147_proc0.tar.gz
+16bc79c1f03947a8b09d76dbbe563997bc134ab14a305a6e58a2f59c8374a856	1021835	home/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715270/proc0/siam_nb4_full_apm_r07_9715270_proc0.tar.gz
+5e71ece313e7108e493b1b531e685cd110365b6f700d589b909cf84c1d5d8b15	45741	home/Holstein_siam_nb4_source_446b75f3_20260828/incoming/siam_nb4_source_446b75f3_frontier9714675_upload_20260829_v2.tar.gz

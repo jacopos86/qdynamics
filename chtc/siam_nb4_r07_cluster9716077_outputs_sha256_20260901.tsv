@@ -1,0 +1,27 @@
+# SIAM nb4 r07 / cluster 9716077 outputs -- sha256 anchor table (31.9 MB, bytes not committed)
+#
+# Set: the run.json + action_receipt.json pair held back from commit 0c511b0a per
+# RESCUE_FETCH_VERIFICATION_20260901.md sec 4.2 (31,883,749 + 216,118 = 32,099,867 B),
+# plus the 3 job logs from the same job that sec 3.3 fetched alongside them.
+# Gitignored raw_outputs with zero suite references; restoring the bytes would add
+# 31.9 MB of permanent history for zero test movement. Table recorded instead per sec 7.2.
+#
+# Provenance chain PASS (sec 1.3 / 3.3): run.json sha256 below ==
+# trajectory_sha256 in its own action_receipt.json; all 6 package inputs match the
+# repo-tracked submission_receipt.json. condor_history confirms 9716077.0 completed
+# 2026-08-31 12:27 with normal termination (return value 0). This is P0-grade
+# post-loss evidence and SUPERSEDES the parity audit's "do NOT expect the r07 receipt".
+#
+# Provenance: ~/chtc_rescue/home/Holstein_siam_nb4_source_446b75f3_20260828/
+# Bytes remain in the read-only rescue tree at ~/chtc_rescue/ and are NOT committed here.
+# This table is the sha256 anchor for them, pending the user's decision on an
+# off-machine backup of ~/chtc_rescue (RESCUE_FETCH_VERIFICATION_20260901.md sec 7.1).
+# Rescue root: ~/chtc_rescue/ ; the path column is relative to that root.
+# Hashes computed 2026-09-01 directly from the rescue tree; the tree was not modified.
+# rows: 5   total bytes: 32,230,712
+sha256	size_bytes	path_relative_to_rescue_root
+a93eca537463731000147ca81d31be0158c4c56a28187c7cdc2f3c293a2595e7	216118	home/Holstein_siam_nb4_source_446b75f3_20260828/raw_outputs/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-continue-r07-cut3em06/action_receipt.json
+27e1a91400df8de7a96b994bc1d24620d655f20c3955143c88c394f9985ff853	31883749	home/Holstein_siam_nb4_source_446b75f3_20260828/raw_outputs/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-continue-r07-cut3em06/run.json
+a868c3b14f639f14d6cd8acde6b2a0da31b9a696c0ec88e6e84c3a0a8fcdfc79	122087	home/Holstein_siam_nb4_source_446b75f3_20260828/chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/logs/siam-nb4-continue-t1-t5-401-exchange-rung7.9716077.0.err
+c19e256ab0286aa79e5fb31decb74a421033315f93d04913b649367d5179ed62	8701	home/Holstein_siam_nb4_source_446b75f3_20260828/chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/logs/siam-nb4-continue-t1-t5-401-exchange-rung7.9716077.0.log
+ed9988e2d8be2c7d4acade3d000ba377a1626f2cdabe013b8b1b2be07c53a649	57	home/Holstein_siam_nb4_source_446b75f3_20260828/chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/logs/siam-nb4-continue-t1-t5-401-exchange-rung7.9716077.0.out
