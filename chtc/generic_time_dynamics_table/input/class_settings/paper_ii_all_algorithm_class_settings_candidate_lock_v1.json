@@ -1,0 +1,610 @@
+{
+  "candidate_only_not_promoted": true,
+  "coarse_tuning_classes": [
+    "fermionic",
+    "bosonic",
+    "hybrid"
+  ],
+  "lock_status": "candidate_not_promoted",
+  "manifest_id": "paper_ii_all_algorithm_class_settings_candidate_lock_v1",
+  "manifest_role": "candidate_all_algorithm_class_settings_not_promoted_not_paper_evidence",
+  "promotion_policy": "explicit_user_approval_and_separate_promotion_step_required",
+  "require_all_table_i_algorithm_classes": true,
+  "required_algorithm_settings": [
+    {
+      "algorithm_id": "dyn_controller_full",
+      "settings_kind": "controller"
+    },
+    {
+      "algorithm_id": "dyn_fixed_mclachlan",
+      "settings_kind": "mclachlan"
+    },
+    {
+      "algorithm_id": "dyn_product_formula_envelope",
+      "settings_kind": "comparator"
+    },
+    {
+      "algorithm_id": "dyn_qdrift",
+      "settings_kind": "comparator"
+    },
+    {
+      "algorithm_id": "dyn_fixed_pvqd",
+      "settings_kind": "comparator"
+    },
+    {
+      "algorithm_id": "dyn_adaptive_pvqd",
+      "settings_kind": "comparator"
+    },
+    {
+      "algorithm_id": "dyn_avqds",
+      "settings_kind": "comparator"
+    },
+    {
+      "algorithm_id": "dyn_avqds_t",
+      "settings_kind": "comparator"
+    }
+  ],
+  "schema": "dynamics_class_settings_lock_manifest_v1",
+  "search_profile_policy": "initial concrete ranges live in the calibration input manifest; this lock carries candidate seed settings consumed by runners",
+  "settings": [
+    {
+      "algorithm_id": "dyn_controller_full",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Use the current promoted controller policy as the candidate baseline; search refinements are class-level only.",
+      "search_profile_id": "checkpoint_controller_current_lock_seed_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_controller_full:controller:checkpoint_controller_current_lock_seed_v1",
+      "settings_kind": "controller",
+      "settings_payload": {
+        "append_enabled": true,
+        "checkpoint_controller_exact_input_mode": "off",
+        "checkpoint_controller_mode": "observable_v1",
+        "checkpoint_controller_noise_mode": "ideal",
+        "integrator_policy": "auto_euler_rk4",
+        "prune_mode": "schur_projected_shadow_v1",
+        "strict_qpu_faithful": true
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": true,
+      "tuning_class": "fermionic",
+      "variant_id": "full_controller"
+    },
+    {
+      "algorithm_id": "dyn_fixed_mclachlan",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level fixed-manifold McLachlan integrator and solve policy.",
+      "search_profile_id": "fixed_mclachlan_integrator_policy_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_fixed_mclachlan:mclachlan:fixed_mclachlan_integrator_policy_v1",
+      "settings_kind": "mclachlan",
+      "settings_payload": {
+        "fixed_mclachlan_integrator_policy": "auto_euler_rk4",
+        "lock_fixed_manifold": true,
+        "pinv_rcond": 1e-10,
+        "regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_product_formula_envelope",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level Suzuki/product-formula order selection.",
+      "search_profile_id": "product_formula_order_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_product_formula_envelope:comparator:product_formula_order_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_qdrift",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level qDRIFT sample budget with deterministic class-derived RNG seed.",
+      "search_profile_id": "qdrift_samples_rng_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_qdrift:comparator:qdrift_samples_rng_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "qdrift_rng_seed": 7101,
+        "qdrift_samples_per_interval": 16
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_fixed_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level pVQD projection optimizer and product-formula target order.",
+      "search_profile_id": "fixed_pvqd_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_fixed_pvqd:comparator:fixed_pvqd_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "pvqd_optimizer_maxiter": 24,
+        "pvqd_overlap_tol": 1e-08,
+        "pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_adaptive_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level adaptive pVQD optimizer, target order, and append thresholds.",
+      "search_profile_id": "adaptive_pvqd_append_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_adaptive_pvqd:comparator:adaptive_pvqd_append_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "adaptive_pvqd_append_candidate_limit": 4,
+        "adaptive_pvqd_append_loss_threshold": 0.001,
+        "adaptive_pvqd_append_min_loss_improvement": 1e-05,
+        "adaptive_pvqd_optimizer_maxiter": 24,
+        "adaptive_pvqd_overlap_tol": 1e-08,
+        "adaptive_pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS RHS-tangent solve and append policy.",
+      "search_profile_id": "avqds_rhs_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_avqds:comparator:avqds_rhs_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_append_candidate_limit": 4,
+        "avqds_append_min_residual_ratio_gain": 1e-05,
+        "avqds_append_rhs_residual_ratio_threshold": 0.01,
+        "avqds_pinv_relative_cutoff": 1e-10,
+        "avqds_regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds_t",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS-T target-tangent construction and append policy.",
+      "search_profile_id": "avqds_t_target_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:fermionic:dyn_avqds_t:comparator:avqds_t_target_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_t_append_candidate_limit": 4,
+        "avqds_t_append_min_residual_ratio_gain": 1e-05,
+        "avqds_t_append_target_tangent_residual_ratio_threshold": 0.01,
+        "avqds_t_pinv_relative_cutoff": 1e-10,
+        "avqds_t_regularization_lambda": 1e-08,
+        "avqds_t_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "fermionic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_controller_full",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Use the current promoted controller policy as the candidate baseline; search refinements are class-level only.",
+      "search_profile_id": "checkpoint_controller_current_lock_seed_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_controller_full:controller:checkpoint_controller_current_lock_seed_v1",
+      "settings_kind": "controller",
+      "settings_payload": {
+        "append_enabled": true,
+        "checkpoint_controller_exact_input_mode": "off",
+        "checkpoint_controller_mode": "observable_v1",
+        "checkpoint_controller_noise_mode": "ideal",
+        "integrator_policy": "auto_euler_rk4",
+        "prune_mode": "schur_projected_shadow_v1",
+        "strict_qpu_faithful": true
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": true,
+      "tuning_class": "bosonic",
+      "variant_id": "full_controller"
+    },
+    {
+      "algorithm_id": "dyn_fixed_mclachlan",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level fixed-manifold McLachlan integrator and solve policy.",
+      "search_profile_id": "fixed_mclachlan_integrator_policy_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_fixed_mclachlan:mclachlan:fixed_mclachlan_integrator_policy_v1",
+      "settings_kind": "mclachlan",
+      "settings_payload": {
+        "fixed_mclachlan_integrator_policy": "auto_euler_rk4",
+        "lock_fixed_manifold": true,
+        "pinv_rcond": 1e-10,
+        "regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_product_formula_envelope",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level Suzuki/product-formula order selection.",
+      "search_profile_id": "product_formula_order_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_product_formula_envelope:comparator:product_formula_order_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_qdrift",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level qDRIFT sample budget with deterministic class-derived RNG seed.",
+      "search_profile_id": "qdrift_samples_rng_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_qdrift:comparator:qdrift_samples_rng_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "qdrift_rng_seed": 7102,
+        "qdrift_samples_per_interval": 16
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_fixed_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level pVQD projection optimizer and product-formula target order.",
+      "search_profile_id": "fixed_pvqd_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_fixed_pvqd:comparator:fixed_pvqd_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "pvqd_optimizer_maxiter": 24,
+        "pvqd_overlap_tol": 1e-08,
+        "pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_adaptive_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level adaptive pVQD optimizer, target order, and append thresholds.",
+      "search_profile_id": "adaptive_pvqd_append_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_adaptive_pvqd:comparator:adaptive_pvqd_append_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "adaptive_pvqd_append_candidate_limit": 4,
+        "adaptive_pvqd_append_loss_threshold": 0.001,
+        "adaptive_pvqd_append_min_loss_improvement": 1e-05,
+        "adaptive_pvqd_optimizer_maxiter": 24,
+        "adaptive_pvqd_overlap_tol": 1e-08,
+        "adaptive_pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS RHS-tangent solve and append policy.",
+      "search_profile_id": "avqds_rhs_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_avqds:comparator:avqds_rhs_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_append_candidate_limit": 4,
+        "avqds_append_min_residual_ratio_gain": 1e-05,
+        "avqds_append_rhs_residual_ratio_threshold": 0.01,
+        "avqds_pinv_relative_cutoff": 1e-10,
+        "avqds_regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds_t",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS-T target-tangent construction and append policy.",
+      "search_profile_id": "avqds_t_target_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:bosonic:dyn_avqds_t:comparator:avqds_t_target_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_t_append_candidate_limit": 4,
+        "avqds_t_append_min_residual_ratio_gain": 1e-05,
+        "avqds_t_append_target_tangent_residual_ratio_threshold": 0.01,
+        "avqds_t_pinv_relative_cutoff": 1e-10,
+        "avqds_t_regularization_lambda": 1e-08,
+        "avqds_t_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "bosonic",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_controller_full",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Use the current promoted controller policy as the candidate baseline; search refinements are class-level only.",
+      "search_profile_id": "checkpoint_controller_current_lock_seed_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_controller_full:controller:checkpoint_controller_current_lock_seed_v1",
+      "settings_kind": "controller",
+      "settings_payload": {
+        "append_enabled": true,
+        "checkpoint_controller_exact_input_mode": "off",
+        "checkpoint_controller_mode": "observable_v1",
+        "checkpoint_controller_noise_mode": "ideal",
+        "integrator_policy": "auto_euler_rk4",
+        "prune_mode": "schur_projected_shadow_v1",
+        "strict_qpu_faithful": true
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": true,
+      "tuning_class": "hybrid",
+      "variant_id": "full_controller"
+    },
+    {
+      "algorithm_id": "dyn_fixed_mclachlan",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level fixed-manifold McLachlan integrator and solve policy.",
+      "search_profile_id": "fixed_mclachlan_integrator_policy_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_fixed_mclachlan:mclachlan:fixed_mclachlan_integrator_policy_v1",
+      "settings_kind": "mclachlan",
+      "settings_payload": {
+        "fixed_mclachlan_integrator_policy": "auto_euler_rk4",
+        "lock_fixed_manifold": true,
+        "pinv_rcond": 1e-10,
+        "regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_product_formula_envelope",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level Suzuki/product-formula order selection.",
+      "search_profile_id": "product_formula_order_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_product_formula_envelope:comparator:product_formula_order_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_qdrift",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level qDRIFT sample budget with deterministic class-derived RNG seed.",
+      "search_profile_id": "qdrift_samples_rng_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_qdrift:comparator:qdrift_samples_rng_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "qdrift_rng_seed": 7103,
+        "qdrift_samples_per_interval": 16
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_fixed_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level pVQD projection optimizer and product-formula target order.",
+      "search_profile_id": "fixed_pvqd_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_fixed_pvqd:comparator:fixed_pvqd_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "pvqd_optimizer_maxiter": 24,
+        "pvqd_overlap_tol": 1e-08,
+        "pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_adaptive_pvqd",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level adaptive pVQD optimizer, target order, and append thresholds.",
+      "search_profile_id": "adaptive_pvqd_append_projection_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_adaptive_pvqd:comparator:adaptive_pvqd_append_projection_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "adaptive_pvqd_append_candidate_limit": 4,
+        "adaptive_pvqd_append_loss_threshold": 0.001,
+        "adaptive_pvqd_append_min_loss_improvement": 1e-05,
+        "adaptive_pvqd_optimizer_maxiter": 24,
+        "adaptive_pvqd_overlap_tol": 1e-08,
+        "adaptive_pvqd_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS RHS-tangent solve and append policy.",
+      "search_profile_id": "avqds_rhs_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_avqds:comparator:avqds_rhs_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_append_candidate_limit": 4,
+        "avqds_append_min_residual_ratio_gain": 1e-05,
+        "avqds_append_rhs_residual_ratio_threshold": 0.01,
+        "avqds_pinv_relative_cutoff": 1e-10,
+        "avqds_regularization_lambda": 1e-08
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    },
+    {
+      "algorithm_id": "dyn_avqds_t",
+      "calibration_status": "candidate_seed_settings_pending_snake_class_calibration",
+      "candidate_only_not_promoted": true,
+      "class_tuned_result_locked": false,
+      "class_tuned_status": "candidate_class_level_not_promoted",
+      "exact_data_policy": "runtime_decisions_exact_free_offline_diagnostics_only",
+      "promotion_status": "candidate_not_promoted_user_approval_required",
+      "search_profile_description": "Class-level AVQDS-T target-tangent construction and append policy.",
+      "search_profile_id": "avqds_t_target_tangent_v1",
+      "settings_id": "paper_ii_all_algorithm_class_calibration_candidate_v1:hybrid:dyn_avqds_t:comparator:avqds_t_target_tangent_v1",
+      "settings_kind": "comparator",
+      "settings_payload": {
+        "avqds_t_append_candidate_limit": 4,
+        "avqds_t_append_min_residual_ratio_gain": 1e-05,
+        "avqds_t_append_target_tangent_residual_ratio_threshold": 0.01,
+        "avqds_t_pinv_relative_cutoff": 1e-10,
+        "avqds_t_regularization_lambda": 1e-08,
+        "avqds_t_target_product_formula_order": 2
+      },
+      "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1",
+      "strict_online_feedback_exact_free": false,
+      "tuning_class": "hybrid",
+      "variant_id": null
+    }
+  ],
+  "settings_source": "paper_ii_all_algorithm_class_calibration_candidate_v1"
+}

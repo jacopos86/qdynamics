@@ -1,0 +1,630 @@
+{
+  "cases": [
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/hubbard_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_hubbard_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for hubbard, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "hubbard_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "4078a8943870a792ee0cbf544dfad9335554c447a6e6f0a453d4ed6394fc31bb",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_hubbard_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/hubbard_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_hubbard_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for hubbard, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "hubbard_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "4078a8943870a792ee0cbf544dfad9335554c447a6e6f0a453d4ed6394fc31bb",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_hubbard_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/ionic_hubbard_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_ionic_hubbard_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for ionic_hubbard, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "ionic_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "ionic_hubbard_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "b6de03c55c48cf728552142f896e611fb419fdecc294da9b03b3a8b8553ec688",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_ionic_hubbard_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/ionic_hubbard_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_ionic_hubbard_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for ionic_hubbard, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "ionic_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "ionic_hubbard_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "b6de03c55c48cf728552142f896e611fb419fdecc294da9b03b3a8b8553ec688",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_ionic_hubbard_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/extended_hubbard_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_extended_hubbard_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for extended_hubbard, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "extended_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "extended_hubbard_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "9d7e13b46fbd3211f6a4f97607ba7216137c8eff67216e903537dc5f6411dcb2",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_extended_hubbard_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/extended_hubbard_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_extended_hubbard_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for extended_hubbard, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "extended_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "extended_hubbard_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "9d7e13b46fbd3211f6a4f97607ba7216137c8eff67216e903537dc5f6411dcb2",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_extended_hubbard_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/ttprime_hubbard_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_ttprime_hubbard_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for ttprime_hubbard, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "ttprime_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "ttprime_hubbard_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "87d2c430825116745d915bda99f56590f02f3be4206e2fbe8e9b7e1c1110239b",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_ttprime_hubbard_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/ttprime_hubbard_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_ttprime_hubbard_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for ttprime_hubbard, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "ttprime_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "ttprime_hubbard_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "87d2c430825116745d915bda99f56590f02f3be4206e2fbe8e9b7e1c1110239b",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_ttprime_hubbard_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/spinless_tv_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_spinless_tv_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for spinless_tv, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "spinless_tv",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "spinless_tv_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "b097330b872d8e07e28062fc0bc079e60f3c0f319bbf48a25981248086d61ae5",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_spinless_tv_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "spinless_fermion_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/spinless_tv_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_spinless_tv_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for spinless_tv, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "spinless_tv",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "spinless_tv_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "b097330b872d8e07e28062fc0bc079e60f3c0f319bbf48a25981248086d61ae5",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_spinless_tv_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "spinless_fermion_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/spin_boson_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_spin_boson_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for spin_boson, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "spin_boson",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "spin_boson_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "382a20b7adc8f1943f3bf16b7b4ddb6fae1868c02086ba13aa34723d8721a1f4",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_spin_boson_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "spin_boson",
+      "tuning_class": "bosonic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/spin_boson_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_spin_boson_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for spin_boson, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "spin_boson",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "spin_boson_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "382a20b7adc8f1943f3bf16b7b4ddb6fae1868c02086ba13aa34723d8721a1f4",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_spin_boson_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "spin_boson",
+      "tuning_class": "bosonic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/bose_hubbard_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_bose_hubbard_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for bose_hubbard, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "bose_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "bose_hubbard_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "a657ed9fc9ccade30a19237d4d690e0735520b0c4fea3555536c214a6d5cc3a5",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_bose_hubbard_A0p2_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/bose_hubbard_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_bose_hubbard_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for bose_hubbard, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "bose_hubbard",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "bose_hubbard_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "a657ed9fc9ccade30a19237d4d690e0735520b0c4fea3555536c214a6d5cc3a5",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/seed_artifacts/td_bose_hubbard_A0p6_t8_dt321_append_prune_v2.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/hh_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_hh_A0p2_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for hh, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "hh",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "hh_A0p2_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "6de6ef0d7121414dc1c4933c025bece4da1e8dafe28da662fc30f5d7545c0304",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/source_seed_artifacts/td_hh_goodseed_A0p2_t8_dt321_prune_recoverability_eulerfix_v1.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "mixed_fermion_boson",
+      "tuning_class": "mixed_fermion_boson"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/hh_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_hh_A0p6_t8_dt321_available_phase3",
+      "description": "Paper-II table-lock same-seed run using staged current dynamics seed for hh, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "hh",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "latest_phase3_source_artifact_missing_locally": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "hh_A0p6_t8_dt321_same_seed_available_phase3",
+          "seed_artifact_sha256": "6de6ef0d7121414dc1c4933c025bece4da1e8dafe28da662fc30f5d7545c0304",
+          "seed_selection_policy": "current_staged_dynamics_seed_pending_latest_phase3_artifact_recovery",
+          "selected_static_seed_source": "chtc/time_dynamics_optuna/input staged seed artifact; latest PDF source artifacts absent locally",
+          "source_artifact_json": "chtc/time_dynamics_optuna/input/source_seed_artifacts/td_hh_goodseed_A0p6_t8_dt321_prune_recoverability_eulerfix_v1.json"
+        }
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "mixed_fermion_boson",
+      "tuning_class": "mixed_fermion_boson"
+    }
+  ],
+  "schema": "dynamics_table_lock_seed_manifest_v1",
+  "source": "current staged dynamics seed artifacts; latest PDF source artifacts absent locally"
+}

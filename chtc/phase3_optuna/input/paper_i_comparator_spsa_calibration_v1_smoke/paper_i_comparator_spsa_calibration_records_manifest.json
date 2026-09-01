@@ -1,0 +1,148 @@
+{
+  "allowed_schedule_fields_by_method": {
+    "static_family_informed_vqe": [
+      "family_informed_spsa_a",
+      "family_informed_spsa_c",
+      "family_informed_spsa_alpha",
+      "family_informed_spsa_gamma",
+      "family_informed_spsa_big_a",
+      "family_informed_spsa_eval_repeats",
+      "family_informed_spsa_avg_last"
+    ],
+    "static_full_meta_append_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_geo_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_hea_qiskit_vqe": [
+      "hea_spsa_learning_rate",
+      "hea_spsa_perturbation"
+    ],
+    "static_qubit_qeb_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_tetris_qubit_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ]
+  },
+  "approved_at": null,
+  "approved_by": null,
+  "approved_for_full_generation": false,
+  "clipping_log10_error_ratio": [
+    -3.0,
+    3.0
+  ],
+  "config_mode": "smoke",
+  "config_path": "chtc/phase3_optuna/config/paper_i_comparator_spsa_calibration_v1_smoke.json",
+  "config_sha256": "2fef684b627dc3cc575a87e75cc69d4ad64d3daa92449b3166b6f09f7cba9c7f",
+  "evidence_role": "calibration_only_not_manuscript_table_evidence",
+  "expected_full_record_count": 36,
+  "failure_penalty": 10.0,
+  "generation_mode": "smoke",
+  "method_ids": [
+    "static_hea_qiskit_vqe",
+    "static_family_informed_vqe",
+    "static_full_meta_append_adapt_vqe",
+    "static_qubit_qeb_adapt_vqe",
+    "static_tetris_qubit_adapt_vqe",
+    "static_geo_adapt_vqe"
+  ],
+  "method_maxiter_budgets": {
+    "static_family_informed_vqe": 1,
+    "static_full_meta_append_adapt_vqe": 1,
+    "static_geo_adapt_vqe": 1,
+    "static_hea_qiskit_vqe": 1,
+    "static_qubit_qeb_adapt_vqe": 1,
+    "static_tetris_qubit_adapt_vqe": 1
+  },
+  "method_target_pairs": [
+    [
+      "static_family_informed_vqe",
+      "hubbard_family"
+    ],
+    [
+      "static_full_meta_append_adapt_vqe",
+      "hubbard_family"
+    ],
+    [
+      "static_geo_adapt_vqe",
+      "hubbard_family"
+    ],
+    [
+      "static_hea_qiskit_vqe",
+      "hubbard_family"
+    ],
+    [
+      "static_qubit_qeb_adapt_vqe",
+      "hubbard_family"
+    ],
+    [
+      "static_tetris_qubit_adapt_vqe",
+      "hubbard_family"
+    ]
+  ],
+  "n_jobs": 1,
+  "n_trials": 1,
+  "optimizer_profile": "paper_i_main_tables_spsa_v1",
+  "paths": {
+    "manifest_json": "chtc/phase3_optuna/input/paper_i_comparator_spsa_calibration_v1_smoke/paper_i_comparator_spsa_calibration_records_manifest.json",
+    "record_ids_txt": "chtc/phase3_optuna/input/paper_i_comparator_spsa_calibration_v1_smoke/paper_i_comparator_spsa_calibration_record_ids.txt",
+    "records_tsv": "chtc/phase3_optuna/input/paper_i_comparator_spsa_calibration_v1_smoke/paper_i_comparator_spsa_calibration_records.tsv",
+    "smoke_record_ids_txt": "chtc/phase3_optuna/input/paper_i_comparator_spsa_calibration_v1_smoke/paper_i_comparator_spsa_calibration_smoke_record_ids.txt",
+    "smoke_records_tsv": "chtc/phase3_optuna/input/paper_i_comparator_spsa_calibration_v1_smoke/paper_i_comparator_spsa_calibration_smoke_records.tsv"
+  },
+  "plan_path": "docs/plans/paper-i-comparator-spsa-optuna-calibration-2026-05-31.md",
+  "profile_id": "paper_i_comparator_spsa_optuna_calibration_v1",
+  "queue_output_root": "raw_outputs/paper_i_comparator_spsa_calibration_v1",
+  "record_count": 6,
+  "resource_metric_precedence": [
+    "compiled_count_2q_total",
+    "compiled_depth_2q_total",
+    "compiled_depth_total",
+    "first_hit_compiled_count_2q_total",
+    "first_hit_compiled_depth_2q_total",
+    "qiskit_compiled_count_2q_total",
+    "qiskit_compiled_depth_2q_total",
+    "two_qubit_count",
+    "depth_2q",
+    "circuit_depth",
+    "num_parameters",
+    "selected_operator_count"
+  ],
+  "resource_tiebreak_weight": 0.001,
+  "run_class": "smoke",
+  "sampler_seed": 20260531,
+  "schema": "paper_i_comparator_spsa_calibration_records_manifest_v1",
+  "smoke_config_path": "chtc/phase3_optuna/config/paper_i_comparator_spsa_calibration_v1_smoke.json",
+  "smoke_config_sha256": "2fef684b627dc3cc575a87e75cc69d4ad64d3daa92449b3166b6f09f7cba9c7f",
+  "smoke_record_count": 6,
+  "smoke_target_ids": [
+    "hubbard_family"
+  ],
+  "suite_profile": "paper_i_main_tables_spsa_v1",
+  "target_ids": [
+    "hubbard_family",
+    "spin_boson_family",
+    "hh_sym_weak_weak",
+    "hh_sym_strong_weak",
+    "hh_sym_weak_strong",
+    "hh_sym_strong_strong"
+  ]
+}

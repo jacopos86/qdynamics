@@ -1,0 +1,1598 @@
+{
+  "algorithms": [
+    {
+      "algorithm_id": "dyn_controller_full",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "controller",
+      "table_role": "primary_checkpoint_mclachlan_method"
+    },
+    {
+      "algorithm_id": "dyn_fixed_mclachlan",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "mclachlan",
+      "table_role": "fixed_mclachlan_comparator"
+    },
+    {
+      "algorithm_id": "dyn_product_formula_envelope",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "product_formula_comparator"
+    },
+    {
+      "algorithm_id": "dyn_qdrift",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "qdrift_comparator"
+    },
+    {
+      "algorithm_id": "dyn_fixed_pvqd",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "fixed_pvqd_comparator"
+    },
+    {
+      "algorithm_id": "dyn_adaptive_pvqd",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "adaptive_pvqd_comparator"
+    },
+    {
+      "algorithm_id": "dyn_avqds",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "avqds_comparator"
+    },
+    {
+      "algorithm_id": "dyn_avqds_t",
+      "class_calibration_status": "planned_required_not_validated_work_items_7_11",
+      "parity_correctness_status": "required_matrix_specified_sidecar_enforced_work_items_4_6",
+      "same_seed_scope": "all_selected_snake_cases",
+      "settings_kind": "comparator",
+      "table_role": "avqds_t_comparator"
+    }
+  ],
+  "calibration_scoring_selection_rules": {
+    "case_specific_winner_policy": "forbidden_unless_selected_as_class_level_setting_for_entire_tuning_class",
+    "comparator_runtime_decisions": "exact_free_prepared_state_or_product_formula_target_observables_only",
+    "discard_before_scoring": [
+      "failed_same_seed_validation",
+      "missing_or_failed_required_parity_correctness",
+      "exact_decision_leakage",
+      "latest_phase3_source_artifact_missing_locally",
+      "staged_fallback_pending_or_recovery_seed_source",
+      "pathological_incomplete_or_frozen_trajectory"
+    ],
+    "offline_class_calibration_review": "exact_diagnostic_physical_errors_allowed_for_reporting_only",
+    "primary_rank": "median_physical_error_across_all_snake_cases_and_drives_in_tuning_class",
+    "promotion_policy": "explicit_user_approval_and_separate_promotion_step_required",
+    "schema": "paper_ii_class_calibration_scoring_selection_rules_v1",
+    "secondary_objective": "resource_cost_pareto_front",
+    "strict_online_controller_feedback": "exact_free_measurement_compatible_observables_only",
+    "tie_breakers": [
+      "lower_resource_cost",
+      "simpler_settings",
+      "deterministic_record_order"
+    ]
+  },
+  "class_calibration_requirements": {
+    "candidate_class_settings_lock": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_all_algorithm_class_settings_candidate_lock_v1.json",
+    "candidate_input_manifest": "chtc/time_dynamics_optuna/input/paper_ii_all_algorithm_class_calibration_v1_manifest.json",
+    "candidate_only_not_promoted": true,
+    "case_specific_calibration_forbidden": true,
+    "policy": "class-level settings are required for checkpoint, fixed McLachlan, and every comparator before promotion",
+    "required_algorithm_settings": [
+      {
+        "algorithm_id": "dyn_controller_full",
+        "settings_kind": "controller"
+      },
+      {
+        "algorithm_id": "dyn_fixed_mclachlan",
+        "settings_kind": "mclachlan"
+      },
+      {
+        "algorithm_id": "dyn_product_formula_envelope",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_qdrift",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_fixed_pvqd",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_adaptive_pvqd",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_avqds",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_avqds_t",
+        "settings_kind": "comparator"
+      }
+    ],
+    "required_tuning_classes": [
+      "fermionic",
+      "bosonic",
+      "hybrid"
+    ],
+    "schema": "paper_ii_all_algorithm_class_calibration_requirements_v1",
+    "search_profiles": [
+      {
+        "algorithm_id": "dyn_controller_full",
+        "class_level_hooks": [
+          "checkpoint_controller_mode",
+          "checkpoint_controller_exact_input_mode",
+          "integrator_policy",
+          "append_enabled",
+          "prune_mode"
+        ],
+        "search_profile_id": "checkpoint_controller_current_lock_seed_v1",
+        "settings_kind": "controller"
+      },
+      {
+        "algorithm_id": "dyn_fixed_mclachlan",
+        "class_level_hooks": [
+          "fixed_mclachlan_integrator_policy",
+          "regularization_lambda",
+          "pinv_rcond"
+        ],
+        "search_profile_id": "fixed_mclachlan_integrator_policy_v1",
+        "settings_kind": "mclachlan"
+      },
+      {
+        "algorithm_id": "dyn_product_formula_envelope",
+        "class_level_hooks": [
+          "product_formula_order"
+        ],
+        "search_profile_id": "product_formula_order_v1",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_qdrift",
+        "class_level_hooks": [
+          "qdrift_samples_per_interval",
+          "qdrift_rng_seed"
+        ],
+        "search_profile_id": "qdrift_samples_rng_v1",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_fixed_pvqd",
+        "class_level_hooks": [
+          "pvqd_optimizer_maxiter",
+          "pvqd_overlap_tol",
+          "pvqd_target_product_formula_order"
+        ],
+        "search_profile_id": "fixed_pvqd_projection_v1",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_adaptive_pvqd",
+        "class_level_hooks": [
+          "adaptive_pvqd_optimizer_maxiter",
+          "adaptive_pvqd_overlap_tol",
+          "adaptive_pvqd_target_product_formula_order",
+          "adaptive_pvqd_append_loss_threshold",
+          "adaptive_pvqd_append_min_loss_improvement",
+          "adaptive_pvqd_append_candidate_limit"
+        ],
+        "search_profile_id": "adaptive_pvqd_append_projection_v1",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_avqds",
+        "class_level_hooks": [
+          "avqds_regularization_lambda",
+          "avqds_pinv_relative_cutoff",
+          "avqds_append_rhs_residual_ratio_threshold",
+          "avqds_append_min_residual_ratio_gain",
+          "avqds_append_candidate_limit"
+        ],
+        "search_profile_id": "avqds_rhs_tangent_v1",
+        "settings_kind": "comparator"
+      },
+      {
+        "algorithm_id": "dyn_avqds_t",
+        "class_level_hooks": [
+          "avqds_t_regularization_lambda",
+          "avqds_t_pinv_relative_cutoff",
+          "avqds_t_target_product_formula_order",
+          "avqds_t_append_target_tangent_residual_ratio_threshold",
+          "avqds_t_append_min_residual_ratio_gain",
+          "avqds_t_append_candidate_limit"
+        ],
+        "search_profile_id": "avqds_t_target_tangent_v1",
+        "settings_kind": "comparator"
+      }
+    ],
+    "status": "candidate_contract_implemented_not_promoted_no_recovery_rerun_evidence_yet",
+    "tuning_granularity": "coarse_hamiltonian_class"
+  },
+  "class_settings_sources": {
+    "all_algorithm_candidate_lock": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_all_algorithm_class_settings_candidate_lock_v1.json",
+    "all_algorithm_candidate_lock_status": "candidate_not_promoted_not_paper_evidence",
+    "candidate_input_manifest": "chtc/time_dynamics_optuna/input/paper_ii_all_algorithm_class_calibration_v1_manifest.json",
+    "current_controller_class_settings_lock": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+    "promotion_policy": "explicit_user_approval_and_separate_promotion_step_required",
+    "status": "candidate all-algorithm class settings lock exists but is not promoted"
+  },
+  "created_at": "2026-05-19T00:00:00+00:00",
+  "diagnostic_baseline_sources": [
+    {
+      "mutation_policy": "do_not_edit_in_recovery_manifest_wave",
+      "path": "MATH/paper_details/time_dynamics_paper_II.tex",
+      "source_id": "visible_manuscript_table_i_cells_20260519",
+      "status": "diagnostic_frozen_not_paper_facing"
+    },
+    {
+      "mutation_policy": "do_not_edit_in_recovery_manifest_wave",
+      "path": "MATH/paper_facing/paper_II_dynamics/tentative_table_artifact_appendix.md",
+      "source_id": "paper_ii_tentative_table_appendix_20260519",
+      "status": "diagnostic_frozen_not_paper_facing"
+    },
+    {
+      "mutation_policy": "do_not_overwrite_or_reaggregate",
+      "path": "raw_outputs/chtc_seedtracks_v2_complete_20260518/",
+      "source_id": "seedtracks_v2_retained_snake_comparator_rows",
+      "status": "diagnostic_baseline_input_only"
+    },
+    {
+      "mutation_policy": "do_not_overwrite_or_reaggregate",
+      "path": "raw_outputs/chtc_paper_ii_repaired_checkpoint_fullsearch_snake_v1_20260519/",
+      "source_id": "repaired_checkpoint_diagnostic_best_rows",
+      "status": "diagnostic_baseline_input_only"
+    },
+    {
+      "mutation_policy": "do_not_overwrite_or_reaggregate",
+      "path": "raw_outputs/table_i_checkpoint_cost_recovery_20260519/",
+      "source_id": "checkpoint_cost_recovery_rows",
+      "status": "diagnostic_baseline_input_only"
+    },
+    {
+      "mutation_policy": "do_not_overwrite_or_reaggregate",
+      "path": "raw_outputs/chtc_fixed_rk4_v1_20260519/aggregate_summary.*",
+      "source_id": "fixed_mclachlan_rk4_refresh_rows",
+      "status": "diagnostic_baseline_input_only"
+    }
+  ],
+  "excluded_case_count": 18,
+  "excluded_cases": [
+    {
+      "case_id": "table1_hubbard_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_hubbard_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_ionic_hubbard_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "ionic_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_ionic_hubbard_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "ionic_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_extended_hubbard_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "extended_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_extended_hubbard_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "extended_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_ttprime_hubbard_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "ttprime_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_ttprime_hubbard_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "ttprime_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_spinless_tv_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "spinless_tv",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_spinless_tv_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "spinless_tv",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_bose_hubbard_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "bose_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_bose_hubbard_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "bose_hubbard",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_harmonic_kerr_chain_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "harmonic_kerr_chain",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_harmonic_kerr_chain_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "harmonic_kerr_chain",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_spin_boson_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "spin_boson",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_spin_boson_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "spin_boson",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_molecular_vibronic_h2_posgeo_A0p2_t8_dt321_seedtracks_v2",
+      "family": "molecular_vibronic_h2",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    },
+    {
+      "case_id": "table1_molecular_vibronic_h2_posgeo_A0p6_t8_dt321_seedtracks_v2",
+      "family": "molecular_vibronic_h2",
+      "reason": "non_snake_seed_track_out_of_scope_for_recovery",
+      "seed_track": "posgeo"
+    }
+  ],
+  "family_repair_rerun_eligibility_gate": {
+    "dependencies_before_resume": [
+      "snake_recovery_manifest_validation_passed",
+      "all_comparator_parity_correctness_contracts_implemented_and_passing_targeted_tests_or_smokes",
+      "class_calibration_contract_exists_for_checkpoint_fixed_mclachlan_and_every_comparator",
+      "candidate_class_settings_reviewed_without_accidental_promotion",
+      "explicit_user_approval_to_resume_family_repair"
+    ],
+    "family_repair_can_resume": false,
+    "full_table_rerun_policy": "blocked_until_narrow_repaired_calibrated_reruns_and_audits_pass_with_user_approval",
+    "prior_family_bugfix_plan": "docs/plans/paper-ii-time-dynamics-family-bugfix-2026-05-19.md",
+    "prior_family_bugfix_plan_role": "later_stage_dependency_not_immediate_next_step",
+    "repair_order": [
+      "observable_and_primary_density_semantics",
+      "drive_and_operator_semantics",
+      "frozen_no_dynamics_telemetry",
+      "frozen_no_dynamics_tranche",
+      "wrong_observable_tranche",
+      "hh_damping_undershoot_tranche"
+    ],
+    "rerun_eligibility": "blocked",
+    "rerun_preservation_policy": {
+      "preserve_drive_time_grid_observable_policy_diagnostic_reference_compile_target": true,
+      "preserve_fixed_snake_seed_artifacts_and_hashes": true,
+      "preserve_same_seed_comparator_groups": true,
+      "rerun_checkpoint_fixed_and_every_comparator_for_affected_same_seed_group": true
+    },
+    "schema": "paper_ii_family_repair_rerun_eligibility_gate_v1",
+    "status": "blocked_until_recovery_parity_calibration_gates_pass_and_user_approves",
+    "tranche_review_policy": {
+      "chtc_submission_allowed_by_this_gate": false,
+      "local_diagnostic_overlay_pdf_required_per_tranche": true,
+      "user_visual_approval_required_before_any_rerun_escalation": true
+    }
+  },
+  "final_aggregation_promotion_closeout_gate": {
+    "aggregate_separation_policy": {
+      "dense_component_correctness": "native correctness sidecar diagnostics",
+      "missing_evidence": "epsilon_spec, shots_total, and fidelity are explicit unavailable values when absent",
+      "physical_errors": "exact diagnostic/reference error fields",
+      "qiskit_parity_deltas": "implementation parity only and never physical accuracy",
+      "resource_cost_fields": "compiled/resources/shot proxy fields"
+    },
+    "closeout_records_required": [
+      "frozen_diagnostic_baseline_artifacts",
+      "recovery_manifest_path_and_hash",
+      "parity_correctness_status_by_algorithm",
+      "candidate_class_calibration_reports",
+      "approved_or_rejected_family_repair_tranches",
+      "remaining_blockers_before_table_i_promotion"
+    ],
+    "explicit_user_approval_required_for_final_aggregation": true,
+    "final_aggregation_allowed": false,
+    "forbidden_without_separate_explicit_workflow": [
+      "manuscript_tex_edits",
+      "visible_table_i_edits",
+      "settings_promotion",
+      "table_value_promotion"
+    ],
+    "post_fetch_audit_no_blocking_errors_required": true,
+    "regression_coverage_required": [
+      "snake_only_recovery_manifest_selection",
+      "controller_mclachlan_comparator_class_settings_lock_validation",
+      "comparator_settings_consumption",
+      "qiskit_parity_required_behavior",
+      "avqds_and_avqds_t_correctness_sidecars",
+      "fixed_mclachlan_algorithmic_correctness",
+      "same_seed_validation",
+      "exact_reference_decision_boundary_violations",
+      "missing_evidence_reporting"
+    ],
+    "required_before_final_aggregation": [
+      "all_required_parity_correctness_sidecars_passing",
+      "approved_class_level_settings_for_all_methods",
+      "same_seed_validation_passed",
+      "family_repair_tranche_pdfs_user_visual_approved",
+      "post_fetch_audit_no_blocking_errors",
+      "missing_evidence_marked_unavailable_not_invented"
+    ],
+    "schema": "paper_ii_table_i_final_aggregation_promotion_closeout_gate_v1",
+    "separate_user_approved_workflow_required_for_table_promotion": true,
+    "status": "blocked_pending_user_approved_repaired_reruns_post_fetch_audit_and_separate_promotion_workflow",
+    "table_promotion_allowed": false
+  },
+  "manifest_id": "paper_ii_table_i_snake_recovery_manifest_v1",
+  "manifest_role": "diagnostic_freeze_and_snake_recovery_contract_only_not_paper_evidence",
+  "missing_evidence_fields": [
+    {
+      "blocks_paper_facing_use": true,
+      "field": "all_comparator_parity_correctness_sidecars",
+      "status": "requirements_specified_sidecar_contracts_implemented_no_recovery_rerun_evidence_yet"
+    },
+    {
+      "blocks_paper_facing_use": true,
+      "field": "all_algorithm_class_calibration_lock",
+      "status": "candidate_lock_and_input_generation_available_not_promoted_no_recovery_rerun_evidence_yet"
+    },
+    {
+      "blocks_paper_facing_use": true,
+      "field": "family_repair_tranche_pdfs_user_approved",
+      "status": "not_started_user_visual_approval_required_before_rerun_escalation"
+    },
+    {
+      "blocks_paper_facing_use": true,
+      "field": "post_fetch_audit_no_blocking_errors",
+      "status": "not_available_no_recovery_rerun_or_fetch_performed"
+    },
+    {
+      "blocks_paper_facing_use": true,
+      "field": "final_aggregation_user_approval",
+      "status": "explicit_user_approval_required_separate_workflow"
+    },
+    {
+      "blocks_paper_facing_use": true,
+      "field": "table_promotion_user_approval",
+      "status": "explicit_user_approval_required_separate_workflow"
+    },
+    {
+      "blocks_paper_facing_use": false,
+      "field": "epsilon_spec",
+      "status": "not_asserted_by_recovery_manifest"
+    },
+    {
+      "blocks_paper_facing_use": false,
+      "field": "shots_total",
+      "status": "not_asserted_by_recovery_manifest"
+    },
+    {
+      "blocks_paper_facing_use": false,
+      "field": "fidelity",
+      "status": "not_asserted_by_recovery_manifest"
+    }
+  ],
+  "parity_correctness_requirements": {
+    "controller_check_sidecar_policy": "controller strict-decision and non-frozen checks are enforced from row/artifact telemetry rather than Qiskit-as-primary dynamics",
+    "matrix": [
+      {
+        "algorithm_id": "dyn_controller_full",
+        "enforcement_point": "controller_artifact_validation_and_table_audit",
+        "physical_error_policy": "additive_correctness_provenance_not_physical_error",
+        "required_check_type": "strict_decision_contract_and_nonfrozen_trajectory",
+        "required_status": "passed",
+        "sidecar_name": "controller_row_telemetry_no_separate_sidecar",
+        "support_scope": "strict_exact_free_decision_contract_and_nonfrozen_diagnostic_trajectory",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_fixed_mclachlan",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "qiskit_parity_delta_is_not_physical_accuracy",
+        "required_check_type": "qiskit_fixed_scaffold_state_observable_parity",
+        "required_status": "passed",
+        "sidecar_name": "qiskit_parity.json",
+        "support_scope": "fixed_scaffold_state_and_observable_parity_only",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_fixed_mclachlan",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "additive_correctness_provenance_not_physical_error",
+        "required_check_type": "mclachlan_metric_rhs_solve_integrator_correctness",
+        "required_status": "passed",
+        "sidecar_name": "mclachlan_correctness.json",
+        "support_scope": "metric_rhs_regularized_solve_integrator_a0_and_nonfrozen_invariants",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_product_formula_envelope",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "qiskit_parity_delta_is_not_physical_accuracy",
+        "required_check_type": "qiskit_product_formula_sequence_parity",
+        "required_status": "passed",
+        "sidecar_name": "qiskit_parity.json",
+        "support_scope": "selected_product_formula_order_and_resource_metadata",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_qdrift",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "qiskit_parity_delta_is_not_physical_accuracy",
+        "required_check_type": "qiskit_qdrift_realized_sample_plan_parity",
+        "required_status": "passed",
+        "sidecar_name": "qiskit_parity.json",
+        "support_scope": "realized_sample_plan_and_deterministic_rng_provenance",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_fixed_pvqd",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "qiskit_parity_delta_is_not_physical_accuracy",
+        "required_check_type": "qiskit_pvqd_component_parity",
+        "required_status": "passed",
+        "sidecar_name": "qiskit_parity.json",
+        "support_scope": "fixed_pvqd_scaffold_target_projection_component_parity",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_adaptive_pvqd",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "qiskit_parity_delta_is_not_physical_accuracy",
+        "required_check_type": "qiskit_adaptive_pvqd_component_parity",
+        "required_status": "passed",
+        "sidecar_name": "qiskit_parity.json",
+        "support_scope": "adaptive_pvqd_component_parity_plus_append_candidate_telemetry",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_avqds",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "additive_correctness_provenance_not_physical_error",
+        "required_check_type": "dense_rhs_tangent_and_invariant_correctness",
+        "required_status": "passed",
+        "sidecar_name": "avqds_correctness.json",
+        "support_scope": "rhs_tangent_solve_grouped_exact_exclusion_append_and_norm_invariants",
+        "timing": "post_run"
+      },
+      {
+        "algorithm_id": "dyn_avqds_t",
+        "enforcement_point": "row_normalization_and_table_audit",
+        "physical_error_policy": "additive_correctness_provenance_not_physical_error",
+        "required_check_type": "dense_target_tangent_and_invariant_correctness",
+        "required_status": "passed",
+        "sidecar_name": "avqds_t_correctness.json",
+        "support_scope": "product_formula_target_tangent_append_ranking_and_norm_invariants",
+        "timing": "post_run"
+      }
+    ],
+    "missing_failed_or_not_applicable_required_check_blocks_table_i_use": true,
+    "missing_or_failed_required_check_blocks_table_i_use": true,
+    "native_correctness_sidecars": [
+      "mclachlan_correctness.json",
+      "avqds_correctness.json",
+      "avqds_t_correctness.json"
+    ],
+    "physical_error_policy": "parity and correctness outcomes are additive provenance fields; physical error columns remain exact-diagnostic reporting fields",
+    "policy": "every Table-I algorithm must have a passing required parity or correctness check before paper-facing use",
+    "qiskit_parity_sidecar_name": "qiskit_parity.json",
+    "required_algorithm_ids": [
+      "dyn_controller_full",
+      "dyn_fixed_mclachlan",
+      "dyn_product_formula_envelope",
+      "dyn_qdrift",
+      "dyn_fixed_pvqd",
+      "dyn_adaptive_pvqd",
+      "dyn_avqds",
+      "dyn_avqds_t"
+    ],
+    "schema": "paper_ii_table_i_parity_correctness_matrix_v1",
+    "status": "specified_work_items_4_6_sidecar_contracts_implemented_no_recovery_rerun_evidence_yet"
+  },
+  "recovery_validation_gates": [
+    {
+      "gate_id": "snake_only_recovery_cases",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "same_seed_hash_all_methods_per_group",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "no_staged_fallback_pending_recovery_seed_source",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "latest_phase3_source_artifact_present_locally",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "class_level_settings_for_checkpoint_fixed_and_all_comparators",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "required_parity_correctness_sidecars_passing",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "strict_exact_free_controller_decision_contract",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "exact_reference_fields_diagnostic_report_only",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "full_horizon_or_accepted_nonpathological_completion",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "non_frozen_mclachlan_controller_when_exact_diagnostics_move",
+      "severity": "ERROR"
+    },
+    {
+      "gate_id": "missing_epsilon_spec_shots_or_fidelity_marked_missing_evidence",
+      "severity": "WARN"
+    }
+  ],
+  "schema": "paper_ii_table_i_snake_recovery_manifest_v1",
+  "selected_case_count": 20,
+  "selected_cases": [
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hubbard_snake_seed.json",
+      "case_id": "table1_hubbard_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "hubbard_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "637b694a8e6ccde1511b8a33a6b10678277cbedfab6c855a63c52efed07cb339",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/hubbard_L2/json/result.json",
+      "source_artifact_sha256": "87fd9bcbb562a0b82f3f0829ba49919741ad01428afcb12fcda43d737e7d7033",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hubbard_snake_seed.json",
+      "case_id": "table1_hubbard_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "hubbard_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "637b694a8e6ccde1511b8a33a6b10678277cbedfab6c855a63c52efed07cb339",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/hubbard_L2/json/result.json",
+      "source_artifact_sha256": "87fd9bcbb562a0b82f3f0829ba49919741ad01428afcb12fcda43d737e7d7033",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ionic_hubbard_snake_seed.json",
+      "case_id": "table1_ionic_hubbard_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "ionic_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ionic_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "ionic_hubbard_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "4c7b90c14d6c2f3e87c8d3d55818b236801fb5c9ffc703d37226b3b54b8769ec",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0035/ionic_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "e5f5cd98b70ce04d7c6e707113d219f4a01881e4591a34525d68ba96153648e2",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ionic_hubbard_snake_seed.json",
+      "case_id": "table1_ionic_hubbard_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "ionic_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ionic_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "ionic_hubbard_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "4c7b90c14d6c2f3e87c8d3d55818b236801fb5c9ffc703d37226b3b54b8769ec",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0035/ionic_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "e5f5cd98b70ce04d7c6e707113d219f4a01881e4591a34525d68ba96153648e2",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/extended_hubbard_snake_seed.json",
+      "case_id": "table1_extended_hubbard_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "extended_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/extended_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "extended_hubbard_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "6aefd28177e3fbfa6e83187d56d988a56c7ce463f5b616d2213384279a31671b",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/extended_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "3e3edd6de268a719611ee1748bcd744342ae392e9841083158e626e5563db804",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/extended_hubbard_snake_seed.json",
+      "case_id": "table1_extended_hubbard_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "extended_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/extended_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "extended_hubbard_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "6aefd28177e3fbfa6e83187d56d988a56c7ce463f5b616d2213384279a31671b",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/extended_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "3e3edd6de268a719611ee1748bcd744342ae392e9841083158e626e5563db804",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ttprime_hubbard_snake_seed.json",
+      "case_id": "table1_ttprime_hubbard_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "ttprime_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ttprime_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "ttprime_hubbard_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "40d67a888fcbc4f65f414553efb45270001f95f3648400b4ec8b1c77e3a48373",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/ttprime_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "04ed860ef147781b078b2c88a9b5fd3cce3759e7ee19fedcd6754fb78954e094",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ttprime_hubbard_snake_seed.json",
+      "case_id": "table1_ttprime_hubbard_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "ttprime_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/ttprime_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "ttprime_hubbard_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "40d67a888fcbc4f65f414553efb45270001f95f3648400b4ec8b1c77e3a48373",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0031/ttprime_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "04ed860ef147781b078b2c88a9b5fd3cce3759e7ee19fedcd6754fb78954e094",
+      "t_final": 8.0,
+      "table_class": "fermionic_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spinless_tv_snake_seed.json",
+      "case_id": "table1_spinless_tv_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "spinless_tv",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spinless_tv_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "spinless_tv_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "1a3d2bc0cbefc36a5cf4e5630ebcfd603df74cbba0f66a75dc42a59085064d43",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0033/spinless_tv_L2/json/result.json",
+      "source_artifact_sha256": "b340e2f917057e465d0784cbd23e43d536541abbf59e6f323dd20cd8121b0be9",
+      "t_final": 8.0,
+      "table_class": "spinless_fermion_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spinless_tv_snake_seed.json",
+      "case_id": "table1_spinless_tv_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "spinless_tv",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spinless_tv_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "spinless_tv_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "1a3d2bc0cbefc36a5cf4e5630ebcfd603df74cbba0f66a75dc42a59085064d43",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/tripartite_spsa_A_current_collective_fermionic_smallrobust_target5e5_v1/run/trial_0033/spinless_tv_L2/json/result.json",
+      "source_artifact_sha256": "b340e2f917057e465d0784cbd23e43d536541abbf59e6f323dd20cd8121b0be9",
+      "t_final": 8.0,
+      "table_class": "spinless_fermion_lattice",
+      "tuning_class": "fermionic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/bose_hubbard_snake_seed.json",
+      "case_id": "table1_bose_hubbard_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "bose_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/bose_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "bose_hubbard_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "003a35e7934e5e85982f57ef800cb159b82d72c956d8c3ca7d96421be9dda071",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/routeA_spsa_bosonic_L2_nph1_bh_hk_hkwarm_smallrobust_target5e5_v1/run/trial_0034/bose_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "c6785ad68b5efc9f0ec04488459dd7c4983b7143f875c20d80a5ec7479f4e3b3",
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/bose_hubbard_snake_seed.json",
+      "case_id": "table1_bose_hubbard_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "bose_hubbard",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/bose_hubbard_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "bose_hubbard_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "003a35e7934e5e85982f57ef800cb159b82d72c956d8c3ca7d96421be9dda071",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/routeA_spsa_bosonic_L2_nph1_bh_hk_hkwarm_smallrobust_target5e5_v1/run/trial_0034/bose_hubbard_L2/json/result.json",
+      "source_artifact_sha256": "c6785ad68b5efc9f0ec04488459dd7c4983b7143f875c20d80a5ec7479f4e3b3",
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/harmonic_kerr_chain_snake_seed.json",
+      "case_id": "table1_harmonic_kerr_chain_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "harmonic_kerr_chain",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/harmonic_kerr_chain_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "harmonic_kerr_chain_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "7814f34a6c6e16c1177f8d1dac88f99c8e36b8d08137d0bb239bc5501ad141df",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/agent_runs/20260513_hk_l2_nph1_accuracy_ceiling_optuna/run/trial_0001/result.json",
+      "source_artifact_sha256": "a66d024d2674af5132bf77018d83bd45b8ae51f031bb510aeaee813a5084a945",
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/harmonic_kerr_chain_snake_seed.json",
+      "case_id": "table1_harmonic_kerr_chain_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "harmonic_kerr_chain",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/harmonic_kerr_chain_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "harmonic_kerr_chain_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "7814f34a6c6e16c1177f8d1dac88f99c8e36b8d08137d0bb239bc5501ad141df",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/agent_runs/20260513_hk_l2_nph1_accuracy_ceiling_optuna/run/trial_0001/result.json",
+      "source_artifact_sha256": "a66d024d2674af5132bf77018d83bd45b8ae51f031bb510aeaee813a5084a945",
+      "t_final": 8.0,
+      "table_class": "boson_chain",
+      "tuning_class": "bosonic"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spin_boson_snake_seed.json",
+      "case_id": "table1_spin_boson_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "spin_boson",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spin_boson_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "spin_boson_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "253a2dc507b0a61a346a951c7d18cda2b02b1c511dd30bf6fc66e45a780cfdce",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/generic_static_table/static_table__spin_boson__spin_boson_L1__static_family_native_adapt_phase3/result/spin_boson_L1/json/result.json",
+      "source_artifact_sha256": "70f7708749176f89023926ff0ed699368c1b7ea8ff432b60f8cf78f39c39c2a9",
+      "t_final": 8.0,
+      "table_class": "spin_boson",
+      "tuning_class": "hybrid"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spin_boson_snake_seed.json",
+      "case_id": "table1_spin_boson_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "spin_boson",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/spin_boson_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "spin_boson_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "253a2dc507b0a61a346a951c7d18cda2b02b1c511dd30bf6fc66e45a780cfdce",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/chtc_archives/20260512_phase3_access_point_cleanup/raw_outputs/generic_static_table/static_table__spin_boson__spin_boson_L1__static_family_native_adapt_phase3/result/spin_boson_L1/json/result.json",
+      "source_artifact_sha256": "70f7708749176f89023926ff0ed699368c1b7ea8ff432b60f8cf78f39c39c2a9",
+      "t_final": 8.0,
+      "table_class": "spin_boson",
+      "tuning_class": "hybrid"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hh_snake_seed.json",
+      "case_id": "table1_hh_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "hh",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hh_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "hh_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/agent_runs/20260504_hh_l2_nph1_spsa_cost_shot_optuna_remote_v1/hh_L2/trial_0012/hh_L2/json/result.json",
+      "source_artifact_sha256": "ce236303f1cad738802f2b22247a7f2280efbf49c537c7ffbe04d35a39ba5fd6",
+      "t_final": 8.0,
+      "table_class": "hubbard_holstein",
+      "tuning_class": "hybrid"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hh_snake_seed.json",
+      "case_id": "table1_hh_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "hh",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/hh_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "hh_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "artifacts/agent_runs/20260504_hh_l2_nph1_spsa_cost_shot_optuna_remote_v1/hh_L2/trial_0012/hh_L2/json/result.json",
+      "source_artifact_sha256": "ce236303f1cad738802f2b22247a7f2280efbf49c537c7ffbe04d35a39ba5fd6",
+      "t_final": 8.0,
+      "table_class": "hubbard_holstein",
+      "tuning_class": "hybrid"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/molecular_vibronic_h2_snake_seed.json",
+      "case_id": "table1_molecular_vibronic_h2_snake_A0p2_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.2,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "molecular_vibronic_h2",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/molecular_vibronic_h2_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "molecular_vibronic_h2_snake_A0p2_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "8d4fed344b59552311442029fe65263ef4c71cb343509597d6295cb7e745ce90",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "raw_outputs/generic_static_table/static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2__static_family_native_adapt_phase3/result/molecular_vibronic_h2_L2/json/result.json",
+      "source_artifact_sha256": "447d107677a2e6dc7051053e489b592b623e141ed3f8090ba9328cd9280e181e",
+      "t_final": 8.0,
+      "table_class": "molecular_vibronic",
+      "tuning_class": "hybrid"
+    },
+    {
+      "artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/molecular_vibronic_h2_snake_seed.json",
+      "case_id": "table1_molecular_vibronic_h2_snake_A0p6_t8_dt321_seedtracks_v2",
+      "compile_target": {
+        "class_settings_manifest": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "qiskit_parity_mode_policy": "run_task.sh defaults supported comparator algorithms to parity_required",
+        "status": "preserve_existing_generic_time_dynamics_table_runtime_target",
+        "submit_requirements": "TARGET.HasSIF",
+        "submit_wrapper": "chtc/generic_time_dynamics_table/run_task_apptainer.sh"
+      },
+      "diagnostic_exact_reference_policy": "benchmark_exact_reporting_only",
+      "drive_metadata": {
+        "A": 0.6,
+        "custom_weights": "",
+        "enable_drive": true,
+        "include_identity": false,
+        "omega": 1.0,
+        "pattern": "staggered",
+        "phi": 0.0,
+        "t0": 0.0,
+        "tbar": 1.0,
+        "time_sampling": "midpoint"
+      },
+      "family": "molecular_vibronic_h2",
+      "latest_phase3_source_artifact_missing_locally": false,
+      "normalized_seed_artifact_json": "seed_artifacts_paper_ii_seed_tracks_v2/molecular_vibronic_h2_snake_seed.json",
+      "num_times": 321,
+      "observable_policy": {
+        "policy_id": "paper_ii_seed_tracks_v2_family_runtime_observables",
+        "qpu_faithful_controller_data_contract": "measurement_compatible_prepared_state_observables_only",
+        "status": "preserve_from_v2_case_and_runtime_family_adapter",
+        "time_dependence": "driven_staggered_midpoint"
+      },
+      "same_seed_comparator_group_id": "molecular_vibronic_h2_snake_A0p6_t8_dt321_same_seed_v2",
+      "seed_artifact_sha256": "8d4fed344b59552311442029fe65263ef4c71cb343509597d6295cb7e745ce90",
+      "seed_selection_policy": "current_best_static_snake_or_phase3_seed_20260517",
+      "seed_track": "snake",
+      "source_artifact_json": "raw_outputs/generic_static_table/static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2__static_family_native_adapt_phase3/result/molecular_vibronic_h2_L2/json/result.json",
+      "source_artifact_sha256": "447d107677a2e6dc7051053e489b592b623e141ed3f8090ba9328cd9280e181e",
+      "t_final": 8.0,
+      "table_class": "molecular_vibronic",
+      "tuning_class": "hybrid"
+    }
+  ],
+  "selection_policy": {
+    "excluded_seed_tracks": [
+      "posgeo"
+    ],
+    "expected_case_count": 20,
+    "expected_drive_amplitudes": [
+      0.2,
+      0.6
+    ],
+    "expected_families": [
+      "hubbard",
+      "ionic_hubbard",
+      "extended_hubbard",
+      "ttprime_hubbard",
+      "spinless_tv",
+      "bose_hubbard",
+      "harmonic_kerr_chain",
+      "spin_boson",
+      "hh",
+      "molecular_vibronic_h2"
+    ],
+    "posgeo_scope": "historical_diagnostic_out_of_scope_for_this_recovery",
+    "seed_regeneration_policy": "forbidden_preserve_v2_seed_artifact_hashes_exactly",
+    "seed_substitution_policy": "forbidden_no_staged_fallback_pending_or_recovery_seed_sources",
+    "selected_seed_track": "snake"
+  },
+  "source_cases_manifest": "chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_cases_v2.json",
+  "source_hashes": {
+    "source_cases_manifest_sha256": "bcb6be13c3135ff497a5cac8626881a288c61a8049e35342069243f87034eec6",
+    "source_seed_ledger_sha256": "95e6b1c872b8752cd87fadfeb269b76667578949e99f0911775103d5ed6e8fd3"
+  },
+  "source_seed_ledger": "chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_seed_ledger_v2.json",
+  "validation_contract": {
+    "fail_closed_on_failed_required_parity_correctness_sidecar": true,
+    "fail_closed_on_family_repair_without_recovery_parity_calibration_gates": true,
+    "fail_closed_on_final_aggregation_without_user_approval": true,
+    "fail_closed_on_frozen_mclachlan_or_controller_when_exact_diagnostics_move": true,
+    "fail_closed_on_latest_phase3_source_artifact_missing_locally": true,
+    "fail_closed_on_missing_all_algorithm_class_settings": true,
+    "fail_closed_on_missing_required_parity_correctness_sidecar": true,
+    "fail_closed_on_missing_same_seed_group_or_hash": true,
+    "fail_closed_on_non_snake_selected_case": true,
+    "fail_closed_on_qiskit_parity_claim_for_unsupported_algorithm": true,
+    "fail_closed_on_same_seed_group_hash_mismatch": true,
+    "fail_closed_on_staged_fallback_pending_or_recovery_seed_source": true,
+    "fail_closed_on_strict_controller_exact_leakage": true,
+    "fail_closed_on_table_promotion_without_separate_user_workflow": true,
+    "fail_closed_on_unexpected_selected_case_count": true,
+    "future_evidence_root_policy": "create_new_root_never_overwrite_diagnostic_baseline_sources",
+    "warn_on_missing_epsilon_spec_shots_total_or_fidelity": true
+  }
+}

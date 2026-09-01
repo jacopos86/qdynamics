@@ -1,0 +1,95 @@
+{
+  "cases": [
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/harmonic_kerr_chain_A0p2_table_lock_seed.json",
+      "case_id": "table_lock_harmonic_kerr_chain_A0p2_t8_dt321_good_static_adapt_seed",
+      "description": "Paper-II harmonic-Kerr run using PosGeo-ADAPT nph=1 static seed, A=0.2",
+      "fallback_family": "full_meta",
+      "family": "harmonic_kerr_chain",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "canonical_case_manifest_id": "paper_ii_class_tuned_harmonic_kerr_cases_v1",
+        "controller_settings_scope": "coarse_hamiltonian_class",
+        "disable_drive": false,
+        "drive": {
+          "A": 0.2,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "paper_ii_harmonic_kerr_reincluded_after_good_static_seed": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "harmonic_kerr_chain_A0p2_t8_dt321_same_seed_posgeo_static_adapt",
+          "seed_artifact_sha256": "c95a6f09c62b4b59f6d9b643b64dde458943a57f1f5b387babe6038c67dd9616",
+          "seed_selection_policy": "current_best_static_posgeo_adapt_seed_table_i_standard_nph1_20260516",
+          "selected_static_seed_source": "raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+          "source_artifact_json": "chtc/generic_time_dynamics_table/input/seed_artifacts_table_lock_available_phase3/harmonic_kerr_chain_A0p2_table_lock_seed.json",
+          "static_abs_delta_e": 5.739853037312059e-13,
+          "same_cutoff_n_ph_max": 1
+        },
+        "static_scaffold_scope": "benchmark_point",
+        "paper_ii_posgeo_static_seed": true
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "bosonic_lattice",
+      "tuning_class": "bosonic"
+    },
+    {
+      "append_pool_family": "full_meta",
+      "artifact_json": "seed_artifacts_table_lock_available_phase3/harmonic_kerr_chain_A0p6_table_lock_seed.json",
+      "case_id": "table_lock_harmonic_kerr_chain_A0p6_t8_dt321_good_static_adapt_seed",
+      "description": "Paper-II harmonic-Kerr run using PosGeo-ADAPT nph=1 static seed, A=0.6",
+      "fallback_family": "full_meta",
+      "family": "harmonic_kerr_chain",
+      "generator_family": "full_meta",
+      "loader_mode": "replay_family",
+      "metadata": {
+        "canonical_case_manifest_id": "paper_ii_class_tuned_harmonic_kerr_cases_v1",
+        "controller_settings_scope": "coarse_hamiltonian_class",
+        "disable_drive": false,
+        "drive": {
+          "A": 0.6,
+          "custom_weights": "",
+          "enable_drive": true,
+          "include_identity": false,
+          "omega": 1.0,
+          "pattern": "staggered",
+          "phi": 0.0,
+          "t0": 0.0,
+          "tbar": 1.0,
+          "time_sampling": "midpoint"
+        },
+        "enable_drive": true,
+        "paper_ii_harmonic_kerr_reincluded_after_good_static_seed": true,
+        "paper_ii_table_lock": true,
+        "seed_lock": {
+          "same_seed_comparator_group_id": "harmonic_kerr_chain_A0p6_t8_dt321_same_seed_posgeo_static_adapt",
+          "seed_artifact_sha256": "c95a6f09c62b4b59f6d9b643b64dde458943a57f1f5b387babe6038c67dd9616",
+          "seed_selection_policy": "current_best_static_posgeo_adapt_seed_table_i_standard_nph1_20260516",
+          "selected_static_seed_source": "raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+          "source_artifact_json": "chtc/generic_time_dynamics_table/input/seed_artifacts_table_lock_available_phase3/harmonic_kerr_chain_A0p6_table_lock_seed.json",
+          "static_abs_delta_e": 5.739853037312059e-13,
+          "same_cutoff_n_ph_max": 1
+        },
+        "static_scaffold_scope": "benchmark_point",
+        "paper_ii_posgeo_static_seed": true
+      },
+      "num_times": 321,
+      "t_final": 8.0,
+      "table_class": "bosonic_lattice",
+      "tuning_class": "bosonic"
+    }
+  ],
+  "schema": "paper_ii_class_tuned_case_manifest_v1"
+}
