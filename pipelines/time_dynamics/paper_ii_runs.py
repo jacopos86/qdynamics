@@ -135,6 +135,7 @@ DELTA_THETA_CONTROL = StepControl(
     control_id="delta_theta_5e-3",
     flags=("--avqds-delta-theta-max", "5.0e-3", "--no-solve-repair"),
     required_integrator="euler",
+    parameter_step_max=5.0e-3,
     note="Published AVQDS Euler control law, at the source's own value.",
 )
 
@@ -147,6 +148,9 @@ STATE_MOTION_CONTROL = StepControl(
         "--solve-repair-kink-eta-max", "5.0e-3",
         "--solve-repair-max-local-subdivisions", "10",
     ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-2,
+    max_local_subdivisions=10,
     note=(
         "This route's control law. The subdivision budget is 10 because at 4 a "
         "step could exhaust it, fail to cure a violation, and advance anyway, "
@@ -160,6 +164,10 @@ COMPOSED_STATE_PARAMETER_CONTROL = StepControl(
         *STATE_MOTION_CONTROL.flags,
         "--solve-repair-parameter-step-max", "5.0e-3",
     ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-2,
+    parameter_step_max=5.0e-3,
+    max_local_subdivisions=10,
     note=(
         "Composed controller with both the tangent-state and maximum "
         "single-parameter step bounds active."
