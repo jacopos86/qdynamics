@@ -78,8 +78,12 @@ ABSOLUTE_SITE_OCCUPATION_ERROR_CEILING = 5.0e-3
 EXACT_RESPONSE_SCALES = Path(__file__).with_name(
     "paper_ii_exact_response_scales_v1.json"
 )
+# Rebaselined 2026-09-01 onto the regenerated exact-reference store; the
+# sidecar's own "rebaseline" block carries the old/new manifest digests, the
+# reason, and the physics-agreement evidence.  Previous pin (against the lost
+# cluster-built store): ee9d1a3d94ae3b267e3a898c90aeab9f6adcf59b5d17aff70900e7ba8c6c5f77
 EXACT_RESPONSE_SCALES_SHA256 = (
-    "ee9d1a3d94ae3b267e3a898c90aeab9f6adcf59b5d17aff70900e7ba8c6c5f77"
+    "f7bb1dfda63a1b2f91244545beb3020b2f2d1a4db6fbbc1a386741d782581475"
 )
 
 

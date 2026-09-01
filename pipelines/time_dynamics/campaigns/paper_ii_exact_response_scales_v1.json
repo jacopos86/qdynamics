@@ -1,101 +1,141 @@
 {
   "schema": "paper_ii_exact_response_scales_v1",
   "definition": "RMS_t[O_exact(t)-O_exact(0)] on the declared 0.04 output grid; site scale is RMS_t[max_i |n_i(t)-n_i(0)|]",
+  "rebaseline": {
+    "date": "2026-09-01",
+    "ruling": "User ruling 2026-09-01: adopt the locally regenerated exact-reference store as the new baseline for Paper II, recording old and new digests together with the physics-agreement evidence.",
+    "reason": "The original cluster-built store under output/paper_ii_staged/exact_references is unrecoverable. It is absent from every git ref and from the entire CHTC rescue tree -- chtc/RESCUE_FETCH_VERIFICATION_20260901.md lists the six exact-reference keys as NOT-FOUND in the do-not-expect table, and docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md SS2.2 records the same. Regenerating the store with its tracked producer reproduces every content-address key bit-exactly, but recomputing the propagated statevectors on this Apple M4 machine's BLAS shifts the reference.npz floats at ulp level, and the manifest embeds their SHA-256. The byte pin therefore cannot be preserved; the identity can be, and is.",
+    "identity_unchanged": "All six exact_reference_key values are byte-identical to the originals. The content address is sha256 over {schema, propagator_schema, seed_sha256, drive_profile, times, substeps}, none of which changed.",
+    "regenerated_by": "pipelines/time_dynamics/diagnostics/exact_reference_store.py (ExactReferenceStore.get_or_build) over pipelines/time_dynamics/diagnostics/exact_driven_reference.py, driven at the tracked campaign identity: seed chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json (sha256 7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91), drive profiles rebuilt through the runner chain (runners/ap_append_from_adapt_artifact.py defaults -> _drive_config_from_args -> time_dependent_hamiltonian_from_runtime_input) from paper_ii_runs.DRIVES, stitched reporting grid linspace(0,5,126) ++ linspace(5,20,376)[1:] (501 points, dt=0.04), substeps=40. Six references in 22.3 s wall, peak RSS 86 MB under pipelines/shell/ram_guard.py --limit-mb 8000.",
+    "exact_reference_manifest_sha256": {
+      "fastfast": {
+        "old": "37b0934a8e8df061a759af807f68da4035cb00eec0529a02218ac6a18c0429ab",
+        "new": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2"
+      },
+      "fastweak": {
+        "old": "c0dc37ca6ac9db9ef9825efca333c1fe50f52d8a759c52802d34aab416e47b2e",
+        "new": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832"
+      },
+      "midres": {
+        "old": "9361efbc9dbf3a9c63d063698421ca853fe2e15104902c2fc99ebd87d47422f7",
+        "new": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991"
+      },
+      "slowstrong": {
+        "old": "1626ab2297e711a60d58e503d0d39a1b535782b22f7f0ddef3a82bb4f993101a",
+        "new": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c"
+      },
+      "strongfast": {
+        "old": "6e045355384b953d87135a70081d3423fe4bee6734376d970850585099448815",
+        "new": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232"
+      },
+      "weakslow": {
+        "old": "61917b55e9edfd72fed214bebbf2b053d45192cbf07f002638b0bed4349b6f7b",
+        "new": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e"
+      }
+    },
+    "physics_agreement": {
+      "comparisons": 36,
+      "max_relative_deviation": 5.7942e-13,
+      "max_relative_deviation_at": "weakslow/t20/doublon_rms_excursion",
+      "note": "Regenerated response scales agree with the values recorded against the lost store to 5.8e-13 relative or better across all 6 drives x 2 horizons x 3 fields -- consistent with the 1e-13..1e-10 relative statevector drift measured in chtc/RESCUE_FETCH_VERIFICATION_20260901.md, and far inside the 2-significant-digit precision at which these scales are displayed. (EVIDENCE_PARITY_AUDIT_20260831.md SS2.2 quotes 6.8e-15; that is the deviation of one representative row, not the maximum over all 36.)"
+    },
+    "response_scales_refreshed": "All 36 scale values are re-derived from the adopted store, so the ledger stays internally consistent with the references it now pins. 35 of the 36 were already within the verifier's tolerance (response_scales.py math.isclose rel_tol=1e-13, abs_tol=1e-15); weakslow/t20/doublon_rms_excursion was not -- its 1.27e-15 absolute difference exceeds the 1e-15 absolute floor that dominates at this drive's small excursion magnitude -- so a digest-only rebaseline would have left the integrity check failing."
+  },
   "drives": {
     "fastfast": {
       "t20": {
-        "doublon_rms_excursion": 0.04133040233918228,
-        "energy_rms_excursion": 0.24639089331131556,
+        "doublon_rms_excursion": 0.0413304023391824,
+        "energy_rms_excursion": 0.24639089331131722,
         "exact_reference_key": "b0d1e60f5a8cd51becbd8ea78e2e0cfd93e88488efd1ee079ecafd4d357ebd30",
-        "exact_reference_manifest_sha256": "37b0934a8e8df061a759af807f68da4035cb00eec0529a02218ac6a18c0429ab",
-        "max_site_occupation_rms_excursion": 0.11177951845582541
+        "exact_reference_manifest_sha256": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2",
+        "max_site_occupation_rms_excursion": 0.11177951845582543
       },
       "t5": {
-        "doublon_rms_excursion": 0.0377888927358483,
-        "energy_rms_excursion": 0.23457967628071133,
+        "doublon_rms_excursion": 0.03778889273584834,
+        "energy_rms_excursion": 0.23457967628071255,
         "exact_reference_key": "b0d1e60f5a8cd51becbd8ea78e2e0cfd93e88488efd1ee079ecafd4d357ebd30",
-        "exact_reference_manifest_sha256": "37b0934a8e8df061a759af807f68da4035cb00eec0529a02218ac6a18c0429ab",
-        "max_site_occupation_rms_excursion": 0.10402924152775632
+        "exact_reference_manifest_sha256": "c20744adc963b970c5a1092569fc945ddd7c727bbd6e1a654ad7387fff448ba2",
+        "max_site_occupation_rms_excursion": 0.10402924152775636
       }
     },
     "fastweak": {
       "t20": {
-        "doublon_rms_excursion": 0.027309106277957206,
-        "energy_rms_excursion": 0.11517860242883111,
+        "doublon_rms_excursion": 0.027309106277958198,
+        "energy_rms_excursion": 0.11517860242883667,
         "exact_reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
-        "exact_reference_manifest_sha256": "c0dc37ca6ac9db9ef9825efca333c1fe50f52d8a759c52802d34aab416e47b2e",
-        "max_site_occupation_rms_excursion": 0.07757530269472258
+        "exact_reference_manifest_sha256": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832",
+        "max_site_occupation_rms_excursion": 0.07757530269472455
       },
       "t5": {
-        "doublon_rms_excursion": 0.02699247948796201,
-        "energy_rms_excursion": 0.10691405481197912,
+        "doublon_rms_excursion": 0.026992479487962268,
+        "energy_rms_excursion": 0.10691405481198178,
         "exact_reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
-        "exact_reference_manifest_sha256": "c0dc37ca6ac9db9ef9825efca333c1fe50f52d8a759c52802d34aab416e47b2e",
-        "max_site_occupation_rms_excursion": 0.07824085455294773
+        "exact_reference_manifest_sha256": "49fd40f3aed0d0e6f09c3cd35f1834386a563621be00d2e6aa6795b9c2130832",
+        "max_site_occupation_rms_excursion": 0.07824085455294884
       }
     },
     "midres": {
       "t20": {
-        "doublon_rms_excursion": 0.07217138951025559,
-        "energy_rms_excursion": 0.2397330380422869,
+        "doublon_rms_excursion": 0.07217138951025374,
+        "energy_rms_excursion": 0.23973303804227986,
         "exact_reference_key": "097c97503ad839abf50df55d0a65aa5eb91711c9a8ba8bebe88cf3536b5f98b5",
-        "exact_reference_manifest_sha256": "9361efbc9dbf3a9c63d063698421ca853fe2e15104902c2fc99ebd87d47422f7",
-        "max_site_occupation_rms_excursion": 0.08043522699725818
+        "exact_reference_manifest_sha256": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991",
+        "max_site_occupation_rms_excursion": 0.0804352269972575
       },
       "t5": {
-        "doublon_rms_excursion": 0.07248534082572282,
-        "energy_rms_excursion": 0.2205395766497397,
+        "doublon_rms_excursion": 0.07248534082572218,
+        "energy_rms_excursion": 0.22053957664973753,
         "exact_reference_key": "097c97503ad839abf50df55d0a65aa5eb91711c9a8ba8bebe88cf3536b5f98b5",
-        "exact_reference_manifest_sha256": "9361efbc9dbf3a9c63d063698421ca853fe2e15104902c2fc99ebd87d47422f7",
-        "max_site_occupation_rms_excursion": 0.10246365821463455
+        "exact_reference_manifest_sha256": "b8d9a7ae8e54d4ec275d22ec10f42a4fdc226fa640a71c778c4661f688cd0991",
+        "max_site_occupation_rms_excursion": 0.10246365821463431
       }
     },
     "slowstrong": {
       "t20": {
-        "doublon_rms_excursion": 0.024882308556634435,
-        "energy_rms_excursion": 0.03436493600528174,
+        "doublon_rms_excursion": 0.024882308556634803,
+        "energy_rms_excursion": 0.03436493600528336,
         "exact_reference_key": "f83fc25a31fb2930ea1eb4eefdd5e0276607521027cad58a9f2c7c4f7d537308",
-        "exact_reference_manifest_sha256": "1626ab2297e711a60d58e503d0d39a1b535782b22f7f0ddef3a82bb4f993101a",
-        "max_site_occupation_rms_excursion": 0.03506273985331024
+        "exact_reference_manifest_sha256": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c",
+        "max_site_occupation_rms_excursion": 0.03506273985331115
       },
       "t5": {
-        "doublon_rms_excursion": 0.028270079922143095,
-        "energy_rms_excursion": 0.03022824265065118,
+        "doublon_rms_excursion": 0.028270079922143712,
+        "energy_rms_excursion": 0.030228242650652354,
         "exact_reference_key": "f83fc25a31fb2930ea1eb4eefdd5e0276607521027cad58a9f2c7c4f7d537308",
-        "exact_reference_manifest_sha256": "1626ab2297e711a60d58e503d0d39a1b535782b22f7f0ddef3a82bb4f993101a",
-        "max_site_occupation_rms_excursion": 0.05536012637772655
+        "exact_reference_manifest_sha256": "54a72f02f77116cdb4ef6e83ff9c745de872fd0e883d0c8882a97c8eb0d97a3c",
+        "max_site_occupation_rms_excursion": 0.055360126377727505
       }
     },
     "strongfast": {
       "t20": {
-        "doublon_rms_excursion": 0.388430776162756,
-        "energy_rms_excursion": 2.50207998889209,
+        "doublon_rms_excursion": 0.3884307761627549,
+        "energy_rms_excursion": 2.502079988892084,
         "exact_reference_key": "4826d7df9fdfdb4f09e54cf1473b1a90f7704310588e5e6ab569510e741fb29a",
-        "exact_reference_manifest_sha256": "6e045355384b953d87135a70081d3423fe4bee6734376d970850585099448815",
-        "max_site_occupation_rms_excursion": 0.2410215500705875
+        "exact_reference_manifest_sha256": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232",
+        "max_site_occupation_rms_excursion": 0.24102155007058548
       },
       "t5": {
-        "doublon_rms_excursion": 0.38179657820339263,
-        "energy_rms_excursion": 2.3374660767335222,
+        "doublon_rms_excursion": 0.38179657820339447,
+        "energy_rms_excursion": 2.3374660767335356,
         "exact_reference_key": "4826d7df9fdfdb4f09e54cf1473b1a90f7704310588e5e6ab569510e741fb29a",
-        "exact_reference_manifest_sha256": "6e045355384b953d87135a70081d3423fe4bee6734376d970850585099448815",
-        "max_site_occupation_rms_excursion": 0.25749108523784225
+        "exact_reference_manifest_sha256": "e4d3faea06fbf09ab8bc1df62d529ac89d448efa8f03c9bb18bcae49b7abe232",
+        "max_site_occupation_rms_excursion": 0.25749108523784203
       }
     },
     "weakslow": {
       "t20": {
-        "doublon_rms_excursion": 0.0021870347787892185,
-        "energy_rms_excursion": 0.0012331735094926327,
+        "doublon_rms_excursion": 0.0021870347787904857,
+        "energy_rms_excursion": 0.0012331735094926867,
         "exact_reference_key": "e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc",
-        "exact_reference_manifest_sha256": "61917b55e9edfd72fed214bebbf2b053d45192cbf07f002638b0bed4349b6f7b",
-        "max_site_occupation_rms_excursion": 0.008717026605636438
+        "exact_reference_manifest_sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e",
+        "max_site_occupation_rms_excursion": 0.008717026605635881
       },
       "t5": {
-        "doublon_rms_excursion": 0.0021686891125251777,
-        "energy_rms_excursion": 0.0011335122334496122,
+        "doublon_rms_excursion": 0.0021686891125255684,
+        "energy_rms_excursion": 0.0011335122334497857,
         "exact_reference_key": "e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc",
-        "exact_reference_manifest_sha256": "61917b55e9edfd72fed214bebbf2b053d45192cbf07f002638b0bed4349b6f7b",
-        "max_site_occupation_rms_excursion": 0.012561874240715799
+        "exact_reference_manifest_sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e",
+        "max_site_occupation_rms_excursion": 0.012561874240715873
       }
     }
   }
