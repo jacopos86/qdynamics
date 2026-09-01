@@ -78,19 +78,21 @@ ABSOLUTE_SITE_OCCUPATION_ERROR_CEILING = 5.0e-3
 EXACT_RESPONSE_SCALES = Path(__file__).with_name(
     "paper_ii_exact_response_scales_v1.json"
 )
-# Rebaselined 2026-09-01 onto the regenerated exact-reference store; the
-# sidecar's own "rebaseline" block carries the old/new manifest digests, the
-# reason, and the physics-agreement evidence.  The six exact-reference manifest
-# digests are UNCHANGED by the same-day correction below -- two independent
-# pinned-env regenerations reproduce them byte for byte; only the block's
-# recorded causal account was wrong.  Read "reproduction_requirements" before
-# regenerating the store: the manifest digest is sensitive to the drive_profile
-# key order supplied by the regenerating driver, and the store is gitignored, so
-# it does not survive the removal of the worktree that built it.
+# Rebaselined 2026-09-01 onto the regenerated exact-reference store.  Per the
+# same-day pin-migration ruling the sidecar pins each reference's
+# data_sha256 -- the reference.npz float payload -- instead of the manifest's
+# byte digest, which was never a function of the physics (exact_reference_store
+# writes manifest.json without sort_keys, so its digest also encodes the JSON
+# key order of whichever driver regenerated the store).  The store itself is now
+# tracked under output/paper_ii_staged/exact_references/, so a fresh checkout
+# verifies without regenerating.  The sidecar's "rebaseline" block carries the
+# full history: superseded manifest pins, the causal correction, and the
+# physics-agreement evidence.
 # Pin history: ee9d1a3d... (lost cluster-built store)
 #           -> f7bb1dfd... (2026-09-01 rebaseline)
+#           -> 4fc1b732... (2026-09-01 causal correction)
 EXACT_RESPONSE_SCALES_SHA256 = (
-    "4fc1b7328e096c8036d143383ae420d044f1614d9013c9442fa324dc32c00b6f"
+    "3e6d42a6241e7ee954ce9f20d7245aa67ac82307d25ed2943126f1ead7e778df"
 )
 
 
