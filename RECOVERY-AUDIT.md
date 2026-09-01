@@ -158,8 +158,10 @@ Full trace: `docs/reports/PAPER_II_III_EVIDENCE_TRACE_20260831.md`. Headlines:
   **1 doc/test mismatch** (`agent_guidance/skills/paper-ii-run/SKILL.md`
   never received branch-only commit `e2c96ba5`'s response-normalized
   wording — user decision pending: graft the doc or align the test),
-  **1 env** (no LaTeX engine installed on this machine). The **7 era-drift
-  failures recorded in §9 did not reproduce** — that family is green today.
+  **1 env** (no LaTeX engine installed on this machine). The 7 era-drift
+  failures did not reproduce **in the two smoke files**, but the family is
+  NOT gone: the full-suite classification (below) finds 12 era-drift tests
+  red elsewhere in the suite.
 - **GitNexus rebuilt:** 103,520 nodes / 213,084 edges / 722 flows at
   `29f924b`; MCP server registered (`gitnexus setup -c claude`); skill
   layout migrated to the 1.6.10 flat scheme (`.claude/skills/<name>/`).
@@ -180,9 +182,18 @@ Full trace: `docs/reports/PAPER_II_III_EVIDENCE_TRACE_20260831.md`. Headlines:
   clustered in CHTC-package/campaign-fixture families
   (test_adapt_vqe_integration 75, test_siam_chtc_package 52,
   test_generic_static_benchmark 36, prospective_* 61, test/chtc/* ~120).
-  Root-cause classification in progress; the search_profile fix and
-  SKILL.md graft above landed after the documented staged-suite
-  re-measure, so those families are green in this baseline.
+  Root-cause classification (complete, id-by-id:
+  `docs/reports/FULL_SUITE_BASELINE_20260831_classification.md`):
+  incomplete-graft 346, data-missing-chtc 221, retired-interface 93,
+  unknown 57, data-missing-regenerable 26, env 25. The 2026-08-31
+  seam-fix commits `06a258de`/`b319ba9c` are verified CLEAN (pre/post
+  worktree A/Bs). The one genuine recovery-day regression is merge
+  `e5692712` (l4-batch-debug): the batch executor's no-phase0 path lacks
+  the `phase1_event_start` correction its siblings have
+  (`adapt_pipeline.py:2509/2744` vs `:3182`) — turned 9 green tests red
+  (21 total in the family); §5a's "run touched tests after" step was
+  never executed for that merge. Correction to the bullet above is
+  incorporated per the classification (era-drift reproduces: 12 tests).
 
 ---
 *Full per-branch agent reports: workflow `wf_3badde6b-c1a`; paper evidence trace: `wf_310612e2-038`. *
