@@ -19,11 +19,10 @@ For the other papers, use the target manuscript/source pair named in
 `MATH/AGENTS.md`. `MATH/Math.md` is legacy background only and must not be
 used to establish active-paper notation, claims, results, or route identity.
 
-Active paper drafts live under:
-
-```text
-MATH/paper_details/
-```
+Active paper paths follow `MATH/AGENTS.md` and each manuscript contract.
+Paper II's manuscript contract is
+`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`; the co-located research
+copy and upload bundles retain provenance/reference roles.
 
 ## Layout
 

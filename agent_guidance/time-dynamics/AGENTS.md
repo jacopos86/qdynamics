@@ -5,6 +5,13 @@ opening lane source; load only the module the task needs. Scientific
 invariants and paper policy remain governed by root `AGENTS.md`,
 `MATH/AGENTS.md`, and `agent_guidance/shared/scientific-invariants.md`.
 
+## Manuscript route
+
+Paper II prose/equation/PDF work starts at
+`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`, which names the active
+source/PDF pair. This lane owns implementation, tests, settings, and evidence
+production. Research-tree manuscript and upload copies retain provenance roles.
+
 ## Route identity
 
 The single current support-patch route is **generalized exchange**

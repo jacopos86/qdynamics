@@ -19,7 +19,13 @@ leave it out of scope unless explicitly requested.
   Use the active paper manuscript together with its support folder and
   locked evidence, not `Math.md`.
 - On 2026-07-18 the user promoted the no-ordinary-novelty SR-SNAKE manuscript copy into the canonical Paper-I source lineage. The dated `Paper_I_no_ordinary_novelty_sr_snake_20260717.*` files and the pre-promotion backup are historical provenance only; future agents must use the active co-located `Paper_I.tex` / `Paper_I.pdf` pair. The exact historical promotion receipt is `MATH/paper_facing/paper_I_static_scaffold/paper_i_canonical_manuscript_promotion_20260718.json`.
-- Active user-facing paper sources live under `MATH/paper_details/`; their current source/PDF pairs are listed below. Treat older paper drafts, generated Math twins, and markdown notebooks as recovery/reference material unless the user explicitly requests them.
+- **Paper II manuscript work resolves to the separate repository
+  `/Users/lordskyler/AP-McLachlan---Paper-II`**, whose `AGENTS.md` declares
+  the active `Paper_II_overleaf_20260901/time_dynamics_paper_II.tex` / PDF
+  pair. The research copy under `MATH/paper_details/` and upload copies are
+  provenance/reference material. Implementation, tests, settings, and evidence
+  production remain in this research repository.
+- Resolve active user-facing sources through the table and explicit external-repository rulings in this contract. Treat older drafts, generated Math twins, and markdown notebooks as recovery/reference material unless requested.
 - `MATH/archive/archaic_repo_math.md` is archival only. Never use it, `MATH/Math.md`, or generated Math artifacts as a default source of truth.
 
 ## Paper-Program Bridge
@@ -41,7 +47,7 @@ regularization / GKBA exploratory workspace under `paper_5/`.
 | Paper | Active source/PDF pair | Scope | Primary support folder |
 |---|---|---|---|
 | Paper I | `MATH/paper_details/Paper_I.tex` / `MATH/paper_details/Paper_I.pdf` | Geometry- and cost-aware ADAPT ansatz construction for mixed fermion--boson systems. | `MATH/paper_facing/paper_I_static_scaffold/` |
-| Paper II | `MATH/paper_details/time_dynamics_paper_II.tex` / `.pdf` | AP-McLachlan dynamics: append-prune support-patch control over time points/time iterations. | `MATH/paper_facing/paper_II_dynamics/` |
+| Paper II | `/Users/lordskyler/AP-McLachlan---Paper-II/Paper_II_overleaf_20260901/time_dynamics_paper_II.tex` / `.pdf`; contract: the manuscript repository's `AGENTS.md` | AP-McLachlan dynamics with generalized exchange. | `MATH/paper_facing/paper_II_dynamics/` |
 | Paper III | `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` / `.pdf` | Geometry-aware QSE and excited-state dynamics. | `MATH/paper_facing/paper_III_spectra/` |
 | Paper IV | `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` / `.pdf` | Molecular-vibronic water application using finite active-space, all-three-mode, linearly coupled H2O Hamiltonians. | `MATH/paper_facing/paper_IV_molecular_vibronic_h2o/` |
 | Paper V | `MATH/paper_details/paper_V_high_u_gkba.tex` / `.pdf` | High-`U` regularization / GKBA exploratory line and quantum-computable encoding study. | `paper_5/` and `MATH/paper_facing/paper_V_high_u_gkba/` |
@@ -150,6 +156,10 @@ When paper scope is triggered, load the smallest relevant slice in this order:
   applying changes. Chat-only proposed wording, paper-edit plans, literature-positioning
   suggestions, and review-only responses are manuscript-facing work; the skill is
   required before those proposals are given, not only before file edits.
+  The restored global skill is available at
+  `/Users/lordskyler/.codex/skills/journal-math-manuscript-refiner/SKILL.md`;
+  `agent_guidance/skills/manuscript-editor/SKILL.md` retains the repository
+  author overlay and fallback workflow. Read each loaded skill once.
 - `$pedagogical-math-primer` is not an editor for the active Paper I, Paper II,
   or Paper III journal manuscripts. Use it for separate teaching notes,
   derivation companions, equation explanations, and explicitly pedagogical
@@ -209,9 +219,9 @@ handling, SNAKE naming, paper split, and author preferences.
   displayed value, report the new status separately, and ask before destructive
   replacement.
 
-After every edit to a paper manuscript `.tex` source in `MATH/paper_details/`,
-regenerate the corresponding PDF before reporting the edit complete. Run the
-build from `MATH/paper_details/` with `latexmk` when available, or with
+After every edit to an active paper manuscript `.tex` source, regenerate its
+corresponding PDF before reporting the edit complete. Run the build from the
+source directory declared by the manuscript contract with `latexmk`, or with
 `tectonic --keep-logs --reruns 2 <paper>.tex` as the approved fallback when
 `latexmk` is absent. A missing `latexmk` binary is not a blocker if `tectonic`
 passes. If the selected builder fails, report the exact failure and do not claim
@@ -249,7 +259,7 @@ Keep the root focused on source-of-truth math, build helpers, and classified sup
 - `MATH/paper_details/main_condensed.tex` and its PDF.
 - Active paper manuscripts, PDFs, and bib files:
   - `MATH/paper_details/Paper_I.tex` / `Paper_I.pdf` / `Paper_INotes.bib`;
-  - `MATH/paper_details/time_dynamics_paper_II.tex` / `.pdf` / `time_dynamics_paper_IINotes.bib`;
+  - Paper II active source/PDF: the separate manuscript repository declared above; `MATH/paper_details/time_dynamics_paper_II.*` retains research/provenance copies.
   - `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` / `.pdf` / `excited_spectra_dynamics_paper_IIINotes.bib`;
   - `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` / `.pdf` when present;
   - `MATH/paper_details/paper_V_high_u_gkba.tex` / `.pdf` when present.

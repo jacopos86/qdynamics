@@ -18,7 +18,7 @@ Scope: Future AI-assisted Paper I / Paper II / Paper III drafting and review.
 8. Use the stronger boundaries:
    - Paper I: candidate-position acquisition under geometry and cost.
    - Paper II: bidirectional checkpoint-local manifold maintenance.
-9. In equations and method prose, use `MATH/Math.md` as the authority.
+9. In equations and method prose, use the active manuscript and its declared lane authority from `MATH/AGENTS.md`. `MATH/Math.md` retains its legacy-background role.
 10. In result prose, cite our figures, tables, benchmark protocols, and ablations.
 11. In related-work prose, cite external literature and distinguish overlap precisely, but do not force a related-work rewrite during a sentence-level editing pass.
 
@@ -125,7 +125,7 @@ Avoid empty claims:
 Do not cite every sentence. Cite method families at first use, then use boundary sentences:
 
 - Literature-backed claim: cite prior work and state distinction.
-- Design/formalism claim: cite `MATH/Math.md` or manuscript equation/algorithm.
+- Design/formalism claim: anchor to the active manuscript equation/algorithm.
 - Our-data-backed claim: cite our table/figure/protocol, not prior work.
 
 ## Paper I style spine
@@ -139,7 +139,7 @@ Author preference for the current Paper I working draft: keep **SNAKE** as the m
 
    > SNAKE selects candidate-position records under a joint geometric and hardware-cost objective, reranks them by reduced-window Schur relaxation, and removes stale generators by rollback-safe generator ablation.
 
-5. Define candidate-position records and the Phase I/II/III selector from `MATH/Math.md`.
+5. Define candidate-position records and the selector from the active manuscript and its declared scientific authority.
 6. Present Pareto and ablation evidence only where locked.
 7. Mention dynamics only as an application of compact operator supports, not as the method.
 
@@ -152,7 +152,7 @@ Author preference for the current Paper I working draft: keep **SNAKE** as the m
 
    > AP-McLachlan maintains a checkpoint-local variational manifold by admitting zero-amplitude Schur-confirmed tangent blocks, pruning verified redundant generators, and allowing exchange patches without breaking trajectory continuity.
 
-5. Define stay/append/prune/repair lanes from `MATH/Math.md`.
+5. Define the generalized exchange object and its faces from the active manuscript and time-dynamics lane contract.
 6. Keep measurement-compatible decision data explicit.
 7. Present trajectory/resource Pareto evidence only where locked.
 
@@ -174,6 +174,6 @@ implementation.
 
    > The method selects excitation records by probe-transition gain, overlap-metric novelty, residual-Schur spectral gain, conditioning, and measurement cost, then tests whether the selected nonorthogonal manifold remains closed under driven propagation.
 
-5. Define excitation records, QSE metric/regularization, spectral residuals, transition observables, and frozen-vs-live propagation from `MATH/Math.md` or the Paper III method equations.
+5. Define excitation records, QSE metric/regularization, spectral residuals, transition observables, and frozen-vs-live propagation from the active Paper III method equations and declared lane authority.
 6. Cite QSE/qEOM/VQD/SSVQE literature before making excited-state novelty claims.
 7. Present spectral-window, transition-strength, conditioning, matrix-measurement, and driven-response evidence only where locked.

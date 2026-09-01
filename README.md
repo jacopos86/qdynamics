@@ -7,7 +7,7 @@ This path is the canonical repository onboarding document.
 This repository now centers on five paper-facing partitions:
 
 - Paper I static ADAPT/SNAKE: `MATH/paper_details/static_adapt_paper_I.tex` and `.pdf`.
-- Paper II checkpoint McLachlan dynamics: `MATH/paper_details/time_dynamics_paper_II.tex` and `.pdf`.
+- Paper II AP-McLachlan dynamics: manuscript contract `/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`; implementation and evidence remain in this repository.
 - Paper III geometry-selected QSE / excited dynamics: `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` and `.pdf`.
 - Paper IV molecular-vibronic water: `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` and `.pdf`.
 - Paper V high-`U` regularization / GKBA exploration: `MATH/paper_details/paper_V_high_u_gkba.tex` and `.pdf`, with workspace code/notes in `paper_5/`.

@@ -56,6 +56,11 @@ required for a state-changing run, evidence transfer, or manuscript operation.
 
 ## Paper lanes
 
+For **Paper II manuscript work**, go directly to
+`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`. It declares the
+active TeX/PDF pair and prose/evidence ownership. Code, settings, tests, and
+results production remain in the time-dynamics lane below.
+
 Internal shorthand:
 
 | Paper | Lane | Scientific role |

@@ -124,46 +124,36 @@ Do not invent missing values. Either leave the placeholder explicitly marked as 
 
 Normalize obvious manuscript spelling and typesetting in edited spans: `ansats` -> `ansatz`; `Fubini-Study` -> `Fubini--Study` in LaTeX prose; `Schur-conplement` -> `Schur-complement`; `hard-ware` -> `hardware`; `Fermion--Boson` -> `fermion--boson` unless title case requires capitalization; `electron-phonon` -> `electron--phonon` in LaTeX prose; `two-qubit` should stay hyphenated as an adjective.
 
-## Required context
+## Required context and target
 
-Before substantial manuscript advice or edits, inspect only the relevant files:
+Read the installed `$journal-math-manuscript-refiner` once when available,
+then use this file as the repository-specific author overlay. Its entry point
+is `/Users/lordskyler/.codex/skills/journal-math-manuscript-refiner/SKILL.md`.
+This local workflow remains usable when the global adapter is unavailable.
 
-1. `MATH/AGENTS.md`.
-2. The target manuscript in `MATH/paper_details/*.tex`.
-3. `MATH/paper_facing/shared/journal_math_skill_supplement.md` when present.
-4. Relevant slices of `MATH/Math.md` when the math, notation, route identity, or claims depend on the source formalism.
-5. The relevant literature addendum when the request is about novelty, positioning, citations, or journal fit.
+1. Read `MATH/AGENTS.md` and the manuscript contract selected there.
+2. Resolve the active source/PDF pair before opening similarly named files.
+3. Read `MATH/paper_facing/shared/journal_math_skill_supplement.md`.
+4. Load the current lane mathematics, implementation checks, locked evidence,
+   or literature required by the requested pass.
+5. Treat `MATH/Math.md` as legacy background under the governing contract.
 
-Read `references/narrative-ledger-and-prose-audit.md` only for a whole-paper or multi-section narrative pass, substantive result framing, figure/table-story planning, abstract--introduction--results--conclusion alignment, or a final prose audit. Do not load it for a local sentence, equation, notation, citation-metadata, or mechanical LaTeX correction.
+For **Paper II**, go directly to
+`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`. That repository owns
+the active manuscript. This research repository owns implementation, tests,
+settings, and generated evidence. Research-tree manuscripts and upload copies
+retain their provenance/reference roles.
 
-Do not bulk-load all of `MATH/`, scan generated artifacts broadly, or treat archived drafts as current unless the user asks.
+Other papers follow the current explicit rulings in `MATH/AGENTS.md`.
+A source/PDF named by the user is resolved against those rulings; a conflict
+requires one concise question before editing.
 
-When implementation files are inspected, treat them as provenance for numerical settings, data generation, and reproducibility only. Do not infer manuscript terminology, conceptual definitions, or claim framing from code names unless the target manuscript or source formalism explicitly adopts that terminology.
+Read `references/narrative-ledger-and-prose-audit.md` only for whole-paper
+or multi-section framing, result-story planning, abstract/body/conclusion
+alignment, or final prose audit. Local edits stay on the light workflow.
 
-## Target discipline
-
-The active paper source/PDF pair in `MATH/paper_details/` is the default target. A pasted checklist, GPT-Pro note, Overleaf bundle path, upload directory, extracted copy, or generated PDF path does not override the active target unless the user explicitly says to edit that artifact now.
-
-If the user names a PDF in `MATH/paper_details/`, edit the corresponding `.tex` source and rebuild that PDF. Do not edit an upload bundle, extracted copy, or generated `main.pdf` merely because a pasted third-party instruction mentions one.
-
-If target instructions conflict, stop and ask one short target question before editing. Do not silently switch targets mid-thread.
-
-## Paper routing
-
-- Static ansatz construction / Resource-Aware ADAPT (RA-ADAPT), i.e. Paper I:
-  `MATH/paper_details/Paper_I.tex`; the reader-facing target is
-  `MATH/paper_details/Paper_I.pdf`. This matches `MATH/AGENTS.md`. Treat
-  `MATH/paper_details/static_adapt_paper_I.tex` (the superseded SNAKE draft),
-  `MATH/paper_details/static_adapt_paper_I_condensed.tex`, old
-  `static_adapt_paper_I.pdf` copies, Overleaf upload zips, and extracted
-  upload copies as recovery/reference artifacts only; use them only for
-  explicit recovery or packaging tasks.
-- Checkpoint-adaptive McLachlan dynamics:
-  `MATH/paper_details/time_dynamics_paper_II.tex`.
-- Geometry-aware QSE and excited-state dynamics:
-  `MATH/paper_details/excited_spectra_dynamics_paper_III.tex`.
-- Style anchor when requested:
-  `MATH/paper_details/main_condensed.tex`.
+Implementation names establish factual provenance. Reader-facing terminology
+follows the target manuscript, field conventions, and explicit author decisions.
 
 ## Writing rules
 
@@ -243,10 +233,10 @@ Use the least invasive mode that satisfies the request:
 
 ## Build rule
 
-After editing a paper `.tex` source in `MATH/paper_details/`, rebuild the corresponding PDF before reporting completion. Use `latexmk` when available; otherwise use `tectonic` as the approved fallback. Missing `latexmk` is not a build failure when `tectonic` succeeds.
+After editing an active paper `.tex` source, rebuild the corresponding PDF from the source directory declared by its manuscript contract before reporting completion. Use `latexmk` when available; otherwise use `tectonic` as the approved fallback. Missing `latexmk` is not a build failure when `tectonic` succeeds.
 
 ```bash
-cd MATH/paper_details
+cd <canonical-source-directory>
 if command -v latexmk >/dev/null 2>&1; then
   latexmk -pdf -interaction=nonstopmode -halt-on-error <paper>.tex
 elif command -v tectonic >/dev/null 2>&1; then

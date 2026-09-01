@@ -13,10 +13,14 @@ Recommended instruction to future agents:
 
 ## Mandatory load order
 
-0. `MATH/paper_facing/two_paper_strategy.md` for split, overlap, venue, and submission-sequencing rules.
+0. The selected manuscript's agent contract for its active source/PDF pair.
+   Paper II resolves to `/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`.
+   Load `MATH/paper_facing/two_paper_strategy.md` only for split, overlap,
+   venue, or submission-sequencing work.
 
 1. `MATH/AGENTS.md`.
-2. `MATH/Math.md` sections relevant to the target paper.
+2. The selected lane's current mathematical and scientific authority.
+   `MATH/Math.md` is legacy background under `MATH/AGENTS.md`.
 3. Target paper draft only if manuscript editing is explicitly requested.
 4. Shared writing guides:
    - `MATH/paper_facing/shared/claim_source_types.md`.
@@ -26,12 +30,12 @@ Recommended instruction to future agents:
    - Paper I: `MATH/paper_facing/paper_I_static_scaffold/`.
    - Paper II: `MATH/paper_facing/paper_II_dynamics/`.
    - Paper III: `MATH/paper_facing/paper_III_spectra/` when activated.
-6. Within the target folder, read `literature_addendum.md`, `reference_map.md`, `claim_boundaries.md`, `papers_to_cite.md`, and `papers_to_mimic.md`.
+6. Within the target folder, load only the literature, reference, claim, and style files required by the selected pass.
 7. Target journal dossier in `MATH/paper_facing/journal_targets/` if a journal is named.
 
 ## Automatic behavior expected from future agents
 
-- Check `MATH/Math.md` before writing mathematical formalism.
+- Check the active manuscript and its declared mathematical authority before writing formalism.
 - Check the literature addendum and reference map before related-work prose.
 - Check the target journal dossier before changing article structure or style.
 - Classify claims as literature-backed, our-data-backed, or definition/design.
@@ -48,7 +52,7 @@ Recommended instruction to future agents:
 - Refuse to inflate benchmark claims without locked evidence.
 - Prefer journal-style structure over generic AI prose.
 - Avoid manuscript edits when the user asks only for addenda/support docs.
-- After every edit to a Paper I/Paper II/Paper III manuscript `.tex` file, regenerate the corresponding PDF before reporting completion. Run the build from `MATH/paper_details/` with `latexmk` when available, or with `tectonic --keep-logs --reruns 2 <paper>.tex` as the approved fallback when `latexmk` is absent. A missing `latexmk` binary is not a blocker if `tectonic` passes. If the selected builder fails, report the exact error and treat the TeX/PDF pair as unsynchronized.
+- After every active manuscript `.tex` edit, regenerate its corresponding PDF from the source directory declared by the manuscript contract. Use `latexmk`, or `tectonic --keep-logs --reruns 2 <paper>.tex` as the approved fallback. Report build failures and source/PDF synchronization accurately.
 
 ## Draft-mode versus final-polish mode
 
