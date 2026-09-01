@@ -269,6 +269,43 @@ InsertionPolicy = (
 )
 
 
+EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1 = "explicit_depth_qiskit_cost_v1"
+
+
+@dataclass(frozen=True)
+class ExplicitDepthQiskitCompileCost(SerializableContract):
+    """Explicit circuit-depth compile-cost weighting on exact marginals.
+
+    Every component is an exact before-minus-after marginal of the
+    FakeMarrakesh transpile.  Three active terms: two-qubit gate count
+    and two-qubit depth share one weight, full compiled circuit depth
+    carries its own.  One-qubit basis work and the legacy size term are
+    retired at zero.
+    """
+
+    kind: ClassVar[str] = EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1
+    weight_2q: float = 0.3
+    weight_depth_2q: float = 0.3
+    weight_depth: float = 0.25
+    weight_1q: float = 0.0
+    weight_size: float = 0.0
+
+    def __post_init__(self) -> None:
+        for name in (
+            "weight_2q",
+            "weight_depth_2q",
+            "weight_depth",
+            "weight_1q",
+            "weight_size",
+        ):
+            value = float(getattr(self, name))
+            if not math.isfinite(value) or value < 0.0:
+                raise ValueError(
+                    "Explicit-depth compile-cost weights must be finite "
+                    "and nonnegative."
+                )
+
+
 @dataclass(frozen=True)
 class PruningOff(SerializableContract):
     kind: ClassVar[str] = "off"
@@ -395,6 +432,7 @@ class SRMethodPolicy(SerializableContract):
     pruning: PruningPolicy = field(default_factory=PruningOff)
     beam: BeamPolicy = field(default_factory=BeamOff)
     trust_update: EndpointOverlapDisplacementTrust | None = None
+    compile_cost: ExplicitDepthQiskitCompileCost | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(
@@ -444,6 +482,13 @@ class SRMethodPolicy(SerializableContract):
         ):
             raise TypeError(
                 "trust_update must be EndpointOverlapDisplacementTrust or None."
+            )
+        if self.compile_cost is not None and not isinstance(
+            self.compile_cost,
+            ExplicitDepthQiskitCompileCost,
+        ):
+            raise TypeError(
+                "compile_cost must be ExplicitDepthQiskitCompileCost or None."
             )
 
 

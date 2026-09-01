@@ -75,6 +75,8 @@ from pipelines.static_adapt.sr_snake.contracts import (
     AppendCommutationReducedInsertion,
     AppendOnlyInsertion,
     BeamOff,
+    EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1,
+    ExplicitDepthQiskitCompileCost,
     FreshStart,
     PlateauCommutationInsertion,
     PruningOff,
@@ -4378,7 +4380,10 @@ def build_semantic_closure_route_contract(
     )
     route = copy.deepcopy(dict(parent_contract))
     insertion_kind = str(request.method.insertion.kind)
+    compile_cost = request.method.compile_cost
     profile = f"{identity.route_profile}__insertion-{insertion_kind}"
+    if compile_cost is not None:
+        profile = f"{profile}__cost-{compile_cost.kind}"
     phase0 = _phase0_policy(identity.route_variant)
     phase3_no_positive_policy = semantic_phase3_no_positive_policy(
         identity.route_variant
@@ -4436,6 +4441,25 @@ def build_semantic_closure_route_contract(
             request.execution.stop.maximum_controller_rounds
         ),
     }
+    if compile_cost is not None:
+        native.update(
+            {
+                "compile_cost_policy": str(compile_cost.kind),
+                "compile_cost_weights": {
+                    "weight_2q": float(compile_cost.weight_2q),
+                    "weight_depth_2q": float(compile_cost.weight_depth_2q),
+                    "weight_depth": float(compile_cost.weight_depth),
+                    "weight_1q": float(compile_cost.weight_1q),
+                    "weight_size": float(compile_cost.weight_size),
+                },
+                "signed_compile_deltas": [
+                    "delta_N2q",
+                    "delta_D2q",
+                    "delta_D",
+                    "delta_N1q",
+                ],
+            }
+        )
     if declares_no_positive_policy:
         native.update(
             {
@@ -4521,6 +4545,18 @@ def build_semantic_closure_route_contract(
         execution["ra_phase123_shortlist_policy"] = (
             ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1
         )
+    if compile_cost is not None:
+        execution.update(
+            {
+                "phase3_backend_w_2q": float(compile_cost.weight_2q),
+                "phase3_backend_w_depth": float(compile_cost.weight_depth),
+                "phase3_backend_w_size": float(compile_cost.weight_size),
+                "phase3_backend_w_depth_2q": float(
+                    compile_cost.weight_depth_2q
+                ),
+                "phase3_backend_w_1q": float(compile_cost.weight_1q),
+            }
+        )
     route["execution_settings"] = execution
 
     invariants = dict(route.get("semantic_invariants", {}))
@@ -4578,6 +4614,15 @@ def build_semantic_closure_route_contract(
         )
     if shortlist_minimums is not None:
         invariants["phase_shortlist_minimums"] = dict(shortlist_minimums)
+    if compile_cost is not None:
+        invariants["compile_cost_policy"] = str(compile_cost.kind)
+        invariants["compile_cost_weights"] = {
+            "weight_2q": float(compile_cost.weight_2q),
+            "weight_depth_2q": float(compile_cost.weight_depth_2q),
+            "weight_depth": float(compile_cost.weight_depth),
+            "weight_1q": float(compile_cost.weight_1q),
+            "weight_size": float(compile_cost.weight_size),
+        }
     route["semantic_invariants"] = invariants
     route["lineage_authority"] = {
         "parent_route_profile": str(parent_contract.get("route_profile", "")),
@@ -4664,8 +4709,46 @@ def validate_semantic_closure_native_route_contract(
     variant = str(native.get("route_variant", ""))
     identity = semantic_closure_route_identity(variant)
     insertion_kind = str(native.get("insertion_policy", ""))
+    compile_cost_policy = native.get("compile_cost_policy")
     expected_profile = (
         f"{identity.route_profile}__insertion-{insertion_kind}"
+    )
+    if compile_cost_policy is not None:
+        expected_profile = (
+            f"{expected_profile}__cost-{compile_cost_policy}"
+        )
+    expected_compile_cost_weights = {
+        "weight_2q": 0.3,
+        "weight_depth_2q": 0.3,
+        "weight_depth": 0.25,
+        "weight_1q": 0.0,
+        "weight_size": 0.0,
+    }
+    compile_cost_fields_valid = bool(
+        (
+            compile_cost_policy == EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1
+            and native.get("compile_cost_weights")
+            == expected_compile_cost_weights
+            and invariants.get("compile_cost_policy")
+            == compile_cost_policy
+            and invariants.get("compile_cost_weights")
+            == expected_compile_cost_weights
+            and execution.get("phase3_backend_w_2q") == 0.3
+            and execution.get("phase3_backend_w_depth") == 0.25
+            and execution.get("phase3_backend_w_size") == 0.0
+            and execution.get("phase3_backend_w_depth_2q") == 0.3
+            and execution.get("phase3_backend_w_1q") == 0.0
+            and native.get("signed_compile_deltas")
+            == ["delta_N2q", "delta_D2q", "delta_D", "delta_N1q"]
+        )
+        or (
+            compile_cost_policy is None
+            and "compile_cost_weights" not in native
+            and "compile_cost_policy" not in invariants
+            and "compile_cost_weights" not in invariants
+            and "phase3_backend_w_depth_2q" not in execution
+            and "phase3_backend_w_1q" not in execution
+        )
     )
     horizon = native.get("horizon")
     expected_phase3_no_positive_policy = semantic_phase3_no_positive_policy(
@@ -4758,6 +4841,7 @@ def validate_semantic_closure_native_route_contract(
         or native.get("phase0_estimator_components") != ["N_grad"]
         or not natural_terminal_policy_fields_valid
         or not shortlist_minimum_fields_valid
+        or not compile_cost_fields_valid
         or native.get("compile_scope")
         != PAPER_I_RA_PHASE123_QISKIT_COMPILE_SCOPE
         or native.get("qiskit_active_phases")
@@ -5630,6 +5714,7 @@ def build_paper_i_ra_all_phase_adaptive_forced_k50_request(
     *,
     insertion_policy: str,
     maximum_controller_rounds: int = 50,
+    compile_cost_policy: str | None = None,
 ) -> RAAdaptRequest:
     """Build the append-endpoint Phase-0 forced-admission exact-k50 request."""
 
@@ -5645,6 +5730,15 @@ def build_paper_i_ra_all_phase_adaptive_forced_k50_request(
             "All-phase forced-k50 insertion_policy must be "
             "'append_only' or 'plateau_commutation'."
         ) from exc
+    if compile_cost_policy is None:
+        compile_cost = None
+    elif str(compile_cost_policy) == EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1:
+        compile_cost = ExplicitDepthQiskitCompileCost()
+    else:
+        raise ValueError(
+            "All-phase forced-k50 compile_cost_policy must be None or "
+            "'explicit_depth_qiskit_cost_v1'."
+        )
     horizon = maximum_controller_rounds
     if isinstance(horizon, bool) or not isinstance(horizon, int):
         raise ValueError("All-phase forced-k50 horizon must be an integer.")
@@ -5661,6 +5755,7 @@ def build_paper_i_ra_all_phase_adaptive_forced_k50_request(
             insertion=insertion,
             pruning=PruningOff(),
             beam=BeamOff(),
+            compile_cost=compile_cost,
         ),
         execution=SRExecutionPolicy(
             stop=SRStopPolicy(maximum_controller_rounds=horizon),
@@ -5763,6 +5858,7 @@ def build_paper_i_ra_all_phase_position_adaptive_forced_k50_request(
     *,
     insertion_policy: str,
     maximum_controller_rounds: int = 50,
+    compile_cost_policy: str | None = None,
 ) -> RAAdaptRequest:
     """Build the position Phase-0 forced-admission exact-k50 request."""
 
@@ -5779,6 +5875,15 @@ def build_paper_i_ra_all_phase_position_adaptive_forced_k50_request(
             "Position forced-k50 insertion_policy must be 'append_only', "
             "'plateau_commutation', or 'always_commutation_reduced'."
         ) from exc
+    if compile_cost_policy is None:
+        compile_cost = None
+    elif str(compile_cost_policy) == EXPLICIT_DEPTH_QISKIT_COST_POLICY_V1:
+        compile_cost = ExplicitDepthQiskitCompileCost()
+    else:
+        raise ValueError(
+            "Position forced-k50 compile_cost_policy must be None or "
+            "'explicit_depth_qiskit_cost_v1'."
+        )
     horizon = maximum_controller_rounds
     if isinstance(horizon, bool) or not isinstance(horizon, int):
         raise ValueError("Position forced-k50 horizon must be an integer.")
@@ -5795,6 +5900,7 @@ def build_paper_i_ra_all_phase_position_adaptive_forced_k50_request(
             insertion=insertion,
             pruning=PruningOff(),
             beam=BeamOff(),
+            compile_cost=compile_cost,
         ),
         execution=SRExecutionPolicy(
             stop=SRStopPolicy(maximum_controller_rounds=horizon),

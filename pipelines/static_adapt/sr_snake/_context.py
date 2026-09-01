@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 import hashlib
 import json
@@ -21,6 +22,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
     AppendOnlyInsertion,
     BeamOff,
     CombinatorialBatchAdmission,
+    ExplicitDepthQiskitCompileCost,
     ForkLocalBeam,
     FreshStart,
     GreedyBatchAdmission,
@@ -336,6 +338,29 @@ def _route_contract_sha256(contract: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+# Frozen contracts model exactly these policy axes.  A request carrying any
+# newly added policy field fails CLOSED (frozen routes decline it and the
+# generic composer handles it) instead of being silently ignored.
+# Port note (2026-09-01): ``trust_update`` is included here, unlike the
+# campaign lineage, because this tree's frozen paths historically accept
+# trust_update-bearing requests; only the newly ported ``compile_cost``
+# policy diverts to the composed route.
+_FROZEN_ROUTE_MODELLED_FIELDS = frozenset(
+    {"admission", "insertion", "pruning", "beam", "trust_update"}
+)
+
+
+def _frozen_route_eligible(method: Any) -> bool:
+    """True only when the request carries no policy a frozen contract omits."""
+
+    for field_ in dataclasses.fields(method):
+        if field_.name in _FROZEN_ROUTE_MODELLED_FIELDS:
+            continue
+        if getattr(method, field_.name) is not None:
+            return False
+    return True
+
+
 def _canonical_route_contract_for_request(
     request: SRRunRequest,
 ) -> tuple[str, str, dict[str, Any], str]:
@@ -351,12 +376,14 @@ def _canonical_route_contract_for_request(
     insertion = request.method.insertion
     pruning = request.method.pruning
     beam = request.method.beam
+    compile_cost = request.method.compile_cost
 
     if (
         isinstance(admission, SingletonAdmission)
         and isinstance(insertion, AlwaysCommutationReducedInsertion)
         and isinstance(pruning, PruningOff)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract()
         return (
@@ -370,6 +397,7 @@ def _canonical_route_contract_for_request(
         and isinstance(insertion, PlateauCommutationInsertion)
         and isinstance(pruning, PruningOff)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = canonical_sr_snake_insertion_commutation_plateau_v2_contract()
         return (
@@ -383,6 +411,7 @@ def _canonical_route_contract_for_request(
         and isinstance(insertion, AppendOnlyInsertion)
         and isinstance(pruning, PruningOff)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = (
             canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract()
@@ -398,6 +427,7 @@ def _canonical_route_contract_for_request(
         and isinstance(insertion, AppendOnlyInsertion)
         and isinstance(pruning, PruningOff)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = (
             canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract(
@@ -419,6 +449,7 @@ def _canonical_route_contract_for_request(
         and isinstance(insertion, AppendOnlyInsertion)
         and isinstance(pruning, PruningOff)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = (
             canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract(
@@ -440,6 +471,7 @@ def _canonical_route_contract_for_request(
         and isinstance(insertion, AppendOnlyInsertion)
         and isinstance(pruning, RecoverabilityPruning)
         and isinstance(beam, BeamOff)
+        and _frozen_route_eligible(request.method)
     ):
         contract = (
             canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract()
@@ -630,6 +662,33 @@ def _canonical_route_contract_for_request(
         )
     else:
         beam_tag = "off"
+
+    if compile_cost is not None:
+        if not isinstance(compile_cost, ExplicitDepthQiskitCompileCost):
+            raise TypeError("Unsupported SR-SNAKE compile-cost policy.")
+        # Deterministic cost-axis child: identical scoring machinery; the
+        # sealed penalty reweights the exact FakeMarrakesh transpile
+        # marginals (2q count/2q depth, full circuit depth, 1q basis).
+        execution_settings.update(
+            {
+                "phase3_backend_w_2q": float(compile_cost.weight_2q),
+                "phase3_backend_w_depth": float(compile_cost.weight_depth),
+                "phase3_backend_w_size": float(compile_cost.weight_size),
+                "phase3_backend_w_depth_2q": float(
+                    compile_cost.weight_depth_2q
+                ),
+                "phase3_backend_w_1q": float(compile_cost.weight_1q),
+            }
+        )
+        semantic_invariants["compile_cost_policy"] = str(compile_cost.kind)
+        semantic_invariants["compile_cost_weights"] = {
+            "weight_2q": float(compile_cost.weight_2q),
+            "weight_depth_2q": float(compile_cost.weight_depth_2q),
+            "weight_depth": float(compile_cost.weight_depth),
+            "weight_1q": float(compile_cost.weight_1q),
+            "weight_size": float(compile_cost.weight_size),
+        }
+        insertion_tag = f"{insertion_tag}__cost-{compile_cost.kind}"
 
     profile = (
         "paper_i_canonical_sr_snake"

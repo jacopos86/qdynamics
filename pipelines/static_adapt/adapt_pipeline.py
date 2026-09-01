@@ -28308,6 +28308,10 @@ def _default_no_prune_backend_compile_oracle(
         weight_2q=float(kwargs["phase3_backend_w_2q"]),
         weight_depth=float(kwargs["phase3_backend_w_depth"]),
         weight_size=float(kwargs["phase3_backend_w_size"]),
+        weight_depth_2q=float(
+            kwargs.get("phase3_backend_w_depth_2q", 0.0)
+        ),
+        weight_1q=float(kwargs.get("phase3_backend_w_1q", 0.0)),
     )
     num_qubits = int(round(np.log2(core.reference_state.size)))
     if str(config.mode) == "proxy":
@@ -28337,6 +28341,8 @@ def _default_no_prune_staged_qiskit_compile_config(
     weight_2q: float,
     weight_depth: float,
     weight_size: float,
+    weight_depth_2q: float = 0.0,
+    weight_1q: float = 0.0,
 ) -> BackendCompileConfig:
     """Build the exact FakeMarrakesh config for one staged Qiskit scope."""
 
@@ -28366,6 +28372,8 @@ def _default_no_prune_staged_qiskit_compile_config(
         weight_2q=float(weight_2q),
         weight_depth=float(weight_depth),
         weight_size=float(weight_size),
+        weight_depth_2q=float(weight_depth_2q),
+        weight_1q=float(weight_1q),
     )
 
 
@@ -28403,6 +28411,10 @@ def _default_no_prune_phase3_backend_compile_oracle(
         weight_2q=float(kwargs["phase3_backend_w_2q"]),
         weight_depth=float(kwargs["phase3_backend_w_depth"]),
         weight_size=float(kwargs["phase3_backend_w_size"]),
+        weight_depth_2q=float(
+            kwargs.get("phase3_backend_w_depth_2q", 0.0)
+        ),
+        weight_1q=float(kwargs.get("phase3_backend_w_1q", 0.0)),
     )
     oracle = BackendCompileOracle(
         config=config,

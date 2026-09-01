@@ -26,6 +26,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
     EstimatorLedgerObservation,
     EndpointOverlapDisplacementTrust,
     ExactEDSourceReceipt,
+    ExplicitDepthQiskitCompileCost,
     ExactEDStop,
     ForkLocalBeam,
     FreshStart,
@@ -1529,6 +1530,19 @@ def _method_from_mapping(value: Any) -> SRMethodPolicy:
                 constructors={
                     EndpointOverlapDisplacementTrust.kind: (
                         EndpointOverlapDisplacementTrust
+                    ),
+                },
+            )
+        ),
+        compile_cost=(
+            None
+            if payload.get("compile_cost") is None
+            else _policy_from_kind(
+                payload.get("compile_cost"),
+                name="compile-cost policy",
+                constructors={
+                    ExplicitDepthQiskitCompileCost.kind: (
+                        ExplicitDepthQiskitCompileCost
                     ),
                 },
             )

@@ -91,6 +91,11 @@ class BackendCompileConfig:
     weight_2q: float = 1.0
     weight_depth: float = 0.1
     weight_size: float = 0.01
+    # Explicit-depth cost extension: both default to 0.0 so every sealed
+    # penalty predating them is reproduced bit-for-bit.  They act only in
+    # the transpile lane, on the exact before-minus-after marginals.
+    weight_depth_2q: float = 0.0
+    weight_1q: float = 0.0
 
     def __post_init__(self) -> None:
         if str(self.one_qubit_coordinate_policy) not in {
@@ -98,7 +103,13 @@ class BackendCompileConfig:
             ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
         }:
             raise ValueError("Unknown one-qubit compile coordinate policy.")
-        for field_name in ("weight_2q", "weight_depth", "weight_size"):
+        for field_name in (
+            "weight_2q",
+            "weight_depth",
+            "weight_size",
+            "weight_depth_2q",
+            "weight_1q",
+        ):
             value = float(getattr(self, field_name))
             if not math.isfinite(value) or value < 0.0:
                 raise ValueError("backend compile cost weights must be finite and nonnegative.")
@@ -907,8 +918,22 @@ class BackendCompileOracle:
             w_2q = float(self.config.weight_2q)
             w_depth = float(self.config.weight_depth)
             w_size = float(self.config.weight_size)
-            clipped_penalty_total = float(w_2q * delta_2q + w_depth * delta_depth + w_size * delta_size)
-            signed_penalty_total = float(w_2q * raw_2q + w_depth * raw_depth + w_size * raw_size)
+            w_depth_2q = float(self.config.weight_depth_2q)
+            w_1q = float(self.config.weight_1q)
+            clipped_penalty_total = float(
+                w_2q * delta_2q
+                + w_depth * delta_depth
+                + w_size * delta_size
+                + w_depth_2q * delta_depth_2q
+                + w_1q * delta_1q
+            )
+            signed_penalty_total = float(
+                w_2q * raw_2q
+                + w_depth * raw_depth
+                + w_size * raw_size
+                + w_depth_2q * raw_depth_2q
+                + w_1q * raw_1q
+            )
             penalty_total = (
                 float(signed_penalty_total)
                 if bool(self.config.reward_negative_deltas)
@@ -978,6 +1003,10 @@ class BackendCompileOracle:
                     "penalty_weight_2q": float(self.config.weight_2q),
                     "penalty_weight_depth": float(self.config.weight_depth),
                     "penalty_weight_size": float(self.config.weight_size),
+                    "penalty_weight_depth_2q": float(
+                        self.config.weight_depth_2q
+                    ),
+                    "penalty_weight_1q": float(self.config.weight_1q),
                 }
             )
 
