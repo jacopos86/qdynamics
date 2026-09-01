@@ -80,6 +80,43 @@ def _state(selected, theta):
     return state_from_scaffold_runtime_input(runtime_input)
 
 
+def _logical_shared_state(selected, theta):
+    layout = build_parameter_layout(selected)
+    executor = CompiledAnsatzExecutor(
+        tuple(selected),
+        parameterization_layout=layout,
+        parameterization_mode="logical_shared",
+    )
+    psi_ref = np.zeros(4, dtype=complex)
+    psi_ref[0] = 1.0
+    theta_logical = np.asarray(theta, dtype=float)
+    psi_initial = executor.prepare_state(theta_logical, psi_ref)
+    runtime_input = ScaffoldRuntimeInput(
+        resolved_problem=SimpleNamespace(
+            family_key="toy", hamiltonian=_poly(("ez", 2.0), ("xx", 0.6))
+        ),
+        psi_ref=psi_ref,
+        psi_initial=np.asarray(psi_initial, dtype=complex),
+        base_layout=layout,
+        theta_runtime=np.zeros(int(layout.runtime_parameter_count), dtype=float),
+        theta_logical=theta_logical,
+        structure_locked=False,
+        exact_energy=None,
+        selected_terms=tuple(selected),
+        candidate_pool_terms=tuple(selected),
+        candidate_pool_source=CandidatePoolSource(
+            source_kind="resolved_pool",
+            pool_key="toy_logical_pool",
+            completeness="complete",
+        ),
+        provenance={"artifact_json": "toy-logical.json"},
+    )
+    return state_from_scaffold_runtime_input(
+        runtime_input,
+        parameterization_mode="logical_shared",
+    )
+
+
 X0 = AnsatzTerm(label="sx0", polynomial=_poly(("ex", 1.0)))
 Z0 = AnsatzTerm(label="sz0", polynomial=_poly(("ez", 1.0)))
 Y1 = AnsatzTerm(label="sy1", polynomial=_poly(("ye", 1.0)))
@@ -117,11 +154,11 @@ def _setup(theta=(0.3, -0.2, 0.5)):
     return state, evaluation, atoms, cuts, cache
 
 
-def _direct_augmented(state, insertions):
+def _direct_augmented(state, insertions, *, theta_runtime=None):
     """Materialize insertions and evaluate full geometry on the same ray."""
 
     next_state, theta = state_with_inserted_runtime_coordinates(
-        state, insertions=insertions
+        state, insertions=insertions, theta_runtime=theta_runtime
     )
     evaluation = evaluate_mclachlan_geometry(
         state=next_state,
@@ -217,6 +254,161 @@ def test_every_cut_matches_independent_finite_difference_oracle() -> None:
         discrepancies[cut] = float(np.max(np.abs(cached - oracle)))
 
     assert max(discrepancies.values()) < 1.0e-8, discrepancies
+
+
+def test_logical_shared_macro_tangents_match_direct_materialization() -> None:
+    active_a = AnsatzTerm(
+        label="active_a",
+        polynomial=_poly(("xx", 0.5), ("yy", 0.5)),
+    )
+    active_b = AnsatzTerm(
+        label="active_b",
+        polynomial=_poly(("xe", 0.4), ("ex", -0.3)),
+    )
+    candidate = AnsatzTerm(
+        label="candidate_macro",
+        polynomial=_poly(("xy", 0.7), ("yx", -0.7)),
+    )
+    state = _logical_shared_state((active_a, active_b), (0.3, -0.2))
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    atom = SimpleNamespace(atom_id="candidate_macro", term=candidate)
+    cuts = (0, 1, 2)
+
+    cache = build_structural_insertion_cache(
+        state=state,
+        theta_runtime=state.theta_runtime,
+        evaluation=evaluation,
+        cuts_by_atom={"candidate_macro": cuts},
+        atoms_by_id={"candidate_macro": atom},
+        checkpoint_key=("toy-logical", 0),
+    )
+
+    for cut in cuts:
+        label = f"candidate_macro_at_{cut}::logical::generator"
+        next_state, direct_eval = _direct_augmented(
+            state,
+            ((cut, candidate, label),),
+        )
+        position = next_state.runtime_coordinate_labels.index(label)
+        direct_column = np.asarray(
+            direct_eval.tangent_matrix[:, position], dtype=complex
+        )
+        cached_column = cache.tangent_matrix[
+            :, cache.column_index[("candidate_macro", cut)]
+        ]
+        assert np.allclose(cached_column, direct_column, atol=1.0e-12), (
+            f"logical tangent mismatch at cut {cut}: "
+            f"max={np.max(np.abs(cached_column - direct_column)):.3e}"
+        )
+
+
+def test_cache_uses_current_angles_not_stale_state_angles() -> None:
+    """Trajectory angles evolve separately from the last support rebuild."""
+
+    active_a = AnsatzTerm(
+        label="active_a",
+        polynomial=_poly(("xx", 0.5), ("yy", 0.5)),
+    )
+    active_b = AnsatzTerm(
+        label="active_b",
+        polynomial=_poly(("xe", 0.4), ("ex", -0.3)),
+    )
+    candidate = AnsatzTerm(
+        label="candidate_macro",
+        polynomial=_poly(("xy", 0.7), ("yx", -0.7)),
+    )
+    state = _logical_shared_state((active_a, active_b), (0.3, -0.2))
+    current_theta = np.asarray((0.11, 0.27), dtype=float)
+    assert not np.allclose(current_theta, state.theta_runtime)
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=current_theta,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    atom = SimpleNamespace(atom_id="candidate_macro", term=candidate)
+    cache = build_structural_insertion_cache(
+        state=state,
+        theta_runtime=current_theta,
+        evaluation=evaluation,
+        cuts_by_atom={"candidate_macro": (0,)},
+        atoms_by_id={"candidate_macro": atom},
+        checkpoint_key=("toy-logical-evolved", 0),
+    )
+    label = "candidate_macro_evolved::logical::generator"
+    next_state, direct_eval = _direct_augmented(
+        state,
+        ((0, candidate, label),),
+        theta_runtime=current_theta,
+    )
+    position = next_state.runtime_coordinate_labels.index(label)
+    assert np.allclose(
+        cache.tangent_matrix[:, cache.column_index[("candidate_macro", 0)]],
+        direct_eval.tangent_matrix[:, position],
+        atol=1.0e-12,
+    )
+
+
+def test_per_pauli_cache_uses_current_angles_not_stale_state_angles() -> None:
+    """The explicit-angle contract also protects the established HH route."""
+
+    state = _state((X0, Z0, Y1), np.asarray((0.3, -0.2, 0.5)))
+    current_theta = np.asarray((0.11, 0.27, -0.08), dtype=float)
+    assert not np.allclose(current_theta, state.theta_runtime)
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=current_theta,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    atom = SimpleNamespace(atom_id="ca", term=CA)
+    cache = build_structural_insertion_cache(
+        state=state,
+        theta_runtime=current_theta,
+        evaluation=evaluation,
+        cuts_by_atom={"ca": (1,)},
+        atoms_by_id={"ca": atom},
+        checkpoint_key=("toy-per-pauli-evolved", 0),
+    )
+    label = "ca_evolved::r0::xe"
+    next_state, direct_eval = _direct_augmented(
+        state,
+        ((1, CA, label),),
+        theta_runtime=current_theta,
+    )
+    position = next_state.runtime_coordinate_labels.index(label)
+    assert np.allclose(
+        cache.tangent_matrix[:, cache.column_index[("ca", 1)]],
+        direct_eval.tangent_matrix[:, position],
+        atol=1.0e-12,
+    )
+
+
+def test_cache_rejects_angles_inconsistent_with_frozen_evaluation() -> None:
+    state = _state((X0, Z0, Y1), np.asarray((0.3, -0.2, 0.5)))
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    with pytest.raises(ValueError, match="evaluation.theta_runtime"):
+        build_structural_insertion_cache(
+            state=state,
+            theta_runtime=np.asarray((0.31, -0.2, 0.5)),
+            evaluation=evaluation,
+            cuts_by_atom={"ca": (1,)},
+            atoms_by_id={"ca": SimpleNamespace(atom_id="ca", term=CA)},
+        )
 
 
 def test_columns_are_horizontal_at_the_frozen_ray() -> None:

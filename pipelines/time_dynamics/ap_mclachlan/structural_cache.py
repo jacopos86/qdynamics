@@ -37,7 +37,10 @@ from pipelines.time_dynamics.ap_mclachlan.inverse import (
     McLachlanInversePolicy,
     solve_theta_dot,
 )
-from pipelines.time_dynamics.ap_mclachlan.state import APMcLachlanState
+from pipelines.time_dynamics.ap_mclachlan.state import (
+    AP_PARAMETERIZATION_LOGICAL_SHARED,
+    APMcLachlanState,
+)
 from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
 from src.quantum.pauli_actions import (
     apply_compiled_pauli,
@@ -51,17 +54,27 @@ STRUCTURAL_CACHE_SCHEMA_V1 = "ap_mclachlan_structural_cache_v1"
 
 def _runtime_rotation_sequence(
     state: APMcLachlanState,
-) -> tuple[tuple[Any, float], ...]:
-    """Per runtime coordinate, its compiled Pauli action and real coefficient."""
+) -> tuple[tuple[tuple[Any, float], ...], ...]:
+    """Per active coordinate, its ordered compiled rotation steps."""
 
-    out: list[tuple[Any, float]] = []
+    out: list[tuple[tuple[Any, float], ...]] = []
     for term, block in zip(state.terms, state.layout.blocks):
+        block_steps: list[tuple[Any, float]] = []
         for spec in block.terms:
             action = state.executor.pauli_action_cache.get(str(spec.pauli_exyz))
             if action is None:
                 action = compile_pauli_action_exyz(str(spec.pauli_exyz), int(spec.nq))
                 state.executor.pauli_action_cache[str(spec.pauli_exyz)] = action
-            out.append((action, float(spec.coeff_real)))
+            block_steps.append((action, float(spec.coeff_real)))
+        if state.parameterization_mode == AP_PARAMETERIZATION_LOGICAL_SHARED:
+            if str(block.execution_mode).strip().lower() != "termwise_product":
+                raise ValueError(
+                    "logical_shared structural cache supports only "
+                    "execution_mode='termwise_product'."
+                )
+            out.append(tuple(block_steps))
+        else:
+            out.extend((step,) for step in block_steps)
     return tuple(out)
 
 
@@ -85,6 +98,40 @@ def _single_child_action(state: APMcLachlanState, atom: Any) -> tuple[Any, float
         action = compile_pauli_action_exyz(str(spec.pauli_exyz), int(spec.nq))
         state.executor.pauli_action_cache[str(spec.pauli_exyz)] = action
     return action, float(spec.coeff_real)
+
+
+def _candidate_rotation_plan(
+    state: APMcLachlanState, atom: Any
+) -> tuple[tuple[Any, float], ...]:
+    """Ordered zero-angle generator steps for one support atom."""
+
+    if state.parameterization_mode != AP_PARAMETERIZATION_LOGICAL_SHARED:
+        return (_single_child_action(state, atom),)
+    execution_mode = str(
+        getattr(atom.term, "execution_mode", "termwise_product")
+        or "termwise_product"
+    ).strip().lower()
+    if execution_mode != "termwise_product":
+        raise ValueError(
+            "logical_shared structural cache supports only "
+            "execution_mode='termwise_product'."
+        )
+    specs = iter_runtime_rotation_terms(
+        getattr(atom.term, "polynomial"),
+        ignore_identity=bool(state.executor.ignore_identity),
+        coefficient_tolerance=float(state.executor.coefficient_tolerance),
+        sort_terms=bool(state.executor.sort_terms),
+    )
+    if not specs:
+        raise ValueError(f"candidate atom {atom.atom_id!r} has no active Pauli terms.")
+    out: list[tuple[Any, float]] = []
+    for spec in specs:
+        action = state.executor.pauli_action_cache.get(str(spec.pauli_exyz))
+        if action is None:
+            action = compile_pauli_action_exyz(str(spec.pauli_exyz), int(spec.nq))
+            state.executor.pauli_action_cache[str(spec.pauli_exyz)] = action
+        out.append((action, float(spec.coeff_real)))
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -115,12 +162,23 @@ class StructuralInsertionCache:
 def build_structural_insertion_cache(
     *,
     state: APMcLachlanState,
+    theta_runtime: np.ndarray | Sequence[float] | None = None,
     evaluation: GeometryEvaluation,
     cuts_by_atom: Mapping[str, Sequence[int]],
     atoms_by_id: Mapping[str, Any],
     checkpoint_key: tuple = (),
 ) -> StructuralInsertionCache:
     """Build every positioned tangent and its Gram/force blocks in one pass.
+
+    ``theta_runtime`` is the current checkpoint angle vector.  Production
+    callers pass it explicitly, because trajectory angles evolve between
+    support rebuilds and therefore need not equal ``state.theta_runtime``;
+    propagating candidate suffixes with the stale rebuild angles produced
+    spurious insertions.  When supplied it must agree exactly with
+    ``evaluation.theta_runtime``, so the candidate columns and the frozen base
+    geometry describe one checkpoint ray.  Omitting it falls back to
+    ``state.theta_runtime`` without that cross-check; that path remains only
+    for fixtures that build both from the same unevolved state.
 
     ``evaluation`` must carry the frozen tangent matrix
     (``include_tangent_matrix=True``); ``cuts_by_atom`` maps each candidate
@@ -157,7 +215,24 @@ def build_structural_insertion_cache(
         raise ValueError(
             f"runtime rotation sequence length {len(rotations)} != {n}."
         )
-    theta = np.asarray(state.theta_runtime, dtype=float).reshape(-1)
+    if theta_runtime is None:
+        theta = np.asarray(state.theta_runtime, dtype=float).reshape(-1)
+    else:
+        theta = np.asarray(theta_runtime, dtype=float).reshape(-1)
+        evaluated_theta = np.asarray(
+            evaluation.theta_runtime, dtype=float
+        ).reshape(-1)
+        if not np.array_equal(theta, evaluated_theta):
+            raise ValueError(
+                "theta_runtime must exactly match evaluation.theta_runtime; "
+                "candidate columns and the frozen base geometry must describe "
+                "the same checkpoint ray."
+            )
+    if int(theta.size) != n:
+        raise ValueError(
+            f"theta_runtime length {theta.size} does not match active "
+            f"coordinate count {n}."
+        )
 
     # Group requested (atom, cut) pairs by cut; validate cuts.
     ordered_keys: list[tuple[str, int]] = []
@@ -172,7 +247,7 @@ def build_structural_insertion_cache(
             ordered_keys.append((str(atom_id), int(cut)))
             by_cut.setdefault(int(cut), []).append(str(atom_id))
         # Compile eagerly so a bad atom fails before the pass runs.
-        _single_child_action(state, atom)
+        _candidate_rotation_plan(state, atom)
 
     dim = int(psi.size)
     columns = np.zeros((dim, len(ordered_keys)), dtype=complex)
@@ -182,30 +257,42 @@ def build_structural_insertion_cache(
     emitted: list[int] = []
     for cut in range(n + 1):
         for atom_id in by_cut.get(cut, ()):
-            action, coeff = _single_child_action(state, atoms_by_id[atom_id])
+            plan = _candidate_rotation_plan(state, atoms_by_id[atom_id])
             index = column_index[(atom_id, cut)]
-            columns[:, index] = -1.0j * coeff * apply_compiled_pauli(phi, action)
+            columns[:, index] = sum(
+                (
+                    -1.0j
+                    * coeff
+                    * apply_compiled_pauli(phi, action)
+                    for action, coeff in plan
+                ),
+                np.zeros_like(phi),
+            )
             emitted.append(index)
         if cut < n:
-            action, coeff = rotations[cut]
             dt = float(theta[cut])
-            if dt != 0.0:
-                phi = apply_exp_term(
-                    phi,
-                    action,
-                    coeff=complex(coeff),
-                    dt=dt,
-                    tol=state.executor.coefficient_tolerance,
-                )
-                if emitted:
-                    sub = columns[:, emitted]
-                    pauli_sub = np.column_stack(
-                        [apply_compiled_pauli(sub[:, j], action) for j in range(sub.shape[1])]
+            for action, coeff in rotations[cut]:
+                if dt != 0.0:
+                    phi = apply_exp_term(
+                        phi,
+                        action,
+                        coeff=complex(coeff),
+                        dt=dt,
+                        tol=state.executor.coefficient_tolerance,
                     )
-                    angle = dt * float(coeff)
-                    columns[:, emitted] = (
-                        np.cos(angle) * sub - 1.0j * np.sin(angle) * pauli_sub
-                    )
+                    if emitted:
+                        sub = columns[:, emitted]
+                        pauli_sub = np.column_stack(
+                            [
+                                apply_compiled_pauli(sub[:, j], action)
+                                for j in range(sub.shape[1])
+                            ]
+                        )
+                        angle = dt * float(coeff)
+                        columns[:, emitted] = (
+                            np.cos(angle) * sub
+                            - 1.0j * np.sin(angle) * pauli_sub
+                        )
 
     # Horizontalize at the frozen ray.
     overlaps = psi.conj() @ columns

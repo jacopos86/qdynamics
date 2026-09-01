@@ -176,3 +176,11 @@ def test_reference_is_reporting_only_and_takes_no_controller_input() -> None:
 
     params = set(inspect.signature(exact_reference).parameters)
     assert params == {"n_bath", "u", "v", "times", "method"}
+
+
+def test_reference_preserves_custom_hopping_and_one_shot_time_iterables() -> None:
+    times = (value for value in (0.0, 0.25, 0.5))
+    reference = exact_reference(N_BATH, u=U, hopping=0.7, times=times)
+    assert reference.hopping == pytest.approx(0.7)
+    assert reference.times == pytest.approx((0.0, 0.25, 0.5))
+    assert all(len(series) == 3 for series in reference.observables.values())

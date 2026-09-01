@@ -302,7 +302,9 @@ def embed_sector_vector(vector: np.ndarray, n_bath: int) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def bath_eigenmodes(n_bath: int, *, hopping: float = DEFAULT_HOPPING):
+def bath_eigenmodes(
+    n_bath: int, *, hopping: float = DEFAULT_HOPPING
+) -> tuple[np.ndarray, np.ndarray]:
     r"""Single-particle eigenmodes of the decoupled open bath chain.
 
     For an open chain of ``L`` sites with hopping ``-t_b`` the eigenvalues are

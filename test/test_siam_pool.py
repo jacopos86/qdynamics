@@ -28,6 +28,7 @@ from src.quantum.siam_pool import (
     current_quadrature,
     hopping_quadrature,
 )
+from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
 from src.quantum.vqe_latex_python_pairs import hamiltonian_matrix
 
 N_BATH = 2
@@ -80,6 +81,23 @@ def test_every_block_preserves_each_spin_number(pool, layout, spin) -> None:
         assert np.allclose(
             matrix @ number - number @ matrix, 0.0, atol=1e-10
         ), f"{block.label} breaks N_{spin}"
+
+
+def test_each_logical_block_has_mutually_commuting_pauli_children(pool) -> None:
+    """Shared-angle termwise execution must equal exp(-i theta G_block)."""
+
+    for block in pool:
+        specs = iter_runtime_rotation_terms(block.operator, sort_terms=True)
+        for left_index, left in enumerate(specs):
+            for right in specs[left_index + 1 :]:
+                anticommutes = sum(
+                    lhs != "e" and rhs != "e" and lhs != rhs
+                    for lhs, rhs in zip(left.pauli_exyz, right.pauli_exyz)
+                )
+                assert anticommutes % 2 == 0, (
+                    f"{block.label} has noncommuting Pauli children "
+                    f"{left.pauli_exyz} and {right.pauli_exyz}"
+                )
 
 
 def test_hopping_and_current_quadratures_match_fermionic_construction(layout) -> None:

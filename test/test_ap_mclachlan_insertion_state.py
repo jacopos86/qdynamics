@@ -62,6 +62,44 @@ def _state(selected: tuple[AnsatzTerm, ...], theta: np.ndarray):
     return state
 
 
+def _logical_shared_state(selected: tuple[AnsatzTerm, ...], theta: np.ndarray):
+    from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
+
+    layout = build_parameter_layout(selected)
+    executor = CompiledAnsatzExecutor(
+        selected,
+        parameterization_layout=layout,
+        parameterization_mode="logical_shared",
+    )
+    psi_ref = np.array([1.0, 0.0, 0.0, 0.0], dtype=complex)
+    theta_logical = np.asarray(theta, dtype=float)
+    psi_initial = executor.prepare_state(theta_logical, psi_ref)
+    runtime_input = ScaffoldRuntimeInput(
+        resolved_problem=SimpleNamespace(
+            family_key="toy", hamiltonian=_poly(("ez", 2.0))
+        ),
+        psi_ref=psi_ref,
+        psi_initial=psi_initial,
+        base_layout=layout,
+        theta_runtime=np.zeros(int(layout.runtime_parameter_count), dtype=float),
+        theta_logical=theta_logical,
+        structure_locked=False,
+        exact_energy=None,
+        selected_terms=selected,
+        candidate_pool_terms=selected,
+        candidate_pool_source=CandidatePoolSource(
+            source_kind="resolved_pool",
+            pool_key="toy_logical_pool",
+            completeness="complete",
+        ),
+        provenance={"artifact_json": "toy-logical.json"},
+    )
+    return state_from_scaffold_runtime_input(
+        runtime_input,
+        parameterization_mode="logical_shared",
+    )
+
+
 def _replace_runtime_theta(runtime_input, layout, theta):
     from dataclasses import replace as dc_replace
 
@@ -172,6 +210,44 @@ def test_insertion_inside_multi_child_parent_splits_it_exactly() -> None:
     assert labels[3] == "sz0::r0::ez"
     assert theta.tolist() == [0.3, 0.0, 0.7, -0.1]
     assert np.allclose(next_state.prepare_state(theta), psi_before, atol=1.0e-12)
+
+
+def test_logical_shared_insertion_keeps_macro_generators_whole() -> None:
+    state = _logical_shared_state((MACRO, Z0), np.array([0.3, -0.1]))
+    psi_before = state.prepare_state(state.theta_runtime)
+    candidate = AnsatzTerm(
+        label="logical_candidate",
+        polynomial=_poly(("xe", 0.7), ("ze", -0.2)),
+    )
+
+    next_state, theta = state_with_inserted_runtime_coordinates(
+        state,
+        insertions=(
+            (
+                1,
+                candidate,
+                "logical_candidate::logical::generator",
+            ),
+        ),
+    )
+
+    assert next_state.parameterization_mode == "logical_shared"
+    assert next_state.runtime_coordinate_labels == (
+        "macro::logical::generator",
+        "logical_candidate::logical::generator",
+        "sz0::logical::generator",
+    )
+    assert tuple(term.label for term in next_state.terms) == (
+        "macro",
+        "logical_candidate",
+        "sz0",
+    )
+    assert theta.tolist() == [0.3, 0.0, -0.1]
+    assert np.allclose(
+        next_state.prepare_state(theta),
+        psi_before,
+        atol=1.0e-12,
+    )
 
 
 def test_delete_then_insert_composes_into_reduced_word_layout() -> None:
