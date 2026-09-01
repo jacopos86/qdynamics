@@ -120,15 +120,37 @@ def test_exchange_route_golden_trajectory() -> None:
     energies = [row["energy_expectation"] for row in payload["plot_rows"]]
 
     # Decision sequence and support evolution are the scientific content.
-    assert _decisions(payload) == ["insert", "insert", "delete", "insert"]
+    #
+    # DELIBERATE GOLDEN REBASELINE (user ruling, 2026-09-01; ported with
+    # 259ef926 "Fix logical SIAM controller geometry").  The final checkpoint
+    # is a certified stay, not an insertion.  Candidate suffix propagation in
+    # the structural insertion cache must use the evolved checkpoint angles,
+    # not the angles the state retained at the preceding support rebuild;
+    # `build_selector_inputs` now passes `theta_runtime` explicitly.  The
+    # stale-angle cache reported a spurious final insertion here.
+    #
+    # Measured before/after of that one-line plumbing change, this fixture:
+    #   before: ["insert", "insert", "delete", "insert"], final count 4
+    #   after:  ["insert", "insert", "delete", "stay"],   final count 3
+    # The pinned energies and residual ratio below are unchanged by it.
+    assert _decisions(payload) == ["insert", "insert", "delete", "stay"]
     assert summary["runtime_parameter_count_initial"] == 2
-    assert summary["runtime_parameter_count_final"] == 4
-    # The new measurement-free permission changes the scientific sequence
-    # deliberately: only one of 28 proposed deletion sets enters finalist
-    # certification on this fixture.
+    assert summary["runtime_parameter_count_final"] == 3
+    assert summary["accepted_append_count"] == 2
+    # The measurement-free permission changes the sequence deliberately: only
+    # one of 28 proposed deletion sets enters finalist certification here.
     assert summary["deletion_permission_evaluated_set_count"] == 28
     assert summary["deletion_permission_permitted_set_count"] == 1
     assert summary["deletion_permission_rejected_set_count"] == 27
+    assert summary["accepted_delete_count"] == 1
+    # NOTE: 259ef926 also asserts accepted_deleted_coordinate_count == 1 here.
+    # That is deliberately NOT ported: on this tree the per-coordinate patch
+    # counters (patch_appended_count / patch_deleted_count / patch_removed_count)
+    # read 0 on every accepted row of this route, so the derived summary fields
+    # accepted_appended_coordinate_count and accepted_deleted_coordinate_count
+    # are 0 while the per-patch counts above are correct.  That is a separate
+    # pre-existing telemetry gap, not a consequence of the checkpoint-angle
+    # fix, and pinning it here would assert it fixed.
     # Energy trajectory pinned; a refactor that changes physics fails here.
     assert energies[0] == pytest.approx(1.5296843746, abs=1e-9)
     assert energies[-1] == pytest.approx(1.5296843746, abs=1e-7)

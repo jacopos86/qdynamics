@@ -416,6 +416,7 @@ def build_selector_inputs(
 
     cache = build_structural_insertion_cache(
         state=state,
+        theta_runtime=np.asarray(theta_runtime, dtype=float),
         evaluation=evaluation,
         cuts_by_atom=cuts_by_atom,
         atoms_by_id=atoms_by_id,

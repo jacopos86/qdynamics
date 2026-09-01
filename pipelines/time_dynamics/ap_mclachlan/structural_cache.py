@@ -170,13 +170,15 @@ def build_structural_insertion_cache(
 ) -> StructuralInsertionCache:
     """Build every positioned tangent and its Gram/force blocks in one pass.
 
-    ``theta_runtime`` is the current checkpoint angle vector.  It may be given
-    explicitly because trajectory angles evolve between support rebuilds and
-    therefore need not equal ``state.theta_runtime``; when supplied it must
-    agree exactly with ``evaluation.theta_runtime``, so the candidate columns
-    and the frozen base geometry describe one checkpoint ray.  Omitting it
-    falls back to ``state.theta_runtime`` without that cross-check, which is
-    the historical behaviour every existing caller relies on.
+    ``theta_runtime`` is the current checkpoint angle vector.  Production
+    callers pass it explicitly, because trajectory angles evolve between
+    support rebuilds and therefore need not equal ``state.theta_runtime``;
+    propagating candidate suffixes with the stale rebuild angles produced
+    spurious insertions.  When supplied it must agree exactly with
+    ``evaluation.theta_runtime``, so the candidate columns and the frozen base
+    geometry describe one checkpoint ray.  Omitting it falls back to
+    ``state.theta_runtime`` without that cross-check; that path remains only
+    for fixtures that build both from the same unevolved state.
 
     ``evaluation`` must carry the frozen tangent matrix
     (``include_tangent_matrix=True``); ``cuts_by_atom`` maps each candidate
