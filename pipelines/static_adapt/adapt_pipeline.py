@@ -3074,6 +3074,20 @@ class _DefaultGreedyBatchSelectionKernel:
         occurrence_after_phase2 = len(
             self.receipts.ledger_occurrences()
         )
+        official_phase1_records = phase2_runtime.get(
+            "official_phase1_records"
+        )
+        official_phase1_shortlisted_records = phase2_runtime.get(
+            "official_phase1_shortlisted_records"
+        )
+        official_phase1_occurrence_end = phase2_runtime.get(
+            "official_phase1_occurrence_end"
+        )
+        post_exposure_phase1_is_official = bool(
+            isinstance(official_phase1_records, list)
+            and isinstance(official_phase1_shortlisted_records, list)
+            and isinstance(official_phase1_occurrence_end, int)
+        )
         (
             phase3_measurement_input_records,
             projected_phase3_population_receipt,
@@ -3179,27 +3193,75 @@ class _DefaultGreedyBatchSelectionKernel:
         event_ids = tuple(
             event.occurrence_id for event in estimator_events
         )
-        phase0_event_count = occurrence_after_phase0 - occurrence_start
-        phase1_event_count = occurrence_after_phase1 - occurrence_after_phase0
-        phase2_event_count = (
-            occurrence_after_phase2 - occurrence_after_phase1
-        )
+        phase0_event_end = occurrence_after_phase0 - occurrence_start
         if phase0_receipt is not None and (
             phase0_receipt.phase != "phase0"
             or phase0_receipt.estimator_event_ids
-            != event_ids[:phase0_event_count]
+            != event_ids[:phase0_event_end]
         ):
             raise RuntimeError(
                 f"{self.strategy_label} Phase0 receipt does not close its "
                 "estimator delta."
             )
+        # Without a configured Phase0 this kernel still runs the gradient
+        # surface, and those estimator occurrences land between
+        # occurrence_start and occurrence_after_phase0.  They are Phase-I
+        # selection work and no receipt other than Phase I can own them, so
+        # the ordered phase receipts must start at 0 there — exactly as the
+        # two singleton kernels do.  Anchoring on phase0_event_end instead
+        # drops the gradient-surface delta out of every phase receipt and
+        # breaks the ordered-delta estimator identity.
+        phase1_event_start = (
+            phase0_event_end if phase0_receipt is not None else 0
+        )
+        if post_exposure_phase1_is_official:
+            # The older staged route performs a macro prefilter before the
+            # official guarded-singleton Phase I.  Those estimator calls are
+            # still Phase-I selection work and must remain inside the ordered
+            # phase receipt.  The gradient-Phase0 route adds no events in its
+            # context-only parent step, so this same boundary starts exactly
+            # after Phase0 there.
+            phase1_event_end = (
+                int(official_phase1_occurrence_end) - occurrence_start
+            )
+            phase2_event_start = phase1_event_end
+        else:
+            phase1_event_end = occurrence_after_phase1 - occurrence_start
+            phase2_event_start = phase1_event_end
+        phase2_event_end = occurrence_after_phase2 - occurrence_start
+        phase3_event_start = phase2_event_end
+        if not (
+            0 <= phase1_event_start <= phase1_event_end
+            <= phase2_event_start <= phase2_event_end
+            <= len(event_ids)
+        ):
+            raise RuntimeError(
+                f"{self.strategy_label} staged estimator-event boundaries "
+                "are invalid."
+            )
+        phase1_runtime_for_receipt = (
+            {
+                **dict(phase1_runtime),
+                "phase1_records": [
+                    dict(record) for record in official_phase1_records
+                ],
+                "phase1_shortlisted_records": [
+                    dict(record)
+                    for record in official_phase1_shortlisted_records
+                ],
+            }
+            if post_exposure_phase1_is_official
+            else phase1_runtime
+        )
         phase1_population = tuple(
             self.receipts.record_from_live(record)
-            for record in phase1_runtime["phase1_records"]
+            for record in phase1_runtime_for_receipt["phase1_records"]
         )
         phase1_shortlist = tuple(
             self.receipts.record_from_live(record)
-            for record in phase1_runtime["phase1_shortlisted_records"]
+            for record in phase1_runtime_for_receipt[
+                "phase1_shortlisted_records"
+            ]
         )
         phase2_population = tuple(
             self.receipts.record_from_live(record)
@@ -3353,14 +3415,15 @@ class _DefaultGreedyBatchSelectionKernel:
             population=phase1_population,
             shortlist=phase1_shortlist,
             shortlist_ranking=self.receipts.shortlist_ranks(
-                phase1_runtime["phase1_shortlisted_records"],
+                phase1_runtime_for_receipt[
+                    "phase1_shortlisted_records"
+                ],
                 primary_score_key=self.receipts.phase1_score_key,
                 tie_break_score_key="simple_score",
                 route_identity_order=True,
             ),
             estimator_event_ids=event_ids[
-                phase0_event_count:
-                phase0_event_count + phase1_event_count
+                phase1_event_start:phase1_event_end
             ],
         )
         phase_ii_receipt = _PhaseSelectionReceipt(
@@ -3374,8 +3437,7 @@ class _DefaultGreedyBatchSelectionKernel:
                 route_identity_order=True,
             ),
             estimator_event_ids=event_ids[
-                phase0_event_count + phase1_event_count:
-                phase0_event_count + phase1_event_count + phase2_event_count
+                phase2_event_start:phase2_event_end
             ],
         )
         phase_iii_receipt = _PhaseSelectionReceipt(
@@ -3399,9 +3461,7 @@ class _DefaultGreedyBatchSelectionKernel:
                     start=1,
                 )
             ),
-            estimator_event_ids=event_ids[
-                phase0_event_count + phase1_event_count + phase2_event_count:
-            ],
+            estimator_event_ids=event_ids[phase3_event_start:],
         )
         common_sidecar = {
             "phase1": phase1_runtime,
