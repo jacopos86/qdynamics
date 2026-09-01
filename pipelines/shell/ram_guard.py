@@ -1,7 +1,7 @@
 """RAM guard: run a command, kill its process tree before it exceeds a limit.
 
 Implements the enforcement step of `agent_guidance/shared/memory-budget.md`
-(hard 10 GB aggregate ceiling for agent work on this machine; default
+(hard 18 GB aggregate ceiling for agent work on this machine; default
 single-tree limit 12000 MB).
 
 Usage:

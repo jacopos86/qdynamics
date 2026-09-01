@@ -2,6 +2,7 @@
 
 **Date:** 2026-08-31 · **Auditor:** Claude (read-only audit; nothing has been merged, pushed, or deleted)
 **Context:** The computer holding the working copy was lost. This clone at `/Users/Patron/Holstein_test` was recovered from GitHub (`git@github.com:20jastrobel/Holstein_test.git`) and is currently the **only local copy**. 52 remote branches, 1 tag (`route-c-preimpl-2026-06-08`), 5 PRs (all pointing at branch tips we already have — nothing hidden there).
+*(Superseded by §12, 2026-08-31: the active local copy is now `/Users/lordskyler/Holstein_test` on the replacement M4 Pro, cloned over HTTPS via gh; 54 remote branches after the recovery pushes. §§2–11 describe the recovery session's machine and moment.)*
 
 ---
 
@@ -129,6 +130,46 @@ Full trace: `docs/reports/PAPER_II_III_EVIDENCE_TRACE_20260831.md`. Headlines:
 
 - **Paper II — data substantially saved, provenance exceptional.** The 18-page best-verified results PDF (built 08-30, sha-verified, pages 4–17 the sole surviving copy of the campaign report), the 12-row t20 frontier receipt with per-run digests, the byte-verified t20 table+figure, and all SIAM r00–r07 scores (full time series each) are on `main`. Every number traces to a cluster id, source revision, digest-bound input, and a literal recorded `runner_argv` command line. Lost from git: raw trajectories (`run.json`) — **~53 MB of sha-bound archives on the CHTC submit node, receipts say `remote_raw_state: PRESERVED`** (see `CHTC-FETCH.md`; re-running instead means CHTC-scale campaigns, and the t20 lane cannot re-run as-is because it resumes from vanished t5 screens). Code gap: the 84-module Paper II reporting/scoring/campaign stack + 76 tests live only on `codex/paper-ii-search-profiles-20260824` (+ sibling). **Manuscript correction to §6.2:** `main`'s tex was the stale draft (331 `\tentative` markers); the *promoted* 08-27 version (4 markers) was the completed one. **Executed 2026-08-31 (user-approved):** the promoted manuscript was adopted onto `main`, and the 160-module reporting/scoring/campaign stack was restored with per-file reconciliation of the nine shared core files (details in commit `cc1400e4^`). Verification: all `time_dynamics` modules import (one exception needs a generated seed ledger, producer committed); trunk-core suites 62/62; grafted suites 66 pass with 8 data-missing failures on the vanished `output/paper_ii_staged` exact references. Suite: **7,535 tests / 9 errors** (trunk baseline 5,540 / 57). The branches' wider rewrites of `campaign.py` (46 conflicts) and `exchange_integration.py` (9) remain deliberately unmerged.
 - **Paper III — the completed paper is the *static* manuscript** (byte-exact vs its locked sha, 0 placeholders); the dynamics manuscript was never completed (209 placeholders — scope fact, not a loss). All raw evidence JSONs and every rendered PDF are gone (gitignored), **but every lost artifact has a tracked producer, compute is local (seconds–minutes, deterministic, never CHTC), and all builders import and run today** — the static chain regenerates end-to-end in ~3 commands (needs LaTeX installed for PDFs). One true loss: the historical nph1 regression baseline — a rerun re-establishes a baseline but cannot detect drift introduced since `4152de3a`. The unported adaptive-qse report arm was cherry-picked (`65e3f044`).
+
+## 12. Replacement-machine bootstrap (M4 Pro, executed 2026-08-31)
+
+- **Machine:** fresh Apple M4 Pro (14-core CPU, 20-core GPU, 24 GB RAM, 1 TB
+  SSD, macOS 26.6.2), user `lordskyler`. NOT migrated — nothing carried over;
+  §7's environment description is the previous recovery Mac, not this one.
+- **Toolchain** (all user-local under `~/.local`, no sudo, no Homebrew):
+  gh 2.98.0 (HTTPS auth as `20jastrobel`, git credential helper wired),
+  node 24.20.0, uv + CPython 3.12.14 venv from `requirements.txt`
+  (17 pins installed clean), gitnexus 1.6.10 global.
+- **Clone:** `/Users/lordskyler/Holstein_test` over HTTPS; HEAD `29f924bc`
+  == `origin/main`; 54 remote branches present; rescue commits verified
+  reachable (`cde67194`, `cc1400e4`, `65e3f044`, `b1ee21da..e70397c8`).
+  `~/ADAPT---Paper-I` manuscript repo re-cloned alongside. Sources verified
+  not APFS `compressed,dataless` (0 hits).
+- **Verification vs recorded baselines:** collection **7,535 tests / 9
+  errors** — exact match to §11. `test_ra_adapt_semantic_closure_routes.py`
+  **7 failed / 85 passed** — exact match. Staged-noise smoke files 70/70.
+- **Staged-suite re-measure + classification** (all 9 staged files, 27
+  failures, diagnosed by parallel agents): **9 data-missing** (vanished
+  `output/paper_ii_staged` exact references — §11 family; recoverable only
+  via the CHTC fetch or regeneration), **16 regression** — one root cause:
+  trunk `paper_ii_runs.py:build_run` lacks the `search_profile` kwarg that
+  the wholesale-restored `staged_campaign.py:1699` passes (incomplete
+  `e0e6d6cd` reconciliation; escaped that commit's own verification note),
+  **1 doc/test mismatch** (`agent_guidance/skills/paper-ii-run/SKILL.md`
+  never received branch-only commit `e2c96ba5`'s response-normalized
+  wording — user decision pending: graft the doc or align the test),
+  **1 env** (no LaTeX engine installed on this machine). The **7 era-drift
+  failures recorded in §9 did not reproduce** — that family is green today.
+- **GitNexus rebuilt:** 103,520 nodes / 213,084 edges / 722 flows at
+  `29f924b`; MCP server registered (`gitnexus setup -c claude`); skill
+  layout migrated to the 1.6.10 flat scheme (`.claude/skills/<name>/`).
+  Fresh-macOS fix recorded: `lbugjs.node` dynamically links
+  `@rpath/libssl.3.dylib` with only package-manager rpaths — built OpenSSL
+  3.6.4 libs into `~/.local/openssl3/lib`, `install_name_tool -add_rpath`
+  + ad-hoc re-sign of both `lbugjs.node` copies (redo after any gitnexus
+  reinstall/update).
+- **Full-suite run** (first ever since recovery): launched serially under
+  `ram_guard` 12000 MB per the 18 GB contract; result to be appended here.
 
 ---
 *Full per-branch agent reports: workflow `wf_3badde6b-c1a`; paper evidence trace: `wf_310612e2-038`. *

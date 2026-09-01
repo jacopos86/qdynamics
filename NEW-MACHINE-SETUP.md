@@ -1,7 +1,9 @@
 # New machine bootstrap
 
-Target hardware (verified on the machine, 2026-08-31): Apple M3, 8-core CPU,
-24 GB RAM, 1 TB SSD. Implications:
+Target hardware (verified on the replacement machine, 2026-08-31): Apple
+M4 Pro, 14-core CPU, 20-core GPU, 24 GB RAM, 1 TB SSD, macOS 26.6.2. (An
+earlier draft said M3 8-core; the machine that actually arrived is the
+M4 Pro.) Implications:
 
 - **RAM invariant (user-set 2026-08-31): 18 GB aggregate ceiling** for all
   agent-launched work, per `agent_guidance/shared/memory-budget.md` (revised
@@ -11,15 +13,20 @@ Target hardware (verified on the machine, 2026-08-31): Apple M3, 8-core CPU,
   go to CHTC — one heavy local job at a time remains the rule.
 - **Disk:** 1 TB comfortably holds the full CHTC rescue fetch (~65–78 GB,
   `CHTC-FETCH.md`) alongside the repo.
-- **CPU:** 8 cores; RAM, not CPU, is the binding constraint for the heavy
+- **CPU:** 14 cores; RAM, not CPU, is the binding constraint for the heavy
   integration tests — run the full suite serially; parallel workers multiply
   resident memory.
 - **GPU:** irrelevant to this stack (qiskit-aer CPU path).
-- **Migration note:** this machine was set up with Migration Assistant from
-  the recovery session's environment, so `~/.ssh` (GitHub key "Patron-Mac"),
-  `~/Holstein_test` with its `.venv`, and uv all carried over — steps 1–3
-  below were already satisfied on arrival (verified 2026-08-31: SSH auth OK,
-  collection 7,535 tests / 9 known errors).
+- **Migration note (superseded):** an earlier draft assumed Migration
+  Assistant would carry over `~/.ssh`, `~/Holstein_test`, and uv. The
+  machine actually arrived fresh — nothing carried over. All steps below
+  were executed from scratch on 2026-08-31 (agent session): GitHub auth
+  via `gh auth login --web` over HTTPS (no SSH key on this machine; the
+  SSH path in step 1 remains valid as an alternative), clone, uv env,
+  verification (collection 7,535 tests / 9 known errors — exact match to
+  the recovery baseline), GitNexus rebuild. Toolchain lives user-local
+  under `~/.local` (git via CLT, gh 2.98, node 24 LTS, uv, no Homebrew,
+  no sudo required).
 
 Contract for a fresh agent session on a new machine. Execute top to bottom;
 each step states its verification. Context: this repo was recovered on
@@ -69,18 +76,27 @@ From the repo root (imports require cwd = root):
 cd ~/Holstein_test && .venv/bin/python -m pytest test --collect-only -q 2>&1 | tail -1
 ```
 
-Expected as of 2026-08-31: ~6,519 tests collected, 10 known errors
-(`RECOVERY-AUDIT.md` §9). Then a targeted smoke:
+Expected as of 2026-08-31 (verified on the M4 Pro): 7,535 tests collected,
+9 known errors (`RECOVERY-AUDIT.md` §9; an earlier draft said ~6,519/10).
+Then a targeted smoke:
 
 ```bash
 cd ~/Holstein_test && .venv/bin/python -m pytest test/test_hh_staged_noise_workflow.py test/test_ap_mclachlan_exchange_selector.py -q
 ```
 
-Known-red baseline: 7 era-drift failures in the resurrected staged-noise
-suites, 7 pre-existing failures in `test_ra_adapt_semantic_closure_routes.py`.
+Known-red baseline (re-measured and classified on the M4 Pro, 2026-08-31 —
+full accounting in `RECOVERY-AUDIT.md` §12): 7 pre-existing failures in
+`test_ra_adapt_semantic_closure_routes.py` (confirmed: 7 failed / 85
+passed); 9 data-missing failures across the staged suites on the vanished
+`output/paper_ii_staged` exact references; 1 `paper-ii-run/SKILL.md`
+doc/test mismatch (user decision pending); 1 LaTeX-engine env failure
+until TeX is installed. The 7 era-drift failures previously recorded did
+**not** reproduce (smoke files 70/70), and the 16 `search_profile`
+TypeErrors found during re-measurement were a recovery-seam regression,
+fixed on `main` (see §12).
 
 The full suite has not been run end-to-end since recovery — heavy integration
-tests; respect the 10 GB RAM invariant (`AGENTS.md` Hard invariants,
+tests; respect the 18 GB RAM invariant (`AGENTS.md` Hard invariants,
 `pipelines/shell/ram_guard.py`). Running it once on this machine and
 recording the result in `RECOVERY-AUDIT.md` is the first useful task.
 
