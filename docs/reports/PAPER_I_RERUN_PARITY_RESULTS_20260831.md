@@ -456,3 +456,37 @@ tree, `$B/runs.log:1059–1080`.)
 5. **B3-MR unblocking.** Both trees fail identically at
    `Canonical Paper-I semantic materialization requires its typed adapter`; this needs
    a dedicated MR-builder investigation before rows R04–R07 can be scored at all.
+
+---
+
+## CORRECTION (2026-09-01, from the compile-cost port verification)
+
+This report's §4.2/§6.3 causal attribution is **falsified**. "main cannot
+express the compile-cost policy" was true and is now fixed (commit
+`ef842070`: additive port; without the kwarg, protocols are byte-identical
+— route sha `28976b22…`, profiles, invariants, failing-test ID sets all
+unmoved). But "where the cost term enters selection, main selects
+different operators" is **not the mechanism**: A/B on the campaign lineage
+itself (`f041a5c1`, with vs without `compile_cost_policy`) produces
+identical trajectories to 16 digits — the policy is contract-declarative
+and receipt-level on BOTH lineages for the plain insertion arms; plain-arm
+selection uses the zero-centered 3-channel arctan factor (verified
+numerically against the lineage's stored round-3 receipt).
+
+The actual always/plateau divergence: at the divergence round both trees
+compute the SAME winning `selection_score` to 16 digits for DIFFERENT
+candidates — exact ties resolved by shortlist membership/ordering
+(`descending_tie_break_then_pool_position_record_identity_v1`), and the
+two refactors enumerate disjoint candidate families at that tie (phase-
+0/I/II position-record pipeline: adapt_pipeline.py 30,517 vs 75,040
+lines, hh_continuation_scoring.py, ra_adapt/pools.py, plus lineage-only
+run_axes.py/costexp_realization.py). This is the recovery's known
+26-vs-7 wholesale-merge territory and is not per-hunk separable.
+
+Consequences: (1) porting the policy does NOT make main reproduce the
+paper's insertion-arm rows; (2) `paper-i-integration-20260831` @
+`f041a5c1` stands as the reproduction lineage of record for those rows,
+on stronger grounds than before; (3) the paper's costexp-arm identity
+rests on the lineage's candidate-pipeline code, not the declared weights
+— relevant to any provenance statement. Evidence: port-branch report,
+scratch `port/` A/B scripts and cell extracts.
