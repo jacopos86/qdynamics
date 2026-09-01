@@ -32,3 +32,15 @@ b9d58c2b96da6974532de9d2d298085f036e545f5d5d1d7b5b02d3c5046a26bd  b9:b9mr__b_dep
 2af87fe853a9e546f7759cabfbf84602d124c7a5102d9791fc2c1e9cdfdafe5b  b9:b9mr__b_depth_costexp_always_open__weak_weak__nph3__9675590__6.tar.gz
 f5bd581474920201582b65981dd5ca87b7a734dd4344fc3e69fc3fea03098dc9  b9:b9mr__b_depth_costexp_plateau_position__intermediate_weak__nph3__9675590__12.tar.gz
 b9432a080fa6da63410b8c8f24187ded291ef2e898085b3eac082a267a6d16ce  b9:b9mr__b_depth_costexp_plateau_position__weak_weak__nph3__9675584__0.tar.gz
+#
+# ---- Added 2026-09-01: sixregime first anchors (chtc/RESCUE_FETCH_VERIFICATION_20260901.md §1.4, correction §6(d)) ----
+# NOTE: the b3:/b9:/s6: tokens are ROOT MARKERS, not filename text, so this file is not directly consumable by `shasum -c` (strip the marker per root, as README.md shows for b3:).
+# Context: the 12 cluster-9664325 (v2) sixregime tarballs are unrecoverable — transfer dirs empty in /home and /staging, remotely and locally (verification report §3.1 item 5).
+# These two are the only sixregime__ tarballs that exist anywhere in the 2026-08-31 rescue fetch: v1-campaign near-relatives SUPERSEDED BY v2, recorded in lieu of the lost set — NOT substitutes for it.
+# Roots are inside the read-only rescue tree ~/chtc_rescue/, not under output/local_runs/.
+#
+# root: ~/chtc_rescue/staging/ra_adapt_costexp_depthfix_sixregime_20260820_v1/transfer/   (43,347,118 B)
+4608f4fde488d48ade3e436c7c13f46e1601a0d7b93fc8149e0fadff5b1e66a9  s6:sixregime__b_depth_append_ra__strong_weak_u8__nph3__9664320__14.tar.gz
+#
+# root: ~/chtc_rescue/staging/ra_adapt_warmstart_sixregime_20260820_v1/transfer/   (245,221,689 B)
+5f81dfb4f45f7e4a6b2a6bba27a2f3549a247d7676e8c8ab0d192b388acb15e9  s6:sixregime__c_ws_depth_append_ra__weak_weak__nph3__9665210__0.tar.gz
