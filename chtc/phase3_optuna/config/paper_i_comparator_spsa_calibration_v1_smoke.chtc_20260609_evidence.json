@@ -1,0 +1,114 @@
+{
+  "approved_at": null,
+  "approved_by": null,
+  "approved_for_full_generation": false,
+  "clipping_log10_error_ratio": [
+    -3.0,
+    3.0
+  ],
+  "config_version": "paper_i_comparator_spsa_calibration_config_v1",
+  "failure_penalty": 10.0,
+  "method_maxiter_budgets": {
+    "static_family_informed_vqe": 1,
+    "static_full_meta_append_adapt_vqe": 1,
+    "static_geo_adapt_vqe": 1,
+    "static_hea_qiskit_vqe": 1,
+    "static_qubit_qeb_adapt_vqe": 1,
+    "static_tetris_qubit_adapt_vqe": 1
+  },
+  "mode": "smoke",
+  "n_trials": 1,
+  "per_method_search_spaces": {
+    "static_family_informed_vqe": {
+      "family_informed_spsa_a": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "family_informed_spsa_avg_last": {
+        "high": 2,
+        "low": 1,
+        "type": "int"
+      },
+      "family_informed_spsa_big_a": {
+        "high": 10.0,
+        "low": 1.0,
+        "type": "float"
+      },
+      "family_informed_spsa_c": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      },
+      "family_informed_spsa_eval_repeats": {
+        "high": 2,
+        "low": 1,
+        "type": "int"
+      }
+    },
+    "static_full_meta_append_adapt_vqe": {
+      "adapt_spsa_a": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "adapt_spsa_c": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      }
+    },
+    "static_geo_adapt_vqe": {
+      "adapt_spsa_a": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "adapt_spsa_c": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      }
+    },
+    "static_hea_qiskit_vqe": {
+      "hea_spsa_learning_rate": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "hea_spsa_perturbation": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      }
+    },
+    "static_qubit_qeb_adapt_vqe": {
+      "adapt_spsa_a": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "adapt_spsa_c": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      }
+    },
+    "static_tetris_qubit_adapt_vqe": {
+      "adapt_spsa_a": {
+        "high": 0.1,
+        "low": 0.01,
+        "type": "log_uniform"
+      },
+      "adapt_spsa_c": {
+        "high": 0.05,
+        "low": 0.005,
+        "type": "log_uniform"
+      }
+    }
+  },
+  "plan_path": "docs/plans/paper-i-comparator-spsa-optuna-calibration-2026-05-31.md",
+  "profile_id": "paper_i_comparator_spsa_optuna_calibration_v1",
+  "resource_tiebreak_weight": 0.001,
+  "sampler_seed": 20260531
+}

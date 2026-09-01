@@ -10,3 +10,22 @@
 #
 # root: ~/chtc_rescue/staging/ra_adapt_warmstart_sixregime_20260820_v1/transfer/   (245,221,689 B)
 5f81dfb4f45f7e4a6b2a6bba27a2f3549a247d7676e8c8ab0d192b388acb15e9  s6:sixregime__c_ws_depth_append_ra__weak_weak__nph3__9665210__0.tar.gz
+#
+# ---- Added 2026-09-01: DISPOSITION of the sealed ARCHIVES.sha256 b3:/b9: expectations — ACCEPTED LOSS (user ruling 2026-09-01, "ignore") ----
+# Scope: the 18 `b3:` rows (root output/local_runs/paper_i_hh_b3_measured_residual_20260821/transfer/, cluster 9674089)
+#        and, for the same reason, any `b9:` row whose archive is likewise absent from the 2026-08-31 rescue tree.
+# Status: HISTORICALLY RECORDED BUT UNRECOVERABLE. The digests in ARCHIVES.sha256 remain a valid historical record of
+#         archives that once existed and were hashed in place; they are NOT a verifiable expectation any more, and
+#         `shasum -c` against those roots WILL and SHOULD fail. Do not read such a failure as corruption or as a
+#         regression — read it as this disposition.
+# Cause:  the transfer dirs are empty in /home and /staging, remotely and locally
+#         (chtc/RESCUE_FETCH_VERIFICATION_20260901.md §3.1 item 5; open-item rows closed in §7.2).
+# Ruling: user, 2026-09-01 — "ignore"; b3mr is explicitly "not used in current paper I".
+# Impact: NONE on printed values. Every printed Paper-I number verifies from surviving data
+#         (docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md §2.1: Table I, Table III and the Fig 2/Fig 3 annotations all
+#         score `match` against kstar_tables.json, the corrected-S_alg b3/b5 records and the tracked provenance JSONs).
+#         The b3mr sealed SOURCE package survives in git (commit 93e2fc07), so the producing code is reproducible.
+# Seal:   ARCHIVES.sha256 is DELIBERATELY NOT EDITED — it is sealed, MANIFEST.sha256 pins its digest, and Gate G2 must
+#         stay 10/10. This disposition lives here, outside the sealed set, exactly as the §6(d) correction prescribes.
+#         Verify with: cd agent_guidance/static-adapt/golden && shasum -a 256 -c MANIFEST.sha256
+# See also: RECOVERY-AUDIT.md §12 (four accepted losses) for the full ruling and the surviving-evidence inventory.

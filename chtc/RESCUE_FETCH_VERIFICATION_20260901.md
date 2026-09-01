@@ -246,10 +246,10 @@ Applied in a docs-only follow-up pass to four files, each citing this report as 
 
 | Decision | Options |
 |---|---|
-| 18 b3mr (9674089) + 12 sixregime (9664325) tarballs | Unrecoverable. Retire the `ARCHIVES.sha256` rows / data-gate the dependent claims, or reconstruct by rerun. |
+| ~~18 b3mr (9674089) + 12 sixregime (9664325) tarballs~~ | **RESOLVED-accepted-loss 2026-09-01** — user ruling: "ignore"; b3mr explicitly "not used in current paper I". Neither reconstruction nor a seal edit: `ARCHIVES.sha256` stays sealed and unmodified (G2 10/10) and its b3/b9 rows are marked historically-recorded-but-unrecoverable in the dated section of `agent_guidance/static-adapt/golden/ARCHIVES-ADDENDUM-20260901.sha256`. No claim needs data-gating — every printed value verifies from surviving data (`docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1). Surviving: b3mr sealed source package in git (`93e2fc07`); the two v1 sixregime near-relatives anchored in the addendum. Recorded in `RECOVERY-AUDIT.md` §12. |
 | Fig 2 tails (9675078) | Rebuild from the two surviving resume-egress checkpoints (2.6 GB, restore to `raw_outputs/ra_adapt_costexp_depthfix_sixregime_20260820_v2/resume_inputs/` recording shas at restore time), or retire. |
 | `output/siam_screening/nb4_pilot_v1/` (row 7) | Rebuild-with-new-receipts from the sha-verified 9713113 raw inputs, vs retire/data-gate `test_siam_stable_bindings.py`. |
-| Fig 3 raw (`l3_phase0`/`promotion_k15`) | Unrecoverable on CHTC as well as in git; local-regen-as-reconstruction stands as the parity audit's open call. Runner code survives inside the sealed packages. |
+| ~~Fig 3 raw (`l3_phase0`/`promotion_k15`)~~ | **RESOLVED-accepted-loss 2026-09-01** — user ruling: "ignore". No local-regen-as-reconstruction is to be run for it. Fig 3's printed annotations and the beam/prune/batch in-text tuples verify against the tracked `ra_optional_controls_l3_main_provenance.json` (`docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1, `match`), so nothing printed is unbacked; the runner code still survives inside the sealed packages if a future rerun is ever wanted. Recorded in `RECOVERY-AUDIT.md` §12. |
 | 206 MB `seed_artifacts_*` | Commit the bytes, or (recommended) record a sha table in `chtc/` without the bytes. |
 | 155 MB pre_repair tree + 31.9 MB r07 outputs | Commit the sha tables into `chtc/` (cheap, recommended) vs the bytes themselves. |
 | `paper_ii_class_settings_smoke_lock_v1.json` era | Keep CHTC-era `6365177c…` (current) vs ancestor `5139669f` copy `1b492e1f…`. |

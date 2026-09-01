@@ -194,6 +194,33 @@ Full trace: `docs/reports/PAPER_II_III_EVIDENCE_TRACE_20260831.md`. Headlines:
   (21 total in the family); §5a's "run touched tests after" step was
   never executed for that merge. Correction to the bullet above is
   incorporated per the classification (era-drift reproduces: 12 tests).
+- **Four losses closed as ACCEPTED LOSSES (user ruling 2026-09-01,
+  "ignore").** (1) the 18 `b3mr` cluster-9674089 raw tarballs — user
+  ruling is explicit that b3mr is "not used in current paper I"; (2) the
+  12 `sixregime` cluster-9664325 (v2) raw tarballs; (3) the Fig 3 raw
+  inputs (`l3_phase0` / `promotion_k15`); (4) the pre-`4152de3a` nph1
+  regression baseline history. None is recoverable: (1)–(2) have empty
+  transfer dirs in `/home` and `/staging` both remotely and locally
+  (`chtc/RESCUE_FETCH_VERIFICATION_20260901.md` §3.1 item 5), (3) is gone
+  on CHTC as well as in git, and (4) predates the surviving history.
+  **Nothing printed in the manuscripts depends on them:** every printed
+  Paper-I value verifies from surviving data —
+  `docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1 scores Table I,
+  Table III and the Fig 2/Fig 3 annotation sets **match** against
+  `kstar_tables.json`, the b5/b3 corrected-`S_alg` records and the
+  tracked provenance JSONs; the b3mr/sixregime archives were the raw
+  estimator ledgers behind already-verified aggregates, never a printed
+  number's only source. What survives instead: the **b3mr sealed source
+  package is in git** (`93e2fc07`), so the producing code is reproducible
+  even though its outputs are not; and the two v1-campaign sixregime
+  near-relatives are sha-anchored in
+  `agent_guidance/static-adapt/golden/ARCHIVES-ADDENDUM-20260901.sha256`
+  (recorded in lieu of the lost v2 set — **not** substitutes for it).
+  The sealed `ARCHIVES.sha256` b3/b9 rows stay as written (seal intact,
+  G2 10/10); the addendum carries the dated
+  historically-recorded-but-unrecoverable marking, and
+  `chtc/RESCUE_FETCH_VERIFICATION_20260901.md` §7.2 records both rows
+  RESOLVED.
 
 ---
 *Full per-branch agent reports: workflow `wf_3badde6b-c1a`; paper evidence trace: `wf_310612e2-038`. *
