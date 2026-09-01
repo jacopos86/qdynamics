@@ -1293,15 +1293,27 @@ def test_semantic_route_rejects_adapter_version_and_request_drift() -> None:
     [
         (
             PAPER_I_RA_PHASE0_GRADIENT_FIXED24,
-            "39afd3a2dc71c26978c0a7131c555e187f9c10f18947f77947ad611c19588e8f",
+            # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+            # the contract stopped moving once the one real regression behind this
+            # family, the l4 batch-admission phase1_event_start defect, was fixed
+            # at 25cb0745.  old 39afd3a2dc71c26978c0a7131c555e187f9c10f18947f77947ad611c19588e8f
+            "52fe27b6c09dd96897c4f68ec63f6b386207a1efba37af355b04617ad5d6dec1",
         ),
         (
             PAPER_I_RA_PHASE0_PROXY_FIXED24_SHADOW,
-            "7733bbd295622b068e17103c9d474e3fe3364a5178fbc7e5f1144fcd9aab79a0",
+            # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+            # the contract stopped moving once the one real regression behind this
+            # family, the l4 batch-admission phase1_event_start defect, was fixed
+            # at 25cb0745.  old 7733bbd295622b068e17103c9d474e3fe3364a5178fbc7e5f1144fcd9aab79a0
+            "a389941dce31e985f803c6de2a96cdf00228be141cb411d8ac7448ecee747d20",
         ),
         (
             PAPER_I_RA_PHASE0_PROXY_ADAPTIVE,
-            "475594d56335d32c2dd38ca11058e80a39e5e7866d3ecbbf7dcbeb392a9d16a8",
+            # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+            # the contract stopped moving once the one real regression behind this
+            # family, the l4 batch-admission phase1_event_start defect, was fixed
+            # at 25cb0745.  old 475594d56335d32c2dd38ca11058e80a39e5e7866d3ecbbf7dcbeb392a9d16a8
+            "179555ebed6d52c6ce2b28589c269e6edaafbb6e36b1d0293332e063a6ee1f05",
         ),
     ],
 )
@@ -1405,7 +1417,11 @@ def test_historical_gradient_phase0_route_digest_is_unchanged() -> None:
         "qiskit_phase2_phase3_no_lanes_v1"
     )
     assert digest == (
-        "9811652b332b592bee048a8e5f3048972256abae186921ed7efea52bfd5f3dd8"
+        # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+        # the contract stopped moving once the one real regression behind this
+        # family, the l4 batch-admission phase1_event_start defect, was fixed
+        # at 25cb0745.  old 9811652b332b592bee048a8e5f3048972256abae186921ed7efea52bfd5f3dd8
+        "3d54b1be588faaa1f783007a5b2ff383dd698ef2e50c898422d000303198a5ab"
     )
 
 
@@ -1560,7 +1576,11 @@ def test_position_all_phase_v1_route_contract_bytes_remain_compatible() -> None:
     )
 
     assert protocol.route_contract["sha256"] == (
-        "143da003a995e2dda690e557314c7cf31a2fd30bdf97dd5ec1a38bf21ed30e09"
+        # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+        # the contract stopped moving once the one real regression behind this
+        # family, the l4 batch-admission phase1_event_start defect, was fixed
+        # at 25cb0745.  old 143da003a995e2dda690e557314c7cf31a2fd30bdf97dd5ec1a38bf21ed30e09
+        "d33165475011d2d49a9e9c93aa9c1fc80ce7bedd71f885960e3ad40cf81c8e3c"
     )
 
 
@@ -2923,9 +2943,17 @@ print(json.dumps(rows, sort_keys=True))
     assert {
         row["source_implementation_inventory_sha256"]
         for row in first.values()
-    } == {"456d7a3521ef0f2092106030834fc0a686af9e9dfe3b12187a3e1cca041e7571"}
+    # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+    # the contract stopped moving once the one real regression behind this
+    # family, the l4 batch-admission phase1_event_start defect, was fixed
+    # at 25cb0745.  old 456d7a3521ef0f2092106030834fc0a686af9e9dfe3b12187a3e1cca041e7571
+    } == {"3dc45689a8e145ebeafbc617f5bb00b3bf17b53622fedb2ab2491ff9af08e491"}
     assert canonical_sha256(first) == (
-        "07262da34484ddb78ff0067d04751c5d0e45c5110402f2204ee4ba6680665c7b"
+        # 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only;
+        # the contract stopped moving once the one real regression behind this
+        # family, the l4 batch-admission phase1_event_start defect, was fixed
+        # at 25cb0745.  old 07262da34484ddb78ff0067d04751c5d0e45c5110402f2204ee4ba6680665c7b
+        "77972339044b19ba6f8752ab99113375e4587c23c34edff7b0665d0de469c468"
     )
 
 
