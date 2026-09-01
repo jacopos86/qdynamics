@@ -168,8 +168,21 @@ Full trace: `docs/reports/PAPER_II_III_EVIDENCE_TRACE_20260831.md`. Headlines:
   3.6.4 libs into `~/.local/openssl3/lib`, `install_name_tool -add_rpath`
   + ad-hoc re-sign of both `lbugjs.node` copies (redo after any gitnexus
   reinstall/update).
-- **Full-suite run** (first ever since recovery): launched serially under
-  `ram_guard` 12000 MB per the 18 GB contract; result to be appended here.
+- **Full-suite run** (first ever since recovery; this IS the baseline —
+  no prior end-to-end result exists): `ram_guard --limit-mb 12000 --
+  .venv/bin/python -m pytest test -q --continue-on-collection-errors` →
+  **6,751 passed / 683 failed / 85 errors / 25 skipped** in 26:15, peak
+  RSS 5,447 MB. (First attempt without
+  `--continue-on-collection-errors` aborts at the 9 known collection
+  errors — the flag is required.) Failure set: 768 failed/error ids
+  across 166 files, recorded in
+  `docs/reports/FULL_SUITE_BASELINE_20260831_failed.txt`; heavily
+  clustered in CHTC-package/campaign-fixture families
+  (test_adapt_vqe_integration 75, test_siam_chtc_package 52,
+  test_generic_static_benchmark 36, prospective_* 61, test/chtc/* ~120).
+  Root-cause classification in progress; the search_profile fix and
+  SKILL.md graft above landed after the documented staged-suite
+  re-measure, so those families are green in this baseline.
 
 ---
 *Full per-branch agent reports: workflow `wf_3badde6b-c1a`; paper evidence trace: `wf_310612e2-038`. *
