@@ -647,21 +647,53 @@ RETIRED_MODULES = (
     "pipelines.exact_bench.hh_path_a_tmux_wrapper",
 )
 
-FORBIDDEN_ACTIVE_SNIPPETS = RETIRED_MODULES + (
-    "from pipelines.hardcoded import adapt_pipeline",
-    "from pipelines.hardcoded import adapt_circuit_cost",
-    "from pipelines.hardcoded import hh_continuation_generators",
-    "from pipelines.hardcoded import hh_continuation_scoring",
-    "from pipelines.hardcoded import hh_continuation_symmetry",
-    "from pipelines.hardcoded import hh_continuation_types",
-    "from pipelines.hardcoded import imported_artifact_resolution",
-    "pipelines/hardcoded/adapt_pipeline.py",
-    "pipelines/hardcoded/adapt_circuit_cost.py",
-    "pipelines/hardcoded/hh_continuation_generators.py",
-    "pipelines/hardcoded/hh_continuation_scoring.py",
-    "pipelines/hardcoded/hh_continuation_symmetry.py",
-    "pipelines/hardcoded/hh_continuation_types.py",
-    "pipelines/hardcoded/imported_artifact_resolution.py",
+# 2026-09-01 -- B11 of the open-decisions queue, classification row 25.
+# The 2026-08-31 rescue commits deliberately un-retired these modules from
+# pre-recovery main, and the user accepted that un-retirement on 2026-09-01:
+#
+#   9590c282 "complete legacy staged-noise lane via beam-era shims" adopted the
+#     July beam-refactor's pipelines/hardcoded alias shims onto trunk's own
+#     scaffold / static_adapt / time_dynamics modules. They are load-bearing:
+#     the resurrected suites went 293 pass / 120 fail -> 406 / 7, and full
+#     collection went 5,540 tests / 57 errors -> 6,225 / 35.
+#   e70397c8 "restore 27 retired-but-imported modules" restored
+#     paper_i_hh_route_a_optuna; every module it restored was verified to have
+#     live production importers on main before restoration.
+#
+# These names are therefore no longer retired. Their byte-identical archive
+# snapshots stay in the manifest and remain hash-verified by
+# test_every_manifest_snapshot_matches_its_recorded_hash and
+# test_archive_layout_is_normalized_and_inert -- the provenance record is kept,
+# only the "must not be reachable" claim is withdrawn.
+UNRETIRED_BY_RESCUE_20260831 = (
+    "pipelines.hardcoded.adapt_pipeline",
+    "pipelines.hardcoded.adapt_circuit_cost",
+    "pipelines.hardcoded.hh_continuation_generators",
+    "pipelines.hardcoded.hh_continuation_scoring",
+    "pipelines.hardcoded.hh_continuation_symmetry",
+    "pipelines.hardcoded.hh_continuation_types",
+    "pipelines.hardcoded.imported_artifact_resolution",
+    "pipelines.exact_bench.paper_i_hh_route_a_optuna",
+)
+
+UNRETIRED_ORIGINAL_PATHS_20260831 = frozenset(
+    {
+        "pipelines/hardcoded/adapt_pipeline.py",
+        "pipelines/hardcoded/adapt_circuit_cost.py",
+        "pipelines/hardcoded/hh_continuation_generators.py",
+        "pipelines/hardcoded/hh_continuation_scoring.py",
+        "pipelines/hardcoded/hh_continuation_symmetry.py",
+        "pipelines/hardcoded/hh_continuation_types.py",
+        "pipelines/hardcoded/imported_artifact_resolution.py",
+        "pipelines/exact_bench/paper_i_hh_route_a_optuna.py",
+    }
+)
+
+STILL_RETIRED_MODULES = tuple(
+    module for module in RETIRED_MODULES if module not in UNRETIRED_BY_RESCUE_20260831
+)
+
+FORBIDDEN_ACTIVE_SNIPPETS = STILL_RETIRED_MODULES + (
     "pipelines/static_adapt/adapt_pipeline_legacy_20260322.py",
     "pipelines/static_adapt/compare_adapt_current_vs_legacy_20260322.py",
     "pipelines/static_adapt/hh_continuation_scoring_legacy_bridge.py",
@@ -701,7 +733,12 @@ def test_retired_sources_are_inert_and_hash_preserved() -> None:
 
         original = REPO_ROOT / original_path
         snapshot = REPO_ROOT / str(entry["archive_path"])
-        assert not original.exists()
+        # 2026-09-01 (B11 / row 25): the rescue un-retirement restored these
+        # originals on purpose, so absence is no longer the invariant for them.
+        # Everything the manifest actually attests -- the archived bytes and
+        # their hash -- is still asserted below for every entry.
+        if original_path not in UNRETIRED_ORIGINAL_PATHS_20260831:
+            assert not original.exists()
         assert snapshot.is_file()
         assert snapshot.name.endswith((".py.txt", ".json.txt"))
         assert _sha256(snapshot) == expected["sha256"]
@@ -1076,6 +1113,12 @@ def test_historical_amplitude_pruning_has_no_active_runtime_reachability() -> No
     passive_historical_sources = {
         REPO_ROOT / "pipelines/static_adapt/historical_route_identity.py",
         REPO_ROOT / "pipelines/static_adapt/sr_snake_route_profile.py",
+        # 2026-09-01 (B11 / row 25): restored by rescue commit e70397c8 as one of
+        # 27 retired-but-imported modules; it now has 20 chtc importers in-tree.
+        # Same passive route-identity class as the two above -- it names
+        # historical route parameters, it does not execute pruning -- so it joins
+        # the allowlist under the accepted un-retirement.
+        REPO_ROOT / "pipelines/static_adapt/route_identity.py",
     }
     active_hits: list[str] = []
     for source_root in (REPO_ROOT / "pipelines", REPO_ROOT / "src"):
@@ -1296,7 +1339,7 @@ def test_retired_modules_are_not_importable() -> None:
 import importlib.util
 import json
 
-names = {RETIRED_MODULES!r}
+names = {STILL_RETIRED_MODULES!r}
 answers = {{}}
 for name in names:
     try:
@@ -1317,7 +1360,7 @@ print(json.dumps(answers, sort_keys=True))
         check=True,
     )
     answers = json.loads(completed.stdout)
-    assert answers == {module: False for module in RETIRED_MODULES}
+    assert answers == {module: False for module in STILL_RETIRED_MODULES}
 
 
 def test_active_pipeline_and_src_have_no_retired_imports() -> None:
@@ -1393,9 +1436,16 @@ def test_tetris_disjoint_batching_has_no_active_executor_or_registry_route() -> 
         scoring.normalize_phase2_batch_selection_mode(
             RETIRED_TETRIS_SELECTION_MODE
         )
-    assert RETIRED_TETRIS_SELECTION_MODE not in (
-        cli_config._PHASE_BATCH_SELECTION_MODE_CHOICES
-    )
+    # 2026-09-01 (B11 / row 25): the companion assertion
+    #   RETIRED_TETRIS_SELECTION_MODE not in
+    #       cli_config._PHASE_BATCH_SELECTION_MODE_CHOICES
+    # is dropped. bb4541f6 ("isolate batch admission extension", 2026-08-24)
+    # deleted that constant, so the assertion could only ever raise
+    # AttributeError. Per classification row 25 it has to go under either arm of
+    # the fork. Coverage is not lost: the choices tuple was the CLI mirror of
+    # normalize_phase2_batch_selection_mode, which is asserted directly above and
+    # is now the single owner of the accepted-mode set.
+    assert not hasattr(cli_config, "_PHASE_BATCH_SELECTION_MODE_CHOICES")
 
     generic_benchmark_source = (
         REPO_ROOT / "pipelines/exact_bench/generic_static_benchmark.py"
