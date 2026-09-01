@@ -7,7 +7,17 @@ leave it out of scope unless explicitly requested.
 ## Math File Contract
 
 - `MATH/Math.md` and its generated `MATH/paper_details/Math.tex`/PDF twin are legacy background notes. They are not an authority for active-paper notation, claims, route identity, results, or manuscript synchronization; do not route agents to them by default.
-- For Paper I, the active authority in the local checkout is the co-located source/PDF pair `MATH/paper_details/Paper_I.tex` and `MATH/paper_details/Paper_I.pdf`. Use the active paper manuscript together with its support folder and locked evidence, not `Math.md`.
+- **For Paper I, the canonical manuscript is the Overleaf lineage in the
+  separate repo `https://github.com/20jastrobel/ADAPT---Paper-I.git`
+  (local clone `~/ADAPT---Paper-I`), source
+  `Paper_I_overleaf_20260818/Paper_I.tex` — user ruling 2026-09-01.**
+  The co-located `MATH/paper_details/Paper_I.tex`/`.pdf` pair is the
+  stale 2026-08-17 Dimer draft (3,532 diff lines behind the filled
+  Overleaf version, which is what the 2026-08-31 parity audits verified)
+  — treat it as historical provenance; do not edit it as if active.
+  Writers start from `agent_guidance/static-adapt/paper-i-writers-brief-20260901.md`.
+  Use the active paper manuscript together with its support folder and
+  locked evidence, not `Math.md`.
 - On 2026-07-18 the user promoted the no-ordinary-novelty SR-SNAKE manuscript copy into the canonical Paper-I source lineage. The dated `Paper_I_no_ordinary_novelty_sr_snake_20260717.*` files and the pre-promotion backup are historical provenance only; future agents must use the active co-located `Paper_I.tex` / `Paper_I.pdf` pair. The exact historical promotion receipt is `MATH/paper_facing/paper_I_static_scaffold/paper_i_canonical_manuscript_promotion_20260718.json`.
 - Active user-facing paper sources live under `MATH/paper_details/`; their current source/PDF pairs are listed below. Treat older paper drafts, generated Math twins, and markdown notebooks as recovery/reference material unless the user explicitly requests them.
 - `MATH/archive/archaic_repo_math.md` is archival only. Never use it, `MATH/Math.md`, or generated Math artifacts as a default source of truth.
