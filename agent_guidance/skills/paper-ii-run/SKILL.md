@@ -43,6 +43,19 @@ If a Paper-II run/report discussion turns into manuscript wording, caption/table
 - Use class-level checkpoint-McLachlan settings from the current promoted lock unless the user approves a newer promoted lock.
 - Controller settings are class-level, not per-Hamiltonian tuning for table claims.
 - Before CHTC submission, aggregation, evidence-PDF generation, or table update, run the `$time-dynamics-benchmark-calibration` workflow when available and fail closed on calibration `ERROR`s.
+- For the staged matched-accuracy matrix, use the canonical response-normalized
+  policy from `agent_guidance/time-dynamics/paper-ii-comparison-protocol.md`.
+  Normalize energy, doublon, and maximum site-occupation errors by the bound RMS
+  exact response for the same drive and horizon. The individual target is five
+  percent with mean infidelity at most `1e-4`. A completed APM/AVQDS pair may
+  also be admitted when both arms remain inside the fifteen-percent response
+  guard and absolute safety ceilings and their aggregate accuracy burdens agree
+  within a factor of two. This pair test is mandatory before a cost discrepancy
+  becomes a paper-facing comparison. An unmatched miss tightens the method-owned
+  activation cut. There is no lower fidelity bound and no coarsening branch.
+  The former infidelity-window study is preserved historical evidence only,
+  and the fixed componentwise-`1e-4` policy likewise must not classify new
+  campaign work.
 - Every method inside one benchmark point must share the same static seed hash, drive, time grid, phonon cutoff, reference/diagnostic policy, observable set, diagnostic exact reference, and compile target.
 - Do not use staged, fallback, pending, or recovery seed artifacts in paper-facing aggregates.
 - A dynamics row is invalid for the paper table if the exact diagnostic trajectory moves while the algorithm trajectory freezes, e.g. `theta_dot_l2=0`, `rho_num=0`, `rho_miss≈1`.
@@ -54,6 +67,22 @@ If a Paper-II run/report discussion turns into manuscript wording, caption/table
 For strict/QPU-faithful rows, controller decisions must use measurement-compatible data for the prepared ansatz/circuit state. Exact ED/reference trajectories are diagnostic side channels only. Follow the detailed QPU-faithful contract in root `AGENTS.md` and fail closed on exact-target/reference leakage into decision telemetry.
 
 ## Evidence handoff to results
+
+For an already-authorized active campaign, a scheduler snapshot that discovers
+one or more newly completed process IDs is not a terminal status-only event.
+Before the run/status turn may finish, hand that exact process delta through
+packaging, verified transfer, artifact validation, exact evaluation, ledger
+ingestion, results-PDF refresh, and the results skill's table refresh. If any
+step fails, write a durable process-scoped blocker receipt and refresh the
+lightweight results-PDF status view before reporting the blocker. It is never
+acceptable to report that completed rows merely “await ingestion” while
+leaving the visible report stale.
+
+Ingestion must replay the campaign-construction inputs recorded by the
+submission package exactly, including whether a prior-threshold root was
+absent. Do not invent, add, remove, or substitute a `prior_root` during
+record-package validation; doing so changes `StagedCampaign.next_actions()` and
+can falsely classify a valid submitted action as stale.
 
 When evidence is complete, hand off to `agent_guidance/skills/paper-ii-results/SKILL.md` with:
 
