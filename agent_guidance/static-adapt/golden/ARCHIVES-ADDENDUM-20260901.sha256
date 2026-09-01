@@ -1,0 +1,12 @@
+# ADDENDUM to ARCHIVES.sha256 — kept OUTSIDE the sealed golden set so MANIFEST.sha256 stays intact (Gate G2 = 10/10). Seal re-pin deliberately avoided; see chtc/RESCUE_FETCH_VERIFICATION_20260901.md §6(d).
+# ---- Added 2026-09-01: sixregime first anchors (chtc/RESCUE_FETCH_VERIFICATION_20260901.md §1.4, correction §6(d)) ----
+# NOTE: the b3:/b9:/s6: tokens are ROOT MARKERS, not filename text, so this file is not directly consumable by `shasum -c` (strip the marker per root, as README.md shows for b3:).
+# Context: the 12 cluster-9664325 (v2) sixregime tarballs are unrecoverable — transfer dirs empty in /home and /staging, remotely and locally (verification report §3.1 item 5).
+# These two are the only sixregime__ tarballs that exist anywhere in the 2026-08-31 rescue fetch: v1-campaign near-relatives SUPERSEDED BY v2, recorded in lieu of the lost set — NOT substitutes for it.
+# Roots are inside the read-only rescue tree ~/chtc_rescue/, not under output/local_runs/.
+#
+# root: ~/chtc_rescue/staging/ra_adapt_costexp_depthfix_sixregime_20260820_v1/transfer/   (43,347,118 B)
+4608f4fde488d48ade3e436c7c13f46e1601a0d7b93fc8149e0fadff5b1e66a9  s6:sixregime__b_depth_append_ra__strong_weak_u8__nph3__9664320__14.tar.gz
+#
+# root: ~/chtc_rescue/staging/ra_adapt_warmstart_sixregime_20260820_v1/transfer/   (245,221,689 B)
+5f81dfb4f45f7e4a6b2a6bba27a2f3549a247d7676e8c8ab0d192b388acb15e9  s6:sixregime__c_ws_depth_append_ra__weak_weak__nph3__9665210__0.tar.gz
