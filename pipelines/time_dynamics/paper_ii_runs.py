@@ -166,12 +166,275 @@ COMPOSED_STATE_PARAMETER_CONTROL = StepControl(
     ),
 )
 
+DELTA_THETA_CONTROL_TIGHT_10X = StepControl(
+    control_id="delta_theta_5e-4_diagnostic",
+    flags=("--avqds-delta-theta-max", "5.0e-4", "--no-solve-repair"),
+    required_integrator="euler",
+    parameter_step_max=5.0e-4,
+    note="Diagnostic tenfold tightening of the parameter-motion controller.",
+)
+
+DELTA_THETA_CONTROL_TIGHT_100X = StepControl(
+    control_id="delta_theta_5e-5_diagnostic",
+    flags=("--avqds-delta-theta-max", "5.0e-5", "--no-solve-repair"),
+    required_integrator="euler",
+    parameter_step_max=5.0e-5,
+    note="Diagnostic hundredfold tightening of the parameter-motion controller.",
+)
+
+STATE_MOTION_CONTROL_TIGHT_10X = StepControl(
+    control_id="state_motion_1e-3_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "10",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    max_local_subdivisions=10,
+    note="Diagnostic tenfold tightening of the state-motion controller.",
+)
+
+STATE_MOTION_CONTROL_TIGHT_100X = StepControl(
+    control_id="state_motion_1e-4_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-4",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "10",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-4,
+    max_local_subdivisions=10,
+    note="Diagnostic hundredfold tightening of the state-motion controller.",
+)
+
+STATE_MOTION_CONTROL_5E5_DIAGNOSTIC = StepControl(
+    control_id="state_motion_5e-5_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "5.0e-5",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "11",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=11,
+    note="Diagnostic state-motion calibration immediately below 1.0e-4.",
+)
+
+COMPOSED_STATE_PARAMETER_CONTROL_TIGHT_10X = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-4_diagnostic",
+    flags=(
+        *STATE_MOTION_CONTROL_TIGHT_10X.flags,
+        "--solve-repair-parameter-step-max", "5.0e-4",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-4,
+    max_local_subdivisions=10,
+    note="Diagnostic tenfold tightening of both controller bounds.",
+)
+
+COMPOSED_CONTROL_PARAMETER_TIGHT_100X = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-5_diagnostic",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "13",
+        "--solve-repair-parameter-step-max", "5.0e-5",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-5,
+    max_local_subdivisions=13,
+    note=(
+        "Diagnostic composition of the tenfold-tighter state-motion bound "
+        "and hundredfold-tighter parameter-motion bound."
+    ),
+)
+
+DELTA_THETA_CONTROL_CALIBRATED = StepControl(
+    control_id="delta_theta_5e-5",
+    flags=(
+        *DELTA_THETA_CONTROL_TIGHT_100X.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    required_integrator="euler",
+    parameter_step_max=5.0e-5,
+    note="Paper-facing parameter-motion controller calibrated at fixed accuracy.",
+)
+
+STATE_MOTION_CONTROL_CALIBRATED = StepControl(
+    control_id="state_motion_5e-5",
+    flags=(
+        *STATE_MOTION_CONTROL_5E5_DIAGNOSTIC.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=11,
+    note="Paper-facing state-motion controller calibrated at fixed accuracy.",
+)
+
+COMPOSED_CONTROL_CALIBRATED = StepControl(
+    control_id="state_motion_1e-3_plus_parameter_5e-5",
+    flags=(
+        *COMPOSED_CONTROL_PARAMETER_TIGHT_100X.flags,
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=1.0e-3,
+    parameter_step_max=5.0e-5,
+    max_local_subdivisions=13,
+    note="Paper-facing composed controller calibrated at fixed accuracy.",
+)
+
 STEP_CONTROLS: Mapping[str, StepControl] = {
     c.control_id: c
     for c in (
         DELTA_THETA_CONTROL,
         STATE_MOTION_CONTROL,
         COMPOSED_STATE_PARAMETER_CONTROL,
+        DELTA_THETA_CONTROL_TIGHT_10X,
+        DELTA_THETA_CONTROL_TIGHT_100X,
+        STATE_MOTION_CONTROL_TIGHT_10X,
+        STATE_MOTION_CONTROL_TIGHT_100X,
+        STATE_MOTION_CONTROL_5E5_DIAGNOSTIC,
+        COMPOSED_STATE_PARAMETER_CONTROL_TIGHT_10X,
+        COMPOSED_CONTROL_PARAMETER_TIGHT_100X,
+        DELTA_THETA_CONTROL_CALIBRATED,
+        STATE_MOTION_CONTROL_CALIBRATED,
+        COMPOSED_CONTROL_CALIBRATED,
+    )
+}
+
+@dataclass(frozen=True)
+class SearchProfile:
+    """One explicit approximation budget for generalized exchange.
+
+    These settings bound computational work; they do not change the score or
+    certification mathematics.  A binding cap can nevertheless change which
+    patch is selected, so the profile id is part of every run id and campaign
+    manifest.  ``paper_facing_allowed`` describes intended use only; it never
+    judges a completed result.
+    """
+
+    profile_id: str
+    pool_size: int
+    joint_patch_evaluations: int
+    certification_attempts_per_level: int
+    certification_attempts_per_deletion_branch: int
+    rounds_per_checkpoint: int
+    insertion_cardinality: int = 1
+    paper_facing_allowed: bool = False
+    note: str = ""
+
+    def __post_init__(self) -> None:
+        for name in (
+            "pool_size",
+            "joint_patch_evaluations",
+            "certification_attempts_per_level",
+            "certification_attempts_per_deletion_branch",
+            "rounds_per_checkpoint",
+            "insertion_cardinality",
+        ):
+            if int(getattr(self, name)) < 1:
+                raise ValueError(f"{name} must be at least 1")
+
+    @property
+    def flags(self) -> tuple[str, ...]:
+        return (
+            "--max-structural-pool-size", str(int(self.pool_size)),
+            "--max-joint-patch-evaluations",
+            str(int(self.joint_patch_evaluations)),
+            "--max-certification-attempts-per-level",
+            str(int(self.certification_attempts_per_level)),
+            "--max-certification-attempts-per-deletion-branch",
+            str(int(self.certification_attempts_per_deletion_branch)),
+            "--max-insertion-rounds-per-checkpoint",
+            str(int(self.rounds_per_checkpoint)),
+            "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
+        )
+
+DIAGNOSTIC_FAST_SEARCH = SearchProfile(
+    profile_id="diagnostic_fast_v1",
+    pool_size=32,
+    joint_patch_evaluations=2_000,
+    certification_attempts_per_level=3,
+    certification_attempts_per_deletion_branch=1,
+    rounds_per_checkpoint=3,
+    note=(
+        "Cheap execution-path diagnostic. Its capped candidate pool and work "
+        "budgets make it unsuitable for Paper-II resource comparisons."
+    ),
+)
+
+PAPER_DECLARED_SEARCH = SearchProfile(
+    profile_id="paper_declared_v1",
+    pool_size=128,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note="Declared Paper-II finite-work search budget.",
+)
+
+SIAM_NB2_PROOF_SEARCH = SearchProfile(
+    profile_id="siam_nb2_proof_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=2 proof budget. The cap is nonbinding for its complete "
+        "14-block candidate pool."
+    ),
+)
+
+SIAM_NB4_PILOT_SEARCH = SearchProfile(
+    profile_id="siam_nb4_pilot_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=4 pilot budget. The cap is nonbinding for its complete "
+        "24-block K/J/Qd/A/X/P logical pool."
+    ),
+)
+
+CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
+    profile_id="cap_sensitivity_2x_v1",
+    pool_size=128,
+    joint_patch_evaluations=100_000,
+    certification_attempts_per_level=24,
+    certification_attempts_per_deletion_branch=4,
+    rounds_per_checkpoint=24,
+    paper_facing_allowed=True,
+    note=(
+        "Selected-cell sensitivity check at twice the declared work limits; "
+        "not an exhaustive combinatorial search."
+    ),
+)
+
+SEARCH_PROFILES: Mapping[str, SearchProfile] = {
+    profile.profile_id: profile
+    for profile in (
+        DIAGNOSTIC_FAST_SEARCH,
+        PAPER_DECLARED_SEARCH,
+        CAP_SENSITIVITY_2X_SEARCH,
     )
 }
 
@@ -389,6 +652,7 @@ class RunCommand:
     regime_id: str = "unregistered"
     numerics: "Numerics" = SHARED_NUMERICS
     step_control: "StepControl" = STATE_MOTION_CONTROL
+    search_profile: "SearchProfile" = PAPER_DECLARED_SEARCH
     activation_cut: float | None = None
 
     def __post_init__(self) -> None:
@@ -425,6 +689,7 @@ class RunCommand:
             f"{self.regime_id}_{self.drive.drive_id}_{self.horizon.horizon_id}"
             f"_{self.arm.arm_id}_{self.gate.gate_id}"
             f"_{self.numerics.numerics_id}_{self.step_control.control_id}"
+            f"_{self.search_profile.profile_id}"
         )
         if self.activation_cut is None:
             return base
@@ -460,7 +725,8 @@ class RunCommand:
             *self.drive.flags,
             *self.numerics.flags,
             *self.step_control.flags,
-            *PRODUCTION_STRUCTURE,
+            *self.search_profile.flags,
+            *LOCKED_STRUCTURAL_POLICY,
             *gate_flags,
             *arm_flags,
             *PROGRESS,
@@ -484,6 +750,7 @@ def build_run(
     gate: str = MCLACHLAN_L2_GATE.gate_id,
     numerics: str | None = None,
     step_control: str | None = None,
+    search_profile: str = PAPER_DECLARED_SEARCH.profile_id,
     extra_flags: Sequence[str] = (),
     activation_cut: float | None = None,
     require_seed: bool = False,
@@ -507,6 +774,11 @@ def build_run(
         raise KeyError(f"unknown drive {drive!r}; known: {sorted(DRIVES)}")
     if horizon not in HORIZONS:
         raise KeyError(f"unknown horizon {horizon!r}; known: {sorted(HORIZONS)}")
+    if search_profile not in SEARCH_PROFILES:
+        raise KeyError(
+            f"unknown search_profile {search_profile!r}; "
+            f"known: {sorted(SEARCH_PROFILES)}"
+        )
     selected_arm = ARMS[arm]
     if selected_arm.required_step_control_id is not None:
         if (
@@ -550,6 +822,7 @@ def build_run(
         horizon=HORIZONS[horizon],
         numerics=NUMERICS[numerics],
         step_control=selected_control,
+        search_profile=SEARCH_PROFILES[search_profile],
         output_json=str(output_json),
         extra_flags=tuple(str(f) for f in extra_flags),
         activation_cut=(
@@ -825,259 +1098,6 @@ __all__ = [
 # nb2/nb4 arm registry and search-profile machinery (additive symbols only;
 # the branch's wider rewrite of this file remains unmerged - RECOVERY-AUDIT.md
 # sec 11). ---
-
-DELTA_THETA_CONTROL_TIGHT_10X = StepControl(
-    control_id="delta_theta_5e-4_diagnostic",
-    flags=("--avqds-delta-theta-max", "5.0e-4", "--no-solve-repair"),
-    required_integrator="euler",
-    parameter_step_max=5.0e-4,
-    note="Diagnostic tenfold tightening of the parameter-motion controller.",
-)
-
-DELTA_THETA_CONTROL_TIGHT_100X = StepControl(
-    control_id="delta_theta_5e-5_diagnostic",
-    flags=("--avqds-delta-theta-max", "5.0e-5", "--no-solve-repair"),
-    required_integrator="euler",
-    parameter_step_max=5.0e-5,
-    note="Diagnostic hundredfold tightening of the parameter-motion controller.",
-)
-
-STATE_MOTION_CONTROL_TIGHT_10X = StepControl(
-    control_id="state_motion_1e-3_diagnostic",
-    flags=(
-        "--solve-repair",
-        "--solve-repair-profile", "minimal",
-        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
-        "--solve-repair-kink-eta-max", "5.0e-3",
-        "--solve-repair-max-local-subdivisions", "10",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=1.0e-3,
-    max_local_subdivisions=10,
-    note="Diagnostic tenfold tightening of the state-motion controller.",
-)
-
-STATE_MOTION_CONTROL_TIGHT_100X = StepControl(
-    control_id="state_motion_1e-4_diagnostic",
-    flags=(
-        "--solve-repair",
-        "--solve-repair-profile", "minimal",
-        "--solve-repair-state-motion-l2-step-max", "1.0e-4",
-        "--solve-repair-kink-eta-max", "5.0e-3",
-        "--solve-repair-max-local-subdivisions", "10",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=1.0e-4,
-    max_local_subdivisions=10,
-    note="Diagnostic hundredfold tightening of the state-motion controller.",
-)
-
-STATE_MOTION_CONTROL_5E5_DIAGNOSTIC = StepControl(
-    control_id="state_motion_5e-5_diagnostic",
-    flags=(
-        "--solve-repair",
-        "--solve-repair-profile", "minimal",
-        "--solve-repair-state-motion-l2-step-max", "5.0e-5",
-        "--solve-repair-kink-eta-max", "5.0e-3",
-        "--solve-repair-max-local-subdivisions", "11",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=5.0e-5,
-    max_local_subdivisions=11,
-    note="Diagnostic state-motion calibration immediately below 1.0e-4.",
-)
-
-COMPOSED_STATE_PARAMETER_CONTROL_TIGHT_10X = StepControl(
-    control_id="state_motion_1e-3_plus_parameter_5e-4_diagnostic",
-    flags=(
-        *STATE_MOTION_CONTROL_TIGHT_10X.flags,
-        "--solve-repair-parameter-step-max", "5.0e-4",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=1.0e-3,
-    parameter_step_max=5.0e-4,
-    max_local_subdivisions=10,
-    note="Diagnostic tenfold tightening of both controller bounds.",
-)
-
-COMPOSED_CONTROL_PARAMETER_TIGHT_100X = StepControl(
-    control_id="state_motion_1e-3_plus_parameter_5e-5_diagnostic",
-    flags=(
-        "--solve-repair",
-        "--solve-repair-profile", "minimal",
-        "--solve-repair-state-motion-l2-step-max", "1.0e-3",
-        "--solve-repair-kink-eta-max", "5.0e-3",
-        "--solve-repair-max-local-subdivisions", "13",
-        "--solve-repair-parameter-step-max", "5.0e-5",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=1.0e-3,
-    parameter_step_max=5.0e-5,
-    max_local_subdivisions=13,
-    note=(
-        "Diagnostic composition of the tenfold-tighter state-motion bound "
-        "and hundredfold-tighter parameter-motion bound."
-    ),
-)
-
-DELTA_THETA_CONTROL_CALIBRATED = StepControl(
-    control_id="delta_theta_5e-5",
-    flags=(
-        *DELTA_THETA_CONTROL_TIGHT_100X.flags,
-        "--fail-on-unsupported-steps",
-    ),
-    required_integrator="euler",
-    parameter_step_max=5.0e-5,
-    note="Paper-facing parameter-motion controller calibrated at fixed accuracy.",
-)
-
-STATE_MOTION_CONTROL_CALIBRATED = StepControl(
-    control_id="state_motion_5e-5",
-    flags=(
-        *STATE_MOTION_CONTROL_5E5_DIAGNOSTIC.flags,
-        "--fail-on-unsupported-steps",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=5.0e-5,
-    max_local_subdivisions=11,
-    note="Paper-facing state-motion controller calibrated at fixed accuracy.",
-)
-
-COMPOSED_CONTROL_CALIBRATED = StepControl(
-    control_id="state_motion_1e-3_plus_parameter_5e-5",
-    flags=(
-        *COMPOSED_CONTROL_PARAMETER_TIGHT_100X.flags,
-        "--fail-on-unsupported-steps",
-    ),
-    solve_repair_enabled=True,
-    state_motion_l2_step_max=1.0e-3,
-    parameter_step_max=5.0e-5,
-    max_local_subdivisions=13,
-    note="Paper-facing composed controller calibrated at fixed accuracy.",
-)
-
-@dataclass(frozen=True)
-class SearchProfile:
-    """One explicit approximation budget for generalized exchange.
-
-    These settings bound computational work; they do not change the score or
-    certification mathematics.  A binding cap can nevertheless change which
-    patch is selected, so the profile id is part of every run id and campaign
-    manifest.  ``paper_facing_allowed`` describes intended use only; it never
-    judges a completed result.
-    """
-
-    profile_id: str
-    pool_size: int
-    joint_patch_evaluations: int
-    certification_attempts_per_level: int
-    certification_attempts_per_deletion_branch: int
-    rounds_per_checkpoint: int
-    insertion_cardinality: int = 1
-    paper_facing_allowed: bool = False
-    note: str = ""
-
-    def __post_init__(self) -> None:
-        for name in (
-            "pool_size",
-            "joint_patch_evaluations",
-            "certification_attempts_per_level",
-            "certification_attempts_per_deletion_branch",
-            "rounds_per_checkpoint",
-            "insertion_cardinality",
-        ):
-            if int(getattr(self, name)) < 1:
-                raise ValueError(f"{name} must be at least 1")
-
-    @property
-    def flags(self) -> tuple[str, ...]:
-        return (
-            "--max-structural-pool-size", str(int(self.pool_size)),
-            "--max-joint-patch-evaluations",
-            str(int(self.joint_patch_evaluations)),
-            "--max-certification-attempts-per-level",
-            str(int(self.certification_attempts_per_level)),
-            "--max-certification-attempts-per-deletion-branch",
-            str(int(self.certification_attempts_per_deletion_branch)),
-            "--max-insertion-rounds-per-checkpoint",
-            str(int(self.rounds_per_checkpoint)),
-            "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
-        )
-
-DIAGNOSTIC_FAST_SEARCH = SearchProfile(
-    profile_id="diagnostic_fast_v1",
-    pool_size=32,
-    joint_patch_evaluations=2_000,
-    certification_attempts_per_level=3,
-    certification_attempts_per_deletion_branch=1,
-    rounds_per_checkpoint=3,
-    note=(
-        "Cheap execution-path diagnostic. Its capped candidate pool and work "
-        "budgets make it unsuitable for Paper-II resource comparisons."
-    ),
-)
-
-PAPER_DECLARED_SEARCH = SearchProfile(
-    profile_id="paper_declared_v1",
-    pool_size=128,
-    joint_patch_evaluations=50_000,
-    certification_attempts_per_level=12,
-    certification_attempts_per_deletion_branch=2,
-    rounds_per_checkpoint=12,
-    paper_facing_allowed=True,
-    note="Declared Paper-II finite-work search budget.",
-)
-
-SIAM_NB2_PROOF_SEARCH = SearchProfile(
-    profile_id="siam_nb2_proof_v1",
-    pool_size=64,
-    joint_patch_evaluations=50_000,
-    certification_attempts_per_level=12,
-    certification_attempts_per_deletion_branch=2,
-    rounds_per_checkpoint=12,
-    paper_facing_allowed=True,
-    note=(
-        "SIAM Nb=2 proof budget. The cap is nonbinding for its complete "
-        "14-block candidate pool."
-    ),
-)
-
-SIAM_NB4_PILOT_SEARCH = SearchProfile(
-    profile_id="siam_nb4_pilot_v1",
-    pool_size=64,
-    joint_patch_evaluations=50_000,
-    certification_attempts_per_level=12,
-    certification_attempts_per_deletion_branch=2,
-    rounds_per_checkpoint=12,
-    paper_facing_allowed=True,
-    note=(
-        "SIAM Nb=4 pilot budget. The cap is nonbinding for its complete "
-        "24-block K/J/Qd/A/X/P logical pool."
-    ),
-)
-
-CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
-    profile_id="cap_sensitivity_2x_v1",
-    pool_size=128,
-    joint_patch_evaluations=100_000,
-    certification_attempts_per_level=24,
-    certification_attempts_per_deletion_branch=4,
-    rounds_per_checkpoint=24,
-    paper_facing_allowed=True,
-    note=(
-        "Selected-cell sensitivity check at twice the declared work limits; "
-        "not an exhaustive combinatorial search."
-    ),
-)
-
-SEARCH_PROFILES: Mapping[str, SearchProfile] = {
-    profile.profile_id: profile
-    for profile in (
-        DIAGNOSTIC_FAST_SEARCH,
-        PAPER_DECLARED_SEARCH,
-        CAP_SENSITIVITY_2X_SEARCH,
-    )
-}
 
 LOCKED_STRUCTURAL_POLICY: tuple[str, ...] = (
     "--no-append-schur-condition-gate",
