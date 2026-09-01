@@ -25,6 +25,10 @@ must move the work, not describe it.
   prior claim, that goes at the top, in one sentence, before anything else.
 - **Cut the preamble.** No "Great question", no restating the request, no
   announcing what is about to be explained.
+- **Messages for other agents are always a paste block (user-directed
+  2026-09-01).** If the agent wants the user to tell another working agent
+  anything, it must provide the exact text in a fenced copy-paste block —
+  never a described or implied instruction the user has to compose.
 
 Length ceiling: default to under ~150 words of prose outside code, tables, and
 file paths. Exceed it only when the user asks for a recap or an audit.
