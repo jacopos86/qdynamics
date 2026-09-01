@@ -22,7 +22,7 @@ a fixed response template unrelated to the user's question.
 - Primary visible table: `tab:dyn_claims`
 - Paper support: `MATH/paper_facing/paper_II_dynamics/`
 - Current class setting lock: `chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json`
-- Calibration skill: `$time-dynamics-benchmark-calibration` when available
+- Calibration skill: `agent_guidance/skills/time-dynamics-benchmark-calibration/SKILL.md`
 
 ## Read order
 
@@ -42,7 +42,7 @@ If a Paper-II run/report discussion turns into manuscript wording, caption/table
 - Primary method first in run reports: checkpoint McLachlan.
 - Use class-level checkpoint-McLachlan settings from the current promoted lock unless the user approves a newer promoted lock.
 - Controller settings are class-level, not per-Hamiltonian tuning for table claims.
-- Before CHTC submission, aggregation, evidence-PDF generation, or table update, run the `$time-dynamics-benchmark-calibration` workflow when available and fail closed on calibration `ERROR`s.
+- Before CHTC submission, aggregation, evidence-PDF generation, or table update, run the `agent_guidance/skills/time-dynamics-benchmark-calibration/SKILL.md` workflow and fail closed on calibration `ERROR`s.
 - For the staged matched-accuracy matrix, use the canonical response-normalized
   policy from `agent_guidance/time-dynamics/paper-ii-comparison-protocol.md`.
   Normalize energy, doublon, and maximum site-occupation errors by the bound RMS

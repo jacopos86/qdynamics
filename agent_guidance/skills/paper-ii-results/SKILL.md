@@ -20,7 +20,7 @@ contain the applicable preservation and table-boundary rules.
 
 1. Root `AGENTS.md` and `MATH/AGENTS.md`.
 2. `agent_guidance/skills/paper-ii-run/SKILL.md` for run/evidence semantics.
-3. `$time-dynamics-benchmark-calibration` output when available.
+3. `agent_guidance/skills/time-dynamics-benchmark-calibration/SKILL.md` output (calibration receipt).
 4. `$journal-math-manuscript-refiner` and `MATH/paper_facing/shared/journal_math_skill_supplement.md` before any manuscript-facing advice, proposed wording, prose/caption/table-language plan, `.tex` edit, or PDF-facing work.
 5. Target table block for `tab:dyn_claims` and nearby provenance comments for source mapping only.
 6. `MATH/paper_facing/paper_II_dynamics/` support docs and source maps named by the handoff.
