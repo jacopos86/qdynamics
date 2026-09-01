@@ -29,8 +29,16 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256,
 )
 
+# 2026-09-01 -- B2 re-pin (classification row 6). Byte-layout drift only; the
+# route contract stopped moving once the one real regression behind this family,
+# the l4 batch-admission phase1_event_start defect, was fixed at 25cb0745.
+#   old 44f9ef70c114e88efd4ff9c3fb1c64abc7d7a25c15a978bbe735243ac1dd27de
+#   new e76c79b26f17f209ee4d2088889cb8314a7f84b13f5aaa67361931d3f8de68a8
+# The new value is what the production helper
+# canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full
+# _geometry_fs_prune_verify_v1_contract_sha256() already returns.
 EXPECTED_ROUTE_DIGEST = (
-    "44f9ef70c114e88efd4ff9c3fb1c64abc7d7a25c15a978bbe735243ac1dd27de"
+    "e76c79b26f17f209ee4d2088889cb8314a7f84b13f5aaa67361931d3f8de68a8"
 )
 EXPECTED_ACTIVE_PRUNE_SETTINGS = {
     "phase1_prune_enabled": True,

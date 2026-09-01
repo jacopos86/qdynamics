@@ -101,7 +101,7 @@ Machine currently has ONLY Apple's Python 3.9.6 — unusable here (numpy 2.3.5 n
 1. Install **Python 3.12** (python.org installer or Homebrew).
 2. `python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && pip install pytest ijson` (pytest and ijson are missing from requirements.txt; `.venv/` is already gitignored).
 3. From the repo root (imports require cwd = root): `python -m pytest test --collect-only -q`, then targeted (`python -m pytest test/test_ap_mclachlan_exchange_selector.py -q`) before the full suite — it contains heavy integration tests; respect the documented 10 GB RAM budget (`pipelines/shell/ram_guard.py`).
-4. Smoke runs: `python pipelines/exact_bench/cross_check_suite.py --problem hh --L 2 --omega0 1.0 --g-ep 0.5 --n-ph-max 1` (no artifacts needed), then `python pipelines/static_adapt/adapt_pipeline.py --L 2 --problem hh … --skip-pdf --output-json artifacts/json/smoke.json`. Paper II dynamics runners need an ADAPT artifact JSON produced first — all pre-existing `artifacts/` were on the lost machine.
+4. Smoke runs: `python pipelines/exact_bench/cross_check_suite.py --problem hh --L 2 --omega0 1.0 --g-ep 0.5 --n-ph-max 1` (no artifacts needed). **The `adapt_pipeline.py` CLI documented here previously is retired** — `f79dd20c` (2026-08-26) deleted `parse_args` and the 318-flag argparse surface, and `main()` is now a `RuntimeError` stub. Materialize and execute a validated `run_ra_adapt` / `run_append_adapt` bundle via `pipelines.static_adapt.ra_adapt.bundles` instead. Paper II dynamics runners need an ADAPT artifact JSON produced first — all pre-existing `artifacts/` were on the lost machine.
 
 ## 8. Repo-local agent tooling status
 

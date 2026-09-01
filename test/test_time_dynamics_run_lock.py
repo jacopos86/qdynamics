@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pipelines.time_dynamics.run_lock import (
-    RUN_LOCK_SCHEMA_V1,
+    RUN_LOCK_SCHEMA_V4,
     IncomparableRunsError,
     assert_comparable,
     build_run_lock,
@@ -29,7 +29,11 @@ def _lock(**overrides):
 
 def test_lock_records_physics_numerics_policy_and_code() -> None:
     lock = _lock()
-    assert lock["schema"] == RUN_LOCK_SCHEMA_V1
+    # 2026-09-01: retargeted v1 -> v4. e0e6d6cd swapped run_lock.py to the
+    # search-profiles version (blob 5bedc936, byte-identical to
+    # origin/codex/paper-ii-search-profiles-20260824) without taking the
+    # matching test; build_run_lock stamps RUN_LOCK_SCHEMA_V4 at run_lock.py:150.
+    assert lock["schema"] == RUN_LOCK_SCHEMA_V4
     assert lock["physics"]["family_key"] == "hh"
     assert lock["physics"]["n_ph_max"] == 1
     assert lock["physics"]["time_grid"]["point_count"] == 3
@@ -60,7 +64,10 @@ def test_physics_differences_block_comparison(difference) -> None:
     base = _lock()
     other = _lock(**difference)
     assert base["physics_fingerprint"] != other["physics_fingerprint"]
-    with pytest.raises(IncomparableRunsError, match="physics fingerprint"):
+    # 2026-09-01: retargeted to the v4 wording. The v4 guard widened the shared
+    # protocol from physics alone to physics/pool/numerics/time-step and reworded
+    # its refusal accordingly (run_lock.py:244).
+    with pytest.raises(IncomparableRunsError, match="physics/pool/numerics"):
         assert_comparable([base, other])
 
 
