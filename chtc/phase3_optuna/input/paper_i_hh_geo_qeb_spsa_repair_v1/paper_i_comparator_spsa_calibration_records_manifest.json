@@ -1,0 +1,154 @@
+{
+  "allowed_schedule_fields_by_method": {
+    "static_family_informed_vqe": [
+      "family_informed_spsa_a",
+      "family_informed_spsa_c",
+      "family_informed_spsa_alpha",
+      "family_informed_spsa_gamma",
+      "family_informed_spsa_big_a",
+      "family_informed_spsa_eval_repeats",
+      "family_informed_spsa_avg_last"
+    ],
+    "static_full_meta_append_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_geo_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_hea_qiskit_vqe": [
+      "hea_spsa_learning_rate",
+      "hea_spsa_perturbation"
+    ],
+    "static_qubit_qeb_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ],
+    "static_tetris_qubit_adapt_vqe": [
+      "adapt_spsa_a",
+      "adapt_spsa_c",
+      "adapt_spsa_alpha",
+      "adapt_spsa_gamma",
+      "adapt_spsa_big_a"
+    ]
+  },
+  "approved_at": "2026-06-03T00:00:00Z",
+  "approved_by": "user_chat_2026-06-03",
+  "approved_for_full_generation": true,
+  "clipping_log10_error_ratio": [
+    -3.0,
+    3.0
+  ],
+  "config_mode": "full",
+  "config_path": "chtc/phase3_optuna/config/paper_i_hh_geo_qeb_spsa_repair_v1_full_approved.json",
+  "config_sha256": "554dc74cf3a363d08e86ea464a3e17ac28276b9d6e6ac014b3bae7b0eb67ea80",
+  "evidence_role": "calibration_only_not_manuscript_table_evidence",
+  "expected_full_record_count": 8,
+  "failure_penalty": 10.0,
+  "generation_mode": "full",
+  "method_ids": [
+    "static_geo_adapt_vqe",
+    "static_qubit_qeb_adapt_vqe"
+  ],
+  "method_maxiter_budgets": {
+    "static_family_informed_vqe": 8000,
+    "static_full_meta_append_adapt_vqe": 8000,
+    "static_geo_adapt_vqe": 8000,
+    "static_hea_qiskit_vqe": 8000,
+    "static_qubit_qeb_adapt_vqe": 8000,
+    "static_tetris_qubit_adapt_vqe": 8000
+  },
+  "method_target_pairs": [
+    [
+      "static_geo_adapt_vqe",
+      "hh_sym_strong_strong"
+    ],
+    [
+      "static_geo_adapt_vqe",
+      "hh_sym_strong_weak"
+    ],
+    [
+      "static_geo_adapt_vqe",
+      "hh_sym_weak_strong"
+    ],
+    [
+      "static_geo_adapt_vqe",
+      "hh_sym_weak_weak"
+    ],
+    [
+      "static_qubit_qeb_adapt_vqe",
+      "hh_sym_strong_strong"
+    ],
+    [
+      "static_qubit_qeb_adapt_vqe",
+      "hh_sym_strong_weak"
+    ],
+    [
+      "static_qubit_qeb_adapt_vqe",
+      "hh_sym_weak_strong"
+    ],
+    [
+      "static_qubit_qeb_adapt_vqe",
+      "hh_sym_weak_weak"
+    ]
+  ],
+  "n_jobs": 1,
+  "n_trials": 36,
+  "optimizer_profile": "paper_i_main_tables_spsa_v1",
+  "paths": {
+    "manifest_json": "chtc/phase3_optuna/input/paper_i_hh_geo_qeb_spsa_repair_v1/paper_i_comparator_spsa_calibration_records_manifest.json",
+    "record_ids_txt": "chtc/phase3_optuna/input/paper_i_hh_geo_qeb_spsa_repair_v1/paper_i_comparator_spsa_calibration_record_ids.txt",
+    "records_tsv": "chtc/phase3_optuna/input/paper_i_hh_geo_qeb_spsa_repair_v1/paper_i_comparator_spsa_calibration_records.tsv",
+    "smoke_record_ids_txt": "chtc/phase3_optuna/input/paper_i_hh_geo_qeb_spsa_repair_v1/paper_i_comparator_spsa_calibration_smoke_record_ids.txt",
+    "smoke_records_tsv": "chtc/phase3_optuna/input/paper_i_hh_geo_qeb_spsa_repair_v1/paper_i_comparator_spsa_calibration_smoke_records.tsv"
+  },
+  "plan_path": "docs/plans/paper-i-comparator-spsa-optuna-calibration-2026-05-31.md",
+  "profile_id": "paper_i_comparator_spsa_optuna_calibration_v1",
+  "queue_output_root": "raw_outputs/paper_i_hh_geo_qeb_spsa_repair_v1",
+  "record_count": 8,
+  "repair_scope": "hh_geo_qeb_tableiii_v1",
+  "resource_metric_precedence": [
+    "compiled_count_2q_total",
+    "compiled_depth_2q_total",
+    "compiled_depth_total",
+    "first_hit_compiled_count_2q_total",
+    "first_hit_compiled_depth_2q_total",
+    "qiskit_compiled_count_2q_total",
+    "qiskit_compiled_depth_2q_total",
+    "two_qubit_count",
+    "depth_2q",
+    "circuit_depth",
+    "num_parameters",
+    "selected_operator_count"
+  ],
+  "resource_tiebreak_weight": 0.001,
+  "run_class": "calibration_candidate_not_table_evidence",
+  "sampler_seed": 20260603,
+  "schema": "paper_i_comparator_spsa_calibration_records_manifest_v1",
+  "smoke_config_path": "chtc/phase3_optuna/config/paper_i_hh_geo_qeb_spsa_repair_v1_smoke.json",
+  "smoke_config_sha256": "0787e83f128c91b3d3a1412f03b4d154b02da8921f62553e257e80d12386e17b",
+  "smoke_record_count": 8,
+  "smoke_target_ids": [
+    "hh_sym_weak_weak",
+    "hh_sym_strong_weak",
+    "hh_sym_weak_strong",
+    "hh_sym_strong_strong"
+  ],
+  "suite_profile": "paper_i_main_tables_spsa_v1",
+  "target_ids": [
+    "hh_sym_weak_weak",
+    "hh_sym_strong_weak",
+    "hh_sym_weak_strong",
+    "hh_sym_strong_strong"
+  ]
+}
