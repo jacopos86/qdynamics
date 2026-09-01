@@ -9,7 +9,7 @@ handoffs follow `AGENTS.md`, the nearest subtree contract, code, and tests.
 
 | Skill | Surface | Trigger |
 |---|---|---|
-| CHTC operations | Global `$chtc-direct` | Direct login, submit, status, fetch, cleanup, or storage work. |
+| CHTC operations | `agent_guidance/skills/chtc-direct/SKILL.md` (recreated repo-local 2026-08-31; the lost Global `$chtc-direct` is superseded) | Direct login, submit, status, fetch, cleanup, or storage work. |
 | Paper-I runs | `agent_guidance/skills/paper-i-run/SKILL.md` | Actual Paper-I run planning, execution, monitoring, repair, aggregation, or run-evidence reporting. |
 | Paper-I noise model | `agent_guidance/skills/paper-i-noise-model-primer/SKILL.md` | Explicit Paper-I noise equations, appendix support, noise plots, or noise-model handoffs. |
 | Paper-II runs | `agent_guidance/skills/paper-ii-run/SKILL.md` | Actual checkpoint-McLachlan run or evidence-production work. |
