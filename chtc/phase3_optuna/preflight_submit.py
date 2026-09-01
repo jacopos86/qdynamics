@@ -314,6 +314,16 @@ def _calibration_repair_scope_checks(row: Mapping[str, str], blockers: list[str]
     scope = str(row.get("repair_scope") or "").strip()
     if not scope:
         return {"repair_scope": None}
+    from pipelines.exact_bench.paper_i_comparator_spsa_calibration import (  # noqa: WPS433
+        HH_TABLEIII_REPAIR_METHOD_IDS,
+        HH_TABLEIII_REPAIR_PRIMARY_ENERGY_METRIC,
+        HH_TABLEIII_REPAIR_QUALITY_NONPASSING_PENALTY,
+        HH_TABLEIII_REPAIR_SAME_CUTOFF_ERROR_ROLE,
+        HH_TABLEIII_REPAIR_TABLE_LABEL,
+        HH_TABLEIII_REPAIR_TARGET_IDS,
+        HH_TABLEIII_REPAIR_USABLE_STATUS_POLICY,
+        hh_tableiii_repair_target_by_id,
+    )
     detail: dict[str, Any] = {
         "repair_scope": scope,
         "table_label": row.get("table_label"),
