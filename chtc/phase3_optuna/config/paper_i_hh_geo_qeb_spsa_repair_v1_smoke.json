@@ -13,8 +13,7 @@
     "static_full_meta_append_adapt_vqe": 1,
     "static_geo_adapt_vqe": 1,
     "static_hea_qiskit_vqe": 1,
-    "static_qubit_qeb_adapt_vqe": 1,
-    "static_tetris_qubit_adapt_vqe": 1
+    "static_qubit_qeb_adapt_vqe": 1
   },
   "mode": "smoke",
   "n_trials": 1,
@@ -68,18 +67,6 @@
       }
     },
     "static_qubit_qeb_adapt_vqe": {
-      "adapt_spsa_a": {
-        "high": 0.1,
-        "low": 0.01,
-        "type": "log_uniform"
-      },
-      "adapt_spsa_c": {
-        "high": 0.05,
-        "low": 0.005,
-        "type": "log_uniform"
-      }
-    },
-    "static_tetris_qubit_adapt_vqe": {
       "adapt_spsa_a": {
         "high": 0.1,
         "low": 0.01,
