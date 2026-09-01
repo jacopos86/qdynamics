@@ -80,10 +80,17 @@ EXACT_RESPONSE_SCALES = Path(__file__).with_name(
 )
 # Rebaselined 2026-09-01 onto the regenerated exact-reference store; the
 # sidecar's own "rebaseline" block carries the old/new manifest digests, the
-# reason, and the physics-agreement evidence.  Previous pin (against the lost
-# cluster-built store): ee9d1a3d94ae3b267e3a898c90aeab9f6adcf59b5d17aff70900e7ba8c6c5f77
+# reason, and the physics-agreement evidence.  The six exact-reference manifest
+# digests are UNCHANGED by the same-day correction below -- two independent
+# pinned-env regenerations reproduce them byte for byte; only the block's
+# recorded causal account was wrong.  Read "reproduction_requirements" before
+# regenerating the store: the manifest digest is sensitive to the drive_profile
+# key order supplied by the regenerating driver, and the store is gitignored, so
+# it does not survive the removal of the worktree that built it.
+# Pin history: ee9d1a3d... (lost cluster-built store)
+#           -> f7bb1dfd... (2026-09-01 rebaseline)
 EXACT_RESPONSE_SCALES_SHA256 = (
-    "f7bb1dfda63a1b2f91244545beb3020b2f2d1a4db6fbbc1a386741d782581475"
+    "4fc1b7328e096c8036d143383ae420d044f1614d9013c9442fa324dc32c00b6f"
 )
 
 
