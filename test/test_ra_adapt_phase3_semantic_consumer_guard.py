@@ -44,6 +44,11 @@ def _score_config_from_route(route_contract: dict[str, object]):
         runtime,
         phase2_shortlist_size=24,
         phase2_shortlist_fraction=0.2,
+        # 2026-09-01: bb4541f6's batch-isolation work made `batch` a required
+        # keyword-only argument (adapt_pipeline.py:28082). These two cases assert
+        # the Phase-III semantic-version guard, not batching, so they pass the
+        # singleton value None -- which is what batch_cap = 1 means at :28096.
+        batch=None,
     )
 
 
