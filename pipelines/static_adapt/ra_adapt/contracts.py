@@ -28,6 +28,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
     ExactEDSourceReceipt,
     ExplicitDepthQiskitCompileCost,
     ExactEDStop,
+    MarrakeshGraphSpanCompileCost,
     ForkLocalBeam,
     FreshStart,
     FullCombinatorialSearchWindow,
@@ -1566,6 +1567,9 @@ def _method_from_mapping(value: Any) -> SRMethodPolicy:
                 constructors={
                     ExplicitDepthQiskitCompileCost.kind: (
                         ExplicitDepthQiskitCompileCost
+                    ),
+                    MarrakeshGraphSpanCompileCost.kind: (
+                        MarrakeshGraphSpanCompileCost
                     ),
                 },
             )

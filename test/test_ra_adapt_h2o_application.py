@@ -629,3 +629,347 @@ def test_h2o_cli_wall_budget_leaves_the_protocol_digest_unchanged(
     assert result["protocol"]["sha256"] == reference.sha256
     assert "maximum_wall_seconds" not in json.dumps(with_budget)
 
+# --- Opt-in Marrakesh graph-span selector cost (Paper IV, 2026-09-03) -------
+#
+# The H2O route contract resolves phase3_backend_cost_mode="proxy" because the
+# Paper-I FakeMarrakesh embedding table stopped at 12 qubits.  The table now
+# carries the 19-qubit continuation of the same rule, and --cost-mode
+# marrakesh_graph_span_v1 opts the H2O application into it.  These tests pin
+# the default identity byte-for-byte and the variant as a distinct, stable
+# identity that passes every graph-span guard and constructs the 19q oracle.
+
+# Pinned on the 20260724 fixture addressed by its repo-relative path string
+# (the problem_request_sha256 hashes the fixture path as given, so the
+# protocol digest is only portable for a fixed path string) with
+# output_dir=/paper_iv/h2o_ra (the digest also covers the checkpoint path
+# through the request).  The route-contract digests are path-independent.
+_PINNED_FIXTURE_RELATIVE = Path(
+    "chtc/paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_d50_"
+    "20260724/input/h2o_fixture.json"
+)
+_PINNED_OUTPUT_DIR = Path("/paper_iv/h2o_ra")
+_PINNED_DEFAULT_PROTOCOL_SHA256 = (
+    "34683ac8b80100b2227f3280d3d2ed3ef1dd54d0eb18bf9789db0faa2765f4cc"
+)
+_PINNED_DEFAULT_ROUTE_CONTRACT_SHA256 = (
+    "6ed3f6a4f69106d09e735415d0c504d81213869df15ea8e1e0991aa320019c55"
+)
+_PINNED_GRAPH_SPAN_PROTOCOL_SHA256 = (
+    "daa5b457cbd866bf049a4fec19b9d75bb70224c668a5b9d63945627a8046dd2e"
+)
+_PINNED_GRAPH_SPAN_ROUTE_CONTRACT_SHA256 = (
+    "e91724f5bb8ffe51ea6d0f71fdb8ba6c075789345b90d8aa86d338ea0c92b1f1"
+)
+_PINNED_DEFAULT_ROUTE_PROFILE = (
+    "paper_iv_h2o_ra_adapt__macro_generator_v1"
+    "__sector_complete_pauli_block_exposure_v1"
+    "__insertion_commutation_plateau_v1__measured_residual_response_v1"
+    "__all_phase_resource_weighting_v1"
+    "__incremental_active_baseline__exact_guarded_full_response"
+)
+_PINNED_GRAPH_SPAN_ROUTE_PROFILE = (
+    "paper_iv_h2o_ra_adapt__macro_generator_v1"
+    "__sector_complete_pauli_block_exposure_v1"
+    "__cost-marrakesh_graph_span_v1"
+    "__insertion_commutation_plateau_v1__measured_residual_response_v1"
+    "__all_phase_resource_weighting_v1"
+    "__incremental_active_baseline__exact_guarded_full_response"
+)
+
+
+def _pinned_request_kwargs(problem):
+    return dict(
+        problem=problem,
+        output_dir=_PINNED_OUTPUT_DIR,
+        maximum_controller_rounds=50,
+        gradient_tolerance=5.0e-7,
+        exact_absolute_tolerance=1.6e-3,
+        exact_confirmation_controller_rounds=2,
+    )
+
+
+@pytest.fixture(scope="module")
+def h2o_pinned_protocols():
+    """Default and graph-span protocols on the pinned fixture path string."""
+    import os
+
+    previous = os.getcwd()
+    os.chdir(_ROOT)
+    try:
+        assert _PINNED_FIXTURE_RELATIVE.is_file()
+        problem = _problem(_PINNED_FIXTURE_RELATIVE)
+    finally:
+        os.chdir(previous)
+    default_request = build_h2o_ra_request(**_pinned_request_kwargs(problem))
+    graph_span_request = build_h2o_ra_request(
+        **_pinned_request_kwargs(problem),
+        cost_mode="marrakesh_graph_span_v1",
+    )
+    return (
+        problem,
+        default_request,
+        build_resolved_ra_protocol(problem, default_request),
+        graph_span_request,
+        build_resolved_ra_protocol(problem, graph_span_request),
+    )
+
+
+@pytest.fixture(scope="module")
+def h2o_graph_span_protocol(h2o_pinned_protocols):
+    problem, _, _, request, protocol = h2o_pinned_protocols
+    return problem, request, protocol
+
+
+def test_h2o_default_protocol_identity_is_byte_identical(
+    h2o_pinned_protocols,
+) -> None:
+    problem, request, protocol, _, _ = h2o_pinned_protocols
+
+    assert request.method.compile_cost is None
+    assert "compile_cost" not in request.to_dict()["method"]
+    assert protocol.sha256 == _PINNED_DEFAULT_PROTOCOL_SHA256
+    assert protocol.route_contract["sha256"] == (
+        _PINNED_DEFAULT_ROUTE_CONTRACT_SHA256
+    )
+    assert protocol.route_contract["route_profile"] == (
+        _PINNED_DEFAULT_ROUTE_PROFILE
+    )
+    execution = protocol.route_contract["execution_settings"]
+    assert execution["phase3_backend_cost_mode"] == "proxy"
+    # An explicit cost_mode="proxy" is the same request, not a new identity.
+    explicit = build_h2o_ra_request(
+        **_pinned_request_kwargs(problem), cost_mode="proxy"
+    )
+    assert explicit == request
+
+
+def test_h2o_graph_span_variant_is_a_distinct_stable_identity(
+    h2o_pinned_protocols,
+) -> None:
+    from pipelines.static_adapt.hh_backend_compile_oracle import (
+        MARRAKESH_GRAPH_SPAN_MODE,
+    )
+    from pipelines.static_adapt.sr_snake.contracts import (
+        MarrakeshGraphSpanCompileCost,
+    )
+
+    _, _, default_protocol, request, protocol = h2o_pinned_protocols
+    contract = protocol.route_contract
+    execution = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+
+    assert isinstance(request.method.compile_cost, MarrakeshGraphSpanCompileCost)
+    assert protocol.sha256 == _PINNED_GRAPH_SPAN_PROTOCOL_SHA256
+    assert protocol.sha256 != _PINNED_DEFAULT_PROTOCOL_SHA256
+    assert contract["sha256"] == _PINNED_GRAPH_SPAN_ROUTE_CONTRACT_SHA256
+    assert contract["sha256"] != _PINNED_DEFAULT_ROUTE_CONTRACT_SHA256
+    assert contract["route_profile"] == _PINNED_GRAPH_SPAN_ROUTE_PROFILE
+    # The engine.py / adapt_pipeline.py graph-span guards: FakeMarrakesh,
+    # optimization level 1, transpile seed 7, no backend shortlist scope.
+    assert execution["phase3_backend_cost_mode"] == MARRAKESH_GRAPH_SPAN_MODE
+    assert execution["phase3_backend_name"] == "FakeMarrakesh"
+    assert execution["phase3_backend_optimization_level"] == 1
+    assert execution["phase3_backend_transpile_seed"] == 7
+    assert "phase3_backend_cost_scope" not in execution
+    assert invariants["phase3_backend_cost_mode"] == MARRAKESH_GRAPH_SPAN_MODE
+    assert invariants["compile_cost_policy"] == "marrakesh_graph_span_v1"
+    assert invariants["selector_qiskit_compile_cost_active"] is False
+    assert invariants["application_lane"] == (
+        "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_v1"
+    )
+    assert (
+        "selector_cost_structural_proxy_to_marrakesh_graph_span_"
+        "fixed_embedding_no_transpile"
+        in contract["lineage_authority"]["only_intended_scientific_changes"]
+    )
+    # The lineage parent stays the proxy H2O route contract.
+    assert contract["lineage_authority"]["parent_route_profile"] == (
+        default_protocol.route_contract["lineage_authority"][
+            "parent_route_profile"
+        ]
+    )
+    assert contract["lineage_authority"]["parent_contract_sha256"] == (
+        default_protocol.route_contract["lineage_authority"][
+            "parent_contract_sha256"
+        ]
+    )
+    # Every other execution setting is untouched relative to the default.
+    default_execution = default_protocol.route_contract["execution_settings"]
+    differences = {
+        key
+        for key in set(execution) | set(default_execution)
+        if execution.get(key) != default_execution.get(key)
+    }
+    assert differences == {"phase3_backend_cost_mode"}
+
+
+def test_h2o_graph_span_request_round_trips(h2o_graph_span_protocol) -> None:
+    _, request, _ = h2o_graph_span_protocol
+    restored = ra_adapt_request_from_mapping(request.to_dict())
+
+    assert restored == request
+    assert request.to_dict()["method"]["compile_cost"] == {
+        "kind": "marrakesh_graph_span_v1"
+    }
+
+
+def test_h2o_graph_span_variant_passes_runtime_guards_and_builds_19q_oracle(
+    h2o_graph_span_protocol,
+) -> None:
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    from pipelines.static_adapt.hh_backend_compile_oracle import (
+        BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1,
+        MARRAKESH_GRAPH_SPAN_MODE,
+        MarrakeshGraphSpanCostOracle,
+        marrakesh_logical_embedding_v1,
+    )
+
+    problem, request, protocol = h2o_graph_span_protocol
+    route_contract = dict(protocol.route_contract)
+    route_sha256 = route_contract.pop("sha256")
+    route_profile = route_contract["route_profile"]
+    context = _resolve_execution_context(
+        problem,
+        _sr_request(request),
+        route_override=(
+            route_profile,
+            route_profile,
+            route_contract,
+            route_sha256,
+        ),
+        candidate_adapter=request.adapter,
+    )
+    runtime_kwargs = context.canonical_runtime_kwargs()
+
+    validated = adapt_pipeline._validated_ra_adapt_route_contract(
+        runtime_kwargs
+    )
+    assert validated is not None
+    assert validated["semantic_invariants"]["application_lane"] == (
+        "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_v1"
+    )
+    assert adapt_pipeline._default_no_prune_active_phase_flags(
+        runtime_kwargs
+    ) == (True, True, True)
+    assert runtime_kwargs["phase3_backend_cost_mode"] == (
+        MARRAKESH_GRAPH_SPAN_MODE
+    )
+    assert runtime_kwargs["phase3_backend_name"] == "FakeMarrakesh"
+    assert runtime_kwargs["phase3_backend_optimization_level"] == 1
+    assert runtime_kwargs["backend_transpile_seed"] == 7
+    assert runtime_kwargs["phase3_backend_cost_scope"] == (
+        BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
+    )
+
+    # The production construction path, on a 19-qubit reference register
+    # (the (3,7,3) H2O model: 12 fermion + 7 boson qubits).
+    core = SimpleNamespace(reference_state=np.zeros(2**19, dtype=complex))
+    oracle = adapt_pipeline._default_no_prune_backend_compile_oracle(
+        core=core, kwargs=runtime_kwargs
+    )
+    assert isinstance(oracle, MarrakeshGraphSpanCostOracle)
+    assert oracle.num_qubits == 19
+    assert oracle.embedding == marrakesh_logical_embedding_v1(19)
+    assert oracle.targets[0].resolved_name == "FakeMarrakesh"
+    assert (
+        adapt_pipeline._default_no_prune_phase3_backend_compile_oracle(
+            core=core, kwargs=runtime_kwargs
+        )
+        is None
+    )
+
+
+def test_h2o_default_runtime_keeps_no_backend_oracle(h2o_protocol) -> None:
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    problem, request, protocol = h2o_protocol
+    route_contract = dict(protocol.route_contract)
+    route_sha256 = route_contract.pop("sha256")
+    route_profile = route_contract["route_profile"]
+    runtime_kwargs = _resolve_execution_context(
+        problem,
+        _sr_request(request),
+        route_override=(
+            route_profile,
+            route_profile,
+            route_contract,
+            route_sha256,
+        ),
+        candidate_adapter=request.adapter,
+    ).canonical_runtime_kwargs()
+
+    assert runtime_kwargs["phase3_backend_cost_mode"] == "proxy"
+    assert (
+        adapt_pipeline._default_no_prune_backend_compile_oracle(
+            core=SimpleNamespace(
+                reference_state=np.zeros(2**19, dtype=complex)
+            ),
+            kwargs=runtime_kwargs,
+        )
+        is None
+    )
+
+
+def test_graph_span_compile_cost_is_rejected_off_the_h2o_application() -> None:
+    from pipelines.static_adapt.ra_adapt.adapters import (
+        MacroCandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.contracts import (
+        ACTIVE_GRADIENT_MEASURED,
+        RESOURCE_WEIGHTING_ALL_PHASE,
+        RAAdaptRequest,
+    )
+    from pipelines.static_adapt.ra_adapt.engine import (
+        RA_ADAPT_ALGORITHM_ID,
+        _repaired_route_contract,
+    )
+    from pipelines.static_adapt.sr_snake.contracts import (
+        MarrakeshGraphSpanCompileCost,
+        SRMethodPolicy,
+    )
+
+    request = RAAdaptRequest(
+        adapter=MacroCandidateAdapter(),
+        method=SRMethodPolicy(
+            compile_cost=MarrakeshGraphSpanCompileCost(),
+        ),
+    )
+    with pytest.raises(ValueError, match="admissible only"):
+        _repaired_route_contract(
+            request,
+            active_gradient_policy=ACTIVE_GRADIENT_MEASURED,
+            resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+            algorithm_id=RA_ADAPT_ALGORITHM_ID,
+        )
+
+
+def test_h2o_rejects_unknown_cost_mode(h2o_protocol) -> None:
+    problem, _, _ = h2o_protocol
+    with pytest.raises(ValueError, match="Unknown H2O cost mode"):
+        build_h2o_ra_request(
+            **_pinned_request_kwargs(problem), cost_mode="transpile_single_v1"
+        )
+
+
+def test_h2o_cli_exposes_cost_mode_flag() -> None:
+    import subprocess
+    import sys
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--help",
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "--cost-mode {proxy,marrakesh_graph_span_v1}" in completed.stdout

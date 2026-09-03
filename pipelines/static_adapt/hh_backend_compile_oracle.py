@@ -125,6 +125,25 @@ class BackendCompileBaseSnapshot:
 
 
 MARRAKESH_GRAPH_SPAN_MODE = "marrakesh_graph_span_v1"
+# Logical-to-physical embedding into FakeMarrakesh (156-qubit heavy-hex).
+# Generating rule (verified against the coupling map; every entry is a prefix
+# of the next, and every induced subgraph is a tree):
+#   * logical 0..3 -> physical 0..3, the first data row of the lattice;
+#   * two arms then grow from the anchor qubit 3 and are interleaved so that
+#     even logical indices >= 4 take the next qubit of the top arm and odd
+#     logical indices take the next qubit of the bottom arm;
+#   * top arm: continue the first data row rightward, 4, 5, 6, 7, 8, 9, ...;
+#   * bottom arm: the column-3 connector 16, the second data row qubit 23
+#     beneath it, then the second row walked leftward, 22, 21, 20; 20 is a
+#     dead end (its only neighbour is 21), so the walk resumes rightward from
+#     23 along the second row, 24, 25, 26, ...
+# Sizes 4..12 are the historical Paper-I Hubbard--Holstein L=2 entries and
+# must never change.  Size 19 (Paper-IV H2O, 12 fermion + 7 boson qubits)
+# is the same rule continued; at logical index 15 the bottom arm has to turn
+# because 20 is a dead end.  Alternatives rejected there: descending through
+# the row-1/row-2 connector 36 under qubit 21 (leaves the two-row band the
+# historical entries occupy) and dropping the alternation to fill from the
+# first row only (breaks the interleaving rule).  Both would also be trees.
 _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     4: (0, 1, 2, 3),
     6: (0, 1, 2, 3, 4, 16),
@@ -132,6 +151,10 @@ _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     9: (0, 1, 2, 3, 4, 16, 5, 23, 6),
     10: (0, 1, 2, 3, 4, 16, 5, 23, 6, 22),
     12: (0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21),
+    19: (
+        0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21,
+        8, 20, 9, 24, 10, 25, 11,
+    ),
 }
 _PAULI_CHARS = {"e", "x", "y", "z"}
 

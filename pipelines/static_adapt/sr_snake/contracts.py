@@ -306,6 +306,26 @@ class ExplicitDepthQiskitCompileCost(SerializableContract):
                 )
 
 
+MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1 = "marrakesh_graph_span_v1"
+
+
+@dataclass(frozen=True)
+class MarrakeshGraphSpanCompileCost(SerializableContract):
+    """Paper-I analytic FakeMarrakesh graph-span selector cost, no transpile.
+
+    Opt-in for the Paper-IV H2O application only.  Selecting it binds the
+    resolved route to ``phase3_backend_cost_mode=marrakesh_graph_span_v1`` on
+    ``FakeMarrakesh`` at optimization level 1, transpile seed 7, with no
+    backend shortlist, exactly as the Paper-I graph-span routes are locked.
+    The policy carries no weights: the sealed proxy weights of the parent
+    route stay in force.  Absent (``None``) the H2O route keeps its
+    structural ``proxy`` cost, so every pre-existing protocol digest is
+    unchanged.
+    """
+
+    kind: ClassVar[str] = MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1
+
+
 @dataclass(frozen=True)
 class PruningOff(SerializableContract):
     kind: ClassVar[str] = "off"
@@ -432,7 +452,9 @@ class SRMethodPolicy(SerializableContract):
     pruning: PruningPolicy = field(default_factory=PruningOff)
     beam: BeamPolicy = field(default_factory=BeamOff)
     trust_update: EndpointOverlapDisplacementTrust | None = None
-    compile_cost: ExplicitDepthQiskitCompileCost | None = None
+    compile_cost: (
+        ExplicitDepthQiskitCompileCost | MarrakeshGraphSpanCompileCost | None
+    ) = None
 
     def __post_init__(self) -> None:
         if not isinstance(
@@ -485,10 +507,11 @@ class SRMethodPolicy(SerializableContract):
             )
         if self.compile_cost is not None and not isinstance(
             self.compile_cost,
-            ExplicitDepthQiskitCompileCost,
+            (ExplicitDepthQiskitCompileCost, MarrakeshGraphSpanCompileCost),
         ):
             raise TypeError(
-                "compile_cost must be ExplicitDepthQiskitCompileCost or None."
+                "compile_cost must be ExplicitDepthQiskitCompileCost, "
+                "MarrakeshGraphSpanCompileCost, or None."
             )
 
 

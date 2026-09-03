@@ -203,6 +203,8 @@ from pipelines.static_adapt.sr_snake.contracts import (
     BeamOff,
     EndpointOverlapDisplacementTrust,
     FreshStart,
+    MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1,
+    MarrakeshGraphSpanCompileCost,
     PlateauCommutationInsertion,
     PruningOff,
     ResolvedProblemReceipt,
@@ -1454,6 +1456,15 @@ def _repaired_route_contract(
         )
     sr_request = _sr_request(request)
     h2o_application = _h2o_application_active(problem, request)
+    h2o_graph_span_cost_active = bool(
+        isinstance(request.method.compile_cost, MarrakeshGraphSpanCompileCost)
+    )
+    if h2o_graph_span_cost_active and not h2o_application:
+        raise ValueError(
+            "The Marrakesh graph-span compile-cost policy is admissible only "
+            "on the Paper-IV H2O application; Paper-I routes select their "
+            "selector cost through their algorithm identity."
+        )
     if h2o_application:
         parent_contract = (
             canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
@@ -1535,6 +1546,11 @@ def _repaired_route_contract(
         if h2o_application
         else ""
     )
+    h2o_compile_cost_route_suffix = (
+        "__cost-" + MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1
+        if h2o_graph_span_cost_active
+        else ""
+    )
     candidate_route_suffix = (
         "__" + GLOBAL_SINGLETON_ROUTE_SUFFIX
         if global_singleton_supply is not None
@@ -1568,6 +1584,7 @@ def _repaired_route_contract(
         )
         + representation
         + h2o_candidate_route_suffix
+        + h2o_compile_cost_route_suffix
         + "__"
         + insertion_mode
         + candidate_route_suffix
@@ -1687,6 +1704,21 @@ def _repaired_route_contract(
                 "phase3_backend_cost_mode": "proxy",
             }
         )
+        if h2o_graph_span_cost_active:
+            # Explicit opt-in: the Paper-I analytic graph-span proxy on the
+            # fixed FakeMarrakesh embedding (19 qubits for H2O), bound to
+            # the same backend identity the Paper-I graph-span routes lock
+            # (FakeMarrakesh, optimization level 1, transpile seed 7, no
+            # backend shortlist, shared all-phase scope).
+            execution.update(
+                {
+                    "phase3_backend_cost_mode": MARRAKESH_GRAPH_SPAN_MODE,
+                    "phase3_backend_name": "FakeMarrakesh",
+                    "phase3_backend_optimization_level": 1,
+                    "phase3_backend_transpile_seed": 7,
+                }
+            )
+            execution.pop("phase3_backend_cost_scope", None)
     if phase23_qiskit_cost_active:
         execution.update(
             {
@@ -1997,6 +2029,25 @@ def _repaired_route_contract(
                 "normal_mode_count": 3,
             }
         )
+        if h2o_graph_span_cost_active:
+            invariants.update(
+                {
+                    "phase3_backend_cost_mode": MARRAKESH_GRAPH_SPAN_MODE,
+                    "phase3_backend_cost_reason": (
+                        "explicit_marrakesh_graph_span_opt_in_v1"
+                    ),
+                    "compile_cost_policy": (
+                        MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1
+                    ),
+                    "selector_qiskit_compile_cost_active": False,
+                    "selector_compile_cost_source": MARRAKESH_GRAPH_SPAN_MODE,
+                    "selector_compile_cost_embedding": (
+                        "marrakesh_logical_embedding_v1"
+                    ),
+                    "selector_compile_cost_backend": "FakeMarrakesh",
+                    "selector_compile_cost_no_transpile": True,
+                }
+            )
     if global_singleton_supply is not None:
         invariants.update(global_singleton_supply)
     if pure_hubbard_noise_application:
@@ -2291,6 +2342,11 @@ def _repaired_route_contract(
                 ),
             ]
         )
+        if h2o_graph_span_cost_active:
+            only_intended_scientific_changes.append(
+                "selector_cost_structural_proxy_to_marrakesh_graph_span_"
+                "fixed_embedding_no_transpile"
+            )
     if global_singleton_supply is not None:
         only_intended_scientific_changes.extend(
             [
