@@ -1,6 +1,7 @@
 # Claude Code entrypoint
 
 @AGENTS.md
+@agent_guidance/paper-registry.yaml
 
 ## Response invariants (user-directed 2026-08-26)
 

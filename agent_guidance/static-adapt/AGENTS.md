@@ -3,6 +3,11 @@
 This file is the Paper-I lane router. Root `AGENTS.md` and `MATH/AGENTS.md`
 remain higher authority.
 
+Paper I manuscript prose/equation/PDF work starts at the root
+`agent_guidance/paper-registry.yaml` entry for Paper I, then the `AGENTS.md` in
+repository `ADAPT---Paper-I`. This lane owns implementation, settings, tests,
+evidence, and result producers; it does not own the active manuscript copy.
+
 Paper IV may eventually invoke the same static-construction method after its
 own lane resolves a molecular-vibronic physical problem. That does not make
 Paper IV a Paper-I route: the Hubbard--Holstein defaults and Paper-I evidence

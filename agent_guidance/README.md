@@ -6,6 +6,11 @@ Claude Code enters through the root `CLAUDE.md` import.
 
 Use this folder after root `AGENTS.md` when the task has a paper/workflow identity.
 
+The canonical paper-to-manuscript map is `paper-registry.yaml`. Resolve paper
+numbers and aliases there before following a scientific lane or opening a
+similarly named manuscript. The registry uses repository URLs and
+repository-relative paths so it survives machine replacement and fresh clones.
+
 Internal paper shorthand for repo-agent routing:
 
 - **Paper I** / **paper one** means the static-ADAPT/SNAKE lane:
@@ -14,7 +19,7 @@ Internal paper shorthand for repo-agent routing:
 - **Paper II** / **paper two** means the time-dynamics/AP-McLachlan lane:
   `agent_guidance/time-dynamics/`, `pipelines/time_dynamics/`, and
   `MATH/paper_facing/paper_II_dynamics/`.
-- **Paper III** / **paper three** means the QSE/excited-dynamics lane:
+- **Paper III** / **paper three** means the static-QSE/spectra lane:
   `agent_guidance/qse/` and `MATH/paper_facing/paper_III_spectra/`.
 - **Paper IV** / **paper four** means the molecular-vibronic water lane:
   `agent_guidance/molecular-vibronic/`,
@@ -87,7 +92,7 @@ interpret or replay a preserved route/profile identity such as the legacy
 |---|---|
 | `static-adapt/` | Paper-I RA-ADAPT and Append-ADAPT; explicit JR-SNAKE, FM-SNAKE, SR-SNAKE, and Route-A compatibility/provenance; HH Table III and static-ansatz evidence. |
 | `time-dynamics/` | Paper II, AP-McLachlan dynamics, comparator evidence, dynamics tables. |
-| `qse/` | Paper III, geometry-selected QSE, excited spectra/dynamics evidence. |
+| `qse/` | Paper III, geometry-selected QSE and static spectra evidence. |
 | `molecular-vibronic/` | Paper IV, molecular-vibronic water application and H2O static benchmark framing. |
 | `paper-v/` | Paper V, high-`U` regularization / GKBA exploratory workspace routing. |
 | `shared/` | Shared run guide plus temporary holding area for guidance not yet split into lane-specific versions. |

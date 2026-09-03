@@ -6,13 +6,15 @@ This path is the canonical repository onboarding document.
 
 This repository now centers on five paper-facing partitions:
 
-- Paper I static ADAPT/SNAKE: `MATH/paper_details/static_adapt_paper_I.tex` and `.pdf`.
-- Paper II AP-McLachlan dynamics: manuscript contract `/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`; implementation and evidence remain in this repository.
-- Paper III geometry-selected QSE / excited dynamics: `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` and `.pdf`.
-- Paper IV molecular-vibronic water: `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` and `.pdf`.
-- Paper V high-`U` regularization / GKBA exploration: `MATH/paper_details/paper_V_high_u_gkba.tex` and `.pdf`, with workspace code/notes in `paper_5/`.
+- Paper I Resource-Aware ADAPT: manuscript repository `ADAPT---Paper-I`.
+- Paper II AP-McLachlan dynamics: manuscript repository `AP-McLachlan---Paper-II`.
+- Paper III static operator-selected QSE spectra: manuscript repository `QSE---Paper-III`.
+- Paper IV molecular-vibronic water: `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex`.
+- Paper V high-`U` regularization / GKBA exploration: `MATH/paper_details/paper_V_high_u_gkba.tex`, with workspace code/notes in `paper_5/`.
 
-For agent-facing guidance, start with `agent_guidance/README.md`. Static
+The exact repositories, active source/PDF paths, aliases, and lane contracts
+are defined in `agent_guidance/paper-registry.yaml`. For agent-facing guidance,
+start there and then read `agent_guidance/README.md`. Static
 ADAPT / Route-A language lives under `agent_guidance/static-adapt/`; shared
 transitional language lives under `agent_guidance/shared/`. For run planning and
 artifact promotion, use the relevant paper-specific run skill and
@@ -111,7 +113,10 @@ artifacts also expose `decision_data_flow`, `uses_reference_for_decision`,
 `strict_measurement_oracle_certified` so local prepared-state geometry is not
 confused with exact-reference-assisted control.
 
-For exact Paper-I notation, claims, artifact paths, and current cost-vs-energy ranking, start with `MATH/paper_details/Paper_I.tex`, `MATH/paper_details/Paper_I.pdf`, and their named support/evidence artifacts; for run/evidence work, follow `AGENTS.md` -> `MATH/AGENTS.md` -> the relevant paper-specific run skill -> `agent_guidance/shared/run-guide.md`.
+For exact Paper-I notation and claims, resolve the active manuscript through
+`agent_guidance/paper-registry.yaml`. For artifact paths and current
+cost-vs-energy evidence, follow `AGENTS.md` -> `MATH/AGENTS.md` -> the relevant
+paper-specific run skill -> `agent_guidance/shared/run-guide.md`.
 
 
 ### Canonical HH ADAPT path
@@ -340,26 +345,31 @@ If an opt-in runtime split admitted child labels outside the resolved family poo
 Use this router-first order when onboarding:
 
 1. `AGENTS.md` - first-stop router, hard policy, global invariants, and escalation rules.
-2. Nearest subtree `AGENTS.md`; for ADAPT, HH, time-dynamics, reporting, paper, run, table, manuscript, or math-default work, use `MATH/AGENTS.md` as the paper-program bridge.
-3. Required skill gate when triggered: the relevant paper-specific run skill, then the matching paper-specific results skill for table data, or `$journal-math-manuscript-refiner` followed by `MATH/paper_facing/shared/journal_math_skill_supplement.md` for manuscript/PDF-facing work.
-4. `agent_guidance/shared/run-guide.md` - thin run-routing reminder below the root/MATH routers and active run/table skills.
-5. `README.md` - current repo map and kept workflow surface; orientation, not authority.
-6. The active paper source/PDF pair named in `MATH/AGENTS.md`; for Paper I,
-   use `MATH/paper_details/Paper_I.tex` and `MATH/paper_details/Paper_I.pdf`.
+2. `agent_guidance/paper-registry.yaml` for paper identity and manuscript routing.
+3. Nearest subtree `AGENTS.md`; for ADAPT, HH, time-dynamics, reporting, paper, run, table, manuscript, or math-default work, use `MATH/AGENTS.md` as the paper-program bridge.
+4. Required skill gate when triggered: the relevant paper-specific run skill, then the matching paper-specific results skill for table data, or `$journal-math-manuscript-refiner` followed by `MATH/paper_facing/shared/journal_math_skill_supplement.md` for manuscript/PDF-facing work.
+5. `agent_guidance/shared/run-guide.md` - thin run-routing reminder below the root/MATH routers and active run/table skills.
+6. `README.md` - current repo map and kept workflow surface; orientation, not authority.
+7. The active paper source/PDF pair named in the registry and its manuscript contract.
 
-Canonical navigation chain: `AGENTS.md` -> conditional `MATH/AGENTS.md` -> required skill gate -> paper-support docs or target code/tests -> `agent_guidance/shared/run-guide.md` as a run reminder when relevant -> target manuscripts/manifests only when needed.
+Canonical navigation chain: `AGENTS.md` -> `agent_guidance/paper-registry.yaml`
+when paper identity is involved -> conditional `MATH/AGENTS.md` -> required
+skill gate -> paper-support docs or target code/tests ->
+`agent_guidance/shared/run-guide.md` as a run reminder when relevant -> target
+manuscripts/manifests only when needed.
 Agent-facing automation should ignore `docs/` unless PDF/report output is in scope, in which case use `docs/reports/`.
 
 Task-type doc split:
 - `AGENTS.md`: router, hard policy, escalation rules, scientific invariants, and artifact hygiene.
+- `agent_guidance/paper-registry.yaml`: canonical paper aliases, manuscript repositories, source/PDF pairs, and research lanes.
 - `MATH/AGENTS.md`: paper-program bridge, paper-support load order, and MATH-local gates.
 - the relevant paper-specific run skill: mandatory paper-run manager for benchmark/run/evidence/report/promotion work.
 - the matching paper-specific results skill: mandatory evidence-to-table gate after the run skill.
 - `$journal-math-manuscript-refiner`, followed by `MATH/paper_facing/shared/journal_math_skill_supplement.md`: mandatory manuscript/PDF-facing gate.
 - `agent_guidance/shared/run-guide.md`: thin run-routing reminder, not the main CLI/runbook authority.
 - `README.md`: repo map and active workflow overview.
-- Active paper source/PDF pair: mathematical and reader-facing authority; for
-  Paper I, `MATH/paper_details/Paper_I.tex` and `MATH/paper_details/Paper_I.pdf`.
+- Active paper source/PDF pair: mathematical and reader-facing authority, as
+  named by the registry and target manuscript contract.
 
 ## Important note on README files
 
@@ -485,8 +495,8 @@ For compare/orchestration workflows that still exist in this checkout, start wit
 
 - `AGENTS.md`
 - `README.md`
+- `agent_guidance/paper-registry.yaml`
 - `agent_guidance/shared/run-guide.md`
-- `MATH/paper_details/Paper_I.tex` and `MATH/paper_details/Paper_I.pdf` for Paper I
 - `pipelines/exact_bench/README.md`
 
 Legacy archived docs live under `docs/archive/` and are non-canonical.

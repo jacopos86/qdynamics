@@ -7,22 +7,12 @@ Purpose: single ordered home for AI-facing support material for the journal pape
 
 This folder contains support documents only. Do not edit manuscript `.tex` files or generated PDFs from this workspace unless the user explicitly asks for manuscript editing.
 
-There is no cross-paper `Math.md` source of truth. For Paper I, use the active
-local-checkout manuscript and reader-facing build:
-
-```text
-MATH/paper_details/Paper_I.tex
-MATH/paper_details/Paper_I.pdf
-```
-
-For the other papers, use the target manuscript/source pair named in
-`MATH/AGENTS.md`. `MATH/Math.md` is legacy background only and must not be
-used to establish active-paper notation, claims, results, or route identity.
-
-Active paper paths follow `MATH/AGENTS.md` and each manuscript contract.
-Paper II's manuscript contract is
-`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`; the co-located research
-copy and upload bundles retain provenance/reference roles.
+There is no cross-paper `Math.md` source of truth. Resolve the target through
+`agent_guidance/paper-registry.yaml`, then read `MATH/AGENTS.md` and the target
+manuscript repository's `AGENTS.md`. Papers I--III use separate manuscript
+repositories; this repository retains their support packages, numerical
+authority, and provenance copies. `MATH/Math.md` is legacy background only and
+must not establish active-paper notation, claims, results, or route identity.
 
 ## Layout
 
@@ -100,9 +90,9 @@ maps, and validation reports are provenance records, not competing queues.
    - `paper_III_spectra/`
    - `paper_IV_molecular_vibronic_h2o/`
    - `paper_V_high_u_gkba/`, then `paper_5/`
-7. The target paper's active source/PDF pair when exact manuscript notation,
-   claims, or reader-facing status is needed. For Paper I, this is
-   `MATH/paper_details/Paper_I.tex` and `MATH/paper_details/Paper_I.pdf`.
+7. The target paper's active source/PDF pair from
+   `agent_guidance/paper-registry.yaml` when exact manuscript notation, claims,
+   or reader-facing status is needed.
 8. Target journal dossier in `journal_targets/`, if a venue is named.
 
 ## Copy policy
@@ -113,7 +103,8 @@ Do not create many full manuscript copies per journal by default. Use lightweigh
 
 - Paper I: static adaptive ansatz / operator-support acquisition under geometry and cost.
 - Paper II: real-time checkpoint-adaptive McLachlan dynamics with reversible append--prune maintenance.
-- Paper III: spectra/excited-state response, geometry-selected QSE excitation manifolds, transition observables, root tracking, and frozen-vs-live excited-state propagation.
+- Paper III: static spectra, geometry-selected QSE excitation manifolds,
+  transition observables, conditioning, and structural resource accounting.
 - Paper IV: molecular-vibronic water application, finite active-space H2O model construction, and static SNAKE benchmarking hooks.
 - Paper V: high-`U` regularization / GKBA exploratory study and quantum-computable encoding path under `paper_5/`.
 
@@ -121,7 +112,9 @@ Do not create many full manuscript copies per journal by default. Use lightweigh
 
 - Paper I owns static scaffold acquisition, ground-state preparation, static Pareto/resource claims, and encoding/layout robustness.
 - Paper II owns checkpoint maintenance, trajectory observables, real-time error, and append/prune/stay/repair ablations.
-- Paper III owns excitation spectra, transition strengths, spectral-window error, QSE overlap conditioning, root tracking, frozen-QSE escape, and excited-state response.
+- Paper III owns excitation spectra, transition strengths, spectral-window
+  error, QSE overlap conditioning, root assignment, comparator definitions,
+  and structural resource accounting.
 - Paper IV owns the water molecular-vibronic Hamiltonian construction, derivative/alignment/cutoff diagnostics, and application-level static benchmark framing.
 - Paper V owns the high-`U` instability, regularized GKBA formulation, stability diagnostics, and quantum-encoding feasibility questions.
 - Do not reuse the same benchmark tables with different captions.

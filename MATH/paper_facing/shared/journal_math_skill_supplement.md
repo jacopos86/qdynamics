@@ -14,7 +14,8 @@ Recommended instruction to future agents:
 ## Mandatory load order
 
 0. The selected manuscript's agent contract for its active source/PDF pair.
-   Paper II resolves to `/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`.
+   Resolve Papers I--III through `agent_guidance/paper-registry.yaml`, then
+   read the target manuscript repository's `AGENTS.md`.
    Load `MATH/paper_facing/two_paper_strategy.md` only for split, overlap,
    venue, or submission-sequencing work.
 
@@ -48,7 +49,10 @@ Recommended instruction to future agents:
   maturity or publishability. Results may be intentionally deleted or out of
   scope while the method is being defined.
 - Keep Paper I, Paper II, and Paper III method scopes separate.
-- Enforce the non-overlap rule from `MATH/paper_facing/two_paper_strategy.md`: Paper I owns ADAPT ansatz construction; Paper II owns checkpoint trajectory maintenance; Paper III owns spectra, QSE excitation manifolds, transition observables, and driven excited-state response.
+- Enforce the non-overlap rule from `MATH/paper_facing/two_paper_strategy.md`:
+  Paper I owns ADAPT ansatz construction; Paper II owns real-time
+  AP-McLachlan dynamics; Paper III owns static spectra, QSE excitation
+  manifolds, transition observables, conditioning, and structural resources.
 - Refuse to inflate benchmark claims without locked evidence.
 - Prefer journal-style structure over generic AI prose.
 - Avoid manuscript edits when the user asks only for addenda/support docs.

@@ -8,9 +8,11 @@ invariants and paper policy remain governed by root `AGENTS.md`,
 ## Manuscript route
 
 Paper II prose/equation/PDF work starts at
-`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`, which names the active
-source/PDF pair. This lane owns implementation, tests, settings, and evidence
-production. Research-tree manuscript and upload copies retain provenance roles.
+the root `agent_guidance/paper-registry.yaml` entry for Paper II, then the
+`AGENTS.md` in repository `AP-McLachlan---Paper-II`. That contract names the
+active source/PDF pair. This lane owns implementation, tests, settings, and
+evidence production. Research-tree manuscript and upload copies retain
+provenance roles.
 
 ## Route identity
 

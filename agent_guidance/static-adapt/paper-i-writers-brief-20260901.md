@@ -5,9 +5,9 @@ nothing here by asking the user — the sources are cited.
 
 ## Canonical manuscript (user ruling 2026-09-01)
 
-- Repo: `https://github.com/20jastrobel/ADAPT---Paper-I.git`, local clone
-  `~/ADAPT---Paper-I` (its own git — commit tex work THERE, not in
-  Holstein_test).
+- Repo: `https://github.com/20jastrobel/ADAPT---Paper-I.git` (its own git —
+  commit TeX work there, not in `Holstein_test`). Resolve a local sibling clone
+  by repository name; no absolute machine path is authoritative.
 - Source: `Paper_I_overleaf_20260818/Paper_I.tex`. This is the filled,
   parity-verified version.
 - `MATH/paper_details/Paper_I.tex` in Holstein_test is the stale 08-17
@@ -53,13 +53,13 @@ Per `docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1 and
 
 - Repo-changing Holstein_test work: own worktree under
   `Holstein_test.worktrees/`, own branch, explicit-path staging only.
-  Manuscript tex work: commit in `~/ADAPT---Paper-I`.
+  Manuscript TeX work: commit in repository `ADAPT---Paper-I`.
 - Never silently rewrite manuscript claims when code/settings change
   (root `AGENTS.md` hard invariant); evidence adoption/promotion is the
   user's.
-- LaTeX: `~/.local/bin/tectonic` is installed and works (no sudo, no
-  latexmk on this machine). If a builder hardcodes `latexmk`/`pdflatex`,
-  report — MacTeX is a user install.
+- LaTeX availability is machine-specific. Prefer the manuscript repository's
+  declared build command, fall back to an installed Tectonic workflow when the
+  contract allows it, and report unavailable builders accurately.
 - RAM: builds are light; heavy reruns follow
   `agent_guidance/shared/memory-budget.md` (18 GB aggregate, one heavy
   job, `ram_guard`).

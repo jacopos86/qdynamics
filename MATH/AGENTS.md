@@ -8,8 +8,7 @@ leave it out of scope unless explicitly requested.
 
 - `MATH/Math.md` and its generated `MATH/paper_details/Math.tex`/PDF twin are legacy background notes. They are not an authority for active-paper notation, claims, route identity, results, or manuscript synchronization; do not route agents to them by default.
 - **For Paper I, the canonical manuscript is the Overleaf lineage in the
-  separate repo `https://github.com/20jastrobel/ADAPT---Paper-I.git`
-  (local clone `~/ADAPT---Paper-I`), source
+  separate repo `https://github.com/20jastrobel/ADAPT---Paper-I.git`, source
   `Paper_I_overleaf_20260818/Paper_I.tex` — user ruling 2026-09-01.**
   The co-located `MATH/paper_details/Paper_I.tex`/`.pdf` pair is the
   stale 2026-08-17 Dimer draft (3,532 diff lines behind the filled
@@ -18,13 +17,27 @@ leave it out of scope unless explicitly requested.
   Writers start from `agent_guidance/static-adapt/paper-i-writers-brief-20260901.md`.
   Use the active paper manuscript together with its support folder and
   locked evidence, not `Math.md`.
-- On 2026-07-18 the user promoted the no-ordinary-novelty SR-SNAKE manuscript copy into the canonical Paper-I source lineage. The dated `Paper_I_no_ordinary_novelty_sr_snake_20260717.*` files and the pre-promotion backup are historical provenance only; future agents must use the active co-located `Paper_I.tex` / `Paper_I.pdf` pair. The exact historical promotion receipt is `MATH/paper_facing/paper_I_static_scaffold/paper_i_canonical_manuscript_promotion_20260718.json`.
+- The 2026-07-18 promotion of the no-ordinary-novelty SR-SNAKE copy records the
+  earlier in-repository Paper-I lineage. The 2026-09-01 external-repository
+  ruling above supersedes it for active manuscript work. The exact historical
+  receipt remains
+  `MATH/paper_facing/paper_I_static_scaffold/paper_i_canonical_manuscript_promotion_20260718.json`.
 - **Paper II manuscript work resolves to the separate repository
-  `/Users/lordskyler/AP-McLachlan---Paper-II`**, whose `AGENTS.md` declares
+  `https://github.com/20jastrobel/AP-McLachlan---Paper-II.git`**, whose
+  `AGENTS.md` declares
   the active `Paper_II_overleaf_20260901/time_dynamics_paper_II.tex` / PDF
   pair. The research copy under `MATH/paper_details/` and upload copies are
   provenance/reference material. Implementation, tests, settings, and evidence
   production remain in this research repository.
+- **Paper III manuscript work resolves to the separate repository
+  `https://github.com/20jastrobel/QSE---Paper-III.git`**, source
+  `Paper_III_overleaf_20260901/MATH/paper_details/excited_spectra_static_paper_III.tex`
+  and its co-located PDF. The in-repository static source is seed/reference
+  provenance. `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` is an
+  incomplete, deferred draft and is not the active Paper-III manuscript.
+- `agent_guidance/paper-registry.yaml` is the canonical cross-paper routing
+  map. Repository URLs and repository-relative paths define identity; absolute
+  machine paths do not.
 - Resolve active user-facing sources through the table and explicit external-repository rulings in this contract. Treat older drafts, generated Math twins, and markdown notebooks as recovery/reference material unless requested.
 - `MATH/archive/archaic_repo_math.md` is archival only. Never use it, `MATH/Math.md`, or generated Math artifacts as a default source of truth.
 
@@ -46,11 +59,11 @@ regularization / GKBA exploratory workspace under `paper_5/`.
 
 | Paper | Active source/PDF pair | Scope | Primary support folder |
 |---|---|---|---|
-| Paper I | `MATH/paper_details/Paper_I.tex` / `MATH/paper_details/Paper_I.pdf` | Geometry- and cost-aware ADAPT ansatz construction for mixed fermion--boson systems. | `MATH/paper_facing/paper_I_static_scaffold/` |
-| Paper II | `/Users/lordskyler/AP-McLachlan---Paper-II/Paper_II_overleaf_20260901/time_dynamics_paper_II.tex` / `.pdf`; contract: the manuscript repository's `AGENTS.md` | AP-McLachlan dynamics with generalized exchange. | `MATH/paper_facing/paper_II_dynamics/` |
-| Paper III | `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` / `.pdf` | Geometry-aware QSE and excited-state dynamics. | `MATH/paper_facing/paper_III_spectra/` |
-| Paper IV | `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` / `.pdf` | Molecular-vibronic water application using finite active-space, all-three-mode, linearly coupled H2O Hamiltonians. | `MATH/paper_facing/paper_IV_molecular_vibronic_h2o/` |
-| Paper V | `MATH/paper_details/paper_V_high_u_gkba.tex` / `.pdf` | High-`U` regularization / GKBA exploratory line and quantum-computable encoding study. | `paper_5/` and `MATH/paper_facing/paper_V_high_u_gkba/` |
+| Paper I | `ADAPT---Paper-I`: `Paper_I_overleaf_20260818/Paper_I.tex` / `.pdf` | Geometry- and cost-aware ADAPT ansatz construction for mixed fermion--boson systems. | `MATH/paper_facing/paper_I_static_scaffold/` |
+| Paper II | `AP-McLachlan---Paper-II`: `Paper_II_overleaf_20260901/time_dynamics_paper_II.tex` / `.pdf` | AP-McLachlan dynamics with generalized exchange. | `MATH/paper_facing/paper_II_dynamics/` |
+| Paper III | `QSE---Paper-III`: `Paper_III_overleaf_20260901/MATH/paper_details/excited_spectra_static_paper_III.tex` / `.pdf` | Cost-weighted operator-selected QSE for static spectra. | `MATH/paper_facing/paper_III_spectra/` |
+| Paper IV | `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex`; no tracked PDF currently | Molecular-vibronic water application using finite active-space, all-three-mode, linearly coupled H2O Hamiltonians. | `MATH/paper_facing/paper_IV_molecular_vibronic_h2o/` |
+| Paper V | `MATH/paper_details/paper_V_high_u_gkba.tex`; no tracked PDF currently | High-`U` regularization / GKBA exploratory line and quantum-computable encoding study. | `paper_5/` and `MATH/paper_facing/paper_V_high_u_gkba/` |
 
 Internal paper shorthand for repo-agent routing:
 
@@ -58,8 +71,9 @@ Internal paper shorthand for repo-agent routing:
   workspace.
 - **Paper II** / **paper two** means the time-dynamics/AP-McLachlan repo lane
   and support workspace.
-- **Paper III** / **paper three** means the QSE/excited-dynamics repo lane and
-  support workspace.
+- **Paper III** / **paper three** means the static-QSE/spectra repo lane and
+  support workspace. The unfinished dynamics draft is outside the active
+  manuscript.
 - **Paper IV** / **paper four** means the molecular-vibronic water application
   lane and support workspace.
 - **Paper V** / **paper five** means the high-`U` regularization / GKBA
@@ -67,17 +81,14 @@ Internal paper shorthand for repo-agent routing:
 
 This shorthand is not reader-facing manuscript prose. For manuscript text, use
 the method object directly: static ADAPT/SNAKE, AP-McLachlan dynamics,
-geometry-aware QSE/excited-state dynamics, molecular-vibronic water, or the
+cost-weighted QSE/static spectra, molecular-vibronic water, or the
 explicit high-`U`/GKBA model under discussion.
 
-For Paper I, the reader-facing source-of-truth PDF is
-`MATH/paper_details/Paper_I.pdf`, built from the co-located active source
-`MATH/paper_details/Paper_I.tex`. Do not create a repository-root mirror.
-Treat `MATH/paper_details/static_adapt_paper_I.tex`,
-`MATH/paper_details/static_adapt_paper_I_condensed.tex`, old
-`static_adapt_paper_I.pdf` copies, Overleaf upload zips, and extracted upload
-copies as recovery/reference artifacts unless the user explicitly asks to
-restore or package from them.
+For Papers I--III, the reader-facing source/PDF pairs live in the external
+manuscript repositories named in the table and registry. Treat similarly named
+files in `MATH/paper_details/`, old PDFs, Overleaf upload zips, and extracted
+upload copies as recovery/reference artifacts unless the registry or user
+explicitly selects them.
 
 ### Paper-support load order
 
@@ -257,10 +268,12 @@ Keep the root focused on source-of-truth math, build helpers, and classified sup
 - Legacy-only background artifacts: `MATH/Math.md` and `MATH/paper_details/Math.tex`/PDF. Do not route active-paper work to them.
 - `MATH/paper_details/adaptive_selection_staged_continuation.tex` and its PDF.
 - `MATH/paper_details/main_condensed.tex` and its PDF.
-- Active paper manuscripts, PDFs, and bib files:
-  - `MATH/paper_details/Paper_I.tex` / `Paper_I.pdf` / `Paper_INotes.bib`;
-  - Paper II active source/PDF: the separate manuscript repository declared above; `MATH/paper_details/time_dynamics_paper_II.*` retains research/provenance copies.
-  - `MATH/paper_details/excited_spectra_dynamics_paper_III.tex` / `.pdf` / `excited_spectra_dynamics_paper_IIINotes.bib`;
+- In-repository manuscript, PDF, and bib artifacts (active only when the table
+  or registry names the in-repository path):
+  - `MATH/paper_details/Paper_I.*` retains historical Paper-I provenance;
+  - `MATH/paper_details/time_dynamics_paper_II.*` retains Paper-II research/provenance copies;
+  - `MATH/paper_details/excited_spectra_static_paper_III.tex` is the Paper-III seed/reference copy;
+  - `MATH/paper_details/excited_spectra_dynamics_paper_III.*` is an incomplete, deferred draft;
   - `MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex` / `.pdf` when present;
   - `MATH/paper_details/paper_V_high_u_gkba.tex` / `.pdf` when present.
 - `MATH/17A_symbol_guide.tex` and its PDF when present.

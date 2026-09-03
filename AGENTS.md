@@ -40,11 +40,11 @@ generated PDFs, run artifacts, route registries, or historical handoffs first.
 |---|---|
 | Repository inspection, code, tests, docs cleanup, Git, or handoff | `agent_guidance/shared/repository-work.md`, then the nearest subtree `AGENTS.md` and target files |
 | Planning work another agent will execute, or executing a handoff written by one | `agent_guidance/shared/agent-handoff-contract.md` (anchors, scope, increments, evidence standards, traps, report-back format) |
-| Paper identity or workflow routing | `agent_guidance/README.md`, then the selected lane contract when present |
+| Paper identity or workflow routing | `agent_guidance/paper-registry.yaml`, then `agent_guidance/README.md` and the selected lane contract when present |
 | ADAPT, Hubbard--Holstein, molecular-vibronic, time dynamics, QSE, reporting, mathematical defaults, or route identity | `MATH/AGENTS.md`, `agent_guidance/shared/scientific-invariants.md`, then the selected lane contract when present |
 | Benchmark planning, local/remote execution, CHTC, Optuna, manifests, artifact aggregation, evidence report, or canonical run settings | the scientific route above, then `agent_guidance/shared/run-guide.md` and the exact existing run workflow named by the lane |
 | Completed-evidence table, source-map, or provenance refresh | `MATH/AGENTS.md`, then an existing matching results workflow or explicit target evidence contract |
-| Manuscript prose, title, abstract, caption, citation, `.tex`, or PDF-facing edit | `MATH/AGENTS.md`, then its manuscript contract and available journal-review workflow |
+| Manuscript prose, title, abstract, caption, citation, `.tex`, or PDF-facing edit | `agent_guidance/paper-registry.yaml`, then the target manuscript repository's `AGENTS.md`, `MATH/AGENTS.md`, and the available journal-review workflow |
 | Prompt/GPT/Atlas handoff export | the matching available handoff workflow; write the requested export under `prompt-exports/` |
 | Issue or triage work | `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md` |
 | Storage, disk space, artifact retention, compression, or cleanup | `agent_guidance/shared/artifact-retention.md`, then the dated cleanup records under `agent_guidance/shared/` |
@@ -56,10 +56,16 @@ required for a state-changing run, evidence transfer, or manuscript operation.
 
 ## Paper lanes
 
-For **Paper II manuscript work**, go directly to
-`/Users/lordskyler/AP-McLachlan---Paper-II/AGENTS.md`. It declares the
-active TeX/PDF pair and prose/evidence ownership. Code, settings, tests, and
-results production remain in the time-dynamics lane below.
+`agent_guidance/paper-registry.yaml` is the canonical map from paper aliases to
+manuscript repositories, active source/PDF paths, and research lanes. Resolve
+"Paper I", "Paper II", and similar shorthand there before opening a manuscript.
+Repository URLs plus repository-relative paths define identity; never make an
+absolute machine path authoritative.
+
+For Papers I--III manuscript work, enter the separate repository named by the
+registry and read its root `AGENTS.md`. Claude Code reads the same contract
+through that repository's root `CLAUDE.md`. Code, settings, tests, evidence,
+and result production remain in the research lane below.
 
 Internal shorthand:
 
@@ -118,6 +124,15 @@ or source-locked provenance.
 
 ## Hard invariants
 
+- UI access is opt-in. Never inspect, enumerate, attach to, open, navigate,
+  interact with, or close a browser tab, native application, or graphical UI
+  unless the user explicitly requests that exact UI action in the current
+  conversation. Ambient UI state is not authorization. This applies to every
+  delegated agent.
+- Prefer repository files, command-line tools, and non-UI APIs. Do not open raw
+  source in the Codex UI. For manuscript work, regenerate the repository-local
+  PDF; do not open, render, image, or visually inspect it unless the user
+  explicitly requests that viewing action.
 - Preserve unrelated work, completed evidence, manifests, and source locks.
 - Git commits are at the agent's discretion, always (user policy,
   2026-08-17): commit deliberately with descriptive messages, without

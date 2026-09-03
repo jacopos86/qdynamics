@@ -6,12 +6,15 @@ Status: active support package. Paper III is now in scope for paper-facing plann
 Target draft:
 
 ```text
-MATH/paper_details/excited_spectra_dynamics_paper_III.tex
+QSE---Paper-III/Paper_III_overleaf_20260901/MATH/paper_details/excited_spectra_static_paper_III.tex
 ```
 
 ## Scope rule
 
-This folder is advisory infrastructure. Do not edit the Paper III `.tex` manuscript, generated PDFs, or result artifacts from this folder unless the user explicitly asks for a manuscript pass.
+This folder is advisory infrastructure. Paper III prose is edited in the
+separate `QSE---Paper-III` manuscript repository. `Holstein_test` remains the
+numerical authority; do not hand-edit generated PDFs, figures, tables, or other
+result artifacts here or in the manuscript repository.
 
 Use the active Paper III manuscript, its support package, and locked evidence as
 the mathematical and reader-facing authority. `MATH/Math.md` is legacy
@@ -20,11 +23,15 @@ identity, or results.
 
 ## Paper III identity
 
-Paper III is the spectra and excited-state response paper. Its center is geometry- and cost-aware acquisition of a compact nonorthogonal excitation manifold for QSE, followed by frozen-subspace or live excited-state McLachlan propagation when selected roots are driven out of the frozen manifold.
+Paper III is the static spectra paper. Its center is geometry- and cost-aware
+acquisition of a compact nonorthogonal excitation manifold for QSE, together
+with static spectral windows, transition observables, conditioning, comparator
+boundaries, and structural resource accounting. Time propagation is excluded
+from the completed manuscript and deferred to later work.
 
 Short identity:
 
-> Geometry-selected spectral manifolds for mixed fermion--boson excitation spectra and driven excited-state response.
+> Cost-weighted geometry-selected QSE manifolds for static spectra of mixed fermion--boson systems.
 
 ## Files in this package
 
@@ -42,5 +49,8 @@ Short identity:
 ## Relationship to Papers I and II
 
 - Paper I support files may be reused only for ground-state ADAPT/scaffold seed citations.
-- Paper II support files may be reused only for live McLachlan and dynamics-baseline citations.
-- Paper III must own the QSE/spectral content: excitation records, overlap conditioning, spectral windows, transition strengths, root tracking, and frozen-vs-live excited-state dynamics.
+- Paper II support files may be reused only to state the boundary between the
+  static QSE study and separately deferred dynamics work.
+- Paper III must own the static QSE/spectral content: excitation records,
+  overlap conditioning, spectral windows, transition strengths, root
+  assignment, comparator definitions, and structural resource accounting.

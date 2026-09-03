@@ -1,0 +1,89 @@
+schema_version: paper-registry-v1
+authority: canonical-paper-identity-and-manuscript-routing
+updated: "2026-09-02"
+
+resolution_rules:
+  - Resolve a paper alias through this registry before opening similarly named manuscript files.
+  - Repository URLs and repository-relative paths define identity; absolute machine paths do not.
+  - A sibling checkout with the declared repository_name is a convenience, not an authority.
+  - The manuscript repository owns reader-facing prose, equations, structure, and its PDF.
+  - Holstein_test owns implementation, tests, scientific settings, locked evidence, and result producers.
+  - Read the target manuscript repository's AGENTS.md before manuscript work; Claude Code enters through CLAUDE.md.
+  - Historical, upload, rescue, and in-research-repository manuscript copies are not active unless this registry names them.
+
+papers:
+  paper_i:
+    aliases: ["Paper I", "paper one", "RA-ADAPT paper", "Resource-Aware ADAPT manuscript"]
+    scientific_role: "Resource-Aware ADAPT and static Hubbard--Holstein ansatz construction"
+    manuscript:
+      repository_name: ADAPT---Paper-I
+      repository: https://github.com/20jastrobel/ADAPT---Paper-I.git
+      source: Paper_I_overleaf_20260818/Paper_I.tex
+      pdf: Paper_I_overleaf_20260818/Paper_I.pdf
+      contract: AGENTS.md
+      claude_entrypoint: CLAUDE.md
+    research_lane:
+      repository_name: Holstein_test
+      contract: agent_guidance/static-adapt/AGENTS.md
+      support: MATH/paper_facing/paper_I_static_scaffold/
+
+  paper_ii:
+    aliases: ["Paper II", "paper two", "AP-McLachlan paper", "AP-McLachlan manuscript"]
+    scientific_role: "AP-McLachlan real-time dynamics with generalized exchange"
+    manuscript:
+      repository_name: AP-McLachlan---Paper-II
+      repository: https://github.com/20jastrobel/AP-McLachlan---Paper-II.git
+      source: Paper_II_overleaf_20260901/time_dynamics_paper_II.tex
+      pdf: Paper_II_overleaf_20260901/time_dynamics_paper_II.pdf
+      contract: AGENTS.md
+      claude_entrypoint: CLAUDE.md
+    research_lane:
+      repository_name: Holstein_test
+      contract: agent_guidance/time-dynamics/AGENTS.md
+      support: MATH/paper_facing/paper_II_dynamics/
+
+  paper_iii:
+    aliases: ["Paper III", "paper three", "QSE paper", "static spectra manuscript"]
+    scientific_role: "Cost-weighted operator-selected QSE for static spectra"
+    manuscript:
+      repository_name: QSE---Paper-III
+      repository: https://github.com/20jastrobel/QSE---Paper-III.git
+      source: Paper_III_overleaf_20260901/MATH/paper_details/excited_spectra_static_paper_III.tex
+      pdf: Paper_III_overleaf_20260901/MATH/paper_details/excited_spectra_static_paper_III.pdf
+      contract: AGENTS.md
+      claude_entrypoint: CLAUDE.md
+    excluded_as_active_manuscript: MATH/paper_details/excited_spectra_dynamics_paper_III.tex
+    research_lane:
+      repository_name: Holstein_test
+      contract: agent_guidance/qse/ubiquitous-language.md
+      support: MATH/paper_facing/paper_III_spectra/
+
+  paper_iv:
+    aliases: ["Paper IV", "paper four", "molecular-vibronic water paper"]
+    scientific_role: "Molecular-vibronic H2O application and static construction"
+    manuscript:
+      repository_name: Holstein_test
+      repository: https://github.com/20jastrobel/Holstein_test.git
+      source: MATH/paper_details/molecular_vibronic_h2o_paper_IV.tex
+      pdf: null
+      contract: agent_guidance/molecular-vibronic/AGENTS.md
+      claude_entrypoint: CLAUDE.md
+    research_lane:
+      repository_name: Holstein_test
+      contract: agent_guidance/molecular-vibronic/AGENTS.md
+      support: MATH/paper_facing/paper_IV_molecular_vibronic_h2o/
+
+  paper_v:
+    aliases: ["Paper V", "paper five", "high-U paper", "GKBA paper"]
+    scientific_role: "High-U regularization and GKBA exploratory study"
+    manuscript:
+      repository_name: Holstein_test
+      repository: https://github.com/20jastrobel/Holstein_test.git
+      source: MATH/paper_details/paper_V_high_u_gkba.tex
+      pdf: null
+      contract: agent_guidance/paper-v/AGENTS.md
+      claude_entrypoint: CLAUDE.md
+    research_lane:
+      repository_name: Holstein_test
+      contract: agent_guidance/paper-v/AGENTS.md
+      support: MATH/paper_facing/paper_V_high_u_gkba/
