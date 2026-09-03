@@ -97,79 +97,71 @@ def _walk(
     dumps: Callable[[Any], str],
     pretty: bool,
 ) -> Iterator[str]:
-    """Yield chunks for ``value`` nested at depth ``level``."""
+    """Yield chunks for ``value`` nested at depth ``level``.
+
+    Mappings are always walked key by key and the value of every key is
+    walked in turn, so no document (nor any nested mapping) is ever handed
+    to the encoder as one object; this mirrors how ``json.dump`` streams.
+    Lists batch consecutive small children into adaptive slices encoded by
+    the C encoder; a large child is walked instead of being batched.
+    """
 
     if not isinstance(value, (Mapping, list, tuple)) or not value:
         # Scalars and empty containers: the C encoder is exact and cheap.
         yield dumps(value)
         return
 
-    is_mapping = isinstance(value, Mapping)
-    if is_mapping and not _all_str_keys(value):
-        # Non-string keys: let ``json`` apply (or reject) its own coercion
-        # rules on the whole mapping so behaviour stays identical.
-        yield _reindent(dumps(value), level) if pretty else dumps(value)
-        return
-
-    if is_mapping:
-        children = _sorted_items(value)
-
-        def encode_slice(chunk: list[tuple[str, Any]]) -> str:
-            return dumps(dict(chunk))
-
-        def encode_child(child: tuple[str, Any]) -> Iterator[str]:
-            key, item = child
-            yield json.dumps(key, ensure_ascii=ensure_ascii_flag)
-            yield ": " if pretty else ":"
-            yield from _walk(item, level=level + 1, dumps=dumps, pretty=pretty)
-
-        def child_is_small(child: tuple[str, Any]) -> bool:
-            return _is_small(child[1])
-
-        open_token, close_token = "{", "}"
-    else:
-        children = list(value)
-
-        def encode_slice(chunk: list[Any]) -> str:  # type: ignore[misc]
-            return dumps(chunk)
-
-        def encode_child(child: Any) -> Iterator[str]:  # type: ignore[misc]
-            yield from _walk(child, level=level + 1, dumps=dumps, pretty=pretty)
-
-        def child_is_small(child: Any) -> bool:  # type: ignore[misc]
-            return _is_small(child)
-
-        open_token, close_token = "[", "]"
-
     ensure_ascii_flag = _ensure_ascii_of(dumps)
     child_prefix = _INDENT * (level + 1)
     separator = ",\n" if pretty else ","
 
-    if pretty:
-        yield open_token + "\n"
-    else:
-        yield open_token
+    if isinstance(value, Mapping):
+        if not _all_str_keys(value):
+            # Non-string keys: let ``json`` apply (or reject) its own
+            # coercion rules on the whole mapping so behaviour is identical.
+            yield _reindent(dumps(value), level) if pretty else dumps(value)
+            return
+        yield "{\n" if pretty else "{"
+        first = True
+        for key, item in _sorted_items(value):
+            if not first:
+                yield separator
+            first = False
+            if pretty:
+                yield child_prefix
+            yield json.dumps(key, ensure_ascii=ensure_ascii_flag)
+            yield ": " if pretty else ":"
+            yield from _walk(item, level=level + 1, dumps=dumps, pretty=pretty)
+        yield ("\n" + _INDENT * level + "}") if pretty else "}"
+        return
 
+    children = list(value)
+    yield "[\n" if pretty else "["
     first = True
     index = 0
     total = len(children)
     slice_length = 1
     while index < total:
         # One bounded probe per slice: a large child at the head of the
-        # slice is recursed into so its own slices stay bounded, instead of
-        # being encoded whole together with its siblings.
-        if not child_is_small(children[index]):
+        # slice is walked so its own slices stay bounded, instead of being
+        # encoded whole together with its siblings.
+        if not _is_small(children[index]):
             if not first:
                 yield separator
             first = False
             if pretty:
                 yield child_prefix
-            yield from encode_child(children[index])
+            yield from _walk(
+                children[index],
+                level=level + 1,
+                dumps=dumps,
+                pretty=pretty,
+            )
             index += 1
             slice_length = 1
             continue
         chunk = children[index : index + slice_length]
-        encoded = encode_slice(chunk)
+        encoded = dumps(chunk)
         if pretty:
             # ``[\n  a,\n  b\n]`` -> ``  a,\n  b`` at level 1; shift to
             # ``level + 1`` with one C-level replace (JSON strings never
@@ -189,11 +181,7 @@ def _walk(
             slice_length = 1
         else:
             slice_length = _next_slice_length(len(chunk), len(encoded))
-
-    if pretty:
-        yield "\n" + _INDENT * level + close_token
-    else:
-        yield close_token
+    yield ("\n" + _INDENT * level + "]") if pretty else "]"
 
 
 def _reindent(block: str, level: int) -> str:

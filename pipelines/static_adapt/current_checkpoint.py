@@ -22,6 +22,7 @@ from typing import Any
 from pipelines.static_adapt.adaptive_phase_contracts import (
     ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
 )
+from pipelines.static_adapt.json_streaming import iter_canonical_json
 
 
 _CONTENT_ADDRESSED_SIDECAR_FIELDS = {
@@ -93,12 +94,55 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _write_json_temporary(
+_CHECKPOINT_JSON_LAYOUT_ENV = "STATIC_ADAPT_CHECKPOINT_JSON_LAYOUT"
+_CHECKPOINT_JSON_LAYOUTS = ("pretty", "compact")
+
+
+def _checkpoint_json_layout() -> str:
+    """Return the on-disk JSON layout policy for checkpoint documents.
+
+    ``pretty`` (default) keeps the historical ``indent=2`` documents byte
+    for byte.  ``compact`` writes the same sorted document without
+    whitespace through the C encoder in bounded chunks.  Every reader uses
+    ``json.load`` and every recorded sha256 is computed from the bytes
+    actually written, so the layout is a serialization-cost knob, not a
+    content change.  Paper-I B3 tail diagnosis, 2026-09-03.
+    """
+
+    raw = str(os.environ.get(_CHECKPOINT_JSON_LAYOUT_ENV, "") or "pretty")
+    layout = raw.strip().lower()
+    if layout not in _CHECKPOINT_JSON_LAYOUTS:
+        raise ValueError(
+            f"{_CHECKPOINT_JSON_LAYOUT_ENV} must be one of "
+            f"{_CHECKPOINT_JSON_LAYOUTS}, got {raw!r}."
+        )
+    return layout
+
+
+class _HashingTextWriter:
+    """File-handle proxy that sha256-hashes the UTF-8 text it forwards."""
+
+    def __init__(self, handle: Any) -> None:
+        self._handle = handle
+        self.digest = hashlib.sha256()
+
+    def write(self, text: str) -> int:
+        self.digest.update(text.encode("utf-8"))
+        return int(self._handle.write(text))
+
+
+def _write_json_temporary_with_digest(
     path: Path,
     payload: Mapping[str, Any],
-) -> Path:
-    """Stream one deterministic pretty JSON document into its target directory."""
+) -> tuple[Path, str]:
+    """Write one sorted JSON document to a temporary file with its sha256.
 
+    The digest is taken from the text as it is written (UTF-8, ``\\n``
+    newlines), so it equals :func:`_sha256_file` of the temporary file
+    without a second read of a multi-gigabyte document.
+    """
+
+    layout = _checkpoint_json_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.",
@@ -113,19 +157,38 @@ def _write_json_temporary(
             encoding="utf-8",
             newline="\n",
         ) as handle:
-            json.dump(
-                payload,
-                handle,
-                sort_keys=True,
-                indent=2,
-                allow_nan=False,
-            )
-            handle.write("\n")
+            writer = _HashingTextWriter(handle)
+            if layout == "compact":
+                for chunk in iter_canonical_json(
+                    payload,
+                    ensure_ascii=True,
+                    allow_nan=False,
+                ):
+                    writer.write(chunk)
+            else:
+                json.dump(
+                    payload,
+                    writer,
+                    sort_keys=True,
+                    indent=2,
+                    allow_nan=False,
+                )
+            writer.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
     except BaseException:
         temporary_path.unlink(missing_ok=True)
         raise
+    return temporary_path, writer.digest.hexdigest()
+
+
+def _write_json_temporary(
+    path: Path,
+    payload: Mapping[str, Any],
+) -> Path:
+    """Stream one deterministic JSON document into its target directory."""
+
+    temporary_path, _digest = _write_json_temporary_with_digest(path, payload)
     return temporary_path
 
 
@@ -152,9 +215,11 @@ def _atomic_write_content_addressed_json(
     filename_role: str,
     payload: Mapping[str, Any],
 ) -> tuple[Path, str]:
-    temporary_path = _write_json_temporary(current_path, payload)
+    temporary_path, sha256 = _write_json_temporary_with_digest(
+        current_path,
+        payload,
+    )
     try:
-        sha256 = _sha256_file(temporary_path)
         destination = current_path.with_name(
             f"{current_path.stem}.{filename_role}.{sha256[:16]}.json"
         )
@@ -389,21 +454,17 @@ def _compatibility_consumer_projection(
 
 
 def _stable_json_digest(value: Any) -> str:
+    """sha256 of the compact, key-sorted JSON encoding of ``value``.
+
+    Byte-identical to hashing ``json.dump(value, ..., sort_keys=True,
+    separators=(",", ":"), ensure_ascii=True, allow_nan=False)``.  The
+    chunked C-encoder path avoids the pure-Python encoder that ``json.dump``
+    always takes and never materializes the whole document.
+    """
+
     digest = hashlib.sha256()
-
-    class _DigestWriter:
-        def write(self, text: str) -> int:
-            digest.update(text.encode("utf-8"))
-            return len(text)
-
-    json.dump(
-        value,
-        _DigestWriter(),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        allow_nan=False,
-    )
+    for chunk in iter_canonical_json(value, ensure_ascii=True, allow_nan=False):
+        digest.update(chunk.encode("utf-8"))
     return digest.hexdigest()
 
 
