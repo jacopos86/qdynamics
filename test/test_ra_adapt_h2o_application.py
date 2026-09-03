@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 from pathlib import Path
+import subprocess
+import sys
+import time
 
 import pytest
 
@@ -12,6 +18,7 @@ from pipelines.static_adapt.ra_adapt.adapters import (
 from pipelines.static_adapt.ra_adapt.contracts import (
     CANDIDATE_REPRESENTATION_MACRO,
     CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+    RAAdaptOperationalControls,
     ra_adapt_request_from_mapping,
 )
 from pipelines.static_adapt.ra_adapt.engine import (
@@ -19,6 +26,8 @@ from pipelines.static_adapt.ra_adapt.engine import (
     build_resolved_ra_protocol,
 )
 from pipelines.static_adapt.ra_adapt.h2o_application import (
+    H2O_INSERTION_APPEND_ONLY,
+    _engine_wall_budget_seconds,
     _problem,
     build_h2o_ra_request,
 )
@@ -336,3 +345,287 @@ def test_h2o_fresh_start_refuses_to_clobber_existing_checkpoint(
     assert completed.returncode != 0
     assert "accepted-state" in completed.stderr
     assert (out / "current.json").read_text(encoding="utf-8") == "{}"
+
+
+# --- Wall-clock segment stop (Paper IV, 2026-09-03) ------------------------
+#
+# CHTC's 72 h SYSTEM_PERIODIC_HOLD gives no stage-out, so a segment must exit
+# normally before the wall whatever a round costs.  --max-wall-seconds is an
+# operational control (RAAdaptOperationalControls.maximum_wall_seconds): it
+# never enters the resolved protocol, is checked only at controller-round
+# boundaries after each completed round, and stops with wall_clock_budget_v1
+# exactly the way a maximum_controller_rounds stop does.
+
+
+def test_h2o_cli_exposes_max_wall_seconds_flag() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--help",
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "--max-wall-seconds" in completed.stdout
+    assert "wall_clock_budget_v1" in completed.stdout
+
+
+def test_h2o_cli_rejects_negative_wall_budget(tmp_path: Path) -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--max-wall-seconds",
+            "-1",
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "nonnegative" in completed.stderr
+    assert not (tmp_path / "out" / "protocol.json").exists()
+
+
+def test_wall_budget_is_operational_and_deducts_cli_startup() -> None:
+    """The typed control defaults off and serializes nothing when unset."""
+
+    controls = RAAdaptOperationalControls(maximum_controller_rounds=2)
+    assert controls.maximum_wall_seconds is None
+    assert "maximum_wall_seconds" not in controls.to_dict()
+    budgeted = RAAdaptOperationalControls(
+        maximum_controller_rounds=2,
+        maximum_wall_seconds=0,
+    )
+    assert budgeted.to_dict()["maximum_wall_seconds"] == 0.0
+    with pytest.raises(ValueError, match="nonnegative"):
+        RAAdaptOperationalControls(
+            maximum_controller_rounds=2,
+            maximum_wall_seconds=-1.0,
+        )
+    assert _engine_wall_budget_seconds(None, startup_seconds=30.0) is None
+    assert _engine_wall_budget_seconds(100.0, startup_seconds=30.0) == 70.0
+    assert _engine_wall_budget_seconds(10.0, startup_seconds=30.0) == 0.0
+
+
+# The end-to-end segment chain below executes the production H2O route
+# (chtc/...20260724 fixture, macro_generator_v1 arm, append-only insertion).
+# One controller round costs minutes on the M4 host, so the chain is opt-in:
+#     PAPER_IV_H2O_CLI_RUNS=1 .venv/bin/python -m pytest \
+#         test/test_ra_adapt_h2o_application.py -k segment_chain
+_CLI_RUNS_ENV = "PAPER_IV_H2O_CLI_RUNS"
+_cli_runs = pytest.mark.skipif(
+    os.environ.get(_CLI_RUNS_ENV) != "1",
+    reason=(
+        f"set {_CLI_RUNS_ENV}=1 to run the multi-minute production H2O "
+        "segment chain"
+    ),
+)
+
+
+def _run_h2o_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
+    started = time.monotonic()
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--candidate-representation",
+            CANDIDATE_REPRESENTATION_MACRO,
+            "--insertion",
+            H2O_INSERTION_APPEND_ONLY,
+            "--maximum-controller-rounds",
+            "2",
+            *arguments,
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    completed.elapsed_seconds = time.monotonic() - started  # type: ignore[attr-defined]
+    return completed
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sidecar_of(checkpoint: Path) -> Path:
+    pointer = _load_json(checkpoint)["checkpoint"][
+        "estimator_call_ledger_checkpoint"
+    ]
+    sidecar = checkpoint.with_name(pointer["path"])
+    assert sidecar.is_file(), sidecar
+    assert (
+        hashlib.sha256(sidecar.read_bytes()).hexdigest() == pointer["sha256"]
+    )
+    return sidecar
+
+
+@pytest.fixture(scope="module")
+def h2o_segment_chain(tmp_path_factory: pytest.TempPathFactory):
+    """Segment 1 of the campaign chain: a zero wall budget, fresh start."""
+
+    if os.environ.get(_CLI_RUNS_ENV) != "1":
+        pytest.skip(f"set {_CLI_RUNS_ENV}=1 to run the H2O segment chain")
+    root = tmp_path_factory.mktemp("h2o_segments")
+    segment_one = root / "segment_1"
+    first = _run_h2o_cli(
+        "--output-dir",
+        str(segment_one),
+        "--max-wall-seconds",
+        "0",
+    )
+    assert first.returncode == 0, first.stderr[-4000:]
+    return {
+        "root": root,
+        "segment_one": segment_one,
+        "first": first,
+    }
+
+
+@_cli_runs
+def test_h2o_cli_wall_budget_stops_after_the_round_in_flight(
+    h2o_segment_chain,
+) -> None:
+    """(a) zero budget: exit 0, one completed round, wall-clock reason."""
+
+    segment_one = h2o_segment_chain["segment_one"]
+    checkpoint = segment_one / "current.json"
+    assert checkpoint.is_file()
+    _sidecar_of(checkpoint)
+    assert (segment_one / "estimator_call_ledger.json").is_file()
+
+    manifest = _load_json(segment_one / "launch_manifest.json")
+    assert manifest["max_wall_seconds"] == 0.0
+    assert manifest["max_wall_seconds_engine_budget"] == 0.0
+    assert manifest["fresh_start"] is True
+
+    summary = _load_json(segment_one / "summary.json")
+    assert summary["stop_reason"] == "wall_clock_budget_v1"
+    assert summary["completed_controller_rounds"] == 1
+    assert summary["max_wall_seconds"] == 0.0
+    assert summary["wall_clock_budget_seconds"] == 0.0
+    assert summary["wall_clock_elapsed_seconds"] >= 0.0
+
+    result = _load_json(segment_one / "result.json")
+    stop = result["run"]["stop"]
+    assert stop["primary_reason"] == "wall_clock_budget_v1"
+    assert stop["fired_reasons"] == ["wall_clock_budget_v1"]
+    assert stop["completed_controller_rounds"] == 1
+    reasons = {row["reason"]: row["fired"] for row in stop["conditions"]}
+    assert reasons["maximum_controller_rounds"] is False
+    assert reasons["wall_clock_budget_v1"] is True
+    assert (
+        result["run"]["canonical_reporting"]["horizon_scope"]
+        == "deliberately_stopped_prefix"
+    )
+    checkpoint_payload = _load_json(checkpoint)
+    assert checkpoint_payload["checkpoint"]["depth"] == 1
+    assert checkpoint_payload["adapt_vqe"]["stop_reason"] is None
+
+
+@_cli_runs
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason=(
+        "Blocked upstream of the wall-clock seam: --resume-checkpoint on the "
+        "H2O route fails in sr_snake/_resume.py _validate_problem_binding "
+        "(CanonicalResumeError: accepted-state resume is restricted to "
+        "canonical L=2 Hubbard--Holstein or the named L=2 pure-Hubbard "
+        "application; it also rejects any request carrying "
+        "molecular_vibronic_h2o_linear_fd_fixture_json and requires "
+        "adapt_pool == 'full_meta'). Admitting the Paper-IV route to "
+        "canonical resume is a scientific-surface decision; this test "
+        "flips to a hard failure (strict xfail) once it is made."
+    ),
+)
+def test_h2o_cli_segment_chain_resumes_from_the_wall_clock_stop(
+    h2o_segment_chain,
+) -> None:
+    """(b) the campaign design: segment 2 continues from segment 1."""
+
+    segment_one = h2o_segment_chain["segment_one"]
+    segment_two = h2o_segment_chain["root"] / "segment_2"
+    second = _run_h2o_cli(
+        "--output-dir",
+        str(segment_two),
+        "--resume-checkpoint",
+        str(segment_one / "current.json"),
+    )
+    assert second.returncode == 0, second.stderr[-4000:]
+    manifest = _load_json(segment_two / "launch_manifest.json")
+    assert manifest["fresh_start"] is False
+    assert manifest["resume_checkpoint"] == str(segment_one / "current.json")
+    assert manifest["max_wall_seconds"] is None
+    assert manifest["max_wall_seconds_engine_budget"] is None
+
+    summary = _load_json(segment_two / "summary.json")
+    assert summary["completed_controller_rounds"] == 2
+    assert summary["stop_reason"] == "maximum_controller_rounds"
+    assert summary["wall_clock_budget_seconds"] is None
+
+    first_result = _load_json(segment_one / "result.json")
+    second_result = _load_json(segment_two / "result.json")
+    first_trajectory = first_result["run"]["accepted_trajectory"]
+    second_trajectory = second_result["run"]["accepted_trajectory"]
+    assert len(first_trajectory) == 1
+    assert len(second_trajectory) == 2
+    assert second_trajectory[0] == first_trajectory[0]
+    assert (
+        second_trajectory[1]["controller_round"]
+        > second_trajectory[0]["controller_round"]
+    )
+    checkpoint = segment_two / "current.json"
+    assert _load_json(checkpoint)["checkpoint"]["depth"] == 2
+    _sidecar_of(checkpoint)
+    # Segment 1's checkpoint is untouched by the resumed segment.
+    assert _load_json(segment_one / "current.json")["checkpoint"]["depth"] == 1
+
+
+@_cli_runs
+def test_h2o_cli_wall_budget_leaves_the_protocol_digest_unchanged(
+    h2o_segment_chain,
+) -> None:
+    """(c) protocol.json is byte-identical with and without the budget.
+
+    The resolved protocol binds the observation paths (checkpoint and
+    ledger live under --output-dir), so the flag-free reference protocol
+    is resolved in-process for the same output directory: the budgeted
+    CLI launch must have written exactly that protocol and digest.
+    """
+
+    segment_one = h2o_segment_chain["segment_one"]
+    manifest = _load_json(segment_one / "launch_manifest.json")
+    assert manifest["max_wall_seconds"] == 0.0
+    problem = _problem(_FIXTURE)
+    request = build_h2o_ra_request(
+        problem=problem,
+        output_dir=segment_one,
+        maximum_controller_rounds=2,
+        gradient_tolerance=manifest["gradient_tolerance"],
+        exact_absolute_tolerance=manifest["exact_absolute_tolerance"],
+        candidate_representation=CANDIDATE_REPRESENTATION_MACRO,
+        insertion=H2O_INSERTION_APPEND_ONLY,
+    )
+    reference = build_resolved_ra_protocol(problem, request)
+    assert reference.sha256 == manifest["protocol_sha256"]
+    with_budget = _load_json(segment_one / "protocol.json")
+    assert with_budget == reference.to_dict()
+    assert with_budget["sha256"] == reference.sha256
+    result = _load_json(segment_one / "result.json")
+    assert result["protocol"]["sha256"] == reference.sha256
+    assert "maximum_wall_seconds" not in json.dumps(with_budget)
+

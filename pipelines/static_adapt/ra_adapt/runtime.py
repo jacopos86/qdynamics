@@ -26,6 +26,8 @@ from pipelines.static_adapt.estimator_call_ledger import (
     projective_state_fingerprint,
 )
 from pipelines.static_adapt.sr_snake._controller import (
+    WALL_CLOCK_BUDGET_STOP_REASON,
+    WallClockBudget,
     _ControllerOutcome,
     _DefaultControllerFinalization,
     _run_default_combinatorial_batch_controller,
@@ -1764,7 +1766,8 @@ def _canonical_reporting_receipt(
         ),
         horizon_scope=(
             "deliberately_stopped_prefix"
-            if outcome.stop.primary_reason == "maximum_controller_rounds"
+            if outcome.stop.primary_reason
+            in {"maximum_controller_rounds", WALL_CLOCK_BUDGET_STOP_REASON}
             else "natural_terminal"
         ),
         candidate_representation=(
@@ -1806,8 +1809,15 @@ def _execute_sr_snake(
 def _execute_resolved_context(
     context: _ResolvedExecutionContext,
     normalized: SRRunRequest,
+    *,
+    wall_clock_budget: WallClockBudget | None = None,
 ) -> _CompletedSRRun:
-    """Execute an authenticated resolved context through the shared controller."""
+    """Execute an authenticated resolved context through the shared controller.
+
+    ``wall_clock_budget`` is the operational wall-clock horizon opened by
+    ``run_ra_adapt``; it is evaluated by the direct controllers only at
+    controller-round boundaries and is ``None`` for an unbudgeted run.
+    """
 
     if not isinstance(context, _ResolvedExecutionContext):
         raise TypeError("context must be a _ResolvedExecutionContext.")
@@ -1815,11 +1825,20 @@ def _execute_resolved_context(
         raise TypeError("normalized must be an SRRunRequest.")
     if context.request is not normalized:
         raise ValueError("Resolved context and request identities disagree.")
-    _prepare_observation_destinations(context)
-    runtime = context.build_default_controller_runtime()
+    if wall_clock_budget is not None and not isinstance(
+        wall_clock_budget, WallClockBudget
+    ):
+        raise TypeError("wall_clock_budget must be a WallClockBudget or None.")
     admission = context.request.method.admission
     beam = context.request.method.beam
     beam_extension = beam_extension_from_policy(beam)
+    if wall_clock_budget is not None and beam_extension is not None:
+        raise ValueError(
+            "A wall-clock budget is supported only by the direct singleton "
+            "and batch controllers, not the fork-local beam extension."
+        )
+    _prepare_observation_destinations(context)
+    runtime = context.build_default_controller_runtime()
     if beam_extension is not None:
         outcome = _run_default_fork_local_beam_controller(
             runtime,
@@ -1832,15 +1851,21 @@ def _execute_resolved_context(
             runtime,
             context.stop,
             admission,
+            wall_clock_budget=wall_clock_budget,
         )
     elif isinstance(admission, CombinatorialBatchAdmission):
         outcome = _run_default_combinatorial_batch_controller(
             runtime,
             context.stop,
             admission,
+            wall_clock_budget=wall_clock_budget,
         )
     elif isinstance(admission, SingletonAdmission):
-        outcome = _run_default_singleton_controller(runtime, context.stop)
+        outcome = _run_default_singleton_controller(
+            runtime,
+            context.stop,
+            wall_clock_budget=wall_clock_budget,
+        )
     else:
         runtime.close()
         raise RuntimeError(
@@ -1948,6 +1973,17 @@ def _execute_resolved_context(
         "full_meta",
         "full_meta_derivative_resolved_v2",
     }
+    # The Paper-IV molecular-vibronic H2O application reuses the
+    # ``full_meta_derivative_resolved_v2`` pool name but executes its own
+    # lane-owned route identity, which the canonical Paper-I summary
+    # validator (``_validate_canonical_identity``) rejects by design.
+    # Paper IV must not inherit Paper-I evidence contracts, so it completes
+    # without the Paper-I summary instead of failing after its final round.
+    if (
+        str(context.problem.family_key).strip().lower()
+        == "molecular_vibronic_h2o_linear_fd"
+    ):
+        canonical_pool_identity = False
     if canonical_pool_identity and (
         accepted_trajectory
         and isinstance(

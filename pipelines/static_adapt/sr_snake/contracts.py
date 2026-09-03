@@ -1691,6 +1691,11 @@ class StopReceipt(SerializableContract):
     exact_source: ExactEDSourceReceipt | None = None
     exact_confirmation_controller_rounds: int | None = None
     exact_first_hit_controller_round: int | None = None
+    # Operational wall-clock budget (RAAdaptOperationalControls); both stay
+    # ``None`` -- and therefore absent from ``to_dict`` -- unless a budget
+    # was configured, so unbudgeted receipts serialize exactly as before.
+    wall_clock_budget_seconds: float | None = None
+    wall_clock_elapsed_seconds: float | None = None
 
 
 @dataclass(frozen=True)

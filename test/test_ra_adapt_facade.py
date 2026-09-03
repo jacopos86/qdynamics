@@ -822,6 +822,116 @@ def test_bundle_operational_controls_authenticate_a_real_bounded_continuation(
         )
 
 
+def test_operational_wall_clock_budget_segments_a_run_without_touching_the_protocol(
+    tmp_path: Path,
+) -> None:
+    """A spent wall budget stops at the next round boundary, resumably.
+
+    Segment one carries a zero budget: the round in flight still completes
+    (a segment always makes progress), the controller stops with the
+    operational ``wall_clock_budget_v1`` reason, and its checkpoint plus
+    estimator-ledger sidecar are the ordinary accepted-state artifacts.
+    Segment two resumes from that checkpoint with no budget and runs to
+    the authorized horizon; the protocol digest never changes.
+    """
+
+    problem = _hh_problem()
+    protocol = _validated_macro_protocol(problem, rounds=3)
+    protocol_sha256 = protocol.sha256
+    assert "maximum_wall_seconds" not in RAAdaptOperationalControls(
+        maximum_controller_rounds=3
+    ).to_dict()
+
+    first_leg = run_ra_adapt(
+        problem,
+        protocol,
+        operational_controls=RAAdaptOperationalControls(
+            maximum_controller_rounds=3,
+            observation=_diagnostic_observation(
+                tmp_path,
+                stem="wall-first-leg",
+            ),
+            maximum_wall_seconds=0.0,
+        ),
+    )
+    stop = first_leg.run.stop
+    assert stop.completed_controller_rounds == 1
+    assert stop.primary_reason == "wall_clock_budget_v1"
+    assert stop.fired_reasons == ("wall_clock_budget_v1",)
+    assert [condition.reason for condition in stop.conditions] == [
+        "maximum_controller_rounds",
+        "wall_clock_budget_v1",
+    ]
+    assert stop.conditions[0].fired is False
+    assert stop.conditions[1].fired is True
+    assert stop.wall_clock_budget_seconds == 0.0
+    assert stop.wall_clock_elapsed_seconds is not None
+    assert stop.wall_clock_elapsed_seconds >= 0.0
+    assert (
+        first_leg.run.canonical_reporting.horizon_scope
+        == "deliberately_stopped_prefix"
+    )
+    assert first_leg.protocol == protocol
+    assert protocol.sha256 == protocol_sha256
+
+    checkpoint_path = tmp_path / "wall-first-leg.current.json"
+    checkpoint_payload = json.loads(checkpoint_path.read_text())
+    assert checkpoint_payload["checkpoint"]["depth"] == 1
+    assert checkpoint_payload["adapt_vqe"]["stop_reason"] is None
+    pointer = checkpoint_payload["checkpoint"][
+        "estimator_call_ledger_checkpoint"
+    ]
+    sidecar_path = checkpoint_path.with_name(pointer["path"])
+    assert sidecar_path.is_file()
+    assert (
+        hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
+        == pointer["sha256"]
+    )
+
+    resumed = run_ra_adapt(
+        problem,
+        protocol,
+        operational_controls=RAAdaptOperationalControls(
+            maximum_controller_rounds=3,
+            resume=AcceptedStateResume(
+                checkpoint_path=checkpoint_path,
+                checkpoint_sha256=hashlib.sha256(
+                    checkpoint_path.read_bytes()
+                ).hexdigest(),
+            ),
+            observation=_diagnostic_observation(
+                tmp_path,
+                stem="wall-resumed",
+            ),
+        ),
+    )
+    assert resumed.protocol == protocol
+    assert resumed.run.stop.completed_controller_rounds == 3
+    assert resumed.run.stop.primary_reason == "maximum_controller_rounds"
+    assert resumed.run.stop.wall_clock_budget_seconds is None
+    assert [
+        row.to_dict() for row in resumed.run.accepted_trajectory[:1]
+    ] == [row.to_dict() for row in first_leg.run.accepted_trajectory]
+
+    unsegmented = run_ra_adapt(
+        problem,
+        protocol,
+        operational_controls=RAAdaptOperationalControls(
+            maximum_controller_rounds=3,
+            observation=_diagnostic_observation(
+                tmp_path,
+                stem="wall-unsegmented",
+            ),
+        ),
+    )
+    assert "wall_clock_budget_v1" not in [
+        condition.reason for condition in unsegmented.run.stop.conditions
+    ]
+    assert [
+        row.to_dict() for row in unsegmented.run.accepted_trajectory
+    ] == [row.to_dict() for row in resumed.run.accepted_trajectory]
+
+
 def test_v2_macro_always_bundle_resume_preserves_full_response_contract(
     tmp_path: Path,
 ) -> None:
