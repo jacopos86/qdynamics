@@ -72,6 +72,22 @@ allowed at all. Every one of these was a correction the user had to repeat.
   agent's job is to test that, not to recite the guard's intent.
 
 <!-- gitnexus:start -->
+## Subagent model invariant (user-directed 2026-09-03)
+
+The failure being corrected: a 13-agent workflow fan-out that inherited the
+Fable session model for one-shot tracer and refuter agents. Initializing a
+Fable subagent re-pays the full context cost with no prompt-cache benefit;
+caching only pays off when the same agent is continued.
+
+- **One-shot subagents and workflow agents never inherit Fable.** Pass
+  `model: "opus"` explicitly on every Agent call and on every workflow
+  `agent()` call. Not sonnet (user-rejected, same session).
+- **Inherit Fable only for an agent that will be reused.** That means an
+  agent you will continue with SendMessage on the same loaded context for
+  follow-up questions. Say so when launching it.
+- **This is not a memory-only rule.** It was written here because the memory
+  entry alone was judged insufficient; keep both in sync.
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **Holstein_test** (103520 symbols, 213084 relationships, 722 execution flows).
