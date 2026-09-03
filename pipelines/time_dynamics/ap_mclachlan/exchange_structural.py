@@ -52,6 +52,7 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.performance import count, phase
 from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    GammaMonotonicityError,
     check_gamma_nested_monotonicity,
 )
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
@@ -193,6 +194,7 @@ class StructuralCandidate:
     proxy_delete_components: Mapping[str, float] | None = None
     patch_word_sha256: str | None = None
     cost_error: str | None = None
+    ordinate_error: str | None = None
 
     @property
     def kind(self) -> str:
@@ -530,6 +532,7 @@ def iter_structural_families(
         m_gamma = None
         cost_inputs = None
         cost_error = None
+        ordinate_error = None
         if population_scoring and active_population_face(removed, selection):
             nonlocal compile_calls_total
             if gamma_rcond is not None:
@@ -538,14 +541,29 @@ def iter_structural_families(
                 if gamma_joint is not None and gamma_base is not None:
                     if not removed and selection:
                         # Pure insertion: J is a subset of J^B, so ideal
-                        # Gamma must not decrease; fail closed otherwise.
-                        check_gamma_nested_monotonicity(
-                            gamma_base=float(gamma_base),
-                            gamma_patched=float(gamma_joint),
-                            denominator=gamma_denominator,
-                            rcond=float(gamma_rcond),
+                        # Gamma must not decrease.  A relative-cutoff rank
+                        # transition can violate that identity for one
+                        # candidate; reject that candidate from the shared
+                        # Q/Gamma population rather than aborting the whole
+                        # checkpoint (or clipping the ordinate).
+                        try:
+                            check_gamma_nested_monotonicity(
+                                gamma_base=float(gamma_base),
+                                gamma_patched=float(gamma_joint),
+                                denominator=gamma_denominator,
+                                rcond=float(gamma_rcond),
+                            )
+                        except GammaMonotonicityError as exc:
+                            ordinate_error = f"{type(exc).__name__}:{exc}"
+                    if ordinate_error is None:
+                        m_gamma = float(
+                            (gamma_joint - gamma_base) / gamma_denominator
                         )
-                    m_gamma = float((gamma_joint - gamma_base) / gamma_denominator)
+            # Price every regime-active candidate even when Gamma rejected
+            # it.  The parallel path has already warmed the complete admitted
+            # family, so replaying the cost lookup here preserves serial /
+            # parallel compile accounting and attaches the same marginal for
+            # audit.  The population ranker still excludes ordinate errors.
             if candidate_cost_inputs is not None and (removed or selection):
                 try:
                     cost_inputs = candidate_cost_inputs(removed, tuple(selection), plan)
@@ -577,6 +595,7 @@ def iter_structural_families(
             ),
             patch_word_sha256=None if cost_inputs is None else cost_inputs.patch_word_sha256,
             cost_error=cost_error,
+            ordinate_error=ordinate_error,
         )
 
     def priority_value(candidate: StructuralCandidate) -> float:

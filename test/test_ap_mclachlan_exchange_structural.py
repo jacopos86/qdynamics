@@ -29,6 +29,9 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     tokens_commute_from_terms,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    GammaMonotonicityError,
+)
 from pipelines.time_dynamics.ap_mclachlan.state import state_from_scaffold_runtime_input
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     build_structural_insertion_cache,
@@ -318,6 +321,55 @@ def test_one_compiler_failure_rejects_only_dependent_candidates() -> None:
     assert failed and surviving
     assert all(c.cost_marginal is None and "synthetic compiler failure" in c.cost_error for c in failed)
     assert all(c.cost_marginal == (1, 2, 3) and c.cost_error is None for c in surviving)
+
+
+def test_one_gamma_monotonicity_failure_rejects_only_that_candidate(
+    monkeypatch,
+) -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+    checked = 0
+    compiled: list[
+        tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
+    ] = []
+
+    def check_once(**_kwargs):
+        nonlocal checked
+        checked += 1
+        if checked == 1:
+            raise GammaMonotonicityError("synthetic rank transition")
+        return 0.0
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        compiled.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    monkeypatch.setattr(
+        "pipelines.time_dynamics.ap_mclachlan.exchange_structural."
+        "check_gamma_nested_monotonicity",
+        check_once,
+    )
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    insertions = [c for c in result.candidates if c.kind == "insert"]
+    rejected = [c for c in insertions if c.ordinate_error is not None]
+    surviving = [c for c in insertions if c.ordinate_error is None]
+    assert len(rejected) == 1 and surviving
+    assert rejected[0].m_gamma is None and rejected[0].cost_marginal == (1, 2, 3)
+    assert "synthetic rank transition" in rejected[0].ordinate_error
+    assert (
+        rejected[0].removed_runtime_indices,
+        rejected[0].inserted_selection,
+    ) in compiled
+    assert all(c.m_gamma is not None and c.cost_marginal == (1, 2, 3) for c in surviving)
 
 
 def test_compile_budget_counts_only_large_miss_insertion_face() -> None:

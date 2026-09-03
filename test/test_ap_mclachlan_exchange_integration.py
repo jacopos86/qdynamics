@@ -651,6 +651,62 @@ def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
     assert parallel_selection.kind == serial_selection.kind
 
 
+def test_gamma_rejection_preserves_serial_parallel_compile_parity(
+    monkeypatch,
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+        GammaMonotonicityError,
+    )
+
+    def reject_pure_insertion(**_kwargs):
+        raise GammaMonotonicityError("synthetic rank transition")
+
+    monkeypatch.setattr(
+        "pipelines.time_dynamics.ap_mclachlan.exchange_structural."
+        "check_gamma_nested_monotonicity",
+        reject_pure_insertion,
+    )
+    serial_selection, serial = _route_payload(
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        support_patch_scoring_workers=1,
+        insertion_gate_mode="mclachlan_l2",
+        insertion_l2_cut=0.0,
+    )
+    parallel_selection, parallel = _route_payload(
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        support_patch_scoring_workers=4,
+        insertion_gate_mode="mclachlan_l2",
+        insertion_l2_cut=0.0,
+    )
+    serial_route = serial["selector_route"]
+    parallel_route = parallel["selector_route"]
+    assert serial_route["compile"]["compile_calls"] == parallel_route["compile"][
+        "compile_calls"
+    ]
+    assert [level["population_sha256"] for level in serial_route["levels"]] == [
+        level["population_sha256"] for level in parallel_route["levels"]
+    ]
+    assert [
+        level["decision_receipt_sha256"] for level in serial_route["levels"]
+    ] == [level["decision_receipt_sha256"] for level in parallel_route["levels"]]
+    serial_rejections = [
+        row
+        for level in serial_route["levels"]
+        for row in level["ordinate_rejections"]
+    ]
+    parallel_rejections = [
+        row
+        for level in parallel_route["levels"]
+        for row in level["ordinate_rejections"]
+    ]
+    assert serial_rejections
+    assert serial_rejections == parallel_rejections
+    assert serial_selection.kind == parallel_selection.kind
+
+
 def test_compiled_bundle_uses_placement_cut_when_it_materializes() -> None:
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
         EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
@@ -692,9 +748,10 @@ def _population_candidate(
     atom: str | None = None,
     removed: tuple[int, ...] = (),
     delta: float,
-    gamma: float,
+    gamma: float | None,
     marginal: tuple[int, int, int] | None,
     cost_error: str | None = None,
+    ordinate_error: str | None = None,
 ) -> StructuralCandidate:
     selection = () if atom is None else ((str(atom), 0),)
     return StructuralCandidate(
@@ -709,9 +766,10 @@ def _population_candidate(
         insertion_utility=0.0,
         deletion_utility=0.0,
         score=float(delta),
-        m_gamma=float(gamma),
+        m_gamma=None if gamma is None else float(gamma),
         cost_marginal=marginal,
         cost_error=cost_error,
+        ordinate_error=ordinate_error,
     )
 
 
@@ -810,3 +868,68 @@ def test_full_population_receipt_exceeds_old_top24_and_recomputes_hash() -> None
             "reason": "CompileTimeoutError:timed out",
         }
     ]
+
+
+def test_gamma_rejection_is_shared_by_q_and_gamma_compiled_populations() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.append_cost import AppendCostSettings
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        APGeneralizedExchangeConfig,
+        EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED,
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    valid = (
+        _population_candidate(
+            atom="a", delta=1.0, gamma=2.0, marginal=(1, 2, 3)
+        ),
+        _population_candidate(
+            atom="b", delta=2.0, gamma=1.0, marginal=(2, 3, 4)
+        ),
+    )
+    rejected = _population_candidate(
+        atom="bad",
+        delta=100.0,
+        gamma=100.0,
+        marginal=(9, 9, 9),
+        ordinate_error="GammaMonotonicityError:synthetic rank transition",
+    )
+    levels = []
+    for bundle in (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED,
+    ):
+        route = APGeneralizedExchangeConfig.from_route_config(
+            _config(exchange_route_bundle=bundle)
+        ).route
+        levels.append(
+            build_population_ranker(
+                bundle=route.bundle,
+                route=route,
+                accuracy_debt=True,
+                weights=StructuralScoreWeights(),
+                score_floor=0.0,
+                cost_settings=AppendCostSettings(),
+                population_context={"checkpoint": 2},
+            )((*valid, rejected))
+        )
+
+    q_level, gamma_level = levels
+    assert q_level.telemetry["population_size"] == 2
+    assert gamma_level.telemetry["population_size"] == 2
+    assert q_level.telemetry["population_sha256"] == gamma_level.telemetry["population_sha256"]
+    assert q_level.telemetry["cost_population_sha256"] == gamma_level.telemetry[
+        "cost_population_sha256"
+    ]
+    assert rejected.order_key not in q_level.rank_info
+    assert rejected.order_key not in gamma_level.rank_info
+    expected_rejection = [
+        {
+            "patch": [
+                list(rejected.order_key[0]),
+                [list(x) for x in rejected.order_key[1]],
+            ],
+            "reason": "GammaMonotonicityError:synthetic rank transition",
+        }
+    ]
+    assert q_level.telemetry["ordinate_rejections"] == expected_rejection
+    assert gamma_level.telemetry["ordinate_rejections"] == expected_rejection

@@ -601,6 +601,7 @@ def build_population_ranker(
                 for c in competing
                 if c.cost_marginal is not None
                 and np.isfinite(float(c.delta))
+                and c.ordinate_error is None
                 and c.m_gamma is not None
                 and np.isfinite(float(c.m_gamma))
             ]
@@ -623,6 +624,17 @@ def build_population_ranker(
                             }
                             for c in competing
                             if c.cost_error is not None
+                        ],
+                        "ordinate_rejections": [
+                            {
+                                "patch": [
+                                    list(c.order_key[0]),
+                                    [list(x) for x in c.order_key[1]],
+                                ],
+                                "reason": str(c.ordinate_error),
+                            }
+                            for c in competing
+                            if c.ordinate_error is not None
                         ],
                     },
                 )
@@ -730,6 +742,17 @@ def build_population_ranker(
                     }
                     for c in competing
                     if c.cost_error is not None
+                ],
+                "ordinate_rejections": [
+                    {
+                        "patch": [
+                            list(c.order_key[0]),
+                            [list(x) for x in c.order_key[1]],
+                        ],
+                        "reason": str(c.ordinate_error),
+                    }
+                    for c in competing
+                    if c.ordinate_error is not None
                 ],
                 "top": ranked_rows[:24],
             }
