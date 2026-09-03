@@ -51,6 +51,11 @@ class AttemptRecord:
     ray_distance: float | None = None
     smoothness_eta: float | None = None
     deletion_loss: float | None = None
+    # Population-scoring bundles: the sealed cost factor, route score, and
+    # physical ordinate that placed this finalist in the certification order.
+    cost_factor_k: float | None = None
+    route_score: float | None = None
+    route_merit: float | None = None
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -65,6 +70,9 @@ class AttemptRecord:
             "ray_distance": self.ray_distance,
             "smoothness_eta": self.smoothness_eta,
             "deletion_loss": self.deletion_loss,
+            "cost_factor_k": self.cost_factor_k,
+            "route_score": self.route_score,
+            "route_merit": self.route_merit,
         }
 
 
@@ -78,10 +86,35 @@ class ExchangeSelection:
     telemetry: StructuralEnumeration | None
     stop_reason: str
     structural_scored_count: int
+    level_telemetry: tuple[dict[str, Any], ...] = ()
 
     @property
     def kind(self) -> str:
         return "stay" if self.committed is None else self.committed.kind
+
+
+@dataclass(frozen=True)
+class RankInfo:
+    """Sealed population values that placed one candidate in rank order."""
+
+    K: float
+    score: float
+    merit: float
+
+
+@dataclass(frozen=True)
+class RankedLevel:
+    """One certification level after population sealing.
+
+    ``ordered`` is the certification order (eligible candidates only);
+    ``rank_info`` maps ``order_key`` to the sealed values; ``telemetry`` is
+    the JSON-ready receipt (population hash, medians, MADs, K, regime, tau,
+    exclusions) recorded once per level.
+    """
+
+    ordered: tuple[StructuralCandidate, ...]
+    rank_info: Mapping[tuple, RankInfo]
+    telemetry: Mapping[str, Any]
 
 
 def candidate_insertions(
@@ -101,10 +134,15 @@ def candidate_insertions(
 
     entries: list[tuple[int, Any, str]] = []
     if candidate.plan is None:
+        # Compiled-cost bundles materialize each inserted atom at the cut
+        # chosen inside its commutation class (geometry-identical to the
+        # retained representative; only the compiled circuit differs).
+        placement = dict(candidate.placement_cuts or ())
         for ordinal, (atom_id, cut) in enumerate(candidate.inserted_selection):
             atom = atoms_by_id[str(atom_id)]
+            realized_cut = int(placement.get(str(atom_id), cut))
             entries.append(
-                (int(cut), atom.term, occurrence_label(atom, int(cut), ordinal))
+                (realized_cut, atom.term, occurrence_label(atom, realized_cut, ordinal))
             )
         return tuple(entries)
     survivor_count = 0
@@ -145,6 +183,10 @@ def select_exchange_patch(
     solve_repair_config: Any | None = None,
     max_certification_attempts_per_level: int | None = None,
     max_certification_attempts_per_deletion_branch: int | None = None,
+    population_ranker: (
+        Callable[[Sequence[StructuralCandidate]], "RankedLevel"] | None
+    ) = None,
+    realized_l2_gate: Callable[[CertificationResult], bool] | None = None,
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
@@ -172,6 +214,7 @@ def select_exchange_patch(
     should_escalate = escalate or (lambda: True)
     scored: list[StructuralCandidate] = []
     attempts: list[AttemptRecord] = []
+    level_telemetry: list[dict[str, Any]] = []
     attempted: set = set()
     telemetry: StructuralEnumeration | None = None
     stop_reason = "no_structural_families"
@@ -225,22 +268,33 @@ def select_exchange_patch(
         attempts_this_level = 0
         budget_hit = False
         branch_failures: dict = {}
-        ranked = sorted(
-            (
-                c
-                for c in scored
-                if c.kind != "stay"
-                and np.isfinite(float(c.score))
-                and float(c.score) > float(score_floor)
-            ),
-            # Lexicographic: accuracy first, utility only among exact ties.
-            key=lambda c: (
-                -float(getattr(c, "rank_primary", c.score)),
-                -float(getattr(c, "rank_secondary", 0.0)),
-                c.order_key,
-            ),
-        )
+        rank_info: dict = {}
+        if population_ranker is not None:
+            # Population-scoring bundles: seal the whole level once (cost
+            # factors, shifted scores, eligibility), then certify in that
+            # order.  A rejected finalist never triggers renormalization.
+            level = population_ranker(tuple(scored))
+            ranked = list(level.ordered)
+            rank_info = dict(level.rank_info)
+            level_telemetry.append(dict(level.telemetry))
+        else:
+            ranked = sorted(
+                (
+                    c
+                    for c in scored
+                    if c.kind != "stay"
+                    and np.isfinite(float(c.score))
+                    and float(c.score) > float(score_floor)
+                ),
+                # Lexicographic: accuracy first, utility only among exact ties.
+                key=lambda c: (
+                    -float(getattr(c, "rank_primary", c.score)),
+                    -float(getattr(c, "rank_secondary", 0.0)),
+                    c.order_key,
+                ),
+            )
         for candidate in ranked:
+            info = rank_info.get(candidate.order_key)
             if candidate.order_key in attempted:
                 continue
             if budget is not None and attempts_this_level >= budget:
@@ -291,6 +345,22 @@ def select_exchange_patch(
                     refit=refit,
                     solve_repair_config=solve_repair_config,
                 )
+            if (
+                result.certified
+                and realized_l2_gate is not None
+                and not bool(realized_l2_gate(result))
+            ):
+                # Realized L^2 is the authority for every route: a finalist
+                # whose materialized solve does not improve the checkpoint
+                # distance is rejected here and the next ranked candidate is
+                # tried, with the sealed population untouched.
+                result = CertificationResult(
+                    certified=False,
+                    reason="realized_l2_not_improved",
+                    ray_distance=result.ray_distance,
+                    smoothness_eta=result.smoothness_eta,
+                    condition_number=result.condition_number,
+                )
             attempts.append(
                 AttemptRecord(
                     family=candidate.family,
@@ -304,6 +374,9 @@ def select_exchange_patch(
                     deletion_loss=float(candidate.deletion_loss)
                     if candidate.removed_runtime_indices
                     else None,
+                    cost_factor_k=None if info is None else float(info.K),
+                    route_score=None if info is None else float(info.score),
+                    route_merit=None if info is None else float(info.merit),
                 )
             )
             if not result.certified and candidate.removed_runtime_indices:
@@ -321,6 +394,7 @@ def select_exchange_patch(
                     telemetry=telemetry,
                     stop_reason="committed",
                     structural_scored_count=int(len(scored)),
+                    level_telemetry=tuple(level_telemetry),
                 )
         stop_reason = "attempt_budget_exhausted" if budget_hit else "level_exhausted"
         if not should_escalate():
@@ -335,6 +409,7 @@ def select_exchange_patch(
         telemetry=telemetry,
         stop_reason=stop_reason,
         structural_scored_count=int(len(scored)),
+        level_telemetry=tuple(level_telemetry),
     )
 
 
@@ -342,6 +417,8 @@ __all__ = [
     "GENERALIZED_EXCHANGE_SELECTION_POLICY_V2",
     "AttemptRecord",
     "ExchangeSelection",
+    "RankInfo",
+    "RankedLevel",
     "candidate_insertions",
     "select_exchange_patch",
 ]

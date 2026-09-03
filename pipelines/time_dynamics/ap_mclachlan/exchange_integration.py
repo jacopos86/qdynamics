@@ -42,6 +42,8 @@ from typing import Any, Mapping
 import hashlib
 import json
 import os
+import time
+from dataclasses import asdict
 
 import numpy as np
 
@@ -64,14 +66,32 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
 from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
     APGeneralizedExchangeConfig,
     ExchangeEligibilityConfig,
+    ExchangeRouteBundle,
+    ExchangeRouteConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
     ExchangeSelection,
+    RankInfo,
+    RankedLevel,
     select_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    CandidateCostInputs,
+    StructuralCandidate,
     StructuralScoreWeights,
+)
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    DEFAULT_GAMMA_PINV_RCOND,
+)
+from pipelines.time_dynamics.ap_mclachlan.performance import phase
+from pipelines.time_dynamics.ap_mclachlan.population_scoring import (
+    CompiledResourceMarginal,
+    PopulationCostNormalization,
+    RankRegime,
+    ScoreRecord,
+    legacy_family_robust_denominators,
+    score_and_rank,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import FixedMcLachlanStep
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import GeometryEvaluation
@@ -181,6 +201,365 @@ def _build_deletion_permission_evaluator(
         ),
         epsilon_norm=float(StructuralScoreWeights().epsilon_norm),
     )
+
+
+PLACEMENT_RULE_ID = "paper_ii_min_weighted_raw_marginal_placement_v1"
+
+
+class CompiledCostRuntime:
+    """Per-checkpoint compiled-cost adapter for the compiled bundles.
+
+    Resolves the sealed backend once per process, compiles the base word
+    once per checkpoint, chooses one materialization cut per (atom, retained
+    cut) inside its commutation class, and compiles every complete patch
+    exactly once through a word-identity cache.  Failures raise; there is no
+    proxy or ``K = 1`` fallback.
+    """
+
+    def __init__(
+        self,
+        *,
+        state: APMcLachlanState,
+        atoms_by_id: Mapping[str, Any],
+        cuts_by_atom: Mapping[str, Sequence[int]],
+        blocks: Sequence[Any],
+        contract: Any,
+    ) -> None:
+        from pipelines.time_dynamics.ap_mclachlan import compiled_patch_cost as cpc
+
+        self._cpc = cpc
+        self.state = state
+        self.atoms_by_id = dict(atoms_by_id)
+        self.cuts_by_atom = {k: tuple(int(c) for c in v) for k, v in cuts_by_atom.items()}
+        self.blocks = tuple(blocks)
+        self.contract = contract
+        self.backend, self.backend_provenance = _resolve_compile_backend_cached(contract)
+        self.cache = cpc.CompiledPatchCostCache()
+        self.nq = int(state.executor.nq)
+        self.ref_state = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
+        self.base_terms = tuple(_per_coordinate_terms(state))
+        self.seconds = 0.0
+        start = time.perf_counter()
+        with phase("patch.exchange.compile"):
+            self.base_triple = self.cache.compile_word(
+                self.base_terms,
+                nq=self.nq,
+                ref_state=self.ref_state,
+                contract=contract,
+                backend_obj=self.backend,
+            )
+        self.seconds += time.perf_counter() - start
+        self._placements: dict[tuple[str, int], Any] = {}
+        self._class_members: dict[str, dict[int, tuple[int, ...]]] = {}
+
+    def placement(self, atom_id: str, retained_cut: int) -> Any:
+        key = (str(atom_id), int(retained_cut))
+        cached = self._placements.get(key)
+        if cached is not None:
+            return cached
+        atom = self.atoms_by_id[str(atom_id)]
+        members_by_cut = self._class_members.get(str(atom_id))
+        if members_by_cut is None:
+            members_by_cut = self._cpc.insertion_class_members(atom.term, self.blocks)
+            self._class_members[str(atom_id)] = members_by_cut
+        members = members_by_cut[int(retained_cut)]
+        start = time.perf_counter()
+        with phase("patch.exchange.compile"):
+            placement = self._cpc.choose_placement(
+                atom.term,
+                members,
+                base_terms=self.base_terms,
+                nq=self.nq,
+                ref_state=self.ref_state,
+                contract=self.contract,
+                backend_obj=self.backend,
+                cache=self.cache,
+            )
+        self.seconds += time.perf_counter() - start
+        self._placements[key] = placement
+        return placement
+
+    def cost_inputs(
+        self,
+        removed: tuple[int, ...],
+        selection: tuple[tuple[str, int], ...],
+        plan: Any,
+    ) -> CandidateCostInputs:
+        calls_before = int(self.cache.compile_calls)
+        entries: list[tuple[int, Any, str]] = []
+        placement_cuts: list[tuple[str, int]] = []
+        for ordinal, (atom_id, cut) in enumerate(selection):
+            placement = self.placement(str(atom_id), int(cut))
+            chosen = int(placement.chosen_cut)
+            placement_cuts.append((str(atom_id), chosen))
+            entries.append((chosen, self.atoms_by_id[str(atom_id)].term, f"{atom_id}@{chosen}#{ordinal}"))
+        start = time.perf_counter()
+        with phase("patch.exchange.compile"):
+            record = self._cpc.compile_complete_patch(
+                self.state,
+                removed_runtime_indices=tuple(int(i) for i in removed),
+                insertions=tuple(entries),
+                contract=self.contract,
+                backend_obj=self.backend,
+                cache=self.cache,
+                base_triple=self.base_triple,
+            )
+        self.seconds += time.perf_counter() - start
+        marginal = record.marginal
+        return CandidateCostInputs(
+            cost_marginal=(int(marginal.n2q), int(marginal.d2q), int(marginal.dc)),
+            placement_cuts=tuple(placement_cuts),
+            patch_word_sha256=str(record.word_sha256),
+            compile_calls=int(self.cache.compile_calls) - calls_before,
+        )
+
+    def telemetry(self) -> dict[str, Any]:
+        return {
+            "placement_rule": PLACEMENT_RULE_ID,
+            "backend": self.backend_provenance,
+            "base_resources": {
+                "n2q": int(self.base_triple.n2q),
+                "d2q": int(self.base_triple.d2q),
+                "dc": int(self.base_triple.dc),
+            },
+            "compile_calls": int(self.cache.compile_calls),
+            "cache_hits": int(self.cache.cache_hits),
+            "placements_chosen": int(len(self._placements)),
+            "compile_seconds": float(self.seconds),
+        }
+
+
+_BACKEND_CACHE: dict[tuple, tuple[Any, dict[str, Any]]] = {}
+
+
+def _resolve_compile_backend_cached(contract: Any) -> tuple[Any, dict[str, Any]]:
+    from pipelines.time_dynamics.ap_mclachlan import compiled_patch_cost as cpc
+
+    key = (
+        str(contract.backend_name),
+        int(contract.optimization_level),
+        int(contract.transpile_seed),
+    )
+    cached = _BACKEND_CACHE.get(key)
+    if cached is None:
+        cached = cpc.resolve_compile_backend(contract)
+        _BACKEND_CACHE[key] = cached
+    return cached
+
+
+def _legacy_proxy_cost_inputs(
+    *,
+    atoms_by_id: Mapping[str, Any],
+    active_by_index: Mapping[int, Any],
+):
+    """Raw Paper-I proxy components per patch, for population repair."""
+
+    def cost_inputs(
+        removed: tuple[int, ...],
+        selection: tuple[tuple[str, int], ...],
+        plan: Any,
+    ) -> CandidateCostInputs:
+        insert_components = None
+        delete_components = None
+        if selection:
+            atom_ids = tuple(atom_id for atom_id, _cut in selection)
+            raw = estimate_append_atom_set_cost(tuple(atoms_by_id[str(a)] for a in atom_ids))
+            insert_components = dict(raw.raw_components)
+        if removed:
+            selected = tuple(
+                active_by_index[int(i)] for i in removed if int(i) in active_by_index
+            )
+            if selected:
+                delete_components = dict(estimate_prune_atom_set_cost(selected).raw_components)
+        return CandidateCostInputs(
+            proxy_insert_components=insert_components,
+            proxy_delete_components=delete_components,
+        )
+
+    return cost_inputs
+
+
+def _bounded_rows(rows: Sequence[Mapping[str, Any]], limit: int = 24) -> list:
+    return [dict(row) for row in list(rows)[: int(limit)]]
+
+
+def build_population_ranker(
+    *,
+    bundle: ExchangeRouteBundle,
+    route: ExchangeRouteConfig,
+    accuracy_debt: bool,
+    weights: StructuralScoreWeights,
+    score_floor: float,
+    cost_settings: AppendCostSettings,
+):
+    """Seal one certification level and return its certification order.
+
+    Compiled bundles: population-relative ``K`` over every evaluated
+    candidate (before sign filtering), then the shifted Paper-I score under
+    the regime fixed by realized ``L^2`` (large miss while in accuracy debt,
+    maintenance otherwise).  The legacy repair keeps the historical score and
+    debt ordering but normalizes the proxy denominators over the actual
+    competing population instead of a singleton.
+    """
+
+    regime = RankRegime.LARGE_MISS if bool(accuracy_debt) else RankRegime.MAINTENANCE
+
+    def merit_of(candidate: StructuralCandidate) -> float | None:
+        if bundle.needs_gamma:
+            return candidate.m_gamma
+        return float(candidate.delta)
+
+    def ranker(level_candidates: Sequence[StructuralCandidate]) -> RankedLevel:
+        non_stay = [c for c in level_candidates if c.kind != "stay"]
+        by_key = {c.order_key: c for c in non_stay}
+        if bundle.needs_compiled_cost:
+            evaluated = [
+                c
+                for c in non_stay
+                if c.cost_marginal is not None
+                and merit_of(c) is not None
+                and np.isfinite(float(merit_of(c)))
+            ]
+            if not evaluated:
+                return RankedLevel(
+                    ordered=(),
+                    rank_info={},
+                    telemetry={
+                        "kernel": bundle.kernel_id,
+                        "regime": regime.value,
+                        "population_size": 0,
+                    },
+                )
+            sealed = PopulationCostNormalization().seal(
+                [(c.order_key, CompiledResourceMarginal(*c.cost_marginal)) for c in evaluated]
+            )
+            records = [
+                ScoreRecord(
+                    patch_id=c.order_key,
+                    merit=float(merit_of(c)),
+                    K=float(sealed.k_of(c.order_key)),
+                    raw_merit_tiebreak=float(merit_of(c)),
+                    canonical_key=c.order_key,
+                )
+                for c in evaluated
+            ]
+            result = score_and_rank(
+                records, regime, tau_del=float(route.maintenance_loss_tolerance)
+            )
+            ordered = tuple(by_key[r.patch_id] for r in result.ranked)
+            rank_info = {
+                r.patch_id: RankInfo(K=float(r.K), score=float(r.score), merit=float(r.merit))
+                for r in result.ranked
+            }
+            excluded_counts: dict[str, int] = {}
+            for ex in result.excluded:
+                excluded_counts[str(ex.reason)] = excluded_counts.get(str(ex.reason), 0) + 1
+            population_json = sealed.to_json_dict()
+            telemetry = {
+                "kernel": bundle.kernel_id,
+                "objective": bundle.objective_id,
+                "cost_model": bundle.cost_model_id,
+                "regime": regime.value,
+                "tau": float(result.tau),
+                "population_size": int(sealed.size),
+                "population_sha256": str(population_json.get("population_sha256")),
+                "medians": dict(population_json.get("medians", {})),
+                "mads": dict(population_json.get("mads", {})),
+                "scales": dict(population_json.get("scales", {})),
+                "ranked_count": int(len(result.ranked)),
+                "excluded_counts": excluded_counts,
+                "top": _bounded_rows(
+                    [
+                        {
+                            "patch": [list(r.patch_id[0]), [list(x) for x in r.patch_id[1]]],
+                            "merit": float(r.merit),
+                            "K": float(r.K),
+                            "score": float(r.score),
+                        }
+                        for r in result.ranked
+                    ]
+                ),
+            }
+            return RankedLevel(ordered=ordered, rank_info=rank_info, telemetry=telemetry)
+
+        # Legacy proxy, normalized over the actual competing population.
+        insert_pop = [
+            (c.order_key, c.proxy_insert_components)
+            for c in non_stay
+            if c.proxy_insert_components is not None
+        ]
+        delete_pop = [
+            (c.order_key, c.proxy_delete_components)
+            for c in non_stay
+            if c.proxy_delete_components is not None
+        ]
+        c_ins = {
+            d.patch_id: max(1.0, float(d.hardware_cost_denominator))
+            for d in (
+                legacy_family_robust_denominators(insert_pop, settings=cost_settings)
+                if insert_pop
+                else ()
+            )
+        }
+        c_del = {
+            d.patch_id: max(1.0, float(d.hardware_cost_denominator))
+            for d in (
+                legacy_family_robust_denominators(delete_pop, settings=cost_settings)
+                if delete_pop
+                else ()
+            )
+        }
+        rows = []
+        for c in non_stay:
+            cost_i = c_ins.get(c.order_key, 1.0)
+            cost_d = c_del.get(c.order_key, 1.0)
+            # The historical utilities were computed with C == 1, so the
+            # population denominators enter as exact rescalings.
+            insertion_utility = float(c.insertion_utility) / (cost_i ** float(weights.alpha_ins))
+            deletion_utility = float(c.deletion_utility) * (cost_d ** float(weights.alpha_del))
+            score = insertion_utility + deletion_utility + float(weights.w_delta) * float(c.delta)
+            if not np.isfinite(score) or float(score) <= float(score_floor):
+                continue
+            if bool(weights.debt_ranking):
+                tol = float(weights.delta_rank_tolerance)
+                primary = float(round(float(c.delta) / tol)) if tol > 0.0 else float(c.delta)
+                secondary = float(np.tanh(insertion_utility + deletion_utility))
+            else:
+                primary = float(score)
+                secondary = 0.0
+            rows.append((primary, secondary, c, score, cost_i if c.inserted_selection else cost_d))
+        rows.sort(key=lambda row: (-row[0], -row[1], row[2].order_key))
+        ordered = tuple(row[2] for row in rows)
+        rank_info = {
+            row[2].order_key: RankInfo(K=float(row[4]), score=float(row[3]), merit=float(row[2].delta))
+            for row in rows
+        }
+        telemetry = {
+            "kernel": bundle.kernel_id,
+            "objective": bundle.objective_id,
+            "cost_model": bundle.cost_model_id,
+            "regime": regime.value,
+            "population_size": int(len(non_stay)),
+            "insert_population_size": int(len(insert_pop)),
+            "delete_population_size": int(len(delete_pop)),
+            "ranked_count": int(len(rows)),
+            "distinct_insert_denominators": sorted({round(v, 12) for v in c_ins.values()}),
+            "distinct_delete_denominators": sorted({round(v, 12) for v in c_del.values()}),
+            "top": _bounded_rows(
+                [
+                    {
+                        "patch": [list(row[2].order_key[0]), [list(x) for x in row[2].order_key[1]]],
+                        "score": float(row[3]),
+                        "denominator": float(row[4]),
+                        "delta": float(row[2].delta),
+                    }
+                    for row in rows
+                ]
+            ),
+        }
+        return RankedLevel(ordered=ordered, rank_info=rank_info, telemetry=telemetry)
+
+    return ranker
 
 
 def build_candidate_pool(
@@ -390,6 +769,7 @@ def build_selector_inputs(
     insertions_enabled: bool = True,
     debt_ranking: bool = False,
     deletion_permission_evaluator: DeletionPermissionEvaluator | None = None,
+    compiled_cost_runtime: CompiledCostRuntime | None = None,
 ) -> dict[str, Any]:
     """Assemble every selector input from route objects.
 
@@ -568,12 +948,45 @@ def build_selector_inputs(
         max_joint_patch_evaluations=exchange_config.search.joint_patch_evaluations,
         scoring_workers=int(exchange_config.search.scoring_workers),
     )
+
+    route = exchange_config.route
+    bundle = route.bundle
+    cost_runtime = compiled_cost_runtime
+    if bundle.uses_population_scoring:
+        gamma_rcond = (
+            DEFAULT_GAMMA_PINV_RCOND
+            if (bundle.needs_gamma or bundle.needs_compiled_cost)
+            else None
+        )
+        if bundle.needs_compiled_cost:
+            if cost_runtime is None:
+                cost_runtime = CompiledCostRuntime(
+                    state=state,
+                    atoms_by_id=atoms_by_id,
+                    cuts_by_atom=cuts_by_atom,
+                    blocks=blocks,
+                    contract=bundle.compiler,
+                )
+            cost_inputs = cost_runtime.cost_inputs
+        else:
+            cost_inputs = _legacy_proxy_cost_inputs(
+                atoms_by_id=atoms_by_id, active_by_index=active_by_index
+            )
+        structural_kwargs.update(
+            route_bundle=bundle,
+            gamma_rcond=gamma_rcond,
+            candidate_cost_inputs=cost_inputs,
+            max_compiled_patches_per_checkpoint=route.max_compiled_patches_per_checkpoint,
+        )
     return {
         "atoms_by_id": atoms_by_id,
         "occurrence_label": occurrence_label,
         "structural_kwargs": structural_kwargs,
         "pool_dedup_telemetry": pool_dedup_telemetry,
         "deletion_permission_evaluator": permission_evaluator,
+        "weights": weights,
+        "cost_settings": cost_settings,
+        "compiled_cost_runtime": cost_runtime,
     }
 
 
@@ -655,6 +1068,10 @@ def select_generalized_exchange_patch(
             max_iterations=int(exchange_config.certification.refit_max_iterations),
         )
 
+    route = exchange_config.route
+    bundle = route.bundle
+    shared_cost_runtime: dict[str, Any] = {"runtime": None}
+
     def select_once(
         allowed_deletions: tuple[ActiveSupportAtom, ...],
         *,
@@ -671,8 +1088,34 @@ def select_generalized_exchange_patch(
             insertions_enabled=bool(insertions_enabled),
             debt_ranking=bool(domain.ranking == EXCHANGE_RANKING_SIGNED_DRIFT),
             deletion_permission_evaluator=permission_evaluator,
+            compiled_cost_runtime=shared_cost_runtime["runtime"],
         )
+        shared_cost_runtime["runtime"] = inputs.get("compiled_cost_runtime")
         inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
+        population_ranker = None
+        realized_l2_gate = None
+        if bundle.uses_population_scoring:
+            population_ranker = build_population_ranker(
+                bundle=bundle,
+                route=route,
+                accuracy_debt=bool(domain.accuracy_debt),
+                weights=inputs["weights"],
+                score_floor=float(exchange_config.search.structural_score_floor),
+                cost_settings=inputs["cost_settings"],
+            )
+            if bool(domain.accuracy_debt):
+                checkpoint_l2 = float(domain.checkpoint_l2)
+
+                def realized_l2_gate(result: Any) -> bool:
+                    if result.evaluation is None:
+                        return False
+                    return bool(
+                        mclachlan_distance_squared(
+                            result.evaluation, inverse_policy=inverse_policy
+                        )
+                        < checkpoint_l2
+                    )
+
         selection = select_exchange_patch(
             state=state,
             hamiltonian=hamiltonian,
@@ -695,6 +1138,8 @@ def select_generalized_exchange_patch(
             max_certification_attempts_per_deletion_branch=(
                 exchange_config.search.certification_attempts_per_deletion_branch
             ),
+            population_ranker=population_ranker,
+            realized_l2_gate=realized_l2_gate,
         )
         return selection, inputs
 
@@ -782,8 +1227,37 @@ def select_generalized_exchange_patch(
         "attempt_count": len(selection.attempts),
         "structural_scored_count": int(selection.structural_scored_count),
         "attempts": [a.to_json_dict() for a in selection.attempts[-16:]],
-        "cost_normalization": "per_candidate_raw_v1",
+        "cost_normalization": (
+            "per_candidate_raw_v1" if bundle.is_historical else bundle.cost_model_id
+        ),
         "deletion_permission": permission_evaluator.summary(),
+        "selector_route": {
+            "schema": "paper_ii_selector_route_v1",
+            "bundle": asdict(bundle),
+            "regime": "large_miss" if bool(domain.accuracy_debt) else "maintenance",
+            "gamma_rcond": (
+                DEFAULT_GAMMA_PINV_RCOND
+                if (bundle.needs_gamma or bundle.needs_compiled_cost)
+                else None
+            ),
+            "maintenance_loss_tolerance": float(route.maintenance_loss_tolerance),
+            "maintenance_loss_tolerance_requested": route.maintenance_loss_tolerance_requested,
+            "max_compiled_patches_per_checkpoint": route.max_compiled_patches_per_checkpoint,
+            "compile": (
+                None
+                if shared_cost_runtime["runtime"] is None
+                else shared_cost_runtime["runtime"].telemetry()
+            ),
+            "compile_guard": (
+                None
+                if selection.telemetry is None or selection.telemetry.compile_guard is None
+                else selection.telemetry.compile_guard.to_json_dict()
+            ),
+            "compile_calls_in_enumeration": (
+                None if selection.telemetry is None else int(selection.telemetry.compile_calls)
+            ),
+            "levels": list(selection.level_telemetry),
+        },
         "structural_scoring_parallelism": {
             "schema": "paper_ii_exchange_scoring_parallelism_v1",
             "requested_workers": int(exchange_config.search.scoring_workers),

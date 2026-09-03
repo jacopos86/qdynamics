@@ -298,3 +298,49 @@ def test_exchange_route_parallel_workers_reproduce_golden_trajectory() -> None:
         ]
         == 4
     )
+
+
+def test_legacy_proxy_fixed_bundle_runs_the_full_trajectory() -> None:
+    # The repaired-normalization control must run end to end with the same
+    # physics contracts; its decisions may legitimately differ from the
+    # historical route, so only structural invariants are pinned here.
+    payload = _run(exchange_route_bundle="paper_ii_exchange_legacy_proxy_fixed_v1")
+    summary = payload["summary"]
+    assert summary["runtime_parameter_count_final"] >= 1
+    assert payload["decision_data_flow"]["uses_exact_reference_for_decision"] is False
+    assert payload["trajectory"]["support_patch_config"]["exchange_route_bundle"] == (
+        "paper_ii_exchange_legacy_proxy_fixed_v1"
+    )
+    routes = [
+        ((p.get("patch_decision") or {}).get("metadata") or {}).get("selector_route")
+        for p in payload["trajectory"]["points"]
+    ]
+    assert any(r and r["bundle"]["bundle_id"].endswith("legacy_proxy_fixed_v1") for r in routes)
+    # Historical route is unchanged by the bundle machinery.
+    historical = _run()
+    assert _decisions(historical) == ["insert", "insert", "delete", "stay"]
+
+
+@pytest.mark.parametrize(
+    "bundle",
+    ["paper_ii_exchange_q_compiled_v1", "paper_ii_exchange_gamma_compiled_v1"],
+)
+def test_compiled_bundles_run_full_trajectories_bitwise_across_workers(bundle) -> None:
+    serial = _run(exchange_route_bundle=bundle)
+    parallel = _run(exchange_route_bundle=bundle, support_patch_scoring_workers=4)
+    assert _decisions(parallel) == _decisions(serial)
+    assert [r["energy_expectation"] for r in parallel["plot_rows"]] == [
+        r["energy_expectation"] for r in serial["plot_rows"]
+    ]
+    assert [p["runtime_parameter_count"] for p in parallel["trajectory"]["points"]] == [
+        p["runtime_parameter_count"] for p in serial["trajectory"]["points"]
+    ]
+    assert serial["decision_data_flow"]["uses_exact_reference_for_decision"] is False
+    assert serial["trajectory"]["support_patch_config"]["exchange_route_bundle"] == bundle
+    routes = [
+        ((p.get("patch_decision") or {}).get("metadata") or {}).get("selector_route")
+        for p in serial["trajectory"]["points"]
+    ]
+    compiled = [r for r in routes if r and r.get("compile")]
+    assert compiled, "compiled bundles must record compile telemetry"
+    assert all(r["compile"]["backend"]["backend_name"] == "FakeMarrakesh" for r in compiled)

@@ -48,8 +48,12 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.performance import count, phase
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    check_gamma_nested_monotonicity,
+)
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     StructuralInsertionCache,
+    memoized_gamma,
     memoized_solve_metadata,
     structural_candidate_solve,
 )
@@ -174,6 +178,17 @@ class StructuralCandidate:
     score: float
     rank_primary: float = 0.0
     rank_secondary: float = 0.0
+    # Population-scoring bundles only (None on the historical route):
+    # ideal-projection ordinate m_Gamma, the signed compiled resource
+    # marginal (dN2q, dD2q, dDc) of the COMPLETE patch, the materialization
+    # cut chosen per inserted atom inside its commutation class, the legacy
+    # proxy raw components for population repair, and the patched-word hash.
+    m_gamma: float | None = None
+    cost_marginal: tuple[int, int, int] | None = None
+    placement_cuts: tuple[tuple[str, int], ...] | None = None
+    proxy_insert_components: Mapping[str, float] | None = None
+    proxy_delete_components: Mapping[str, float] | None = None
+    patch_word_sha256: str | None = None
 
     @property
     def kind(self) -> str:
@@ -208,6 +223,23 @@ class StructuralCandidate:
         return (self.removed_runtime_indices, plan_key)
 
 
+@dataclass(frozen=True)
+class CandidateCostInputs:
+    """Cost-side inputs the integration adapter attaches to one candidate.
+
+    ``cost_marginal`` and ``placement_cuts`` come from the compiled-cost
+    bundles; the two ``proxy_*_components`` mappings feed the legacy
+    population repair.  Fields the bundle does not use stay ``None``.
+    """
+
+    cost_marginal: tuple[int, int, int] | None = None
+    placement_cuts: tuple[tuple[str, int], ...] | None = None
+    proxy_insert_components: Mapping[str, float] | None = None
+    proxy_delete_components: Mapping[str, float] | None = None
+    patch_word_sha256: str | None = None
+    compile_calls: int = 0
+
+
 @dataclass
 class StructuralEnumeration:
     """Ordered structural candidates plus reproduction telemetry."""
@@ -221,6 +253,8 @@ class StructuralEnumeration:
     q_base: float
     scoring_workers_requested: int = 1
     scoring_workers_effective_max: int = 1
+    compile_guard: JointWorkGuard | None = None
+    compile_calls: int = 0
 
     def ranked(self, *, score_floor: float = 0.0) -> tuple[StructuralCandidate, ...]:
         """Non-stay candidates above the floor, score-descending, frozen ties."""
@@ -292,6 +326,16 @@ def iter_structural_families(
     interaction_frontier_widths: Sequence[int] | None = None,
     max_joint_patch_evaluations: int | None = None,
     scoring_workers: int = 1,
+    route_bundle: Any | None = None,
+    gamma_rcond: float | None = None,
+    candidate_cost_inputs: (
+        Callable[
+            [tuple[int, ...], tuple[tuple[str, int], ...], InsertionPlan | None],
+            CandidateCostInputs,
+        ]
+        | None
+    ) = None,
+    max_compiled_patches_per_checkpoint: int | None = None,
 ):
     """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
 
@@ -321,6 +365,30 @@ def iter_structural_families(
     if workers_requested < 1:
         raise ValueError("scoring_workers must be positive.")
     workers_effective_max = 1
+    population_scoring = bool(
+        route_bundle is not None and getattr(route_bundle, "uses_population_scoring", False)
+    )
+    if population_scoring and candidate_cost_inputs is None:
+        raise ValueError(
+            "population-scoring route bundles require candidate_cost_inputs."
+        )
+    # A second whole-family guard for compiled-cost work; ``None`` leaves it
+    # unbounded (small systems and smokes).  Counted in candidates, like the
+    # joint-work guard, so both admit or reject the same families.
+    compile_guard = (
+        JointWorkGuard(max_joint_patch_evaluations=max_compiled_patches_per_checkpoint)
+        if population_scoring and candidate_cost_inputs is not None
+        else None
+    )
+    compile_calls_total = 0
+    gamma_denominator = float(norm_b_sq) + max(0.0, float(weights.epsilon_norm))
+
+    def admit(family: str, size: int) -> bool:
+        if not guard.admit(family, size):
+            return False
+        if compile_guard is not None and not compile_guard.admit(family, size):
+            return False
+        return True
 
     def q_of(removed: tuple[int, ...], selection: tuple[tuple[str, int], ...]) -> float:
         keep = tuple(i for i in all_indices if i not in set(removed))
@@ -334,6 +402,7 @@ def iter_structural_families(
             inverse_policy=inverse_policy,
             epsilon_norm=float(weights.epsilon_norm),
             memo_key=(removed, selection),
+            gamma_rcond=gamma_rcond,
         )
         return float(q)
 
@@ -412,6 +481,27 @@ def iter_structural_families(
         else:
             rank_primary = float(score)
             rank_secondary = 0.0
+        m_gamma = None
+        cost_inputs = None
+        if population_scoring:
+            nonlocal compile_calls_total
+            if gamma_rcond is not None:
+                gamma_joint = memoized_gamma(cache, (removed, selection))
+                gamma_base = memoized_gamma(cache, ((), ()))
+                if gamma_joint is not None and gamma_base is not None:
+                    if not removed and selection:
+                        # Pure insertion: J is a subset of J^B, so ideal
+                        # Gamma must not decrease; fail closed otherwise.
+                        check_gamma_nested_monotonicity(
+                            gamma_base=float(gamma_base),
+                            gamma_patched=float(gamma_joint),
+                            denominator=gamma_denominator,
+                            rcond=float(gamma_rcond),
+                        )
+                    m_gamma = float((gamma_joint - gamma_base) / gamma_denominator)
+            if candidate_cost_inputs is not None and (removed or selection):
+                cost_inputs = candidate_cost_inputs(removed, tuple(selection), plan)
+                compile_calls_total += int(cost_inputs.compile_calls)
         return StructuralCandidate(
             removed_runtime_indices=removed,
             inserted_selection=tuple(selection),
@@ -426,7 +516,28 @@ def iter_structural_families(
             score=float(score),
             rank_primary=float(rank_primary),
             rank_secondary=float(rank_secondary),
+            m_gamma=m_gamma,
+            cost_marginal=None if cost_inputs is None else cost_inputs.cost_marginal,
+            placement_cuts=None if cost_inputs is None else cost_inputs.placement_cuts,
+            proxy_insert_components=(
+                None if cost_inputs is None else cost_inputs.proxy_insert_components
+            ),
+            proxy_delete_components=(
+                None if cost_inputs is None else cost_inputs.proxy_delete_components
+            ),
+            patch_word_sha256=None if cost_inputs is None else cost_inputs.patch_word_sha256,
         )
+
+    def priority_value(candidate: StructuralCandidate) -> float:
+        # Child-acquisition priorities order the insertion frontier universe.
+        # The historical route uses the composite score; population bundles
+        # use their own physical ordinate, since their score is not known
+        # until the level is sealed.
+        if not population_scoring:
+            return float(candidate.score)
+        if route_bundle is not None and getattr(route_bundle, "needs_gamma", False):
+            return float("nan") if candidate.m_gamma is None else float(candidate.m_gamma)
+        return float(candidate.delta)
 
     candidates: list[StructuralCandidate] = []
     singleton_best: dict[str, float] = {}
@@ -440,7 +551,7 @@ def iter_structural_families(
     # ---- d = 0: stay + every pure singleton insertion ----------------------
     pure_pool = candidate_pool_for_deletion(())
     d0_size = 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pure_pool)
-    if guard.admit("singleton_d0", d0_size):
+    if admit("singleton_d0", d0_size):
         if workers_requested > 1:
             warm_keys = [
                 ((), ((str(atom_id), int(cut)),))
@@ -460,7 +571,7 @@ def iter_structural_families(
                     (), ((str(atom_id), cut),), None, "singleton_d0"
                 )
                 family_out.append(candidate)
-                note_priority(str(atom_id), candidate.score)
+                note_priority(str(atom_id), priority_value(candidate))
         candidates.extend(family_out)
         yield "singleton_d0", tuple(family_out), None
 
@@ -482,7 +593,7 @@ def iter_structural_families(
         # Admit the raw family before permission. Otherwise refused sets evade
         # the work accounting and the search can walk unbounded combinatorial
         # rungs while scoring nothing.
-        if not guard.admit(family, size):
+        if not admit(family, size):
             break
         if workers_requested > 1:
             # Permission stays coordinator-only (its evaluator memoizes, so
@@ -517,7 +628,7 @@ def iter_structural_families(
                         removed, ((str(atom_id), cut),), None, family
                     )
                     family_out.append(candidate)
-                    note_priority(str(atom_id), candidate.score)
+                    note_priority(str(atom_id), priority_value(candidate))
         candidates.extend(family_out)
         yield family, tuple(family_out), None
 
@@ -591,9 +702,9 @@ def iter_structural_families(
                                 over_cap = True
                                 break
             if over_cap:
-                guard.admit(family, len(batch))
+                admit(family, len(batch))
                 break
-            if not guard.admit(family, len(batch)):
+            if not admit(family, len(batch)):
                 break
             frontiers_used = level + 1
             if workers_requested > 1:
@@ -625,6 +736,8 @@ def iter_structural_families(
         q_base=q_base,
         scoring_workers_requested=workers_requested,
         scoring_workers_effective_max=workers_effective_max,
+        compile_guard=compile_guard,
+        compile_calls=int(compile_calls_total),
     )
 
 
@@ -673,6 +786,7 @@ def _plan_selection(
 
 
 __all__ = [
+    "CandidateCostInputs",
     "GENERALIZED_EXCHANGE_STRUCTURAL_POLICY_V2",
     "iter_structural_families",
     "StructuralCandidate",

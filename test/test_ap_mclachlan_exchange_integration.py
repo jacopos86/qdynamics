@@ -456,3 +456,128 @@ def test_generalized_exchange_payload_identical_and_worker_telemetry_recorded() 
             tel["worker_clamp_policy"]
             == "min_requested_and_family_missing_solve_count"
         )
+
+
+def test_legacy_proxy_fixed_bundle_normalizes_cost_over_the_population() -> None:
+    # Same physics as the historical route, but C_I / C_D come from the
+    # competing population instead of a singleton (which made them 1.0).
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED,
+    )
+
+    historical_selection, historical_payload = _run(_config())
+    selection, payload = _run(
+        _config(exchange_route_bundle=EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED)
+    )
+    route = payload["selector_route"]
+    assert route["bundle"]["bundle_id"] == EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED
+    assert route["bundle"]["kernel_id"] == "legacy_utility_debt_ordering_v2"
+    assert payload["cost_normalization"] == "paper_i_proxy_population_v1"
+    assert route["regime"] in {"large_miss", "maintenance"}
+    assert route["levels"], "population levels must be recorded"
+    level = route["levels"][0]
+    assert level["population_size"] > 0
+    assert level["ranked_count"] > 0
+    # The historical path never records these; the bundle does.
+    assert historical_payload["selector_route"]["bundle"]["bundle_id"] == (
+        "paper_ii_generalized_exchange_v2"
+    )
+    assert historical_payload["selector_route"]["levels"] == []
+    # Attempts carry the population denominator that ranked them.
+    assert all(a["cost_factor_k"] is not None for a in payload["attempts"])
+    assert all(a["cost_factor_k"] >= 1.0 for a in payload["attempts"])
+    assert selection.kind in {"insert", "delete", "exchange", "stay"}
+
+
+def test_population_bundle_records_gamma_for_compiled_routes_only() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED,
+    )
+
+    _selection, payload = _run(
+        _config(exchange_route_bundle=EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED)
+    )
+    assert payload["selector_route"]["gamma_rcond"] is None
+    assert payload["selector_route"]["compile"] is None
+    assert payload["selector_route"]["maintenance_loss_tolerance"] == _config().prune_patch_smoothness_eta_max
+
+
+def _route_payload(bundle_id, **overrides):
+    return _run(_config(exchange_route_bundle=bundle_id, **overrides))
+
+
+def test_q_and_gamma_compiled_bundles_share_population_and_cost_map() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED,
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    q_selection, q_payload = _route_payload(EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    g_selection, g_payload = _route_payload(EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED)
+    for payload, bundle in ((q_payload, EXCHANGE_ROUTE_BUNDLE_Q_COMPILED),
+                            (g_payload, EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED)):
+        route = payload["selector_route"]
+        assert route["bundle"]["bundle_id"] == bundle
+        assert route["bundle"]["kernel_id"] == "shifted_paper_i_v1"
+        assert route["bundle"]["compiler"]["backend_name"] == "FakeMarrakesh"
+        assert route["gamma_rcond"] is not None
+        compile_block = route["compile"]
+        assert compile_block["placement_rule"].endswith("placement_v1")
+        assert compile_block["compile_calls"] >= 1
+        assert compile_block["backend"]["backend_name"] == "FakeMarrakesh"
+        assert route["levels"] and route["levels"][0]["population_size"] > 0
+        assert payload["cost_normalization"] == "compiled_marrakesh_population_v1"
+        for attempt in payload["attempts"]:
+            assert attempt["cost_factor_k"] is not None and attempt["cost_factor_k"] > 0.0
+            assert attempt["route_score"] is not None
+    # Identical prefilter population and K map: only the ordinate differs.
+    q_level, g_level = q_payload["selector_route"]["levels"][0], g_payload["selector_route"]["levels"][0]
+    assert q_level["population_sha256"] == g_level["population_sha256"]
+    assert q_level["medians"] == g_level["medians"] and q_level["mads"] == g_level["mads"]
+    q_k = {tuple(map(str, row["patch"])): row["K"] for row in q_level["top"]}
+    g_k = {tuple(map(str, row["patch"])): row["K"] for row in g_level["top"]}
+    shared = set(q_k) & set(g_k)
+    assert shared and all(q_k[key] == g_k[key] for key in shared)
+    assert q_payload["selector_route"]["bundle"]["objective_id"] != (
+        g_payload["selector_route"]["bundle"]["objective_id"]
+    )
+
+
+def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
+    import json as json_module
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    serial_selection, serial_payload = _route_payload(EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    parallel_selection, parallel_payload = _route_payload(
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED, support_patch_scoring_workers=4
+    )
+
+    def stripped(payload):
+        out = dict(payload)
+        out.pop("structural_scoring_parallelism")
+        route = dict(out["selector_route"])
+        compile_block = dict(route["compile"])
+        compile_block.pop("compile_seconds")
+        route["compile"] = compile_block
+        out["selector_route"] = route
+        return json_module.dumps(out, sort_keys=True, default=str)
+
+    assert stripped(parallel_payload) == stripped(serial_payload)
+    assert parallel_selection.kind == serial_selection.kind
+
+
+def test_compiled_bundle_uses_placement_cut_when_it_materializes() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    selection, payload = _route_payload(EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    if selection.committed is None or not selection.committed.inserted_selection:
+        return
+    placement = dict(selection.committed.placement_cuts or ())
+    assert placement, "compiled bundle must record a placement cut per inserted atom"
+    labels = selection.certification.state.runtime_coordinate_labels
+    for atom_id, cut in placement.items():
+        assert any(f"c{int(cut)}o" in lab for lab in labels)
