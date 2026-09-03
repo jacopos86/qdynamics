@@ -173,46 +173,50 @@ def test_seed_is_pinned_to_the_regime_artifact(payload: dict) -> None:
     assert seed["n_ph_max"] == 1
 
 
-def test_per_cell_evidence_fields_are_all_null(payload: dict) -> None:
+def test_per_cell_evidence_is_fully_hydrated(payload: dict) -> None:
     for row in payload["cells"]:
-        assert row["metrics"] is None
-        assert row["paper_status"] is None
-        assert set(_leaves(row["source_artifacts"])) == {None}
-        assert set(_leaves(row["run_lock"])) == {None}
+        assert len(row["tuple_id"]) == 64
+        assert set(row["metrics"]) == {"apm", "avqds"}
+        assert row["paper_status"]["apm"] == "qualified"
+        assert row["paper_status"]["avqds"] == "qualified"
+        assert row["paper_status"]["qualification_basis"] == row["adoption_status"]
+        assert row["source_artifacts"]["apm"]["stitched_point_count"] == 501
+        assert row["source_artifacts"]["avqds"]["stitched_point_count"] == 501
+        assert row["source_artifacts"]["apm"]["stitched_time_span"] == [0.0, 20.0]
+        assert row["source_artifacts"]["avqds"]["stitched_time_span"] == [0.0, 20.0]
+        assert all(value is not None for value in _leaves(row["source_artifacts"]))
+        assert all(value is not None for value in _leaves(row["run_lock"]))
 
 
-def test_external_artifacts_are_declared_not_fabricated(payload: dict) -> None:
+def test_external_artifacts_are_sha_bound_and_resolved(payload: dict) -> None:
     external = payload["external_artifacts"]
     preview = external["promotion_preview"]
-    assert preview["path"] is None and preview["sha256"] is None
-    assert preview["declared_sha256_prefix"] == "40eb3124"
-    assert preview["resolution_status"] == "NOT_FOUND_LOCALLY"
+    assert preview["sha256"] == "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf"
+    assert preview["resolution_status"] == "RESOLVED"
     ledger = external["ledger"]
-    assert ledger["path"] is None and ledger["sha256"] is None
-    assert ledger["record_count"] is None
-    assert ledger["declared_sha256_prefix"] == "830370e4"
-    assert ledger["resolution_status"] == "NOT_FOUND_LOCALLY"
+    assert ledger["sha256"] == "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6"
+    assert ledger["record_count"] == 371
+    assert ledger["resolution_status"] == "RESOLVED"
     pdf = external["results_pdf"]
     assert pdf["resolution_status"] == "RESOLVED"
-    assert pdf["currency_claim"] == "not_asserted"
+    assert pdf["currency_claim"] == "current_through_coverage_cluster_9718010"
     assert pdf["sha256"] == (
         "f5e1666a567a7abe3acea4609ce57a3930038f01749cef02ff411dc65151a2e6"
     )
     assert pdf["path"].endswith("paper_ii_full_factorial_results_refresh_20260901.pdf")
+    assert external["final_ingestion_receipt"]["resolution_status"] == "RESOLVED"
+    assert external["report_json"]["resolution_status"] == "RESOLVED"
+    assert external["report_refresh_resolution"]["resolution_status"] == "RESOLVED"
 
 
-def test_blocks_mirror_the_report_refresh_contract(payload: dict) -> None:
+def test_report_refresh_block_is_resolved(payload: dict) -> None:
     blocks = payload["blocks"]
-    assert blocks["active"] == [
-        "further_campaign_submission",
-        "claiming_the_visible_pdf_is_current",
-    ]
-    source = ROOT / blocks["mirrors"]
-    if source.is_file():
-        mirrored = json.loads(source.read_text(encoding="utf-8"))
-        assert blocks["schema"] == mirrored["schema"]
-        assert set(blocks["active"]) == set(mirrored["blocks"])
-    assert "not derived from a local ledger" in payload["adoption_note"]
+    assert blocks["active"] == []
+    assert blocks["superseded_sha256"] == (
+        "84c67ea56fd6267b1fb772178f96d0f5025556ad3b64412bb65edc673fc29a11"
+    )
+    assert not (ROOT / blocks["supersedes"]).exists()
+    assert "verified 371-row post-coverage ledger" in payload["adoption_note"]
 
 
 # --- route binding -----------------------------------------------------------
@@ -321,10 +325,7 @@ def test_main_writes_the_jsonl_and_prints_a_prepared_summary(
     assert summary["code_revision"] not in ("", None)
     assert summary["seed"]["sha256"] == SEED_SHA256
     assert summary["selector_routes"] == ROUTES
-    assert summary["blocks"] == [
-        "further_campaign_submission",
-        "claiming_the_visible_pdf_is_current",
-    ]
+    assert summary["blocks"] == []
     assert Path(summary["actions_jsonl"]["path"]) == actions
     rows = [json.loads(line) for line in actions.read_text().splitlines() if line]
     assert len(rows) == 45
@@ -348,6 +349,16 @@ def test_lock_drift_fails_closed(tmp_path: Path) -> None:
     target = tmp_path / "short.json"
     target.write_text(json.dumps(short), encoding="utf-8")
     with pytest.raises(final.MatchedCellLockError):
+        final.load_lock(target)
+    blocked = copy.deepcopy(payload)
+    blocked["blocks"]["active"] = ["further_campaign_submission"]
+    target.write_text(json.dumps(blocked), encoding="utf-8")
+    with pytest.raises(final.MatchedCellLockError, match="active submission block"):
+        final.load_lock(target)
+    unresolved = copy.deepcopy(payload)
+    unresolved["external_artifacts"]["promotion_preview"]["resolution_status"] = "PENDING"
+    target.write_text(json.dumps(unresolved), encoding="utf-8")
+    with pytest.raises(final.MatchedCellLockError, match="promotion_preview: unresolved"):
         final.load_lock(target)
     duplicated = dict(payload, cells=payload["cells"][:-1] + [payload["cells"][0]])
     target.write_text(json.dumps(duplicated), encoding="utf-8")

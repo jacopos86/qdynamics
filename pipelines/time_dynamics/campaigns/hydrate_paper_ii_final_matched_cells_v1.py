@@ -55,6 +55,9 @@ EXPECTED_RESULTS_PDF_SHA256 = (
 )
 EXPECTED_RECORD_COUNT = 371
 EXPECTED_PAIR_COUNT = 15
+EXPECTED_BLOCKER_SHA256 = (
+    "84c67ea56fd6267b1fb772178f96d0f5025556ad3b64412bb65edc673fc29a11"
+)
 
 
 class HydrationError(ValueError):
@@ -180,6 +183,54 @@ def _source_receipt(
     }
     metrics = {key: copy.deepcopy(value) for key, value in row.items() if key not in excluded}
     return sources, locks, metrics, screen_lock_full
+
+
+def _verify_resolution_receipt(path: Path) -> str:
+    _require(path.is_relative_to(REPO_ROOT), "resolution receipt must be tracked inside the repository")
+    receipt = _read_json(path)
+    _require(
+        receipt.get("schema") == "paper_ii_report_refresh_resolution_v1",
+        "resolution receipt schema drift",
+    )
+    supersedes = receipt.get("supersedes") or {}
+    _require(
+        supersedes.get("sha256") == EXPECTED_BLOCKER_SHA256,
+        "resolution receipt does not bind the retired blocker",
+    )
+    evidence = receipt.get("resolution_evidence") or {}
+    expected = {
+        "final_ingestion_receipt": EXPECTED_FINAL_RECEIPT_SHA256,
+        "ledger": EXPECTED_LEDGER_SHA256,
+        "promotion_preview": EXPECTED_PREVIEW_SHA256,
+        "report_json": EXPECTED_REPORT_SHA256,
+        "results_pdf": EXPECTED_RESULTS_PDF_SHA256,
+    }
+    for key, digest in expected.items():
+        _require((evidence.get(key) or {}).get("sha256") == digest, f"resolution {key} drift")
+    _require(
+        (evidence.get("results_pdf") or {}).get("visual_qa") == "PASS_ALL_CHANGED_PAGES",
+        "resolution receipt lacks the completed PDF visual-QA gate",
+    )
+    calibration = evidence.get("calibration_receipt") or {}
+    calibration_path = REPO_ROOT / str(calibration.get("path") or "")
+    _verify(calibration_path, str(calibration.get("sha256") or ""), label="resolution calibration")
+    calibration_payload = _read_json(calibration_path)
+    _require(
+        int((calibration_payload.get("counts") or {}).get("error", -1)) == 0,
+        "resolution calibration contains ERROR checks",
+    )
+    _require(
+        calibration_payload.get("status") in ("OK", "INCOMPLETE"),
+        "resolution calibration status is not admissible",
+    )
+    decision = receipt.get("resolution") or {}
+    _require(decision.get("status") == "RESOLVED", "resolution receipt is not final")
+    _require(list(decision.get("active_blocks") or ()) == [], "resolution retains blocks")
+    _require(
+        decision.get("authorizes_new_campaign_submission") is True,
+        "resolution does not authorize submission",
+    )
+    return _sha256(path)
 
 
 def hydrate(
@@ -319,11 +370,7 @@ def hydrate(
         }
         active = ["further_campaign_submission", "claiming_the_visible_pdf_is_current"]
     else:
-        _require(
-            resolution_receipt_path.is_relative_to(REPO_ROOT),
-            "resolution receipt must be tracked inside the repository",
-        )
-        resolution_sha = _sha256(resolution_receipt_path)
+        resolution_sha = _verify_resolution_receipt(resolution_receipt_path)
         external["report_refresh_resolution"] = {
             "path": str(resolution_receipt_path.relative_to(REPO_ROOT)),
             "sha256": resolution_sha,

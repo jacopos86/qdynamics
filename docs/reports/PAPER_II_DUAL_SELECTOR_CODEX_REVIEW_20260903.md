@@ -92,6 +92,22 @@ refresh-resolution receipt is supplied.
   checkpoint; only the physical ranking ordinate differs.
 - Maximum observed smoke process-tree RSS was 1,209 MB.
 
+## Pre-submission gate resolution
+
+The fresh calibration examined 62 bound artifacts. It returned `INCOMPLETE`
+with five checks `OK`, zero warnings, zero `ERROR`, and two trajectory-dependent
+benchmark-row checks `NOT_CHECKED`. No unverified-response-scale override was
+used. Under the restored calibration contract only `ERROR` blocks evidence
+production, so the no-error `INCOMPLETE` state is admissible and remains stated
+verbatim rather than being relabeled `OK`.
+
+The new report-refresh resolution binds the 371-row ledger, 15-pair promotion
+preview, final coverage-ingestion receipt, 29-page PDF, `PASS_ALL_CHANGED_PAGES`
+visual QA, and the fresh calibration receipt. The superseded stale-report block
+was then removed, and the final matched-cell lock was regenerated with an empty
+active-block list. This resolves production authorization only; it does not
+adopt the forthcoming selector results.
+
 ## Production boundary
 
 No result from the new selectors is adopted into a manuscript table, figure,

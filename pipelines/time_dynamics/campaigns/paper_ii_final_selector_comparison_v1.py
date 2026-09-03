@@ -27,6 +27,7 @@ from dataclasses import asdict
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -50,6 +51,7 @@ ACTIONS_SCHEMA = "paper_ii_final_selector_comparison_actions_v1"
 SUMMARY_SCHEMA = "paper_ii_final_selector_comparison_prepare_v1"
 CAMPAIGN_SCORING_WORKERS = 4
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class UnboundSelectorRouteError(ValueError):
@@ -118,6 +120,85 @@ def _cut(value: Any, *, where: str) -> float:
     return cut
 
 
+def _bound_sha256(value: Any, *, where: str) -> str:
+    digest = str(value or "").lower()
+    _require(bool(_SHA256_RE.fullmatch(digest)), f"{where}: invalid sha256")
+    return digest
+
+
+def _verify_repo_artifact(entry: Mapping[str, Any], *, where: str) -> Path:
+    _require(entry.get("resolution_status") == "RESOLVED", f"{where}: unresolved")
+    relative = Path(str(entry.get("path") or ""))
+    _require(bool(str(relative)) and not relative.is_absolute(), f"{where}: path must be repo-relative")
+    target = (_REPO_ROOT / relative).resolve()
+    _require(target.is_relative_to(_REPO_ROOT), f"{where}: path escapes the repository")
+    _require(target.is_file(), f"{where}: missing artifact {relative}")
+    expected = _bound_sha256(entry.get("sha256"), where=f"{where}.sha256")
+    observed = str(file_sha256(target))
+    _require(observed == expected, f"{where}: sha256 drift ({observed})")
+    return target
+
+
+def _verify_submission_evidence(payload: Mapping[str, Any]) -> None:
+    blocks = payload.get("blocks")
+    _require(isinstance(blocks, Mapping), "lock blocks must be an object")
+    _require(list(blocks.get("active") or ()) == [], "lock carries an active submission block")
+    superseded_path = Path(str(blocks.get("supersedes") or ""))
+    _require(
+        not (_REPO_ROOT / superseded_path).is_file(),
+        "superseded report_refresh_required.json is still present",
+    )
+    _bound_sha256(blocks.get("superseded_sha256"), where="blocks.superseded_sha256")
+
+    external = payload.get("external_artifacts")
+    _require(isinstance(external, Mapping), "lock external_artifacts must be an object")
+    required = (
+        "promotion_preview",
+        "ledger",
+        "final_ingestion_receipt",
+        "report_json",
+        "report_refresh_resolution",
+    )
+    resolved: dict[str, Path] = {}
+    for key in required:
+        entry = external.get(key)
+        _require(isinstance(entry, Mapping), f"external_artifacts.{key}: absent")
+        resolved[key] = _verify_repo_artifact(entry, where=f"external_artifacts.{key}")
+
+    results_pdf = external.get("results_pdf")
+    _require(isinstance(results_pdf, Mapping), "external_artifacts.results_pdf: absent")
+    _require(results_pdf.get("resolution_status") == "RESOLVED", "results PDF unresolved")
+    _require(
+        results_pdf.get("currency_claim") == "current_through_coverage_cluster_9718010",
+        "results PDF currency is not bound to the final coverage cluster",
+    )
+    _bound_sha256(results_pdf.get("sha256"), where="external_artifacts.results_pdf.sha256")
+
+    resolution = json.loads(resolved["report_refresh_resolution"].read_text(encoding="utf-8"))
+    _require(
+        resolution.get("schema") == "paper_ii_report_refresh_resolution_v1",
+        "report-refresh resolution schema mismatch",
+    )
+    decision = resolution.get("resolution") or {}
+    _require(decision.get("status") == "RESOLVED", "report-refresh resolution is not final")
+    _require(list(decision.get("active_blocks") or ()) == [], "resolution retains active blocks")
+    _require(
+        decision.get("authorizes_new_campaign_submission") is True,
+        "resolution does not authorize new campaign submission",
+    )
+    calibration = (resolution.get("resolution_evidence") or {}).get("calibration_receipt") or {}
+    calibration_path = _verify_repo_artifact(
+        {**calibration, "resolution_status": "RESOLVED"},
+        where="resolution.calibration_receipt",
+    )
+    receipt = json.loads(calibration_path.read_text(encoding="utf-8"))
+    _require(int((receipt.get("counts") or {}).get("error", -1)) == 0, "calibration has ERROR checks")
+    _require(
+        receipt.get("status") in ("OK", "INCOMPLETE"),
+        "calibration status is neither OK nor no-error INCOMPLETE",
+    )
+
+
 def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
     """Read and validate the matched-cell lock, failing closed on drift."""
 
@@ -129,6 +210,7 @@ def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
     _require(payload.get("status") == LOCK_STATUS, "lock status mismatch")
     _require(payload.get("campaign_id") == CAMPAIGN_ID, "lock campaign_id mismatch")
     _require("code_revision" not in payload, "lock must not pin a code_revision")
+    _verify_submission_evidence(payload)
 
     raw_cells = payload.get("cells")
     _require(isinstance(raw_cells, list), "lock cells must be a list")
@@ -157,6 +239,24 @@ def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
             status in ADOPTION_STATUSES,
             f"{cell_id}: adoption_status {status!r} not in {ADOPTION_STATUSES}",
         )
+        _bound_sha256(row.get("tuple_id"), where=f"{cell_id}.tuple_id")
+        _require(isinstance(row.get("metrics"), Mapping), f"{cell_id}: metrics unresolved")
+        _require(isinstance(row.get("paper_status"), Mapping), f"{cell_id}: paper status unresolved")
+        _require(isinstance(row.get("run_lock"), Mapping), f"{cell_id}: run lock unresolved")
+        sources = row.get("source_artifacts")
+        _require(isinstance(sources, Mapping), f"{cell_id}: source artifacts unresolved")
+        for method in ("apm", "avqds"):
+            method_sources = sources.get(method)
+            _require(isinstance(method_sources, Mapping), f"{cell_id}: {method} sources absent")
+            for source_key in ("screen_run_json", "continuation_run_json", "terminal_cost_json"):
+                source = method_sources.get(source_key)
+                _require(isinstance(source, Mapping), f"{cell_id}: {method} {source_key} absent")
+                _require(bool(source.get("path")), f"{cell_id}: {method} {source_key} path absent")
+                _bound_sha256(source.get("sha256"), where=f"{cell_id}.{method}.{source_key}")
+        exact = sources.get("exact_reference")
+        _require(isinstance(exact, Mapping), f"{cell_id}: exact-reference source absent")
+        _require(bool(exact.get("path")), f"{cell_id}: exact-reference path absent")
+        _bound_sha256(exact.get("sha256"), where=f"{cell_id}.exact_reference")
         cells.append(
             MatchedCell(
                 cell_id=cell_id,
