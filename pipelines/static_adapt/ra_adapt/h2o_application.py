@@ -19,6 +19,7 @@ from pipelines.static_adapt.ra_adapt.adapters import (
 from pipelines.static_adapt.ra_adapt.contracts import (
     CANDIDATE_REPRESENTATION_MACRO,
     CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+    RAAdaptOperationalControls,
     RAAdaptRequest,
 )
 from pipelines.static_adapt.ra_adapt.engine import (
@@ -26,6 +27,7 @@ from pipelines.static_adapt.ra_adapt.engine import (
     run_ra_adapt,
 )
 from pipelines.static_adapt.sr_snake.contracts import (
+    AcceptedStateResume,
     AppendOnlyInsertion,
     BeamOff,
     CheckpointObservation,
@@ -233,17 +235,55 @@ def main() -> None:
         action="store_true",
         help="Disable estimator-call ledger accounting.",
     )
+    parser.add_argument(
+        "--resume-checkpoint",
+        type=Path,
+        default=None,
+        help=(
+            "Resume from a prior segment's accepted-state checkpoint "
+            "(a current.json written by an earlier run). Its digest-matched "
+            "estimator-ledger sidecar must sit beside it. Point "
+            "--output-dir at a fresh directory: the resumed run writes its "
+            "own current.json and would otherwise overwrite the source."
+        ),
+    )
     args = parser.parse_args()
 
     fixture = args.fixture.expanduser().resolve()
     output_dir = args.output_dir.expanduser().resolve()
     if not fixture.is_file():
         raise FileNotFoundError(f"H2O fixture does not exist: {fixture}")
+    resume_checkpoint: Path | None = None
+    if args.resume_checkpoint is not None:
+        resume_checkpoint = args.resume_checkpoint.expanduser().resolve()
+        if not resume_checkpoint.is_file():
+            raise FileNotFoundError(
+                f"Resume checkpoint does not exist: {resume_checkpoint}"
+            )
+        if resume_checkpoint.parent == output_dir:
+            raise ValueError(
+                "Refusing to resume from a checkpoint inside --output-dir: "
+                f"{resume_checkpoint}. The resumed run rewrites current.json "
+                "in that directory every controller round and would destroy "
+                "the state it is resuming from. Stage the checkpoint (with "
+                "its estimator-ledger sidecar) elsewhere, or write to a new "
+                "output directory."
+            )
+
     output_dir.mkdir(parents=True, exist_ok=True)
     result_path = output_dir / "result.json"
     if result_path.exists():
         raise FileExistsError(
             f"Refusing to overwrite completed H2O RA result: {result_path}"
+        )
+    checkpoint_path = output_dir / "current.json"
+    if resume_checkpoint is None and checkpoint_path.exists():
+        raise FileExistsError(
+            "Refusing to fresh-start over an existing accepted-state "
+            f"checkpoint: {checkpoint_path}. A fresh run rewrites it at its "
+            "own round 1, destroying prior progress. Pass "
+            "--resume-checkpoint to continue that run, or choose a new "
+            "--output-dir."
         )
 
     problem = _problem(fixture)
@@ -281,7 +321,15 @@ def main() -> None:
             "candidate_representation": protocol.candidate_representation,
             "candidate_mode": args.candidate_representation,
             "candidate_adapter_id": request.adapter.adapter_id,
-            "fresh_start": True,
+            "fresh_start": resume_checkpoint is None,
+            "resume_checkpoint": (
+                None if resume_checkpoint is None else str(resume_checkpoint)
+            ),
+            "resume_checkpoint_sha256": (
+                None
+                if resume_checkpoint is None
+                else _sha256(resume_checkpoint)
+            ),
         },
     )
     print(
@@ -306,7 +354,21 @@ def main() -> None:
         ),
         flush=True,
     )
-    result = run_ra_adapt(problem, protocol)
+    if resume_checkpoint is None:
+        result = run_ra_adapt(problem, protocol)
+    else:
+        result = run_ra_adapt(
+            problem,
+            protocol,
+            operational_controls=RAAdaptOperationalControls(
+                maximum_controller_rounds=args.maximum_controller_rounds,
+                resume=AcceptedStateResume(
+                    checkpoint_path=resume_checkpoint,
+                    checkpoint_sha256=_sha256(resume_checkpoint),
+                ),
+                observation=request.observation,
+            ),
+        )
     _write_json(result_path, result.to_dict())
     _write_json(
         output_dir / "summary.json",

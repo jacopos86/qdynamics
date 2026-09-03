@@ -215,3 +215,124 @@ def test_h2o_ra_macro_representation_remains_explicitly_available(
     invariants = protocol.route_contract["semantic_invariants"]
     assert invariants["staged_singleton_exposure"] is False
     assert invariants["guarded_single_pauli_child_exposure"] is False
+
+
+# --- Segmented-resume CLI guards (Paper IV, 2026-09-03) ------------------
+#
+# Cluster 9715945 lost 70 h of compute because CHTC's 72 h SYSTEM_PERIODIC_HOLD
+# terminates without stage-out, and the entrypoint had no way to resume the
+# per-round accepted-state checkpoint it had been writing all along. These
+# tests pin the resume seam and the two overwrite guards that protect it.
+
+
+def test_h2o_cli_exposes_resume_checkpoint_flag() -> None:
+    """--resume-checkpoint must exist; without it a segment cannot continue."""
+    import subprocess
+    import sys
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--help",
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "--resume-checkpoint" in completed.stdout
+
+
+def test_h2o_resume_rejects_missing_checkpoint(tmp_path: Path) -> None:
+    """A nonexistent checkpoint must fail loudly, not silently fresh-start."""
+    import subprocess
+    import sys
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--resume-checkpoint",
+            str(tmp_path / "absent" / "current.json"),
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "Resume checkpoint does not exist" in completed.stderr
+
+
+def test_h2o_resume_rejects_checkpoint_inside_output_dir(
+    tmp_path: Path,
+) -> None:
+    """Resuming from --output-dir/current.json would destroy its own source.
+
+    The resumed run rewrites current.json every controller round, so a
+    checkpoint living in the output directory is overwritten mid-run.
+    """
+    import subprocess
+    import sys
+
+    out = tmp_path / "out"
+    out.mkdir()
+    checkpoint = out / "current.json"
+    checkpoint.write_text("{}", encoding="utf-8")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--output-dir",
+            str(out),
+            "--resume-checkpoint",
+            str(checkpoint),
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "inside --output-dir" in completed.stderr
+
+
+def test_h2o_fresh_start_refuses_to_clobber_existing_checkpoint(
+    tmp_path: Path,
+) -> None:
+    """The 9715945 data-loss hole: only result.json used to be guarded.
+
+    A fresh start into a directory already holding an accepted-state
+    checkpoint silently overwrote it at round 1, discarding prior progress.
+    """
+    import subprocess
+    import sys
+
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "current.json").write_text("{}", encoding="utf-8")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--output-dir",
+            str(out),
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "accepted-state" in completed.stderr
+    assert (out / "current.json").read_text(encoding="utf-8") == "{}"
