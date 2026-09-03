@@ -1,0 +1,445 @@
+{
+  "schema": "paper_ii_final_matched_cells_v1",
+  "lock_id": "paper_ii_final_matched_cells_v1",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "created": "2026-09-02",
+  "campaign_id": "paper_ii_final_selector_comparison_v1",
+  "purpose": "Final matched APM/AVQDS cell set for the three-route selector comparison. Each cell binds one locked historical AVQDS comparator cut to one APM activation cut; the generator re-runs only the APM side, once per selector route, and reuses the locked comparators.",
+  "registry_bindings": {
+    "regime": "hh_snake_nph1",
+    "horizon": "t20",
+    "numerics": "euler_ridge1e-6",
+    "gate": "mclachlan_l2_1e-3",
+    "search_profile": "paper_declared_v1",
+    "apm_arm": "exchange",
+    "comparator_arm": "avqds",
+    "extra_flags": [
+      "--record-statevector"
+    ]
+  },
+  "seed": {
+    "seed_id": "hh_snake_nph1",
+    "artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+    "family_key": "hubbard_holstein",
+    "n_ph_max": 1,
+    "regime": "calibration",
+    "note": "One hash is shared by every cell; verified against the file at load time."
+  },
+  "selector_routes": {
+    "paper_ii_exchange_legacy_proxy_fixed_v1": {
+      "arm": "exchange_legacy_proxy_fixed"
+    },
+    "paper_ii_exchange_q_compiled_v1": {
+      "arm": "exchange_q_compiled"
+    },
+    "paper_ii_exchange_gamma_compiled_v1": {
+      "arm": "exchange_gamma_compiled"
+    }
+  },
+  "grid": {
+    "drives": [
+      "weakslow",
+      "fastweak",
+      "midres",
+      "slowstrong",
+      "strongfast",
+      "fastfast"
+    ],
+    "controllers": [
+      "delta_theta_5e-5",
+      "state_motion_1e-3_plus_parameter_5e-5",
+      "state_motion_5e-5"
+    ],
+    "cell_count": 15,
+    "excluded_count": 3,
+    "relation": "cells + exclusions = drives x controllers"
+  },
+  "cut_convention": {
+    "canonicalizer": "pipelines.time_dynamics.campaign._canonical_cut",
+    "label_format": "{cut:.12g}",
+    "apm_cut_flag": "--insertion-l2-cut",
+    "avqds_cut_flag": "--avqds-l2-cut"
+  },
+  "adoption_status_vocabulary": {
+    "source": "pipelines/time_dynamics/diagnostics/promotion_preview.py",
+    "values": [
+      "pair_matched_comparison",
+      "individual_response_target"
+    ]
+  },
+  "cells": [
+    {
+      "cell_id": "weakslow__delta_theta_5e-5",
+      "drive": "weakslow",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 4.572473708273e-11,
+      "avqds_cut": 1.524157902758e-11,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "weakslow__state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "weakslow",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "apm_cut": 1.524157902758e-11,
+      "avqds_cut": 1.524157902758e-11,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "weakslow__state_motion_5e-5",
+      "drive": "weakslow",
+      "controller": "state_motion_5e-5",
+      "apm_cut": 1.371742112482e-10,
+      "avqds_cut": 1.693508780842e-12,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastweak__delta_theta_5e-5",
+      "drive": "fastweak",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 3e-07,
+      "avqds_cut": 3e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastweak__state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "fastweak",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "apm_cut": 9e-06,
+      "avqds_cut": 2.7e-05,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastweak__state_motion_5e-5",
+      "drive": "fastweak",
+      "controller": "state_motion_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 3e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "midres__delta_theta_5e-5",
+      "drive": "midres",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 3e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "midres__state_motion_5e-5",
+      "drive": "midres",
+      "controller": "state_motion_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 3e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "slowstrong__delta_theta_5e-5",
+      "drive": "slowstrong",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 3e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "slowstrong__state_motion_5e-5",
+      "drive": "slowstrong",
+      "controller": "state_motion_5e-5",
+      "apm_cut": 5.080526342527e-12,
+      "avqds_cut": 3e-06,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "strongfast__delta_theta_5e-5",
+      "drive": "strongfast",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 1.371742112482e-10,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "strongfast__state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "strongfast",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "apm_cut": 9e-06,
+      "avqds_cut": 9e-06,
+      "adoption_status": "pair_matched_comparison",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastfast__delta_theta_5e-5",
+      "drive": "fastfast",
+      "controller": "delta_theta_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 1e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastfast__state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "fastfast",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "apm_cut": 9e-06,
+      "avqds_cut": 9e-06,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    },
+    {
+      "cell_id": "fastfast__state_motion_5e-5",
+      "drive": "fastfast",
+      "controller": "state_motion_5e-5",
+      "apm_cut": 3e-06,
+      "avqds_cut": 3e-07,
+      "adoption_status": "individual_response_target",
+      "source_artifacts": {
+        "apm_run_json": null,
+        "apm_run_json_sha256": null,
+        "avqds_run_json": null,
+        "avqds_run_json_sha256": null
+      },
+      "run_lock": {
+        "physics_fingerprint": null,
+        "apm_comparison_fingerprint": null,
+        "avqds_comparison_fingerprint": null
+      },
+      "metrics": null,
+      "paper_status": null
+    }
+  ],
+  "exclusions": [
+    {
+      "drive": "midres",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "reason": "not_in_final_matched_set"
+    },
+    {
+      "drive": "slowstrong",
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "reason": "not_in_final_matched_set"
+    },
+    {
+      "drive": "strongfast",
+      "controller": "state_motion_5e-5",
+      "reason": "not_in_final_matched_set"
+    }
+  ],
+  "external_artifacts": {
+    "promotion_preview": {
+      "path": null,
+      "sha256": null,
+      "declared_sha256_prefix": "40eb3124",
+      "resolution_status": "NOT_FOUND_LOCALLY"
+    },
+    "ledger": {
+      "path": null,
+      "sha256": null,
+      "declared_sha256_prefix": "830370e4",
+      "resolution_status": "NOT_FOUND_LOCALLY",
+      "record_count": null
+    },
+    "results_pdf": {
+      "path": "/Users/lordskyler/Documents/Codex/2026-09-01/paper-ii-context-verified-2026-08/outputs/paper_ii_full_factorial_results_refresh_20260901.pdf",
+      "sha256": "f5e1666a567a7abe3acea4609ce57a3930038f01749cef02ff411dc65151a2e6",
+      "resolution_status": "RESOLVED",
+      "currency_claim": "not_asserted",
+      "path_authority": "provenance_only_absolute_machine_path"
+    }
+  },
+  "blocks": {
+    "schema": "paper_ii_report_refresh_required_v1",
+    "mirrors": "chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/report_refresh_required.json",
+    "mirrors_sha256": "84c67ea56fd6267b1fb772178f96d0f5025556ad3b64412bb65edc673fc29a11",
+    "active": [
+      "further_campaign_submission",
+      "claiming_the_visible_pdf_is_current"
+    ],
+    "required_resolution": {
+      "steps": [
+        "resolve the promotion preview and ledger locally and record their full sha256",
+        "fill every per-cell source_artifacts, run_lock, metrics, and paper_status field from those artifacts",
+        "confirm the 15 adoption statuses against the resolved ledger",
+        "remove these blocks only after those receipts agree"
+      ]
+    }
+  },
+  "adoption_note": "The per-cell adoption statuses and cuts are declared from the author's handoff table, not derived from a local ledger: the promotion preview (40eb3124...) and ledger (830370e4...) were not found on this machine, so every source_artifacts, run_lock, metrics, and paper_status field is null rather than fabricated."
+}
