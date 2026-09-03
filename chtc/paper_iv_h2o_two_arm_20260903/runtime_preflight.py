@@ -12,6 +12,19 @@ Checks:
   manifest_sha256_file_agrees   input_manifest.sha256 lines == manifest digests
   source_archive_imports        pipelines.static_adapt.ra_adapt.h2o_application
                                 imports from the extracted archive
+  help_names_wall_clock_stop_reason
+  archive_controller_stop_reasons_match_next_segment
+  archive_resume_ledger_schemas_match_next_segment
+  archive_runtime_skips_paper_i_summary_for_h2o
+  archive_h2o_application_writes_result_and_summary
+                                the archived engine spells the stop reasons and
+                                sidecar schemas next_segment.py hard-codes, the
+                                H2O family skips the Paper-I summary at exit
+                                (929f1b47), and a wall stop writes result.json
+                                and summary.json
+  runner_stages_resume_outside_output_dir
+                                run_segment.sh moves resume files to resume/,
+                                never inside --output-dir
   submit_files_parse            submit_*.sub and every <arm>/seg*/submit.sub are
                                 key = value lines with the required keys
   scripts_compile               py_compile on *.py, bash -n on *.sh
@@ -36,8 +49,25 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_package as bp  # noqa: E402
+import next_segment as ns  # noqa: E402
 
 VENV_PYTHON = Path("/Users/lordskyler/Holstein_test/.venv/bin/python")
+
+ARCHIVED_SOURCE_FILES = {
+    "controller": "pipelines/static_adapt/sr_snake/_controller.py",
+    "resume": "pipelines/static_adapt/sr_snake/_resume.py",
+    "runtime": "pipelines/static_adapt/ra_adapt/runtime.py",
+    "h2o_application": "pipelines/static_adapt/ra_adapt/h2o_application.py",
+}
+
+
+def archived_source_texts(workdir: Path) -> dict[str, str]:
+    """Text of the archived engine files next_segment.py's constants mirror."""
+    texts: dict[str, str] = {}
+    for key, rel in ARCHIVED_SOURCE_FILES.items():
+        path = workdir / rel
+        texts[key] = path.read_text(encoding="utf-8") if path.is_file() else ""
+    return texts
 
 
 def _python() -> str:
@@ -121,15 +151,51 @@ def main(argv: list[str] | None = None) -> int:
         if archive.is_file() and not args.skip_import:
             with tempfile.TemporaryDirectory(prefix="paper_iv_preflight_") as tmp:
                 rc, out = run_help_from_archive(archive, Path(tmp))
+                archived = archived_source_texts(Path(tmp))
             checks["source_archive_imports"] = rc == 0
             missing = sorted(f for f in bp.RUN_SCRIPT_FLAGS if f not in out)
             checks["help_lists_run_script_flags"] = rc == 0 and not missing
             detail["help_missing_flags"] = missing
             checks["help_lists_both_arms"] = all(bp.ARMS[a]["candidate_representation"] in out for a in bp.ARMS)
+            # Stop semantics next_segment.py relies on, checked against the
+            # code that ships rather than against this worktree.
+            checks["help_names_wall_clock_stop_reason"] = rc == 0 and ns.WALL_CLOCK_STOP_REASON in out
+            controller = archived.get("controller", "")
+            checks["archive_controller_stop_reasons_match_next_segment"] = (
+                f'WALL_CLOCK_BUDGET_STOP_REASON = "{ns.WALL_CLOCK_STOP_REASON}"' in controller
+                and f'"{ns.EXACT_TARGET_STOP_REASON}"' in controller
+                and f'"{ns.HORIZON_STOP_REASON}"' in controller
+            )
+            resume = archived.get("resume", "")
+            checks["archive_resume_ledger_schemas_match_next_segment"] = (
+                f'"{ns.LEDGER_POINTER_SCHEMA}"' in resume and f'"{ns.LEDGER_SIDECAR_SCHEMA}"' in resume
+            )
+            # 929f1b47: the H2O family skips the Paper-I canonical summary that
+            # crashed every H2O run at exit; without it a horizon or exact
+            # stop returns a checkpoint but no result.json.
+            checks["archive_runtime_skips_paper_i_summary_for_h2o"] = (
+                '"molecular_vibronic_h2o_linear_fd"' in archived.get("runtime", "")
+            )
+            # Segment boundary: a wall stop must write result.json + summary.json.
+            app = archived.get("h2o_application", "")
+            checks["archive_h2o_application_writes_result_and_summary"] = (
+                "_write_json(result_path, result.to_dict())" in app
+                and 'output_dir / "summary.json"' in app
+                and "maximum_wall_seconds=engine_wall_budget_seconds" in app
+                and "Refusing to resume from a checkpoint inside --output-dir" in app
+            )
             if rc != 0:
                 detail["help_tail"] = out[-1500:]
         elif args.skip_import:
             detail["import_check"] = "skipped"
+
+    # run_segment.sh must stage resume files outside --output-dir
+    # (h2o_application refuses a checkpoint inside it) and pass the staged path.
+    checks["runner_stages_resume_outside_output_dir"] = (
+        'mv -- "$name" "resume/$name"' in runner_text
+        and '--resume-checkpoint "/work/resume/$RESUME_NAME"' in runner_text
+        and "--output-dir /work/results" in runner_text
+    )
 
     submit_problems: list[str] = []
     submit_files = sorted(bp.PACKAGE_DIR.glob("submit_*.sub")) + sorted(bp.PACKAGE_DIR.glob("*/seg*/submit.sub"))

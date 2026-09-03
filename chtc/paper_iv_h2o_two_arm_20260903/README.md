@@ -48,8 +48,14 @@ package parameterizes it but does not choose it.
 | `periodic_hold` (belt and braces) | 172,800 (48 h) | every submit file |
 | `--max-wall-seconds` (the real stop) | 129,600 (36 h, default) | `run_segment.sh` argument |
 
-The engine checks the wall budget **between controller rounds** and returns
-normally, writing `current.json` + its sidecars and **no** `result.json`. The
+The engine checks the wall budget **between controller rounds**, after the
+completed round has been checkpointed, and returns normally exactly the way
+a `maximum_controller_rounds` stop does: `current.json` + its sidecars,
+`result.json` with `run.stop.primary_reason == "wall_clock_budget_v1"`
+(`sr_snake/_controller.py` `WALL_CLOCK_BUDGET_STOP_REASON`), `summary.json`
+with `stop_fired_reasons` / `wall_clock_elapsed_seconds`, Python exit 0. A
+protocol stop that fires in the same round keeps precedence (`fired_reasons[0]`),
+so a wall-stopped segment is by construction one with no scientific stop. The
 12 h between the in-process stop and the `periodic_hold` covers the last
 round (the most expensive of a segment: append-only ADAPT grows per round),
 the final checkpoint write, the tarball, and output transfer. Nobody has
@@ -127,7 +133,7 @@ anything in this directory:
 |---|---|
 | `build_package.py` | `git archive` of the worktree **HEAD** (sha recorded; uncommitted edits are not shipped) → `package/source.tgz`; copies the fixture; writes `package/input_manifest.json` (+ `.sha256`), `package/build_record.json`, `submit_macro.sub`, `submit_singleton.sub`, `<arm>/seg00/{submit.sub,segment.json,logs/}`. Self-checks every submit file as `key = value` lines. |
 | `run_segment.sh` | Execute-node runner. Verifies input digests with `sha256sum -c`, unpacks the source, moves any resume files into `resume/` (never inside `--output-dir`), runs `h2o_application` under Apptainer with the lost run's env pins plus `STATIC_ADAPT_CHECKPOINT_JSON_LAYOUT=compact`, writes `results/segment_receipt.json`, tars in staging mode, exits with Python's code. |
-| `next_segment.py` | From a retrieved `results/`: refuses if the run completed (result.json with a non-wall-clock stop reason) or chemical accuracy was reached (summary flag, or checkpoint energy within tolerance of `protocol.json`'s exact target); verifies `current.json` (`iteration_done`, `complete: false`, both estimator-ledger pointers agree, sidecar sha256 matches, sidecar schema is the checkpoint-sidecar schema, every other content-addressed sidecar likewise); stages them into `<arm>/seg{N+1}/input/` with `resume_manifest.sha256`; renders `submit.sub` with `--resume-checkpoint` and a fresh output dir. `--verify-only` for retrieval checks. |
+| `next_segment.py` | From a retrieved `results/`: reads `result.json` `run.stop.primary_reason` / `fired_reasons` (cross-checked against `summary.json`) and continues **iff** `primary_reason == "wall_clock_budget_v1"`; reports the arm finished when `exact_ed_target_reached` or `maximum_controller_rounds` (the 50-round horizon) fired, `summary.json` says `chemical_accuracy_reached`, or the checkpoint energy is within tolerance of `protocol.json`'s exact target; refuses anything else (no `result.json`, an unknown reason) with the reason printed (`--resume-after-abnormal-exit` is the explicit override for a crashed/held segment, never for a scientific stop); verifies `current.json` (`iteration_done`, `complete: false`, both estimator-ledger pointers agree, sidecar sha256 matches, sidecar schema is the checkpoint-sidecar schema, every other content-addressed sidecar likewise); stages them into `<arm>/seg{N+1}/input/` with `resume_manifest.sha256`; renders `submit.sub` with `--resume-checkpoint` and a fresh output dir. `--verify-only` for retrieval checks. |
 | `monitor.sh` | Hourly read-only watch (handoff §5.2): job state, run time vs budget (warn at 40 h), hold alerts, `quota -s` alert above 38,000 MB, 12-hourly rsync mirror to `~/paper_iv_h2o_results/` followed by `next_segment.py --verify-only` on every retrieved `current.json`. Exit 78 when `ssh -O check ap2001` fails. |
 | `runtime_preflight.py` | Local, no SSH: `--help` of the **archived** `h2o_application` lists every flag the runner passes and both arms; fixture/runner/source digests match the manifest; the archive imports; submit files parse; `py_compile` and `bash -n`. Exit 2 when blocked. |
 
@@ -149,16 +155,28 @@ $PY chtc/paper_iv_h2o_two_arm_20260903/next_segment.py --previous-results ~/pape
 # --- user: rsync macro/seg01/ to ap2001 and condor_submit it
 ```
 
-`runtime_preflight.py` is **blocked** on the integration branch at
-`6648ed5b` because `--cost-mode` and `--max-wall-seconds` are not yet on
-`h2o_application --help`; they are being added by other builders. Rebuild the
-package after those land (the archive is HEAD, so they must be committed).
+`runtime_preflight.py` passes on the campaign branch at `9a576e4a`
+(`--cost-mode` from `af222b69`, `--max-wall-seconds` from `929f1b47`,
+`--resume-checkpoint` from `9a43bfe2`); the archive is HEAD, so any later
+engine change must be committed before rebuilding. Besides the flag/digest
+checks it verifies, in the **archived** source, the stop-reason strings and
+ledger-sidecar schemas `next_segment.py` hard-codes, the H2O finalization
+skip in `runtime.py`, and that `run_segment.sh` stages resume files in
+`resume/` rather than inside `--output-dir` (`h2o_application` refuses a
+checkpoint inside its output directory).
 
-## Blockers measured on the integration branch (6648ed5b), 2026-09-03
+## Blockers measured on the integration branch (6648ed5b), 2026-09-03 — status at 9a576e4a
 
-Both found by running `h2o_application` locally on the July fixture
+Both were found by running `h2o_application` locally on the July fixture
 (`chtc/paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_d50_20260724/input/h2o_fixture.json`,
-1 controller round, ~3 min, each arm):
+1 controller round, ~3 min, each arm). Blocker 2 is **fixed** at `9a576e4a`
+(`929f1b47`, `runtime.py` skips the Paper-I canonical summary for the
+`molecular_vibronic_h2o_linear_fd` family; verified locally for the macro arm
+with `--max-wall-seconds 0`: exit 0 in 368 s / 394 MB RSS, `result.json` +
+`summary.json` written, `stop_reason == wall_clock_budget_v1`; the singleton
+arm now fails earlier, see 3). Blocker 1 **still stands**
+(`test/test_ra_adapt_h2o_application.py::test_h2o_cli_segment_chain_resumes_from_the_wall_clock_stop`
+is a strict xfail on it).
 
 1. **`--resume-checkpoint` cannot resume an H2O checkpoint.**
    `pipelines/static_adapt/sr_snake/_resume.py:1456-1460`
@@ -171,24 +189,49 @@ Both found by running `h2o_application` locally on the July fixture
    binding itself. Until H2O is admitted there (a scientific-surface change,
    not a package change), **segment 01 of either arm cannot start**, and a
    campaign of bounded segments reduces to one segment per arm.
-2. **Finalization crashes for both arms after the horizon is reached.**
-   `pipelines/static_adapt/ra_adapt/runtime.py:1951-1966` routes
-   `append_only` RA-ADAPT results through `summarize_paper_i_run`, which
-   raises at `pipelines/reporting/paper_i_run_summary.py:1630`:
+2. **(Fixed at 9a576e4a.) Finalization crashed for both arms after the
+   horizon was reached.** At `6648ed5b`, `runtime.py` routed `append_only`
+   RA-ADAPT results through `summarize_paper_i_run`, which raised
    `canonical Paper-I summary route identity disagrees with the typed
-   canonical route authority.` `current.json` and its sidecars are written
-   (checkpoint depth 1, `complete: false`) but `result.json` and
-   `summary.json` are not, and the process exits 1. A segment that reaches
-   50 rounds or chemical accuracy therefore returns a checkpoint, not a
-   result. Whether the `--max-wall-seconds` stop avoids this path depends on
-   its implementation (it must return before `summarize_paper_i_run`).
+   canonical route authority.` (`paper_i_run_summary.py:1630`), so
+   `current.json` was written but `result.json`/`summary.json` were not and
+   the process exited 1. `929f1b47` makes the H2O family skip that summary;
+   `runtime_preflight.py` checks the archived `runtime.py` carries the skip.
 
-Neither is caused by this package and neither is fixed here.
+3. **(New at 9a576e4a, unmasked by the fix to 2.) The singleton arm
+   crashes at finalization after its first accepted round.** With
+   `--candidate-representation sector_complete_pauli_block_v1`, both
+   `--max-wall-seconds 0` and `--maximum-controller-rounds 1` (no wall flag)
+   exit 1 from `pipelines/static_adapt/ra_adapt/engine.py:3319`
+   (`_accepted_candidate_lineage_receipts`):
+   `RuntimeError: Accepted RA candidate is absent from the authenticated
+   executable inventory.` The accepted row is the staged sector block
+   `h2o_sector_block::<sha16>` / `generator_id h2o-sector-block:<sha16>`,
+   which is not an entry of `adapter.executable_pool(problem)`; the
+   staged-child branch of that function opens only when the protocol's
+   `candidate_representation == single_pauli_word_v1`, and the H2O
+   sector-complete mode resolves to `macro_generator_v1`
+   (`launch_manifest.json`: `candidate_mode` vs `candidate_representation`).
+   `current.json` + sidecars are written (depth 1, `complete: false`);
+   `result.json`/`summary.json` are not. On pristine main `c81247de` the
+   same run dies earlier, in blocker 2's `summarize_paper_i_run`
+   (`runtime.py:1969`), so this site was never reached there: the engine
+   crash is pre-existing but masked, not introduced by the merged lanes.
+   The macro arm is unaffected
+   (exit 0, `result.json`, `stop_reason == wall_clock_budget_v1`). Until
+   this is fixed in the engine (a scientific-surface change, not a package
+   change), **the singleton arm returns a checkpoint but never a result**,
+   and `next_segment.py` classifies it `abnormal_exit`.
+
+None of these was caused by this package; 1 and 3 are not fixed here.
 
 ## Retrieval is only trustworthy once verified
 
 A returned `results/` proves nothing until `next_segment.py --verify-only`
-passes on it: `current.json` must be an `iteration_done` checkpoint whose
+passes on it (exit 0: resumable; exit 3: checkpoint verified but the arm is
+finished or the stop was not `wall_clock_budget_v1`; anything else: the
+retrieval failed verification). A normally-exited segment has `result.json`
+and `summary.json`; `current.json` must be an `iteration_done` checkpoint whose
 estimator-ledger pointer (`checkpoint.estimator_call_ledger_checkpoint` ==
 `adapt_vqe.estimator_call_ledger_checkpoint`) names a sibling
 `current.estimator_call_ledger_checkpoint.<sha16>.json` whose SHA-256 matches;

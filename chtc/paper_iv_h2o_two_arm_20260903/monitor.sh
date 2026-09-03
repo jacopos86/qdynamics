@@ -113,11 +113,17 @@ if (( now - last >= RETRIEVE_EVERY )); then
   if [[ -x "$py" && -f "$verifier" ]]; then
     while IFS= read -r cur; do
       d="$(dirname "$cur")"
-      if out="$("$py" "$verifier" --previous-results "$d" --verify-only 2>&1)"; then
-        log "verified $d: $(printf '%s' "$out" | tr -d '\n' | cut -c1-200)"
-      else
-        log "verify $d: $(printf '%s' "$out" | tail -n 1)"
-      fi
+      # next_segment.py --verify-only: 0 = checkpoint verified and the stop
+      # was wall_clock_budget_v1 (resumable); 3 = checkpoint verified but the
+      # arm is finished (exact target / 50-round horizon) or the stop is not
+      # a wall-clock stop; anything else = the retrieved results/ failed
+      # verification and must not be trusted or deleted remotely.
+      out="$("$py" "$verifier" --previous-results "$d" --verify-only 2>&1)"; vrc=$?
+      case "$vrc" in
+        0) log "verified RESUMABLE $d: $(printf '%s' "$out" | tr -d '\n' | cut -c1-200)" ;;
+        3) log "verified NOT-RESUMABLE $d: $(printf '%s' "$out" | tail -n 1)" ;;
+        *) log "ALERT verify FAILED (rc=$vrc) $d: $(printf '%s' "$out" | tail -n 1)"; alerts=$((alerts+1)) ;;
+      esac
     done < <(find "$mirror" -name current.json -path '*/results/*' 2>/dev/null)
   fi
 fi
