@@ -30,11 +30,6 @@ from typing import Callable
 
 import numpy as np
 
-from pipelines.time_dynamics.ap_mclachlan.timestep_control import (
-    ControlledVelocity,
-    advance_interval_component_controlled,
-)
-
 AVQDS_STEPPING_V1 = "avqds_delta_theta_controlled_euler_v1"
 
 # The value used in the source's reported comparisons.
@@ -86,30 +81,51 @@ def advance_interval_delta_theta_controlled(
     outward sign.
     """
 
-    if not np.isfinite(float(delta_theta_max)) or float(delta_theta_max) <= 0.0:
-        raise ValueError("delta_theta_max must be finite and positive.")
+    if float(delta_theta_max) <= 0.0:
+        raise ValueError("delta_theta_max must be positive.")
+    if float(dt_interval) < 0.0:
+        raise ValueError("dt_interval must be non-negative.")
 
-    def _controlled_rhs(theta_value: np.ndarray, t_value: float) -> ControlledVelocity:
-        theta_dot = np.asarray(theta_dot_rhs(theta_value, t_value), dtype=float).reshape(-1)
+    theta_current = np.asarray(theta, dtype=float).reshape(-1)
+    t_current = float(time)
+    t_end = float(time) + float(dt_interval)
+    substeps = 0
+    min_dt = float("inf")
+    max_dt = 0.0
+    max_theta_dot_seen = 0.0
+
+    while t_current < t_end - 1.0e-15:
+        if substeps >= int(max_substeps):
+            raise RuntimeError(
+                f"AVQDS stepping exceeded {max_substeps} substeps over one "
+                f"reporting interval (delta_theta_max={delta_theta_max:g}); "
+                "refusing to report a partially advanced interval."
+            )
+        theta_dot = np.asarray(
+            theta_dot_rhs(theta_current, t_current), dtype=float
+        ).reshape(-1)
         peak = float(np.max(np.abs(theta_dot))) if theta_dot.size else 0.0
-        return ControlledVelocity(theta_dot=theta_dot, control_rate=peak)
+        max_theta_dot_seen = max(max_theta_dot_seen, peak)
+        remaining = t_end - t_current
+        # The control law: no parameter may move more than delta_theta_max.
+        dt_allowed = (
+            remaining if peak <= 0.0
+            else min(remaining, float(delta_theta_max) / peak)
+        )
+        if not np.isfinite(dt_allowed) or dt_allowed <= 0.0:
+            dt_allowed = remaining
+        theta_current = theta_current + dt_allowed * theta_dot
+        t_current += dt_allowed
+        substeps += 1
+        min_dt = min(min_dt, dt_allowed)
+        max_dt = max(max_dt, dt_allowed)
 
-    stepped = advance_interval_component_controlled(
-        theta=theta,
-        time=time,
-        dt_interval=dt_interval,
-        controlled_rhs=_controlled_rhs,
-        step_max=float(delta_theta_max),
-        policy=AVQDS_STEPPING_V1,
-        max_substeps=max_substeps,
-        runaway_label="AVQDS stepping",
-    )
     return AVQDSSteppingResult(
-        theta_next=np.asarray(stepped.theta_next, dtype=float).reshape(-1),
-        substep_count=int(stepped.substep_count),
-        min_dt=float(stepped.min_dt),
-        max_dt=float(stepped.max_dt),
-        max_theta_dot=float(stepped.max_theta_dot),
+        theta_next=theta_current,
+        substep_count=int(substeps),
+        min_dt=0.0 if not np.isfinite(min_dt) else float(min_dt),
+        max_dt=float(max_dt),
+        max_theta_dot=float(max_theta_dot_seen),
         delta_theta_max=float(delta_theta_max),
     )
 

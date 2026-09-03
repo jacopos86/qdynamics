@@ -44,25 +44,6 @@ def test_supported_inverse_drops_below_threshold_eigenspace() -> None:
     assert solve.gamma == pytest.approx(2.0)
 
 
-def test_supported_inverse_retains_eigenvectors_without_serializing_them() -> None:
-    K = np.array([[2.0, 0.5], [0.5, 1.0]])
-    policy = McLachlanInversePolicy(ridge_lambda=0.25)
-
-    inverse = supported_inverse(K, policy=policy)
-
-    reconstructed = (
-        inverse.eigenvectors * inverse.eigenvalues
-    ) @ inverse.eigenvectors.T
-    np.testing.assert_allclose(reconstructed, K + 0.25 * np.eye(2), atol=1.0e-14)
-    assert "inverse_eigenvectors" not in inverse.to_json_dict()
-
-
-def test_supported_inverse_empty_eigenvectors_have_matrix_shape() -> None:
-    inverse = supported_inverse(np.zeros((0, 0), dtype=float))
-
-    assert inverse.eigenvectors.shape == (0, 0)
-
-
 def test_solve_damping_regularizes_retained_eigenspace() -> None:
     K = np.array([[2.0]])
     f = np.array([2.0])

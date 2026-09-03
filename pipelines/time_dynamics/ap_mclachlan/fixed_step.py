@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Sequence
 
 import numpy as np
@@ -18,7 +18,6 @@ from pipelines.time_dynamics.ap_mclachlan.inverse import (
     DEFAULT_MCLACHLAN_RIDGE_LAMBDA,
     DEFAULT_MCLACHLAN_SOLVE_DAMPING,
     McLachlanInversePolicy,
-    SupportedInverse,
     solve_theta_dot,
 )
 
@@ -350,11 +349,6 @@ class FixedMcLachlanStep:
     solve_guard_g_delta: bool = False
     solve_guard_g_rho: bool = False
     solve_guard_g_kink: bool = False
-    supported_inverse: SupportedInverse | None = field(
-        default=None,
-        repr=False,
-        compare=False,
-    )
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -477,7 +471,6 @@ def solve_fixed_mclachlan_step(
         state_motion_l2_step=state_motion,
         parameter_step=parameter_step,
         state_space_kink_eta=kink_eta,
-        supported_inverse=solve.inverse,
     )
 
 
@@ -754,7 +747,6 @@ def _step_with_repair_telemetry(
         solve_guard_g_delta=bool(step.solve_guard_g_delta),
         solve_guard_g_rho=bool(step.solve_guard_g_rho),
         solve_guard_g_kink=bool(step.solve_guard_g_kink),
-        supported_inverse=step.supported_inverse,
     )
 
 
@@ -792,7 +784,6 @@ def _step_with_guard_report(
         solve_guard_g_delta=bool(report.g_delta),
         solve_guard_g_rho=bool(report.g_rho),
         solve_guard_g_kink=bool(report.g_kink),
-        supported_inverse=step.supported_inverse,
     )
 
 

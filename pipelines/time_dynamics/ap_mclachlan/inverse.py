@@ -8,7 +8,7 @@ references, candidate generation, or controller commits.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Sequence
 
 import numpy as np
@@ -57,16 +57,6 @@ class SupportedInverse:
     max_abs_eigenvalue: float | None = None
     retained_threshold: float = 0.0
     retained_support_empty: bool = False
-    # Kept in memory for downstream numerical controllers that need the same
-    # retained eigensystem as the solve.  Eigenvectors are deliberately absent
-    # from JSON telemetry: serializing an O(N^2) basis would change established
-    # artifacts without adding provenance that the eigenvalues/mask do not
-    # already supply.
-    eigenvectors: np.ndarray = field(
-        default_factory=lambda: np.zeros((0, 0), dtype=float),
-        repr=False,
-        compare=False,
-    )
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -184,7 +174,6 @@ def supported_inverse(
             max_abs_eigenvalue=None,
             retained_threshold=0.0,
             retained_support_empty=True,
-            eigenvectors=np.zeros((0, 0), dtype=float),
         )
 
     try:
@@ -223,7 +212,6 @@ def supported_inverse(
         max_abs_eigenvalue=float(max_abs),
         retained_threshold=float(threshold),
         retained_support_empty=bool(np.count_nonzero(retained) == 0),
-        eigenvectors=np.asarray(vectors, dtype=float),
     )
 
 

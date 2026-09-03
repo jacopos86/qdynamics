@@ -52,8 +52,6 @@ from pipelines.time_dynamics.ap_mclachlan.support_patch import (
     build_support_patch_before_cache,
 )
 from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
-    _build_parser,
-    _support_patch_config_from_args,
     run_append_ap_mclachlan_from_runtime_input,
 )
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
@@ -61,46 +59,6 @@ from src.quantum.ansatz_parameterization import build_parameter_layout
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
 from src.quantum.vqe_latex_python_pairs import AnsatzTerm
-
-
-def test_retained_eigenmode_step_controller_config_and_cli() -> None:
-    assert (
-        "retained_eigenmode_step_max"
-        not in SupportPatchControllerConfig().to_json_dict()
-    )
-    config = SupportPatchControllerConfig(retained_eigenmode_step_max=2.5e-3)
-    assert config.to_json_dict()["retained_eigenmode_step_max"] == pytest.approx(
-        2.5e-3
-    )
-    parsed = _build_parser().parse_args(
-        [
-            "--artifact-json",
-            "seed.json",
-            "--output-json",
-            "out.json",
-            "--retained-eigenmode-step-max",
-            "0.0025",
-        ]
-    )
-    assert parsed.retained_eigenmode_step_max == pytest.approx(2.5e-3)
-    transported = _support_patch_config_from_args(parsed)
-    assert transported.retained_eigenmode_step_max == pytest.approx(2.5e-3)
-
-
-@pytest.mark.parametrize("bad_bound", [0.0, -1.0, np.nan, np.inf])
-def test_retained_eigenmode_step_controller_rejects_invalid_bound(
-    bad_bound: float,
-) -> None:
-    with pytest.raises(ValueError, match="retained_eigenmode_step_max"):
-        SupportPatchControllerConfig(retained_eigenmode_step_max=bad_bound)
-
-
-def test_timestep_controller_modes_are_mutually_exclusive() -> None:
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        SupportPatchControllerConfig(
-            avqds_delta_theta_max=5.0e-3,
-            retained_eigenmode_step_max=5.0e-3,
-        )
 
 
 def _poly(label: str, coeff: float = 1.0) -> PauliPolynomial:

@@ -51,12 +51,6 @@ from pipelines.time_dynamics.ap_mclachlan.avqds import (
 from pipelines.time_dynamics.ap_mclachlan.avqds_stepping import (
     advance_interval_delta_theta_controlled,
 )
-from pipelines.time_dynamics.ap_mclachlan.timestep_control import (
-    RETAINED_METRIC_EIGENMODE_STEPPING_V1,
-    ControlledVelocity,
-    advance_interval_component_controlled,
-    retained_metric_eigenmode_velocity,
-)
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     eligible_deletion_atoms,
     select_generalized_exchange_patch,
@@ -165,12 +159,6 @@ class SupportPatchControllerConfig:
     # stabilization mechanism.  `None` integrates on the reporting grid,
     # which is NOT the published method.
     avqds_delta_theta_max: float | None = None
-    # Optional componentwise control in the locally whitened, positive
-    # retained eigenspace of the raw McLachlan Gram matrix.  This changes only
-    # substep selection: theta_dot and the Euler update remain in the original
-    # circuit coordinates.  The value needs its own accuracy-matched
-    # calibration and therefore has no canonical default.
-    retained_eigenmode_step_max: float | None = None
     # What may fire while L^2 is above the cut ("accuracy debt").
     #   "insertion_only" -- explicit insert-face ablation: removal is
     #       withdrawn until the debt is paid.
@@ -237,20 +225,6 @@ class SupportPatchControllerConfig:
     uses_future_exact_forecast_for_decision: bool = False
 
     def __post_init__(self) -> None:
-        for name in ("avqds_delta_theta_max", "retained_eigenmode_step_max"):
-            value = getattr(self, name)
-            if value is not None and (
-                not np.isfinite(float(value)) or float(value) <= 0.0
-            ):
-                raise ValueError(f"{name} must be finite and positive when set.")
-        if (
-            self.avqds_delta_theta_max is not None
-            and self.retained_eigenmode_step_max is not None
-        ):
-            raise ValueError(
-                "avqds_delta_theta_max and retained_eigenmode_step_max are "
-                "mutually exclusive timestep controllers."
-            )
         for name in (
             "prune_history_window",
             "prune_cooldown_steps",
@@ -444,10 +418,6 @@ class SupportPatchControllerConfig:
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
         )
-        if self.retained_eigenmode_step_max is not None:
-            payload["retained_eigenmode_step_max"] = float(
-                self.retained_eigenmode_step_max
-            )
         return payload
 
 
@@ -1186,22 +1156,20 @@ def run_append_mclachlan_trajectory(
             avqds_delta_theta_max = getattr(
                 effective_support_config, "avqds_delta_theta_max", None
             )
-            retained_eigenmode_step_max = getattr(
-                effective_support_config, "retained_eigenmode_step_max", None
-            )
-            # Component-controlled stepping is a numerical choice shared by
-            # both structural policies, which isolates the step-control law
-            # from the support-selection rule paired with it.
-            use_component_stepping = (
-                avqds_delta_theta_max is not None
-                or retained_eigenmode_step_max is not None
-            )
-            if use_component_stepping:
-                # Both component rules use local Euler substeps and re-evaluate
-                # the McLachlan geometry at every accepted substep.
-                def _controlled_fixed_step(
-                    theta_value: np.ndarray, t_value: float
-                ) -> FixedMcLachlanStep:
+            # Parameter-controlled stepping is a numerics choice, not a policy
+            # choice: it applies to whichever structural rule is running, so
+            # that the step-control law can be isolated from the rule it is
+            # paired with.  Restricting it to the avqds policy would make the
+            # two inseparable and leave "is the comparator better, or is its
+            # step control better?" unanswerable.
+            use_avqds_stepping = avqds_delta_theta_max is not None
+            if use_avqds_stepping:
+                # AVQDS control law (Yao et al.): Euler substeps sized so that
+                # no parameter moves more than delta_theta_max.  Integrating a
+                # comparator on the reporting grid instead is what produced
+                # mean energy errors of 3.5e-1 to 2.6e0 on this seed -- an
+                # artifact of the imposed step, not the method.
+                def _avqds_rhs(theta_value: np.ndarray, t_value: float) -> np.ndarray:
                     ev = evaluate_mclachlan_geometry(
                         state=state_for_rhs,
                         hamiltonian=hamiltonian,
@@ -1216,55 +1184,16 @@ def run_append_mclachlan_trajectory(
                         solve_repair_config=solve_repair_config,
                         repair_dt=None,
                     )
-                    return st
+                    return np.asarray(st.theta_dot, dtype=float).reshape(-1)
 
-                if avqds_delta_theta_max is not None:
-                    # Published AVQDS control law (Yao et al.): bound every
-                    # raw circuit-coordinate displacement by delta_theta_max.
-
-                    def _avqds_rhs(
-                        theta_value: np.ndarray, t_value: float
-                    ) -> np.ndarray:
-                        return np.asarray(
-                            _controlled_fixed_step(theta_value, t_value).theta_dot,
-                            dtype=float,
-                        ).reshape(-1)
-
-                    with phase(PHASE_INTEGRATE):
-                        stepping = advance_interval_delta_theta_controlled(
-                            theta=theta_current,
-                            time=float(time_value),
-                            dt_interval=dt,
-                            theta_dot_rhs=_avqds_rhs,
-                            delta_theta_max=float(avqds_delta_theta_max),
-                        )
-                else:
-
-                    def _retained_eigenmode_rhs(
-                        theta_value: np.ndarray, t_value: float
-                    ) -> ControlledVelocity:
-                        st = _controlled_fixed_step(theta_value, t_value)
-                        if st.supported_inverse is None:
-                            raise RuntimeError(
-                                "retained-eigenmode stepping requires the "
-                                "fixed-step supported inverse."
-                            )
-                        return retained_metric_eigenmode_velocity(
-                            theta_dot=st.theta_dot,
-                            supported_inverse=st.supported_inverse,
-                            epsilon=float(st.inverse_policy.epsilon),
-                        )
-
-                    with phase(PHASE_INTEGRATE):
-                        stepping = advance_interval_component_controlled(
-                            theta=theta_current,
-                            time=float(time_value),
-                            dt_interval=dt,
-                            controlled_rhs=_retained_eigenmode_rhs,
-                            step_max=float(retained_eigenmode_step_max),
-                            policy=RETAINED_METRIC_EIGENMODE_STEPPING_V1,
-                            runaway_label="retained-eigenmode stepping",
-                        )
+                with phase(PHASE_INTEGRATE):
+                    stepping = advance_interval_delta_theta_controlled(
+                        theta=theta_current,
+                        time=float(time_value),
+                        dt_interval=dt,
+                        theta_dot_rhs=_avqds_rhs,
+                        delta_theta_max=float(avqds_delta_theta_max),
+                    )
                 theta_next = np.asarray(
                     stepping.theta_next, dtype=float
                 ).reshape(-1)
