@@ -29,6 +29,22 @@ def _route_record(route: str) -> dict:
         "estimator_work": {
             "rhs_geometry_evaluation_count": 20,
             "logical_integration_geometry_work": 200,
+            "logical_checkpoint_base_geometry_work": 50,
+            "checkpoint_base_status": "exact",
+            "logical_candidate_acquisition_work": 300,
+            "candidate_acquisition_status": "lower_bound",
+            "logical_certification_geometry_work": (
+                None if route == "avqds" else 40
+            ),
+            "certification_geometry_status": (
+                "not_applicable" if route == "avqds" else "lower_bound"
+            ),
+            "logical_total_estimator_work": (
+                550 if route == "avqds" else 590
+            ),
+            "logical_total_estimator_work_status": "lower_bound",
+            "physical_shots": None,
+            "physical_shots_status": "unavailable_statevector_no_shot_ledger",
         },
         "support_motion": {
             "added_coordinate_count": 3,
@@ -36,6 +52,7 @@ def _route_record(route: str) -> dict:
             "short_delete_to_readd_count": 1,
             "short_add_to_redelete_count": 1,
             "support_changing_checkpoint_count": 4,
+            "support_event_ledger_complete": True,
         },
         "deletion_gate_outcomes": {
             "applicable": route != "avqds",
@@ -144,15 +161,23 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "repaired proxy" in tex
     assert "old proxy$^{*}$" in tex
     assert "AVQDS$^{*}$" in tex
-    assert "Logical geometry work" in tex
+    assert "Propagation geometry elements" in tex
+    assert "Checkpoint geometry elements" in tex
+    assert "Candidate acquisition elements" in tex
+    assert "Finalist geometry elements" in tex
+    assert "Total logical estimator elements" in tex
+    assert "$\\geq$300" in tex
     assert "Gross churn" not in tex
     assert "Failed post-delete gates" in tex
     assert "Finalists tested with deletion" in tex
-    assert "physical shot count" in tex
+    assert "No hardware-shot ledger" in tex
     assert "Fresh terminal compilation: 5 displayed route/cell arms" in markdown
     assert "FakeMarrakesh" in markdown
     assert "`benchmark_point_sameness`, `seed_provenance`" in markdown
     assert "This is no-evidence, not a pass" in markdown
+    assert "logical_candidate_acquisition_work" in markdown
+    assert ">=300" in markdown
+    assert "unavailable_statevector_no_shot_ledger" in markdown
 
 
 def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path) -> None:

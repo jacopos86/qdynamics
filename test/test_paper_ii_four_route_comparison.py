@@ -6,6 +6,7 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
     _base_coordinate_id,
     _pair_match,
     build_terminal_compile_plan,
+    complete_estimator_work,
     deletion_gate_outcomes,
     integration_geometry_work,
     structural_churn,
@@ -48,6 +49,99 @@ def test_integration_geometry_work_keeps_rhs_work_distinct_from_steps() -> None:
         "logical_integration_geometry_work": 34,
     }
 
+
+def test_complete_estimator_work_includes_apm_candidates_and_finalists() -> None:
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [
+            {
+                "runtime_parameter_count": 3,
+                "parameter_control_rhs_evaluation_count": 0,
+                "integration_rhs_evaluation_count": 1,
+            }
+        ],
+        "summary": {"rhs_evaluation_count": 1},
+        "trajectory": {
+            "points": [
+                {
+                    "fixed_step": {"support_labels": ["a", "b", "c"]},
+                    "patch_decision": {
+                        "accepted": True,
+                        "patch_kind": "append",
+                        "metadata": {
+                            "insertion_rounds": 1,
+                            "insertions_enabled": True,
+                            "work_guard": {
+                                "admitted_families": ["singleton_d0"],
+                                "scored_count": 3,
+                            },
+                            "committed": {
+                                "removed_runtime_indices": [],
+                                "inserted_selection": [["c", 2]],
+                            },
+                            "attempt_count": 1,
+                            "attempts": [
+                                {
+                                    "removed_runtime_indices": [],
+                                    "inserted_selection": [["c", 2]],
+                                    "reason": "certified",
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        },
+    }
+
+    result = complete_estimator_work([run], route="q_compiled")
+
+    assert result["logical_integration_geometry_work"] == 11
+    assert result["logical_checkpoint_base_geometry_work"] == 7
+    assert result["logical_candidate_acquisition_work"] == 9
+    assert result["logical_certification_geometry_work"] == 11
+    assert result["logical_total_estimator_work"] == 38
+    assert result["candidate_acquisition_status"] == "exact"
+    assert result["certification_geometry_status"] == "lower_bound"
+    assert result["physical_shots"] is None
+
+
+def test_complete_estimator_work_counts_avqds_candidate_geometry_as_bound() -> None:
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [
+            {
+                "runtime_parameter_count": 3,
+                "parameter_control_rhs_evaluation_count": 0,
+                "integration_rhs_evaluation_count": 1,
+            }
+        ],
+        "summary": {"rhs_evaluation_count": 1},
+        "trajectory": {
+            "points": [
+                {
+                    "fixed_step": {"support_labels": ["a", "b", "c"]},
+                    "patch_decision": {
+                        "accepted": True,
+                        "metadata": {
+                            "appended_atom_ids": ["c"],
+                            "candidates_scored": 4,
+                        },
+                    },
+                }
+            ]
+        },
+    }
+
+    result = complete_estimator_work([run], route="avqds")
+
+    assert result["candidate_full_geometry_evaluation_count"] == 4
+    assert result["logical_candidate_acquisition_work"] == 44
+    assert result["candidate_acquisition_status"] == "lower_bound"
+    assert result["logical_certification_geometry_work"] is None
+    assert result["certification_geometry_status"] == "not_applicable"
+    assert result["logical_total_estimator_work"] == 62
+    assert result["logical_total_estimator_work_status"] == "lower_bound"
 
 def test_structural_churn_finds_delete_readd_redelete_cycle() -> None:
     run = {
@@ -114,6 +208,36 @@ def test_deletion_gate_outcomes_count_actual_post_delete_failures() -> None:
     assert result["post_delete_gate_failure_count"] == 1
     assert result["pre_certification_rejection_count"] == 1
     assert result["committed_deletion_patch_count"] == 1
+
+
+def test_multi_round_checkpoint_makes_attempt_counts_lower_bounds() -> None:
+    run = {
+        "trajectory": {
+            "points": [
+                {
+                    "patch_decision": {
+                        "accepted": False,
+                        "metadata": {
+                            "insertion_rounds": 3,
+                            "attempt_count": 1,
+                            "attempts": [
+                                {
+                                    "removed_runtime_indices": [0],
+                                    "reason": "smoothness_eta_above_max",
+                                }
+                            ],
+                        },
+                    }
+                }
+            ]
+        }
+    }
+
+    result = deletion_gate_outcomes([run], applicable=True)
+
+    assert result["attempt_record_complete"] is False
+    assert result["multi_commit_checkpoint_count"] == 1
+    assert result["post_delete_gate_failure_count"] == 1
 
 
 def test_base_identity_removes_instance_and_occurrence_noise() -> None:

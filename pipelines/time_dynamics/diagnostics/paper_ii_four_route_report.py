@@ -16,7 +16,7 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
 )
 
 
-REPORT_SCHEMA = "paper_ii_selector_human_report_v2"
+REPORT_SCHEMA = "paper_ii_selector_human_report_v3"
 DISPLAY_LABELS = {
     "q_compiled": r"$\Gamma(v^\star)$",
     "gamma_compiled": r"$\Gamma(v)$",
@@ -234,6 +234,62 @@ def _deletion_values(cell: Mapping[str, Any], name: str) -> dict[str, str | None
     return result
 
 
+def _work_values(
+    cell: Mapping[str, Any],
+    name: str,
+    *,
+    status_name: str | None = None,
+) -> dict[str, int | str | None]:
+    """Render exact work values numerically and bounds with an explicit sign."""
+
+    result: dict[str, int | str | None] = {}
+    for route in ROUTE_ORDER:
+        if route not in cell["routes"]:
+            continue
+        work = cell["routes"][route]["estimator_work"]
+        value = work.get(name)
+        status = "exact" if status_name is None else str(work.get(status_name))
+        if value is None or status in {"not_applicable", "unavailable"}:
+            result[route] = None
+        elif status == "lower_bound":
+            result[route] = rf"$\geq${_int(int(value))}"
+        else:
+            result[route] = int(value)
+    return result
+
+
+def _support_values(cell: Mapping[str, Any], name: str) -> dict[str, int | str]:
+    """Mark net support counts as bounds when in-checkpoint edits were lost."""
+
+    result: dict[str, int | str] = {}
+    for route in ROUTE_ORDER:
+        if route not in cell["routes"]:
+            continue
+        motion = cell["routes"][route]["support_motion"]
+        value = int(motion[name])
+        if motion.get("support_event_ledger_complete") is False:
+            result[route] = rf"$\geq${_int(value)}"
+        else:
+            result[route] = value
+    return result
+
+
+def _markdown_work_value(
+    record: Mapping[str, Any],
+    name: str,
+    *,
+    status_name: str | None = None,
+) -> int | str:
+    work = record["estimator_work"]
+    value = work.get(name)
+    status = "exact" if status_name is None else str(work.get(status_name))
+    if value is None or status in {"not_applicable", "unavailable"}:
+        return "n/a"
+    if status == "lower_bound":
+        return f">={int(value)}"
+    return int(value)
+
+
 def _row(
     label: str,
     values: Mapping[str, Any],
@@ -339,9 +395,45 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             formatter=lambda value: _int(int(value)),
         ),
         _row(
-            r"Logical geometry work $W_{\rm geom}$",
-            _values(cell, ("estimator_work", "logical_integration_geometry_work")),
-            formatter=lambda value: _int(int(value)),
+            "Propagation geometry elements",
+            _work_values(cell, "logical_integration_geometry_work"),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
+        ),
+        _row(
+            "Checkpoint geometry elements",
+            _work_values(
+                cell,
+                "logical_checkpoint_base_geometry_work",
+                status_name="checkpoint_base_status",
+            ),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
+        ),
+        _row(
+            "Candidate acquisition elements",
+            _work_values(
+                cell,
+                "logical_candidate_acquisition_work",
+                status_name="candidate_acquisition_status",
+            ),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
+        ),
+        _row(
+            "Finalist geometry elements",
+            _work_values(
+                cell,
+                "logical_certification_geometry_work",
+                status_name="certification_geometry_status",
+            ),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
+        ),
+        _row(
+            "Total logical estimator elements",
+            _work_values(
+                cell,
+                "logical_total_estimator_work",
+                status_name="logical_total_estimator_work_status",
+            ),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
         r"\addlinespace[2pt]",
         r"\multicolumn{6}{@{}l}{\emph{Fresh terminal FakeMarrakesh compilation}} \\",
@@ -349,29 +441,29 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
         _row(r"$d_{2q}$", _cost_values(cell, "D2q"), formatter=lambda value: _int(int(value))),
         _row(r"Total depth $D_c$", _cost_values(cell, "Dc"), formatter=lambda value: _int(int(value))),
         r"\addlinespace[2pt]",
-        r"\multicolumn{6}{@{}l}{\emph{Accepted support motion and exact recurrence}} \\",
+        r"\multicolumn{6}{@{}l}{\emph{Accepted net support motion and observed recurrence}} \\",
         _row(
             "Coordinates added",
-            _values(cell, ("support_motion", "added_coordinate_count")),
-            formatter=lambda value: _int(int(value)),
+            _support_values(cell, "added_coordinate_count"),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
         _row(
             "Coordinates deleted",
-            _values(cell, ("support_motion", "deleted_coordinate_count")),
-            formatter=lambda value: _int(int(value)),
+            _support_values(cell, "deleted_coordinate_count"),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
         _row(
             r"Deleted then re-added ($\leq2$ edits)",
-            _values(cell, ("support_motion", "short_delete_to_readd_count")),
-            formatter=lambda value: _int(int(value)),
+            _support_values(cell, "short_delete_to_readd_count"),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
         _row(
             r"Added then re-deleted ($\leq2$ edits)",
-            _values(cell, ("support_motion", "short_add_to_redelete_count")),
-            formatter=lambda value: _int(int(value)),
+            _support_values(cell, "short_add_to_redelete_count"),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
         _row(
@@ -442,7 +534,8 @@ grid.  It uses the best currently available final trajectory from each route;
 the page is retained at the accuracy achieved by its least accurate available
 route rather than being discarded by a common qualification gate.  A pending
 entry means that route has not finished that cell.  Bold marks the lowest
-available numerical value in each error, work, or circuit-cost row.
+available exact numerical value in each error, work, or circuit-cost row;
+lower bounds are not declared winners.
 
 {{\footnotesize Agent record and exact provenance:
 \href{{run:{_tex_escape(markdown_name)}}}{{\texttt{{{_tex_escape(markdown_name)}}}}}.}}
@@ -480,17 +573,9 @@ available numerical value in each error, work, or circuit-cost row.
 {{\small
 {_cell_table(cell)}
 }}
-\vspace{{4pt}}
-{{\footnotesize
-$W_{{\rm geom}}=\sum_i r_i[p_i(p_i+1)/2+p_i+2]$ is a logical
-integration-geometry estimator proxy, not a physical shot count.  It excludes
-candidate acquisition and certification work that the current artifacts do
-not ledger completely.  Support motion uses exact coordinate multisets; the
-two recurrence rows collapse only insertion-instance labels.  Post-delete
-failures count recorded deletion-bearing finalists rejected after
-pre-certification resolution; the $\geq$ symbol marks a truncated attempt
-ledger.  A dash is not applicable (AVQDS is append-only).  $^*$The old proxy
-and AVQDS are verified historical stitched baselines.}}
+{{\scriptsize $g(p)=p(p+1)/2+p+2$; $\geq$ marks an incomplete-round/refit or
+net-motion lower bound.  No hardware-shot ledger; dash means not applicable;
+$^*$historical stitched baseline.  Full definitions: linked Markdown.}}
 """
         pages.append(page.strip())
     body = "\n\n\\newpage\n\n".join(pages)
@@ -506,7 +591,7 @@ and AVQDS are verified historical stitched baselines.}}
 \setlength{{\parindent}}{{0pt}}
 \setlength{{\parskip}}{{3pt}}
 \setlength{{\tabcolsep}}{{4.5pt}}
-\renewcommand{{\arraystretch}}{{1.03}}
+\renewcommand{{\arraystretch}}{{1.00}}
 \begin{{document}}
 {body}
 \end{{document}}
@@ -564,11 +649,19 @@ def render_markdown(
         "",
         "## Measurement and support-decision contract",
         "",
-        "`logical_integration_geometry_work = sum_i r_i [p_i(p_i+1)/2 + p_i + 2]`, where `r_i` is the active integration/parameter-control RHS evaluation count and `p_i` is the active runtime support size. It is a logical scalar-estimator proxy, not a hardware shot count. Candidate acquisition, checkpoint base geometry, certification, commuting-group structure, and shot allocation remain outside it because current trajectories do not persist complete ledgers for those quantities.",
+        "Let `g(p) = p(p+1)/2 + p + 2`, counting the symmetric metric entries, force entries, and two scalar observables in one full McLachlan geometry at support size `p`. All work values below are logical geometry-entry counts for the dense-statevector implementation, not hardware shots.",
         "",
-        "Support motion is reconstructed from exact support-label multisets at every checkpoint. Recurrence removes only insertion-instance and append-occurrence suffixes. `deleted_then_readded` and `added_then_redeleted` count inverse events occurring within two later support-changing checkpoints.",
+        "`logical_integration_geometry_work = sum_i r_i g(p_i)` is exact from the executed RHS telemetry. `logical_checkpoint_base_geometry_work = sum_k g(p_k)` is exact from the support entering each saved checkpoint.",
         "",
-        "Deletion-bearing finalist counts come from the selector's persisted certification-attempt ledger. `post_delete_gate_failures` excludes insertion-resolution and compiled-word failures that occur before materialization. When a checkpoint's attempt list is truncated, the table marks the affected count as a lower bound. AVQDS is append-only, so deletion rows are not applicable.",
+        "Generalized exchange builds one shared positioned-tangent cache and then solves structural candidates classically. For a persisted selector call with active size `p` and `M` positioned insertion columns, its executed dense-cache increment is `p M + M(M+3)/2`. AVQDS instead materializes every tested append and performs a full geometry; its candidate work is `sum_r c_r g(p_r+1)`. The report includes both under `logical_candidate_acquisition_work`, but marks a lower bound whenever an earlier exchange round or AVQDS per-round dimension is absent from the artifact.",
+        "",
+        "`logical_certification_geometry_work` counts persisted generalized-exchange finalists certainly known to have reached a full patched geometry. It is a lower bound because optional refit evaluations are not logged, `patched_solve_failed` does not distinguish pre- from post-geometry failure, attempt lists may be truncated, and a multi-round checkpoint retains only its final selector invocation. AVQDS has no separate certification stage because the winning candidate geometry is reused.",
+        "",
+        "`logical_total_estimator_work` is integration plus checkpoint base plus candidate acquisition plus certification. A `>=` prefix is part of the value and means the reported amount is a proven lower bound. Physical shot count, estimator-circuit count, commuting groups, target precision, variance, and shot allocation are unavailable: these runs use dense statevector evaluation and persist no hardware-measurement ledger.",
+        "",
+        "Support motion is reconstructed from exact support-label multisets at every checkpoint. Recurrence removes only insertion-instance and append-occurrence suffixes. `deleted_then_readded` and `added_then_redeleted` count inverse events occurring within two later support-changing checkpoints. When several generalized-exchange commits occur inside one checkpoint, only the final support and final selector invocation survive; affected motion and recurrence values are therefore marked as lower bounds.",
+        "",
+        "Deletion-bearing finalist counts come from the selector's persisted certification-attempt ledger. `post_delete_gate_failures` excludes insertion-resolution and compiled-word failures that occur before materialization. Truncated attempt lists and overwritten earlier selector rounds make the affected counts lower bounds. AVQDS is append-only, so deletion rows are not applicable.",
         "",
         "## Included exact values",
     ]
@@ -599,7 +692,11 @@ def render_markdown(
             ("accepted_timesteps", lambda r: r["time_step_count"]),
             ("terminal_n_theta", lambda r: r["n_theta"]),
             ("rhs_geometry_evaluations", lambda r: r["estimator_work"]["rhs_geometry_evaluation_count"]),
-            ("logical_integration_geometry_work", lambda r: r["estimator_work"]["logical_integration_geometry_work"]),
+            ("logical_integration_geometry_work", lambda r: _markdown_work_value(r, "logical_integration_geometry_work")),
+            ("logical_checkpoint_base_geometry_work", lambda r: _markdown_work_value(r, "logical_checkpoint_base_geometry_work", status_name="checkpoint_base_status")),
+            ("logical_candidate_acquisition_work", lambda r: _markdown_work_value(r, "logical_candidate_acquisition_work", status_name="candidate_acquisition_status")),
+            ("logical_certification_geometry_work", lambda r: _markdown_work_value(r, "logical_certification_geometry_work", status_name="certification_geometry_status")),
+            ("logical_total_estimator_work", lambda r: _markdown_work_value(r, "logical_total_estimator_work", status_name="logical_total_estimator_work_status")),
             ("coordinates_added", lambda r: r["support_motion"]["added_coordinate_count"]),
             ("coordinates_deleted", lambda r: r["support_motion"]["deleted_coordinate_count"]),
             ("deleted_then_readded", lambda r: r["support_motion"]["short_delete_to_readd_count"]),
@@ -629,6 +726,20 @@ def render_markdown(
                         "attempt_record_complete"
                     ]
                     is not True
+                ):
+                    values.append(f">={value}")
+                elif (
+                    name
+                    in {
+                        "coordinates_added",
+                        "coordinates_deleted",
+                        "deleted_then_readded",
+                        "added_then_redeleted",
+                    }
+                    and record["support_motion"].get(
+                        "support_event_ledger_complete"
+                    )
+                    is False
                 ):
                     values.append(f">={value}")
                 else:
@@ -670,6 +781,18 @@ def render_markdown(
                     f"  Deletion-attempt ledger: {exactness}; post-delete failure "
                     f"reasons: {reason_text}."
                 )
+            work = record["estimator_work"]
+            lines.append(
+                "  Estimator accounting: candidate acquisition `"
+                + str(work.get("candidate_acquisition_status"))
+                + "`; certification `"
+                + str(work.get("certification_geometry_status"))
+                + "`; total `"
+                + str(work.get("logical_total_estimator_work_status"))
+                + "`; physical shots `"
+                + str(work.get("physical_shots_status"))
+                + "`."
+            )
     lines.extend([
         "",
         "## Excluded and pending cells",

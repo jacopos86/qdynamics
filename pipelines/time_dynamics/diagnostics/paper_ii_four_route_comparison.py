@@ -3,8 +3,8 @@
 
 The comparison is deliberately downstream of trajectory generation.  It
 re-evaluates every available final t=20 trajectory on the locked exact grid,
-keeps every same-cell route separate, and reports terminal circuit,
-integration-estimator, and support-motion burdens as separate coordinates.
+keeps every same-cell route separate, and reports terminal circuit, complete
+logical-estimator accounting, and support-motion burdens as separate coordinates.
 
 The APM route identities are the historical unit-cost proxy, the repaired
 analytical proxy, the realized-Gamma(v-star) compiled selector, and the
@@ -40,7 +40,7 @@ from pipelines.time_dynamics.run_lock import assert_comparable
 from pipelines.time_dynamics.staged_campaign import AccuracyMetrics, CellKey
 
 
-SCHEMA = "paper_ii_selector_comparison_v2"
+SCHEMA = "paper_ii_selector_comparison_v3"
 ROUTE_ORDER = (
     "q_compiled",
     "gamma_compiled",
@@ -263,7 +263,7 @@ def support_motion(
     *,
     short_cycle_window: int = 2,
 ) -> dict[str, Any]:
-    """Measure exact support motion and short generator recurrence."""
+    """Measure persisted net support motion and short generator recurrence."""
 
     if not runs:
         raise ValueError("structural churn needs at least one run segment")
@@ -284,11 +284,15 @@ def support_motion(
     scored_count_sum = 0
     scored_not_selected_lower_bound = 0
     reason_counts: Counter[str] = Counter()
+    multi_commit_checkpoint_count = 0
 
     for run in runs:
         points = ((run.get("trajectory") or {}).get("points") or ())
         for point in points:
             decision = point.get("patch_decision") or {}
+            metadata = decision.get("metadata") or {}
+            if int(metadata.get("insertion_rounds") or 0) > 1:
+                multi_commit_checkpoint_count += 1
             candidate_count_sum += int(decision.get("candidate_count") or 0)
             scored = int(decision.get("scored_count") or 0)
             scored_count_sum += scored
@@ -350,6 +354,10 @@ def support_motion(
             scored_not_selected_lower_bound
         ),
         "decision_reason_counts": dict(sorted(reason_counts.items())),
+        "multi_commit_checkpoint_count": int(multi_commit_checkpoint_count),
+        "support_event_ledger_complete": bool(
+            multi_commit_checkpoint_count == 0
+        ),
     }
 
 
@@ -384,9 +392,11 @@ def deletion_gate_outcomes(
             "committed_deletion_patch_count": None,
             "post_delete_failure_reason_counts": {},
             "pre_certification_failure_reason_counts": {},
+            "multi_commit_checkpoint_count": 0,
         }
 
     complete = True
+    multi_commit_checkpoint_count = 0
     deletion_attempts = 0
     pre_certification_rejections = 0
     post_delete_failures = 0
@@ -408,6 +418,12 @@ def deletion_gate_outcomes(
             }:
                 committed_deletion_patches += 1
             metadata = decision.get("metadata") or {}
+            if int(metadata.get("insertion_rounds") or 0) > 1:
+                # The point retains only the final selector invocation after
+                # an in-checkpoint exchange loop.  Earlier accepted rounds
+                # and their failed finalists are not present in ``attempts``.
+                complete = False
+                multi_commit_checkpoint_count += 1
             attempts = tuple(metadata.get("attempts") or ())
             declared = int(metadata.get("attempt_count", len(attempts)) or 0)
             if declared != len(attempts):
@@ -438,6 +454,7 @@ def deletion_gate_outcomes(
         "committed_deletion_patch_count": int(committed_deletion_patches),
         "post_delete_failure_reason_counts": dict(sorted(post_reasons.items())),
         "pre_certification_failure_reason_counts": dict(sorted(pre_reasons.items())),
+        "multi_commit_checkpoint_count": int(multi_commit_checkpoint_count),
     }
 
 
@@ -474,6 +491,259 @@ def integration_geometry_work(runs: Sequence[Mapping[str, Any]]) -> dict[str, in
         "rhs_geometry_evaluation_count": int(rhs_count),
         "logical_integration_geometry_work": int(logical_scalar_estimators),
     }
+
+
+def _geometry_entry_count(parameter_count: int) -> int:
+    """Logical entries in one full McLachlan geometry at support size ``p``."""
+
+    p = int(parameter_count)
+    if p < 0:
+        raise ValueError("negative geometry dimension")
+    return p * (p + 1) // 2 + p + 2
+
+
+def _apm_positioned_column_count(
+    decision: Mapping[str, Any],
+) -> tuple[int, bool, str]:
+    """Infer the positioned insertion-cache width for one persisted call.
+
+    Current compiled selectors persist the exact cache width as
+    ``placements_chosen``.  Proxy selectors expose the singleton/no-deletion
+    population, whose size is the same width.  Older artifacts may expose
+    only the deduplicated atom pool; because every atom has at least one legal
+    retained cut, that is a conservative lower bound on positioned columns.
+    """
+
+    metadata = decision.get("metadata") or {}
+    if metadata.get("insertions_enabled") is False:
+        return 0, True, "insertions_disabled"
+
+    selector_route = metadata.get("selector_route") or {}
+    compile_telemetry = selector_route.get("compile") or {}
+    placements = compile_telemetry.get("placements_chosen")
+    if placements is not None:
+        value = int(placements)
+        if value < 0:
+            raise ValueError("negative positioned-candidate count")
+        return value, True, "compiled_placements_chosen"
+
+    levels = tuple(selector_route.get("levels") or ())
+    for level in levels:
+        insert_size = level.get("insert_population_size")
+        delete_size = level.get("delete_population_size")
+        if insert_size is not None and int(delete_size or 0) == 0:
+            value = int(insert_size)
+            if value < 0:
+                raise ValueError("negative singleton insertion population")
+            return value, True, "singleton_d0_population"
+
+    work_guard = metadata.get("work_guard") or {}
+    admitted = tuple(str(value) for value in work_guard.get("admitted_families") or ())
+    if admitted and admitted[0] == "singleton_d0":
+        scored = int(work_guard.get("scored_count") or 0)
+        if scored > 0:
+            # The raw singleton family includes stay followed by all M
+            # positioned insertion columns.
+            return scored - 1, True, "singleton_d0_work_guard"
+
+    pool = int(metadata.get("candidate_pool_deduplicated") or 0)
+    if pool < 0:
+        raise ValueError("negative candidate-pool size")
+    if pool > 0:
+        return pool, False, "deduplicated_atom_pool_lower_bound"
+    return 0, True, "empty_candidate_pool"
+
+
+def _final_selector_pre_support(
+    decision: Mapping[str, Any],
+    *,
+    checkpoint_pre: int,
+    checkpoint_post: int,
+) -> tuple[int, bool]:
+    """Recover support size entering the final persisted selector call."""
+
+    if not bool(decision.get("accepted")):
+        return int(checkpoint_post), True
+    metadata = decision.get("metadata") or {}
+    committed = metadata.get("committed") or {}
+    if committed:
+        removed = len(tuple(committed.get("removed_runtime_indices") or ()))
+        inserted = len(tuple(committed.get("inserted_selection") or ()))
+        value = int(checkpoint_post) + removed - inserted
+        if value < 0:
+            raise ValueError("negative reconstructed selector support")
+        return value, True
+    # A legacy accepted payload without a committed record does not expose the
+    # last patch cardinality.  The smaller endpoint is a safe dimension floor.
+    return min(int(checkpoint_pre), int(checkpoint_post)), False
+
+
+def _attempt_reached_full_geometry(attempt: Mapping[str, Any]) -> bool:
+    """Whether a persisted finalist certainly reached full patched geometry."""
+
+    reason = str(attempt.get("reason") or "")
+    excluded_prefixes = (
+        "insertion_resolution_failed:",
+        "compiled_word_identity_mismatch",
+        "materialization_failed:",
+        # Geometry and solve share this exception label, so it cannot certify
+        # that the geometry evaluation completed.
+        "patched_solve_failed:",
+    )
+    return bool(reason) and not reason.startswith(excluded_prefixes)
+
+
+def complete_estimator_work(
+    runs: Sequence[Mapping[str, Any]],
+    *,
+    route: str,
+) -> dict[str, Any]:
+    """Account for propagation, checkpoint, candidate, and finalist geometry.
+
+    Values are logical scalar-geometry entries under the same convention as
+    :func:`integration_geometry_work`.  They are not hardware shots.  Missing
+    per-round selector and refit ledgers force explicit lower-bound statuses.
+    """
+
+    result: dict[str, Any] = dict(integration_geometry_work(runs))
+    checkpoint_count = 0
+    checkpoint_work = 0
+    candidate_evaluations = 0
+    candidate_work = 0
+    certification_evaluations = 0
+    certification_work = 0
+    candidate_exact = True
+    certification_exact = True
+    selection_round_ledger_complete = True
+    inference_counts: Counter[str] = Counter()
+
+    for run in runs:
+        initial_labels = tuple(
+            str(value)
+            for value in (run.get("initial_state") or {}).get(
+                "runtime_coordinate_labels", ()
+            )
+        )
+        if not initial_labels:
+            raise ValueError("run omits initial runtime-coordinate labels")
+        checkpoint_pre = len(initial_labels)
+        for point in ((run.get("trajectory") or {}).get("points") or ()):
+            fixed = point.get("fixed_step") or {}
+            labels = tuple(str(value) for value in fixed.get("support_labels") or ())
+            if not labels:
+                raise ValueError("trajectory point omits fixed-step support labels")
+            checkpoint_post = len(labels)
+            checkpoint_count += 1
+            checkpoint_work += _geometry_entry_count(checkpoint_pre)
+            decision = point.get("patch_decision") or {}
+            metadata = decision.get("metadata") or {}
+
+            if route == "avqds":
+                scored = int(
+                    metadata.get("candidates_scored")
+                    if metadata.get("candidates_scored") is not None
+                    else decision.get("scored_count") or 0
+                )
+                if scored < 0:
+                    raise ValueError("negative AVQDS candidate count")
+                candidate_evaluations += scored
+                if scored:
+                    # Per-round dimensions are not persisted.  Every tested
+                    # append has at least checkpoint_pre + 1 coordinates.
+                    candidate_work += scored * _geometry_entry_count(
+                        checkpoint_pre + 1
+                    )
+                    candidate_exact = False
+                checkpoint_pre = checkpoint_post
+                continue
+
+            rounds = int(metadata.get("insertion_rounds") or 0)
+            if rounds > 1:
+                selection_round_ledger_complete = False
+                candidate_exact = False
+                certification_exact = False
+
+            selector_pre, selector_pre_exact = _final_selector_pre_support(
+                decision,
+                checkpoint_pre=checkpoint_pre,
+                checkpoint_post=checkpoint_post,
+            )
+            columns, columns_exact, inference = _apm_positioned_column_count(decision)
+            inference_counts[inference] += 1
+            if columns:
+                candidate_work += (
+                    selector_pre * columns + columns * (columns + 3) // 2
+                )
+            if not (columns_exact and selector_pre_exact):
+                candidate_exact = False
+
+            attempts = tuple(metadata.get("attempts") or ())
+            declared = int(metadata.get("attempt_count", len(attempts)) or 0)
+            if declared != len(attempts):
+                certification_exact = False
+            for attempt in attempts:
+                if not _attempt_reached_full_geometry(attempt):
+                    if str(attempt.get("reason") or "").startswith(
+                        "patched_solve_failed:"
+                    ):
+                        certification_exact = False
+                    continue
+                removed = len(tuple(attempt.get("removed_runtime_indices") or ()))
+                inserted = len(tuple(attempt.get("inserted_selection") or ()))
+                patched_support = selector_pre - removed + inserted
+                if patched_support < 0:
+                    raise ValueError("negative finalist support dimension")
+                certification_evaluations += 1
+                certification_work += _geometry_entry_count(patched_support)
+            if attempts:
+                # Optional local refit objective evaluations are not persisted.
+                certification_exact = False
+            checkpoint_pre = checkpoint_post
+
+    if route == "avqds":
+        certification_status = "not_applicable"
+        certification_value: int | None = None
+        certification_evaluation_value: int | None = None
+    else:
+        certification_status = "exact" if certification_exact else "lower_bound"
+        certification_value = int(certification_work)
+        certification_evaluation_value = int(certification_evaluations)
+
+    candidate_status = "exact" if candidate_exact else "lower_bound"
+    total = checkpoint_work + candidate_work + certification_work + int(
+        result["logical_integration_geometry_work"]
+    )
+    total_status = (
+        "exact"
+        if candidate_status == "exact" and certification_status in {"exact", "not_applicable"}
+        else "lower_bound"
+    )
+    result.update(
+        {
+            "logical_checkpoint_base_geometry_work": int(checkpoint_work),
+            "checkpoint_base_geometry_evaluation_count": int(checkpoint_count),
+            "checkpoint_base_status": "exact",
+            "candidate_full_geometry_evaluation_count": int(candidate_evaluations),
+            "logical_candidate_acquisition_work": int(candidate_work),
+            "candidate_acquisition_status": candidate_status,
+            "certification_full_geometry_evaluation_count": (
+                certification_evaluation_value
+            ),
+            "logical_certification_geometry_work": certification_value,
+            "certification_geometry_status": certification_status,
+            "logical_total_estimator_work": int(total),
+            "logical_total_estimator_work_status": total_status,
+            "selection_round_ledger_complete": bool(
+                selection_round_ledger_complete
+            ),
+            "candidate_column_inference_counts": dict(
+                sorted(inference_counts.items())
+            ),
+            "physical_shots": None,
+            "physical_shots_status": "unavailable_statevector_no_shot_ledger",
+        }
+    )
+    return result
 
 
 def _accuracy_record(
@@ -611,7 +881,7 @@ def _summarize_source(
             method="avqds" if source.route == "avqds" else "exchange",
             policy=policy,
         ),
-        "estimator_work": integration_geometry_work(runs),
+        "estimator_work": complete_estimator_work(runs, route=source.route),
         "support_motion": support_motion(runs),
         "deletion_gate_outcomes": deletion_gate_outcomes(
             runs,
@@ -801,15 +1071,31 @@ def build_comparison(
             "infidelity_ceiling": float(policy.infidelity_ceiling),
         },
         "estimator_work_definition": {
-            "name": "logical_integration_geometry_work",
-            "formula": "sum_i r_i * (p_i*(p_i+1)/2 + p_i + 2)",
-            "meaning": "logical scalar-estimator proxy; not physical shots",
-            "excludes": [
-                "checkpoint base geometry",
-                "candidate tangent acquisition",
-                "candidate certification",
-                "shot allocation and commuting-group structure",
-            ],
+            "geometry_formula": "g(p) = p*(p+1)/2 + p + 2",
+            "integration": "sum_i r_i * g(p_i); exact from RHS telemetry",
+            "checkpoint_base": "sum_k g(p_k); exact from pre-edit support",
+            "generalized_exchange_candidate_acquisition": (
+                "sum_k [p_k*M_k + M_k*(M_k+3)/2] for each persisted "
+                "shared positioned-tangent cache"
+            ),
+            "avqds_candidate_acquisition": (
+                "sum_r c_r*g(p_r+1); current artifacts provide a lower "
+                "bound because per-round c_r and p_r are not persisted"
+            ),
+            "certification": (
+                "sum_a g(p_a) over persisted finalists known to reach full "
+                "patched geometry; excludes unlogged refit evaluations"
+            ),
+            "total": (
+                "integration + checkpoint base + candidate acquisition + "
+                "certification; status records exact versus lower bound"
+            ),
+            "meaning": "logical scalar-geometry entries, not physical shots",
+            "physical_shots": (
+                "unavailable: these runs use dense statevector evaluation and "
+                "persist no estimator circuits, commuting groups, precision, "
+                "or shot allocation"
+            ),
         },
         "support_motion_definition": {
             "coordinate_identity": "exact runtime-coordinate label multiset",
@@ -825,8 +1111,9 @@ def build_comparison(
                 "realized-authority gate after pre-certification resolution"
             ),
             "completeness": (
-                "exact when every checkpoint's persisted attempt list equals its "
-                "declared attempt_count; otherwise reported counts are lower bounds"
+                "exact only when every checkpoint has one selector invocation and "
+                "its persisted attempt list equals declared attempt_count; the "
+                "current multi-round loop retains only the final invocation"
             ),
             "avqds": "not applicable because the locked AVQDS route is append-only",
         },
