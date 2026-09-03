@@ -35,8 +35,9 @@ A reason travels where a bare rule does not:
 > require touching them, stop and report — a conflicting edit costs more than
 > the delay.
 
-Also state shared-resource limits: RAM ceiling, one heavy local job at a time,
-cluster access the executor cannot obtain alone.
+Also state shared-resource limits: aggregate RAM ceiling, per-tree RAM-guard
+allocations for concurrent local jobs, and cluster access the executor cannot
+obtain alone.
 
 ## 3. Increments — each ends committable and verifiable
 

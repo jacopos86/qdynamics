@@ -148,8 +148,9 @@ or source-locked provenance.
   24 GB M4 replacement machine): all agent-launched work combined must
   stay under 18 GB resident RAM. Read and obey
   `agent_guidance/shared/memory-budget.md` before launching anything
-  heavy; wrap heavy processes in `pipelines/shell/ram_guard.py`. One
-  heavy job at a time per machine; many-job campaigns go to CHTC.
+  heavy; wrap every heavy process tree in `pipelines/shell/ram_guard.py`.
+  Concurrent heavy jobs are allowed when their guard limits sum to at
+  most 18 GB and the free-memory headroom check passes.
 - Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.

@@ -61,5 +61,5 @@ Per `docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1 and
   declared build command, fall back to an installed Tectonic workflow when the
   contract allows it, and report unavailable builders accurately.
 - RAM: builds are light; heavy reruns follow
-  `agent_guidance/shared/memory-budget.md` (18 GB aggregate, one heavy
-  job, `ram_guard`).
+  `agent_guidance/shared/memory-budget.md` (18 GB aggregate, bounded
+  concurrent jobs with per-tree `ram_guard` allocations).

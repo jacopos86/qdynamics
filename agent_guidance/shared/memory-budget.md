@@ -36,9 +36,12 @@ every checkout and worktree of this repository.
    inconvenience; a crashed machine loses every agent's work at once.
 4. **Never `json.load` GB-scale artifacts** — stream them
    (`ijson`, line-wise, or `gzip.open` + incremental parsing).
-5. **One heavy job at a time, per machine — not per session.** No
-   parallel test suites, no parallel local runs. Many-job campaigns
-   belong on CHTC, not this Mac (user policy, reaffirmed 2026-08-31).
+5. **Concurrent heavy jobs are allowed within the aggregate ceiling.**
+   Give every process tree its own RAM guard and choose limits whose sum
+   is at most 18 GB. Check current resident memory before adding another
+   job; do not launch it when the projected aggregate or the 30%-free
+   headroom rule would be violated. Use CHTC when a campaign cannot fit
+   within those bounds.
 6. Long-running local runs must checkpoint (they already do) so a
    guard kill or crash never loses more than one round.
 
@@ -46,8 +49,8 @@ every checkout and worktree of this repository.
 
 The 2026-08-18 reboot killed every agent's in-flight local runs.
 Before that, sustained swap pressure (millions of swapouts) had been
-reported while multiple agent workloads ran concurrently. The guard
-exists so this never recurs. The 16 GB machine that motivated the
-original 10 GB ceiling was subsequently lost; the 18 GB ceiling is the
-same ~75% proportion applied to the 24 GB replacement, and newly makes
-single 16 GB-profile jobs locally feasible.
+reported while unbounded agent workloads ran concurrently. The aggregate
+ceiling and per-tree guards exist so this never recurs. The 16 GB machine
+that motivated the original 10 GB ceiling was subsequently lost; the 18 GB
+ceiling is the same ~75% proportion applied to the 24 GB replacement, and
+newly makes single 16 GB-profile jobs locally feasible.

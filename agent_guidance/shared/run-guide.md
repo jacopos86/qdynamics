@@ -125,7 +125,8 @@ an immediate machine-safety emergency.
 Before launching any run or heavy process, apply the hard memory-budget
 contract in `agent_guidance/shared/memory-budget.md`: 18 GB aggregate
 agent ceiling, free-memory check first, heavy trees wrapped in
-`pipelines/shell/ram_guard.py`, one heavy job per machine.
+`pipelines/shell/ram_guard.py`. Concurrent heavy trees are allowed only
+when their guard limits sum to at most 18 GB and the headroom check passes.
 
 Jobs started from another chat, agent, terminal, notebook, remote-runner entry,
 or scheduler submission are intentional and out of scope unless the user says
