@@ -441,9 +441,15 @@ def build_actions(
     lock: MatchedCellLock,
     *,
     output_root: str | Path,
+    source_package_sha256: str | None = None,
 ) -> tuple[dict[str, Any], ...]:
     """Build exactly ``15 cells x 3 routes`` APM actions and zero comparators."""
 
+    if source_package_sha256 is not None:
+        source_package_sha256 = _bound_sha256(
+            source_package_sha256,
+            where="source_package_sha256",
+        )
     routes = bind_selector_routes(lock.selector_routes)
     bindings = lock.registry_bindings
     # This is an execution-only knob: scoring and compilation replay in a
@@ -525,7 +531,7 @@ def build_actions(
                     "code_revision": str(code_revision),
                     "matched_cell_lock_sha256": str(lock.sha256),
                     "seed_sha256": str(lock.seed["sha256"]),
-                    "source_package_sha256": None,
+                    "source_package_sha256": source_package_sha256,
                 }
             )
     if len(rows) != EXPECTED_CELL_COUNT * EXPECTED_ROUTE_COUNT:
@@ -558,13 +564,18 @@ def prepare(
     output_root: str | Path,
     actions_jsonl: str | Path,
     lock_json: str | Path = LOCK_JSON,
+    source_package_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Validate the lock, build the actions, write the JSONL, and summarize."""
 
     lock = load_lock(lock_json)
     seed_sha = _verify_seed(lock)
     routes = bind_selector_routes(lock.selector_routes)
-    rows = build_actions(lock, output_root=output_root)
+    rows = build_actions(
+        lock,
+        output_root=output_root,
+        source_package_sha256=source_package_sha256,
+    )
     written = write_actions_jsonl(rows, actions_jsonl)
     avqds_rows = [row for row in rows if row["method"] != "apm"]
     return {
@@ -593,6 +604,7 @@ def prepare(
         ),
         "actions_jsonl": {"path": str(written), "sha256": file_sha256(written)},
         "output_root": str(Path(output_root)),
+        "source_package_sha256": source_package_sha256,
         "blocks": list(lock.payload["blocks"]["active"]),
     }
 
@@ -617,6 +629,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="where to write the prepared actions (default: <output-root>/<campaign>/actions.jsonl)",
     )
+    parser.add_argument(
+        "--source-package-sha256",
+        default=None,
+        help="optional SHA-256 of the immutable source archive carried by every action",
+    )
     args = parser.parse_args(argv)
     actions_jsonl = (
         args.actions_jsonl
@@ -627,6 +644,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_root=args.output_root,
         actions_jsonl=actions_jsonl,
         lock_json=args.lock_json,
+        source_package_sha256=args.source_package_sha256,
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0

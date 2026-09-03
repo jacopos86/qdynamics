@@ -302,6 +302,24 @@ def test_every_action_parses_with_the_live_runner_parser(
         assert row["runner_module"] == runs.RUNNER_MODULE
 
 
+def test_source_package_digest_is_bound_to_every_action(
+    lock: final.MatchedCellLock, tmp_path: Path
+) -> None:
+    digest = "a" * 64
+    rows = final.build_actions(
+        lock,
+        output_root=tmp_path,
+        source_package_sha256=digest,
+    )
+    assert {row["source_package_sha256"] for row in rows} == {digest}
+    with pytest.raises(final.MatchedCellLockError, match="invalid sha256"):
+        final.build_actions(
+            lock,
+            output_root=tmp_path,
+            source_package_sha256="not-a-digest",
+        )
+
+
 def test_main_writes_the_jsonl_and_prints_a_prepared_summary(
     tmp_path: Path, capsys
 ) -> None:
