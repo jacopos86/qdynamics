@@ -163,8 +163,9 @@ words and time identically). Historical and legacy-fixed arms are scoring-light 
 this scale (~2 s) and are unaffected by the worker count.
 
 Memory: the harness records the parent's peak RSS only (≤ 576 MB). Each pool worker
-imports Qiskit and the backend (≈ 350 MB each by the parent's own baseline), so
-4 workers add ≈ 1.4 GB: an estimated ≈ 2 GB process-tree peak, under the 8 GB bound.
+imports Qiskit and the backend. Measured directly on a 4-worker Q-bundle run
+(process-group RSS sampled every 0.5 s): **peak 1,103 MB aggregate over 6
+processes** (parent, four workers, resource tracker) — under the 8 GB bound.
 
 ### 4.3 Population repair evidence
 
