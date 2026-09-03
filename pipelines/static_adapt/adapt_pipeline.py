@@ -2230,6 +2230,36 @@ class _DefaultSelectionReceiptAdapters:
     phase3_score_key: str
     phase3_tie_break_score_key: str
     coordinate_solve_policy: str
+    # Optional O(1) count / O(window) row accessors.  When absent the kernel
+    # falls back to materializing ``ledger_occurrences()`` and slicing it.
+    ledger_occurrence_count: Callable[[], int] | None = None
+    ledger_occurrence_rows: (
+        Callable[[int, int | None], list[dict[str, Any]]] | None
+    ) = None
+
+
+def _selection_receipt_occurrence_count(
+    receipts: _DefaultSelectionReceiptAdapters,
+) -> int:
+    """Occurrence count through the O(1) accessor when the adapter has one."""
+
+    counter = getattr(receipts, "ledger_occurrence_count", None)
+    if counter is not None:
+        return int(counter())
+    return int(len(receipts.ledger_occurrences()))
+
+
+def _selection_receipt_occurrence_rows(
+    receipts: _DefaultSelectionReceiptAdapters,
+    start: int,
+    end: int | None = None,
+) -> list[dict[str, Any]]:
+    """``ledger_occurrences()[start:end]`` without the full materialization."""
+
+    window = getattr(receipts, "ledger_occurrence_rows", None)
+    if window is not None:
+        return list(window(int(start), end))
+    return list(receipts.ledger_occurrences()[int(start):end])
 
 
 @dataclass(frozen=True, slots=True)
@@ -2326,7 +2356,7 @@ class _DefaultSingletonSelectionKernel:
             raise RuntimeError(
                 "Default singleton selection kernel executed more than once."
             )
-        occurrence_start = len(self.receipts.ledger_occurrences())
+        occurrence_start = _selection_receipt_occurrence_count(self.receipts)
         phase0_receipt = (
             None
             if self.phases.phase0 is None
@@ -2334,8 +2364,8 @@ class _DefaultSingletonSelectionKernel:
         )
         if phase0_receipt is None:
             self.phases.gradient_surface()
-        occurrence_after_phase0 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase0 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         if (
             phase0_receipt is not None
@@ -2351,8 +2381,8 @@ class _DefaultSingletonSelectionKernel:
             )
             raise _StationaryPhase0Selection(phase0_receipt)
         phase1_runtime = self.phases.phase_i()
-        occurrence_after_phase1 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase1 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         phase2_runtime = self.phases.phase_ii(
             phase1_records_for_phase2=(
@@ -2360,8 +2390,8 @@ class _DefaultSingletonSelectionKernel:
             ),
             controller_snapshot=phase1_runtime["controller_snapshot"],
         )
-        occurrence_after_phase2 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase2 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         official_phase1_records = phase2_runtime.get(
             "official_phase1_records"
@@ -2471,10 +2501,12 @@ class _DefaultSingletonSelectionKernel:
                     "Default supported response returned no singleton "
                     "admission candidate without a no-positive receipt."
                 )
-            occurrence_end = len(self.receipts.ledger_occurrences())
-            occurrence_rows = self.receipts.ledger_occurrences()[
-                occurrence_start:occurrence_end
-            ]
+            occurrence_end = _selection_receipt_occurrence_count(self.receipts)
+            occurrence_rows = _selection_receipt_occurrence_rows(
+                self.receipts,
+                occurrence_start,
+                occurrence_end,
+            )
 
             def _terminal_event_identity(
                 row: Mapping[str, Any],
@@ -2706,10 +2738,12 @@ class _DefaultSingletonSelectionKernel:
             coordinate_solve_policy=self.receipts.coordinate_solve_policy,
             sr_escape_active=False,
         )
-        occurrence_end = len(self.receipts.ledger_occurrences())
-        occurrence_rows = self.receipts.ledger_occurrences()[
-            occurrence_start:occurrence_end
-        ]
+        occurrence_end = _selection_receipt_occurrence_count(self.receipts)
+        occurrence_rows = _selection_receipt_occurrence_rows(
+            self.receipts,
+            occurrence_start,
+            occurrence_end,
+        )
 
         def _event_identity(
             row: Mapping[str, Any],
@@ -3037,7 +3071,7 @@ class _DefaultGreedyBatchSelectionKernel:
                 f"{self.strategy_label} selection kernel lost its "
                 "reduced-plane adapter."
             )
-        occurrence_start = len(self.receipts.ledger_occurrences())
+        occurrence_start = _selection_receipt_occurrence_count(self.receipts)
         phase0_receipt = (
             None
             if self.phases.phase0 is None
@@ -3045,8 +3079,8 @@ class _DefaultGreedyBatchSelectionKernel:
         )
         if phase0_receipt is None:
             self.phases.gradient_surface()
-        occurrence_after_phase0 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase0 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         if (
             phase0_receipt is not None
@@ -3062,8 +3096,8 @@ class _DefaultGreedyBatchSelectionKernel:
             )
             raise _StationaryPhase0Selection(phase0_receipt)
         phase1_runtime = self.phases.phase_i()
-        occurrence_after_phase1 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase1 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         phase2_runtime = self.phases.phase_ii(
             phase1_records_for_phase2=(
@@ -3071,8 +3105,8 @@ class _DefaultGreedyBatchSelectionKernel:
             ),
             controller_snapshot=phase1_runtime["controller_snapshot"],
         )
-        occurrence_after_phase2 = len(
-            self.receipts.ledger_occurrences()
+        occurrence_after_phase2 = _selection_receipt_occurrence_count(
+            self.receipts
         )
         official_phase1_records = phase2_runtime.get(
             "official_phase1_records"
@@ -3171,10 +3205,12 @@ class _DefaultGreedyBatchSelectionKernel:
             )
             selected_features.append(feature)
 
-        occurrence_end = len(self.receipts.ledger_occurrences())
-        occurrence_rows = self.receipts.ledger_occurrences()[
-            occurrence_start:occurrence_end
-        ]
+        occurrence_end = _selection_receipt_occurrence_count(self.receipts)
+        occurrence_rows = _selection_receipt_occurrence_rows(
+            self.receipts,
+            occurrence_start,
+            occurrence_end,
+        )
         estimator_events = tuple(
             _EstimatorEventIdentity(
                 sequence_index=int(row["sequence"]),
@@ -4902,14 +4938,70 @@ def _default_no_prune_shortlist_rank_receipts(
 def _default_no_prune_ledger_occurrences(
     estimator_call_ledger: EstimatorCallLedger | None,
 ) -> list[dict[str, Any]]:
+    """Return every occurrence row in ledger order.
+
+    Row content and order equal ``to_payload()["occurrences"]``.  The
+    entries, fingerprint digest, and summaries that ``to_payload`` also
+    builds are not needed by any caller of this helper, so only the
+    occurrence projection is walked.
+    """
+
+    return _default_no_prune_ledger_occurrence_rows(estimator_call_ledger)
+
+
+def _default_no_prune_ledger_occurrence_count(
+    estimator_call_ledger: EstimatorCallLedger | None,
+) -> int:
+    """Return the occurrence count without materializing any row."""
+
+    if estimator_call_ledger is None:
+        return 0
+    counter = getattr(estimator_call_ledger, "occurrence_count", None)
+    if callable(counter):
+        return int(counter())
+    # Ledger-like objects (test doubles, lazy projections) that only expose
+    # ``to_payload`` keep the historical full-materialization semantics.
+    return int(
+        len(estimator_call_ledger.to_payload().get("occurrences", []))
+    )
+
+
+def _default_no_prune_ledger_occurrence_rows(
+    estimator_call_ledger: EstimatorCallLedger | None,
+    start: int = 0,
+    end: int | None = None,
+) -> list[dict[str, Any]]:
+    """Return ``occurrences[start:end]`` in ledger order.
+
+    Equivalent to slicing :func:`_default_no_prune_ledger_occurrences`, but
+    only the requested window is materialized.  A slow materialization is
+    reported as a fail-soft telemetry event that never feeds a selector or
+    route decision.
+    """
+
     if estimator_call_ledger is None:
         return []
-    return [
-        dict(row)
-        for row in estimator_call_ledger.to_payload().get(
-            "occurrences", []
+    started = time.perf_counter()
+    window = getattr(estimator_call_ledger, "occurrence_rows", None)
+    if callable(window):
+        rows = window(int(start), end)
+    else:
+        rows = [
+            dict(row)
+            for row in estimator_call_ledger.to_payload().get(
+                "occurrences", []
+            )[int(start):end]
+        ]
+    elapsed = float(time.perf_counter() - started)
+    if elapsed >= _LEDGER_MATERIALIZATION_LOG_THRESHOLD_S:
+        _emit_round_stage_timing(
+            "hardcoded_adapt_ledger_materialization",
+            start=int(start),
+            end=(None if end is None else int(end)),
+            row_count=int(len(rows)),
+            elapsed_s=elapsed,
         )
-    ]
+    return rows
 
 
 def _default_no_prune_operator_identity(
@@ -7495,15 +7587,15 @@ def _default_no_prune_prepare_transition(
             "The default accepted transition requires the estimator-call "
             "ledger."
         )
-    transition_occurrences_before = _default_no_prune_ledger_occurrences(
-        estimator_call_ledger
+    transition_occurrence_count_before = (
+        _default_no_prune_ledger_occurrence_count(estimator_call_ledger)
     )
     previous_count = int(
         session.cursor.estimator_prefix_checkpoint_cursor[
             "raw_occurrence_count"
         ]
     )
-    if previous_count > len(transition_occurrences_before):
+    if previous_count > transition_occurrence_count_before:
         raise RuntimeError(
             "The estimator prefix cursor exceeds the live ledger."
         )
@@ -7558,7 +7650,11 @@ def _default_no_prune_prepare_transition(
         accepted_energy=float(session.cursor.accepted_energy),
         estimator_prefix_identity=(
             _default_no_prune_estimator_prefix_identity(
-                transition_occurrences_before[:previous_count]
+                _default_no_prune_ledger_occurrence_rows(
+                    estimator_call_ledger,
+                    0,
+                    previous_count,
+                )
             )
         ),
     )
@@ -9083,6 +9179,7 @@ def _run_default_no_prune_transition_transaction(
         )
     )
     numerical_runtime.record_operation("optimizer_dispatch")
+    refit_started = time.perf_counter()
     optimizer_result = services.optimizer_dispatch.run_deterministic(
         method_key="POWELL",
         objective=optimizer_chart.objective,
@@ -9091,6 +9188,14 @@ def _run_default_no_prune_transition_transaction(
         context_label="ADAPT inner optimizer",
         rotosolve_period=rotosolve_period,
         rotosolve_shift=rotosolve_shift,
+    )
+    _emit_round_stage_timing(
+        "hardcoded_adapt_accepted_refit_timing",
+        stage_depth=_telemetry_int(lambda: round_frame.depth + 1),
+        parameter_count=_telemetry_int(
+            lambda: np.asarray(optimizer_x0, dtype=float).size
+        ),
+        elapsed_s=float(time.perf_counter() - refit_started),
     )
     effective_optimizer_x = np.asarray(
         optimizer_result.x, dtype=float
@@ -9471,11 +9576,9 @@ def _run_default_no_prune_transition_transaction(
             ),
         )
     )
-    transition_ledger_payload = cursor.estimator_call_ledger.to_payload()
-    transition_occurrences_after = [
-        dict(row)
-        for row in transition_ledger_payload.get("occurrences", [])
-    ]
+    transition_occurrences_after = _default_no_prune_ledger_occurrences(
+        cursor.estimator_call_ledger
+    )
     occurrence_start = int(
         transition_ledger_receipt[
             "occurrence_sequence_start_exclusive"
@@ -12420,6 +12523,59 @@ def _ai_log(event: str, **fields: Any) -> None:
         **fields,
     }
     _safe_stdout_print(f"AI_LOG {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
+
+
+# Fail-soft round-stage telemetry (Paper-I B3 tail diagnosis, 2026-09-03).
+# These events are stdout-only: they never enter a history row, checkpoint,
+# receipt, or selector decision, so removing them leaves every scientific
+# payload byte-identical.  They carry ``stage_depth`` rather than ``depth``
+# so ``runtime_heartbeat.normalize_ai_log_progress`` (which merges ``depth``
+# from any AI_LOG event) keeps its progress from the accepted-round events.
+_LEDGER_MATERIALIZATION_LOG_THRESHOLD_S = 0.05
+
+
+def _process_rss_mb() -> dict[str, float | None]:
+    """Sample current and high-water resident set size in MB, fail-soft."""
+
+    current: float | None = None
+    high_water: float | None = None
+    try:
+        with open("/proc/self/status", "r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("VmRSS:"):
+                    current = float(line.split()[1]) / 1024.0
+                elif line.startswith("VmHWM:"):
+                    high_water = float(line.split()[1]) / 1024.0
+    except (OSError, ValueError, IndexError):
+        pass
+    if high_water is None:
+        try:
+            import resource
+
+            usage = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+            # ru_maxrss is bytes on macOS and kilobytes on Linux.
+            high_water = usage / (1024.0 * 1024.0) if sys.platform == "darwin" else usage / 1024.0
+        except Exception:  # noqa: BLE001 - telemetry must never raise
+            high_water = None
+    return {"rss_mb": current, "rss_high_water_mb": high_water}
+
+
+def _emit_round_stage_timing(event: str, **fields: Any) -> None:
+    """Emit one stage-timing event with an RSS sample; never raises."""
+
+    try:
+        _ai_log(str(event), **fields, **_process_rss_mb())
+    except Exception:  # noqa: BLE001 - telemetry must never raise
+        pass
+
+
+def _telemetry_int(getter: Callable[[], Any]) -> int | None:
+    """Evaluate one telemetry field; ``None`` instead of raising."""
+
+    try:
+        return int(getter())
+    except Exception:  # noqa: BLE001 - telemetry must never raise
+        return None
 
 
 # ============================================================================
@@ -18515,10 +18671,12 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Beam child exclusions exhausted the admissible pool."
             )
-        occurrence_rows = _default_no_prune_ledger_occurrences(ledger)
+        ledger_occurrence_count = (
+            _default_no_prune_ledger_occurrence_count(ledger)
+        )
         prefix_cursor = self.cursor.estimator_prefix_checkpoint_cursor
         prefix_count = int(prefix_cursor["raw_occurrence_count"])
-        if prefix_count < 0 or prefix_count > len(occurrence_rows):
+        if prefix_count < 0 or prefix_count > ledger_occurrence_count:
             raise RuntimeError(
                 "Beam fork estimator-prefix cursor lies outside the ledger."
             )
@@ -18539,7 +18697,11 @@ class _DefaultNoPruneNumericalSession:
             selection_counts=selection_counts,
             estimator_prefix_identity=(
                 _default_no_prune_estimator_prefix_identity(
-                    occurrence_rows[:prefix_count]
+                    _default_no_prune_ledger_occurrence_rows(
+                        ledger,
+                        0,
+                        prefix_count,
+                    )
                 )
             ),
         )
@@ -19784,6 +19946,7 @@ class _DefaultNoPruneNumericalSession:
                 ),
             )
         )
+        phase1_loop_started = time.perf_counter()
         expanded_records: list[dict[str, Any]] = []
         for raw_append_record in append_payload["records"]:
             append_record = dict(raw_append_record)
@@ -20206,6 +20369,12 @@ class _DefaultNoPruneNumericalSession:
                         **dict(selector_metadata),
                     }
                 )
+        _emit_round_stage_timing(
+            "hardcoded_adapt_phase1_position_loop_timing",
+            stage_depth=_telemetry_int(lambda: pending.depth + 1),
+            record_count=int(len(expanded_records)),
+            elapsed_s=float(time.perf_counter() - phase1_loop_started),
+        )
         rescored = rescore_hardware_cost_family(
             expanded_records,
             pending.phase1_score_cfg_round,
@@ -21559,9 +21728,15 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Accepted-checkpoint publication requires the estimator ledger."
             )
+        checkpoint_started = time.perf_counter()
         ledger_payload = ledger.to_payload()
-        occurrence_summary = ledger.occurrence_summary()
-        unique_summary = ledger.summary()
+        # ``to_payload`` already carries the default all-branch occurrence
+        # and unique-primitive summaries; reuse them instead of walking the
+        # ledger twice more.  The shallow copies decouple only the top-level
+        # keys; nested containers are shared with ``full_ledger`` and are
+        # read-only from here to ``_publish_active_cli_current_checkpoint``.
+        occurrence_summary = dict(ledger_payload["occurrence_summary"])
+        unique_summary = dict(ledger_payload["summary"])
         beam_winning_branch_ids = tuple(
             str(value)
             for value in self.cursor.beam_winning_branch_ids
@@ -22095,6 +22270,17 @@ class _DefaultNoPruneNumericalSession:
             ledger_payload=ledger_payload,
             path=path,
             keep_history_tail=int(self.context.checkpoint_history_tail),
+        )
+        _emit_round_stage_timing(
+            "hardcoded_adapt_checkpoint_publication_timing",
+            stage_depth=int(depth),
+            elapsed_s=float(time.perf_counter() - checkpoint_started),
+            occurrence_count=_telemetry_int(
+                lambda: _default_no_prune_ledger_occurrence_count(ledger)
+            ),
+            unique_primitive_count=_telemetry_int(lambda: len(ledger)),
+            history_rows=_telemetry_int(lambda: len(self.cursor.history)),
+            forced=bool(force),
         )
 
     def finalize_stationary_phase0(
@@ -24237,13 +24423,13 @@ class _DefaultNoPruneSelectionTransaction:
 
         if self.pending.phase0_gradient_shortlist_receipt is not None:
             raise RuntimeError("The gradient-only Phase 0 executed more than once.")
-        occurrence_start = len(self.ledger_occurrences())
+        occurrence_start = self.ledger_occurrence_count()
         self.session._evaluate_default_candidate_gradient_surface(
             self.pending,
             consumer_scope=str(consumer_scope),
         )
         self.session._refresh_default_candidate_gradient_summaries(self.pending)
-        occurrence_end = len(self.ledger_occurrences())
+        occurrence_end = self.ledger_occurrence_count()
         shortlist = rank_candidates_by_absolute_gradient(
             available_indices=self.cursor.selection_available_indices(),
             gradients=self.pending.gradients,
@@ -24259,9 +24445,10 @@ class _DefaultNoPruneSelectionTransaction:
             shortlist=shortlist,
             pool_labels=[str(term.label) for term in self.context.pool],
             requested_shortlist_size=int(shortlist_size),
-            estimator_occurrences=self.ledger_occurrences()[
-                occurrence_start:occurrence_end
-            ],
+            estimator_occurrences=self.ledger_occurrence_rows(
+                occurrence_start,
+                occurrence_end,
+            ),
             schema=str(receipt_schema),
             policy=str(policy),
             population_scope=str(population_scope),
@@ -24365,13 +24552,13 @@ class _DefaultNoPruneSelectionTransaction:
             raise RuntimeError(
                 "Semantic adaptive gradient Phase-0 population drifted."
             )
-        occurrence_start = len(self.ledger_occurrences())
+        occurrence_start = self.ledger_occurrence_count()
         self.session._evaluate_default_candidate_gradient_surface(
             self.pending,
             consumer_scope=PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
         )
         self.session._refresh_default_candidate_gradient_summaries(self.pending)
-        occurrences = self.ledger_occurrences()[occurrence_start:]
+        occurrences = self.ledger_occurrence_rows(occurrence_start)
         if len(occurrences) != len(available) or any(
             row.get("component") != "N_grad"
             or row.get("consumer_scope")
@@ -24489,7 +24676,7 @@ class _DefaultNoPruneSelectionTransaction:
                 "Semantic Phase-0 available population drifted."
             )
 
-        occurrence_start = len(self.ledger_occurrences())
+        occurrence_start = self.ledger_occurrence_count()
         self.session._evaluate_default_candidate_gradient_surface(
             self.pending,
             consumer_scope=PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
@@ -24497,7 +24684,7 @@ class _DefaultNoPruneSelectionTransaction:
         self.session._refresh_default_candidate_gradient_summaries(
             self.pending
         )
-        occurrences = self.ledger_occurrences()[occurrence_start:]
+        occurrences = self.ledger_occurrence_rows(occurrence_start)
         if len(occurrences) != len(available) or any(
             row.get("component") != "N_grad"
             or row.get("consumer_scope")
@@ -24722,6 +24909,7 @@ class _DefaultNoPruneSelectionTransaction:
             raise RuntimeError("Position-record Phase 0 executed more than once.")
         if self.context.transition_services.controller_noise_runtime is not None:
             raise RuntimeError("Position-record Phase 0 is exact/noiseless only.")
+        phase0_started = time.perf_counter()
         population = tuple(admissible_domain)
         if not population or len(
             {
@@ -24753,7 +24941,7 @@ class _DefaultNoPruneSelectionTransaction:
                 )
             ),
         )
-        occurrence_start = len(self.ledger_occurrences())
+        occurrence_start = self.ledger_occurrence_count()
         rows: list[dict[str, Any]] = []
         compile_rows: list[dict[str, Any]] = []
         for record in population:
@@ -24861,7 +25049,7 @@ class _DefaultNoPruneSelectionTransaction:
                         "Position-record graph-proxy denominator is invalid."
                     )
                 row["graph_proxy_denominator"] = value
-        occurrences = self.ledger_occurrences()[occurrence_start:]
+        occurrences = self.ledger_occurrence_rows(occurrence_start)
         if len(occurrences) != len(population) or any(
             row.get("component") != "N_grad"
             or row.get("consumer_scope")
@@ -24877,6 +25065,14 @@ class _DefaultNoPruneSelectionTransaction:
             f"estimator:{int(row['sequence'])}:{str(row['primitive_id'])}"
             for row in occurrences
         ]
+        _emit_round_stage_timing(
+            "hardcoded_adapt_phase0_position_record_timing",
+            stage_depth=_telemetry_int(lambda: self.pending.depth + 1),
+            population_count=int(len(population)),
+            occurrence_start=int(occurrence_start),
+            occurrence_count=int(len(occurrences)),
+            elapsed_s=float(time.perf_counter() - phase0_started),
+        )
         receipt = build_semantic_position_phase0_receipt(
             rows,
             estimator_event_ids=event_ids,
@@ -25861,8 +26057,8 @@ class _DefaultNoPruneSelectionTransaction:
                         expand_runtime_split=False,
                     ),
                 )
-            post_exposure_phase1_occurrence_end = len(
-                self.ledger_occurrences()
+            post_exposure_phase1_occurrence_end = (
+                self.ledger_occurrence_count()
             )
             self._record_selection_phase_observation(
                 "ra_post_exposure_singleton_phase1_shortlist",
@@ -27004,6 +27200,22 @@ class _DefaultNoPruneSelectionTransaction:
             self.cursor.estimator_call_ledger
         )
 
+    def ledger_occurrence_count(self) -> int:
+        return _default_no_prune_ledger_occurrence_count(
+            self.cursor.estimator_call_ledger
+        )
+
+    def ledger_occurrence_rows(
+        self,
+        start: int = 0,
+        end: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return _default_no_prune_ledger_occurrence_rows(
+            self.cursor.estimator_call_ledger,
+            int(start),
+            end,
+        )
+
     def restore_singleton_coordinates(
         self,
         selected_records: Sequence[Mapping[str, Any]],
@@ -27399,7 +27611,6 @@ def _build_default_no_prune_selection_workspace(
     phase3_competitive_population_live = bool(
         phase3_activation["competitive_population_live"]
     )
-    occurrences = transaction.ledger_occurrences()
     prefix_count = int(
         session.cursor.estimator_prefix_checkpoint_cursor[
             "raw_occurrence_count"
@@ -27463,7 +27674,7 @@ def _build_default_no_prune_selection_workspace(
         ),
         estimator_prefix_identity=(
             _default_no_prune_estimator_prefix_identity(
-                occurrences[:prefix_count]
+                transaction.ledger_occurrence_rows(0, prefix_count)
             )
         ),
         admissible_domain_record_ids=tuple(
@@ -27500,6 +27711,8 @@ def _build_default_no_prune_selection_workspace(
         record_from_live=transaction.record_from_live,
         shortlist_ranks=transaction.shortlist_ranks,
         ledger_occurrences=transaction.ledger_occurrences,
+        ledger_occurrence_count=transaction.ledger_occurrence_count,
+        ledger_occurrence_rows=transaction.ledger_occurrence_rows,
         restore_singleton_coordinates=(
             transaction.restore_singleton_coordinates
         ),
@@ -28641,9 +28854,6 @@ def _default_no_prune_initial_snapshot(
                 int(core.selection_counts[int(pool_index)]),
             )
         )
-    occurrences = _default_no_prune_ledger_occurrences(
-        core.estimator_call_ledger
-    )
     prefix_count = int(
         core.estimator_prefix_checkpoint_cursor[
             "raw_occurrence_count"
@@ -28671,7 +28881,11 @@ def _default_no_prune_initial_snapshot(
         ),
         estimator_prefix_identity=(
             _default_no_prune_estimator_prefix_identity(
-                occurrences[:prefix_count]
+                _default_no_prune_ledger_occurrence_rows(
+                    core.estimator_call_ledger,
+                    0,
+                    prefix_count,
+                )
             )
         ),
     )
@@ -29585,16 +29799,21 @@ def _hydrate_default_no_prune_numerical_session(
     restored_ledger = EstimatorCallLedger.from_payload(
         hydration.mutable_estimator_call_ledger_payload()
     )
-    occurrences = _default_no_prune_ledger_occurrences(restored_ledger)
+    restored_occurrence_count = (
+        _default_no_prune_ledger_occurrence_count(restored_ledger)
+    )
     prefix_cursor = _default_no_prune_resume_mutable_json(
         hydration.estimator_prefix_checkpoint_cursor
     )
-    if int(prefix_cursor["raw_occurrence_count"]) != len(occurrences):
+    if (
+        int(prefix_cursor["raw_occurrence_count"])
+        != restored_occurrence_count
+    ):
         raise RuntimeError(
             "Authenticated resume estimator cursor does not close to its "
             "ledger."
         )
-    if int(hydration.s_alg) != len(occurrences):
+    if int(hydration.s_alg) != restored_occurrence_count:
         raise RuntimeError(
             "Authenticated resume S_alg does not equal its occurrence stream."
         )
