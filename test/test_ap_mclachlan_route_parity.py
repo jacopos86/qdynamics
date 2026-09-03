@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import replace
 from types import SimpleNamespace
 
+import functools
+
 import numpy as np
 import pytest
 
@@ -378,14 +380,53 @@ def test_legacy_proxy_fixed_bundle_runs_the_full_trajectory() -> None:
     assert _decisions(historical) == ["insert", "insert", "delete", "stay"]
 
 
-@pytest.mark.parametrize(
-    "bundle",
-    ["paper_ii_exchange_q_compiled_v1", "paper_ii_exchange_gamma_compiled_v1"],
+_COMPILED_BUNDLES = (
+    "paper_ii_exchange_q_compiled_v1",
+    "paper_ii_exchange_gamma_compiled_v1",
 )
-def test_compiled_bundles_run_full_trajectories_bitwise_across_workers(bundle) -> None:
-    serial = _run(exchange_route_bundle=bundle)
-    parallel = _run(exchange_route_bundle=bundle, support_patch_scoring_workers=4)
+# (scoring workers, compile workers): the compile pool is sized independently
+# of the scoring threads, so the 8-worker CHTC setting is exercised both with
+# a serial solve warm and with the campaign's four scoring workers.
+_WORKER_LEGS = ((4, 4), (1, 8), (4, 8))
+
+
+def _decision_digest(payload) -> str:
+    import hashlib
+    import json as json_module
+
+    record = {
+        "decisions": _decisions(payload),
+        "energies": [r["energy_expectation"] for r in payload["plot_rows"]],
+        "runtime_parameter_counts": [
+            p["runtime_parameter_count"] for p in payload["trajectory"]["points"]
+        ],
+    }
+    return hashlib.sha256(
+        json_module.dumps(record, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+@functools.lru_cache(maxsize=None)
+def _serial_compiled_run(bundle):
+    return _run(exchange_route_bundle=bundle)
+
+
+@pytest.mark.parametrize("scoring_workers,compile_workers", _WORKER_LEGS)
+@pytest.mark.parametrize("bundle", _COMPILED_BUNDLES)
+def test_compiled_bundles_run_full_trajectories_bitwise_across_workers(
+    bundle, scoring_workers, compile_workers
+) -> None:
+    serial = _serial_compiled_run(bundle)
+    parallel = _run(
+        exchange_route_bundle=bundle,
+        support_patch_scoring_workers=scoring_workers,
+        compile_workers=compile_workers,
+    )
+    assert _decision_digest(parallel) == _decision_digest(serial)
     assert _decisions(parallel) == _decisions(serial)
+    config = parallel["trajectory"]["support_patch_config"]
+    assert config["support_patch_scoring_workers"] == scoring_workers
+    assert config["compile_workers"] == compile_workers
     assert [r["energy_expectation"] for r in parallel["plot_rows"]] == [
         r["energy_expectation"] for r in serial["plot_rows"]
     ]

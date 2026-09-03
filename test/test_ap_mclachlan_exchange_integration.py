@@ -683,7 +683,14 @@ def test_q_and_gamma_share_the_batch_two_frontier_and_cost_receipts() -> None:
     assert any(candidate.plan is not None for candidate in q_result.candidates)
 
 
-def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
+@pytest.mark.parametrize(
+    "scoring_workers,compile_workers",
+    [(4, None), (1, 8), (4, 8)],
+    ids=["scoring4", "compile8", "scoring4_compile8"],
+)
+def test_compiled_bundle_is_bitwise_identical_across_scoring_workers(
+    scoring_workers, compile_workers
+) -> None:
     import json as json_module
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
         EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
@@ -691,8 +698,12 @@ def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
 
     serial_selection, serial_payload = _route_payload(EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
     parallel_selection, parallel_payload = _route_payload(
-        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED, support_patch_scoring_workers=4
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        support_patch_scoring_workers=scoring_workers,
+        compile_workers=compile_workers,
     )
+    expected_pool = scoring_workers if compile_workers is None else compile_workers
+    assert parallel_payload["selector_route"]["compile"]["compile_workers"] == expected_pool
 
     def stripped(payload):
         out = dict(payload)
