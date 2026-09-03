@@ -150,3 +150,22 @@ def test_route_bundles_are_closed_and_resolve_from_route_config() -> None:
         SupportPatchControllerConfig(exchange_route_bundle="nope")
     with pytest.raises(ValueError):
         SupportPatchControllerConfig(max_compiled_patches_per_checkpoint=0)
+
+
+def test_compile_execution_resources_flow_and_default() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        SupportPatchControllerConfig,
+    )
+
+    default = APGeneralizedExchangeConfig.from_route_config(
+        SupportPatchControllerConfig(support_patch_scoring_workers=3)
+    )
+    assert default.route.compile_workers == 3
+    explicit = APGeneralizedExchangeConfig.from_route_config(
+        SupportPatchControllerConfig(
+            support_patch_scoring_workers=2, compile_workers=8
+        )
+    )
+    assert explicit.route.compile_workers == 8
+    with pytest.raises(ValueError):
+        SupportPatchControllerConfig(compile_workers=0)

@@ -224,6 +224,11 @@ class SupportPatchControllerConfig:
     maintenance_loss_tolerance: float | None = None
     # Compile work guard for compiled-cost bundles (families admitted whole).
     max_compiled_patches_per_checkpoint: int | None = None
+    # Execution resource for compiled-cost bundles (no scientific effect):
+    # compile pool size (None = support_patch_scoring_workers).  Each pool
+    # worker pins its BLAS and rayon threads to 1, so size the pool to the
+    # cores available (request_cpus >= compile_workers + 1).
+    compile_workers: int | None = None
     avqds_l2_cut: float = 1.0e-3
     # Safety valve only; the comparator's algorithmic stopping conditions
     # are its threshold and the absence of an improving candidate.
@@ -259,6 +264,8 @@ class SupportPatchControllerConfig:
             and int(self.max_compiled_patches_per_checkpoint) < 1
         ):
             raise ValueError("max_compiled_patches_per_checkpoint must be positive.")
+        if self.compile_workers is not None and int(self.compile_workers) < 1:
+            raise ValueError("compile_workers must be positive.")
         if str(self.debt_policy) not in {
             "insertion_only", "any_improving", "drift_ranked"
         }:
@@ -431,6 +438,9 @@ class SupportPatchControllerConfig:
                 None
                 if self.max_compiled_patches_per_checkpoint is None
                 else int(self.max_compiled_patches_per_checkpoint)
+            ),
+            "compile_workers": (
+                None if self.compile_workers is None else int(self.compile_workers)
             ),
             "avqds_l2_cut": float(self.avqds_l2_cut),
             "avqds_max_appends_per_checkpoint": (

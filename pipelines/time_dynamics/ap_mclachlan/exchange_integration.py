@@ -1243,7 +1243,7 @@ def build_selector_inputs(
                     cuts_by_atom=cuts_by_atom,
                     blocks=blocks,
                     contract=bundle.compiler,
-                    workers=int(exchange_config.search.scoring_workers),
+                    workers=int(route.compile_workers),
                 )
             cost_inputs = cost_runtime.cost_inputs
             if cost_runtime.workers > 1:

@@ -196,6 +196,9 @@ class ExchangeRouteConfig:
     # Compile work guard per checkpoint; admits families whole like the
     # joint-work guard.  None = unbounded (small systems and smokes only).
     max_compiled_patches_per_checkpoint: int | None
+    # Execution resource (no scientific effect): compile pool size.  Compile
+    # warming is sequential with the solve warm on this lineage.
+    compile_workers: int
 
 
 @dataclass(frozen=True)
@@ -388,6 +391,11 @@ class APGeneralizedExchangeConfig:
                     if getattr(config, "max_compiled_patches_per_checkpoint", None)
                     is None
                     else int(config.max_compiled_patches_per_checkpoint)
+                ),
+                compile_workers=int(
+                    config.support_patch_scoring_workers
+                    if getattr(config, "compile_workers", None) is None
+                    else config.compile_workers
                 ),
             ),
         )

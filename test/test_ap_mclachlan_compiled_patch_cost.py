@@ -629,6 +629,11 @@ def test_compile_pool_forces_and_restores_blas_environment(monkeypatch) -> None:
     prior = {name: str(index + 2) for index, name in enumerate(cpc.BLAS_THREAD_ENV_VARS)}
     for name, value in prior.items():
         monkeypatch.setenv(name, value)
+    # rayon is pinned alongside BLAS so each worker's qiskit transpiler stays
+    # single-threaded; an unset variable is removed again on close.
+    monkeypatch.delenv("RAYON_NUM_THREADS", raising=False)
+    prior["RAYON_NUM_THREADS"] = None
+    assert tuple(prior) == cpc.WORKER_THREAD_ENV_VARS
     pool = cpc.CompileWarmPool(
         contract=CompileContract(),
         base_terms=base,
@@ -638,10 +643,10 @@ def test_compile_pool_forces_and_restores_blas_environment(monkeypatch) -> None:
         workers=1,
     )
     assert pool.prior_env == prior
-    assert pool.pinned_env == {name: "1" for name in cpc.BLAS_THREAD_ENV_VARS}
-    assert {name: os.environ[name] for name in cpc.BLAS_THREAD_ENV_VARS} == pool.pinned_env
+    assert pool.pinned_env == {name: "1" for name in cpc.WORKER_THREAD_ENV_VARS}
+    assert {name: os.environ[name] for name in cpc.WORKER_THREAD_ENV_VARS} == pool.pinned_env
     pool.close()
-    assert {name: os.environ[name] for name in cpc.BLAS_THREAD_ENV_VARS} == prior
+    assert {name: os.environ.get(name) for name in cpc.WORKER_THREAD_ENV_VARS} == prior
 
 
 def test_compile_pool_fails_fast_from_python_c_entrypoint() -> None:

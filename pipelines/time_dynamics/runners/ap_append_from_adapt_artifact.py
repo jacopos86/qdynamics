@@ -1854,6 +1854,17 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--compile-workers",
+        type=int,
+        default=None,
+        help=(
+            "Process-pool size for compiled-cost bundles (default: "
+            "--support-patch-scoring-workers). Each worker pins BLAS and "
+            "rayon to one thread, so size this to the cores of the slot: "
+            "request_cpus >= compile_workers + 1."
+        ),
+    )
+    parser.add_argument(
         "--max-insertion-rounds-per-checkpoint", type=int, default=12,
         help="Safety valve on the greedy repeat; not part of the rule.",
     )
@@ -2152,6 +2163,9 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             None
             if args.max_compiled_patches_per_checkpoint is None
             else int(args.max_compiled_patches_per_checkpoint)
+        ),
+        compile_workers=(
+            None if args.compile_workers is None else int(args.compile_workers)
         ),
         insertion_gate_mode=str(args.insertion_gate_mode),
         insertion_l2_cut=float(args.insertion_l2_cut),
@@ -2489,6 +2503,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     None
                     if args.max_compiled_patches_per_checkpoint is None
                     else int(args.max_compiled_patches_per_checkpoint)
+                ),
+                "compile_workers": (
+                    None if args.compile_workers is None else int(args.compile_workers)
                 ),
                 "solve_damping": float(args.solve_damping),
                 "solve_repair_requested": bool(args.solve_repair),

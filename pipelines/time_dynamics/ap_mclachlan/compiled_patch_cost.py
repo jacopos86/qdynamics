@@ -1024,6 +1024,11 @@ BLAS_THREAD_ENV_VARS: tuple[str, ...] = (
     "VECLIB_MAXIMUM_THREADS",
     "NUMEXPR_NUM_THREADS",
 )
+# The Rust transpiler passes use rayon; unpinned, every worker builds a
+# rayon pool sized to the whole machine, which is the transpile-side twin of
+# BLAS oversubscription.  Pinned to one thread per worker so the pool size
+# is the concurrency.
+WORKER_THREAD_ENV_VARS: tuple[str, ...] = BLAS_THREAD_ENV_VARS + ("RAYON_NUM_THREADS",)
 
 
 def _pool_initializer(
@@ -1092,7 +1097,7 @@ class CompileWarmPool:
 
     Created lazily on the first warm with more than one missing word and
     closed by the owner at the end of the checkpoint.  Pinning the five BLAS
-    thread variables to 1 in the parent environment before spawning keeps
+    thread variables and ``RAYON_NUM_THREADS`` to 1 in the parent environment before spawning keeps
     the workers single-threaded (the parent's own numpy is already loaded,
     so the parent's numerics are unaffected).
     """
@@ -1128,10 +1133,10 @@ class CompileWarmPool:
         # unaffected; the pinned values are recorded so later selections'
         # telemetry reflects the environment that was actually in force.
         self.prior_env: dict[str, str | None] = {
-            name: os.environ.get(name) for name in BLAS_THREAD_ENV_VARS
+            name: os.environ.get(name) for name in WORKER_THREAD_ENV_VARS
         }
         self.pinned_env: dict[str, str] = {}
-        for name in BLAS_THREAD_ENV_VARS:
+        for name in WORKER_THREAD_ENV_VARS:
             os.environ[name] = "1"
             self.pinned_env[name] = "1"
         self.timeout_seconds = float(contract.compile_timeout_seconds)
@@ -1278,6 +1283,7 @@ def warm_word_cache(
 __all__ = [
     "BLAS_THREAD_ENV_VARS",
     "CompileTimeoutError",
+    "WORKER_THREAD_ENV_VARS",
     "CompileWarmPool",
     "edit_word",
     "warm_word_cache",
