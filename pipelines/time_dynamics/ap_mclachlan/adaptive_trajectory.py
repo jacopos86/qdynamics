@@ -214,6 +214,16 @@ class SupportPatchControllerConfig:
     max_structural_pool_size: int | None = 8
     max_certification_attempts_per_deletion_branch: int | None = 2
     dynamics_policy: str = "exchange"
+    # Closed route bundle: objective ordinate + cost model + ranking kernel
+    # fixed together (exchange_config.EXCHANGE_ROUTE_BUNDLES).  The default is
+    # the historical route, unchanged.
+    exchange_route_bundle: str = "paper_ii_generalized_exchange_v2"
+    # Maintenance-regime loss tolerance tau_del for the shifted Paper-I kernel;
+    # None inherits prune_patch_smoothness_eta_max (the normalized Schur-loss
+    # tolerance the deletion permission already enforces).
+    maintenance_loss_tolerance: float | None = None
+    # Compile work guard for compiled-cost bundles (families admitted whole).
+    max_compiled_patches_per_checkpoint: int | None = None
     avqds_l2_cut: float = 1.0e-3
     # Safety valve only; the comparator's algorithmic stopping conditions
     # are its threshold and the absence of an improving candidate.
@@ -234,6 +244,21 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+            resolve_route_bundle,
+        )
+
+        resolve_route_bundle(str(self.exchange_route_bundle))
+        if self.maintenance_loss_tolerance is not None and (
+            not math.isfinite(float(self.maintenance_loss_tolerance))
+            or float(self.maintenance_loss_tolerance) < 0.0
+        ):
+            raise ValueError("maintenance_loss_tolerance must be finite and non-negative.")
+        if (
+            self.max_compiled_patches_per_checkpoint is not None
+            and int(self.max_compiled_patches_per_checkpoint) < 1
+        ):
+            raise ValueError("max_compiled_patches_per_checkpoint must be positive.")
         if str(self.debt_policy) not in {
             "insertion_only", "any_improving", "drift_ranked"
         }:
@@ -396,6 +421,17 @@ class SupportPatchControllerConfig:
                 else int(self.max_structural_pool_size)
             ),
             "dynamics_policy": str(self.dynamics_policy),
+            "exchange_route_bundle": str(self.exchange_route_bundle),
+            "maintenance_loss_tolerance": (
+                None
+                if self.maintenance_loss_tolerance is None
+                else float(self.maintenance_loss_tolerance)
+            ),
+            "max_compiled_patches_per_checkpoint": (
+                None
+                if self.max_compiled_patches_per_checkpoint is None
+                else int(self.max_compiled_patches_per_checkpoint)
+            ),
             "avqds_l2_cut": float(self.avqds_l2_cut),
             "avqds_max_appends_per_checkpoint": (
                 None

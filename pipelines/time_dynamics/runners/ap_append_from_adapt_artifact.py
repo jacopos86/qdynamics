@@ -1794,6 +1794,47 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--exchange-route-bundle",
+        choices=[
+            "paper_ii_generalized_exchange_v2",
+            "paper_ii_exchange_legacy_proxy_fixed_v1",
+            "paper_ii_exchange_q_compiled_v1",
+            "paper_ii_exchange_gamma_compiled_v1",
+        ],
+        default="paper_ii_generalized_exchange_v2",
+        help=(
+            "Closed route bundle fixing objective ordinate, cost model, and "
+            "ranking kernel together. The default is the historical route, "
+            "unchanged (its singleton-normalized proxy cost is identically 1). "
+            "'legacy_proxy_fixed_v1' keeps the historical score but normalizes "
+            "the proxy over the actual competing population; "
+            "'q_compiled_v1' ranks complete patches by realized captured-drift "
+            "change under population-relative compiled (FakeMarrakesh) cost "
+            "with the shifted Paper-I kernel; 'gamma_compiled_v1' is the "
+            "ideal-projection ablation with the identical cost map."
+        ),
+    )
+    parser.add_argument(
+        "--maintenance-loss-tolerance",
+        type=float,
+        default=None,
+        help=(
+            "tau_del for the shifted Paper-I kernel in the maintenance regime "
+            "(normalized captured-drift units). Default None inherits "
+            "--prune-patch-smoothness-eta-max."
+        ),
+    )
+    parser.add_argument(
+        "--max-compiled-patches-per-checkpoint",
+        type=int,
+        default=None,
+        help=(
+            "Compile work guard for compiled-cost bundles; admits candidate "
+            "families whole, like --max-joint-patch-evaluations. None is for "
+            "small systems and smokes only."
+        ),
+    )
+    parser.add_argument(
         "--max-insertion-rounds-per-checkpoint", type=int, default=12,
         help="Safety valve on the greedy repeat; not part of the rule.",
     )
@@ -2082,6 +2123,17 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             else float(args.avqds_delta_theta_max)
         ),
         debt_policy=str(args.debt_policy),
+        exchange_route_bundle=str(args.exchange_route_bundle),
+        maintenance_loss_tolerance=(
+            None
+            if args.maintenance_loss_tolerance is None
+            else float(args.maintenance_loss_tolerance)
+        ),
+        max_compiled_patches_per_checkpoint=(
+            None
+            if args.max_compiled_patches_per_checkpoint is None
+            else int(args.max_compiled_patches_per_checkpoint)
+        ),
         insertion_gate_mode=str(args.insertion_gate_mode),
         insertion_l2_cut=float(args.insertion_l2_cut),
         max_insertion_rounds_per_checkpoint=int(
@@ -2407,6 +2459,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
                 "support_patch_scoring_workers": int(
                     args.support_patch_scoring_workers
+                ),
+                "exchange_route_bundle": str(args.exchange_route_bundle),
+                "maintenance_loss_tolerance": (
+                    None
+                    if args.maintenance_loss_tolerance is None
+                    else float(args.maintenance_loss_tolerance)
+                ),
+                "max_compiled_patches_per_checkpoint": (
+                    None
+                    if args.max_compiled_patches_per_checkpoint is None
+                    else int(args.max_compiled_patches_per_checkpoint)
                 ),
                 "solve_damping": float(args.solve_damping),
                 "solve_repair_requested": bool(args.solve_repair),

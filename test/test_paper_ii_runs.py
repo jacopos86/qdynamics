@@ -352,3 +352,31 @@ def test_runner_transport_builds_the_live_exchange_config() -> None:
     assert config.deletion_enabled is True
     assert config.prune_history_lambda == 0.0
     assert not hasattr(config, "append_min_time")
+
+
+def test_selector_bundle_arms_are_exchange_plus_one_closed_bundle() -> None:
+    from pipelines.time_dynamics.paper_ii_runs import (
+        EXCHANGE,
+        EXCHANGE_GAMMA_COMPILED,
+        EXCHANGE_LEGACY_PROXY_FIXED,
+        EXCHANGE_Q_COMPILED,
+    )
+
+    expected = {
+        EXCHANGE_LEGACY_PROXY_FIXED: "paper_ii_exchange_legacy_proxy_fixed_v1",
+        EXCHANGE_Q_COMPILED: "paper_ii_exchange_q_compiled_v1",
+        EXCHANGE_GAMMA_COMPILED: "paper_ii_exchange_gamma_compiled_v1",
+    }
+    for arm, bundle in expected.items():
+        assert arm.flags[: len(EXCHANGE.flags)] == EXCHANGE.flags
+        parsed = _parser().parse_args(
+            list(build_run(arm=arm.arm_id, drive="fastweak", horizon="smoke",
+                           regime="hh_snake_nph1", output_json="x.json").argv())
+        )
+        assert parsed.exchange_route_bundle == bundle
+        assert parsed.debt_policy == "drift_ranked"
+    historical = _parser().parse_args(
+        list(build_run(arm="exchange", drive="fastweak", horizon="smoke",
+                       regime="hh_snake_nph1", output_json="x.json").argv())
+    )
+    assert historical.exchange_route_bundle == "paper_ii_generalized_exchange_v2"

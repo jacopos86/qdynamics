@@ -539,8 +539,57 @@ AVQDS_PUBLISHED = Arm(
     ),
 )
 
+# Three closed selector bundles on the exchange route (2026-09-02).  Each arm
+# is EXCHANGE plus one --exchange-route-bundle; objective, cost model, and
+# kernel are fixed by the bundle registry in exchange_config.py, never here.
+EXCHANGE_LEGACY_PROXY_FIXED = Arm(
+    arm_id="exchange_legacy_proxy_fixed",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_legacy_proxy_fixed_v1",
+    ),
+    note=(
+        "Frozen historical control with only the cost normalization repaired: "
+        "the same asymmetric score and debt ordering, but the Paper-I proxy "
+        "is normalized over the actual competing population instead of a "
+        "singleton (which made K identically 1)."
+    ),
+)
+
+EXCHANGE_Q_COMPILED = Arm(
+    arm_id="exchange_q_compiled",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_q_compiled_v1",
+    ),
+    note=(
+        "Realized route: complete-patch captured-drift change m_Q ranked with "
+        "the shifted Paper-I kernel under population-relative compiled "
+        "FakeMarrakesh cost K."
+    ),
+)
+
+EXCHANGE_GAMMA_COMPILED = Arm(
+    arm_id="exchange_gamma_compiled",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_gamma_compiled_v1",
+    ),
+    note=(
+        "Ideal ablation: complete-patch ideal-projection change m_Gamma with "
+        "the identical population and K map as the Q route; realized Q/L2 "
+        "still certifies every finalist."
+    ),
+)
+
 ARMS: Mapping[str, Arm] = {
-    a.arm_id: a for a in (EXCHANGE, APPEND_ONLY, AVQDS, AVQDS_PUBLISHED)
+    a.arm_id: a
+    for a in (
+        EXCHANGE,
+        APPEND_ONLY,
+        AVQDS,
+        AVQDS_PUBLISHED,
+        EXCHANGE_LEGACY_PROXY_FIXED,
+        EXCHANGE_Q_COMPILED,
+        EXCHANGE_GAMMA_COMPILED,
+    )
 }
 
 
@@ -1087,6 +1136,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 __all__ = [
     "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
+    "EXCHANGE_GAMMA_COMPILED", "EXCHANGE_LEGACY_PROXY_FIXED", "EXCHANGE_Q_COMPILED",
     "AVQDS_PUBLISHED_NUMERICS", "COMPOSED_STATE_PARAMETER_CONTROL",
     "DRIVES", "EULER_NUMERICS", "EULER_RIDGE1E6_NUMERICS", "EXCHANGE",
     "NUMERICS", "Numerics",
