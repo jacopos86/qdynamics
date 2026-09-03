@@ -18,8 +18,8 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
 
 REPORT_SCHEMA = "paper_ii_selector_human_report_v2"
 DISPLAY_LABELS = {
-    "q_compiled": r"$Q$ compiled",
-    "gamma_compiled": r"support $\Gamma$",
+    "q_compiled": r"$\Gamma(v^\star)$",
+    "gamma_compiled": r"$\Gamma(v)$",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy$^{*}$",
     "avqds": "AVQDS$^{*}$",
@@ -431,7 +431,8 @@ def render_latex(
             lead = rf"""
 \begin{{center}}
 {{\LARGE\bfseries Paper II current-best selector comparison}}\\[3pt]
-{{\small Five side-by-side routes on locked final $t=20$ cells; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
+{{\small Five side-by-side routes on locked final $t=20$ cells;
+$\Gamma(v^\star)$ is realized and $\Gamma(v)$ is ideal-ranked; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
 \end{{center}}
 \hrule
 \vspace{{5pt}}
@@ -534,8 +535,9 @@ def render_markdown(
         f"- Complete five-route cells: {sum(cell.get('all_routes_complete') is True for cell in selected_cells)}.",
         f"- Available-route strict accuracy cliques: {sum(cell.get('available_routes_clique') is True for cell in selected_cells)}.",
         "- Scope: locked final 501-point t=0..20 cells only; no screens, threshold ladders, smoke runs, or precursor rows.",
-        "- Route columns: realized-Q compiled; ideal-support Gamma compiled; repaired analytical proxy; historical old proxy; historical AVQDS.",
-        "- A cell is shown once Q-compiled or Gamma-compiled is available alongside both proxy routes and AVQDS. Missing compiled routes remain explicitly pending.",
+        "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; historical AVQDS.",
+        "- Internal provenance mapping: `q_compiled` is the manuscript's realized `Gamma(v*)` route; `gamma_compiled` is its ideal `Gamma(v)`-ranked route. The legacy keys remain unchanged so existing actions and receipts retain stable identities.",
+        "- A cell is shown once either compiled Gamma route is available alongside both proxy routes and AVQDS. Missing compiled routes remain explicitly pending.",
         "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
         (
@@ -573,7 +575,7 @@ def render_markdown(
                 + "`."
             ),
             "",
-            "| Metric | Q compiled | Gamma support | Repaired proxy | Old proxy | AVQDS |",
+            "| Metric | Gamma(v*) realized | Gamma(v) ideal-ranked | Repaired proxy | Old proxy | AVQDS |",
             "|---|---:|---:|---:|---:|---:|",
         ])
         metrics = [

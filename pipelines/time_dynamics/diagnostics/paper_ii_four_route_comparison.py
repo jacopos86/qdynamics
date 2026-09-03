@@ -7,9 +7,10 @@ keeps every same-cell route separate, and reports terminal circuit,
 integration-estimator, and support-motion burdens as separate coordinates.
 
 The APM route identities are the historical unit-cost proxy, the repaired
-analytical proxy, the realized-Q compiled selector, and the ideal-Gamma
-compiled selector.  The locked matched AVQDS baseline is included as a fifth
-human-facing column.
+analytical proxy, the realized-Gamma(v-star) compiled selector, and the
+ideal-Gamma(v)-ranked compiled selector.  The locked matched AVQDS baseline is
+included as a fifth human-facing column.  The legacy internal route keys remain
+unchanged so archived actions and receipts stay addressable.
 """
 
 from __future__ import annotations
@@ -48,8 +49,8 @@ ROUTE_ORDER = (
     "avqds",
 )
 ROUTE_LABELS = {
-    "q_compiled": "Q-compiled",
-    "gamma_compiled": "Gamma-compiled (support)",
+    "q_compiled": "realized Gamma(v*) compiled",
+    "gamma_compiled": "ideal Gamma(v)-ranked compiled",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy (historical stitched)",
     "avqds": "AVQDS (historical stitched)",

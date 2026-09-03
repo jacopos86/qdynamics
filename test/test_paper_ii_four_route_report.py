@@ -120,8 +120,9 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     tex = render_latex(comparison, selected, markdown_name="report.md")
 
     assert len(selected) == 1
-    assert "$Q$ compiled" in tex
-    assert "support $\\Gamma$" in tex
+    assert "$\\Gamma(v^\\star)$" in tex
+    assert "$\\Gamma(v)$" in tex
+    assert "is realized and" in tex
     assert "repaired proxy" in tex
     assert "old proxy$^{*}$" in tex
     assert "AVQDS$^{*}$" in tex
