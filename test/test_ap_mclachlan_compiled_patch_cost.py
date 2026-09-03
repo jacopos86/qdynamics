@@ -532,3 +532,59 @@ def test_resolve_compile_backend_provenance(backend) -> None:
 def test_resolve_compile_backend_fails_closed_on_unknown_backend() -> None:
     with pytest.raises(cpc.CompiledPatchCostError, match="Could not resolve"):
         cpc.resolve_compile_backend(CompileContract(backend_name="FakeNoSuchDevice"))
+
+
+def test_process_pool_warm_primes_the_cache_with_identical_triples() -> None:
+    # A worker compiles under the same sealed contract, so the primed triple
+    # must equal the in-process compile bit for bit, for both job kinds.
+    from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import (
+        CompiledPatchCostCache,
+        CompileWarmPool,
+        base_word,
+        edit_word,
+        resolve_compile_backend,
+        state_num_qubits,
+        warm_word_cache,
+        word_key,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import CompileContract
+
+    x0 = AnsatzTerm(label="sx0", polynomial=_poly(("ex", 1.0)))
+    z0 = AnsatzTerm(label="sz0", polynomial=_poly(("ez", 1.0)))
+    y1 = AnsatzTerm(label="sy1", polynomial=_poly(("ye", 1.0)))
+    ca = AnsatzTerm(label="ca", polynomial=_poly(("xe", 0.7)))
+    cb = AnsatzTerm(label="cb", polynomial=_poly(("zz", 0.4)))
+    state = _state((x0, z0, y1), np.array([0.3, -0.2, 0.5]))
+    contract = CompileContract()
+    backend, _prov = resolve_compile_backend(contract)
+    nq = state_num_qubits(state)
+    ref = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
+    base = tuple(base_word(state))
+    atoms = {"ca": ca, "cb": cb}
+
+    trial = base[:1] + (ca,) + base[1:]
+    patch = edit_word(base, (0,), [(2, cb, "cb@2#0")])
+    direct = CompiledPatchCostCache()
+    expected_trial = direct.compile_word(trial, nq=nq, ref_state=ref, contract=contract, backend_obj=backend)
+    expected_patch = direct.compile_word(patch, nq=nq, ref_state=ref, contract=contract, backend_obj=backend)
+
+    pool = CompileWarmPool(contract=contract, base_terms=base, atom_terms=atoms, nq=nq, ref_state=ref, workers=2)
+    try:
+        primed_cache = CompiledPatchCostCache()
+        jobs = [
+            (word_key(trial, nq=nq, ref_state=ref, contract=contract), ("trial", "ca", 1)),
+            (word_key(patch, nq=nq, ref_state=ref, contract=contract), ("patch", (0,), ((2, "cb", "cb@2#0"),))),
+            (word_key(trial, nq=nq, ref_state=ref, contract=contract), ("trial", "ca", 1)),  # duplicate
+        ]
+        primed = warm_word_cache(primed_cache, pool, jobs)
+    finally:
+        pool.close()
+    assert primed == 2 and primed_cache.compile_calls == 2
+    key_t = word_key(trial, nq=nq, ref_state=ref, contract=contract)
+    key_p = word_key(patch, nq=nq, ref_state=ref, contract=contract)
+    assert primed_cache.lookup(key_t) == expected_trial
+    assert primed_cache.lookup(key_p) == expected_patch
+    # A primed word is a cache hit for the serial replay.
+    _key, triple, hit = primed_cache.compile_word_record(trial, nq=nq, ref_state=ref, contract=contract, backend_obj=backend)
+    assert hit and triple == expected_trial
+    assert primed_cache.cache_hits == 1

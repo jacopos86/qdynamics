@@ -336,6 +336,10 @@ def iter_structural_families(
         | None
     ) = None,
     max_compiled_patches_per_checkpoint: int | None = None,
+    candidate_cost_warm: (
+        Callable[[Sequence[tuple[tuple[int, ...], tuple[tuple[str, int], ...], Any]]], Any]
+        | None
+    ) = None,
 ):
     """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
 
@@ -564,6 +568,8 @@ def iter_structural_families(
                     q_of, warm_keys, cache.solve_memo, workers_requested
                 ),
             )
+            if candidate_cost_warm is not None:
+                candidate_cost_warm([(k[0], k[1], None) for k in warm_keys])
         family_out = [scored((), (), None, "singleton_d0")]
         for atom_id in pure_pool:
             for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
@@ -615,6 +621,8 @@ def iter_structural_families(
                     q_of, warm_keys, cache.solve_memo, workers_requested
                 ),
             )
+            if candidate_cost_warm is not None:
+                candidate_cost_warm([(k[0], k[1], None) for k in warm_keys])
         family_out = []
         for removed, pool in members:
             if deletion_permission is not None:
@@ -719,6 +727,10 @@ def iter_structural_families(
                         q_of, warm_keys, cache.solve_memo, workers_requested
                     ),
                 )
+                if candidate_cost_warm is not None:
+                    candidate_cost_warm(
+                        [(removed, selection, plan) for removed, plan, selection in batch]
+                    )
             family_out = [
                 scored(removed, selection, plan, family)
                 for removed, plan, selection in batch

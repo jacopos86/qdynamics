@@ -224,6 +224,7 @@ class CompiledCostRuntime:
         cuts_by_atom: Mapping[str, Sequence[int]],
         blocks: Sequence[Any],
         contract: Any,
+        workers: int = 1,
     ) -> None:
         from pipelines.time_dynamics.ap_mclachlan import compiled_patch_cost as cpc
 
@@ -237,7 +238,11 @@ class CompiledCostRuntime:
         self.cache = cpc.CompiledPatchCostCache()
         self.nq = int(state.executor.nq)
         self.ref_state = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
-        self.base_terms = tuple(_per_coordinate_terms(state))
+        self.base_terms = tuple(cpc.base_word(state))
+        self.workers = max(1, int(workers))
+        self.pool = None
+        self.warm_primed = 0
+        self.warm_seconds = 0.0
         self.seconds = 0.0
         start = time.perf_counter()
         with phase("patch.exchange.compile"):
@@ -313,9 +318,99 @@ class CompiledCostRuntime:
             compile_calls=int(self.cache.compile_calls) - calls_before,
         )
 
+    def _members_for(self, atom_id: str) -> dict[int, tuple[int, ...]]:
+        members_by_cut = self._class_members.get(str(atom_id))
+        if members_by_cut is None:
+            atom = self.atoms_by_id[str(atom_id)]
+            members_by_cut = self._cpc.insertion_class_members(atom.term, self.blocks)
+            self._class_members[str(atom_id)] = members_by_cut
+        return members_by_cut
+
+    def warm(self, items: Sequence[tuple[tuple[int, ...], tuple[tuple[str, int], ...], Any]]) -> int:
+        """Compile every word one family will need, in a process pool.
+
+        Two ordered fan-outs per family: the class-member trial words behind
+        every not-yet-chosen placement, then (after placements are fixed
+        serially from the primed cache) the complete-patch words.  Returns
+        the number of words primed; with one worker this is a no-op and the
+        serial path compiles on demand.
+        """
+
+        if self.workers <= 1:
+            return 0
+        start = time.perf_counter()
+        if self.pool is None:
+            self.pool = self._cpc.CompileWarmPool(
+                contract=self.contract,
+                base_terms=self.base_terms,
+                atom_terms={key: atom.term for key, atom in self.atoms_by_id.items()},
+                nq=self.nq,
+                ref_state=self.ref_state,
+                workers=self.workers,
+            )
+        needed = sorted(
+            {(str(a), int(c)) for _removed, selection, _plan in items for a, c in selection}
+            - set(self._placements)
+        )
+        trial_jobs: list[tuple[str, tuple]] = []
+        for atom_id, cut in needed:
+            term = self.atoms_by_id[atom_id].term
+            for position in self._members_for(atom_id)[int(cut)]:
+                word = self.base_terms[: int(position)] + (term,) + self.base_terms[int(position) :]
+                trial_jobs.append(
+                    (
+                        self._cpc.word_key(
+                            word, nq=self.nq, ref_state=self.ref_state, contract=self.contract
+                        ),
+                        ("trial", atom_id, int(position)),
+                    )
+                )
+        primed = self._cpc.warm_word_cache(self.cache, self.pool, trial_jobs)
+        for atom_id, cut in needed:
+            self.placement(atom_id, cut)
+        patch_jobs: list[tuple[str, tuple]] = []
+        for removed, selection, _plan in items:
+            if not removed and not selection:
+                continue
+            entries = []
+            for ordinal, (atom_id, cut) in enumerate(selection):
+                chosen = int(self.placement(str(atom_id), int(cut)).chosen_cut)
+                entries.append((chosen, str(atom_id), f"{atom_id}@{chosen}#{ordinal}"))
+            word = self._cpc.edit_word(
+                self.base_terms,
+                tuple(int(i) for i in removed),
+                [(cut, self.atoms_by_id[a].term, label) for cut, a, label in entries],
+            )
+            patch_jobs.append(
+                (
+                    self._cpc.word_key(
+                        word, nq=self.nq, ref_state=self.ref_state, contract=self.contract
+                    ),
+                    ("patch", tuple(int(i) for i in removed), tuple(entries)),
+                )
+            )
+        primed += self._cpc.warm_word_cache(self.cache, self.pool, patch_jobs)
+        self.warm_primed += int(primed)
+        self.warm_seconds += time.perf_counter() - start
+        return int(primed)
+
+    def close(self) -> None:
+        if self.pool is not None:
+            self.pool.close()
+            self.pool = None
+
     def telemetry(self) -> dict[str, Any]:
         return {
             "placement_rule": PLACEMENT_RULE_ID,
+            "compile_workers": int(self.workers),
+            "compile_execution_mode": (
+                "serial" if self.workers <= 1 else "process_pool_warm_then_serial_replay"
+            ),
+            "warm_primed_words": int(self.warm_primed),
+            "warm_seconds": float(self.warm_seconds),
+            "worker_blas_env_pinned": (
+                None if self.pool is None else dict(self.pool.pinned_env)
+            ),
             "backend": self.backend_provenance,
             "base_resources": {
                 "n2q": int(self.base_triple.n2q),
@@ -966,8 +1061,11 @@ def build_selector_inputs(
                     cuts_by_atom=cuts_by_atom,
                     blocks=blocks,
                     contract=bundle.compiler,
+                    workers=int(exchange_config.search.scoring_workers),
                 )
             cost_inputs = cost_runtime.cost_inputs
+            if cost_runtime.workers > 1:
+                structural_kwargs["candidate_cost_warm"] = cost_runtime.warm
         else:
             cost_inputs = _legacy_proxy_cost_inputs(
                 atoms_by_id=atoms_by_id, active_by_index=active_by_index
@@ -1214,6 +1312,14 @@ def select_generalized_exchange_patch(
                 records.append((int(time_index), share))
                 del records[:-window]
 
+    compile_telemetry = (
+        None
+        if shared_cost_runtime["runtime"] is None
+        else shared_cost_runtime["runtime"].telemetry()
+    )
+    if shared_cost_runtime["runtime"] is not None:
+        shared_cost_runtime["runtime"].close()
+
     payload: dict[str, Any] = {
         "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
         "generalized_exchange_domain": domain.to_json_dict(),
@@ -1243,11 +1349,7 @@ def select_generalized_exchange_patch(
             "maintenance_loss_tolerance": float(route.maintenance_loss_tolerance),
             "maintenance_loss_tolerance_requested": route.maintenance_loss_tolerance_requested,
             "max_compiled_patches_per_checkpoint": route.max_compiled_patches_per_checkpoint,
-            "compile": (
-                None
-                if shared_cost_runtime["runtime"] is None
-                else shared_cost_runtime["runtime"].telemetry()
-            ),
+            "compile": compile_telemetry,
             "compile_guard": (
                 None
                 if selection.telemetry is None or selection.telemetry.compile_guard is None

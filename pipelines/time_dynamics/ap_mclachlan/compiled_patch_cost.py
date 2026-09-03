@@ -434,18 +434,53 @@ def structural_word(
                 f"insertion cut {cut_i} for {label!r} lies outside [0, {n}]."
             )
         entries.append((cut_i, term, str(label)))
+    return edit_word(base, removed, entries)
+
+
+def edit_word(
+    base: Sequence[Any],
+    removed: Sequence[int],
+    entries: Sequence[tuple[int, Any, str]],
+) -> tuple[Any, ...]:
+    """Pure word edit: delete ``removed`` from ``base`` and splice ``entries``.
+
+    ``entries`` carry ORIGINAL-layout cuts; they are remapped over the
+    deletion set exactly as :func:`structural_word` does.  Pure so a worker
+    process can rebuild a word from the base, the removed set, and the
+    inserted terms alone.
+    """
+
+    base = tuple(base)
+    removed = tuple(sorted(set(int(i) for i in removed)))
     removed_set = set(removed)
     survivors = [term for index, term in enumerate(base) if index not in removed_set]
-    remapped = remap_cuts_after_deletion([cut for cut, _t, _l in entries], removed)
+    remapped = remap_cuts_after_deletion([int(cut) for cut, _t, _l in entries], removed)
     by_cut: dict[int, list[Any]] = {}
     for new_cut, (_old, term, label) in zip(remapped, entries):
-        by_cut.setdefault(int(new_cut), []).append(_relabel(term, label))
+        by_cut.setdefault(int(new_cut), []).append(_relabel(term, str(label)))
     word: list[Any] = []
     for position in range(len(survivors) + 1):
         word.extend(by_cut.get(position, ()))
         if position < len(survivors):
             word.append(survivors[position])
     return tuple(word)
+
+
+def word_key(
+    terms: Sequence[Any],
+    *,
+    nq: int,
+    ref_state: Any | None,
+    contract: CompileContract,
+) -> str:
+    """The cache key :class:`CompiledPatchCostCache` uses for ``terms``."""
+
+    return word_identity(
+        terms,
+        int(nq),
+        reference_state_sha256(ref_state),
+        float(contract.structural_angle),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -508,6 +543,24 @@ class CompiledPatchCostCache:
     def __len__(self) -> int:
         with self._lock:
             return int(len(self._entries))
+
+    def prime(self, word_sha256: str, triple: CompiledResourceTriple) -> bool:
+        """Insert a triple compiled elsewhere; returns True when new.
+
+        Used by the process-pool warm: a worker compiled the word under the
+        same sealed contract, so the entry is exactly what
+        :meth:`compile_word_record` would have produced.  Counted as a
+        compile call because a real transpile happened (in the worker).
+        """
+
+        if not isinstance(triple, CompiledResourceTriple):
+            raise CompiledPatchCostError("prime() requires a CompiledResourceTriple.")
+        with self._lock:
+            if str(word_sha256) in self._entries:
+                return False
+            self._entries[str(word_sha256)] = triple
+            self.compile_calls += 1
+            return True
 
     def lookup(self, word_sha256: str) -> CompiledResourceTriple | None:
         """Peek without touching the counters."""
@@ -942,7 +995,180 @@ def resolve_compile_backend(
     return target.backend_obj, provenance
 
 
+
+# ---------------------------------------------------------------------------
+# Process-pool warm: deterministic fan-out of word compiles
+# ---------------------------------------------------------------------------
+#
+# Transpilation holds the GIL (measured: 4 threads give 0.83x), so useful
+# concurrency for the compile stage needs processes.  Workers receive the
+# checkpoint context once (base word, candidate atom terms, contract) through
+# the pool initializer, jobs describe a word as an EDIT of that context, and
+# the parent consumes results in submission order and primes the cache.  The
+# serial scoring replay then hits the cache for every word, so completion
+# order cannot influence any value; with seed_transpiler sealed, a worker's
+# triple is the triple the parent would have compiled.
+
+_POOL_CONTEXT: dict[str, Any] = {}
+
+BLAS_THREAD_ENV_VARS: tuple[str, ...] = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+)
+
+
+def _pool_initializer(
+    contract: CompileContract,
+    base_terms: tuple[Any, ...],
+    atom_terms: dict[str, Any],
+    nq: int,
+    ref_state: Any,
+) -> None:
+    backend, _provenance = resolve_compile_backend(contract)
+    _POOL_CONTEXT.clear()
+    _POOL_CONTEXT.update(
+        backend=backend,
+        contract=contract,
+        base=tuple(base_terms),
+        atoms=dict(atom_terms),
+        nq=int(nq),
+        ref_state=ref_state,
+    )
+
+
+def _pool_word_for_job(job: tuple) -> tuple[Any, ...]:
+    kind = job[0]
+    base = _POOL_CONTEXT["base"]
+    atoms = _POOL_CONTEXT["atoms"]
+    if kind == "trial":
+        _kind, atom_id, cut = job
+        return base[: int(cut)] + (atoms[str(atom_id)],) + base[int(cut) :]
+    if kind == "patch":
+        _kind, removed, entries = job
+        return edit_word(
+            base,
+            tuple(int(i) for i in removed),
+            [(int(cut), atoms[str(atom_id)], str(label)) for cut, atom_id, label in entries],
+        )
+    raise CompiledPatchCostError(f"unknown warm job kind {kind!r}.")
+
+
+def _pool_compile_job(job: tuple) -> tuple[str, tuple[int, int, int]]:
+    word = _pool_word_for_job(job)
+    contract = _POOL_CONTEXT["contract"]
+    key = word_key(
+        word, nq=_POOL_CONTEXT["nq"], ref_state=_POOL_CONTEXT["ref_state"], contract=contract
+    )
+    triple, _provenance = compile_word_resource_triple(
+        word,
+        nq=_POOL_CONTEXT["nq"],
+        ref_state=_POOL_CONTEXT["ref_state"],
+        contract=contract,
+        backend_obj=_POOL_CONTEXT["backend"],
+    )
+    return key, triple.as_tuple()
+
+
+class CompileWarmPool:
+    """One checkpoint's process pool for compile warming.
+
+    Created lazily on the first warm with more than one missing word and
+    closed by the owner at the end of the checkpoint.  Pinning the five BLAS
+    thread variables to 1 in the parent environment before spawning keeps
+    the workers single-threaded (the parent's own numpy is already loaded,
+    so the parent's numerics are unaffected).
+    """
+
+    def __init__(
+        self,
+        *,
+        contract: CompileContract,
+        base_terms: Sequence[Any],
+        atom_terms: Mapping[str, Any],
+        nq: int,
+        ref_state: Any,
+        workers: int,
+    ) -> None:
+        import concurrent.futures
+        import os
+
+        self.workers = max(1, int(workers))
+        # Spawned workers inherit the parent's environment at spawn time, so
+        # the pins must be present in the parent before the pool starts.
+        # The parent's numpy is already loaded, so its numerics are
+        # unaffected; the pinned values are recorded so later selections'
+        # telemetry reflects the environment that was actually in force.
+        self.pinned_env: dict[str, str] = {}
+        for name in BLAS_THREAD_ENV_VARS:
+            if os.environ.get(name) is None:
+                os.environ[name] = "1"
+                self.pinned_env[name] = "1"
+        self._executor = concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.workers,
+            initializer=_pool_initializer,
+            initargs=(contract, tuple(base_terms), dict(atom_terms), int(nq), ref_state),
+        )
+        self.jobs_run = 0
+
+    def compile_jobs(
+        self, jobs: Sequence[tuple], expected_keys: Sequence[str]
+    ) -> list[tuple[str, CompiledResourceTriple]]:
+        """Run jobs and return ``(key, triple)`` in submission order."""
+
+        out: list[tuple[str, CompiledResourceTriple]] = []
+        for expected, (key, triple) in zip(
+            expected_keys, self._executor.map(_pool_compile_job, list(jobs))
+        ):
+            if str(key) != str(expected):
+                raise CompiledPatchCostError(
+                    "worker word identity disagrees with the coordinator's; "
+                    "the pool context is stale."
+                )
+            out.append((str(key), CompiledResourceTriple(*triple)))
+        self.jobs_run += len(out)
+        return out
+
+    def close(self) -> None:
+        self._executor.shutdown(wait=True, cancel_futures=False)
+
+
+def warm_word_cache(
+    cache: CompiledPatchCostCache,
+    pool: CompileWarmPool,
+    jobs: Sequence[tuple[str, tuple]],
+) -> int:
+    """Compile every not-yet-cached ``(key, job)`` in the pool; prime the cache.
+
+    Duplicate keys are compiled once; already-cached keys are skipped.
+    Returns the number of words primed.
+    """
+
+    seen: set[str] = set()
+    missing: list[tuple[str, tuple]] = []
+    for key, job in jobs:
+        key = str(key)
+        if key in seen or cache.lookup(key) is not None:
+            continue
+        seen.add(key)
+        missing.append((key, job))
+    if not missing:
+        return 0
+    results = pool.compile_jobs([job for _k, job in missing], [k for k, _j in missing])
+    primed = 0
+    for key, triple in results:
+        if cache.prime(key, triple):
+            primed += 1
+    return primed
+
 __all__ = [
+    "BLAS_THREAD_ENV_VARS",
+    "CompileWarmPool",
+    "edit_word",
+    "warm_word_cache",
+    "word_key",
     "BUILDER_COEFFICIENT_TOLERANCE",
     "BUILDER_IGNORE_IDENTITY",
     "BUILDER_SORT_TERMS",

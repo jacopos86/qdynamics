@@ -559,8 +559,22 @@ def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
         out.pop("structural_scoring_parallelism")
         route = dict(out["selector_route"])
         compile_block = dict(route["compile"])
-        compile_block.pop("compile_seconds")
+        # Execution-resource telemetry differs by construction; every
+        # scientific field must not.
+        for key in (
+            "compile_seconds",
+            "warm_seconds",
+            "warm_primed_words",
+            "compile_workers",
+            "compile_execution_mode",
+            "worker_blas_env_pinned",
+            "cache_hits",
+        ):
+            compile_block.pop(key)
         route["compile"] = compile_block
+        # After a warm every candidate is a cache hit inside the enumeration,
+        # so this counter is 0; the real compile total is compared unstripped.
+        route.pop("compile_calls_in_enumeration")
         out["selector_route"] = route
         return json_module.dumps(out, sort_keys=True, default=str)
 
@@ -581,3 +595,24 @@ def test_compiled_bundle_uses_placement_cut_when_it_materializes() -> None:
     labels = selection.certification.state.runtime_coordinate_labels
     for atom_id, cut in placement.items():
         assert any(f"c{int(cut)}o" in lab for lab in labels)
+
+
+def test_compiled_bundle_pool_warm_records_its_mode_and_primes_words() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    _sel1, serial = _route_payload(EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    _sel4, parallel = _route_payload(
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED, support_patch_scoring_workers=2
+    )
+    s, p = serial["selector_route"]["compile"], parallel["selector_route"]["compile"]
+    assert s["compile_execution_mode"] == "serial" and s["warm_primed_words"] == 0
+    assert p["compile_execution_mode"] == "process_pool_warm_then_serial_replay"
+    assert p["compile_workers"] == 2
+    assert p["warm_primed_words"] > 0
+    # Every word the serial path compiled on demand was compiled by the pool
+    # instead; the totals agree and so does every ranked value.
+    assert p["compile_calls"] == s["compile_calls"]
+    assert serial["selector_route"]["levels"][0]["top"] == parallel["selector_route"]["levels"][0]["top"]
+    assert serial["attempts"] == parallel["attempts"]
