@@ -538,6 +538,7 @@ def render_markdown(
         "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; historical AVQDS.",
         "- Internal provenance mapping: `q_compiled` is the manuscript's realized `Gamma(v*)` route; `gamma_compiled` is its ideal `Gamma(v)`-ranked route. The legacy keys remain unchanged so existing actions and receipts retain stable identities.",
         "- A cell is shown once either compiled Gamma route is available alongside both proxy routes and AVQDS. Missing compiled routes remain explicitly pending.",
+        f"- Fresh terminal compilation: {sum(len(cell.get('terminal_costs') or {}) for cell in selected_cells)} displayed route/cell arms, all validated under local-only `FakeMarrakesh`, optimization level 1, transpiler seed 7, with terminal-reconstruction parity and trajectory-digest binding.",
         "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
         (

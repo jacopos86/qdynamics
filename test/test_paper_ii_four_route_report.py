@@ -8,6 +8,7 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
 from pipelines.time_dynamics.diagnostics.paper_ii_four_route_report import (
     bind_terminal_costs,
     render_latex,
+    render_markdown,
 )
 
 
@@ -118,6 +119,15 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
 
     selected = bind_terminal_costs(comparison, terminal_cost_root=tmp_path)
     tex = render_latex(comparison, selected, markdown_name="report.md")
+    comparison_path = tmp_path / "comparison.json"
+    comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+    markdown = render_markdown(
+        comparison,
+        selected,
+        comparison_path=comparison_path,
+        tex_path=tmp_path / "report.tex",
+        pdf_path=tmp_path / "report.pdf",
+    )
 
     assert len(selected) == 1
     assert "$\\Gamma(v^\\star)$" in tex
@@ -131,6 +141,8 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "Failed post-delete gates" in tex
     assert "Finalists tested with deletion" in tex
     assert "physical shot count" in tex
+    assert "Fresh terminal compilation: 5 displayed route/cell arms" in markdown
+    assert "FakeMarrakesh" in markdown
 
 
 def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path) -> None:
