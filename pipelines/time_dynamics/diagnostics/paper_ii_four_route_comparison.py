@@ -683,6 +683,7 @@ def build_terminal_compile_plan(
     *,
     output_root: Path,
     include_comparison_guard: bool = False,
+    include_complete_target: bool = False,
 ) -> dict[str, Any]:
     """Plan identical fresh terminal compiles for matched four-route cells."""
 
@@ -691,7 +692,20 @@ def build_terminal_compile_plan(
         allowed_tiers.add("comparison_guard")
     jobs: list[dict[str, Any]] = []
     for cell in comparison.get("cells") or ():
-        if cell.get("comparison_tier") not in allowed_tiers:
+        complete_target = bool(
+            cell.get("four_way_complete")
+            and all(
+                (cell.get("routes") or {}).get(route, {})
+                .get("accuracy", {})
+                .get("qualifies_individually")
+                is True
+                for route in ROUTE_ORDER
+            )
+        )
+        if (
+            cell.get("comparison_tier") not in allowed_tiers
+            and not (include_complete_target and complete_target)
+        ):
             continue
         for route in ROUTE_ORDER:
             route_record = cell["routes"][route]
@@ -720,6 +734,7 @@ def build_terminal_compile_plan(
             ).encode("utf-8")
         ).hexdigest(),
         "selection_tiers": sorted(allowed_tiers),
+        "include_complete_target": bool(include_complete_target),
         "profile": {
             "backend_name": "FakeMarrakesh",
             "seed_transpiler": 7,
@@ -771,6 +786,15 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Output root recorded in the optional terminal-compile plan.",
     )
+    parser.add_argument(
+        "--include-complete-target",
+        action="store_true",
+        help=(
+            "Also plan fresh terminal compiles for complete four-route cells in "
+            "which every route passes the individual target, even when the "
+            "strict pairwise factor match fails."
+        ),
+    )
     return parser
 
 
@@ -796,6 +820,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         plan = build_terminal_compile_plan(
             comparison,
             output_root=args.terminal_cost_root.expanduser().resolve(),
+            include_complete_target=args.include_complete_target,
         )
         _write_json(args.terminal_plan_json.expanduser().resolve(), plan)
     print(json.dumps(comparison["summary"], sort_keys=True))

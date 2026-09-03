@@ -142,3 +142,39 @@ def test_terminal_compile_plan_uses_only_matched_individual_cells(tmp_path) -> N
     assert plan["job_count"] == 4
     assert {job["cell_id"] for job in plan["jobs"]} == {"matched"}
     assert all(job["output_cost_table_json"].startswith(str(tmp_path)) for job in plan["jobs"])
+
+
+def test_terminal_compile_plan_can_include_complete_individual_target_cell(tmp_path) -> None:
+    routes = {
+        route: {
+            "accuracy": {"qualifies_individually": True},
+            "run_sources": [
+                {"path": f"/runs/{route}/run.json", "sha256": route * 2}
+            ],
+        }
+        for route in (
+            "q_compiled",
+            "gamma_compiled",
+            "repaired_proxy",
+            "old_proxy",
+        )
+    }
+    comparison = {
+        "cells": [
+            {
+                "cell_id": "complete_target",
+                "comparison_tier": "unmatched",
+                "four_way_complete": True,
+                "routes": routes,
+            }
+        ]
+    }
+
+    plan = build_terminal_compile_plan(
+        comparison,
+        output_root=tmp_path,
+        include_complete_target=True,
+    )
+
+    assert plan["job_count"] == 4
+    assert {job["cell_id"] for job in plan["jobs"]} == {"complete_target"}

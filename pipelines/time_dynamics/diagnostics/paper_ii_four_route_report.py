@@ -118,12 +118,25 @@ def bind_terminal_costs(
     comparison: Mapping[str, Any],
     *,
     terminal_cost_root: Path,
+    include_complete_target: bool = False,
 ) -> list[dict[str, Any]]:
-    """Return only all-individual-target cells with four verified fresh costs."""
+    """Return reportable four-route cells with four verified fresh costs."""
 
     selected: list[dict[str, Any]] = []
     for raw_cell in comparison.get("cells") or ():
-        if raw_cell.get("comparison_tier") != "individual_target":
+        complete_target = bool(
+            raw_cell.get("four_way_complete")
+            and all(
+                (raw_cell.get("routes") or {}).get(route, {})
+                .get("accuracy", {})
+                .get("qualifies_individually")
+                is True
+                for route in ROUTE_ORDER
+            )
+        )
+        if raw_cell.get("comparison_tier") != "individual_target" and not (
+            include_complete_target and complete_target
+        ):
             continue
         cell = dict(raw_cell)
         costs: dict[str, Any] = {}
@@ -139,7 +152,7 @@ def bind_terminal_costs(
         selected.append(cell)
     if not selected:
         raise ValueError(
-            "no all-individual-target four-way cells are ready for the human report"
+            "no reportable complete four-way cells are ready for the human report"
         )
     return selected
 
@@ -296,6 +309,19 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             _values(cell, ("structural_churn", "short_add_to_redelete_count")),
             formatter=lambda value: _int(int(value)),
         ),
+        _row(
+            "Support-changing checkpoints",
+            _values(cell, ("structural_churn", "support_changing_checkpoint_count")),
+            formatter=lambda value: _int(int(value)),
+        ),
+        _row(
+            r"Scored but not selected ($\geq$)",
+            _values(
+                cell,
+                ("structural_churn", "persisted_scored_not_selected_lower_bound"),
+            ),
+            formatter=lambda value: _int(int(value)),
+        ),
         r"\bottomrule",
         r"\end{tabularx}",
     ]
@@ -307,26 +333,44 @@ def render_latex(
     selected_cells: Sequence[Mapping[str, Any]],
     *,
     markdown_name: str,
+    calibration: Mapping[str, Any] | None = None,
 ) -> str:
     pages = []
     for index, cell in enumerate(selected_cells):
+        strict_match = cell.get("comparison_tier") == "individual_target"
+        failing_pairs = [
+            (name, result)
+            for name, result in (cell.get("pairwise_accuracy") or {}).items()
+            if result.get("passes") is not True
+        ]
         lead = ""
         if index == 0:
+            calibration_note = ""
+            if calibration is not None:
+                calibration_note = (
+                    r"{\footnotesize Calibration gate: \texttt{"
+                    + _tex_escape(str(calibration.get("status", "UNKNOWN")))
+                    + r"}; this is an analysis-only comparison, not evidence adoption.}"
+                    + "\n\n"
+                )
             lead = rf"""
 \begin{{center}}
 {{\LARGE\bfseries Paper II four-route selector comparison}}\\[3pt]
-{{\small Accuracy-matched final $t=20$ AP-McLachlan trajectories; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
+{{\small Current complete final $t=20$ AP-McLachlan trajectories; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
 \end{{center}}
 \hrule
 \vspace{{5pt}}
 
 Only same-drive, same-controller cells for which all four routes meet the
-individual response-normalized accuracy target are shown.  Bold marks the
-lowest value in each row; no scalar winner is imposed across accuracy,
-terminal circuit burden, estimator work, and structural stability.
+individual response-normalized accuracy target are shown.  A cell is marked
+strictly matched only when every pair also passes the declared factor-of-two
+burden and component tests.  Bold marks the lowest value in each row; no
+scalar winner is imposed across accuracy, terminal circuit burden, estimator
+work, and structural stability.
 
 {{\footnotesize Agent record and exact provenance:
 \href{{run:{_tex_escape(markdown_name)}}}{{\texttt{{{_tex_escape(markdown_name)}}}}}.}}
+{calibration_note}
 \vspace{{4pt}}
 """
         title = (
@@ -334,8 +378,22 @@ terminal circuit burden, estimator work, and structural stability.
             f"{_tex_escape(str(cell['controller']))} --- "
             f"cut ${float(cell['apm_cut']):.3e}$"
         )
+        if strict_match:
+            match_note = r"\textbf{Accuracy comparison:} strict four-way match."
+        else:
+            details = "; ".join(
+                rf"{_tex_escape(name.replace('__', ' vs. '))}: burden ratio "
+                rf"{float(result['burden_ratio']):.2f}"
+                for name, result in failing_pairs
+            ) or "strict pairwise match not established"
+            match_note = (
+                r"\textbf{Accuracy comparison:} all four routes pass individually; "
+                r"strict four-way match fails (" + details + ")."
+            )
         page = rf"""{lead}
 \section*{{{title}}}
+{{\small {match_note}}}
+
 {{\small
 {_cell_table(cell)}
 }}
@@ -378,6 +436,8 @@ def render_markdown(
     comparison_path: Path,
     tex_path: Path,
     pdf_path: Path,
+    calibration_path: Path | None = None,
+    calibration: Mapping[str, Any] | None = None,
 ) -> str:
     lines = [
         "# Paper II four-route selector comparison",
@@ -387,11 +447,19 @@ def render_markdown(
         "## Status",
         "",
         f"- Schema: `{REPORT_SCHEMA}`.",
-        f"- Included cells: {len(selected_cells)} all-individual-target four-way accuracy cliques.",
+        f"- Included cells: {len(selected_cells)} complete, individually qualified four-route cells.",
+        f"- Strict four-way matched cells: {sum(cell.get('comparison_tier') == 'individual_target' for cell in selected_cells)}.",
+        f"- Complete individually qualified cells shown provisionally: {sum(cell.get('comparison_tier') != 'individual_target' for cell in selected_cells)}.",
         "- Scope: locked final 501-point t=0..20 cells only; no screens, threshold ladders, smoke runs, or precursor rows.",
         "- Route columns: realized-Q compiled; ideal-support Gamma compiled; repaired analytical proxy; historical old proxy.",
         "- `S` is a shared ranking score, not a separately executed route.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
+        (
+            f"- Calibration gate: `{calibration.get('status')}`; receipt "
+            f"`{calibration_path}` (SHA-256 `{_sha256(calibration_path)}`)."
+            if calibration is not None and calibration_path is not None
+            else "- Calibration gate: no receipt supplied."
+        ),
         f"- Comparison JSON: `{comparison_path}` (SHA-256 `{_sha256(comparison_path)}`).",
         f"- LaTeX source: `{tex_path}` (SHA-256 `{_sha256(tex_path)}`)" if tex_path.exists() else f"- LaTeX source: `{tex_path}` (not yet written).",
         f"- Human PDF: `{pdf_path}` (SHA-256 `{_sha256(pdf_path)}`)." if pdf_path.exists() else f"- Human PDF: `{pdf_path}` (not yet built).",
@@ -428,6 +496,8 @@ def render_markdown(
             ("excess_churn", lambda r: r["structural_churn"]["excess_churn"]),
             ("short_delete_to_readd", lambda r: r["structural_churn"]["short_delete_to_readd_count"]),
             ("short_add_to_redelete", lambda r: r["structural_churn"]["short_add_to_redelete_count"]),
+            ("support_changing_checkpoints", lambda r: r["structural_churn"]["support_changing_checkpoint_count"]),
+            ("scored_not_selected_lower_bound", lambda r: r["structural_churn"]["persisted_scored_not_selected_lower_bound"]),
         ]
         for name, getter in metrics:
             values = [getter(cell["routes"][route]) for route in ROUTE_ORDER]
@@ -468,6 +538,15 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-tex", type=Path, required=True)
     parser.add_argument("--output-md", type=Path, required=True)
     parser.add_argument("--pdf-path", type=Path, required=True)
+    parser.add_argument("--calibration-receipt", type=Path)
+    parser.add_argument(
+        "--include-complete-target",
+        action="store_true",
+        help=(
+            "Include complete four-route cells where every route passes the "
+            "individual target even if a strict pairwise accuracy match fails."
+        ),
+    )
     return parser
 
 
@@ -478,11 +557,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     if comparison.get("schema") != COMPARISON_SCHEMA:
         raise ValueError("unexpected four-route comparison schema")
     terminal_root = args.terminal_cost_root.expanduser().resolve()
-    selected = bind_terminal_costs(comparison, terminal_cost_root=terminal_root)
+    calibration_path = (
+        args.calibration_receipt.expanduser().resolve()
+        if args.calibration_receipt is not None
+        else None
+    )
+    calibration = _read_json(calibration_path) if calibration_path is not None else None
+    if calibration is not None and str(calibration.get("status", "")).upper() == "ERROR":
+        raise ValueError("calibration gate reports ERROR; refusing to build report")
+    selected = bind_terminal_costs(
+        comparison,
+        terminal_cost_root=terminal_root,
+        include_complete_target=args.include_complete_target,
+    )
     tex_path = args.output_tex.expanduser().resolve()
     md_path = args.output_md.expanduser().resolve()
     pdf_path = args.pdf_path.expanduser().resolve()
-    tex = render_latex(comparison, selected, markdown_name=md_path.name)
+    tex = render_latex(
+        comparison,
+        selected,
+        markdown_name=md_path.name,
+        calibration=calibration,
+    )
     _write_text(tex_path, tex)
     markdown = render_markdown(
         comparison,
@@ -490,6 +586,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         comparison_path=comparison_path,
         tex_path=tex_path,
         pdf_path=pdf_path,
+        calibration_path=calibration_path,
+        calibration=calibration,
     )
     _write_text(md_path, markdown)
     print(json.dumps({"selected_cell_count": len(selected)}, sort_keys=True))

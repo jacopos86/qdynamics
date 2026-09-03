@@ -83,6 +83,23 @@ def _drive_config(payload: Mapping[str, Any], runtime_input: Any) -> Any:
     )
 
 
+def _drive_aligned_enabled(
+    payload: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+) -> bool:
+    """Recover the requested route, including resumed already-present support."""
+
+    requested = metadata.get("drive_aligned_ansatz_requested")
+    if requested is not None:
+        return bool(requested)
+    record = payload.get("drive_aligned_ansatz")
+    if not isinstance(record, Mapping):
+        return True
+    return bool(record.get("applied", True)) or str(record.get("reason", "")) == (
+        "resume_terminal_support_already_contains_drive_alignment"
+    )
+
+
 def reconstruct_terminal_ap_compile_input(
     trajectory_path: Path,
 ) -> tuple[Any, dict[str, Any], dict[str, Any]]:
@@ -144,7 +161,7 @@ def reconstruct_terminal_ap_compile_input(
     augmentation = augment_state_with_drive_aligned_generator(
         state,
         hamiltonian=hamiltonian,
-        enabled=bool(dict(payload.get("drive_aligned_ansatz", {})).get("applied", True)),
+        enabled=_drive_aligned_enabled(payload, metadata),
     )
     state = augmentation.state
     term_lookup = {
