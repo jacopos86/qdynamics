@@ -213,19 +213,21 @@ not a standalone verdict.
 1. `τ_del` defaults to `prune_patch_smoothness_eta_max` (the normalized
    Schur-loss tolerance the deletion permission already enforces); recorded
    as requested/resolved in provenance. Any other value is an author choice.
-2. Population membership: every evaluated candidate of the level, all faces,
-   enters the K population; the sign filter applies after sealing. A pure
-   prune with m > 0 is eligible in the large-miss regime (it improves
-   accuracy); the plan's "prunes form maintenance" is realized by the face
-   closure below the cut, not by exclusion above it.
+2. Population membership: every valid evaluated candidate of the level, all
+   faces, enters the K population; compiler-invalid and ordinate-invalid
+   candidates are recorded and excluded before sealing. The sign filter then
+   applies after sealing. A pure prune with m > 0 is eligible in the
+   large-miss regime (it improves accuracy); the plan's "prunes form
+   maintenance" is realized by the face closure below the cut, not by
+   exclusion above it.
 3. Frontier child-acquisition priorities under population bundles use the
    route ordinate instead of the historical composite score (inert for every
    registered run: insertion batch size 1).
 4. The compile guard counts candidates (families admitted whole), not
    transpiles; cache hits reduce actual work below the count.
-5. The Γ monotonicity fail-closed check will abort a selection on a
-   pathological spectrum; that is the plan's requested behavior and is not
-   softened.
+5. The Γ monotonicity fail-closed check rejects only the affected candidate
+   from the shared Q/Γ population and records the rejection. It does not clip
+   Γ, relax the tolerance, or abort an otherwise valid selection level.
 6. The current manuscript's absolute-value kernel is superseded by the
    shifted kernel here; no manuscript edit was made.
 

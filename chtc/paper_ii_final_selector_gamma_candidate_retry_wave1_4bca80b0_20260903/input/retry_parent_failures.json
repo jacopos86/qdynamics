@@ -1,0 +1,223 @@
+{
+  "created_utc": "2026-09-03T07:30:20Z",
+  "failure_class": "GammaMonotonicityError",
+  "failure_count": 19,
+  "failures": [
+    {
+      "action_id": "weakslow__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.352e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.0003113878993825494, Gamma(J^B)=0.0003113878989458225.",
+      "job_status": 4,
+      "proc_id": 1,
+      "stderr_sha256": "80038f3d4cd2b71ccb0edfcfc4dd88fcf81dc1d754b40858a5c83bdaade93758"
+    },
+    {
+      "action_id": "weakslow__state_motion_1e-3_plus_parameter_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.595e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.0003222606773701985, Gamma(J^B)=0.00032226067685450175.",
+      "job_status": 4,
+      "proc_id": 5,
+      "stderr_sha256": "2f2f4ddc8d84165089d97caebe8d61f2053fd9b5a8e3c098e6ecf2f212dbec03"
+    },
+    {
+      "action_id": "weakslow__state_motion_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.123e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.00031136434614646025, Gamma(J^B)=0.00031136434578375884.",
+      "job_status": 4,
+      "proc_id": 7,
+      "stderr_sha256": "6c96cafac2f1a74b95f13874aa625e05162acbe47017aaa67d1afcfe81a87884"
+    },
+    {
+      "action_id": "weakslow__state_motion_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.123e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.00031136434614646025, Gamma(J^B)=0.00031136434578375884.",
+      "job_status": 4,
+      "proc_id": 8,
+      "stderr_sha256": "6c96cafac2f1a74b95f13874aa625e05162acbe47017aaa67d1afcfe81a87884"
+    },
+    {
+      "action_id": "fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.107e-06 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.012506292904239597, Gamma(J^B)=0.012506279049425261.",
+      "job_status": 4,
+      "proc_id": 13,
+      "stderr_sha256": "82b34eccde18346fe26a9b5b35450c1421c8f37ea2bc25a871d9e13b21bf2b35"
+    },
+    {
+      "action_id": "fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.107e-06 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.012506292904239597, Gamma(J^B)=0.012506279049425261.",
+      "job_status": 4,
+      "proc_id": 14,
+      "stderr_sha256": "82b34eccde18346fe26a9b5b35450c1421c8f37ea2bc25a871d9e13b21bf2b35"
+    },
+    {
+      "action_id": "fastweak__state_motion_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -5.077e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.012414734904399021, Gamma(J^B)=0.012414734841352344.",
+      "job_status": 4,
+      "proc_id": 16,
+      "stderr_sha256": "9cd41b3f951ba79525f31b08c66f925ffb391fe7786a659066a8eb5a81a20d25"
+    },
+    {
+      "action_id": "fastweak__state_motion_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -5.077e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.012414734904399021, Gamma(J^B)=0.012414734841352344.",
+      "job_status": 4,
+      "proc_id": 17,
+      "stderr_sha256": "9cd41b3f951ba79525f31b08c66f925ffb391fe7786a659066a8eb5a81a20d25"
+    },
+    {
+      "action_id": "midres__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.026e-08 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.022117645572475333, Gamma(J^B)=0.022117645345383893.",
+      "job_status": 4,
+      "proc_id": 19,
+      "stderr_sha256": "fcc032cf336574f3f14da67a5ae6e79679c0be5be3f467df391aaef186b495da"
+    },
+    {
+      "action_id": "midres__delta_theta_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.026e-08 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.022117645572475333, Gamma(J^B)=0.022117645345383893.",
+      "job_status": 4,
+      "proc_id": 20,
+      "stderr_sha256": "fcc032cf336574f3f14da67a5ae6e79679c0be5be3f467df391aaef186b495da"
+    },
+    {
+      "action_id": "midres__state_motion_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.068e-08 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.022112029276923722, Gamma(J^B)=0.02211202904075479.",
+      "job_status": 4,
+      "proc_id": 22,
+      "stderr_sha256": "e6217c954d828708be40613179cd67bdb06df62406513bca338d396575352247"
+    },
+    {
+      "action_id": "midres__state_motion_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.068e-08 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.022112029276923722, Gamma(J^B)=0.02211202904075479.",
+      "job_status": 4,
+      "proc_id": 23,
+      "stderr_sha256": "e6217c954d828708be40613179cd67bdb06df62406513bca338d396575352247"
+    },
+    {
+      "action_id": "strongfast__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -2.321e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.19491724886012937, Gamma(J^B)=0.19491724840764826.",
+      "job_status": 4,
+      "proc_id": 31,
+      "stderr_sha256": "4fd1e2b488d4a75762d942082f834943dcee30d0d59fe0e82b1b753679d64e0b"
+    },
+    {
+      "action_id": "strongfast__delta_theta_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -2.321e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.19491724886012937, Gamma(J^B)=0.19491724840764826.",
+      "job_status": 4,
+      "proc_id": 32,
+      "stderr_sha256": "4fd1e2b488d4a75762d942082f834943dcee30d0d59fe0e82b1b753679d64e0b"
+    },
+    {
+      "action_id": "strongfast__state_motion_1e-3_plus_parameter_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.838e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.1964932066520526, Gamma(J^B)=0.1964932062909541.",
+      "job_status": 4,
+      "proc_id": 35,
+      "stderr_sha256": "c7b35c2c0926e248f54f8f5a8b494910964a0bddb3720f5fef72cc78cfc93cd2"
+    },
+    {
+      "action_id": "fastfast__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.035e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.046178361914641385, Gamma(J^B)=0.04617836186685753.",
+      "job_status": 4,
+      "proc_id": 37,
+      "stderr_sha256": "8b1de8aedf4e0a8c168e2be94f79721d15ad5f7731651685e257596216cec304"
+    },
+    {
+      "action_id": "fastfast__delta_theta_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.055e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.04617958313468446, Gamma(J^B)=0.04617958308598752.",
+      "job_status": 4,
+      "proc_id": 38,
+      "stderr_sha256": "6f1f1430aee685dc6aea98448b0a54339f19b63908f9efd5fea7aefc6fa5c570"
+    },
+    {
+      "action_id": "fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -2.843e-07 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.04653261524244618, Gamma(J^B)=0.04653260200932577.",
+      "job_status": 4,
+      "proc_id": 40,
+      "stderr_sha256": "0320d51d92c83b89ac2f7f87def83be0b827b4f397df1fe5682655f2f9844b7c"
+    },
+    {
+      "action_id": "fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -2.843e-07 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.04653261524244618, Gamma(J^B)=0.04653260200932577.",
+      "job_status": 4,
+      "proc_id": 41,
+      "stderr_sha256": "0320d51d92c83b89ac2f7f87def83be0b827b4f397df1fe5682655f2f9844b7c"
+    }
+  ],
+  "parent": {
+    "cluster_id": 9718529,
+    "code_revision": "821a6ad598c86ba27986456d4e0dc4fe5d27ac61",
+    "package": "chtc/paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "source_archive_sha256": "bc5d5a539bd5d03717bf37165387b04e18045451d77bdf3899de256d489e2791"
+  },
+  "repair": {
+    "code_revision": "4bca80b01f3d4e20e74f21b21ec36d23374b3392",
+    "policy": "Reject only the invalid Gamma candidate from the shared compiled Q/Gamma population; preserve exact Gamma and all scientific settings.",
+    "source_archive_sha256": "8f12755668b793062650801eab5755b81ff64c20e851f15e9b0ec18813e047d3"
+  },
+  "retry_wave": 1,
+  "schema": "paper_ii_final_selector_retry_parent_failures_v1",
+  "selection_policy": {
+    "active_jobs_excluded": true,
+    "no_avqds": true,
+    "no_precursors": true,
+    "successful_jobs_excluded": true,
+    "terminal_failed_only": true,
+    "terminal_signature": {
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "job_status": 4
+    }
+  }
+}
