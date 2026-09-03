@@ -34,6 +34,8 @@ from pipelines.static_adapt.sr_snake.contracts import (
     EstimatorLedgerObservation,
     ExactEDSourceReceipt,
     ExactEDStop,
+    MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1,
+    MarrakeshGraphSpanCompileCost,
     PlateauCommutationInsertion,
     PruningOff,
     SRExecutionPolicy,
@@ -63,6 +65,37 @@ def _insertion_policy(name: str):
             f"Unknown H2O insertion policy {name!r}; expected one of "
             f"{sorted(_H2O_INSERTION_POLICIES)}."
         ) from None
+
+
+H2O_COST_MODE_PROXY = "proxy"
+H2O_COST_MODE_MARRAKESH_GRAPH_SPAN = (
+    MARRAKESH_GRAPH_SPAN_COMPILE_COST_POLICY_V1
+)
+_H2O_COST_MODES = (
+    H2O_COST_MODE_PROXY,
+    H2O_COST_MODE_MARRAKESH_GRAPH_SPAN,
+)
+
+
+def _compile_cost_policy(cost_mode: str):
+    """Map the CLI cost mode onto the typed selector compile-cost policy.
+
+    ``proxy`` is the H2O route contract's own structural proxy and maps to
+    no policy at all (``compile_cost=None``), so the default request and its
+    protocol digest are unchanged.  ``marrakesh_graph_span_v1`` opts into
+    the Paper-I analytic FakeMarrakesh graph-span cost on the fixed 19-qubit
+    embedding and yields a distinct route profile and digest.
+    """
+
+    mode = str(cost_mode).strip()
+    if mode == H2O_COST_MODE_PROXY:
+        return None
+    if mode == H2O_COST_MODE_MARRAKESH_GRAPH_SPAN:
+        return MarrakeshGraphSpanCompileCost()
+    raise ValueError(
+        f"Unknown H2O cost mode {cost_mode!r}; expected one of "
+        f"{list(_H2O_COST_MODES)}."
+    )
 
 
 DEFAULT_GRADIENT_TOLERANCE = 5.0e-7
@@ -141,6 +174,7 @@ def build_h2o_ra_request(
     insertion: str = H2O_INSERTION_PLATEAU,
     checkpoint_history_tail: int = 100,
     estimator_ledger: bool = True,
+    cost_mode: str = H2O_COST_MODE_PROXY,
 ) -> RAAdaptRequest:
     exact_energy = float(problem.exact_target.resolve_energy())
     exact_source = ExactEDSourceReceipt.from_problem(
@@ -154,6 +188,7 @@ def build_h2o_ra_request(
             insertion=_insertion_policy(insertion),
             pruning=PruningOff(),
             beam=BeamOff(),
+            compile_cost=_compile_cost_policy(cost_mode),
         ),
         execution=SRExecutionPolicy(
             stop=SRStopPolicy(
@@ -236,6 +271,18 @@ def main() -> None:
         help="Disable estimator-call ledger accounting.",
     )
     parser.add_argument(
+        "--cost-mode",
+        choices=_H2O_COST_MODES,
+        default=H2O_COST_MODE_PROXY,
+        help=(
+            "Selector compile-cost source. 'proxy' (default) is the H2O "
+            "route contract's structural proxy. 'marrakesh_graph_span_v1' "
+            "opts into the Paper-I analytic FakeMarrakesh graph-span cost "
+            "on the fixed 19-qubit embedding (no transpile); it is a "
+            "distinct route profile and protocol digest."
+        ),
+    )
+    parser.add_argument(
         "--resume-checkpoint",
         type=Path,
         default=None,
@@ -300,8 +347,14 @@ def main() -> None:
         insertion=args.insertion,
         checkpoint_history_tail=args.checkpoint_history_tail,
         estimator_ledger=not args.no_estimator_ledger,
+        cost_mode=args.cost_mode,
     )
     protocol = build_resolved_ra_protocol(problem, request)
+    resolved_cost_mode = str(
+        protocol.route_contract["execution_settings"][
+            "phase3_backend_cost_mode"
+        ]
+    )
     _write_json(output_dir / "protocol.json", protocol.to_dict())
     _write_json(
         output_dir / "launch_manifest.json",
@@ -321,6 +374,8 @@ def main() -> None:
             "candidate_representation": protocol.candidate_representation,
             "candidate_mode": args.candidate_representation,
             "candidate_adapter_id": request.adapter.adapter_id,
+            "cost_mode": args.cost_mode,
+            "phase3_backend_cost_mode": resolved_cost_mode,
             "fresh_start": resume_checkpoint is None,
             "resume_checkpoint": (
                 None if resume_checkpoint is None else str(resume_checkpoint)
@@ -349,6 +404,8 @@ def main() -> None:
                 ),
                 "candidate_mode": args.candidate_representation,
                 "candidate_adapter_id": request.adapter.adapter_id,
+                "cost_mode": args.cost_mode,
+                "phase3_backend_cost_mode": resolved_cost_mode,
             },
             sort_keys=True,
         ),

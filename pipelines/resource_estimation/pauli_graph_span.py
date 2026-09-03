@@ -23,6 +23,9 @@ PAPER_I_MARRAKESH_GRAPH_SPAN_PROFILE_V1 = (
     "paper_i_fake_marrakesh_graph_span_v1"
 )
 
+# Mirror of the table in pipelines/static_adapt/hh_backend_compile_oracle.py;
+# the generating rule is documented there and the two tables are asserted
+# equal by test/test_marrakesh_graph_span_embedding_19q.py.
 _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     4: (0, 1, 2, 3),
     6: (0, 1, 2, 3, 4, 16),
@@ -30,6 +33,10 @@ _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     9: (0, 1, 2, 3, 4, 16, 5, 23, 6),
     10: (0, 1, 2, 3, 4, 16, 5, 23, 6, 22),
     12: (0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21),
+    19: (
+        0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21,
+        8, 20, 9, 24, 10, 25, 11,
+    ),
 }
 _PAULI_CHARS = {"e", "x", "y", "z"}
 _ABSOLUTE_COMPONENTS = (
