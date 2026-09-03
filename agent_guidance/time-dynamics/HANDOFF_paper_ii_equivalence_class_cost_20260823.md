@@ -27,10 +27,41 @@ The current implementation and evidence scope is **insertion batch size one**:
   actually retained and materialized. Do not claim a globally least-cost
   realization of a multi-insert batch.
 
+At one frozen checkpoint, the same insertion must be evaluated in parallel
+contexts rather than only after one deletion has already won:
+
+1. evaluate it with no deletion, on the insert face;
+2. evaluate it separately with every permitted deletion set for which it is
+   in the branch pool, on the true-exchange interior; and
+3. treat every ``(deletion set, insertion, commuting class)`` as a distinct
+   patch-cost record.
+
+The structural ordinate is evaluated once for each distinct physical patch.
+Its Qiskit placement work then compiles every legal commuting placement of
+that insertion **after applying that patch's deletion**, and retains the
+cheapest complete patched circuit. The original checkpoint circuit is still
+the common baseline for the signed resource marginal; for a fixed deletion,
+subtracting that common baseline does not change which placement is cheapest.
+
+These independent placement compiles should use one flattened process work
+queue over ``(deletion set, insertion, placement)`` and deterministic fan-in.
+Do not create nested process pools. Compile the unchanged baseline once, key
+placement caches by the deletion context (or the exact survivor-word hash),
+and seal the shared population normalization only after every admitted
+context has returned. Pure-insertion and deletion-conditioned exchange costs
+must therefore both be present; neither may borrow the other's chosen cut.
+
 This is the complete representative-selection contract for the next
-implementation pass. It matches the registered Paper-II selector campaign,
-whose insertion batch size is one, so it does not change or invalidate those
-runs.
+implementation pass. The registered Paper-II selector campaign has insertion
+batch size one, so the decision to defer batching does not invalidate those
+runs. However, the implementation audited on 2026-09-03 caches placement only
+by ``(atom, retained cut)``, chooses that placement against the undeleted base
+word, and then reuses it for all deletion contexts. It parallelizes the final
+complete-patch compiles, but not the required deletion-conditioned placement
+search. Consequently, the currently running compiled-selector jobs remain
+valid evidence for that recorded implementation, but they are not evidence
+for this newly locked conditional-placement rule and must not be relabelled as
+such.
 
 Batching is deferred to a later, more general route. When it is implemented,
 use **conditional greedy construction**, not joint combinatorial minimization:
