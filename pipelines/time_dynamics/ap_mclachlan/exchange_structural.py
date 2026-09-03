@@ -38,6 +38,9 @@ from pipelines.time_dynamics.ap_mclachlan.deletion_family import (
 from pipelines.time_dynamics.ap_mclachlan.deletion_permission import (
     DeletionPermissionDecision,
 )
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import (
+    CompiledPatchCostError,
+)
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     InsertionPlan,
     WordToken,
@@ -189,6 +192,7 @@ class StructuralCandidate:
     proxy_insert_components: Mapping[str, float] | None = None
     proxy_delete_components: Mapping[str, float] | None = None
     patch_word_sha256: str | None = None
+    cost_error: str | None = None
 
     @property
     def kind(self) -> str:
@@ -340,6 +344,7 @@ def iter_structural_families(
         Callable[[Sequence[tuple[tuple[int, ...], tuple[tuple[str, int], ...], Any]]], Any]
         | None
     ) = None,
+    population_accuracy_debt: bool | None = None,
 ):
     """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
 
@@ -387,11 +392,48 @@ def iter_structural_families(
     compile_calls_total = 0
     gamma_denominator = float(norm_b_sq) + max(0.0, float(weights.epsilon_norm))
 
-    def admit(family: str, size: int) -> bool:
-        if not guard.admit(family, size):
+    def active_population_face(
+        removed: tuple[int, ...], selection: tuple[tuple[str, int], ...]
+    ) -> bool:
+        if not population_scoring or population_accuracy_debt is None:
+            return True
+        if bool(population_accuracy_debt):
+            return bool(selection)
+        return bool(removed) and not bool(selection)
+
+    def guard_fits(candidate_guard: JointWorkGuard, size: int) -> bool:
+        return bool(
+            not candidate_guard.exhausted
+            and (
+                candidate_guard.max_joint_patch_evaluations is None
+                or candidate_guard.scored_count + int(size)
+                <= int(candidate_guard.max_joint_patch_evaluations)
+            )
+        )
+
+    def reject_family(candidate_guard: JointWorkGuard, family: str) -> None:
+        if candidate_guard.rejected_family is None:
+            candidate_guard.rejected_family = str(family)
+
+    def admit(family: str, size: int, *, compiled_size: int | None = None) -> bool:
+        compile_size = int(size if compiled_size is None else compiled_size)
+        if not guard_fits(guard, int(size)):
+            reject_family(guard, family)
+            if compile_guard is not None:
+                reject_family(compile_guard, family)
             return False
-        if compile_guard is not None and not compile_guard.admit(family, size):
+        if compile_guard is not None and not guard_fits(compile_guard, compile_size):
+            # Admission is transactional: neither counter advances when one
+            # of the two complete-family budgets rejects the family.
+            reject_family(guard, family)
+            reject_family(compile_guard, family)
             return False
+        if not guard.admit(family, int(size)):
+            raise AssertionError("joint-work guard changed after admission preflight")
+        if compile_guard is not None and not compile_guard.admit(
+            family, compile_size
+        ):
+            raise AssertionError("compile guard changed after admission preflight")
         return True
 
     def q_of(removed: tuple[int, ...], selection: tuple[tuple[str, int], ...]) -> float:
@@ -487,7 +529,8 @@ def iter_structural_families(
             rank_secondary = 0.0
         m_gamma = None
         cost_inputs = None
-        if population_scoring:
+        cost_error = None
+        if population_scoring and active_population_face(removed, selection):
             nonlocal compile_calls_total
             if gamma_rcond is not None:
                 gamma_joint = memoized_gamma(cache, (removed, selection))
@@ -504,8 +547,11 @@ def iter_structural_families(
                         )
                     m_gamma = float((gamma_joint - gamma_base) / gamma_denominator)
             if candidate_cost_inputs is not None and (removed or selection):
-                cost_inputs = candidate_cost_inputs(removed, tuple(selection), plan)
-                compile_calls_total += int(cost_inputs.compile_calls)
+                try:
+                    cost_inputs = candidate_cost_inputs(removed, tuple(selection), plan)
+                    compile_calls_total += int(cost_inputs.compile_calls)
+                except CompiledPatchCostError as exc:
+                    cost_error = f"{type(exc).__name__}:{exc}"
         return StructuralCandidate(
             removed_runtime_indices=removed,
             inserted_selection=tuple(selection),
@@ -530,18 +576,13 @@ def iter_structural_families(
                 None if cost_inputs is None else cost_inputs.proxy_delete_components
             ),
             patch_word_sha256=None if cost_inputs is None else cost_inputs.patch_word_sha256,
+            cost_error=cost_error,
         )
 
     def priority_value(candidate: StructuralCandidate) -> float:
-        # Child-acquisition priorities order the insertion frontier universe.
-        # The historical route uses the composite score; population bundles
-        # use their own physical ordinate, since their score is not known
-        # until the level is sealed.
-        if not population_scoring:
-            return float(candidate.score)
-        if route_bundle is not None and getattr(route_bundle, "needs_gamma", False):
-            return float("nan") if candidate.m_gamma is None else float(candidate.m_gamma)
-        return float(candidate.delta)
+        # Child acquisition must be route-neutral: Q and Gamma selectors seal
+        # different ordinates only after they have measured the same frontier.
+        return float(candidate.score)
 
     candidates: list[StructuralCandidate] = []
     singleton_best: dict[str, float] = {}
@@ -555,7 +596,13 @@ def iter_structural_families(
     # ---- d = 0: stay + every pure singleton insertion ----------------------
     pure_pool = candidate_pool_for_deletion(())
     d0_size = 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pure_pool)
-    if admit("singleton_d0", d0_size):
+    d0_compile_size = sum(
+        1
+        for atom_id in pure_pool
+        for cut in cuts_by_atom.get(atom_id, ())
+        if active_population_face((), ((str(atom_id), int(cut)),))
+    )
+    if admit("singleton_d0", d0_size, compiled_size=d0_compile_size):
         if workers_requested > 1:
             warm_keys = [
                 ((), ((str(atom_id), int(cut)),))
@@ -569,7 +616,13 @@ def iter_structural_families(
                 ),
             )
             if candidate_cost_warm is not None:
-                candidate_cost_warm([(k[0], k[1], None) for k in warm_keys])
+                candidate_cost_warm(
+                    [
+                        (k[0], k[1], None)
+                        for k in warm_keys
+                        if active_population_face(k[0], k[1])
+                    ]
+                )
         family_out = [scored((), (), None, "singleton_d0")]
         for atom_id in pure_pool:
             for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
@@ -599,15 +652,46 @@ def iter_structural_families(
         # Admit the raw family before permission. Otherwise refused sets evade
         # the work accounting and the search can walk unbounded combinatorial
         # rungs while scoring nothing.
-        if not admit(family, size):
+        permitted_members = members
+        if compile_guard is not None:
+            # Check the raw structural budget before evaluating permissions,
+            # then count only the regime-active candidates that can actually
+            # reach the compiler.  This keeps the structural guard
+            # conservative without charging compiled work for stay or an
+            # inactive patch face.
+            if not guard_fits(guard, size):
+                reject_family(guard, family)
+                reject_family(compile_guard, family)
+                break
+            permitted_members = []
+            for removed, pool in members:
+                if deletion_permission is not None and not bool(
+                    deletion_permission(removed).permitted
+                ):
+                    continue
+                permitted_members.append((removed, pool))
+            compiled_size = 0
+            for removed, pool in permitted_members:
+                compiled_size += int(active_population_face(removed, ()))
+                compiled_size += sum(
+                    1
+                    for atom_id in pool
+                    for cut in cuts_by_atom.get(atom_id, ())
+                    if active_population_face(
+                        removed, ((str(atom_id), int(cut)),)
+                    )
+                )
+            if not admit(family, size, compiled_size=compiled_size):
+                break
+        elif not admit(family, size):
             break
         if workers_requested > 1:
             # Permission stays coordinator-only (its evaluator memoizes, so
             # the replay below re-reads identical decisions); only the
             # permitted members' solves are warmed.
             warm_keys: list[tuple] = []
-            for removed, pool in members:
-                if deletion_permission is not None:
+            for removed, pool in permitted_members:
+                if compile_guard is None and deletion_permission is not None:
                     if not bool(deletion_permission(removed).permitted):
                         continue
                 warm_keys.append((removed, ()))
@@ -622,10 +706,16 @@ def iter_structural_families(
                 ),
             )
             if candidate_cost_warm is not None:
-                candidate_cost_warm([(k[0], k[1], None) for k in warm_keys])
+                candidate_cost_warm(
+                    [
+                        (k[0], k[1], None)
+                        for k in warm_keys
+                        if active_population_face(k[0], k[1])
+                    ]
+                )
         family_out = []
-        for removed, pool in members:
-            if deletion_permission is not None:
+        for removed, pool in permitted_members:
+            if compile_guard is None and deletion_permission is not None:
                 permission = deletion_permission(removed)
                 if not bool(permission.permitted):
                     continue
@@ -712,7 +802,16 @@ def iter_structural_families(
             if over_cap:
                 admit(family, len(batch))
                 break
-            if not admit(family, len(batch)):
+            batch_compile_size = sum(
+                1
+                for removed, _plan, selection in batch
+                if active_population_face(removed, selection)
+            )
+            if not admit(
+                family,
+                len(batch),
+                compiled_size=batch_compile_size,
+            ):
                 break
             frontiers_used = level + 1
             if workers_requested > 1:
@@ -729,7 +828,11 @@ def iter_structural_families(
                 )
                 if candidate_cost_warm is not None:
                     candidate_cost_warm(
-                        [(removed, selection, plan) for removed, plan, selection in batch]
+                        [
+                            (removed, selection, plan)
+                            for removed, plan, selection in batch
+                            if active_population_face(removed, selection)
+                        ]
                     )
             family_out = [
                 scored(removed, selection, plan, family)

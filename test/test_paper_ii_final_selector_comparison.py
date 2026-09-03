@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
@@ -285,6 +286,14 @@ def test_every_action_parses_with_the_live_runner_parser(
         assert parsed.record_statevector is True
         assert parsed.artifact_json == runs.REGIMES["hh_snake_nph1"].seed_path
         assert parsed.output_json == row["trajectory_json"]
+        assert parsed.code_revision == row["code_revision"]
+        assert parsed.support_patch_scoring_workers == final.CAMPAIGN_SCORING_WORKERS == 4
+        assert argv.count("--support-patch-scoring-workers") == 1
+        assert len(row["exchange_route_contract_sha256"]) == 64
+        assert row["exchange_route_contract"]["bundle_id"] == row["exchange_route_bundle"]
+        assert row["matched_cell_lock_sha256"] == lock.sha256
+        assert row["seed_sha256"] == SEED_SHA256
+        assert row["source_package_sha256"] is None
         assert row["run_id"].endswith(f"_cut{cell.apm_cut_label}")
         assert row["runner_module"] == runs.RUNNER_MODULE
 
@@ -347,4 +356,35 @@ def test_lock_drift_fails_closed(tmp_path: Path) -> None:
     pinned = dict(payload, code_revision="deadbeef")
     target.write_text(json.dumps(pinned), encoding="utf-8")
     with pytest.raises(final.MatchedCellLockError):
+        final.load_lock(target)
+
+
+@pytest.mark.parametrize(
+    "injected",
+    [
+        ["--artifact-json", "other.json"],
+        ["--t-final", "5"],
+        ["--num-times", "126"],
+        ["--times", "0,1"],
+        ["--t-initial", "1"],
+        ["--insertion-gate-mode", "residual_ratio"],
+        ["--debt-policy", "insertion_only"],
+        ["--no-exchange-deletions"],
+        ["--code-revision", "fake-sha"],
+        ["--integrator", "rk4"],
+        ["--drive-A", "9"],
+        ["--avqds-delta-theta-max", "1"],
+    ],
+)
+def test_locked_campaign_rejects_all_generic_extra_flag_overrides(
+    tmp_path: Path, payload: dict, injected: list[str]
+) -> None:
+    mutated = copy.deepcopy(payload)
+    mutated["registry_bindings"]["extra_flags"] = [
+        "--record-statevector",
+        *injected,
+    ]
+    target = tmp_path / "mutated.json"
+    target.write_text(json.dumps(mutated), encoding="utf-8")
+    with pytest.raises(final.MatchedCellLockError, match="permits only"):
         final.load_lock(target)

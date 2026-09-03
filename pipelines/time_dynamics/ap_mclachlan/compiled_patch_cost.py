@@ -63,6 +63,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from multiprocessing import TimeoutError as MultiprocessingTimeoutError
 import threading
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
@@ -118,6 +119,10 @@ _WEIGHT_KEYS: tuple[str, ...] = tuple(COMPILE_COORDINATE_WEIGHTS)
 
 class CompiledPatchCostError(ValueError):
     """Compiled cost is unavailable for a patch; the caller must not fall back."""
+
+
+class CompileTimeoutError(CompiledPatchCostError):
+    """A compiled-cost word exceeded the route bundle's sealed timeout."""
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +248,7 @@ def compile_resource_triple(
         "optimization_level": int(contract.optimization_level),
         "transpile_seed": int(contract.transpile_seed),
         "structural_angle": float(contract.structural_angle),
+        "compile_timeout_seconds": float(contract.compile_timeout_seconds),
         "logical_num_qubits": int(getattr(circuit, "num_qubits", 0) or 0),
         "compiled_num_qubits": (
             None
@@ -1027,6 +1033,12 @@ def _pool_initializer(
     nq: int,
     ref_state: Any,
 ) -> None:
+    try:
+        from threadpoolctl import threadpool_limits
+
+        native_thread_limit = threadpool_limits(limits=1)
+    except Exception:
+        native_thread_limit = None
     backend, _provenance = resolve_compile_backend(contract)
     _POOL_CONTEXT.clear()
     _POOL_CONTEXT.update(
@@ -1036,6 +1048,7 @@ def _pool_initializer(
         atoms=dict(atom_terms),
         nq=int(nq),
         ref_state=ref_state,
+        native_thread_limit=native_thread_limit,
     )
 
 
@@ -1043,6 +1056,8 @@ def _pool_word_for_job(job: tuple) -> tuple[Any, ...]:
     kind = job[0]
     base = _POOL_CONTEXT["base"]
     atoms = _POOL_CONTEXT["atoms"]
+    if kind == "word":
+        return tuple(job[1])
     if kind == "trial":
         _kind, atom_id, cut = job
         return base[: int(cut)] + (atoms[str(atom_id)],) + base[int(cut) :]
@@ -1092,47 +1107,144 @@ class CompileWarmPool:
         ref_state: Any,
         workers: int,
     ) -> None:
-        import concurrent.futures
+        import __main__
+        import multiprocessing
         import os
 
         self.workers = max(1, int(workers))
+        main_file = getattr(__main__, "__file__", None)
+        if multiprocessing.current_process().daemon:
+            raise CompiledPatchCostError(
+                "compiled-cost workers cannot start inside a daemon process."
+            )
+        if main_file is None or str(main_file).startswith("<"):
+            raise CompiledPatchCostError(
+                "compiled-cost workers require an importable file/module entrypoint; "
+                "stdin, python -c, and interactive sessions are unsupported."
+            )
         # Spawned workers inherit the parent's environment at spawn time, so
         # the pins must be present in the parent before the pool starts.
         # The parent's numpy is already loaded, so its numerics are
         # unaffected; the pinned values are recorded so later selections'
         # telemetry reflects the environment that was actually in force.
+        self.prior_env: dict[str, str | None] = {
+            name: os.environ.get(name) for name in BLAS_THREAD_ENV_VARS
+        }
         self.pinned_env: dict[str, str] = {}
         for name in BLAS_THREAD_ENV_VARS:
-            if os.environ.get(name) is None:
-                os.environ[name] = "1"
-                self.pinned_env[name] = "1"
-        self._executor = concurrent.futures.ProcessPoolExecutor(
-            max_workers=self.workers,
-            initializer=_pool_initializer,
-            initargs=(contract, tuple(base_terms), dict(atom_terms), int(nq), ref_state),
-        )
+            os.environ[name] = "1"
+            self.pinned_env[name] = "1"
+        self.timeout_seconds = float(contract.compile_timeout_seconds)
+        self._terminated = False
+        self._pool = None
+        try:
+            self._pool = multiprocessing.get_context("spawn").Pool(
+                processes=self.workers,
+                initializer=_pool_initializer,
+                initargs=(
+                    contract,
+                    tuple(base_terms),
+                    dict(atom_terms),
+                    int(nq),
+                    ref_state,
+                ),
+            )
+        except BaseException:
+            self._terminated = True
+            self._restore_parent_env()
+            raise
         self.jobs_run = 0
+
+    def _restore_parent_env(self) -> None:
+        import os
+
+        for name, value in self.prior_env.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
     def compile_jobs(
         self, jobs: Sequence[tuple], expected_keys: Sequence[str]
     ) -> list[tuple[str, CompiledResourceTriple]]:
         """Run jobs and return ``(key, triple)`` in submission order."""
 
+        if self._terminated:
+            raise CompiledPatchCostError("compile pool is no longer available.")
+        if len(jobs) != len(expected_keys):
+            raise CompiledPatchCostError(
+                "compile job count does not match the expected word-key count."
+            )
         out: list[tuple[str, CompiledResourceTriple]] = []
-        for expected, (key, triple) in zip(
-            expected_keys, self._executor.map(_pool_compile_job, list(jobs))
-        ):
-            if str(key) != str(expected):
-                raise CompiledPatchCostError(
-                    "worker word identity disagrees with the coordinator's; "
-                    "the pool context is stale."
-                )
-            out.append((str(key), CompiledResourceTriple(*triple)))
+        try:
+            pending = [
+                self._pool.apply_async(_pool_compile_job, (job,)) for job in jobs
+            ]
+            for expected, result in zip(expected_keys, pending):
+                try:
+                    key, triple = result.get(timeout=self.timeout_seconds)
+                except MultiprocessingTimeoutError as exc:
+                    self.terminate()
+                    raise CompileTimeoutError(
+                        "compiled-cost word exceeded the sealed timeout of "
+                        f"{self.timeout_seconds:g} seconds."
+                    ) from exc
+                if str(key) != str(expected):
+                    raise CompiledPatchCostError(
+                        "worker word identity disagrees with the coordinator's; "
+                        "the pool context is stale."
+                    )
+                out.append((str(key), CompiledResourceTriple(*triple)))
+        except BaseException:
+            # A failed result may have later jobs still running.  Terminate
+            # the whole pool so neither a compiler exception nor a timeout can
+            # strand a child process during later cleanup; the owner may
+            # recreate a fresh pool for the next canonical word.
+            self.terminate()
+            raise
         self.jobs_run += len(out)
         return out
 
+    def compile_word(
+        self,
+        terms: Sequence[Any],
+        *,
+        nq: int,
+        ref_state: Any | None,
+        contract: CompileContract,
+        backend_obj: Any,
+    ) -> tuple[CompiledResourceTriple, dict[str, Any]]:
+        """Compile one arbitrary word behind the killable worker boundary."""
+
+        del backend_obj
+        key = word_key(terms, nq=nq, ref_state=ref_state, contract=contract)
+        rows = self.compile_jobs((("word", tuple(terms)),), (key,))
+        return rows[0][1], {
+            "schema": COMPILE_RESOURCE_PROVENANCE_SCHEMA_V1,
+            "word_length": int(len(tuple(terms))),
+            "worker_boundary": "spawn_pool",
+            "compile_timeout_seconds": float(self.timeout_seconds),
+        }
+
     def close(self) -> None:
-        self._executor.shutdown(wait=True, cancel_futures=False)
+        if self._terminated:
+            return
+        self._terminated = True
+        try:
+            self._pool.close()
+            self._pool.join()
+        finally:
+            self._restore_parent_env()
+
+    def terminate(self) -> None:
+        if self._terminated:
+            return
+        self._terminated = True
+        try:
+            self._pool.terminate()
+            self._pool.join()
+        finally:
+            self._restore_parent_env()
 
 
 def warm_word_cache(
@@ -1165,6 +1277,7 @@ def warm_word_cache(
 
 __all__ = [
     "BLAS_THREAD_ENV_VARS",
+    "CompileTimeoutError",
     "CompileWarmPool",
     "edit_word",
     "warm_word_cache",

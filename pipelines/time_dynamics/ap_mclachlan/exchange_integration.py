@@ -94,12 +94,16 @@ from pipelines.time_dynamics.ap_mclachlan.population_scoring import (
     score_and_rank,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import FixedMcLachlanStep
+from pipelines.time_dynamics.ap_mclachlan.geometry import residual_denominator
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import GeometryEvaluation
 from pipelines.time_dynamics.ap_mclachlan.hamiltonian import TimeDependentHamiltonian
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     tokens_commute_from_terms,
 )
-from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.inverse import (
+    McLachlanInversePolicy,
+    solve_theta_dot,
+)
 from pipelines.time_dynamics.ap_mclachlan.prune_cost import (
     estimate_prune_atom_set_cost,
 )
@@ -235,27 +239,68 @@ class CompiledCostRuntime:
         self.blocks = tuple(blocks)
         self.contract = contract
         self.backend, self.backend_provenance = _resolve_compile_backend_cached(contract)
-        self.cache = cpc.CompiledPatchCostCache()
         self.nq = int(state.executor.nq)
         self.ref_state = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
         self.base_terms = tuple(cpc.base_word(state))
+        self.base_word_sha256 = cpc.word_key(
+            self.base_terms,
+            nq=self.nq,
+            ref_state=self.ref_state,
+            contract=contract,
+        )
         self.workers = max(1, int(workers))
         self.pool = None
+        self.pool_restarts = 0
+        self.pool_failures: list[str] = []
+        self.pinned_env: dict[str, str] = {}
+        self.prior_env: dict[str, str | None] = {}
         self.warm_primed = 0
         self.warm_seconds = 0.0
         self.seconds = 0.0
+        self.cache = cpc.CompiledPatchCostCache(
+            word_compiler=self._compile_word_isolated
+        )
         start = time.perf_counter()
-        with phase("patch.exchange.compile"):
-            self.base_triple = self.cache.compile_word(
-                self.base_terms,
-                nq=self.nq,
-                ref_state=self.ref_state,
-                contract=contract,
-                backend_obj=self.backend,
-            )
+        try:
+            with phase("patch.exchange.compile"):
+                self.base_triple = self.cache.compile_word(
+                    self.base_terms,
+                    nq=self.nq,
+                    ref_state=self.ref_state,
+                    contract=contract,
+                    backend_obj=self.backend,
+                )
+        except BaseException:
+            self.close()
+            raise
         self.seconds += time.perf_counter() - start
         self._placements: dict[tuple[str, int], Any] = {}
         self._class_members: dict[str, dict[int, tuple[int, ...]]] = {}
+
+    def _ensure_pool(self) -> Any:
+        if self.pool is None:
+            self.pool = self._cpc.CompileWarmPool(
+                contract=self.contract,
+                base_terms=self.base_terms,
+                atom_terms={key: atom.term for key, atom in self.atoms_by_id.items()},
+                nq=self.nq,
+                ref_state=self.ref_state,
+                workers=self.workers,
+            )
+            self.pinned_env = dict(self.pool.pinned_env)
+            self.prior_env = dict(self.pool.prior_env)
+        return self.pool
+
+    def _compile_word_isolated(self, terms: Sequence[Any], **kwargs: Any) -> Any:
+        pool = self._ensure_pool()
+        try:
+            return pool.compile_word(terms, **kwargs)
+        except self._cpc.CompiledPatchCostError as exc:
+            self.pool_failures.append(f"{type(exc).__name__}:{exc}")
+            if getattr(pool, "_terminated", False):
+                self.pool = None
+                self.pool_restarts += 1
+            raise
 
     def placement(self, atom_id: str, retained_cut: int) -> Any:
         key = (str(atom_id), int(retained_cut))
@@ -318,6 +363,26 @@ class CompiledCostRuntime:
             compile_calls=int(self.cache.compile_calls) - calls_before,
         )
 
+    def validates_materialized_word(
+        self,
+        candidate: StructuralCandidate,
+        insertions: Sequence[tuple[int, Any, str]],
+    ) -> bool:
+        if candidate.patch_word_sha256 is None:
+            return False
+        word = self._cpc.structural_word(
+            self.state,
+            candidate.removed_runtime_indices,
+            insertions,
+        )
+        observed = self._cpc.word_key(
+            word,
+            nq=self.nq,
+            ref_state=self.ref_state,
+            contract=self.contract,
+        )
+        return bool(str(observed) == str(candidate.patch_word_sha256))
+
     def _members_for(self, atom_id: str) -> dict[int, tuple[int, ...]]:
         members_by_cut = self._class_members.get(str(atom_id))
         if members_by_cut is None:
@@ -339,15 +404,7 @@ class CompiledCostRuntime:
         if self.workers <= 1:
             return 0
         start = time.perf_counter()
-        if self.pool is None:
-            self.pool = self._cpc.CompileWarmPool(
-                contract=self.contract,
-                base_terms=self.base_terms,
-                atom_terms={key: atom.term for key, atom in self.atoms_by_id.items()},
-                nq=self.nq,
-                ref_state=self.ref_state,
-                workers=self.workers,
-            )
+        pool = self._ensure_pool()
         needed = sorted(
             {(str(a), int(c)) for _removed, selection, _plan in items for a, c in selection}
             - set(self._placements)
@@ -365,7 +422,15 @@ class CompiledCostRuntime:
                         ("trial", atom_id, int(position)),
                     )
                 )
-        primed = self._cpc.warm_word_cache(self.cache, self.pool, trial_jobs)
+        try:
+            primed = self._cpc.warm_word_cache(self.cache, pool, trial_jobs)
+        except self._cpc.CompiledPatchCostError as exc:
+            self.pool_failures.append(f"warm_trial:{type(exc).__name__}:{exc}")
+            if getattr(pool, "_terminated", False):
+                self.pool = None
+                self.pool_restarts += 1
+            self.warm_seconds += time.perf_counter() - start
+            return 0
         for atom_id, cut in needed:
             self.placement(atom_id, cut)
         patch_jobs: list[tuple[str, tuple]] = []
@@ -389,7 +454,13 @@ class CompiledCostRuntime:
                     ("patch", tuple(int(i) for i in removed), tuple(entries)),
                 )
             )
-        primed += self._cpc.warm_word_cache(self.cache, self.pool, patch_jobs)
+        try:
+            primed += self._cpc.warm_word_cache(self.cache, pool, patch_jobs)
+        except self._cpc.CompiledPatchCostError as exc:
+            self.pool_failures.append(f"warm_patch:{type(exc).__name__}:{exc}")
+            if getattr(pool, "_terminated", False):
+                self.pool = None
+                self.pool_restarts += 1
         self.warm_primed += int(primed)
         self.warm_seconds += time.perf_counter() - start
         return int(primed)
@@ -404,19 +475,26 @@ class CompiledCostRuntime:
             "placement_rule": PLACEMENT_RULE_ID,
             "compile_workers": int(self.workers),
             "compile_execution_mode": (
-                "serial" if self.workers <= 1 else "process_pool_warm_then_serial_replay"
+                "spawn_pool_serial"
+                if self.workers <= 1
+                else "spawn_pool_warm_then_serial_replay"
             ),
             "warm_primed_words": int(self.warm_primed),
             "warm_seconds": float(self.warm_seconds),
             "worker_blas_env_pinned": (
-                None if self.pool is None else dict(self.pool.pinned_env)
+                dict(self.pinned_env)
             ),
+            "parent_blas_env_before_pool": dict(self.prior_env),
+            "compile_timeout_seconds": float(self.contract.compile_timeout_seconds),
+            "pool_restarts": int(self.pool_restarts),
+            "pool_failures": list(self.pool_failures),
             "backend": self.backend_provenance,
             "base_resources": {
                 "n2q": int(self.base_triple.n2q),
                 "d2q": int(self.base_triple.d2q),
                 "dc": int(self.base_triple.dc),
             },
+            "base_word_sha256": str(self.base_word_sha256),
             "compile_calls": int(self.cache.compile_calls),
             "cache_hits": int(self.cache.cache_hits),
             "placements_chosen": int(len(self._placements)),
@@ -486,6 +564,7 @@ def build_population_ranker(
     weights: StructuralScoreWeights,
     score_floor: float,
     cost_settings: AppendCostSettings,
+    population_context: Mapping[str, Any] | None = None,
 ):
     """Seal one certification level and return its certification order.
 
@@ -506,14 +585,24 @@ def build_population_ranker(
 
     def ranker(level_candidates: Sequence[StructuralCandidate]) -> RankedLevel:
         non_stay = [c for c in level_candidates if c.kind != "stay"]
-        by_key = {c.order_key: c for c in non_stay}
+        competing = [
+            c
+            for c in non_stay
+            if (
+                bool(c.inserted_selection)
+                if regime is RankRegime.LARGE_MISS
+                else bool(c.removed_runtime_indices) and not bool(c.inserted_selection)
+            )
+        ]
+        by_key = {c.order_key: c for c in competing}
         if bundle.needs_compiled_cost:
             evaluated = [
                 c
-                for c in non_stay
+                for c in competing
                 if c.cost_marginal is not None
-                and merit_of(c) is not None
-                and np.isfinite(float(merit_of(c)))
+                and np.isfinite(float(c.delta))
+                and c.m_gamma is not None
+                and np.isfinite(float(c.m_gamma))
             ]
             if not evaluated:
                 return RankedLevel(
@@ -523,6 +612,18 @@ def build_population_ranker(
                         "kernel": bundle.kernel_id,
                         "regime": regime.value,
                         "population_size": 0,
+                        "competing_candidate_count": int(len(competing)),
+                        "compiler_rejections": [
+                            {
+                                "patch": [
+                                    list(c.order_key[0]),
+                                    [list(x) for x in c.order_key[1]],
+                                ],
+                                "reason": str(c.cost_error),
+                            }
+                            for c in competing
+                            if c.cost_error is not None
+                        ],
                     },
                 )
             sealed = PopulationCostNormalization().seal(
@@ -550,6 +651,53 @@ def build_population_ranker(
             for ex in result.excluded:
                 excluded_counts[str(ex.reason)] = excluded_counts.get(str(ex.reason), 0) + 1
             population_json = sealed.to_json_dict()
+            cost_receipt = {
+                "schema": "paper_ii_cost_population_receipt_v1",
+                "context": dict(population_context or {}),
+                "normalization": population_json,
+            }
+            cost_population_sha256 = hashlib.sha256(
+                json.dumps(
+                    cost_receipt, sort_keys=True, separators=(",", ":"), allow_nan=False
+                ).encode("utf-8")
+            ).hexdigest()
+            ranked_rows = [
+                {
+                    "patch": [list(r.patch_id[0]), [list(x) for x in r.patch_id[1]]],
+                    "merit": float(r.merit),
+                    "K": float(r.K),
+                    "score": float(r.score),
+                    "rank_key": list(r.rank_key[:-1]),
+                }
+                for r in result.ranked
+            ]
+            excluded_rows = [
+                {
+                    "patch": [list(ex.patch_id[0]), [list(x) for x in ex.patch_id[1]]],
+                    "merit": float(ex.merit),
+                    "K": float(ex.K),
+                    "score": None if ex.score is None else float(ex.score),
+                    "reason": str(ex.reason),
+                }
+                for ex in result.excluded
+            ]
+            decision_payload = {
+                "cost_population_sha256": cost_population_sha256,
+                "objective": bundle.objective_id,
+                "kernel": bundle.kernel_id,
+                "regime": regime.value,
+                "tau": float(result.tau),
+                "ranked": ranked_rows,
+                "excluded": excluded_rows,
+            }
+            decision_sha256 = hashlib.sha256(
+                json.dumps(
+                    decision_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ).encode("utf-8")
+            ).hexdigest()
             telemetry = {
                 "kernel": bundle.kernel_id,
                 "objective": bundle.objective_id,
@@ -557,35 +705,45 @@ def build_population_ranker(
                 "regime": regime.value,
                 "tau": float(result.tau),
                 "population_size": int(sealed.size),
+                "normalization_population_sha256": str(
+                    population_json.get("population_sha256")
+                ),
                 "population_sha256": str(population_json.get("population_sha256")),
-                "medians": dict(population_json.get("medians", {})),
-                "mads": dict(population_json.get("mads", {})),
-                "scales": dict(population_json.get("scales", {})),
+                "cost_population_sha256": cost_population_sha256,
+                "decision_receipt_sha256": decision_sha256,
+                "population_receipt": cost_receipt,
+                "medians": dict(sealed.medians),
+                "mads": dict(sealed.mads),
+                "mad_scales": dict(sealed.scales),
+                "scales": dict(sealed.scales),
                 "ranked_count": int(len(result.ranked)),
                 "excluded_counts": excluded_counts,
-                "top": _bounded_rows(
-                    [
-                        {
-                            "patch": [list(r.patch_id[0]), [list(x) for x in r.patch_id[1]]],
-                            "merit": float(r.merit),
-                            "K": float(r.K),
-                            "score": float(r.score),
-                        }
-                        for r in result.ranked
-                    ]
-                ),
+                "ranked": ranked_rows,
+                "excluded": excluded_rows,
+                "compiler_rejections": [
+                    {
+                        "patch": [
+                            list(c.order_key[0]),
+                            [list(x) for x in c.order_key[1]],
+                        ],
+                        "reason": str(c.cost_error),
+                    }
+                    for c in competing
+                    if c.cost_error is not None
+                ],
+                "top": ranked_rows[:24],
             }
             return RankedLevel(ordered=ordered, rank_info=rank_info, telemetry=telemetry)
 
         # Legacy proxy, normalized over the actual competing population.
         insert_pop = [
             (c.order_key, c.proxy_insert_components)
-            for c in non_stay
+            for c in competing
             if c.proxy_insert_components is not None
         ]
         delete_pop = [
             (c.order_key, c.proxy_delete_components)
-            for c in non_stay
+            for c in competing
             if c.proxy_delete_components is not None
         ]
         c_ins = {
@@ -605,7 +763,7 @@ def build_population_ranker(
             )
         }
         rows = []
-        for c in non_stay:
+        for c in competing:
             cost_i = c_ins.get(c.order_key, 1.0)
             cost_d = c_del.get(c.order_key, 1.0)
             # The historical utilities were computed with C == 1, so the
@@ -634,7 +792,7 @@ def build_population_ranker(
             "objective": bundle.objective_id,
             "cost_model": bundle.cost_model_id,
             "regime": regime.value,
-            "population_size": int(len(non_stay)),
+            "population_size": int(len(competing)),
             "insert_population_size": int(len(insert_pop)),
             "delete_population_size": int(len(delete_pop)),
             "ranked_count": int(len(rows)),
@@ -863,6 +1021,7 @@ def build_selector_inputs(
     deletable_atoms: tuple[ActiveSupportAtom, ...],
     insertions_enabled: bool = True,
     debt_ranking: bool = False,
+    accuracy_debt: bool = False,
     deletion_permission_evaluator: DeletionPermissionEvaluator | None = None,
     compiled_cost_runtime: CompiledCostRuntime | None = None,
 ) -> dict[str, Any]:
@@ -1075,6 +1234,7 @@ def build_selector_inputs(
             gamma_rcond=gamma_rcond,
             candidate_cost_inputs=cost_inputs,
             max_compiled_patches_per_checkpoint=route.max_compiled_patches_per_checkpoint,
+            population_accuracy_debt=bool(accuracy_debt),
         )
     return {
         "atoms_by_id": atoms_by_id,
@@ -1185,6 +1345,7 @@ def select_generalized_exchange_patch(
             deletable_atoms=allowed_deletions,
             insertions_enabled=bool(insertions_enabled),
             debt_ranking=bool(domain.ranking == EXCHANGE_RANKING_SIGNED_DRIFT),
+            accuracy_debt=bool(domain.accuracy_debt),
             deletion_permission_evaluator=permission_evaluator,
             compiled_cost_runtime=shared_cost_runtime["runtime"],
         )
@@ -1192,7 +1353,31 @@ def select_generalized_exchange_patch(
         inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
         population_ranker = None
         realized_l2_gate = None
+        realized_l2_gate_reason = "realized_l2_not_improved"
+        candidate_word_validator = None
         if bundle.uses_population_scoring:
+            runtime = inputs.get("compiled_cost_runtime")
+            population_context = {
+                "schema": "paper_ii_cost_population_context_v1",
+                "checkpoint_index": int(time_index),
+                "checkpoint_time": float(time),
+                "regime": (
+                    "large_miss" if bool(domain.accuracy_debt) else "maintenance"
+                ),
+                "cost_model": bundle.cost_model_id,
+                "base_word_sha256": (
+                    None if runtime is None else str(runtime.base_word_sha256)
+                ),
+                "base_support_labels_sha256": hashlib.sha256(
+                    json.dumps(
+                        list(state.runtime_coordinate_labels),
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest(),
+                "compiler": (
+                    None if bundle.compiler is None else asdict(bundle.compiler)
+                ),
+            }
             population_ranker = build_population_ranker(
                 bundle=bundle,
                 route=route,
@@ -1200,6 +1385,7 @@ def select_generalized_exchange_patch(
                 weights=inputs["weights"],
                 score_floor=float(exchange_config.search.structural_score_floor),
                 cost_settings=inputs["cost_settings"],
+                population_context=population_context,
             )
             if bool(domain.accuracy_debt):
                 checkpoint_l2 = float(domain.checkpoint_l2)
@@ -1213,37 +1399,78 @@ def select_generalized_exchange_patch(
                         )
                         < checkpoint_l2
                     )
+            else:
+                base_solve = solve_theta_dot(
+                    np.asarray(base_evaluation.geometry.K, dtype=float),
+                    np.asarray(base_evaluation.geometry.f, dtype=float),
+                    policy=inverse_policy,
+                )
+                base_q = float(base_solve.captured_drift)
+                denominator = residual_denominator(
+                    float(base_evaluation.geometry.norm_b_sq),
+                    float(inputs["weights"].epsilon_norm),
+                )
+                tau_del = float(route.maintenance_loss_tolerance)
+                realized_l2_gate_reason = "realized_q_loss_budget_exceeded"
 
-        selection = select_exchange_patch(
-            state=state,
-            hamiltonian=hamiltonian,
-            theta_runtime=theta_runtime,
-            time=float(time),
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            inverse_policy=inverse_policy,
-            gates=gates,
-            atoms_by_id=inputs["atoms_by_id"],
-            occurrence_label=inputs["occurrence_label"],
-            structural_kwargs=inputs["structural_kwargs"],
-            score_floor=float(exchange_config.search.structural_score_floor),
-            escalate=escalate,
-            refit=refit,
-            solve_repair_config=solve_repair_config,
-            max_certification_attempts_per_level=(
-                exchange_config.search.certification_attempts_per_level
-            ),
-            max_certification_attempts_per_deletion_branch=(
-                exchange_config.search.certification_attempts_per_deletion_branch
-            ),
-            population_ranker=population_ranker,
-            realized_l2_gate=realized_l2_gate,
-        )
+                def realized_l2_gate(result: Any) -> bool:
+                    if result.evaluation is None:
+                        return False
+                    candidate_solve = solve_theta_dot(
+                        np.asarray(result.evaluation.geometry.K, dtype=float),
+                        np.asarray(result.evaluation.geometry.f, dtype=float),
+                        policy=inverse_policy,
+                    )
+                    merit = float(
+                        (float(candidate_solve.captured_drift) - base_q) / denominator
+                    )
+                    return bool(merit >= -tau_del)
+
+            if runtime is not None:
+                candidate_word_validator = runtime.validates_materialized_word
+
+        try:
+            selection = select_exchange_patch(
+                state=state,
+                hamiltonian=hamiltonian,
+                theta_runtime=theta_runtime,
+                time=float(time),
+                base_evaluation=base_evaluation,
+                base_step=base_step,
+                inverse_policy=inverse_policy,
+                gates=gates,
+                atoms_by_id=inputs["atoms_by_id"],
+                occurrence_label=inputs["occurrence_label"],
+                structural_kwargs=inputs["structural_kwargs"],
+                score_floor=float(exchange_config.search.structural_score_floor),
+                escalate=escalate,
+                refit=refit,
+                solve_repair_config=solve_repair_config,
+                max_certification_attempts_per_level=(
+                    exchange_config.search.certification_attempts_per_level
+                ),
+                max_certification_attempts_per_deletion_branch=(
+                    exchange_config.search.certification_attempts_per_deletion_branch
+                ),
+                population_ranker=population_ranker,
+                realized_l2_gate=realized_l2_gate,
+                realized_l2_gate_reason=realized_l2_gate_reason,
+                candidate_word_validator=candidate_word_validator,
+            )
+        except BaseException:
+            runtime = shared_cost_runtime.get("runtime")
+            if runtime is not None:
+                runtime.close()
+                shared_cost_runtime["runtime"] = None
+            raise
         return selection, inputs
 
     selection, inputs = select_once(
         deletable_atoms if domain.deletion_face_open else (),
-        insertions_enabled=domain.insertion_face_open,
+        insertions_enabled=bool(
+            domain.insertion_face_open
+            and (not bundle.uses_population_scoring or domain.accuracy_debt)
+        ),
     )
     deletion_fallback_used = False
 
@@ -1272,6 +1499,7 @@ def select_generalized_exchange_patch(
         deletion_fallback_used = True
         first_attempts = selection.attempts
         first_structural_scored_count = int(selection.structural_scored_count)
+        first_levels = tuple(selection.level_telemetry)
         selection, inputs = select_once((), insertions_enabled=True)
         selection = ExchangeSelection(
             committed=selection.committed,
@@ -1282,6 +1510,7 @@ def select_generalized_exchange_patch(
             structural_scored_count=int(
                 first_structural_scored_count + selection.structural_scored_count
             ),
+            level_telemetry=first_levels + tuple(selection.level_telemetry),
         )
         candidate_l2 = realized_l2(selection)
         disposition = realized_disposition(selection, candidate_l2)
@@ -1294,6 +1523,7 @@ def select_generalized_exchange_patch(
             telemetry=selection.telemetry,
             stop_reason="refused_non_improving_patch_under_l2_debt",
             structural_scored_count=int(selection.structural_scored_count),
+            level_telemetry=tuple(selection.level_telemetry),
         )
 
     # Record realized deletion losses so hook #2's prior sees this attempt at
@@ -1400,6 +1630,25 @@ def select_generalized_exchange_patch(
             "q": float(selection.committed.q),
             "insertion_gain": float(selection.committed.insertion_gain),
             "deletion_loss": float(selection.committed.deletion_loss),
+            "delta_q_normalized": float(selection.committed.delta),
+            "delta_gamma_normalized": (
+                None
+                if selection.committed.m_gamma is None
+                else float(selection.committed.m_gamma)
+            ),
+            "compiled_cost_marginal": (
+                None
+                if selection.committed.cost_marginal is None
+                else list(selection.committed.cost_marginal)
+            ),
+            "compiled_placement_cuts": (
+                None
+                if selection.committed.placement_cuts is None
+                else [
+                    [str(a), int(c)] for a, c in selection.committed.placement_cuts
+                ]
+            ),
+            "compiled_patch_word_sha256": selection.committed.patch_word_sha256,
         }
         if selection.certification is not None:
             payload["certification"] = selection.certification.to_json_dict()

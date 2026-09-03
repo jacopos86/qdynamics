@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from importlib import metadata as importlib_metadata
+import multiprocessing
+import os
+import time
 from types import SimpleNamespace
 
 import numpy as np
@@ -588,3 +591,78 @@ def test_process_pool_warm_primes_the_cache_with_identical_triples() -> None:
     _key, triple, hit = primed_cache.compile_word_record(trial, nq=nq, ref_state=ref, contract=contract, backend_obj=backend)
     assert hit and triple == expected_trial
     assert primed_cache.cache_hits == 1
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+def test_compile_pool_timeout_is_bounded_and_kills_children(workers) -> None:
+    state = _state((X0, ZZ, YY), np.array([0.3, -0.2, 0.5]))
+    base = tuple(cpc.base_word(state))
+    contract = CompileContract(compile_timeout_seconds=1.0e-6)
+    before = {child.pid for child in multiprocessing.active_children()}
+    started = time.monotonic()
+    pool = cpc.CompileWarmPool(
+        contract=contract,
+        base_terms=base,
+        atom_terms={},
+        nq=cpc.state_num_qubits(state),
+        ref_state=np.asarray(state.psi_ref, dtype=complex),
+        workers=workers,
+    )
+    try:
+        with pytest.raises(cpc.CompileTimeoutError, match="sealed timeout"):
+            pool.compile_word(
+                base,
+                nq=cpc.state_num_qubits(state),
+                ref_state=np.asarray(state.psi_ref, dtype=complex),
+                contract=contract,
+                backend_obj=None,
+            )
+    finally:
+        pool.close()
+    assert time.monotonic() - started < 5.0
+    assert {child.pid for child in multiprocessing.active_children()} <= before
+
+
+def test_compile_pool_forces_and_restores_blas_environment(monkeypatch) -> None:
+    state = _state((X0, ZZ, YY), np.array([0.3, -0.2, 0.5]))
+    base = tuple(cpc.base_word(state))
+    prior = {name: str(index + 2) for index, name in enumerate(cpc.BLAS_THREAD_ENV_VARS)}
+    for name, value in prior.items():
+        monkeypatch.setenv(name, value)
+    pool = cpc.CompileWarmPool(
+        contract=CompileContract(),
+        base_terms=base,
+        atom_terms={},
+        nq=cpc.state_num_qubits(state),
+        ref_state=np.asarray(state.psi_ref, dtype=complex),
+        workers=1,
+    )
+    assert pool.prior_env == prior
+    assert pool.pinned_env == {name: "1" for name in cpc.BLAS_THREAD_ENV_VARS}
+    assert {name: os.environ[name] for name in cpc.BLAS_THREAD_ENV_VARS} == pool.pinned_env
+    pool.close()
+    assert {name: os.environ[name] for name in cpc.BLAS_THREAD_ENV_VARS} == prior
+
+
+def test_compile_pool_fails_fast_from_python_c_entrypoint() -> None:
+    import subprocess
+    import sys
+
+    code = """
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import CompileWarmPool, CompiledPatchCostError
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import CompileContract
+try:
+    CompileWarmPool(contract=CompileContract(), base_terms=(), atom_terms={}, nq=1, ref_state=[1, 0], workers=1)
+except CompiledPatchCostError as exc:
+    print(str(exc))
+else:
+    raise SystemExit(9)
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=5.0,
+    )
+    assert "require an importable file/module entrypoint" in completed.stdout

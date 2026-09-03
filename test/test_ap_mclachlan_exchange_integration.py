@@ -12,7 +12,12 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     _PruneControllerRuntimeState,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+    build_population_ranker,
     select_generalized_exchange_patch,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    StructuralCandidate,
+    StructuralScoreWeights,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import solve_fixed_mclachlan_step
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
@@ -543,6 +548,70 @@ def test_q_and_gamma_compiled_bundles_share_population_and_cost_map() -> None:
     )
 
 
+def test_q_and_gamma_share_the_batch_two_frontier_and_cost_receipts() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED,
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+        build_selector_inputs,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+        enumerate_structural_candidates,
+    )
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    results = []
+    for bundle in (
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED,
+    ):
+        config = _config(
+            exchange_route_bundle=bundle,
+            max_insertion_batch_size=2,
+            interaction_frontier_widths=(2,),
+            max_joint_patch_evaluations=50000,
+        )
+        runtime_state = _PruneControllerRuntimeState()
+        inputs = build_selector_inputs(
+            state=state,
+            evaluation=evaluation,
+            support_config=config,
+            runtime_state=runtime_state,
+            theta_runtime=state.theta_runtime,
+            time_index=3,
+            deletable_atoms=_active_prune_atoms(
+                state,
+                theta_runtime=state.theta_runtime,
+                support_config=config,
+                runtime_state=runtime_state,
+                time_index=3,
+            ),
+            insertions_enabled=True,
+            debt_ranking=True,
+            accuracy_debt=True,
+        )
+        inputs["structural_kwargs"]["inverse_policy"] = POLICY
+        try:
+            results.append(enumerate_structural_candidates(**inputs["structural_kwargs"]))
+        finally:
+            inputs["compiled_cost_runtime"].close()
+    q_result, g_result = results
+    assert q_result.frontiers_used == g_result.frontiers_used == 1
+    assert q_result.eligible_universe == g_result.eligible_universe
+    q_map = {c.order_key: c.cost_marginal for c in q_result.candidates}
+    g_map = {c.order_key: c.cost_marginal for c in g_result.candidates}
+    assert q_map == g_map
+    assert any(candidate.plan is not None for candidate in q_result.candidates)
+
+
 def test_compiled_bundle_is_bitwise_identical_across_scoring_workers() -> None:
     import json as json_module
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
@@ -607,8 +676,8 @@ def test_compiled_bundle_pool_warm_records_its_mode_and_primes_words() -> None:
         EXCHANGE_ROUTE_BUNDLE_Q_COMPILED, support_patch_scoring_workers=2
     )
     s, p = serial["selector_route"]["compile"], parallel["selector_route"]["compile"]
-    assert s["compile_execution_mode"] == "serial" and s["warm_primed_words"] == 0
-    assert p["compile_execution_mode"] == "process_pool_warm_then_serial_replay"
+    assert s["compile_execution_mode"] == "spawn_pool_serial" and s["warm_primed_words"] == 0
+    assert p["compile_execution_mode"] == "spawn_pool_warm_then_serial_replay"
     assert p["compile_workers"] == 2
     assert p["warm_primed_words"] > 0
     # Every word the serial path compiled on demand was compiled by the pool
@@ -616,3 +685,128 @@ def test_compiled_bundle_pool_warm_records_its_mode_and_primes_words() -> None:
     assert p["compile_calls"] == s["compile_calls"]
     assert serial["selector_route"]["levels"][0]["top"] == parallel["selector_route"]["levels"][0]["top"]
     assert serial["attempts"] == parallel["attempts"]
+
+
+def _population_candidate(
+    *,
+    atom: str | None = None,
+    removed: tuple[int, ...] = (),
+    delta: float,
+    gamma: float,
+    marginal: tuple[int, int, int] | None,
+    cost_error: str | None = None,
+) -> StructuralCandidate:
+    selection = () if atom is None else ((str(atom), 0),)
+    return StructuralCandidate(
+        removed_runtime_indices=removed,
+        inserted_selection=selection,
+        plan=None,
+        family="test",
+        q=float(delta),
+        insertion_gain=max(0.0, float(delta)),
+        deletion_loss=max(0.0, -float(delta)),
+        delta=float(delta),
+        insertion_utility=0.0,
+        deletion_utility=0.0,
+        score=float(delta),
+        m_gamma=float(gamma),
+        cost_marginal=marginal,
+        cost_error=cost_error,
+    )
+
+
+def test_population_is_closed_by_l2_regime_before_cost_normalization() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.append_cost import AppendCostSettings
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        APGeneralizedExchangeConfig,
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    route = APGeneralizedExchangeConfig.from_route_config(
+        _config(exchange_route_bundle=EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    ).route
+    delete = _population_candidate(
+        removed=(0,), delta=100.0, gamma=100.0, marginal=(-10, -10, -10)
+    )
+    insert = _population_candidate(
+        atom="a", delta=1.0, gamma=1.0, marginal=(1, 1, 1)
+    )
+    exchange = _population_candidate(
+        atom="b", removed=(0,), delta=2.0, gamma=2.0, marginal=(2, 2, 2)
+    )
+    common = dict(
+        bundle=route.bundle,
+        route=route,
+        weights=StructuralScoreWeights(),
+        score_floor=0.0,
+        cost_settings=AppendCostSettings(),
+        population_context={"checkpoint": 3},
+    )
+    miss = build_population_ranker(accuracy_debt=True, **common)((delete, insert, exchange))
+    assert miss.telemetry["population_size"] == 2
+    assert {candidate.kind for candidate in miss.ordered} == {"insert", "exchange"}
+    assert delete.order_key not in miss.rank_info
+
+    maintenance = build_population_ranker(accuracy_debt=False, **common)(
+        (delete, insert, exchange)
+    )
+    assert maintenance.telemetry["population_size"] == 1
+    assert {candidate.kind for candidate in maintenance.ordered} <= {"delete"}
+    assert set(maintenance.rank_info) <= {delete.order_key}
+
+
+def test_full_population_receipt_exceeds_old_top24_and_recomputes_hash() -> None:
+    import hashlib
+    import json
+
+    from pipelines.time_dynamics.ap_mclachlan.append_cost import AppendCostSettings
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        APGeneralizedExchangeConfig,
+        EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    )
+
+    route = APGeneralizedExchangeConfig.from_route_config(
+        _config(exchange_route_bundle=EXCHANGE_ROUTE_BUNDLE_Q_COMPILED)
+    ).route
+    candidates = tuple(
+        _population_candidate(
+            atom=f"a{index}",
+            delta=float(index + 1),
+            gamma=float(index + 2),
+            marginal=(index, 2 * index, 3 * index),
+        )
+        for index in range(30)
+    )
+    failed = _population_candidate(
+        atom="failed",
+        delta=999.0,
+        gamma=999.0,
+        marginal=None,
+        cost_error="CompileTimeoutError:timed out",
+    )
+    level = build_population_ranker(
+        bundle=route.bundle,
+        route=route,
+        accuracy_debt=True,
+        weights=StructuralScoreWeights(),
+        score_floor=0.0,
+        cost_settings=AppendCostSettings(),
+        population_context={"checkpoint": 7, "base_word_sha256": "abc"},
+    )((*candidates, failed))
+    telemetry = level.telemetry
+    receipt = telemetry["population_receipt"]
+    assert len(receipt["normalization"]["records"]) == 30
+    assert len(telemetry["ranked"]) == 30 and len(telemetry["top"]) == 24
+    observed = hashlib.sha256(
+        json.dumps(
+            receipt, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
+    assert observed == telemetry["cost_population_sha256"]
+    assert telemetry["mad_scales"] == telemetry["scales"]
+    assert telemetry["compiler_rejections"] == [
+        {
+            "patch": [list(failed.order_key[0]), [list(x) for x in failed.order_key[1]]],
+            "reason": "CompileTimeoutError:timed out",
+        }
+    ]

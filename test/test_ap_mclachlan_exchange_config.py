@@ -115,6 +115,11 @@ def test_route_bundles_are_closed_and_resolve_from_route_config() -> None:
     assert q.compiler.backend_name == "FakeMarrakesh"
     assert q.compiler.optimization_level == 1 and q.compiler.transpile_seed == 7
     assert q.compiler.structural_angle == 1.0
+    assert q.compiler.compile_timeout_seconds == 300.0
+    with pytest.raises(TypeError):
+        q.compiler.coordinate_weights["delta_n2q"] = 9.0
+    with pytest.raises(TypeError):
+        EXCHANGE_ROUTE_BUNDLES["made_up"] = q
     with pytest.raises(ValueError, match="unknown exchange route bundle"):
         resolve_route_bundle("paper_ii_exchange_made_up_v9")
 

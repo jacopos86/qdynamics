@@ -23,6 +23,8 @@ Example
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
+import hashlib
 import json
 import math
 from dataclasses import dataclass
@@ -30,6 +32,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from pipelines.time_dynamics import paper_ii_runs as runs
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
 from pipelines.time_dynamics.campaign import _canonical_cut
 from pipelines.time_dynamics.run_lock import file_sha256, resolve_code_revision
 
@@ -45,6 +48,7 @@ ROUTE_BUNDLE_FLAG = "--exchange-route-bundle"
 COMPARATOR_REUSE = "locked_historical_avqds_15_cells"
 ACTIONS_SCHEMA = "paper_ii_final_selector_comparison_actions_v1"
 SUMMARY_SCHEMA = "paper_ii_final_selector_comparison_prepare_v1"
+CAMPAIGN_SCORING_WORKERS = 4
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -194,6 +198,11 @@ def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
         runs.ARMS[bindings["comparator_arm"]].is_comparator,
         "comparator_arm must be a comparator arm",
     )
+    _require(
+        tuple(str(flag) for flag in bindings.get("extra_flags") or ())
+        == ("--record-statevector",),
+        "locked final campaign permits only --record-statevector as an extra flag",
+    )
 
     seed = payload["seed"]
     _require(
@@ -274,9 +283,11 @@ def _parse_and_assert(
     cell: MatchedCell,
     route_id: str,
     lock: MatchedCellLock,
+    code_revision: str,
 ) -> None:
     from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
         _build_parser,
+        _resolve_times,
     )
 
     argv = tuple(argv)
@@ -295,15 +306,35 @@ def _parse_and_assert(
     if "--resume-from-run-json" in argv or parsed.resume_from_run_json is not None:
         raise MatchedCellLockError(f"{label}: a fresh trajectory must not resume")
     horizon = runs.HORIZONS[str(lock.registry_bindings["horizon"])]
-    pairs = set(zip(argv, argv[1:]))
-    if ("--t-final", repr(float(horizon.t_final))) not in pairs:
-        raise MatchedCellLockError(f"{label}: --t-final {horizon.t_final!r} absent")
-    if ("--num-times", str(int(horizon.num_times))) not in pairs:
-        raise MatchedCellLockError(f"{label}: --num-times {horizon.num_times} absent")
+    if not math.isclose(float(parsed.t_final), float(horizon.t_final), rel_tol=0.0):
+        raise MatchedCellLockError(f"{label}: effective --t-final drifted")
+    if int(parsed.num_times) != int(horizon.num_times):
+        raise MatchedCellLockError(f"{label}: effective --num-times drifted")
+    if parsed.times is not None or parsed.t_initial is not None:
+        raise MatchedCellLockError(f"{label}: explicit time-grid override is forbidden")
+    resolved_times = _resolve_times(parsed)
+    if (
+        len(resolved_times) != int(horizon.num_times)
+        or not math.isclose(float(resolved_times[0]), 0.0, rel_tol=0.0, abs_tol=0.0)
+        or not math.isclose(
+            float(resolved_times[-1]), float(horizon.t_final), rel_tol=0.0, abs_tol=0.0
+        )
+    ):
+        raise MatchedCellLockError(f"{label}: resolved time grid is not locked t=0..20")
+    if str(parsed.artifact_json) != str(lock.seed["artifact_json"]):
+        raise MatchedCellLockError(f"{label}: effective seed artifact drifted")
+    if str(parsed.code_revision) != str(code_revision):
+        raise MatchedCellLockError(f"{label}: effective code revision drifted")
     if not bool(parsed.record_statevector):
         raise MatchedCellLockError(f"{label}: --record-statevector absent")
-    if str(parsed.dynamics_policy) == "avqds":
-        raise MatchedCellLockError(f"{label}: an APM action resolved to the comparator")
+    if str(parsed.dynamics_policy) != "exchange":
+        raise MatchedCellLockError(f"{label}: APM action is not full exchange")
+    if str(parsed.insertion_gate_mode) != "mclachlan_l2":
+        raise MatchedCellLockError(f"{label}: insertion gate is not realized L2")
+    if str(parsed.debt_policy) != "drift_ranked" or not bool(parsed.exchange_deletions):
+        raise MatchedCellLockError(f"{label}: generalized-exchange policy drifted")
+    if int(parsed.support_patch_scoring_workers) != CAMPAIGN_SCORING_WORKERS:
+        raise MatchedCellLockError(f"{label}: scoring-worker contract drifted")
 
 
 def build_actions(
@@ -315,13 +346,31 @@ def build_actions(
 
     routes = bind_selector_routes(lock.selector_routes)
     bindings = lock.registry_bindings
-    extra_flags = tuple(str(flag) for flag in bindings.get("extra_flags") or ())
-    if "--record-statevector" not in extra_flags:
-        extra_flags = extra_flags + ("--record-statevector",)
+    # This is an execution-only knob: scoring and compilation replay in a
+    # canonical order and the worker-count parity contract is tested at
+    # 1/2/4 workers.  Pin four explicitly so CHTC requests and run receipts
+    # cannot silently inherit a different parser default.
+    extra_flags = (
+        "--record-statevector",
+        "--support-patch-scoring-workers",
+        str(CAMPAIGN_SCORING_WORKERS),
+    )
+    code_revision = resolve_code_revision(_REPO_ROOT)
+    if code_revision in ("", "unknown"):
+        raise MatchedCellLockError("could not resolve a code revision for the actions")
     root = Path(output_root)
     rows: list[dict[str, Any]] = []
     for cell in lock.cells:
         for route_id, arm_id in routes.items():
+            route_contract = asdict(resolve_route_bundle(route_id))
+            route_contract_sha256 = hashlib.sha256(
+                json.dumps(
+                    route_contract,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ).encode("utf-8")
+            ).hexdigest()
             action_id = _action_id(cell, arm_id)
             output_json = root / CAMPAIGN_ID / action_id / "run.json"
             command = runs.build_run(
@@ -338,8 +387,14 @@ def build_actions(
                 extra_flags=extra_flags,
                 require_seed=True,
             )
-            argv = tuple(command.argv())
-            _parse_and_assert(argv, cell=cell, route_id=route_id, lock=lock)
+            argv = (*command.argv(), "--code-revision", str(code_revision))
+            _parse_and_assert(
+                argv,
+                cell=cell,
+                route_id=route_id,
+                lock=lock,
+                code_revision=code_revision,
+            )
             rows.append(
                 {
                     "schema": ACTIONS_SCHEMA,
@@ -351,6 +406,8 @@ def build_actions(
                     "method": "apm",
                     "arm": arm_id,
                     "exchange_route_bundle": route_id,
+                    "exchange_route_contract": route_contract,
+                    "exchange_route_contract_sha256": route_contract_sha256,
                     "apm_cut": float(cell.apm_cut),
                     "apm_cut_label": cell.apm_cut_label,
                     "adoption_status": cell.adoption_status,
@@ -365,6 +422,10 @@ def build_actions(
                     "runner_argv": list(argv),
                     "trajectory_json": str(output_json),
                     "run_id": command.run_id,
+                    "code_revision": str(code_revision),
+                    "matched_cell_lock_sha256": str(lock.sha256),
+                    "seed_sha256": str(lock.seed["sha256"]),
+                    "source_package_sha256": None,
                 }
             )
     if len(rows) != EXPECTED_CELL_COUNT * EXPECTED_ROUTE_COUNT:
@@ -415,7 +476,7 @@ def prepare(
             "sha256": lock.sha256,
             "schema": LOCK_SCHEMA,
         },
-        "code_revision": resolve_code_revision(_REPO_ROOT),
+        "code_revision": str(rows[0]["code_revision"]),
         "seed": {"path": str(lock.seed["artifact_json"]), "sha256": seed_sha},
         "registry_bindings": dict(lock.registry_bindings),
         "selector_routes": routes,

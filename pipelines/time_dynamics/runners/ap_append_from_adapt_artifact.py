@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -28,6 +30,9 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     build_candidate_pool_contract,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    APGeneralizedExchangeConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
     DriveAlignedAugmentation,
@@ -292,6 +297,30 @@ def run_append_ap_mclachlan_from_runtime_input(
     runtime_provenance = dict(
         getattr(runtime_input, "provenance", {}) or {}
     )
+    route_bundle = APGeneralizedExchangeConfig.from_route_config(
+        effective_support_patch_config
+    ).route.bundle
+    route_contract = asdict(route_bundle)
+    route_contract_sha256 = hashlib.sha256(
+        json.dumps(
+            route_contract, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
+    run_guards = {
+        key: getattr(effective_support_patch_config, key, None)
+        for key in (
+            "max_joint_patch_evaluations",
+            "max_certification_attempts_per_level",
+            "max_certification_attempts_per_deletion_branch",
+            "max_structural_pool_size",
+            "max_insertion_batch_size",
+            "residual_ratio_threshold",
+        )
+    }
+    run_guards.update(
+        exchange_route_contract=route_contract,
+        exchange_route_contract_sha256=route_contract_sha256,
+    )
     run_lock = build_run_lock(
         seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
         or None,
@@ -328,17 +357,7 @@ def run_append_ap_mclachlan_from_runtime_input(
         structural_policy=str(
             getattr(effective_support_patch_config, "dynamics_policy", "exchange")
         ),
-        guards={
-            key: getattr(effective_support_patch_config, key, None)
-            for key in (
-                "max_joint_patch_evaluations",
-                "max_certification_attempts_per_level",
-                "max_certification_attempts_per_deletion_branch",
-                "max_structural_pool_size",
-                "max_insertion_batch_size",
-                "residual_ratio_threshold",
-            )
-        },
+        guards=run_guards,
         time_step_controller={
             "parameter_displacement_max": getattr(
                 effective_support_patch_config, "avqds_delta_theta_max", None

@@ -56,6 +56,9 @@ class AttemptRecord:
     cost_factor_k: float | None = None
     route_score: float | None = None
     route_merit: float | None = None
+    cost_marginal: tuple[int, int, int] | None = None
+    placement_cuts: tuple[tuple[str, int], ...] | None = None
+    patch_word_sha256: str | None = None
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -73,6 +76,15 @@ class AttemptRecord:
             "cost_factor_k": self.cost_factor_k,
             "route_score": self.route_score,
             "route_merit": self.route_merit,
+            "cost_marginal": (
+                None if self.cost_marginal is None else list(self.cost_marginal)
+            ),
+            "placement_cuts": (
+                None
+                if self.placement_cuts is None
+                else [[str(a), int(c)] for a, c in self.placement_cuts]
+            ),
+            "patch_word_sha256": self.patch_word_sha256,
         }
 
 
@@ -133,17 +145,30 @@ def candidate_insertions(
     """
 
     entries: list[tuple[int, Any, str]] = []
-    if candidate.plan is None:
+    if candidate.placement_cuts is not None:
         # Compiled-cost bundles materialize each inserted atom at the cut
         # chosen inside its commutation class (geometry-identical to the
         # retained representative; only the compiled circuit differs).
-        placement = dict(candidate.placement_cuts or ())
+        if len(candidate.placement_cuts) != len(candidate.inserted_selection):
+            raise ValueError("compiled placement count does not match insertions")
+        for ordinal, ((atom_id, _cut), (placed_id, realized_cut)) in enumerate(
+            zip(candidate.inserted_selection, candidate.placement_cuts)
+        ):
+            if str(atom_id) != str(placed_id):
+                raise ValueError("compiled placement atom order does not match insertions")
+            atom = atoms_by_id[str(atom_id)]
+            entries.append(
+                (
+                    int(realized_cut),
+                    atom.term,
+                    occurrence_label(atom, int(realized_cut), ordinal),
+                )
+            )
+        return tuple(entries)
+    if candidate.plan is None:
         for ordinal, (atom_id, cut) in enumerate(candidate.inserted_selection):
             atom = atoms_by_id[str(atom_id)]
-            realized_cut = int(placement.get(str(atom_id), cut))
-            entries.append(
-                (realized_cut, atom.term, occurrence_label(atom, realized_cut, ordinal))
-            )
+            entries.append((int(cut), atom.term, occurrence_label(atom, int(cut), ordinal)))
         return tuple(entries)
     survivor_count = 0
     ordinal = 0
@@ -187,6 +212,10 @@ def select_exchange_patch(
         Callable[[Sequence[StructuralCandidate]], "RankedLevel"] | None
     ) = None,
     realized_l2_gate: Callable[[CertificationResult], bool] | None = None,
+    realized_l2_gate_reason: str = "realized_l2_not_improved",
+    candidate_word_validator: (
+        Callable[[StructuralCandidate, Sequence[tuple[int, Any, str]]], bool] | None
+    ) = None,
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
@@ -330,6 +359,29 @@ def select_exchange_patch(
                     )
                 )
                 continue
+            if (
+                candidate_word_validator is not None
+                and not bool(candidate_word_validator(candidate, insertions))
+            ):
+                attempts.append(
+                    AttemptRecord(
+                        family=candidate.family,
+                        kind=candidate.kind,
+                        score=float(candidate.score),
+                        removed_runtime_indices=candidate.removed_runtime_indices,
+                        inserted_selection=candidate.inserted_selection,
+                        reason="compiled_word_identity_mismatch",
+                        deletion_loss=(
+                            float(candidate.deletion_loss)
+                            if candidate.removed_runtime_indices
+                            else None
+                        ),
+                        cost_marginal=candidate.cost_marginal,
+                        placement_cuts=candidate.placement_cuts,
+                        patch_word_sha256=candidate.patch_word_sha256,
+                    )
+                )
+                continue
             with phase("patch.exchange.certify"):
                 result = certify_finalist(
                     state=state,
@@ -356,7 +408,7 @@ def select_exchange_patch(
                 # tried, with the sealed population untouched.
                 result = CertificationResult(
                     certified=False,
-                    reason="realized_l2_not_improved",
+                    reason=str(realized_l2_gate_reason),
                     ray_distance=result.ray_distance,
                     smoothness_eta=result.smoothness_eta,
                     condition_number=result.condition_number,
@@ -377,6 +429,9 @@ def select_exchange_patch(
                     cost_factor_k=None if info is None else float(info.K),
                     route_score=None if info is None else float(info.score),
                     route_merit=None if info is None else float(info.merit),
+                    cost_marginal=candidate.cost_marginal,
+                    placement_cuts=candidate.placement_cuts,
+                    patch_word_sha256=candidate.patch_word_sha256,
                 )
             )
             if not result.certified and candidate.removed_runtime_indices:

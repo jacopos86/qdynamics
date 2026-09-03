@@ -11,11 +11,15 @@ import pytest
 from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
 from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    CandidateCostInputs,
     StructuralScoreWeights,
     _warm_solve_memo,
     enumerate_structural_candidates,
     iter_structural_families,
     resolve_frontier_schedule,
+)
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import (
+    CompiledPatchCostError,
 )
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
     evaluate_mclachlan_geometry,
@@ -284,6 +288,93 @@ def test_multi_child_frontier_plans_are_quotiented_and_admitted_whole() -> None:
         (c.removed_runtime_indices, c.plan.plan_id) for c in multi
     ]
     assert len(set(identities)) == len(identities)
+
+
+def test_one_compiler_failure_rejects_only_dependent_candidates() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+
+    def candidate_cost(removed, selection, plan):
+        del removed, plan
+        if selection and selection[0][0] == "ca":
+            raise CompiledPatchCostError("synthetic compiler failure")
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    failed = [
+        c for c in result.candidates if c.inserted_selection and c.inserted_selection[0][0] == "ca"
+    ]
+    surviving = [
+        c for c in result.candidates if c.inserted_selection and c.inserted_selection[0][0] == "cb"
+    ]
+    assert failed and surviving
+    assert all(c.cost_marginal is None and "synthetic compiler failure" in c.cost_error for c in failed)
+    assert all(c.cost_marginal == (1, 2, 3) and c.cost_error is None for c in surviving)
+
+
+def test_compile_budget_counts_only_large_miss_insertion_face() -> None:
+    _s, _e, _c, cuts, kwargs = _setup()
+    calls: list[tuple[tuple[int, ...], tuple[tuple[str, int], ...]]] = []
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        calls.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    insertion_count = len(cuts["ca"]) + len(cuts["cb"])
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+        max_compiled_patches_per_checkpoint=insertion_count,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    assert result.compile_guard is not None
+    assert result.compile_guard.scored_count == insertion_count
+    assert result.compile_guard.admitted_families == ["singleton_d0"]
+    assert result.compile_guard.rejected_family == "singleton_d1"
+    assert len(calls) == insertion_count
+    assert all(selection and not removed for removed, selection in calls)
+
+
+def test_compile_budget_counts_only_maintenance_deletion_face() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup(deletable_indices=(0,))
+    calls: list[tuple[tuple[int, ...], tuple[tuple[str, int], ...]]] = []
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        calls.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(-1, -2, -3))
+
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=False,
+        max_compiled_patches_per_checkpoint=1,
+        deletion_permission=lambda removed: SimpleNamespace(permitted=True),
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    assert result.compile_guard is not None
+    assert result.compile_guard.scored_count == 1
+    assert result.compile_guard.admitted_families == ["singleton_d0", "singleton_d1"]
+    assert result.compile_guard.rejected_family is None
+    assert calls == [((0,), ())]
 
 
 def test_frontier_schedule_resolution() -> None:

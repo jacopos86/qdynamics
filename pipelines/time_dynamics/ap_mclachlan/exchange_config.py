@@ -9,6 +9,8 @@ pure mathematical rule remains in ``pipelines.time_dynamics.generalized_exchange
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
+from types import MappingProxyType
 from typing import Any, Mapping
 
 
@@ -45,11 +47,37 @@ COMPILE_BACKEND_NAME = "FakeMarrakesh"
 COMPILE_OPTIMIZATION_LEVEL = 1
 COMPILE_TRANSPILE_SEED = 7
 COMPILE_STRUCTURAL_ANGLE = 1.0
-COMPILE_COORDINATE_WEIGHTS: Mapping[str, float] = {
+COMPILE_TIMEOUT_SECONDS = 300.0
+
+
+class _FrozenDict(dict):
+    """Pickle/deepcopy-safe immutable dictionary for sealed route data."""
+
+    @staticmethod
+    def _immutable(*_args: Any, **_kwargs: Any) -> None:
+        raise TypeError("sealed route mappings are immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    pop = _immutable
+    popitem = _immutable
+    setdefault = _immutable
+    update = _immutable
+    __ior__ = _immutable
+
+    def __deepcopy__(self, _memo: dict[int, Any]) -> "_FrozenDict":
+        return self
+
+    def __reduce__(self) -> tuple[Any, tuple[dict[str, float]]]:
+        return (_FrozenDict, (dict(self),))
+
+
+COMPILE_COORDINATE_WEIGHTS: Mapping[str, float] = _FrozenDict({
     "delta_n2q": 0.30,
     "delta_d2q": 0.30,
     "delta_dc": 0.25,
-}
+})
 COMPILE_SCALE_FLOOR = 1.0e-12
 
 
@@ -63,14 +91,22 @@ class CompileContract:
     structural_angle: float = COMPILE_STRUCTURAL_ANGLE
     coordinate_weights: Mapping[str, float] = None  # type: ignore[assignment]
     scale_floor: float = COMPILE_SCALE_FLOOR
+    compile_timeout_seconds: float = COMPILE_TIMEOUT_SECONDS
 
     def __post_init__(self) -> None:
-        if self.coordinate_weights is None:
-            object.__setattr__(
-                self, "coordinate_weights", dict(COMPILE_COORDINATE_WEIGHTS)
-            )
+        weights = (
+            dict(COMPILE_COORDINATE_WEIGHTS)
+            if self.coordinate_weights is None
+            else {str(k): float(v) for k, v in self.coordinate_weights.items()}
+        )
+        object.__setattr__(self, "coordinate_weights", _FrozenDict(weights))
         if float(self.structural_angle) == 0.0:
             raise ValueError("structural_angle must be nonzero.")
+        if (
+            not math.isfinite(float(self.compile_timeout_seconds))
+            or float(self.compile_timeout_seconds) <= 0.0
+        ):
+            raise ValueError("compile_timeout_seconds must be finite and positive.")
 
 
 @dataclass(frozen=True)
@@ -100,7 +136,7 @@ class ExchangeRouteBundle:
         return self.objective_id == OBJECTIVE_IDEAL_GAMMA
 
 
-EXCHANGE_ROUTE_BUNDLES: Mapping[str, ExchangeRouteBundle] = {
+EXCHANGE_ROUTE_BUNDLES: Mapping[str, ExchangeRouteBundle] = MappingProxyType({
     b.bundle_id: b
     for b in (
         ExchangeRouteBundle(
@@ -132,7 +168,7 @@ EXCHANGE_ROUTE_BUNDLES: Mapping[str, ExchangeRouteBundle] = {
             compiler=CompileContract(),
         ),
     )
-}
+})
 
 
 def resolve_route_bundle(bundle_id: str) -> ExchangeRouteBundle:
@@ -364,6 +400,7 @@ __all__ = [
     "COMPILE_OPTIMIZATION_LEVEL",
     "COMPILE_SCALE_FLOOR",
     "COMPILE_STRUCTURAL_ANGLE",
+    "COMPILE_TIMEOUT_SECONDS",
     "COMPILE_TRANSPILE_SEED",
     "COST_MODEL_COMPILED_POPULATION",
     "COST_MODEL_INERT_SINGLETON_PROXY",
