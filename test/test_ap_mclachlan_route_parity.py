@@ -187,13 +187,20 @@ def test_avqds_policy_golden_trajectory() -> None:
 
 
 @pytest.mark.parametrize(
-    ("integrator", "solve_repair", "parameter_displacement_max"),
     (
-        ("rk4", SolveRepairConfig.minimal_profile(), None),
-        ("euler", SolveRepairConfig(), 5.0e-3),
+        "integrator",
+        "solve_repair",
+        "parameter_displacement_max",
+        "retained_eigenmode_step_max",
+    ),
+    (
+        ("rk4", SolveRepairConfig.minimal_profile(), None, None),
+        ("euler", SolveRepairConfig(), 5.0e-3, None),
+        ("euler", SolveRepairConfig(), None, 5.0e-3),
         (
             "rk4",
             replace(SolveRepairConfig.minimal_profile(), parameter_step_max=5.0e-3),
+            None,
             None,
         ),
     ),
@@ -202,6 +209,7 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
     integrator,
     solve_repair,
     parameter_displacement_max,
+    retained_eigenmode_step_max,
 ) -> None:
     from pipelines.time_dynamics.run_lock import assert_comparable
 
@@ -211,6 +219,7 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
         insertion_l2_cut=1.0e9,
         avqds_l2_cut=1.0e9,
         avqds_delta_theta_max=parameter_displacement_max,
+        retained_eigenmode_step_max=retained_eigenmode_step_max,
         max_structural_pool_size=2,
     )
     payloads = []
@@ -234,6 +243,11 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
     exchange_points, avqds_points = (
         payload["trajectory"]["points"] for payload in payloads
     )
+    if retained_eigenmode_step_max is not None:
+        for payload in payloads:
+            assert payload["run_lock"]["shared_protocol"]["time_step_controller"][
+                "retained_eigenmode_displacement_max"
+            ] == pytest.approx(retained_eigenmode_step_max)
     assert len(exchange_points) == len(avqds_points)
     for exchange_point, avqds_point in zip(exchange_points, avqds_points):
         assert exchange_point["theta_runtime"] == pytest.approx(
@@ -248,6 +262,12 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
         assert exchange_point["parameter_stepping_to_next"] == avqds_point[
             "parameter_stepping_to_next"
         ]
+        if retained_eigenmode_step_max is not None and exchange_point[
+            "parameter_stepping_to_next"
+        ] is not None:
+            assert exchange_point["parameter_stepping_to_next"]["policy"] == (
+                "retained_metric_eigenmode_controlled_euler_v1"
+            )
 
 
 def test_declared_exchange_round_cap_is_not_off_by_one() -> None:

@@ -292,6 +292,30 @@ def run_append_ap_mclachlan_from_runtime_input(
     runtime_provenance = dict(
         getattr(runtime_input, "provenance", {}) or {}
     )
+    time_step_controller = {
+        "parameter_displacement_max": getattr(
+            effective_support_patch_config, "avqds_delta_theta_max", None
+        ),
+        "state_motion_l2_step_max": getattr(
+            solve_repair_config, "state_motion_l2_step_max", None
+        ),
+        "composed_parameter_step_max": getattr(
+            solve_repair_config, "parameter_step_max", None
+        ),
+        "local_subdivision_enabled": bool(
+            getattr(solve_repair_config, "local_subdivision_enabled", False)
+        ),
+        "max_local_subdivisions": int(
+            getattr(solve_repair_config, "max_local_subdivisions", 0)
+        ),
+    }
+    retained_eigenmode_step_max = getattr(
+        effective_support_patch_config, "retained_eigenmode_step_max", None
+    )
+    if retained_eigenmode_step_max is not None:
+        time_step_controller["retained_eigenmode_displacement_max"] = float(
+            retained_eigenmode_step_max
+        )
     run_lock = build_run_lock(
         seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
         or None,
@@ -339,23 +363,7 @@ def run_append_ap_mclachlan_from_runtime_input(
                 "residual_ratio_threshold",
             )
         },
-        time_step_controller={
-            "parameter_displacement_max": getattr(
-                effective_support_patch_config, "avqds_delta_theta_max", None
-            ),
-            "state_motion_l2_step_max": getattr(
-                solve_repair_config, "state_motion_l2_step_max", None
-            ),
-            "composed_parameter_step_max": getattr(
-                solve_repair_config, "parameter_step_max", None
-            ),
-            "local_subdivision_enabled": bool(
-                getattr(solve_repair_config, "local_subdivision_enabled", False)
-            ),
-            "max_local_subdivisions": int(
-                getattr(solve_repair_config, "max_local_subdivisions", 0)
-            ),
-        },
+        time_step_controller=time_step_controller,
         candidate_pool=candidate_pool_contract,
         exact_reference_json=(
             str(reference_energy_trajectory)
@@ -1761,6 +1769,18 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--retained-eigenmode-step-max",
+        type=float,
+        default=None,
+        help=(
+            "Advance each reporting interval with Euler substeps bounded in "
+            "the locally metric-whitened positive retained eigenmodes of the "
+            "raw McLachlan Gram matrix. This is an opt-in numerical-controller "
+            "ablation and requires an independently calibrated bound; it is "
+            "mutually exclusive with --avqds-delta-theta-max."
+        ),
+    )
+    parser.add_argument(
         "--insertion-gate-mode",
         choices=["residual_ratio", "mclachlan_l2"],
         default="residual_ratio",
@@ -2078,6 +2098,11 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             None
             if args.avqds_delta_theta_max is None
             else float(args.avqds_delta_theta_max)
+        ),
+        retained_eigenmode_step_max=(
+            None
+            if args.retained_eigenmode_step_max is None
+            else float(args.retained_eigenmode_step_max)
         ),
         debt_policy=str(args.debt_policy),
         insertion_gate_mode=str(args.insertion_gate_mode),
