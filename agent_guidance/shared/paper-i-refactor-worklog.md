@@ -5083,6 +5083,32 @@ re-run pending after an API 529. Benchmark script and raw timings live in the
 session scratchpad (`bench/bench_compile_pairs.py`, `bench/results.json`), not
 in the repo.
 
+### 2026-09-03 — B3 tail: ledger/checkpoint serialization increments (Claude)
+
+Implemented on branch `claude/paper-i-b3-local-tail-20260903` (worktree
+`Holstein_test.worktrees/claude-paper-i-b3-local-tail`, base `f041a5c1`, not
+pushed). Report with commands, counts, timings, and deviations:
+`docs/reports/PAPER_I_B3_LOCAL_TAIL_PARALLELIZATION_IMPLEMENTATION_20260903.md`
+on that branch. No continuation ran; no CHTC state changed.
+
+| Commit | Change |
+|---|---|
+| `d893a6b0` | `EstimatorCallLedger.occurrence_count()` O(1) and `occurrence_rows(start, end)`; every session-kernel/transaction `len()`/slice site uses them; checkpoint reuses `to_payload` summaries; five stdout-only stage-timing events (`stage_depth`, RSS) |
+| `60c93b26` | `json_streaming.py`: chunked C-encoder output byte-identical to `json.dumps` (compact and indent=2) |
+| `ef42dd04` | `_stable_json_digest` via chunked encoder (2.26 s → 0.44 s on 136 MB, identical digest); inline sidecar sha256; opt-in `STATIC_ADAPT_CHECKPOINT_JSON_LAYOUT=compact` (3.54 s → 0.44 s, −25 % bytes; default layout unchanged) |
+
+Parity vs pristine `f041a5c1` on three session-kernel fixtures (RAM and
+streaming ledgers): 45/45 scientific sections identical, full ledgers and
+occurrence streams byte-identical, sidecars identical after `generated_utc`;
+only 15 source-provenance digests that hash `adapt_pipeline.py` move. Route
+suites: 22 failures, all pre-existing on `f041a5c1`. Tests: 208 focused +
+ledger + encoder, 151 checkpoint/resume; 87 new tests.
+
+Not done: history-row slimming (content change; verify consumers first),
+streaming resume hydration, local runner/CHTC template. Handoff Increments 2–3
+as written (parallel compile, surrogate) were dropped: ≤ 10 s per round at
+stake.
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
