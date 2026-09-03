@@ -442,6 +442,7 @@ def build_actions(
     *,
     output_root: str | Path,
     source_package_sha256: str | None = None,
+    execution_flags: Sequence[str] = (),
 ) -> tuple[dict[str, Any], ...]:
     """Build exactly ``15 cells x 3 routes`` APM actions and zero comparators."""
 
@@ -464,6 +465,10 @@ def build_actions(
     code_revision = resolve_code_revision(_REPO_ROOT)
     if code_revision in ("", "unknown"):
         raise MatchedCellLockError("could not resolve a code revision for the actions")
+    # Execution-resource flags (compile pool size) are not scientific
+    # settings and are not part of the lock; they are appended per package so
+    # the slot sizing travels with the argv and its provenance.
+    extra_flags = extra_flags + tuple(str(flag) for flag in execution_flags)
     root = Path(output_root)
     rows: list[dict[str, Any]] = []
     for cell in lock.cells:
@@ -565,6 +570,7 @@ def prepare(
     actions_jsonl: str | Path,
     lock_json: str | Path = LOCK_JSON,
     source_package_sha256: str | None = None,
+    execution_flags: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Validate the lock, build the actions, write the JSONL, and summarize."""
 
@@ -575,6 +581,7 @@ def prepare(
         lock,
         output_root=output_root,
         source_package_sha256=source_package_sha256,
+        execution_flags=execution_flags,
     )
     written = write_actions_jsonl(rows, actions_jsonl)
     avqds_rows = [row for row in rows if row["method"] != "apm"]
@@ -603,6 +610,7 @@ def prepare(
             "trajectory is re-run by this campaign."
         ),
         "actions_jsonl": {"path": str(written), "sha256": file_sha256(written)},
+        "execution_flags": [str(flag) for flag in execution_flags],
         "output_root": str(Path(output_root)),
         "source_package_sha256": source_package_sha256,
         "blocks": list(lock.payload["blocks"]["active"]),
@@ -634,7 +642,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="optional SHA-256 of the immutable source archive carried by every action",
     )
+    parser.add_argument(
+        "--compile-workers",
+        type=int,
+        default=None,
+        help=(
+            "compile process-pool size appended to every action argv "
+            "(execution only; size to the slot: request_cpus >= compile_workers + 1)"
+        ),
+    )
     args = parser.parse_args(argv)
+    execution_flags: list[str] = []
+    if args.compile_workers is not None:
+        execution_flags += ["--compile-workers", str(int(args.compile_workers))]
     actions_jsonl = (
         args.actions_jsonl
         if args.actions_jsonl is not None
@@ -645,6 +665,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         actions_jsonl=actions_jsonl,
         lock_json=args.lock_json,
         source_package_sha256=args.source_package_sha256,
+        execution_flags=tuple(execution_flags),
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0

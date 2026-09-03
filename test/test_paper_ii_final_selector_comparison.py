@@ -417,3 +417,23 @@ def test_locked_campaign_rejects_all_generic_extra_flag_overrides(
     target.write_text(json.dumps(mutated), encoding="utf-8")
     with pytest.raises(final.MatchedCellLockError, match="permits only"):
         final.load_lock(target)
+
+
+def test_execution_flags_are_appended_to_every_action_and_parse(tmp_path) -> None:
+    from pipelines.time_dynamics.campaigns import paper_ii_final_selector_comparison_v1 as gen
+    from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import _build_parser
+
+    summary = gen.prepare(
+        output_root=tmp_path / "root",
+        actions_jsonl=tmp_path / "actions.jsonl",
+        execution_flags=("--compile-workers", "8"),
+    )
+    assert summary["execution_flags"] == ["--compile-workers", "8"]
+    assert summary["action_count"] == 45
+    parser = _build_parser()
+    rows = [json.loads(line) for line in (tmp_path / "actions.jsonl").read_text().splitlines()]
+    for row in rows:
+        argv = list(row["runner_argv"])
+        assert argv[-2:] == ["--compile-workers", "8"] or "--compile-workers" in argv
+        parsed = parser.parse_args(argv)
+        assert parsed.compile_workers == 8
