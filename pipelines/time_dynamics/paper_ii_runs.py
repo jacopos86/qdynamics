@@ -1084,9 +1084,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
 
 __all__ = [
     "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
@@ -1410,3 +1407,7 @@ __all__ = [
     "SIAM_NB4_TIME_STEP", "SIAMNB4RunCommand", "SIAMNB4Segment",
     "build_siam_nb4_continuation_run", "build_siam_nb4_screen_run",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
