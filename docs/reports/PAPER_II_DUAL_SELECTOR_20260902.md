@@ -167,6 +167,43 @@ imports Qiskit and the backend. Measured directly on a 4-worker Q-bundle run
 (process-group RSS sampled every 0.5 s): **peak 1,103 MB aggregate over 6
 processes** (parent, four workers, resource tracker) — under the 8 GB bound.
 
+### 4.2b Sizing the compile pool for a many-core slot (CHTC)
+
+Each Qiskit transpile spawns a rayon pool sized to the whole machine, so an
+unpinned N-worker pool oversubscribes N×cores threads — the transpile-side
+twin of BLAS oversubscription. Pool workers pin `RAYON_NUM_THREADS=1`
+(with the five BLAS variables), so the pool size is the real concurrency,
+and `--compile-workers` sizes it independently of the solve-warm threads.
+Compile warming is sequential with the solve warm on this lineage: the
+asynchronous overlap ordering measured on the `fable/paper-ii-dual-selector-20260902`
+branch was neutral-to-negative on this seed (55.1 s vs 49.9–51.9 s at 2
+workers; 38.9 s vs 31.2–35.8 s at 4) because each transpile already uses ~2
+threads and this seed's solve share is ~1 s per checkpoint, so it is not
+carried here. Measured, Q bundle, scoring workers 4, sequential, identical
+digest `2e361ea8…` in every row:
+
+| compile workers (rayon pinned) | wall |
+|---:|---:|
+| 1 (serial reference) | 83.3 s |
+| 4 | 36.6 s |
+| 8 | **26.3 s** |
+| 12 | 26.7 s |
+
+3.2× at 8 pinned workers against serial; 1.39× against the 4-worker
+setting the running campaign uses. This host has 10 performance cores, so
+12 buys nothing. Sizing rule for a slot:
+
+    compile_workers = cores − 1                    (parent keeps one core)
+    request_cpus    = compile_workers + 1
+
+Recommended CHTC rerun setting: `--compile-workers 8`, `request_cpus = 9`.
+
+**Wrapper prerequisite:** the pool pins its own workers, but the *parent's*
+OpenBLAS on Linux binds its thread count at `numpy` import, before any
+runner code runs, so the Apptainer wrapper must export
+`OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1` before
+launching Python.
+
 ### 4.3 Population repair evidence
 
 Legacy-fixed smoke, large-miss checkpoints: distinct insertion denominators
