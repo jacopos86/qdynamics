@@ -523,6 +523,22 @@ def render_markdown(
     calibration_path: Path | None = None,
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
+    if calibration is not None and calibration_path is not None:
+        calibration_lines = [
+            f"- Calibration gate: `{calibration.get('status')}`; receipt "
+            f"`{calibration_path}` (SHA-256 `{_sha256(calibration_path)}`)."
+        ]
+        not_checked = tuple(
+            str(value) for value in calibration.get("not_checked") or ()
+        )
+        if not_checked:
+            calibration_lines.append(
+                "- Calibration required checks not run: "
+                + ", ".join(f"`{value}`" for value in not_checked)
+                + ". This is no-evidence, not a pass."
+            )
+    else:
+        calibration_lines = ["- Calibration gate: no receipt supplied."]
     lines = [
         "# Paper II current-best selector comparison",
         "",
@@ -541,12 +557,7 @@ def render_markdown(
         f"- Fresh terminal compilation: {sum(len(cell.get('terminal_costs') or {}) for cell in selected_cells)} displayed route/cell arms, all validated under local-only `FakeMarrakesh`, optimization level 1, transpiler seed 7, with terminal-reconstruction parity and trajectory-digest binding.",
         "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
-        (
-            f"- Calibration gate: `{calibration.get('status')}`; receipt "
-            f"`{calibration_path}` (SHA-256 `{_sha256(calibration_path)}`)."
-            if calibration is not None and calibration_path is not None
-            else "- Calibration gate: no receipt supplied."
-        ),
+        *calibration_lines,
         f"- Comparison JSON: `{comparison_path}` (SHA-256 `{_sha256(comparison_path)}`).",
         f"- LaTeX source: `{tex_path}` (SHA-256 `{_sha256(tex_path)}`)" if tex_path.exists() else f"- LaTeX source: `{tex_path}` (not yet written).",
         f"- Human PDF: `{pdf_path}` (SHA-256 `{_sha256(pdf_path)}`)." if pdf_path.exists() else f"- Human PDF: `{pdf_path}` (not yet built).",

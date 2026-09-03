@@ -121,12 +121,20 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     tex = render_latex(comparison, selected, markdown_name="report.md")
     comparison_path = tmp_path / "comparison.json"
     comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+    calibration = {
+        "status": "INCOMPLETE",
+        "not_checked": ["benchmark_point_sameness", "seed_provenance"],
+    }
+    calibration_path = tmp_path / "calibration.json"
+    calibration_path.write_text(json.dumps(calibration), encoding="utf-8")
     markdown = render_markdown(
         comparison,
         selected,
         comparison_path=comparison_path,
         tex_path=tmp_path / "report.tex",
         pdf_path=tmp_path / "report.pdf",
+        calibration_path=calibration_path,
+        calibration=calibration,
     )
 
     assert len(selected) == 1
@@ -143,6 +151,8 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "physical shot count" in tex
     assert "Fresh terminal compilation: 5 displayed route/cell arms" in markdown
     assert "FakeMarrakesh" in markdown
+    assert "`benchmark_point_sameness`, `seed_provenance`" in markdown
+    assert "This is no-evidence, not a pass" in markdown
 
 
 def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path) -> None:
