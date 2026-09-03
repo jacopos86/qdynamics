@@ -1,0 +1,33 @@
+{
+  "boundary_passed": true,
+  "boundary_weight_tolerance": 0.01,
+  "delta_energy_hartree": 0.0006714298748136116,
+  "elapsed_seconds": 11176.4,
+  "energy_passed": true,
+  "energy_tolerance_hartree": 0.0016,
+  "evidence_validation": "passed_cutoff_converged_required",
+  "fixture_file": "h2o_linear_fd_work373_ref484_fixture_20260826.json",
+  "n_total_qubits": 19,
+  "passed": true,
+  "per_mode_boundary_weight": {
+    "antisymmetric_stretch": 0.00020930501583055325,
+    "bend": 0.0009777834094103544,
+    "symmetric_stretch": 0.005028373739061389
+  },
+  "ref": [
+    4,
+    8,
+    4
+  ],
+  "reference_ground_energy_hartree": -75.01513494325133,
+  "sector_dimension": 28800,
+  "status": "completed",
+  "tag": "work373_ref484",
+  "total_boundary_weight": 0.006206639167990617,
+  "work": [
+    3,
+    7,
+    3
+  ],
+  "work_ground_energy_hartree": -75.01446351337651
+}
