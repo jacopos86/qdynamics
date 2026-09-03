@@ -4991,6 +4991,98 @@ shared checkout.
 
 ---
 
+### 2026-09-03 — B3 strong-sector tail: compile-parallelism audit (Claude)
+
+Question audited: does FakeMarrakesh transpilation run in parallel, and does it
+overlap the gradient/geometry stages? Truth source: sealed
+`source_locked.tar.gz` (SHA-256 `fd7b37dd…`) of campaign
+`ra_adapt_costexp_depthfix_sixregime_20260820_v2_chtc`; live tail
+`results_tooling/livetails/20260903T0434Z/9713638.0.out` (S-S B3 always-open,
+depths 29–50); bounded benchmark of the real `BackendCompileOracle` on the M4
+(peak RSS 158 MB, no repo writes, no CHTC contact). Line numbers below are the
+sealed `adapt_pipeline.py` unless a file is named.
+
+**Serial.** Route variant
+`position_records_gradient_only_adaptive_shortlist_phase123_adaptive_forced_admission_k50_v1`
+runs the session kernel (`_DefaultNoPruneNumericalSession`). Every transpile
+happens on the main thread inside the Phase-I loop (`for member in members`,
+:64801), two per (candidate, position) member: base recompiled under
+`{digest}:base`, trial under `{digest}:trial`
+(`hh_backend_compile_oracle.py:1277-1288`), one FakeMarrakesh target,
+`QISKIT_PARALLEL=FALSE`, `RAYON_NUM_THREADS=1`. The threaded
+`hardcoded_adapt_phase1_backend_compile_prefetch` block exists only inside the
+legacy `_run_hardcoded_adapt_vqe` (def :15066) and never executes on this
+route (absent from every tail).
+
+**No overlap with gradient or geometry.** The 4-thread
+`evaluate_exact_gradient_surface` is never called here: the kernel runs
+`gradient_surface()` only when Phase 0 returns no receipt (:2531-2537) and the
+position-record Phase 0 always returns one, so `adapt_parallel_gradient_workers=4`
+is inert. Phase 0 computes the position-resolved gradient and Fubini–Study
+metric serially over the whole 6508-word pool × representative positions
+(`for record in population`, :66620); Phase I re-touches the 24 retained
+records and compiles each in the same loop body as its geometry.
+
+**Compile is not the bottleneck.**
+
+| Quantity | Value |
+|---|---|
+| Real oracle, per transpile (M4, single thread) | 0.017–0.030 s |
+| Per (candidate, position) pair, 2 transpiles, k=50–70 | 0.057–0.068 s |
+| Phase-I transpiles per round (tail-derived, 24 retained) | 57–193 |
+| Phase-I loop span per round (first→last costexp event) | 0.85–10.1 s |
+| Pre-Phase-I block per round (prev `iter` → first costexp) | 23.6 min (k=30) → 72.8 min (k=50), ~k^2.16 |
+| Correlation of that block with compile-pair count / with depth | r = −0.16 / r = +0.996 |
+| Phase-II full-feature loop (event's own `elapsed_s`) | 1.8–5.8 s |
+
+**Where the hours go** (code-derived ranking; the split is not measurable from
+the tail because nothing on that path is instrumented):
+
+1. Per-round `_write_current_checkpoint` (:62690-63295 → `current_checkpoint.py`):
+   full ledger (`to_payload` + `occurrence_summary` + `summary`) and the full
+   history are deep-copied 3× and pure-Python `json.dump`-encoded 3–5×
+   (`_stable_json_digest(full_projection)` embeds `full_ledger` twice, plus the
+   indent=2 sidecar, fsync, sha256 re-read). Every history row embeds a deep
+   copy of the entire Phase-0 receipt (population + ranking, P·reps(k) rows;
+   :62314-62316) and the P-candidate commutation plan table (:62346 → :13505),
+   so the history term is O(P·k²) per round.
+2. ≥11 full ledger re-materializations per round through
+   `_default_no_prune_ledger_occurrences` → `to_payload()` (O(U log U + S_alg)
+   each): six fall in the pre-Phase-I window (:62758, :69655, :2530, :2539,
+   :66617, :66725).
+3. Phase-0 sweep: 6508 × reps(k) records, each building an O(k)
+   `_physical_tangent_operand_identity` (:14707-14840) and an unmemoized
+   1024-amplitude projective fingerprint (:56121).
+4. Secondary: no `gc` tuning anywhere on the path; gen-2 collections over
+   ~49 GB of live objects.
+
+**Corrections to `HANDOFF_LOCAL_TAIL_STREAMING_PARALLELIZATION_20260903.md`:**
+
+- `hardcoded_adapt_phase2_full_feature_parallel` is a deferred observation
+  flushed at the accepted transition (:68574 → :7590-7592); its timestamp is
+  the transition start, not Phase-II completion. The handoff's
+  "Phase-II completion → accepted event" column measures the transition
+  (Powell refit + ledger passes), and its "pre-Phase-II share" includes
+  Phases II–III.
+- The continuation jobs do not stream the ledger: `EstimatorCallLedger.from_payload`
+  constructs `cls()` with no `occurrence_stream_path`
+  (`estimator_call_ledger.py:1090`), so `STATIC_ADAPT_ESTIMATOR_LEDGER_STREAM_DIR`
+  is not honored after resume; occurrences accumulate in RAM beside the O(U)
+  `_records` dict (the ~49 GB steady RSS).
+- Increment 2 as written (parallel Qiskit compile) saves at most ~10 s per
+  round. Retarget: (i) incremental checkpoint publication and stop embedding
+  `full_ledger` and Phase-0 receipts in history rows; (ii) one `to_payload()`
+  per round, or occurrence slices without re-materialization; (iii) memoize the
+  projective fingerprint and the operand-identity prefix inside Phase 0.
+  Nothing above changes a selector number; all of it is serialization and
+  bookkeeping.
+
+Audit provenance: workflow `wf_3bbe68f2-abb` (9 agents, 6 refuters; the two
+objections are the corrections above and are incorporated); stage-order tracer
+re-run pending after an API 529. Benchmark script and raw timings live in the
+session scratchpad (`bench/bench_compile_pairs.py`, `bench/results.json`), not
+in the repo.
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
