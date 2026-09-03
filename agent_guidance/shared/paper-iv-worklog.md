@@ -137,3 +137,97 @@ plateaued at 65 min, creeping 34 MB/day), and 300,000 KB of a 30 GB disk request
    overwrites the checkpoint at its own round 1.
 4. **Track the fixture.** `h2o_linear_fd_work373_ref484_fixture_20260826.json`
    (28 MB) still exists only under `~/chtc_rescue/` and on the submit node.
+
+
+## Build round — 2026-09-03 (campaign branch `paper-iv/h2o-campaign-20260903`)
+
+Base decision: integrate the b3 speed-up **into main**, not the reverse. b3 is
+679 commits behind main, lacks `f433b89d` and 13 `ra_adapt`/`sr_snake`
+refactors; picking `9a43bfe2` onto it conflicted immediately.
+
+| Commit | Lane | Acceptance evidence |
+|---|---|---|
+| `d6d44af3`, `3b1b86f4` | b3 chunked encoder + opt-in `STATIC_ADAPT_CHECKPOINT_JSON_LAYOUT=compact` (cherry-picked) | 61 passed |
+| `34c87900` | port of `d893a6b0` O(1) ledger (b3's third commit conflicted with main) | ledgers byte-identical pristine vs ported; 51 differing keys = 36 run-to-run noise + 15 source-provenance digests; `to_payload` walks per 3-round leg 33 → 5; 20 passed, 6 skipped (streaming absent on main); 18 route-suite failures identical on pristine |
+| `929f1b47` | `--max-wall-seconds` as `RAAdaptOperationalControls.maximum_wall_seconds`, stop reason `wall_clock_budget_v1`, checked only after a completed round, lowest precedence; protocol sha unchanged | opt-in CLI: `--max-wall-seconds 0` → exit 0, 1 round, `current.json` + sha-matched sidecar + `result.json`; `protocol.json` byte-identical |
+| `929f1b47` (same lane) | **pre-existing crash fixed**: every H2O run on main exits 1 after its last round (`runtime.py:1947` → `paper_i_run_summary.py:1630`, from `90b19f3f`) — H2O family now skips the Paper-I canonical summary it must not inherit | unmodified: exit 1 after 339 s; patched: exit 0 |
+| `af222b69` | 19q FakeMarrakesh embedding `(0,1,2,3,4,16,5,23,6,22,7,21,8,20,9,24,10,25,11)` — nested-prefix, tree, rule regenerates all six historical entries; `--cost-mode {proxy,marrakesh_graph_span_v1}` via typed `MarrakeshGraphSpanCompileCost`, suffix `__cost-marrakesh_graph_span_v1`; default sha pinned unchanged | 14 + 18 passed; graph-span rejected off H2O |
+| `fd37ec19` | fixture tracked at `test_support/paper_iv_h2o/` (sha `190387449b…`, differs from July `570690bd…` by lineage); compact-layout resume proven through the production writers; two-arm package `chtc/paper_iv_h2o_two_arm_20260903/` | 7 + 7 passed; package builds, preflight blocked only on flags that have since merged |
+| `9a576e4a` | merge of the three lanes | **130 passed, 9 skipped** |
+
+Graph-span cost at 19q, measured not optimized: the Steiner DP is exact
+Dreyfus–Wagner over 156 physical qubits, ~3× per extra terminal (k=12 5.3 s,
+13 15.5 s, 14 44 s). The (3,7,3) pool has 2,542 unique supports (max 15);
+pricing all once ≈ 27 min per process, cache per process. The embedding's one
+ambiguous step (logical index 15 at dead-end qubit 20) was resolved toward the
+two-row band; alternatives are in the code comment for the user to overrule.
+
+### Blocker found by two lanes independently — now the active build
+
+`--resume-checkpoint` on the H2O route is refused at
+`sr_snake/_resume.py:1455` (`_validate_problem_binding`: canonical L=2 HH or
+the pure-Hubbard noise application only), before the sidecar-sha check;
+`:1471-1472` rejects any request carrying the H2O fixture; `:1543-1556` pins
+`problem ∈ {hh, hubbard}`, `adapt_pool = full_meta`. This is the lane
+contract's named deferred item. Design in progress: a third named application
+branch with **fixture-sha problem binding** (path strings are not identity),
+H2O required settings derived from the canonical H2O v3 contract, proxy ↔
+graph-span refusal kept, HH/Hubbard branches untouched. Regression tests
+include the CLI segment chain (currently a strict xfail citing that line).
+
+### Facts corrected this round
+
+- `/staging/jsstrobel` **does not exist** (earlier "empty, 2.7 PB free" read a
+  failed `ls` as zero). Outputs stay in `/home` (4.9 GB headroom) until the
+  user requests staging from CHTC.
+- 138 held jobs in the queue: 36 reference an `image.sif` that no longer exists
+  (dead); the rest are Paper I/II campaigns — user's call, not touched.
+
+## Adversarial verify round — 2026-09-03 (9 refuters over `9a576e4a`)
+
+| Lane | correctness | reproduce | scientific surface |
+|---|---|---|---|
+| graph-span `af222b69` | holds (claim fix required) | holds — 54 passed; 19q oracle builds in 0.5–0.8 s | holds — default H2O sha `34683ac8…`, route sha `6ed3f6a4…` identical to pristine; locked contract untouched |
+| ledger port `34c87900` | holds — every slice→window bound verified; ledger append-only | holds — 96 passed, 6 skipped; parity re-run: ledgers byte-identical | holds — fresh 1-round H2O parity: `estimator_call_ledger.json` bytes identical (2,224,160 B), energy −74.94152757586416 equal |
+| wall-clock `929f1b47` | holds on its own code | holds on its own code | **refuted at the merged head** |
+
+### Must-fix items the refuters found
+
+1. **`34c87900` broke every accepted-state resume** (HH included): `adapt_pipeline.py:29943`
+   references `occurrences`, a binding the port deleted from
+   `_hydrate_default_no_prune_numerical_session` → `NameError`. Four resume
+   tests pass at `6648ed5b` and fail at `9a576e4a`. The ledger lenses missed
+   it because they did not run resume tests. Fix: windowed
+   `_default_no_prune_ledger_occurrence_rows(restored_ledger, 0, restored_occurrence_count)`
+   — already present in the resume builder's worktree.
+2. **Singleton arm cannot finish.** `sector_complete_pauli_block_v1` exits 1
+   after its first accepted round at `engine.py:3319`: the staged-child
+   lineage branch opens only for `candidate_representation == single_pauli_word_v1`,
+   but the H2O sector-complete mode resolves to `macro_generator_v1` while its
+   accepted rows are staged children `h2o_sector_block::<hash>`. Sibling sites
+   `:3516`, `:3610`, `:3629`. Pre-existing on main, masked there by the earlier
+   exit-1 that `929f1b47` fixed. The wall-clock lane's "H2O completes" claim
+   holds for the macro arm only until this is fixed.
+3. **The 19q embedding is a choice, not a derivation.** The six historical
+   entries admit 430 tree-valued two-arm continuations; choice points at
+   logical index 12 (8 vs 17), 13 (20 vs 36), 15 (dead end). Named
+   alternatives and their cost on the tracked 19q register (boson modes at
+   logical 12–13, 14–16, 17–18):
+
+   | Embedding tail after the 12q prefix | Boson-block Steiner edges | Σ pairwise dist | Diameter |
+   |---|---|---|---|
+   | lane (current) `…8,20,9,24,10,25,11` | (10, 8, 8) | 862 | 13 |
+   | B `…17,20,27,36,26,41,25` | (8, 7, 6) | 784 | 10 |
+   | F row-0 fill `…8,9,10,11,12,13,14` | **(1, 2, 1)** | 1008 | — |
+
+   The choice changes every graph-span cost reported for H2O. **User decision.**
+4. H2O `--resume-checkpoint` refused at `_resume.py:1455` — the active build.
+
+### Package fix-up `216aec84`
+
+`next_segment.py` now keys on the real stop reasons (`wall_clock_budget_v1`
+continue; `exact_ed_target_reached` / `maximum_controller_rounds` done);
+preflight 21/21 on the merged HEAD. Macro arm measured end-to-end under the
+runner env with compact layout: `--max-wall-seconds 0` → exit 0, 368 s,
+394 MB, `result.json` with `primary_reason == wall_clock_budget_v1`, seg01
+renders with `--resume-checkpoint` and matching sidecar digests.
