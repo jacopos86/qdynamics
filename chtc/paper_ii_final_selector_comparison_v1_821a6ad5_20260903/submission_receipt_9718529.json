@@ -24,7 +24,7 @@
     "matched_cell_lock_sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030",
     "calibration_receipt_sha256": "9a8d2f1e2cf58d85f1957a15a8e427d239eaae9d50d817bace1cc6e01432e449",
     "report_refresh_resolution_sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
-    "package_manifest_sha256": "30da32841bbcf5898fd4265799382307a077f9292813fdee420ea9b4429d0a83",
+    "package_manifest_sha256": "ad46d997a638228163db8409b1551be50a8161c4a751525ace9ec894db3ce98d",
     "transport_archive_sha256": "4be625bf03f5656f14a6e301d70e69cd0804a5f058f34e97cf8f58e2ec676758"
   },
   "preflight": {
