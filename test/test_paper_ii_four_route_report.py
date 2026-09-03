@@ -23,20 +23,31 @@ def _route_record(route: str) -> dict:
             "mean_abs_charge_imbalance_error": 4.0e-4,
             "accuracy_burden": 0.5,
             "qualifies_individually": True,
+            "comparison_eligible": True,
         },
         "estimator_work": {
             "rhs_geometry_evaluation_count": 20,
             "logical_integration_geometry_work": 200,
         },
-        "structural_churn": {
+        "support_motion": {
             "added_coordinate_count": 3,
             "deleted_coordinate_count": 2,
-            "gross_churn": 5,
-            "excess_churn": 4,
             "short_delete_to_readd_count": 1,
             "short_add_to_redelete_count": 1,
             "support_changing_checkpoint_count": 4,
-            "persisted_scored_not_selected_lower_bound": 17,
+        },
+        "deletion_gate_outcomes": {
+            "applicable": route != "avqds",
+            "attempt_record_complete": True,
+            "deletion_bearing_finalist_attempt_count": (
+                None if route == "avqds" else 7
+            ),
+            "post_delete_gate_failure_count": (
+                None if route == "avqds" else 2
+            ),
+            "committed_deletion_patch_count": (
+                None if route == "avqds" else 5
+            ),
         },
     }
 
@@ -76,7 +87,7 @@ def _cost_payload(route: str) -> dict:
     }
 
 
-def test_report_binds_four_fresh_costs_and_renders_four_columns(tmp_path) -> None:
+def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> None:
     cell_id = "fastweak__delta_theta_5e-5"
     routes = {route: _route_record(route) for route in ROUTE_ORDER}
     comparison = {
@@ -88,6 +99,14 @@ def test_report_binds_four_fresh_costs_and_renders_four_columns(tmp_path) -> Non
                 "controller": "delta_theta_5e-5",
                 "apm_cut": 1.0e-6,
                 "comparison_tier": "individual_target",
+                "reportable_current_best": True,
+                "all_routes_complete": True,
+                "available_routes_clique": True,
+                "missing_routes": [],
+                "achieved_accuracy_floor": {
+                    "route": "old_proxy",
+                    "accuracy_burden": 0.5,
+                },
                 "routes": routes,
             }
         ],
@@ -105,10 +124,11 @@ def test_report_binds_four_fresh_costs_and_renders_four_columns(tmp_path) -> Non
     assert "support $\\Gamma$" in tex
     assert "repaired proxy" in tex
     assert "old proxy$^{*}$" in tex
+    assert "AVQDS$^{*}$" in tex
     assert "Logical geometry work" in tex
-    assert "Gross churn" in tex
-    assert "Delete $\\rightarrow$ re-add" in tex
-    assert "Scored but not selected" in tex
+    assert "Gross churn" not in tex
+    assert "Failed post-delete gates" in tex
+    assert "Finalists tested with deletion" in tex
     assert "physical shot count" in tex
 
 
@@ -124,7 +144,14 @@ def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path
                 "controller": "state_motion_5e-5",
                 "apm_cut": 3.0e-6,
                 "comparison_tier": "unmatched",
-                "four_way_complete": True,
+                "reportable_current_best": True,
+                "all_routes_complete": True,
+                "available_routes_clique": False,
+                "missing_routes": [],
+                "achieved_accuracy_floor": {
+                    "route": "old_proxy",
+                    "accuracy_burden": 0.5,
+                },
                 "pairwise_accuracy": {
                     "q_compiled__old_proxy": {
                         "passes": False,
@@ -148,8 +175,50 @@ def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path
     tex = render_latex(comparison, selected, markdown_name="report.md")
 
     assert len(selected) == 1
-    assert "all four routes pass individually" in tex
-    assert "burden ratio 2.34" in tex
+    assert "least accurate available route" in tex
+    assert "does not pass" in tex
+
+
+def test_report_keeps_gamma_pending_in_current_best_cell(tmp_path) -> None:
+    cell_id = "fastweak__delta_theta_5e-5"
+    routes = {
+        route: _route_record(route)
+        for route in ROUTE_ORDER
+        if route != "gamma_compiled"
+    }
+    comparison = {
+        "generated_utc": "2026-09-03T00:00:00+00:00",
+        "cells": [
+            {
+                "cell_id": cell_id,
+                "drive": "fastweak",
+                "controller": "delta_theta_5e-5",
+                "apm_cut": 3.0e-7,
+                "comparison_tier": "same_cell_route_best",
+                "reportable_current_best": True,
+                "all_routes_complete": False,
+                "available_routes_clique": True,
+                "missing_routes": ["gamma_compiled"],
+                "achieved_accuracy_floor": {
+                    "route": "q_compiled",
+                    "accuracy_burden": 0.5,
+                },
+                "routes": routes,
+            }
+        ],
+    }
+    for route in routes:
+        path = tmp_path / cell_id / f"{route}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(_cost_payload(route)), encoding="utf-8")
+
+    selected = bind_terminal_costs(comparison, terminal_cost_root=tmp_path)
+    tex = render_latex(comparison, selected, markdown_name="report.md")
+
+    assert len(selected) == 1
+    assert "\\emph{pending}" in tex
+    assert "Gamma" in tex
+    assert "AVQDS" in tex
 
 
 def test_report_marks_incomplete_calibration_as_analysis_only(tmp_path) -> None:
@@ -160,6 +229,13 @@ def test_report_marks_incomplete_calibration_as_analysis_only(tmp_path) -> None:
         "controller": "state_motion_5e-5",
         "apm_cut": 3.0e-6,
         "comparison_tier": "individual_target",
+        "all_routes_complete": True,
+        "available_routes_clique": True,
+        "missing_routes": [],
+        "achieved_accuracy_floor": {
+            "route": "old_proxy",
+            "accuracy_burden": 0.5,
+        },
         "routes": {route: _route_record(route) for route in ROUTE_ORDER},
         "terminal_costs": {
             route: {"N2q": 12, "D2q": 8, "Dc": 30} for route in ROUTE_ORDER

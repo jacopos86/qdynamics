@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the matched Paper-II four-route decision report as LaTeX and Markdown."""
+"""Render the current-best Paper-II selector report as LaTeX and Markdown."""
 
 from __future__ import annotations
 
@@ -16,12 +16,13 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
 )
 
 
-REPORT_SCHEMA = "paper_ii_four_route_human_report_v1"
+REPORT_SCHEMA = "paper_ii_selector_human_report_v2"
 DISPLAY_LABELS = {
     "q_compiled": r"$Q$ compiled",
     "gamma_compiled": r"support $\Gamma$",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy$^{*}$",
+    "avqds": "AVQDS$^{*}$",
 }
 
 
@@ -120,12 +121,12 @@ def bind_terminal_costs(
     terminal_cost_root: Path,
     include_complete_target: bool = False,
 ) -> list[dict[str, Any]]:
-    """Return reportable four-route cells with four verified fresh costs."""
+    """Return same-cell route-best comparisons with verified fresh costs."""
 
     selected: list[dict[str, Any]] = []
     for raw_cell in comparison.get("cells") or ():
         complete_target = bool(
-            raw_cell.get("four_way_complete")
+            raw_cell.get("all_routes_complete")
             and all(
                 (raw_cell.get("routes") or {}).get(route, {})
                 .get("accuracy", {})
@@ -134,13 +135,15 @@ def bind_terminal_costs(
                 for route in ROUTE_ORDER
             )
         )
-        if raw_cell.get("comparison_tier") != "individual_target" and not (
+        if raw_cell.get("reportable_current_best") is not True and not (
             include_complete_target and complete_target
         ):
             continue
         cell = dict(raw_cell)
         costs: dict[str, Any] = {}
         for route in ROUTE_ORDER:
+            if route not in cell["routes"]:
+                continue
             route_record = cell["routes"][route]
             trajectory_sha256 = route_record["run_sources"][-1]["sha256"]
             cost_path = terminal_cost_root / str(cell["cell_id"]) / f"{route}.json"
@@ -151,10 +154,28 @@ def bind_terminal_costs(
         cell["terminal_costs"] = costs
         selected.append(cell)
     if not selected:
-        raise ValueError(
-            "no reportable complete four-way cells are ready for the human report"
+        raise ValueError("no reportable same-cell route-best comparisons are ready")
+
+    def priority(cell: Mapping[str, Any]) -> tuple[Any, ...]:
+        routes = cell.get("routes") or {}
+        all_individual = all(
+            record.get("accuracy", {}).get("qualifies_individually") is True
+            for record in routes.values()
         )
-    return selected
+        worst_burden = max(
+            float(record["accuracy"]["accuracy_burden"])
+            for record in routes.values()
+        )
+        return (
+            -int(cell.get("all_routes_complete") is True),
+            -len(routes),
+            -int(all_individual),
+            -int(cell.get("available_routes_clique") is True),
+            worst_burden,
+            str(cell["cell_id"]),
+        )
+
+    return sorted(selected, key=priority)
 
 
 def _sci(value: float) -> str:
@@ -180,6 +201,8 @@ def _tex_escape(value: str) -> str:
 def _values(cell: Mapping[str, Any], path: Sequence[str]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for route in ROUTE_ORDER:
+        if route not in cell["routes"]:
+            continue
         value: Any = cell["routes"][route]
         for name in path:
             value = value[name]
@@ -188,7 +211,27 @@ def _values(cell: Mapping[str, Any], path: Sequence[str]) -> dict[str, Any]:
 
 
 def _cost_values(cell: Mapping[str, Any], name: str) -> dict[str, int]:
-    return {route: int(cell["terminal_costs"][route][name]) for route in ROUTE_ORDER}
+    return {
+        route: int(cell["terminal_costs"][route][name])
+        for route in ROUTE_ORDER
+        if route in cell["terminal_costs"]
+    }
+
+
+def _deletion_values(cell: Mapping[str, Any], name: str) -> dict[str, str | None]:
+    result: dict[str, str | None] = {}
+    for route in ROUTE_ORDER:
+        if route not in cell["routes"]:
+            continue
+        outcomes = cell["routes"][route]["deletion_gate_outcomes"]
+        value = outcomes.get(name)
+        if value is None:
+            result[route] = None
+        elif outcomes.get("attempt_record_complete") is True:
+            result[route] = _int(int(value))
+        else:
+            result[route] = rf"$\geq${_int(int(value))}"
+    return result
 
 
 def _row(
@@ -197,13 +240,32 @@ def _row(
     *,
     formatter,
     lower_is_better: bool = True,
+    highlight_best: bool = True,
 ) -> str:
-    numeric = {route: float(values[route]) for route in ROUTE_ORDER}
-    best = min(numeric.values()) if lower_is_better else max(numeric.values())
+    numeric = {
+        route: float(value)
+        for route, value in values.items()
+        if value is not None and isinstance(value, (int, float))
+    }
+    best = (
+        min(numeric.values()) if lower_is_better else max(numeric.values())
+    ) if numeric else None
     cells = []
     for route in ROUTE_ORDER:
-        rendered = formatter(values[route])
-        if math.isclose(numeric[route], best, rel_tol=1.0e-12, abs_tol=0.0):
+        if route not in values:
+            cells.append(r"\emph{pending}")
+            continue
+        value = values[route]
+        if value is None:
+            cells.append(r"---")
+            continue
+        rendered = formatter(value)
+        if (
+            highlight_best
+            and best is not None
+            and route in numeric
+            and math.isclose(numeric[route], best, rel_tol=1.0e-12, abs_tol=0.0)
+        ):
             rendered = rf"\textbf{{{rendered}}}"
         cells.append(rendered)
     return f"{label} & " + " & ".join(cells) + r" \\"
@@ -212,35 +274,44 @@ def _row(
 def _status_row(cell: Mapping[str, Any]) -> str:
     cells = []
     for route in ROUTE_ORDER:
+        if route not in cell["routes"]:
+            cells.append(r"\emph{pending}")
+            continue
         accuracy = cell["routes"][route]["accuracy"]
-        cells.append("target" if accuracy["qualifies_individually"] else "guard")
+        cells.append(
+            "target"
+            if accuracy["qualifies_individually"]
+            else "guard"
+            if accuracy["comparison_eligible"]
+            else "outside"
+        )
     return "Accuracy gate & " + " & ".join(cells) + r" \\"
 
 
 def _cell_table(cell: Mapping[str, Any]) -> str:
     rows = [
-        r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrr@{}}",
+        r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrr@{}}",
         r"\toprule",
         "Metric & " + " & ".join(DISPLAY_LABELS[route] for route in ROUTE_ORDER) + r" \\",
         r"\midrule",
-        r"\multicolumn{5}{@{}l}{\emph{Average exact errors and matched-accuracy status}} \\",
+        r"\multicolumn{6}{@{}l}{\emph{Average exact errors and achieved accuracy}} \\",
         _row(
-            "Infidelity",
+            "Mean infidelity",
             _values(cell, ("accuracy", "mean_infidelity")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
         _row(
-            r"$|\Delta E|$",
+            r"Mean $|\Delta E|$",
             _values(cell, ("accuracy", "mean_abs_energy_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
         _row(
-            "Doublon error",
+            "Mean doublon error",
             _values(cell, ("accuracy", "mean_abs_doublon_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
         _row(
-            r"$|\Delta n|$",
+            r"Mean $|\Delta n|$",
             _values(cell, ("accuracy", "mean_abs_charge_imbalance_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
@@ -251,7 +322,7 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
         ),
         _status_row(cell),
         r"\addlinespace[2pt]",
-        r"\multicolumn{5}{@{}l}{\emph{Propagation and logical estimator work}} \\",
+        r"\multicolumn{6}{@{}l}{\emph{Propagation and logical estimator work}} \\",
         _row(
             "Accepted timesteps",
             _values(cell, ("time_step_count",)),
@@ -273,54 +344,61 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             formatter=lambda value: _int(int(value)),
         ),
         r"\addlinespace[2pt]",
-        r"\multicolumn{5}{@{}l}{\emph{Fresh terminal FakeMarrakesh compilation}} \\",
+        r"\multicolumn{6}{@{}l}{\emph{Fresh terminal FakeMarrakesh compilation}} \\",
         _row(r"$N_{2q}$", _cost_values(cell, "N2q"), formatter=lambda value: _int(int(value))),
         _row(r"$d_{2q}$", _cost_values(cell, "D2q"), formatter=lambda value: _int(int(value))),
         _row(r"Total depth $D_c$", _cost_values(cell, "Dc"), formatter=lambda value: _int(int(value))),
         r"\addlinespace[2pt]",
-        r"\multicolumn{5}{@{}l}{\emph{Ansatz support motion}} \\",
+        r"\multicolumn{6}{@{}l}{\emph{Accepted support motion and exact recurrence}} \\",
         _row(
             "Coordinates added",
-            _values(cell, ("structural_churn", "added_coordinate_count")),
+            _values(cell, ("support_motion", "added_coordinate_count")),
             formatter=lambda value: _int(int(value)),
+            highlight_best=False,
         ),
         _row(
             "Coordinates deleted",
-            _values(cell, ("structural_churn", "deleted_coordinate_count")),
+            _values(cell, ("support_motion", "deleted_coordinate_count")),
             formatter=lambda value: _int(int(value)),
+            highlight_best=False,
         ),
         _row(
-            "Gross churn",
-            _values(cell, ("structural_churn", "gross_churn")),
+            r"Deleted then re-added ($\leq2$ edits)",
+            _values(cell, ("support_motion", "short_delete_to_readd_count")),
             formatter=lambda value: _int(int(value)),
+            highlight_best=False,
         ),
         _row(
-            "Excess churn",
-            _values(cell, ("structural_churn", "excess_churn")),
+            r"Added then re-deleted ($\leq2$ edits)",
+            _values(cell, ("support_motion", "short_add_to_redelete_count")),
             formatter=lambda value: _int(int(value)),
-        ),
-        _row(
-            r"Delete $\rightarrow$ re-add ($\leq2$ changes)",
-            _values(cell, ("structural_churn", "short_delete_to_readd_count")),
-            formatter=lambda value: _int(int(value)),
-        ),
-        _row(
-            r"Add $\rightarrow$ re-delete ($\leq2$ changes)",
-            _values(cell, ("structural_churn", "short_add_to_redelete_count")),
-            formatter=lambda value: _int(int(value)),
+            highlight_best=False,
         ),
         _row(
             "Support-changing checkpoints",
-            _values(cell, ("structural_churn", "support_changing_checkpoint_count")),
+            _values(cell, ("support_motion", "support_changing_checkpoint_count")),
             formatter=lambda value: _int(int(value)),
+            highlight_best=False,
+        ),
+        r"\addlinespace[2pt]",
+        r"\multicolumn{6}{@{}l}{\emph{Deletion-bearing finalist outcomes}} \\",
+        _row(
+            "Finalists tested with deletion",
+            _deletion_values(cell, "deletion_bearing_finalist_attempt_count"),
+            formatter=str,
+            highlight_best=False,
         ),
         _row(
-            r"Scored but not selected ($\geq$)",
-            _values(
-                cell,
-                ("structural_churn", "persisted_scored_not_selected_lower_bound"),
-            ),
-            formatter=lambda value: _int(int(value)),
+            "Failed post-delete gates",
+            _deletion_values(cell, "post_delete_gate_failure_count"),
+            formatter=str,
+            highlight_best=False,
+        ),
+        _row(
+            "Committed deletion patches",
+            _deletion_values(cell, "committed_deletion_patch_count"),
+            formatter=str,
+            highlight_best=False,
         ),
         r"\bottomrule",
         r"\end{tabularx}",
@@ -337,12 +415,9 @@ def render_latex(
 ) -> str:
     pages = []
     for index, cell in enumerate(selected_cells):
-        strict_match = cell.get("comparison_tier") == "individual_target"
-        failing_pairs = [
-            (name, result)
-            for name, result in (cell.get("pairwise_accuracy") or {}).items()
-            if result.get("passes") is not True
-        ]
+        achieved = cell["achieved_accuracy_floor"]
+        achieved_route = str(achieved["route"])
+        missing = tuple(cell.get("missing_routes") or ())
         lead = ""
         if index == 0:
             calibration_note = ""
@@ -355,18 +430,18 @@ def render_latex(
                 )
             lead = rf"""
 \begin{{center}}
-{{\LARGE\bfseries Paper II four-route selector comparison}}\\[3pt]
-{{\small Current complete final $t=20$ AP-McLachlan trajectories; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
+{{\LARGE\bfseries Paper II current-best selector comparison}}\\[3pt]
+{{\small Five side-by-side routes on locked final $t=20$ cells; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
 \end{{center}}
 \hrule
 \vspace{{5pt}}
 
-Only same-drive, same-controller cells for which all four routes meet the
-individual response-normalized accuracy target are shown.  A cell is marked
-strictly matched only when every pair also passes the declared factor-of-two
-burden and component tests.  Bold marks the lowest value in each row; no
-scalar winner is imposed across accuracy, terminal circuit burden, estimator
-work, and structural stability.
+Each page fixes the drive, controller, physics, and final $t=20$ reporting
+grid.  It uses the best currently available final trajectory from each route;
+the page is retained at the accuracy achieved by its least accurate available
+route rather than being discarded by a common qualification gate.  A pending
+entry means that route has not finished that cell.  Bold marks the lowest
+available numerical value in each error, work, or circuit-cost row.
 
 {{\footnotesize Agent record and exact provenance:
 \href{{run:{_tex_escape(markdown_name)}}}{{\texttt{{{_tex_escape(markdown_name)}}}}}.}}
@@ -378,18 +453,25 @@ work, and structural stability.
             f"{_tex_escape(str(cell['controller']))} --- "
             f"cut ${float(cell['apm_cut']):.3e}$"
         )
-        if strict_match:
-            match_note = r"\textbf{Accuracy comparison:} strict four-way match."
-        else:
-            details = "; ".join(
-                rf"{_tex_escape(name.replace('__', ' vs. '))}: burden ratio "
-                rf"{float(result['burden_ratio']):.2f}"
-                for name, result in failing_pairs
-            ) or "strict pairwise match not established"
-            match_note = (
-                r"\textbf{Accuracy comparison:} all four routes pass individually; "
-                r"strict four-way match fails (" + details + ")."
-            )
+        match_status = (
+            "passes"
+            if cell.get("available_routes_clique") is True
+            else "does not pass"
+        )
+        pending_note = (
+            " Pending: "
+            + ", ".join(DISPLAY_LABELS[route] for route in missing)
+            + "."
+            if missing
+            else " All five routes are present."
+        )
+        match_note = (
+            r"\textbf{Accuracy basis:} least accurate available route is "
+            + DISPLAY_LABELS[achieved_route]
+            + f" (burden {float(achieved['accuracy_burden']):.3f}). "
+            + f"The strict factor-two match among available routes {match_status}."
+            + pending_note
+        )
         page = rf"""{lead}
 \section*{{{title}}}
 {{\small {match_note}}}
@@ -402,15 +484,16 @@ work, and structural stability.
 $W_{{\rm geom}}=\sum_i r_i[p_i(p_i+1)/2+p_i+2]$ is a logical
 integration-geometry estimator proxy, not a physical shot count.  It excludes
 candidate acquisition and certification work that the current artifacts do
-not ledger completely.  Churn uses exact coordinate multisets; short cycles
-collapse only insertion-instance labels.  $^*$The old proxy is the verified
-historical stitched baseline and used the legacy unit cost factor.  The
-requested ``$S$'' is the score shared by the compiled routes; the distinct
-support route is the $\Gamma$ column.}}
+not ledger completely.  Support motion uses exact coordinate multisets; the
+two recurrence rows collapse only insertion-instance labels.  Post-delete
+failures count recorded deletion-bearing finalists rejected after
+pre-certification resolution; the $\geq$ symbol marks a truncated attempt
+ledger.  A dash is not applicable (AVQDS is append-only).  $^*$The old proxy
+and AVQDS are verified historical stitched baselines.}}
 """
         pages.append(page.strip())
     body = "\n\n\\newpage\n\n".join(pages)
-    return rf"""\documentclass[9pt]{{article}}
+    return rf"""\documentclass[10pt]{{article}}
 \usepackage[letterpaper,landscape,margin=0.52in]{{geometry}}
 \usepackage[T1]{{fontenc}}
 \usepackage{{lmodern}}
@@ -421,8 +504,8 @@ support route is the $\Gamma$ column.}}
 \usepackage[hidelinks]{{hyperref}}
 \setlength{{\parindent}}{{0pt}}
 \setlength{{\parskip}}{{3pt}}
-\setlength{{\tabcolsep}}{{6pt}}
-\renewcommand{{\arraystretch}}{{1.06}}
+\setlength{{\tabcolsep}}{{4.5pt}}
+\renewcommand{{\arraystretch}}{{1.03}}
 \begin{{document}}
 {body}
 \end{{document}}
@@ -440,19 +523,20 @@ def render_markdown(
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
     lines = [
-        "# Paper II four-route selector comparison",
+        "# Paper II current-best selector comparison",
         "",
         "This Markdown file is the agent-facing authority for the same-stem human PDF.",
         "",
         "## Status",
         "",
         f"- Schema: `{REPORT_SCHEMA}`.",
-        f"- Included cells: {len(selected_cells)} complete, individually qualified four-route cells.",
-        f"- Strict four-way matched cells: {sum(cell.get('comparison_tier') == 'individual_target' for cell in selected_cells)}.",
-        f"- Complete individually qualified cells shown provisionally: {sum(cell.get('comparison_tier') != 'individual_target' for cell in selected_cells)}.",
+        f"- Included cells: {len(selected_cells)} same-drive, same-controller route-best comparisons.",
+        f"- Complete five-route cells: {sum(cell.get('all_routes_complete') is True for cell in selected_cells)}.",
+        f"- Available-route strict accuracy cliques: {sum(cell.get('available_routes_clique') is True for cell in selected_cells)}.",
         "- Scope: locked final 501-point t=0..20 cells only; no screens, threshold ladders, smoke runs, or precursor rows.",
-        "- Route columns: realized-Q compiled; ideal-support Gamma compiled; repaired analytical proxy; historical old proxy.",
-        "- `S` is a shared ranking score, not a separately executed route.",
+        "- Route columns: realized-Q compiled; ideal-support Gamma compiled; repaired analytical proxy; historical old proxy; historical AVQDS.",
+        "- A cell is shown once Q-compiled or Gamma-compiled is available alongside both proxy routes and AVQDS. Missing compiled routes remain explicitly pending.",
+        "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
         (
             f"- Calibration gate: `{calibration.get('status')}`; receipt "
@@ -464,11 +548,13 @@ def render_markdown(
         f"- LaTeX source: `{tex_path}` (SHA-256 `{_sha256(tex_path)}`)" if tex_path.exists() else f"- LaTeX source: `{tex_path}` (not yet written).",
         f"- Human PDF: `{pdf_path}` (SHA-256 `{_sha256(pdf_path)}`)." if pdf_path.exists() else f"- Human PDF: `{pdf_path}` (not yet built).",
         "",
-        "## Measurement and churn contract",
+        "## Measurement and support-decision contract",
         "",
         "`logical_integration_geometry_work = sum_i r_i [p_i(p_i+1)/2 + p_i + 2]`, where `r_i` is the active integration/parameter-control RHS evaluation count and `p_i` is the active runtime support size. It is a logical scalar-estimator proxy, not a hardware shot count. Candidate acquisition, checkpoint base geometry, certification, commuting-group structure, and shot allocation remain outside it because current trajectories do not persist complete ledgers for those quantities.",
         "",
-        "Churn is reconstructed from exact support-label multisets at every checkpoint. Recurrence removes only insertion-instance and append-occurrence suffixes. `delete->readd` and `add->redelete` count inverse events occurring within two later support-changing checkpoints. Persisted candidate/scored totals are lower bounds when a checkpoint executed multiple insertion rounds.",
+        "Support motion is reconstructed from exact support-label multisets at every checkpoint. Recurrence removes only insertion-instance and append-occurrence suffixes. `deleted_then_readded` and `added_then_redeleted` count inverse events occurring within two later support-changing checkpoints.",
+        "",
+        "Deletion-bearing finalist counts come from the selector's persisted certification-attempt ledger. `post_delete_gate_failures` excludes insertion-resolution and compiled-word failures that occur before materialization. When a checkpoint's attempt list is truncated, the table marks the affected count as a lower bound. AVQDS is append-only, so deletion rows are not applicable.",
         "",
         "## Included exact values",
     ]
@@ -477,8 +563,18 @@ def render_markdown(
             "",
             f"### {cell['cell_id']}",
             "",
-            "| Metric | Q compiled | Gamma support | Repaired proxy | Old proxy |",
-            "|---|---:|---:|---:|---:|",
+            (
+                "Achieved-accuracy floor: `"
+                + str(cell["achieved_accuracy_floor"]["route"])
+                + "` at burden `"
+                + f"{float(cell['achieved_accuracy_floor']['accuracy_burden']):.6g}`. "
+                + "Missing routes: `"
+                + (", ".join(cell.get("missing_routes") or ()) or "none")
+                + "`."
+            ),
+            "",
+            "| Metric | Q compiled | Gamma support | Repaired proxy | Old proxy | AVQDS |",
+            "|---|---:|---:|---:|---:|---:|",
         ])
         metrics = [
             ("mean_infidelity", lambda r: r["accuracy"]["mean_infidelity"]),
@@ -490,24 +586,54 @@ def render_markdown(
             ("terminal_n_theta", lambda r: r["n_theta"]),
             ("rhs_geometry_evaluations", lambda r: r["estimator_work"]["rhs_geometry_evaluation_count"]),
             ("logical_integration_geometry_work", lambda r: r["estimator_work"]["logical_integration_geometry_work"]),
-            ("coordinates_added", lambda r: r["structural_churn"]["added_coordinate_count"]),
-            ("coordinates_deleted", lambda r: r["structural_churn"]["deleted_coordinate_count"]),
-            ("gross_churn", lambda r: r["structural_churn"]["gross_churn"]),
-            ("excess_churn", lambda r: r["structural_churn"]["excess_churn"]),
-            ("short_delete_to_readd", lambda r: r["structural_churn"]["short_delete_to_readd_count"]),
-            ("short_add_to_redelete", lambda r: r["structural_churn"]["short_add_to_redelete_count"]),
-            ("support_changing_checkpoints", lambda r: r["structural_churn"]["support_changing_checkpoint_count"]),
-            ("scored_not_selected_lower_bound", lambda r: r["structural_churn"]["persisted_scored_not_selected_lower_bound"]),
+            ("coordinates_added", lambda r: r["support_motion"]["added_coordinate_count"]),
+            ("coordinates_deleted", lambda r: r["support_motion"]["deleted_coordinate_count"]),
+            ("deleted_then_readded", lambda r: r["support_motion"]["short_delete_to_readd_count"]),
+            ("added_then_redeleted", lambda r: r["support_motion"]["short_add_to_redelete_count"]),
+            ("support_changing_checkpoints", lambda r: r["support_motion"]["support_changing_checkpoint_count"]),
+            ("deletion_bearing_finalists_tested", lambda r: r["deletion_gate_outcomes"]["deletion_bearing_finalist_attempt_count"]),
+            ("post_delete_gate_failures", lambda r: r["deletion_gate_outcomes"]["post_delete_gate_failure_count"]),
+            ("committed_deletion_patches", lambda r: r["deletion_gate_outcomes"]["committed_deletion_patch_count"]),
         ]
         for name, getter in metrics:
-            values = [getter(cell["routes"][route]) for route in ROUTE_ORDER]
+            values = []
+            for route in ROUTE_ORDER:
+                if route not in cell["routes"]:
+                    values.append("pending")
+                    continue
+                record = cell["routes"][route]
+                value = getter(record)
+                if value is None:
+                    values.append("n/a")
+                elif (
+                    name
+                    in {
+                        "deletion_bearing_finalists_tested",
+                        "post_delete_gate_failures",
+                    }
+                    and record["deletion_gate_outcomes"][
+                        "attempt_record_complete"
+                    ]
+                    is not True
+                ):
+                    values.append(f">={value}")
+                else:
+                    values.append(value)
             lines.append("| " + name + " | " + " | ".join(str(value) for value in values) + " |")
         for cost_name in ("N2q", "D2q", "Dc"):
-            values = [cell["terminal_costs"][route][cost_name] for route in ROUTE_ORDER]
+            values = [
+                cell["terminal_costs"][route][cost_name]
+                if route in cell["terminal_costs"]
+                else "pending"
+                for route in ROUTE_ORDER
+            ]
             lines.append("| terminal_" + cost_name + " | " + " | ".join(str(value) for value in values) + " |")
 
         lines.extend(["", "Provenance:"])
         for route in ROUTE_ORDER:
+            if route not in cell["routes"]:
+                lines.append(f"- `{route}`: pending for this cell.")
+                continue
             record = cell["routes"][route]
             cost = cell["terminal_costs"][route]
             lines.append(
@@ -515,6 +641,21 @@ def render_markdown(
                 f"(SHA-256 `{record['run_sources'][-1]['sha256']}`); fresh terminal cost "
                 f"`{cost['path']}` (SHA-256 `{cost['sha256']}`)."
             )
+            outcomes = record["deletion_gate_outcomes"]
+            if outcomes.get("applicable") is True:
+                exactness = (
+                    "exact"
+                    if outcomes.get("attempt_record_complete") is True
+                    else "lower bound"
+                )
+                reasons = outcomes.get("post_delete_failure_reason_counts") or {}
+                reason_text = ", ".join(
+                    f"{name}={count}" for name, count in reasons.items()
+                ) or "none"
+                lines.append(
+                    f"  Deletion-attempt ledger: {exactness}; post-delete failure "
+                    f"reasons: {reason_text}."
+                )
     lines.extend([
         "",
         "## Excluded and pending cells",
@@ -543,7 +684,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--include-complete-target",
         action="store_true",
         help=(
-            "Include complete four-route cells where every route passes the "
+            "Include complete five-route cells where every route passes the "
             "individual target even if a strict pairwise accuracy match fails."
         ),
     )
@@ -555,7 +696,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     comparison_path = args.comparison_json.expanduser().resolve()
     comparison = _read_json(comparison_path)
     if comparison.get("schema") != COMPARISON_SCHEMA:
-        raise ValueError("unexpected four-route comparison schema")
+        raise ValueError("unexpected selector-comparison schema")
     terminal_root = args.terminal_cost_root.expanduser().resolve()
     calibration_path = (
         args.calibration_receipt.expanduser().resolve()

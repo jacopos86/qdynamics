@@ -6,6 +6,7 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
     _base_coordinate_id,
     _pair_match,
     build_terminal_compile_plan,
+    deletion_gate_outcomes,
     integration_geometry_work,
     structural_churn,
 )
@@ -68,11 +69,51 @@ def test_structural_churn_finds_delete_readd_redelete_cycle() -> None:
 
     assert result["added_coordinate_count"] == 1
     assert result["deleted_coordinate_count"] == 2
-    assert result["gross_churn"] == 3
-    assert result["excess_churn"] == 2
+    assert "gross_churn" not in result
+    assert "excess_churn" not in result
     assert result["short_delete_to_readd_count"] == 1
     assert result["short_add_to_redelete_count"] == 1
     assert result["support_changing_checkpoint_count"] == 3
+
+
+def test_deletion_gate_outcomes_count_actual_post_delete_failures() -> None:
+    run = {
+        "trajectory": {
+            "points": [
+                {
+                    "patch_decision": {
+                        "accepted": True,
+                        "patch_kind": "exchange",
+                        "metadata": {
+                            "attempt_count": 3,
+                            "attempts": [
+                                {
+                                    "removed_runtime_indices": [0],
+                                    "reason": "smoothness_eta_above_max",
+                                },
+                                {
+                                    "removed_runtime_indices": [1],
+                                    "reason": "compiled_word_identity_mismatch",
+                                },
+                                {
+                                    "removed_runtime_indices": [2],
+                                    "reason": "certified",
+                                },
+                            ],
+                        },
+                    }
+                }
+            ]
+        }
+    }
+
+    result = deletion_gate_outcomes([run], applicable=True)
+
+    assert result["attempt_record_complete"] is True
+    assert result["deletion_bearing_finalist_attempt_count"] == 3
+    assert result["post_delete_gate_failure_count"] == 1
+    assert result["pre_certification_rejection_count"] == 1
+    assert result["committed_deletion_patch_count"] == 1
 
 
 def test_base_identity_removes_instance_and_occurrence_noise() -> None:
@@ -113,13 +154,19 @@ def test_terminal_compile_plan_uses_only_matched_individual_cells(tmp_path) -> N
         route: {
             "run_sources": [
                 {"path": f"/runs/{route}/run.json", "sha256": route * 2}
-            ]
+            ],
+            "terminal_runtime_source_artifact": {
+                "declared_path": "seed.json",
+                "resolved_path": f"/runs/{route}/seed.json",
+                "sha256": route * 3,
+            },
         }
         for route in (
             "q_compiled",
             "gamma_compiled",
             "repaired_proxy",
             "old_proxy",
+            "avqds",
         )
     }
     comparison = {
@@ -139,7 +186,7 @@ def test_terminal_compile_plan_uses_only_matched_individual_cells(tmp_path) -> N
 
     plan = build_terminal_compile_plan(comparison, output_root=tmp_path)
 
-    assert plan["job_count"] == 4
+    assert plan["job_count"] == 5
     assert {job["cell_id"] for job in plan["jobs"]} == {"matched"}
     assert all(job["output_cost_table_json"].startswith(str(tmp_path)) for job in plan["jobs"])
 
@@ -151,12 +198,18 @@ def test_terminal_compile_plan_can_include_complete_individual_target_cell(tmp_p
             "run_sources": [
                 {"path": f"/runs/{route}/run.json", "sha256": route * 2}
             ],
+            "terminal_runtime_source_artifact": {
+                "declared_path": "seed.json",
+                "resolved_path": f"/runs/{route}/seed.json",
+                "sha256": route * 3,
+            },
         }
         for route in (
             "q_compiled",
             "gamma_compiled",
             "repaired_proxy",
             "old_proxy",
+            "avqds",
         )
     }
     comparison = {
@@ -164,7 +217,7 @@ def test_terminal_compile_plan_can_include_complete_individual_target_cell(tmp_p
             {
                 "cell_id": "complete_target",
                 "comparison_tier": "unmatched",
-                "four_way_complete": True,
+                "all_routes_complete": True,
                 "routes": routes,
             }
         ]
@@ -176,5 +229,5 @@ def test_terminal_compile_plan_can_include_complete_individual_target_cell(tmp_p
         include_complete_target=True,
     )
 
-    assert plan["job_count"] == 4
+    assert plan["job_count"] == 5
     assert {job["cell_id"] for job in plan["jobs"]} == {"complete_target"}

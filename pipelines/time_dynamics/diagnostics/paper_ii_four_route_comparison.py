@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Build a provenance-bound four-route Paper-II selector comparison.
+"""Build a provenance-bound Paper-II selector comparison.
 
 The comparison is deliberately downstream of trajectory generation.  It
 re-evaluates every available final t=20 trajectory on the locked exact grid,
-requires a same-cell four-way accuracy clique, and reports terminal circuit,
-integration-estimator, and support-churn burdens as separate coordinates.
+keeps every same-cell route separate, and reports terminal circuit,
+integration-estimator, and support-motion burdens as separate coordinates.
 
-The four route identities are the historical unit-cost proxy, the repaired
+The APM route identities are the historical unit-cost proxy, the repaired
 analytical proxy, the realized-Q compiled selector, and the ideal-Gamma
-compiled selector.  ``S`` is a ranking score shared by the compiled routes;
-it is not a fifth trajectory route.
+compiled selector.  The locked matched AVQDS baseline is included as a fifth
+human-facing column.
 """
 
 from __future__ import annotations
@@ -39,30 +39,36 @@ from pipelines.time_dynamics.run_lock import assert_comparable
 from pipelines.time_dynamics.staged_campaign import AccuracyMetrics, CellKey
 
 
-SCHEMA = "paper_ii_four_route_comparison_v1"
+SCHEMA = "paper_ii_selector_comparison_v2"
 ROUTE_ORDER = (
     "q_compiled",
     "gamma_compiled",
     "repaired_proxy",
     "old_proxy",
+    "avqds",
 )
 ROUTE_LABELS = {
     "q_compiled": "Q-compiled",
     "gamma_compiled": "Gamma-compiled (support)",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy (historical stitched)",
+    "avqds": "AVQDS (historical stitched)",
 }
 ROUTE_BUNDLES = {
     "q_compiled": "paper_ii_exchange_q_compiled_v1",
     "gamma_compiled": "paper_ii_exchange_gamma_compiled_v1",
     "repaired_proxy": "paper_ii_exchange_legacy_proxy_fixed_v1",
     "old_proxy": "paper_ii_generalized_exchange_v2",
+    "avqds": "avqds_adaptive_append_v1",
 }
 ACTION_SUFFIXES = {
     "q_compiled": "__exchange_q_compiled",
     "gamma_compiled": "__exchange_gamma_compiled",
     "repaired_proxy": "__exchange_legacy_proxy_fixed",
 }
+
+HISTORICAL_STITCHED_ROUTES = frozenset({"old_proxy", "avqds"})
+APM_ROUTES = tuple(route for route in ROUTE_ORDER if route != "avqds")
 
 _INSERTION_MARKER_RE = re.compile(r"::(?:insr|avqds)[0-9]+c[0-9]+o[0-9]+")
 _OCCURRENCE_RE = re.compile(r"::ap_occ(?:urrence\[)?[0-9]+\]?")
@@ -251,7 +257,7 @@ def _short_cycle_count(
     return int(count)
 
 
-def structural_churn(
+def support_motion(
     runs: Sequence[Mapping[str, Any]],
     *,
     short_cycle_window: int = 2,
@@ -310,7 +316,6 @@ def structural_churn(
 
     added_count = int(sum(additions.values()))
     deleted_count = int(sum(deletions.values()))
-    gross = added_count + deleted_count
     initial_count = len(initial)
     final_count = int(sum(current.values()))
     same_checkpoint_replacements = sum(
@@ -334,8 +339,6 @@ def structural_churn(
         "support_changing_checkpoint_count": support_change_count,
         "added_coordinate_count": added_count,
         "deleted_coordinate_count": deleted_count,
-        "gross_churn": gross,
-        "excess_churn": gross - abs(final_count - initial_count),
         "short_cycle_window_support_changes": int(short_cycle_window),
         "short_delete_to_readd_count": delete_to_readd,
         "short_add_to_redelete_count": add_to_redelete,
@@ -346,6 +349,94 @@ def structural_churn(
             scored_not_selected_lower_bound
         ),
         "decision_reason_counts": dict(sorted(reason_counts.items())),
+    }
+
+
+# Compatibility for callers of the first report prototype.  New artifacts and
+# reader-facing text use ``support_motion`` and do not emit gross/excess churn.
+structural_churn = support_motion
+
+
+def deletion_gate_outcomes(
+    runs: Sequence[Mapping[str, Any]],
+    *,
+    applicable: bool,
+) -> dict[str, Any]:
+    """Count persisted deletion-bearing finalist outcomes.
+
+    The selector records every materialized finalist under
+    ``patch_decision.metadata.attempts``.  Older payloads cap this list at the
+    last 16 attempts per checkpoint, so the result explicitly says whether the
+    counts are exact or lower bounds.  Rejections before materialization are
+    kept separate from failures of the post-delete certification/realized
+    authority gates.
+    """
+
+    if not applicable:
+        return {
+            "applicable": False,
+            "attempt_record_complete": True,
+            "deletion_bearing_finalist_attempt_count": None,
+            "pre_certification_rejection_count": None,
+            "post_delete_gate_failure_count": None,
+            "certified_deletion_bearing_finalist_count": None,
+            "committed_deletion_patch_count": None,
+            "post_delete_failure_reason_counts": {},
+            "pre_certification_failure_reason_counts": {},
+        }
+
+    complete = True
+    deletion_attempts = 0
+    pre_certification_rejections = 0
+    post_delete_failures = 0
+    certified_deletion_finalists = 0
+    committed_deletion_patches = 0
+    post_reasons: Counter[str] = Counter()
+    pre_reasons: Counter[str] = Counter()
+    pre_certification_prefixes = (
+        "insertion_resolution_failed:",
+        "compiled_word_identity_mismatch",
+    )
+
+    for run in runs:
+        for point in ((run.get("trajectory") or {}).get("points") or ()):
+            decision = point.get("patch_decision") or {}
+            if bool(decision.get("accepted")) and str(decision.get("patch_kind")) in {
+                "delete",
+                "exchange",
+            }:
+                committed_deletion_patches += 1
+            metadata = decision.get("metadata") or {}
+            attempts = tuple(metadata.get("attempts") or ())
+            declared = int(metadata.get("attempt_count", len(attempts)) or 0)
+            if declared != len(attempts):
+                complete = False
+            for attempt in attempts:
+                if not tuple(attempt.get("removed_runtime_indices") or ()):
+                    continue
+                deletion_attempts += 1
+                reason = str(attempt.get("reason") or "undeclared")
+                if reason == "certified":
+                    certified_deletion_finalists += 1
+                elif reason.startswith(pre_certification_prefixes):
+                    pre_certification_rejections += 1
+                    pre_reasons[reason] += 1
+                else:
+                    post_delete_failures += 1
+                    post_reasons[reason] += 1
+
+    return {
+        "applicable": True,
+        "attempt_record_complete": bool(complete),
+        "deletion_bearing_finalist_attempt_count": int(deletion_attempts),
+        "pre_certification_rejection_count": int(pre_certification_rejections),
+        "post_delete_gate_failure_count": int(post_delete_failures),
+        "certified_deletion_bearing_finalist_count": int(
+            certified_deletion_finalists
+        ),
+        "committed_deletion_patch_count": int(committed_deletion_patches),
+        "post_delete_failure_reason_counts": dict(sorted(post_reasons.items())),
+        "pre_certification_failure_reason_counts": dict(sorted(pre_reasons.items())),
     }
 
 
@@ -389,12 +480,13 @@ def _accuracy_record(
     *,
     drive: str,
     controller: str,
+    method: str,
     policy: Any,
 ) -> dict[str, Any]:
     key = CellKey(
         regime="hh_snake_nph1",
         drive=drive,
-        method="exchange",
+        method=str(method),
         controller=controller,
     )
     components = policy.response_components(metrics, key=key, horizon="t20")
@@ -451,6 +543,7 @@ def _summarize_source(
     controller: str,
     reference: ExactReferenceArtifact,
     policy: Any,
+    artifact_roots: Sequence[Path],
     expected_hashes: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     runs = [_read_json(path) for path in source.run_paths]
@@ -476,6 +569,26 @@ def _summarize_source(
         int((run.get("summary") or {})["accepted_internal_substep_count"])
         for run in runs
     )
+    declared_runtime_source = runs[-1].get("source_artifact_json")
+    runtime_source_record = None
+    if declared_runtime_source is not None:
+        try:
+            resolved_runtime_source = _resolve_existing_path(
+                str(declared_runtime_source),
+                roots=artifact_roots,
+            )
+        except FileNotFoundError:
+            runtime_source_record = {
+                "declared_path": str(declared_runtime_source),
+                "resolved_path": None,
+                "sha256": None,
+            }
+        else:
+            runtime_source_record = {
+                "declared_path": str(declared_runtime_source),
+                "resolved_path": str(resolved_runtime_source),
+                "sha256": _sha256(resolved_runtime_source),
+            }
     record = {
         "route": source.route,
         "route_label": ROUTE_LABELS[source.route],
@@ -487,19 +600,25 @@ def _summarize_source(
         "run_sources": [
             {"path": str(path), "sha256": _sha256(path)} for path in source.run_paths
         ],
+        "terminal_runtime_source_artifact": runtime_source_record,
         "time_step_count": int(steps),
         "n_theta": int((runs[-1].get("summary") or {})["runtime_parameter_count_final"]),
         "accuracy": _accuracy_record(
             metrics,
             drive=drive,
             controller=controller,
+            method="avqds" if source.route == "avqds" else "exchange",
             policy=policy,
         ),
         "estimator_work": integration_geometry_work(runs),
-        "structural_churn": structural_churn(runs),
+        "support_motion": support_motion(runs),
+        "deletion_gate_outcomes": deletion_gate_outcomes(
+            runs,
+            applicable=source.route != "avqds",
+        ),
         "run_locks": [run.get("run_lock") for run in runs],
     }
-    if source.route != "old_proxy":
+    if source.route not in HISTORICAL_STITCHED_ROUTES:
         record["completion"] = _validate_direct_source(source)
     return record
 
@@ -527,34 +646,35 @@ def build_comparison(
             str(exact_source["path"]), repository_root=repository_root
         )
         reference = _locked_reference(reference_path)
-        old_sources = locked_cell["source_artifacts"]["apm"]
-        old = RunSource(
-            route="old_proxy",
-            cell_id=cell_id,
-            run_paths=(
-                _resolve_existing_path(
-                    str(old_sources["screen_run_json"]["path"]),
-                    roots=artifact_roots,
+        route_records: dict[str, Any] = {}
+        for route, source_name in (("old_proxy", "apm"), ("avqds", "avqds")):
+            locked_sources = locked_cell["source_artifacts"][source_name]
+            source = RunSource(
+                route=route,
+                cell_id=cell_id,
+                run_paths=(
+                    _resolve_existing_path(
+                        str(locked_sources["screen_run_json"]["path"]),
+                        roots=artifact_roots,
+                    ),
+                    _resolve_existing_path(
+                        str(locked_sources["continuation_run_json"]["path"]),
+                        roots=artifact_roots,
+                    ),
                 ),
-                _resolve_existing_path(
-                    str(old_sources["continuation_run_json"]["path"]),
-                    roots=artifact_roots,
-                ),
-            ),
-        )
-        route_records: dict[str, Any] = {
-            "old_proxy": _summarize_source(
-                old,
+            )
+            route_records[route] = _summarize_source(
+                source,
                 drive=drive,
                 controller=controller,
                 reference=reference,
                 policy=policy,
+                artifact_roots=artifact_roots,
                 expected_hashes=(
-                    str(old_sources["screen_run_json"]["sha256"]),
-                    str(old_sources["continuation_run_json"]["sha256"]),
+                    str(locked_sources["screen_run_json"]["sha256"]),
+                    str(locked_sources["continuation_run_json"]["sha256"]),
                 ),
             )
-        }
         for route in ("repaired_proxy", "q_compiled", "gamma_compiled"):
             source = direct.get((cell_id, route))
             if source is None:
@@ -565,12 +685,13 @@ def build_comparison(
                 controller=controller,
                 reference=reference,
                 policy=policy,
+                artifact_roots=artifact_roots,
             )
 
         fresh_locks = [
             record["run_locks"][0]
             for route, record in route_records.items()
-            if route != "old_proxy"
+            if route not in HISTORICAL_STITCHED_ROUTES
         ]
         comparison_fingerprint = None
         if len(fresh_locks) >= 2:
@@ -588,7 +709,20 @@ def build_comparison(
         complete = all(route in route_records for route in ROUTE_ORDER)
         clique = bool(
             complete
-            and len(pairwise) == 6
+            and len(pairwise) == math.comb(len(ROUTE_ORDER), 2)
+            and all(pair["passes"] for pair in pairwise.values())
+        )
+        apm_complete = all(route in route_records for route in APM_ROUTES)
+        apm_pair_names = {
+            f"{left}__{right}"
+            for left, right in itertools.combinations(APM_ROUTES, 2)
+        }
+        apm_clique = bool(
+            apm_complete
+            and all(pairwise[name]["passes"] for name in apm_pair_names)
+        )
+        available_clique = bool(
+            len(route_records) >= 2
             and all(pair["passes"] for pair in pairwise.values())
         )
         all_individual = bool(
@@ -598,12 +732,24 @@ def build_comparison(
                 for route in ROUTE_ORDER
             )
         )
+        reportable = bool(
+            {"old_proxy", "repaired_proxy", "avqds"}.issubset(route_records)
+            and ({"q_compiled", "gamma_compiled"} & set(route_records))
+        )
         tier = (
             "individual_target"
             if clique and all_individual
             else "comparison_guard"
             if clique
+            else "same_cell_route_best"
+            if reportable
             else "unmatched"
+        )
+        achieved_route = max(
+            route_records,
+            key=lambda route: float(
+                route_records[route]["accuracy"]["accuracy_burden"]
+            ),
         )
         cells.append(
             {
@@ -620,8 +766,20 @@ def build_comparison(
                 "routes": route_records,
                 "missing_routes": [route for route in ROUTE_ORDER if route not in route_records],
                 "pairwise_accuracy": pairwise,
-                "four_way_complete": complete,
-                "four_way_clique": clique,
+                "all_routes_complete": complete,
+                "all_routes_clique": clique,
+                "available_routes_clique": available_clique,
+                "apm_four_route_complete": apm_complete,
+                "apm_four_route_clique": apm_clique,
+                "four_way_complete": apm_complete,
+                "four_way_clique": apm_clique,
+                "reportable_current_best": reportable,
+                "achieved_accuracy_floor": {
+                    "route": achieved_route,
+                    "accuracy_burden": float(
+                        route_records[achieved_route]["accuracy"]["accuracy_burden"]
+                    ),
+                },
                 "comparison_tier": tier,
             }
         )
@@ -652,17 +810,38 @@ def build_comparison(
                 "shot allocation and commuting-group structure",
             ],
         },
-        "structural_churn_definition": {
+        "support_motion_definition": {
             "coordinate_identity": "exact runtime-coordinate label multiset",
             "recurrence_identity": (
                 "insertion-instance and append-occurrence suffixes removed"
             ),
             "short_cycle_window_support_changes": 2,
         },
+        "deletion_gate_definition": {
+            "attempt_unit": "one deletion-bearing finalist materialization",
+            "post_delete_failure": (
+                "a deletion-bearing finalist rejected by certification or the "
+                "realized-authority gate after pre-certification resolution"
+            ),
+            "completeness": (
+                "exact when every checkpoint's persisted attempt list equals its "
+                "declared attempt_count; otherwise reported counts are lower bounds"
+            ),
+            "avqds": "not applicable because the locked AVQDS route is append-only",
+        },
         "summary": {
             "locked_cell_count": len(cells),
-            "four_way_complete_count": sum(cell["four_way_complete"] for cell in cells),
-            "four_way_clique_count": sum(cell["four_way_clique"] for cell in cells),
+            "all_routes_complete_count": sum(cell["all_routes_complete"] for cell in cells),
+            "all_routes_clique_count": sum(cell["all_routes_clique"] for cell in cells),
+            "apm_four_route_complete_count": sum(
+                cell["apm_four_route_complete"] for cell in cells
+            ),
+            "apm_four_route_clique_count": sum(
+                cell["apm_four_route_clique"] for cell in cells
+            ),
+            "reportable_current_best_count": sum(
+                cell["reportable_current_best"] for cell in cells
+            ),
             "individual_target_count": sum(
                 cell["comparison_tier"] == "individual_target" for cell in cells
             ),
@@ -684,8 +863,9 @@ def build_terminal_compile_plan(
     output_root: Path,
     include_comparison_guard: bool = False,
     include_complete_target: bool = False,
+    include_reportable_current_best: bool = True,
 ) -> dict[str, Any]:
-    """Plan identical fresh terminal compiles for matched four-route cells."""
+    """Plan identical fresh terminal compiles for reader-facing cells."""
 
     allowed_tiers = {"individual_target"}
     if include_comparison_guard:
@@ -693,7 +873,7 @@ def build_terminal_compile_plan(
     jobs: list[dict[str, Any]] = []
     for cell in comparison.get("cells") or ():
         complete_target = bool(
-            cell.get("four_way_complete")
+            cell.get("all_routes_complete")
             and all(
                 (cell.get("routes") or {}).get(route, {})
                 .get("accuracy", {})
@@ -705,17 +885,32 @@ def build_terminal_compile_plan(
         if (
             cell.get("comparison_tier") not in allowed_tiers
             and not (include_complete_target and complete_target)
+            and not (
+                include_reportable_current_best
+                and cell.get("reportable_current_best") is True
+            )
         ):
             continue
         for route in ROUTE_ORDER:
+            if route not in cell["routes"]:
+                continue
             route_record = cell["routes"][route]
             terminal_source = route_record["run_sources"][-1]
+            runtime_source = route_record.get("terminal_runtime_source_artifact") or {}
+            if runtime_source.get("resolved_path") is None:
+                raise FileNotFoundError(
+                    "cannot plan terminal compilation without the runtime source "
+                    f"artifact for {cell['cell_id']}/{route}: "
+                    f"{runtime_source.get('declared_path')}"
+                )
             jobs.append(
                 {
                     "cell_id": str(cell["cell_id"]),
                     "route": route,
                     "trajectory_json": str(terminal_source["path"]),
                     "trajectory_sha256": str(terminal_source["sha256"]),
+                    "source_artifact_json": str(runtime_source["resolved_path"]),
+                    "source_artifact_sha256": str(runtime_source["sha256"]),
                     "output_cost_table_json": str(
                         output_root / str(cell["cell_id"]) / f"{route}.json"
                     ),
@@ -723,7 +918,7 @@ def build_terminal_compile_plan(
                 }
             )
     return {
-        "schema": "paper_ii_four_route_terminal_compile_plan_v1",
+        "schema": "paper_ii_selector_terminal_compile_plan_v2",
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "comparison_sha256": hashlib.sha256(
             json.dumps(
@@ -735,6 +930,7 @@ def build_terminal_compile_plan(
         ).hexdigest(),
         "selection_tiers": sorted(allowed_tiers),
         "include_complete_target": bool(include_complete_target),
+        "include_reportable_current_best": bool(include_reportable_current_best),
         "profile": {
             "backend_name": "FakeMarrakesh",
             "seed_transpiler": 7,
