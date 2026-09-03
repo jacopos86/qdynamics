@@ -562,6 +562,10 @@ class EstimatorCallLedger:
         self._records: dict[str, _PrimitiveRecord] = {}
         self._occurrences: list[_OccurrenceRecord] = []
         self._next_sequence = 1
+        # O(1) occurrence count.  It equals
+        # ``len(to_payload()["occurrences"])`` because sequences are
+        # contiguous from 1 (``from_payload`` enforces this on restore).
+        self._occurrence_count = 0
 
     def __len__(self) -> int:
         with self._lock:
@@ -637,6 +641,7 @@ class EstimatorCallLedger:
                     charged=bool(charged),
                 )
             )
+            self._occurrence_count += 1
             return EstimatorCallReceipt(
                 primitive_id=primitive_id,
                 charged=charged,
@@ -646,6 +651,40 @@ class EstimatorCallLedger:
                 branch_id=branch,
                 occurrence_sequence=sequence,
             )
+
+    def occurrence_count(self) -> int:
+        """Return the number of occurrences this ledger recorded, in O(1).
+
+        Equals ``len(self.to_payload()["occurrences"])`` without building
+        the payload, both for calls recorded through this instance and
+        after ``from_payload``.
+        """
+
+        with self._lock:
+            return int(self._occurrence_count)
+
+    def occurrence_rows(
+        self,
+        start: int = 0,
+        end: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return ``to_payload()["occurrences"][start:end]`` directly.
+
+        Row content and order are identical to the full-payload projection;
+        only the requested window is materialized (a list slice), instead
+        of the entries, fingerprint digest, and summaries ``to_payload``
+        also builds.
+        """
+
+        start_index = int(start)
+        if start_index < 0:
+            raise ValueError("start must be >= 0.")
+        end_index = None if end is None else int(end)
+        if end_index is not None and end_index < start_index:
+            raise ValueError("end must be >= start.")
+        with self._lock:
+            window = self._occurrences[start_index:end_index]
+            return [occurrence.as_dict() for occurrence in window]
 
     def occurrence_summary(
         self,
@@ -1284,6 +1323,7 @@ class EstimatorCallLedger:
                         )
             ledger._occurrences = occurrences
             ledger._next_sequence = len(occurrences) + 1
+            ledger._occurrence_count = len(occurrences)
 
         rebuilt = ledger.to_payload()
         if data.get("ledger_fingerprint") != rebuilt["ledger_fingerprint"]:
