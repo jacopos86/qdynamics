@@ -17,6 +17,7 @@ import copy
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 import math
+import time
 from types import MappingProxyType
 from typing import Any, Callable, Protocol
 
@@ -574,16 +575,91 @@ def _selection_state_matches_accepted(
     )
 
 
+WALL_CLOCK_BUDGET_STOP_REASON = "wall_clock_budget_v1"
+
+
+@dataclass(frozen=True, slots=True)
+class WallClockBudget:
+    """Operational wall-clock horizon evaluated only at round boundaries.
+
+    The budget is not part of :class:`SRStopPolicy` or any resolved
+    protocol: it is an execution mechanic (``RAAdaptOperationalControls``)
+    that may shorten, never extend, the authorized horizon.  ``elapsed`` is
+    measured on the monotonic clock from ``started_monotonic``; the owner
+    (``run_ra_adapt``) stamps that at its own entry.  The controller asks
+    :meth:`exhausted` only after a round has completed and been projected,
+    so the round in flight always finishes and every segment makes at
+    least one round of progress before the budget can stop it.
+    """
+
+    maximum_seconds: float
+    started_monotonic: float
+
+    def __post_init__(self) -> None:
+        maximum = self.maximum_seconds
+        if (
+            isinstance(maximum, bool)
+            or not math.isfinite(float(maximum))
+            or float(maximum) < 0.0
+        ):
+            raise ValueError(
+                "maximum_seconds must be a nonnegative finite number."
+            )
+        object.__setattr__(self, "maximum_seconds", float(maximum))
+        object.__setattr__(
+            self, "started_monotonic", float(self.started_monotonic)
+        )
+
+    @classmethod
+    def start(cls, maximum_seconds: float) -> "WallClockBudget":
+        """Open a budget whose clock starts now."""
+
+        return cls(
+            maximum_seconds=maximum_seconds,
+            started_monotonic=time.monotonic(),
+        )
+
+    def elapsed_seconds(self) -> float:
+        return max(0.0, time.monotonic() - self.started_monotonic)
+
+    def exhausted(self, *, elapsed_seconds: float | None = None) -> bool:
+        elapsed = (
+            self.elapsed_seconds()
+            if elapsed_seconds is None
+            else float(elapsed_seconds)
+        )
+        return elapsed >= self.maximum_seconds
+
+
 def _configured_stop_receipt(
     policy: SRStopPolicy,
     accepted_state: _AcceptedStateSnapshot,
     *,
     accepted_states: tuple[_AcceptedStateSnapshot, ...] = (),
+    wall_clock_budget: WallClockBudget | None = None,
 ) -> StopReceipt:
-    """Evaluate every configured condition on one post-transition state."""
+    """Evaluate every configured condition on one post-transition state.
+
+    ``wall_clock_budget`` adds the operational ``wall_clock_budget_v1``
+    condition after the protocol conditions; it is absent from the receipt
+    when no budget is configured, so unbudgeted receipts are unchanged.
+    """
 
     completed = int(accepted_state.controller_round)
     maximum_fired = completed >= int(policy.maximum_controller_rounds)
+    if wall_clock_budget is not None and not isinstance(
+        wall_clock_budget, WallClockBudget
+    ):
+        raise TypeError("wall_clock_budget must be a WallClockBudget or None")
+    wall_clock_elapsed = (
+        None
+        if wall_clock_budget is None
+        else wall_clock_budget.elapsed_seconds()
+    )
+    wall_clock_fired = bool(
+        wall_clock_budget is not None
+        and wall_clock_budget.exhausted(elapsed_seconds=wall_clock_elapsed)
+    )
     exact = policy.exact_ed_target
     exact_difference = (
         None
@@ -632,12 +708,24 @@ def _configured_stop_receipt(
                 fired=exact_fired,
             )
         )
+    if wall_clock_budget is not None:
+        conditions.append(
+            StopConditionReceipt(
+                reason=WALL_CLOCK_BUDGET_STOP_REASON,
+                active=True,
+                fired=wall_clock_fired,
+            )
+        )
 
     fired_reasons: list[str] = []
     if exact_fired:
         fired_reasons.append("exact_ed_target_reached")
     if maximum_fired:
         fired_reasons.append("maximum_controller_rounds")
+    if wall_clock_fired:
+        # Lowest precedence: a protocol stop that fires in the same round
+        # keeps its own primary reason.
+        fired_reasons.append(WALL_CLOCK_BUDGET_STOP_REASON)
     primary_reason = (
         fired_reasons[0] if fired_reasons else "controller_continues"
     )
@@ -664,6 +752,12 @@ def _configured_stop_receipt(
             else int(exact.confirmation_controller_rounds)
         ),
         exact_first_hit_controller_round=exact_first_hit_round,
+        wall_clock_budget_seconds=(
+            None
+            if wall_clock_budget is None
+            else float(wall_clock_budget.maximum_seconds)
+        ),
+        wall_clock_elapsed_seconds=wall_clock_elapsed,
     )
 
 
@@ -756,11 +850,17 @@ def _assert_projected_event(
 def _run_default_singleton_controller(
     runtime: _DefaultControllerNumericalRuntime,
     stop_policy: SRStopPolicy,
+    *,
+    wall_clock_budget: WallClockBudget | None = None,
 ) -> _ControllerOutcome:
     """Run the exact singleton controller to a configured stop."""
 
     if not isinstance(stop_policy, SRStopPolicy):
         raise TypeError("stop_policy must be an SRStopPolicy")
+    if wall_clock_budget is not None and not isinstance(
+        wall_clock_budget, WallClockBudget
+    ):
+        raise TypeError("wall_clock_budget must be a WallClockBudget or None")
 
     initial_state = runtime.initial_accepted_state
     state = initial_state
@@ -877,6 +977,7 @@ def _run_default_singleton_controller(
                 stop_policy,
                 state,
                 accepted_states=tuple(accepted_states),
+                wall_clock_budget=wall_clock_budget,
             )
             if stop.fired_reasons:
                 break
@@ -913,6 +1014,7 @@ def _run_default_batch_controller(
     runtime: _DefaultControllerNumericalRuntime,
     stop_policy: SRStopPolicy,
     *,
+    wall_clock_budget: WallClockBudget | None = None,
     select_batch: Callable[
         [_SRControllerState, _SelectionWorkspace],
         _GreedyBatchAdmissionDecision
@@ -933,6 +1035,10 @@ def _run_default_batch_controller(
 
     if not isinstance(stop_policy, SRStopPolicy):
         raise TypeError("stop_policy must be an SRStopPolicy")
+    if wall_clock_budget is not None and not isinstance(
+        wall_clock_budget, WallClockBudget
+    ):
+        raise TypeError("wall_clock_budget must be a WallClockBudget or None")
 
     initial_state = runtime.initial_accepted_state
     state = initial_state
@@ -987,6 +1093,7 @@ def _run_default_batch_controller(
                 stop_policy,
                 state,
                 accepted_states=tuple(accepted_states),
+                wall_clock_budget=wall_clock_budget,
             )
             if stop.fired_reasons:
                 break
@@ -1023,6 +1130,8 @@ def _run_default_greedy_batch_controller(
     runtime: _DefaultControllerNumericalRuntime,
     stop_policy: SRStopPolicy,
     admission: GreedyBatchAdmission,
+    *,
+    wall_clock_budget: WallClockBudget | None = None,
 ) -> _ControllerOutcome:
     """Run the greedy route with one atomic batch transition per round."""
 
@@ -1045,6 +1154,7 @@ def _run_default_greedy_batch_controller(
     return _run_default_batch_controller(
         runtime,
         stop_policy,
+        wall_clock_budget=wall_clock_budget,
         select_batch=_select,
         transition_batch=_transition_greedy_batch,
     )
@@ -1054,6 +1164,8 @@ def _run_default_combinatorial_batch_controller(
     runtime: _DefaultControllerNumericalRuntime,
     stop_policy: SRStopPolicy,
     admission: CombinatorialBatchAdmission,
+    *,
+    wall_clock_budget: WallClockBudget | None = None,
 ) -> _ControllerOutcome:
     """Run the exhaustive-subset route with one atomic round transition."""
 
@@ -1080,6 +1192,7 @@ def _run_default_combinatorial_batch_controller(
     return _run_default_batch_controller(
         runtime,
         stop_policy,
+        wall_clock_budget=wall_clock_budget,
         select_batch=_select,
         transition_batch=_transition_combinatorial_batch,
     )

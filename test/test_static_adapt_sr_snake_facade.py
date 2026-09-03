@@ -689,6 +689,134 @@ def test_exact_stop_does_not_fire_without_an_accepted_refit() -> None:
     assert receipt.exact_observed_absolute_difference == 0.0
 
 
+def _accepted_round_snapshot(controller_round: int) -> _AcceptedStateSnapshot:
+    operator_ids = tuple(
+        f"generator:{index}" for index in range(controller_round)
+    )
+    return _AcceptedStateSnapshot(
+        controller_round=controller_round,
+        accepted_operator_ids=operator_ids,
+        accepted_insertion_positions=tuple(range(controller_round)),
+        logical_parameter_ids=tuple(
+            f"theta:{index}" for index in range(controller_round)
+        ),
+        logical_parameter_values=(0.1,) * controller_round,
+        runtime_parameter_ids=tuple(
+            f"theta:{index}" for index in range(controller_round)
+        ),
+        runtime_parameter_values=(0.1,) * controller_round,
+        accepted_energy=-0.75,
+        accepted_state_fingerprint=f"round-{controller_round}",
+        available_generator_ids=("generator:0", "generator:1"),
+        selection_counts=(
+            ("generator:0", min(controller_round, 1)),
+            ("generator:1", max(controller_round - 1, 0)),
+        ),
+        trust_state_identity=f"trust:{controller_round}",
+        optimizer_memory_identity=f"optimizer:{controller_round}",
+        estimator_prefix_identity=f"ledger:{controller_round}",
+    )
+
+
+def test_wall_clock_budget_is_an_operational_round_boundary_stop() -> None:
+    """The wall-clock budget lives outside SRStopPolicy and ranks last.
+
+    It is only ever consulted on a completed round, so a segment always
+    makes progress; an exhausted budget stops the controller with its own
+    ``wall_clock_budget_v1`` reason exactly like ``maximum_controller_rounds``
+    does, and it never displaces a protocol stop that fires in the same
+    round.  Without a budget the receipt is byte-identical to before.
+    """
+
+    import time
+
+    policy = SRStopPolicy(maximum_controller_rounds=2)
+    round_one = _accepted_round_snapshot(1)
+    round_two = _accepted_round_snapshot(2)
+
+    unbudgeted = sr_controller._configured_stop_receipt(policy, round_one)
+    assert [condition.reason for condition in unbudgeted.conditions] == [
+        "maximum_controller_rounds"
+    ]
+    assert unbudgeted.primary_reason == "controller_continues"
+    assert unbudgeted.wall_clock_budget_seconds is None
+    assert unbudgeted.wall_clock_elapsed_seconds is None
+    assert "wall_clock_budget_seconds" not in unbudgeted.to_dict()
+    assert "wall_clock_elapsed_seconds" not in unbudgeted.to_dict()
+
+    generous = sr_controller.WallClockBudget.start(1.0e6)
+    continuing = sr_controller._configured_stop_receipt(
+        policy,
+        round_one,
+        wall_clock_budget=generous,
+    )
+    assert [condition.reason for condition in continuing.conditions] == [
+        "maximum_controller_rounds",
+        sr_controller.WALL_CLOCK_BUDGET_STOP_REASON,
+    ]
+    assert continuing.conditions[1].fired is False
+    assert continuing.primary_reason == "controller_continues"
+    assert continuing.wall_clock_budget_seconds == 1.0e6
+    assert continuing.wall_clock_elapsed_seconds is not None
+    assert continuing.wall_clock_elapsed_seconds >= 0.0
+
+    spent = sr_controller.WallClockBudget(
+        maximum_seconds=5.0,
+        started_monotonic=time.monotonic() - 10.0,
+    )
+    assert spent.exhausted() is True
+    stopped = sr_controller._configured_stop_receipt(
+        policy,
+        round_one,
+        wall_clock_budget=spent,
+    )
+    assert stopped.primary_reason == "wall_clock_budget_v1"
+    assert stopped.fired_reasons == ("wall_clock_budget_v1",)
+    assert stopped.conditions[0].fired is False
+    assert stopped.conditions[1].fired is True
+    assert stopped.completed_controller_rounds == 1
+    assert stopped.wall_clock_budget_seconds == 5.0
+    assert stopped.wall_clock_elapsed_seconds >= 10.0
+    assert stopped.to_dict()["wall_clock_budget_seconds"] == 5.0
+
+    zero = sr_controller.WallClockBudget.start(0.0)
+    assert zero.exhausted() is True
+    assert sr_controller._configured_stop_receipt(
+        policy,
+        round_one,
+        wall_clock_budget=zero,
+    ).primary_reason == "wall_clock_budget_v1"
+
+    both = sr_controller._configured_stop_receipt(
+        policy,
+        round_two,
+        accepted_states=(round_one, round_two),
+        wall_clock_budget=spent,
+    )
+    assert both.primary_reason == "maximum_controller_rounds"
+    assert both.fired_reasons == (
+        "maximum_controller_rounds",
+        "wall_clock_budget_v1",
+    )
+
+    with pytest.raises(ValueError, match="nonnegative finite"):
+        sr_controller.WallClockBudget(
+            maximum_seconds=-1.0,
+            started_monotonic=0.0,
+        )
+    with pytest.raises(ValueError, match="nonnegative finite"):
+        sr_controller.WallClockBudget(
+            maximum_seconds=float("inf"),
+            started_monotonic=0.0,
+        )
+    with pytest.raises(TypeError, match="WallClockBudget"):
+        sr_controller._configured_stop_receipt(
+            policy,
+            round_one,
+            wall_clock_budget=5.0,  # type: ignore[arg-type]
+        )
+
+
 @pytest.mark.parametrize(
     "components, s_alg, message",
     [

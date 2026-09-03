@@ -22967,6 +22967,10 @@ class _DefaultNoPruneNumericalSession:
             "phase_iii_no_positive_feasible_candidate": (
                 "phase_iii_no_positive_feasible_candidate"
             ),
+            # Operational wall-clock horizon (sr_snake._controller
+            # WALL_CLOCK_BUDGET_STOP_REASON): a deliberately stopped
+            # prefix, finalized exactly like ``max_depth``.
+            "wall_clock_budget_v1": "wall_clock_budget_v1",
         }
         try:
             stop_reason = stop_reason_by_controller_reason[

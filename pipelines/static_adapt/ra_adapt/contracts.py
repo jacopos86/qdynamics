@@ -283,6 +283,15 @@ class RAAdaptOperationalControls(SerializableContract):
     These controls may shorten the authorized controller horizon, select a
     typed accepted-state resume checkpoint, and redirect observation
     sidecars.  They never enter or replace the resolved scientific protocol.
+
+    ``maximum_wall_seconds`` shortens the horizon in wall-clock seconds
+    instead of rounds.  The engine measures it from ``run_ra_adapt`` entry
+    and evaluates it only at controller-round boundaries, after each
+    completed round has been checkpointed: the round in flight always
+    finishes, so a segment always makes at least one round of progress,
+    and the stop is recorded as the ``wall_clock_budget_v1`` reason exactly
+    the way a ``maximum_controller_rounds`` stop is.  ``None`` (the default)
+    configures no budget and reproduces the unbudgeted behavior.
     """
 
     kind: ClassVar[str] = "ra_adapt_operational_controls_v1"
@@ -294,6 +303,7 @@ class RAAdaptOperationalControls(SerializableContract):
     observation: SRObservationPolicy = field(
         default_factory=SRObservationPolicy
     )
+    maximum_wall_seconds: float | None = None
 
     def __post_init__(self) -> None:
         rounds = self.maximum_controller_rounds
@@ -318,6 +328,19 @@ class RAAdaptOperationalControls(SerializableContract):
             raise TypeError(
                 "observation must be an SRObservationPolicy."
             )
+        wall = self.maximum_wall_seconds
+        if wall is not None:
+            if (
+                isinstance(wall, bool)
+                or not isinstance(wall, (int, float))
+                or not math.isfinite(float(wall))
+                or float(wall) < 0.0
+            ):
+                raise ValueError(
+                    "maximum_wall_seconds must be None or a nonnegative "
+                    "finite number of seconds."
+                )
+            object.__setattr__(self, "maximum_wall_seconds", float(wall))
 
 
 @dataclass(frozen=True)

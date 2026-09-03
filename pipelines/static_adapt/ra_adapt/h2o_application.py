@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
+import time
 from typing import Any
 
 from pipelines.contracts.problem import ProblemRequest
@@ -34,6 +36,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
     EstimatorLedgerObservation,
     ExactEDSourceReceipt,
     ExactEDStop,
+    FreshStart,
     PlateauCommutationInsertion,
     PruningOff,
     SRExecutionPolicy,
@@ -186,7 +189,27 @@ def build_h2o_ra_request(
     )
 
 
+def _engine_wall_budget_seconds(
+    max_wall_seconds: float | None,
+    *,
+    startup_seconds: float,
+) -> float | None:
+    """Translate the CLI wall budget into the engine's run-entry budget.
+
+    The CLI budget is measured from ``main()`` entry.  Fixture loading,
+    protocol resolution, and manifest writing happen before the engine's
+    own clock starts at ``run_ra_adapt`` entry, so that startup time is
+    deducted here (floored at zero: the engine still completes the round
+    in flight, so a zero budget means "stop after the first round").
+    """
+
+    if max_wall_seconds is None:
+        return None
+    return max(0.0, float(max_wall_seconds) - float(startup_seconds))
+
+
 def main() -> None:
+    main_entry_monotonic = time.monotonic()
     parser = argparse.ArgumentParser()
     parser.add_argument("--fixture", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -247,7 +270,30 @@ def main() -> None:
             "own current.json and would otherwise overwrite the source."
         ),
     )
+    parser.add_argument(
+        "--max-wall-seconds",
+        type=float,
+        default=None,
+        help=(
+            "Operational wall-clock budget for this segment, measured from "
+            "CLI entry (interpreter start-up and imports excluded). It is "
+            "checked only at controller-round boundaries, after each "
+            "completed round has been checkpointed, so the round in flight "
+            "always finishes and the segment makes at least one round of "
+            "progress; when the budget is spent the controller stops with "
+            "reason wall_clock_budget_v1, writes result.json and "
+            "summary.json, and exits 0 so the outputs transfer. Size it as "
+            "(pool wall) - (longest round) - margin. Default: no budget. "
+            "The resolved protocol and protocol_sha256 are unaffected."
+        ),
+    )
     args = parser.parse_args()
+    if args.max_wall_seconds is not None and not (
+        math.isfinite(args.max_wall_seconds) and args.max_wall_seconds >= 0.0
+    ):
+        parser.error(
+            "--max-wall-seconds must be a nonnegative finite number."
+        )
 
     fixture = args.fixture.expanduser().resolve()
     output_dir = args.output_dir.expanduser().resolve()
@@ -303,6 +349,11 @@ def main() -> None:
     )
     protocol = build_resolved_ra_protocol(problem, request)
     _write_json(output_dir / "protocol.json", protocol.to_dict())
+    startup_seconds = time.monotonic() - main_entry_monotonic
+    engine_wall_budget_seconds = _engine_wall_budget_seconds(
+        args.max_wall_seconds,
+        startup_seconds=startup_seconds,
+    )
     _write_json(
         output_dir / "launch_manifest.json",
         {
@@ -313,6 +364,13 @@ def main() -> None:
             "route_profile": protocol.route_contract["route_profile"],
             "route_contract_sha256": protocol.route_contract["sha256"],
             "maximum_controller_rounds": args.maximum_controller_rounds,
+            "max_wall_seconds": args.max_wall_seconds,
+            "max_wall_seconds_engine_budget": engine_wall_budget_seconds,
+            "max_wall_seconds_startup_deducted": startup_seconds,
+            "max_wall_seconds_reference": (
+                "cli_main_entry; checked only at controller-round "
+                "boundaries after each completed round"
+            ),
             "gradient_tolerance": args.gradient_tolerance,
             "exact_absolute_tolerance": args.exact_absolute_tolerance,
             "exact_confirmation_controller_rounds": (
@@ -339,6 +397,10 @@ def main() -> None:
                 "protocol_sha256": protocol.sha256,
                 "route_profile": protocol.route_contract["route_profile"],
                 "maximum_controller_rounds": args.maximum_controller_rounds,
+                "max_wall_seconds": args.max_wall_seconds,
+                "max_wall_seconds_engine_budget": (
+                    engine_wall_budget_seconds
+                ),
                 "gradient_tolerance": args.gradient_tolerance,
                 "exact_absolute_tolerance": args.exact_absolute_tolerance,
                 "exact_confirmation_controller_rounds": (
@@ -354,20 +416,31 @@ def main() -> None:
         ),
         flush=True,
     )
-    if resume_checkpoint is None:
+    # Operational controls never enter the resolved protocol; they are
+    # built only when a segment mechanic (resume, wall budget) is requested,
+    # so an unadorned launch still calls the facade exactly as before.
+    operational_controls: RAAdaptOperationalControls | None = None
+    if resume_checkpoint is not None or engine_wall_budget_seconds is not None:
+        operational_controls = RAAdaptOperationalControls(
+            maximum_controller_rounds=args.maximum_controller_rounds,
+            resume=(
+                FreshStart()
+                if resume_checkpoint is None
+                else AcceptedStateResume(
+                    checkpoint_path=resume_checkpoint,
+                    checkpoint_sha256=_sha256(resume_checkpoint),
+                )
+            ),
+            observation=request.observation,
+            maximum_wall_seconds=engine_wall_budget_seconds,
+        )
+    if operational_controls is None:
         result = run_ra_adapt(problem, protocol)
     else:
         result = run_ra_adapt(
             problem,
             protocol,
-            operational_controls=RAAdaptOperationalControls(
-                maximum_controller_rounds=args.maximum_controller_rounds,
-                resume=AcceptedStateResume(
-                    checkpoint_path=resume_checkpoint,
-                    checkpoint_sha256=_sha256(resume_checkpoint),
-                ),
-                observation=request.observation,
-            ),
+            operational_controls=operational_controls,
         )
     _write_json(result_path, result.to_dict())
     _write_json(
@@ -382,6 +455,14 @@ def main() -> None:
             ),
             "accepted_operator_count": result.run.stop.accepted_operator_count,
             "stop_reason": result.run.stop.primary_reason,
+            "stop_fired_reasons": list(result.run.stop.fired_reasons),
+            "max_wall_seconds": args.max_wall_seconds,
+            "wall_clock_budget_seconds": (
+                result.run.stop.wall_clock_budget_seconds
+            ),
+            "wall_clock_elapsed_seconds": (
+                result.run.stop.wall_clock_elapsed_seconds
+            ),
             "energy_hartree": result.run.final_state.energy,
             "exact_energy_hartree": (
                 result.run.canonical_reporting.exact_same_cutoff_energy

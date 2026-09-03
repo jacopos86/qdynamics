@@ -12,6 +12,7 @@ from dataclasses import replace
 import hashlib
 import json
 import math
+import time
 from typing import Any, Mapping
 
 from pipelines.contracts.problem import ResolvedProblemContext
@@ -209,6 +210,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
     SingletonAdmission,
 )
 from pipelines.static_adapt.ra_adapt.runtime import (
+    WallClockBudget,
     _execute_resolved_context,
 )
 from pipelines.static_adapt.sr_snake_route_profile import (
@@ -5734,9 +5736,14 @@ def run_ra_adapt(
     ``operational_controls`` is available only for an already validated,
     bundle-resolved protocol.  It can shorten (never extend) the authorized
     horizon, authenticate a resume checkpoint, and redirect observation
-    sidecars without mutating the protocol or its digest.
+    sidecars without mutating the protocol or its digest.  Its optional
+    ``maximum_wall_seconds`` opens a wall-clock horizon measured from this
+    entry point and evaluated only at controller-round boundaries.
     """
 
+    # Stamp the wall-clock reference before any validation or hydration so
+    # an operational budget accounts for everything this call does.
+    entry_monotonic = time.monotonic()
     if not isinstance(problem, ResolvedProblemContext):
         raise TypeError("problem must be a ResolvedProblemContext.")
     family_key = str(problem.family_key).strip().lower()
@@ -5939,6 +5946,15 @@ def run_ra_adapt(
                 "Accepted-state continuation requires an operational "
                 "horizon of at least two controller rounds."
             )
+    wall_clock_budget: WallClockBudget | None = (
+        None
+        if operational_controls is None
+        or operational_controls.maximum_wall_seconds is None
+        else WallClockBudget(
+            maximum_seconds=float(operational_controls.maximum_wall_seconds),
+            started_monotonic=entry_monotonic,
+        )
+    )
     (
         candidate_inventory_lineage,
         executable_inventory,
@@ -5989,7 +6005,11 @@ def run_ra_adapt(
             sr_request,
             route_override=route_override,
         )
-        completed = _execute_resolved_context(context, sr_request)
+        completed = _execute_resolved_context(
+            context,
+            sr_request,
+            wall_clock_budget=wall_clock_budget,
+        )
     else:
         route_contract_request = (
             protocol.request
@@ -6030,7 +6050,11 @@ def run_ra_adapt(
             route_override=route_override,
             candidate_adapter=public_request.adapter,
         )
-        completed = _execute_resolved_context(context, sr_request)
+        completed = _execute_resolved_context(
+            context,
+            sr_request,
+            wall_clock_budget=wall_clock_budget,
+        )
 
     finalization = completed.finalization.to_serialization_mapping()
     policy = _policy_receipt(
