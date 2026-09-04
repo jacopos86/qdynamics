@@ -5109,6 +5109,44 @@ streaming resume hydration, local runner/CHTC template. Handoff Increments 2–3
 as written (parallel compile, surrogate) were dropped: ≤ 10 s per round at
 stake.
 
+### 2026-09-04 — B3 tail: result-minimal / count-only execution mode (Claude)
+
+Executes `chtc/paper_i_ra_adapt_repair_20260727/HANDOFF_PAPER_I_B3_RESULT_MINIMAL_TAIL_20260904.md`
+on branch `claude/paper-i-b3-result-minimal-20260904` (worktree
+`Holstein_test.worktrees/claude-paper-i-b3-result-minimal`, base `74d2ae58`,
+not pushed). No CHTC job submitted, released, or touched; the six held shadows
+and the running originals are untouched. Report:
+`docs/reports/PAPER_I_B3_RESULT_MINIMAL_TAIL_IMPLEMENTATION_20260904.md` on
+that branch.
+
+| Commit | Change |
+|---|---|
+| `a496e218` | opt-in `SRObservationPolicy(result_minimal=ResultMinimalObservation(dir))`: `CountOnlyEstimatorLedger` (same `record_call`, four component counters + 𝓔, rolling audit digest, bounded per-round window, every row/registry read raises), `SlimHistory`, ansatz-bounded `current.json` written once per accepted round and never rewritten at completion, fsync'd `result_rows.jsonl` with exactly `k, abs_delta_e, N_2q, D_2q, D_c, mathcal_E`, `result_manifest.json`, minimal resume loader reusing the canonical validators |
+| `f715994d` | gates 1–6 (`test/test_result_minimal_mode.py`, 15 tests) |
+| `c0f6c83b` | authenticated legacy→minimal converter with receipt and next-decision parity (gate 7, 9 tests) |
+| `a1b0422a` | `paper_i_b3_result_minimal_tail_20260904_v1_chtc` segment package: six cells, bounded segments (default 4 rounds), legacy-or-minimal staged resume, fail-closed worker, 256 MiB per-file cap, unfilled `resume_sources.json`, authorization refused until sealed (7 tests) |
+| `698e21d8` | report |
+
+Measured on the `weak_weak` `n_ph_max=3` B3 always-open fixture (5 rounds,
+uninterrupted, same horizon): legacy 33 s / 598 MB peak / 73.1 MB checkpoint +
+17.8 MB sidecar / 0.5→3.4 s per-round write + 3.8 s forced terminal; minimal
+13 s / 288 MB / 0.96 MB / 0 sidecar / 0.03→0.06 s. Bytes per estimator
+occurrence 7058 → 26. Energies, generator ids, positions, logical point, 𝓔
+components bitwise equal legacy↔minimal and uninterrupted↔split-resume in both
+modes; `abs_delta_e` carries a 4e-16 `E_exact` recompute difference (1e-12
+tolerance). Converter: 0.8 s, 828 KB from 45.6 MB, audit digest identical to a
+native minimal run, same next decision. Legacy route suites: 12 failures, all
+pre-existing on `f041a5c1`.
+
+Codex fills before submission: `resume_sources.json` rows (+ seal), the
+`memory_mb` envelope (65,536 MiB placeholder; nph=7 minimal peak must be
+measured), `execution_authorization.json`. Rows use the selector's
+FakeMarrakesh trial compile (opt 1, seed 7), not the manuscript's post-run
+`table_i_basis_gate_transpile_v1` convention; the compile contract id is in
+every row. Minimal checkpoint size model: ≈ 27 KB + 60 B·k² per round row
+(k×k chart metrics in the retained refit/trust receipts) plus a 388 KB prefix;
+k=75 projected 15–30 MB.
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
