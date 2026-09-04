@@ -8,9 +8,9 @@ logical-estimator accounting, and support-motion burdens as separate coordinates
 
 The APM route identities are the historical unit-cost proxy, the repaired
 analytical proxy, the realized-Gamma(v-star) compiled selector, and the
-ideal-Gamma(v)-ranked compiled selector.  The locked matched AVQDS baseline is
-included as a fifth human-facing column.  The legacy internal route keys remain
-unchanged so archived actions and receipts stay addressable.
+ideal-Gamma(v)-ranked compiled selector.  A fresh direct AVQDS rerun supplies
+the fifth human-facing column when available.  The legacy internal route keys
+remain unchanged so archived actions and receipts stay addressable.
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ ROUTE_LABELS = {
     "gamma_compiled": "ideal Gamma(v)-ranked compiled",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy (historical stitched)",
-    "avqds": "AVQDS (historical stitched)",
+    "avqds": "AVQDS",
 }
 ROUTE_BUNDLES = {
     "q_compiled": "paper_ii_exchange_q_compiled_v1",
@@ -66,9 +66,10 @@ ACTION_SUFFIXES = {
     "q_compiled": "__exchange_q_compiled",
     "gamma_compiled": "__exchange_gamma_compiled",
     "repaired_proxy": "__exchange_legacy_proxy_fixed",
+    "avqds": "__avqds",
 }
 
-HISTORICAL_STITCHED_ROUTES = frozenset({"old_proxy", "avqds"})
+HISTORICAL_STITCHED_ROUTES = frozenset({"old_proxy"})
 APM_ROUTES = tuple(route for route in ROUTE_ORDER if route != "avqds")
 
 _INSERTION_MARKER_RE = re.compile(r"::(?:insr|avqds)[0-9]+c[0-9]+o[0-9]+")
@@ -140,7 +141,7 @@ def _route_and_cell(action_id: str) -> tuple[str, str] | None:
 
 
 def discover_direct_runs(roots: Sequence[Path]) -> dict[tuple[str, str], RunSource]:
-    """Find the three direct t=20 route products below explicit narrow roots."""
+    """Find direct t=20 APM and AVQDS products below explicit narrow roots."""
 
     result: dict[tuple[str, str], RunSource] = {}
     for root in roots:
@@ -190,15 +191,33 @@ def _validate_direct_source(source: RunSource) -> dict[str, Any]:
     completion_path = run_path.with_name("completion_receipt.json")
     cost_path = run_path.with_name("terminal_qiskit_cost.json")
     completion = _read_json(completion_path)
-    if completion.get("status") != "SUCCESS":
+    status = str(completion.get("status") or "")
+    if status not in {"SUCCESS", "SUCCESS_EXACT"}:
         raise ValueError(f"direct run is not successful: {run_path}")
-    expected_bundle = ROUTE_BUNDLES[source.route]
-    if completion.get("exchange_route_bundle") != expected_bundle:
-        raise ValueError(f"route-bundle mismatch for {run_path}")
+    if source.route == "avqds":
+        if completion.get("route") not in {None, "avqds"}:
+            raise ValueError(f"route mismatch for {run_path}")
+    else:
+        expected_bundle = ROUTE_BUNDLES[source.route]
+        if completion.get("exchange_route_bundle") != expected_bundle:
+            raise ValueError(f"route-bundle mismatch for {run_path}")
     if completion.get("trajectory_sha256") != _sha256(run_path):
         raise ValueError(f"trajectory digest mismatch for {run_path}")
     if completion.get("terminal_cost_sha256") != _sha256(cost_path):
         raise ValueError(f"worker terminal-cost digest mismatch for {run_path}")
+    exact_work = None
+    if status == "SUCCESS_EXACT":
+        work_path = run_path.with_name("exact_estimator_work.json")
+        exact_work = _read_json(work_path)
+        if (
+            completion.get("schema")
+            != "paper_ii_final_estimator_telemetry_completion_v1"
+            or completion.get("route") != source.route
+            or completion.get("terminal_cost_status") != "SUCCESS"
+            or completion.get("estimator_work_sha256") != _sha256(work_path)
+            or exact_work.get("status") != "EXACT"
+        ):
+            raise ValueError(f"exact telemetry receipt mismatch for {run_path}")
     return {
         "completion_receipt": {
             "path": str(completion_path),
@@ -210,6 +229,10 @@ def _validate_direct_source(source: RunSource) -> dict[str, Any]:
         },
         "code_revision": str(completion.get("code_revision")),
         "route_contract_sha256": str(completion.get("exchange_route_contract_sha256")),
+        "completion_status": status,
+        "estimator_work_status": (
+            None if exact_work is None else str(exact_work.get("status"))
+        ),
     }
 
 
@@ -1301,7 +1324,7 @@ def build_comparison(
         )
         reference = _locked_reference(reference_path)
         route_records: dict[str, Any] = {}
-        for route, source_name in (("old_proxy", "apm"), ("avqds", "avqds")):
+        for route, source_name in (("old_proxy", "apm"),):
             locked_sources = locked_cell["source_artifacts"][source_name]
             source = RunSource(
                 route=route,
@@ -1329,7 +1352,7 @@ def build_comparison(
                     str(locked_sources["continuation_run_json"]["sha256"]),
                 ),
             )
-        for route in ("repaired_proxy", "q_compiled", "gamma_compiled"):
+        for route in ("repaired_proxy", "q_compiled", "gamma_compiled", "avqds"):
             source = direct.get((cell_id, route))
             if source is None:
                 continue
@@ -1387,7 +1410,7 @@ def build_comparison(
             )
         )
         reportable = bool(
-            {"old_proxy", "repaired_proxy", "avqds"}.issubset(route_records)
+            {"old_proxy", "repaired_proxy"}.issubset(route_records)
             and ({"q_compiled", "gamma_compiled"} & set(route_records))
         )
         tier = (

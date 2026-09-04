@@ -22,7 +22,7 @@ DISPLAY_LABELS = {
     "gamma_compiled": r"$\Gamma(v)$",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy$^{*}$",
-    "avqds": "AVQDS$^{*}$",
+    "avqds": "AVQDS",
 }
 
 
@@ -514,6 +514,10 @@ def render_latex(
     markdown_name: str,
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
+    route_counts = comparison.get("summary", {}).get("route_available_counts", {})
+    fresh_routes = ("q_compiled", "gamma_compiled", "repaired_proxy", "avqds")
+    fresh_available = sum(int(route_counts.get(route, 0)) for route in fresh_routes)
+    fresh_target = 4 * len(comparison.get("cells") or ())
     pages = []
     for index, cell in enumerate(selected_cells):
         achieved = cell["achieved_accuracy_floor"]
@@ -533,7 +537,8 @@ def render_latex(
 \begin{{center}}
 {{\LARGE\bfseries Paper II current-best selector comparison}}\\[3pt]
 {{\small Five side-by-side routes on locked final $t=20$ cells;
-$\Gamma(v^\star)$ is realized and $\Gamma(v)$ is ideal-ranked; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}
+$\Gamma(v^\star)$ is realized and $\Gamma(v)$ is ideal-ranked; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}\\[2pt]
+{{\small Interim exact-estimator refresh: {fresh_available} of {fresh_target} fresh final runs available.}}
 \end{{center}}
 \hrule
 \vspace{{5pt}}
@@ -584,7 +589,7 @@ lower bounds are not declared winners.
 }}
 {{\scriptsize $g(p)=p(p+1)/2+p+2$; $\geq$ marks an incomplete-round/refit or
 net-motion lower bound.  No hardware-shot ledger; dash means not applicable;
-$^*$historical stitched baseline.  Full definitions: linked Markdown.}}
+$^*$historical stitched old-proxy baseline.  Full definitions: linked Markdown.}}
 """
         pages.append(page.strip())
     body = "\n\n\\newpage\n\n".join(pages)
@@ -617,6 +622,10 @@ def render_markdown(
     calibration_path: Path | None = None,
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
+    route_counts = comparison.get("summary", {}).get("route_available_counts", {})
+    fresh_routes = ("q_compiled", "gamma_compiled", "repaired_proxy", "avqds")
+    fresh_available = sum(int(route_counts.get(route, 0)) for route in fresh_routes)
+    fresh_target = 4 * len(comparison.get("cells") or ())
     if calibration is not None and calibration_path is not None:
         calibration_lines = [
             f"- Calibration gate: `{calibration.get('status')}`; receipt "
@@ -642,12 +651,13 @@ def render_markdown(
         "",
         f"- Schema: `{REPORT_SCHEMA}`.",
         f"- Included cells: {len(selected_cells)} same-drive, same-controller route-best comparisons.",
+        f"- Fresh final runs available: {fresh_available}/{fresh_target}; unfinished routes are shown as pending.",
         f"- Complete five-route cells: {sum(cell.get('all_routes_complete') is True for cell in selected_cells)}.",
         f"- Available-route strict accuracy cliques: {sum(cell.get('available_routes_clique') is True for cell in selected_cells)}.",
         "- Scope: locked final 501-point t=0..20 cells only; no screens, threshold ladders, smoke runs, or precursor rows.",
-        "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; historical AVQDS.",
+        "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; fresh AVQDS.",
         "- Internal provenance mapping: `q_compiled` is the manuscript's realized `Gamma(v*)` route; `gamma_compiled` is its ideal `Gamma(v)`-ranked route. The legacy keys remain unchanged so existing actions and receipts retain stable identities.",
-        "- A cell is shown once either compiled Gamma route is available alongside both proxy routes and AVQDS. Missing compiled routes remain explicitly pending.",
+        "- A cell is shown once either compiled Gamma route is available alongside the old and repaired proxy routes. Missing compiled routes and fresh AVQDS remain explicitly pending.",
         f"- Fresh terminal compilation: {sum(len(cell.get('terminal_costs') or {}) for cell in selected_cells)} displayed route/cell arms, all validated under local-only `FakeMarrakesh`, optimization level 1, transpiler seed 7, with terminal-reconstruction parity and trajectory-digest binding.",
         "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",

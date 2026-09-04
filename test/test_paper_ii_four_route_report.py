@@ -166,7 +166,8 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "is realized and" in tex
     assert "repaired proxy" in tex
     assert "old proxy$^{*}$" in tex
-    assert "AVQDS$^{*}$" in tex
+    assert "AVQDS" in tex
+    assert "Interim exact-estimator refresh:" in tex
     assert "Propagation geometry elements" in tex
     assert "Checkpoint geometry elements" in tex
     assert "Candidate acquisition elements" in tex

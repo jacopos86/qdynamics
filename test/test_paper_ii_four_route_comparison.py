@@ -5,12 +5,20 @@ from types import SimpleNamespace
 from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
     _base_coordinate_id,
     _pair_match,
+    _route_and_cell,
     build_terminal_compile_plan,
     complete_estimator_work,
     deletion_gate_outcomes,
     integration_geometry_work,
     structural_churn,
 )
+
+
+def test_direct_avqds_action_maps_to_fresh_route() -> None:
+    assert _route_and_cell("weakslow__delta_theta_5e-5__avqds") == (
+        "avqds",
+        "weakslow__delta_theta_5e-5",
+    )
 
 
 def _point(labels, *, accepted, candidates=4, scored=3, reason="test"):
