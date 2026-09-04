@@ -44,7 +44,12 @@ admitted resume state (on the campaign branch).
 Three findings block or reshape the requested plan. They are verified against
 source, not inferred.
 
-### 0.1 The graph-span cost proxy cannot run at 19 qubits
+### 0.1 The graph-span cost proxy cannot run at 19 qubits — **SUPERSEDED 2026-09-03**
+
+> Resolved by `af222b69` (19q entry + `--cost-mode`) and `3bcf490f` (claim made
+> honest, early fail-closed). The only open item is *which* 19-tuple; see the
+> status table. Do not re-derive the blocker below; it is kept as history.
+
 
 `marrakesh_graph_span_v1` resolves a physical layout from a hard-coded table:
 
