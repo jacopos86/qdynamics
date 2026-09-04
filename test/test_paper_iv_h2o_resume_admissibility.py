@@ -813,11 +813,6 @@ def test_sector_checkpoint_resumes_through_the_seam_under_compact_layout(
 
 
 @_round_runs
-@pytest.mark.xfail(
-    strict=True,
-    raises=RuntimeError,
-    reason=_SECTOR_LINEAGE_DEFECT_REASON,
-)
 def test_sector_arm_resumes_under_compact_layout_with_history_tail_one(
     july_problem, sector_segment_one, tmp_path: Path
 ) -> None:

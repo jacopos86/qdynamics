@@ -241,8 +241,12 @@ renders with `--resume-checkpoint` and matching sidecar digests.
 | `3bcf490f` | Embedding claim made honest (chosen, not derived; alternatives B/C/D/F with spans in the code comment), two coupling-map property tests, `(10,8,8)` boson-block spans pinned against the tracked fixture, `validate_cost_mode_register_size` before any file is written (0.42 s fail on the 15q fixture, nothing created) | 65 passed; default sha `34683ac8…` unchanged |
 | `315b96e2` | merge of the three | fast baseline **237 passed, 21 skipped, 1 pre-existing failure**; package rebuilt, preflight **21/21** |
 
-Sector-arm end-to-end resume test un-xfailed after the merge (uncommitted
-until the opt-in chain run confirms it).
+Sector-arm end-to-end resume test un-xfailed after the merge and **confirmed**:
+opt-in chain run on `315b96e2` (`PAPER_IV_H2O_CLI_RUNS=1`, both files,
+`-k "sector_arm or segment_chain or macro_arm or wall_budget_stops"`) →
+**6 passed** in 27 min 45 s, peak RSS 867 MB under `ram_guard`. Both arms now
+stop under `--max-wall-seconds`, exit 0 with `result.json`, and resume from
+their own `current.json` + sidecar into a fresh output directory.
 
 ### Still gated on the user
 
