@@ -25,8 +25,8 @@ the structural stage.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from typing import Any, Callable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 
@@ -53,6 +53,17 @@ from pipelines.time_dynamics.ap_mclachlan.state import (
 
 
 CERTIFICATION_SCHEMA_V1 = "ap_mclachlan_exchange_certification_v1"
+CERTIFICATION_ESTIMATOR_WORK_SCHEMA_V1 = (
+    "paper_ii_exchange_certification_estimator_work_v1"
+)
+_REFIT_WORK_COUNTER_ATTRIBUTE = "_paper_ii_refit_work_counter"
+
+
+def _geometry_entry_count(parameter_count: int) -> int:
+    p = int(parameter_count)
+    if p < 0:
+        raise ValueError("parameter_count must be non-negative.")
+    return int(p * (p + 1) // 2 + p + 2)
 
 
 def remap_cuts_after_deletion(
@@ -108,6 +119,7 @@ class CertificationResult:
     theta: np.ndarray | None = None
     evaluation: GeometryEvaluation | None = None
     step: FixedMcLachlanStep | None = None
+    estimator_work: Mapping[str, Any] = field(default_factory=dict)
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -118,6 +130,7 @@ class CertificationResult:
             "smoothness_eta": self.smoothness_eta,
             "phase_alignment_abs_overlap": self.phase_alignment_abs_overlap,
             "condition_number": self.condition_number,
+            "estimator_work": dict(self.estimator_work),
         }
 
 
@@ -153,6 +166,10 @@ def build_local_ray_refit(
         raise ValueError("max_iterations must be at least 1.")
     target = np.asarray(target_psi, dtype=complex).reshape(-1)
     target = target / float(np.linalg.norm(target))
+    work_counter = {
+        "objective_evaluation_attempt_count": 0,
+        "objective_evaluation_count": 0,
+    }
 
     def refit(
         state: APMcLachlanState, theta: np.ndarray
@@ -166,6 +183,7 @@ def build_local_ray_refit(
         psi_ref = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
 
         def objective(values: np.ndarray) -> tuple[float, np.ndarray]:
+            work_counter["objective_evaluation_attempt_count"] += 1
             psi, tangents = state.executor.prepare_state_with_parameter_tangents(
                 np.asarray(values, dtype=float),
                 psi_ref,
@@ -179,6 +197,7 @@ def build_local_ray_refit(
                 grad[j] = -2.0 * float(
                     np.real(np.conj(overlap) * np.vdot(target, tangent))
                 )
+            work_counter["objective_evaluation_count"] += 1
             return float(1.0 - abs(overlap) ** 2), grad
 
         f0, _g0 = objective(theta0)
@@ -201,6 +220,7 @@ def build_local_ray_refit(
             return state, theta0
         return state, refitted
 
+    setattr(refit, _REFIT_WORK_COUNTER_ATTRIBUTE, work_counter)
     return refit
 
 
@@ -229,6 +249,79 @@ def certify_finalist(
     """
 
     removed = tuple(sorted(set(int(i) for i in removed_runtime_indices)))
+    refit_counter = (
+        None
+        if refit is None
+        else getattr(refit, _REFIT_WORK_COUNTER_ATTRIBUTE, None)
+    )
+    refit_attempts_before = int(
+        0
+        if refit_counter is None
+        else refit_counter.get("objective_evaluation_attempt_count", 0)
+    )
+    refit_completed_before = int(
+        0
+        if refit_counter is None
+        else refit_counter.get("objective_evaluation_count", 0)
+    )
+    work: dict[str, Any] = {
+        "schema": CERTIFICATION_ESTIMATOR_WORK_SCHEMA_V1,
+        "base_runtime_parameter_count": int(state.runtime_parameter_count),
+        "patched_runtime_parameter_count": None,
+        "refit_requested": bool(refit is not None),
+        "refit_counter_available": bool(refit is None or refit_counter is not None),
+        "refit_objective_evaluation_attempt_count": 0,
+        "refit_objective_evaluation_count": 0,
+        "logical_refit_entry_count": 0,
+        "full_geometry_evaluation_attempt_count": 0,
+        "full_geometry_evaluation_count": 0,
+        "logical_full_geometry_entry_count": 0,
+        "ray_overlap_check_count": 0,
+        "velocity_check_count": 0,
+        "complete": True,
+    }
+
+    def refresh_refit_work() -> None:
+        if refit is None:
+            return
+        if refit_counter is None:
+            work["complete"] = False
+            return
+        attempted = int(
+            refit_counter.get("objective_evaluation_attempt_count", 0)
+        ) - refit_attempts_before
+        completed = int(
+            refit_counter.get("objective_evaluation_count", 0)
+        ) - refit_completed_before
+        work["refit_objective_evaluation_attempt_count"] = int(attempted)
+        work["refit_objective_evaluation_count"] = int(completed)
+        parameter_count = work.get("patched_runtime_parameter_count")
+        if parameter_count is not None:
+            work["logical_refit_entry_count"] = int(
+                completed * (int(parameter_count) + 1)
+            )
+        if attempted != completed:
+            work["complete"] = False
+
+    def work_receipt() -> dict[str, Any]:
+        refresh_refit_work()
+        receipt = dict(work)
+        receipt["logical_total_estimator_entries"] = int(
+            int(receipt["logical_refit_entry_count"])
+            + int(receipt["logical_full_geometry_entry_count"])
+        )
+        return receipt
+
+    def result(
+        *, certified: bool, reason: str, **kwargs: Any
+    ) -> CertificationResult:
+        return CertificationResult(
+            certified=bool(certified),
+            reason=str(reason),
+            estimator_work=work_receipt(),
+            **kwargs,
+        )
+
     try:
         pruned_state, pruned_theta = state_without_runtime_indices(
             state, removed, theta_runtime=theta_runtime
@@ -243,14 +336,21 @@ def certify_finalist(
         patched_state, patched_theta = state_with_inserted_runtime_coordinates(
             pruned_state, insertions=entries, theta_runtime=pruned_theta
         )
+        work["patched_runtime_parameter_count"] = int(
+            patched_state.runtime_parameter_count
+        )
         if refit is not None:
-            patched_state, patched_theta = refit(patched_state, patched_theta)
+            try:
+                patched_state, patched_theta = refit(patched_state, patched_theta)
+            finally:
+                refresh_refit_work()
             patched_theta = np.asarray(patched_theta, dtype=float).reshape(-1)
     except (ValueError, APMcLachlanStateParityError, np.linalg.LinAlgError) as exc:
-        return CertificationResult(
+        return result(
             certified=False, reason=f"materialization_failed:{exc}"
         )
 
+    work["full_geometry_evaluation_attempt_count"] = 1
     try:
         patched_evaluation = evaluate_mclachlan_geometry(
             state=patched_state,
@@ -259,6 +359,17 @@ def certify_finalist(
             time=float(time),
             include_tangent_matrix=True,
         )
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        work["complete"] = False
+        return result(
+            certified=False, reason=f"patched_solve_failed:{exc}"
+        )
+
+    work["full_geometry_evaluation_count"] = 1
+    work["logical_full_geometry_entry_count"] = _geometry_entry_count(
+        int(patched_state.runtime_parameter_count)
+    )
+    try:
         if solve_repair_config is not None and bool(solve_repair_config.enabled):
             patched_step = solve_fixed_mclachlan_step_with_repair(
                 patched_evaluation.geometry,
@@ -272,13 +383,13 @@ def certify_finalist(
                 inverse_policy=inverse_policy,
             )
     except (ValueError, np.linalg.LinAlgError) as exc:
-        return CertificationResult(
+        return result(
             certified=False, reason=f"patched_solve_failed:{exc}"
         )
 
     theta_dot = np.asarray(patched_step.theta_dot, dtype=float).reshape(-1)
     if not np.all(np.isfinite(theta_dot)):
-        return CertificationResult(certified=False, reason="patched_solve_nonfinite")
+        return result(certified=False, reason="patched_solve_nonfinite")
 
     condition = patched_step.condition_number
     if (
@@ -286,22 +397,24 @@ def certify_finalist(
         and condition is not None
         and float(condition) > float(gates.condition_number_max)
     ):
-        return CertificationResult(
+        return result(
             certified=False,
             reason="condition_number_above_max",
             condition_number=float(condition),
         )
 
     deletion_containing = bool(removed)
+    work["ray_overlap_check_count"] = 1
     ray = _ray_distance(base_evaluation.psi, patched_evaluation.psi)
     if deletion_containing and ray > float(gates.ray_distance_max):
-        return CertificationResult(
+        return result(
             certified=False,
             reason="ray_distance_above_max",
             ray_distance=ray,
             condition_number=None if condition is None else float(condition),
         )
 
+    work["velocity_check_count"] = 1
     try:
         base_velocity = state_space_velocity_from_evaluation(
             base_evaluation, base_step.theta_dot
@@ -323,13 +436,13 @@ def certify_finalist(
         )
         eta = float(max(0.0, float(np.real(np.vdot(delta, delta)))) / denom)
     except (ValueError, np.linalg.LinAlgError) as exc:
-        return CertificationResult(
+        return result(
             certified=False,
             reason=f"smoothness_unavailable:{exc}",
             ray_distance=ray,
         )
     if deletion_containing and eta > float(gates.smoothness_eta_max):
-        return CertificationResult(
+        return result(
             certified=False,
             reason="smoothness_eta_above_max",
             ray_distance=ray,
@@ -337,7 +450,7 @@ def certify_finalist(
             phase_alignment_abs_overlap=float(magnitude),
         )
 
-    return CertificationResult(
+    return result(
         certified=True,
         reason="certified",
         ray_distance=ray,
@@ -353,6 +466,7 @@ def certify_finalist(
 
 __all__ = [
     "CERTIFICATION_SCHEMA_V1",
+    "CERTIFICATION_ESTIMATOR_WORK_SCHEMA_V1",
     "build_local_ray_refit",
     "CertificationGates",
     "CertificationResult",

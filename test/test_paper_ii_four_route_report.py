@@ -39,8 +39,14 @@ def _route_record(route: str) -> dict:
             "certification_geometry_status": (
                 "not_applicable" if route == "avqds" else "lower_bound"
             ),
+            "logical_refit_estimator_work": (
+                None if route == "avqds" else 10
+            ),
+            "refit_estimator_status": (
+                "not_applicable" if route == "avqds" else "lower_bound"
+            ),
             "logical_total_estimator_work": (
-                550 if route == "avqds" else 590
+                550 if route == "avqds" else 600
             ),
             "logical_total_estimator_work_status": "lower_bound",
             "physical_shots": None,
@@ -165,6 +171,7 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "Checkpoint geometry elements" in tex
     assert "Candidate acquisition elements" in tex
     assert "Finalist geometry elements" in tex
+    assert "Local-refit estimator elements" in tex
     assert "Total logical estimator elements" in tex
     assert "$\\geq$300" in tex
     assert "Gross churn" not in tex
@@ -176,6 +183,7 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "`benchmark_point_sameness`, `seed_provenance`" in markdown
     assert "This is no-evidence, not a pass" in markdown
     assert "logical_candidate_acquisition_work" in markdown
+    assert "logical_refit_estimator_work" in markdown
     assert ">=300" in markdown
     assert "unavailable_statevector_no_shot_ledger" in markdown
 

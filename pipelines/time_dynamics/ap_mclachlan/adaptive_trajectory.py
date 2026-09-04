@@ -1105,8 +1105,12 @@ def run_append_mclachlan_trajectory(
                     )
                     insertion_rounds = 0
                     round_labels: list[str] = []
+                    selection_round_work: list[dict[str, Any]] = []
 
                     for _round in range(max_rounds + 1):
+                        selector_pre_support = int(
+                            current_state.runtime_parameter_count
+                        )
                         with phase(PHASE_UNIFIED_SELECT):
                             selection, selection_payload = select_generalized_exchange_patch(
                                 state=current_state,
@@ -1129,6 +1133,33 @@ def run_append_mclachlan_trajectory(
                             maybe_step,
                         ) = _decision_from_exchange_selection(
                             selection, selection_payload
+                        )
+                        selector_post_support = (
+                            int(maybe_state.runtime_parameter_count)
+                            if decision.accepted and maybe_state is not None
+                            else int(selector_pre_support)
+                        )
+                        round_estimator_work = dict(
+                            selection_payload.get("estimator_work") or {}
+                        )
+                        selection_round_work.append(
+                            {
+                                "schema": "paper_ii_exchange_selection_round_work_v1",
+                                "selector_call_index": int(len(selection_round_work)),
+                                "pre_runtime_parameter_count": int(
+                                    selector_pre_support
+                                ),
+                                "post_runtime_parameter_count": int(
+                                    selector_post_support
+                                ),
+                                "accepted": bool(decision.accepted),
+                                "patch_kind": str(decision.patch_kind),
+                                "reason": str(decision.reason),
+                                "estimator_work": round_estimator_work,
+                                "complete": bool(
+                                    round_estimator_work.get("complete", False)
+                                ),
+                            }
                         )
                         if gate_mode != "mclachlan_l2":
                             break
@@ -1159,18 +1190,33 @@ def run_append_mclachlan_trajectory(
                         # to 20 while L^2 went from 4.5e-4 to 1.3e-3.
                         if checkpoint_l2 >= l2_before_round:
                             break
+                    round_metadata: dict[str, Any] = {
+                        "selection_round_work_schema": (
+                            "paper_ii_exchange_selection_round_work_v1"
+                        ),
+                        "selection_round_work": list(selection_round_work),
+                        "selector_call_count": int(len(selection_round_work)),
+                        "accepted_selector_count": int(
+                            sum(bool(row["accepted"]) for row in selection_round_work)
+                        ),
+                    }
                     if gate_mode == "mclachlan_l2":
-                        decision = replace(
-                            decision,
-                            metadata={
-                                **dict(decision.metadata or {}),
+                        round_metadata.update(
+                            {
                                 "insertion_gate_mode": gate_mode,
                                 "insertion_rounds": int(insertion_rounds),
                                 "insertion_round_kinds": list(round_labels),
                                 "checkpoint_l2_final": float(checkpoint_l2),
                                 "insertion_l2_cut": float(l2_cut),
-                            },
+                            }
                         )
+                    decision = replace(
+                        decision,
+                        metadata={
+                            **dict(decision.metadata or {}),
+                            **round_metadata,
+                        },
+                    )
             if (
                 not committed_in_round_loop
                 and decision.accepted

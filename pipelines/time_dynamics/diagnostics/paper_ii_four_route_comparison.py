@@ -463,8 +463,8 @@ def integration_geometry_work(runs: Sequence[Mapping[str, Any]]) -> dict[str, in
 
     One RHS geometry at support size p is charged p(p+1)/2 symmetric metric
     entries, p force entries, and two scalar observables.  This is not a
-    hardware shot count and excludes checkpoint candidate acquisition and
-    certification work that the current artifacts do not ledger completely.
+    hardware shot count. Checkpoint, candidate-acquisition, certification, and
+    local-refit work are accounted separately by :func:`complete_estimator_work`.
     """
 
     rhs_count = 0
@@ -601,8 +601,9 @@ def complete_estimator_work(
     """Account for propagation, checkpoint, candidate, and finalist geometry.
 
     Values are logical scalar-geometry entries under the same convention as
-    :func:`integration_geometry_work`.  They are not hardware shots.  Missing
-    per-round selector and refit ledgers force explicit lower-bound statuses.
+    :func:`integration_geometry_work`.  They are not hardware shots.  New
+    artifacts carry exact per-round selector and refit ledgers; legacy or
+    interrupted artifacts retain explicit lower-bound statuses.
     """
 
     result: dict[str, Any] = dict(integration_geometry_work(runs))
@@ -612,8 +613,12 @@ def complete_estimator_work(
     candidate_work = 0
     certification_evaluations = 0
     certification_work = 0
+    refit_evaluations = 0
+    refit_work = 0
+    selector_call_count = 0
     candidate_exact = True
     certification_exact = True
+    refit_exact = True
     selection_round_ledger_complete = True
     inference_counts: Counter[str] = Counter()
 
@@ -639,6 +644,88 @@ def complete_estimator_work(
             metadata = decision.get("metadata") or {}
 
             if route == "avqds":
+                exact_work = metadata.get("estimator_work") or {}
+                geometry_rounds = tuple(
+                    metadata.get("candidate_geometry_rounds") or ()
+                )
+                if (
+                    exact_work.get("schema")
+                    == "paper_ii_avqds_estimator_work_v1"
+                ):
+                    declared_rounds = int(
+                        exact_work.get(
+                            "selector_round_count", len(geometry_rounds)
+                        )
+                    )
+                    attempted = int(
+                        exact_work.get(
+                            "full_geometry_evaluation_attempt_count", 0
+                        )
+                    )
+                    completed = int(
+                        exact_work.get("full_geometry_evaluation_count", 0)
+                    )
+                    entries = int(
+                        exact_work.get("logical_candidate_geometry_entries", 0)
+                    )
+                    rounds_consistent = all(
+                        int(row.get("round_index", -1)) == expected_index
+                        and int(row.get("base_runtime_parameter_count", -1)) >= 0
+                        and int(row.get("candidate_runtime_parameter_count", -1))
+                        == int(row.get("base_runtime_parameter_count", -1)) + 1
+                        and int(row.get("materialization_failure_count", 0))
+                        + int(row.get("geometry_evaluation_attempt_count", 0))
+                        == int(row.get("candidate_pool_count", -1))
+                        and 0
+                        <= int(row.get("geometry_evaluation_count", -1))
+                        <= int(row.get("geometry_evaluation_attempt_count", -1))
+                        and int(row.get("finite_candidate_count", 0))
+                        + int(row.get("nonfinite_candidate_count", 0))
+                        == int(row.get("geometry_evaluation_count", -1))
+                        and int(row.get("logical_geometry_entry_count", -1))
+                        == int(row.get("geometry_evaluation_count", -1))
+                        * _geometry_entry_count(
+                            int(row.get("candidate_runtime_parameter_count", -1))
+                        )
+                        for expected_index, row in enumerate(geometry_rounds)
+                    )
+                    receipt_consistent = bool(
+                        declared_rounds == len(geometry_rounds)
+                        and rounds_consistent
+                        and attempted
+                        == sum(
+                            int(
+                                row.get(
+                                    "geometry_evaluation_attempt_count", 0
+                                )
+                            )
+                            for row in geometry_rounds
+                        )
+                        and completed
+                        == sum(
+                            int(row.get("geometry_evaluation_count", 0))
+                            for row in geometry_rounds
+                        )
+                        and entries
+                        == sum(
+                            int(row.get("logical_geometry_entry_count", 0))
+                            for row in geometry_rounds
+                        )
+                    )
+                    selector_call_count += declared_rounds
+                    candidate_evaluations += completed
+                    candidate_work += entries
+                    candidate_exact = bool(
+                        candidate_exact
+                        and receipt_consistent
+                        and exact_work.get("complete", False)
+                    )
+                    selection_round_ledger_complete = bool(
+                        selection_round_ledger_complete and receipt_consistent
+                    )
+                    checkpoint_pre = checkpoint_post
+                    continue
+
                 scored = int(
                     metadata.get("candidates_scored")
                     if metadata.get("candidates_scored") is not None
@@ -654,6 +741,284 @@ def complete_estimator_work(
                         checkpoint_pre + 1
                     )
                     candidate_exact = False
+                    selection_round_ledger_complete = False
+                checkpoint_pre = checkpoint_post
+                continue
+
+            exact_rounds = metadata.get("selection_round_work")
+            if (
+                metadata.get("selection_round_work_schema")
+                == "paper_ii_exchange_selection_round_work_v1"
+                and isinstance(exact_rounds, list)
+            ):
+                declared_calls = int(
+                    metadata.get("selector_call_count", len(exact_rounds))
+                )
+                selector_call_count += declared_calls
+                declared_accepted = int(
+                    metadata.get(
+                        "accepted_selector_count",
+                        sum(bool(row.get("accepted", False)) for row in exact_rounds),
+                    )
+                )
+                ledger_consistent = bool(
+                    declared_calls == len(exact_rounds)
+                    and declared_accepted
+                    == sum(bool(row.get("accepted", False)) for row in exact_rounds)
+                )
+                for expected_index, round_row in enumerate(exact_rounds):
+                    if int(
+                        round_row.get("selector_call_index", -1)
+                    ) != expected_index:
+                        ledger_consistent = False
+                    work = round_row.get("estimator_work") or {}
+                    if (
+                        work.get("schema")
+                        != "paper_ii_generalized_exchange_estimator_work_v1"
+                    ):
+                        ledger_consistent = False
+
+                    selector_passes = tuple(work.get("selector_passes") or ())
+                    declared_passes = int(
+                        work.get("selector_pass_count", len(selector_passes))
+                    )
+                    cache_entries = int(
+                        work.get("logical_shared_cache_entry_count", 0)
+                    )
+                    pass_rows_consistent = all(
+                        int(row.get("pass_index", -1)) == pass_index
+                        and int(row.get("pre_runtime_parameter_count", -1)) >= 0
+                        and int(row.get("positioned_candidate_column_count", -1))
+                        >= 0
+                        and int(row.get("logical_shared_cache_entry_count", -1))
+                        == int(row.get("pre_runtime_parameter_count", -1))
+                        * int(row.get("positioned_candidate_column_count", -1))
+                        + int(row.get("positioned_candidate_column_count", -1))
+                        * (
+                            int(row.get("positioned_candidate_column_count", -1))
+                            + 3
+                        )
+                        // 2
+                        for pass_index, row in enumerate(selector_passes)
+                    )
+                    pass_consistent = bool(
+                        declared_passes == len(selector_passes)
+                        and pass_rows_consistent
+                        and int(
+                            work.get("positioned_candidate_column_count", 0)
+                        )
+                        == sum(
+                            int(row.get("positioned_candidate_column_count", 0))
+                            for row in selector_passes
+                        )
+                        and cache_entries
+                        == sum(
+                            int(
+                                row.get(
+                                    "logical_shared_cache_entry_count", 0
+                                )
+                            )
+                            for row in selector_passes
+                        )
+                        and all(
+                            bool(row.get("complete", False))
+                            for row in selector_passes
+                        )
+                    )
+                    candidate_work += cache_entries
+                    inference_counts["persisted_exact"] += len(selector_passes)
+                    candidate_exact = bool(candidate_exact and pass_consistent)
+
+                    attempts = tuple(work.get("certification_attempts") or ())
+                    declared_attempts = int(
+                        work.get("certification_attempt_count", len(attempts))
+                    )
+                    full_evaluations = int(
+                        work.get("full_geometry_evaluation_count", 0)
+                    )
+                    full_entries = int(
+                        work.get("logical_finalist_geometry_entry_count", 0)
+                    )
+                    refit_count = int(
+                        work.get("refit_objective_evaluation_count", 0)
+                    )
+                    refit_entries = int(
+                        work.get("logical_refit_entry_count", 0)
+                    )
+                    certification_rows_consistent = True
+                    for attempt in attempts:
+                        patched_count = attempt.get(
+                            "patched_runtime_parameter_count"
+                        )
+                        full_attempted = int(
+                            attempt.get("full_geometry_evaluation_attempt_count", 0)
+                        )
+                        full_completed = int(
+                            attempt.get("full_geometry_evaluation_count", 0)
+                        )
+                        refit_attempted = int(
+                            attempt.get(
+                                "refit_objective_evaluation_attempt_count", 0
+                            )
+                        )
+                        refit_completed = int(
+                            attempt.get("refit_objective_evaluation_count", 0)
+                        )
+                        expected_full_entries = 0
+                        expected_refit_entries = 0
+                        if patched_count is not None:
+                            patched_count = int(patched_count)
+                            if patched_count >= 0:
+                                expected_full_entries = (
+                                    full_completed
+                                    * _geometry_entry_count(patched_count)
+                                )
+                                expected_refit_entries = refit_completed * (
+                                    patched_count + 1
+                                )
+                            else:
+                                certification_rows_consistent = False
+                        certification_rows_consistent = bool(
+                            certification_rows_consistent
+                            and attempt.get("schema")
+                            == "paper_ii_exchange_certification_estimator_work_v1"
+                            and 0 <= full_completed <= full_attempted
+                            and 0 <= refit_completed <= refit_attempted
+                            and (
+                                patched_count is not None
+                                or (
+                                    full_attempted == 0
+                                    and full_completed == 0
+                                    and refit_attempted == 0
+                                    and refit_completed == 0
+                                )
+                            )
+                            and int(
+                                attempt.get("logical_full_geometry_entry_count", -1)
+                            )
+                            == expected_full_entries
+                            and int(attempt.get("logical_refit_entry_count", -1))
+                            == expected_refit_entries
+                            and int(
+                                attempt.get("logical_total_estimator_entries", -1)
+                            )
+                            == expected_full_entries + expected_refit_entries
+                        )
+                    attempt_consistent = bool(
+                        declared_attempts == len(attempts)
+                        and certification_rows_consistent
+                        and int(
+                            work.get("full_geometry_evaluation_attempt_count", 0)
+                        )
+                        == sum(
+                            int(
+                                row.get(
+                                    "full_geometry_evaluation_attempt_count", 0
+                                )
+                            )
+                            for row in attempts
+                        )
+                        and full_evaluations
+                        == sum(
+                            int(
+                                row.get("full_geometry_evaluation_count", 0)
+                            )
+                            for row in attempts
+                        )
+                        and full_entries
+                        == sum(
+                            int(
+                                row.get(
+                                    "logical_full_geometry_entry_count", 0
+                                )
+                            )
+                            for row in attempts
+                        )
+                        and refit_count
+                        == sum(
+                            int(
+                                row.get(
+                                    "refit_objective_evaluation_count", 0
+                                )
+                            )
+                            for row in attempts
+                        )
+                        and refit_entries
+                        == sum(
+                            int(row.get("logical_refit_entry_count", 0))
+                            for row in attempts
+                        )
+                        and int(
+                            work.get(
+                                "refit_objective_evaluation_attempt_count", 0
+                            )
+                        )
+                        == sum(
+                            int(
+                                row.get(
+                                    "refit_objective_evaluation_attempt_count", 0
+                                )
+                            )
+                            for row in attempts
+                        )
+                        and int(
+                            work.get("logical_total_selector_estimator_entries", -1)
+                        )
+                        == cache_entries + full_entries + refit_entries
+                        and int(work.get("attempt_record_count", 0))
+                        == sum(
+                            int(value)
+                            for value in (
+                                work.get("attempt_reason_counts") or {}
+                            ).values()
+                        )
+                    )
+                    certification_evaluations += full_evaluations
+                    certification_work += full_entries
+                    refit_evaluations += refit_count
+                    refit_work += refit_entries
+                    certification_exact = bool(
+                        certification_exact
+                        and attempt_consistent
+                        and all(
+                            bool(row.get("complete", False))
+                            for row in attempts
+                        )
+                    )
+                    refit_exact = bool(
+                        refit_exact
+                        and attempt_consistent
+                        and all(
+                            bool(row.get("refit_counter_available", False))
+                            and int(
+                                row.get(
+                                    "refit_objective_evaluation_attempt_count",
+                                    0,
+                                )
+                            )
+                            == int(
+                                row.get(
+                                    "refit_objective_evaluation_count", 0
+                                )
+                            )
+                            for row in attempts
+                            if bool(row.get("refit_requested", False))
+                        )
+                    )
+                    ledger_consistent = bool(
+                        ledger_consistent
+                        and pass_consistent
+                        and attempt_consistent
+                        and bool(round_row.get("complete", False))
+                        == bool(work.get("complete", False))
+                    )
+                selection_round_ledger_complete = bool(
+                    selection_round_ledger_complete and ledger_consistent
+                )
+                if not ledger_consistent:
+                    candidate_exact = False
+                    certification_exact = False
+                    refit_exact = False
                 checkpoint_pre = checkpoint_post
                 continue
 
@@ -698,24 +1063,38 @@ def complete_estimator_work(
             if attempts:
                 # Optional local refit objective evaluations are not persisted.
                 certification_exact = False
+                refit_exact = False
             checkpoint_pre = checkpoint_post
 
     if route == "avqds":
         certification_status = "not_applicable"
         certification_value: int | None = None
         certification_evaluation_value: int | None = None
+        refit_status = "not_applicable"
+        refit_value: int | None = None
+        refit_evaluation_value: int | None = None
     else:
         certification_status = "exact" if certification_exact else "lower_bound"
         certification_value = int(certification_work)
         certification_evaluation_value = int(certification_evaluations)
+        refit_status = "exact" if refit_exact else "lower_bound"
+        refit_value = int(refit_work)
+        refit_evaluation_value = int(refit_evaluations)
 
     candidate_status = "exact" if candidate_exact else "lower_bound"
-    total = checkpoint_work + candidate_work + certification_work + int(
-        result["logical_integration_geometry_work"]
+    total = (
+        checkpoint_work
+        + candidate_work
+        + certification_work
+        + refit_work
+        + int(result["logical_integration_geometry_work"])
     )
     total_status = (
         "exact"
-        if candidate_status == "exact" and certification_status in {"exact", "not_applicable"}
+        if candidate_status == "exact"
+        and certification_status in {"exact", "not_applicable"}
+        and refit_status in {"exact", "not_applicable"}
+        and selection_round_ledger_complete
         else "lower_bound"
     )
     result.update(
@@ -731,6 +1110,10 @@ def complete_estimator_work(
             ),
             "logical_certification_geometry_work": certification_value,
             "certification_geometry_status": certification_status,
+            "refit_objective_evaluation_count": refit_evaluation_value,
+            "logical_refit_estimator_work": refit_value,
+            "refit_estimator_status": refit_status,
+            "selector_call_count": int(selector_call_count),
             "logical_total_estimator_work": int(total),
             "logical_total_estimator_work_status": total_status,
             "selection_round_ledger_complete": bool(
@@ -1075,20 +1458,24 @@ def build_comparison(
             "integration": "sum_i r_i * g(p_i); exact from RHS telemetry",
             "checkpoint_base": "sum_k g(p_k); exact from pre-edit support",
             "generalized_exchange_candidate_acquisition": (
-                "sum_k [p_k*M_k + M_k*(M_k+3)/2] for each persisted "
-                "shared positioned-tangent cache"
+                "sum_k [p_k*M_k + M_k*(M_k+3)/2] over every persisted "
+                "shared positioned-tangent cache; exact for complete new receipts"
             ),
             "avqds_candidate_acquisition": (
-                "sum_r c_r*g(p_r+1); current artifacts provide a lower "
-                "bound because per-round c_r and p_r are not persisted"
+                "sum_r c_r*g(p_r+1) over every persisted greedy round; "
+                "exact for complete new receipts and a lower bound for legacy ones"
             ),
             "certification": (
-                "sum_a g(p_a) over persisted finalists known to reach full "
-                "patched geometry; excludes unlogged refit evaluations"
+                "sum_a g(p_a) over every completed finalist geometry; exact "
+                "for complete new receipts and a lower bound for legacy ones"
+            ),
+            "local_refit": (
+                "sum_a r_a*(p_a+1) over instrumented finalist-refit objective "
+                "callbacks; reported separately from full geometry"
             ),
             "total": (
                 "integration + checkpoint base + candidate acquisition + "
-                "certification; status records exact versus lower bound"
+                "certification + local refit; status records exact versus lower bound"
             ),
             "meaning": "logical scalar-geometry entries, not physical shots",
             "physical_shots": (

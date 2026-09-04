@@ -139,6 +139,37 @@ def test_selector_commits_from_real_route_objects_and_reports_payload() -> None:
     if selection.committed.inserted_selection:
         labels = selection.certification.state.runtime_coordinate_labels
         assert any("::insr3c" in lab for lab in labels)
+    work = payload["estimator_work"]
+    assert work["schema"] == "paper_ii_generalized_exchange_estimator_work_v1"
+    assert work["selector_pass_count"] == len(work["selector_passes"])
+    assert work["selector_pass_count"] >= 1
+    for selector_pass in work["selector_passes"]:
+        p = int(selector_pass["pre_runtime_parameter_count"])
+        columns = int(selector_pass["positioned_candidate_column_count"])
+        assert selector_pass["logical_shared_cache_entry_count"] == (
+            p * columns + columns * (columns + 3) // 2
+        )
+        assert selector_pass["complete"] is True
+    assert work["logical_shared_cache_entry_count"] == sum(
+        int(row["logical_shared_cache_entry_count"])
+        for row in work["selector_passes"]
+    )
+    assert work["certification_attempt_count"] == len(
+        selection.certification_work
+    )
+    assert work["certification_attempts"] == [
+        dict(row) for row in selection.certification_work
+    ]
+    assert sum(work["attempt_reason_counts"].values()) == work[
+        "attempt_record_count"
+    ]
+    assert work["attempt_record_count"] == len(selection.attempts)
+    assert work["logical_total_selector_estimator_entries"] == (
+        work["logical_shared_cache_entry_count"]
+        + work["logical_finalist_geometry_entry_count"]
+        + work["logical_refit_entry_count"]
+    )
+    assert work["complete"] is True
 
 
 def test_work_guard_and_frontier_telemetry_flow_through_payload() -> None:
@@ -168,6 +199,38 @@ def test_escalation_respects_residual_threshold_predicate() -> None:
     assert selection.kind == "stay"
     assert selection.stop_reason == "escalation_predicate_false"
     assert selection.attempts == ()
+
+
+def test_internal_insert_fallback_preserves_both_selector_work_passes(
+    monkeypatch,
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import exchange_integration as module
+
+    dispositions = iter(("retry_insert_face", "accept"))
+
+    def force_one_fallback(**_kwargs):
+        return next(dispositions)
+
+    monkeypatch.setattr(
+        module.GeneralizedExchange,
+        "assess_realized_candidate",
+        staticmethod(force_one_fallback),
+    )
+    selection, payload = _run(_config())
+
+    assert payload["deletion_fallback_used"] is True
+    work = payload["estimator_work"]
+    assert work["selector_pass_count"] == 2
+    assert [row["pass_index"] for row in work["selector_passes"]] == [0, 1]
+    assert work["selector_passes"][0]["allowed_deletion_atom_count"] > 0
+    assert work["selector_passes"][1]["allowed_deletion_atom_count"] == 0
+    assert work["logical_shared_cache_entry_count"] == sum(
+        int(row["logical_shared_cache_entry_count"])
+        for row in work["selector_passes"]
+    )
+    assert work["certification_attempt_count"] == len(
+        selection.certification_work
+    )
 
 
 def test_min_surviving_support_bounds_deletions() -> None:
@@ -335,6 +398,14 @@ def test_certification_refit_flag_runs_through_route_adapter() -> None:
     assert selection.kind in {"insert", "delete", "exchange", "stay"}
     if selection.committed is not None:
         assert selection.certification.certified
+    work = payload["estimator_work"]
+    assert work["refit_objective_evaluation_attempt_count"] == work[
+        "refit_objective_evaluation_count"
+    ]
+    assert work["logical_refit_entry_count"] >= work[
+        "refit_objective_evaluation_count"
+    ]
+    assert work["complete"] is True
 
 
 def test_attempt_budget_bounds_certifications_per_level() -> None:

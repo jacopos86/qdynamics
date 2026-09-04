@@ -427,6 +427,15 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
         _row(
+            "Local-refit estimator elements",
+            _work_values(
+                cell,
+                "logical_refit_estimator_work",
+                status_name="refit_estimator_status",
+            ),
+            formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
+        ),
+        _row(
             "Total logical estimator elements",
             _work_values(
                 cell,
@@ -655,9 +664,9 @@ def render_markdown(
         "",
         "Generalized exchange builds one shared positioned-tangent cache and then solves structural candidates classically. For a persisted selector call with active size `p` and `M` positioned insertion columns, its executed dense-cache increment is `p M + M(M+3)/2`. AVQDS instead materializes every tested append and performs a full geometry; its candidate work is `sum_r c_r g(p_r+1)`. The report includes both under `logical_candidate_acquisition_work`, but marks a lower bound whenever an earlier exchange round or AVQDS per-round dimension is absent from the artifact.",
         "",
-        "`logical_certification_geometry_work` counts persisted generalized-exchange finalists certainly known to have reached a full patched geometry. It is a lower bound because optional refit evaluations are not logged, `patched_solve_failed` does not distinguish pre- from post-geometry failure, attempt lists may be truncated, and a multi-round checkpoint retains only its final selector invocation. AVQDS has no separate certification stage because the winning candidate geometry is reused.",
+        "`logical_certification_geometry_work` counts completed full patched geometries for generalized-exchange finalists. `logical_refit_estimator_work` separately counts the overlap-and-tangent entries evaluated by local finalist refits. New artifacts persist every selector call, internal cache pass, finalist attempt, and instrumented refit callback, so both coordinates are exact when their receipt status is `exact`. Legacy or interrupted artifacts remain explicit lower bounds. AVQDS has no separate certification or refit stage because the winning candidate geometry is reused.",
         "",
-        "`logical_total_estimator_work` is integration plus checkpoint base plus candidate acquisition plus certification. A `>=` prefix is part of the value and means the reported amount is a proven lower bound. Physical shot count, estimator-circuit count, commuting groups, target precision, variance, and shot allocation are unavailable: these runs use dense statevector evaluation and persist no hardware-measurement ledger.",
+        "`logical_total_estimator_work` is integration plus checkpoint base plus candidate acquisition plus certification plus local refit. A `>=` prefix is shown only for a legacy or incomplete receipt and means the displayed amount is a proven lower bound. Physical shot count, estimator-circuit count, commuting groups, target precision, variance, and shot allocation are unavailable: these runs use dense statevector evaluation and persist no hardware-measurement ledger.",
         "",
         "Support motion is reconstructed from exact support-label multisets at every checkpoint. Recurrence removes only insertion-instance and append-occurrence suffixes. `deleted_then_readded` and `added_then_redeleted` count inverse events occurring within two later support-changing checkpoints. When several generalized-exchange commits occur inside one checkpoint, only the final support and final selector invocation survive; affected motion and recurrence values are therefore marked as lower bounds.",
         "",
@@ -696,6 +705,7 @@ def render_markdown(
             ("logical_checkpoint_base_geometry_work", lambda r: _markdown_work_value(r, "logical_checkpoint_base_geometry_work", status_name="checkpoint_base_status")),
             ("logical_candidate_acquisition_work", lambda r: _markdown_work_value(r, "logical_candidate_acquisition_work", status_name="candidate_acquisition_status")),
             ("logical_certification_geometry_work", lambda r: _markdown_work_value(r, "logical_certification_geometry_work", status_name="certification_geometry_status")),
+            ("logical_refit_estimator_work", lambda r: _markdown_work_value(r, "logical_refit_estimator_work", status_name="refit_estimator_status")),
             ("logical_total_estimator_work", lambda r: _markdown_work_value(r, "logical_total_estimator_work", status_name="logical_total_estimator_work_status")),
             ("coordinates_added", lambda r: r["support_motion"]["added_coordinate_count"]),
             ("coordinates_deleted", lambda r: r["support_motion"]["deleted_coordinate_count"]),

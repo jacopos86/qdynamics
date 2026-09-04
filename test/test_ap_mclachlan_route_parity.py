@@ -115,6 +115,10 @@ def _decisions(payload):
 
 
 def test_exchange_route_golden_trajectory() -> None:
+    from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
+        complete_estimator_work,
+    )
+
     payload = _run()
     summary = payload["summary"]
     energies = [row["energy_expectation"] for row in payload["plot_rows"]]
@@ -157,6 +161,12 @@ def test_exchange_route_golden_trajectory() -> None:
     assert summary["max_mclachlan_residual_ratio"] == pytest.approx(
         0.1780937493, abs=1e-6
     )
+    work = complete_estimator_work([payload], route="q_compiled")
+    assert work["candidate_acquisition_status"] == "exact"
+    assert work["certification_geometry_status"] == "exact"
+    assert work["refit_estimator_status"] == "exact"
+    assert work["logical_total_estimator_work_status"] == "exact"
+    assert work["selector_call_count"] == 4
 
 
 def test_prune_only_below_threshold_is_measurement_free() -> None:
@@ -172,6 +182,10 @@ def test_prune_only_below_threshold_is_measurement_free() -> None:
 
 
 def test_avqds_policy_golden_trajectory() -> None:
+    from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
+        complete_estimator_work,
+    )
+
     payload = _run(
         dynamics_policy="avqds",
         avqds_l2_cut=1.0e-6,
@@ -184,6 +198,23 @@ def test_avqds_policy_golden_trajectory() -> None:
     counts = [p["runtime_parameter_count"] for p in payload["trajectory"]["points"]]
     assert all(b >= a for a, b in zip(counts, counts[1:]))
     assert summary["runtime_parameter_count_final"] >= 2
+    for point in payload["trajectory"]["points"][:-1]:
+        metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
+        work = metadata["estimator_work"]
+        rounds = metadata["candidate_geometry_rounds"]
+        assert work["selector_round_count"] == len(rounds)
+        assert work["full_geometry_evaluation_count"] == sum(
+            int(row["geometry_evaluation_count"]) for row in rounds
+        )
+        assert work["logical_candidate_geometry_entries"] == sum(
+            int(row["logical_geometry_entry_count"]) for row in rounds
+        )
+        assert work["complete"] is True
+    estimator_work = complete_estimator_work([payload], route="avqds")
+    assert estimator_work["candidate_acquisition_status"] == "exact"
+    assert estimator_work["certification_geometry_status"] == "not_applicable"
+    assert estimator_work["refit_estimator_status"] == "not_applicable"
+    assert estimator_work["logical_total_estimator_work_status"] == "exact"
 
 
 @pytest.mark.parametrize(
@@ -250,7 +281,7 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
         ]
 
 
-def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
+def test_exchange_round_ledger_records_actual_calls_and_commits() -> None:
     payload = _run(
         deletion_enabled=False,
         insertion_gate_mode="mclachlan_l2",
@@ -259,7 +290,21 @@ def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
     )
     for point in payload["trajectory"]["points"]:
         metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
-        assert int(metadata.get("checkpoint_commit_count", 0)) <= 2
+        rounds = list(metadata.get("selection_round_work") or ())
+        if not rounds:
+            continue
+        assert metadata["selection_round_work_schema"] == (
+            "paper_ii_exchange_selection_round_work_v1"
+        )
+        assert metadata["selector_call_count"] == len(rounds)
+        assert metadata["accepted_selector_count"] == sum(
+            bool(row["accepted"]) for row in rounds
+        )
+        assert [row["selector_call_index"] for row in rounds] == list(
+            range(len(rounds))
+        )
+
+
 def test_exchange_route_parallel_workers_reproduce_golden_trajectory() -> None:
     # Scoring workers are execution-resource only: the parallel trajectory
     # must be bitwise identical to the serial one — decisions, support
@@ -298,6 +343,18 @@ def test_exchange_route_parallel_workers_reproduce_golden_trajectory() -> None:
         ]
         == 4
     )
+    for serial_point, parallel_point in zip(
+        serial["trajectory"]["points"], parallel["trajectory"]["points"]
+    ):
+        serial_metadata = dict(
+            (serial_point.get("patch_decision") or {}).get("metadata") or {}
+        )
+        parallel_metadata = dict(
+            (parallel_point.get("patch_decision") or {}).get("metadata") or {}
+        )
+        assert parallel_metadata.get("selection_round_work") == (
+            serial_metadata.get("selection_round_work")
+        )
 
 
 def test_legacy_proxy_fixed_bundle_runs_the_full_trajectory() -> None:

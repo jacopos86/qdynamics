@@ -99,6 +99,7 @@ class ExchangeSelection:
     stop_reason: str
     structural_scored_count: int
     level_telemetry: tuple[dict[str, Any], ...] = ()
+    certification_work: tuple[dict[str, Any], ...] = ()
 
     @property
     def kind(self) -> str:
@@ -243,6 +244,7 @@ def select_exchange_patch(
     should_escalate = escalate or (lambda: True)
     scored: list[StructuralCandidate] = []
     attempts: list[AttemptRecord] = []
+    certification_work: list[dict[str, Any]] = []
     level_telemetry: list[dict[str, Any]] = []
     attempted: set = set()
     telemetry: StructuralEnumeration | None = None
@@ -412,7 +414,23 @@ def select_exchange_patch(
                     ray_distance=result.ray_distance,
                     smoothness_eta=result.smoothness_eta,
                     condition_number=result.condition_number,
+                    estimator_work=result.estimator_work,
                 )
+            certification_work.append(
+                {
+                    **dict(result.estimator_work),
+                    "family": str(candidate.family),
+                    "kind": str(candidate.kind),
+                    "reason": str(result.reason),
+                    "removed_runtime_indices": [
+                        int(i) for i in candidate.removed_runtime_indices
+                    ],
+                    "inserted_selection": [
+                        [str(a), int(p)]
+                        for a, p in candidate.inserted_selection
+                    ],
+                }
+            )
             attempts.append(
                 AttemptRecord(
                     family=candidate.family,
@@ -450,6 +468,7 @@ def select_exchange_patch(
                     stop_reason="committed",
                     structural_scored_count=int(len(scored)),
                     level_telemetry=tuple(level_telemetry),
+                    certification_work=tuple(certification_work),
                 )
         stop_reason = "attempt_budget_exhausted" if budget_hit else "level_exhausted"
         if not should_escalate():
@@ -465,6 +484,7 @@ def select_exchange_patch(
         stop_reason=stop_reason,
         structural_scored_count=int(len(scored)),
         level_telemetry=tuple(level_telemetry),
+        certification_work=tuple(certification_work),
     )
 
 

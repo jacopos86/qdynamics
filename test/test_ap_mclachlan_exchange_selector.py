@@ -174,6 +174,14 @@ def test_commit_is_highest_certifiable_candidate_and_atomic() -> None:
     # Route objects are carried for the trajectory loop.
     assert selection.certification.state is not None
     assert selection.certification.step is not None
+    assert selection.certification_work
+    certified_work = selection.certification_work[-1]
+    assert certified_work["reason"] == "certified"
+    assert certified_work["schema"] == (
+        "paper_ii_exchange_certification_estimator_work_v1"
+    )
+    assert certified_work["logical_full_geometry_entry_count"] > 0
+    assert certified_work["complete"] is True
 
 
 def test_batch_candidate_materializes_the_word_that_compiled_cost_priced() -> None:
@@ -233,6 +241,11 @@ def test_all_gates_failing_returns_stay_with_full_attempt_record() -> None:
     assert {a.kind for a in selection.attempts} == {"delete"}
     assert selection.telemetry is not None
     assert selection.stop_reason == "level_exhausted"
+    assert len(selection.certification_work) == len(selection.attempts)
+    assert all(
+        row["reason"] == "ray_distance_above_max"
+        for row in selection.certification_work
+    )
 
 
 def test_failed_higher_score_advances_to_next_candidate() -> None:
@@ -380,6 +393,7 @@ def test_selection_parallel_matches_serial_attempts_and_commit() -> None:
         ]
         assert parallel.stop_reason == serial.stop_reason
         assert parallel.structural_scored_count == serial.structural_scored_count
+        assert parallel.certification_work == serial.certification_work
         if serial.committed is None:
             assert parallel.committed is None
         else:

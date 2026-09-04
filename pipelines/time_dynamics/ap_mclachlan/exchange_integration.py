@@ -37,13 +37,13 @@ Wiring choices, recorded for reproduction:
 
 from __future__ import annotations
 
-from typing import Any, Mapping
-
+from collections import Counter
+from dataclasses import asdict
 import hashlib
 import json
 import os
 import time
-from dataclasses import asdict
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -1352,6 +1352,7 @@ def select_generalized_exchange_patch(
     route = exchange_config.route
     bundle = route.bundle
     shared_cost_runtime: dict[str, Any] = {"runtime": None}
+    selector_passes: list[dict[str, Any]] = []
 
     def select_once(
         allowed_deletions: tuple[ActiveSupportAtom, ...],
@@ -1371,6 +1372,24 @@ def select_generalized_exchange_patch(
             accuracy_debt=bool(domain.accuracy_debt),
             deletion_permission_evaluator=permission_evaluator,
             compiled_cost_runtime=shared_cost_runtime["runtime"],
+        )
+        cache = inputs["structural_kwargs"]["cache"]
+        pre_support = int(state.runtime_parameter_count)
+        positioned_columns = int(cache.column_count)
+        selector_passes.append(
+            {
+                "pass_index": int(len(selector_passes)),
+                "pre_runtime_parameter_count": int(pre_support),
+                "positioned_candidate_column_count": int(positioned_columns),
+                "candidate_pool_count": int(len(inputs["atoms_by_id"])),
+                "allowed_deletion_atom_count": int(len(allowed_deletions)),
+                "insertions_enabled": bool(insertions_enabled),
+                "logical_shared_cache_entry_count": int(
+                    pre_support * positioned_columns
+                    + positioned_columns * (positioned_columns + 3) // 2
+                ),
+                "complete": True,
+            }
         )
         shared_cost_runtime["runtime"] = inputs.get("compiled_cost_runtime")
         inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
@@ -1523,6 +1542,7 @@ def select_generalized_exchange_patch(
         first_attempts = selection.attempts
         first_structural_scored_count = int(selection.structural_scored_count)
         first_levels = tuple(selection.level_telemetry)
+        first_certification_work = tuple(selection.certification_work)
         selection, inputs = select_once((), insertions_enabled=True)
         selection = ExchangeSelection(
             committed=selection.committed,
@@ -1534,6 +1554,9 @@ def select_generalized_exchange_patch(
                 first_structural_scored_count + selection.structural_scored_count
             ),
             level_telemetry=first_levels + tuple(selection.level_telemetry),
+            certification_work=(
+                first_certification_work + tuple(selection.certification_work)
+            ),
         )
         candidate_l2 = realized_l2(selection)
         disposition = realized_disposition(selection, candidate_l2)
@@ -1547,6 +1570,7 @@ def select_generalized_exchange_patch(
             stop_reason="refused_non_improving_patch_under_l2_debt",
             structural_scored_count=int(selection.structural_scored_count),
             level_telemetry=tuple(selection.level_telemetry),
+            certification_work=tuple(selection.certification_work),
         )
 
     # Record realized deletion losses so hook #2's prior sees this attempt at
@@ -1573,6 +1597,86 @@ def select_generalized_exchange_patch(
     if shared_cost_runtime["runtime"] is not None:
         shared_cost_runtime["runtime"].close()
 
+    certification_work = [dict(row) for row in selection.certification_work]
+    attempt_reason_counts = Counter(str(attempt.reason) for attempt in selection.attempts)
+    deletion_attempt_reason_counts = Counter(
+        str(attempt.reason)
+        for attempt in selection.attempts
+        if attempt.removed_runtime_indices
+    )
+    shared_cache_entries = sum(
+        int(row["logical_shared_cache_entry_count"]) for row in selector_passes
+    )
+    finalist_geometry_entries = sum(
+        int(row.get("logical_full_geometry_entry_count", 0))
+        for row in certification_work
+    )
+    refit_entries = sum(
+        int(row.get("logical_refit_entry_count", 0))
+        for row in certification_work
+    )
+    estimator_work = {
+        "schema": "paper_ii_generalized_exchange_estimator_work_v1",
+        "selector_pass_count": int(len(selector_passes)),
+        "selector_passes": list(selector_passes),
+        "positioned_candidate_column_count": int(
+            sum(int(row["positioned_candidate_column_count"]) for row in selector_passes)
+        ),
+        "logical_shared_cache_entry_count": int(shared_cache_entries),
+        "structural_candidate_record_count": int(selection.structural_scored_count),
+        "certification_attempt_count": int(len(certification_work)),
+        "certification_attempts": certification_work,
+        "refit_objective_evaluation_attempt_count": int(
+            sum(
+                int(row.get("refit_objective_evaluation_attempt_count", 0))
+                for row in certification_work
+            )
+        ),
+        "refit_objective_evaluation_count": int(
+            sum(
+                int(row.get("refit_objective_evaluation_count", 0))
+                for row in certification_work
+            )
+        ),
+        "logical_refit_entry_count": int(refit_entries),
+        "full_geometry_evaluation_attempt_count": int(
+            sum(
+                int(row.get("full_geometry_evaluation_attempt_count", 0))
+                for row in certification_work
+            )
+        ),
+        "full_geometry_evaluation_count": int(
+            sum(
+                int(row.get("full_geometry_evaluation_count", 0))
+                for row in certification_work
+            )
+        ),
+        "logical_finalist_geometry_entry_count": int(finalist_geometry_entries),
+        "ray_overlap_check_count": int(
+            sum(int(row.get("ray_overlap_check_count", 0)) for row in certification_work)
+        ),
+        "velocity_check_count": int(
+            sum(int(row.get("velocity_check_count", 0)) for row in certification_work)
+        ),
+        "attempt_record_count": int(len(selection.attempts)),
+        "attempt_reason_counts": dict(sorted(attempt_reason_counts.items())),
+        "deletion_bearing_attempt_record_count": int(
+            sum(deletion_attempt_reason_counts.values())
+        ),
+        "deletion_bearing_attempt_reason_counts": dict(
+            sorted(deletion_attempt_reason_counts.items())
+        ),
+        "serialized_attempt_record_count": int(min(16, len(selection.attempts))),
+        "serialized_attempt_ledger_complete": bool(len(selection.attempts) <= 16),
+        "logical_total_selector_estimator_entries": int(
+            shared_cache_entries + finalist_geometry_entries + refit_entries
+        ),
+        "complete": bool(
+            all(bool(row.get("complete", False)) for row in selector_passes)
+            and all(bool(row.get("complete", False)) for row in certification_work)
+        ),
+    }
+
     payload: dict[str, Any] = {
         "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
         "generalized_exchange_domain": domain.to_json_dict(),
@@ -1586,6 +1690,7 @@ def select_generalized_exchange_patch(
         "attempt_count": len(selection.attempts),
         "structural_scored_count": int(selection.structural_scored_count),
         "attempts": [a.to_json_dict() for a in selection.attempts[-16:]],
+        "estimator_work": estimator_work,
         "cost_normalization": (
             "per_candidate_raw_v1" if bundle.is_historical else bundle.cost_model_id
         ),

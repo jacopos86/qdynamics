@@ -143,6 +143,244 @@ def test_complete_estimator_work_counts_avqds_candidate_geometry_as_bound() -> N
     assert result["logical_total_estimator_work"] == 62
     assert result["logical_total_estimator_work_status"] == "lower_bound"
 
+
+def test_complete_estimator_work_consumes_exact_avqds_round_ledger() -> None:
+    round_work = {
+        "round_index": 0,
+        "base_runtime_parameter_count": 2,
+        "candidate_runtime_parameter_count": 3,
+        "candidate_pool_count": 2,
+        "materialization_failure_count": 0,
+        "geometry_evaluation_attempt_count": 2,
+        "geometry_evaluation_count": 2,
+        "finite_candidate_count": 2,
+        "nonfinite_candidate_count": 0,
+        "logical_geometry_entry_count": 22,
+        "committed": True,
+        "complete": True,
+    }
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [
+            {
+                "runtime_parameter_count": 3,
+                "parameter_control_rhs_evaluation_count": 0,
+                "integration_rhs_evaluation_count": 1,
+            }
+        ],
+        "summary": {"rhs_evaluation_count": 1},
+        "trajectory": {
+            "points": [
+                {
+                    "fixed_step": {"support_labels": ["a", "b", "c"]},
+                    "patch_decision": {
+                        "accepted": True,
+                        "metadata": {
+                            "candidate_geometry_rounds": [round_work],
+                            "estimator_work": {
+                                "schema": "paper_ii_avqds_estimator_work_v1",
+                                "selector_round_count": 1,
+                                "full_geometry_evaluation_attempt_count": 2,
+                                "full_geometry_evaluation_count": 2,
+                                "logical_candidate_geometry_entries": 22,
+                                "complete": True,
+                            },
+                        },
+                    },
+                }
+            ]
+        },
+    }
+
+    result = complete_estimator_work([run], route="avqds")
+
+    assert result["logical_integration_geometry_work"] == 11
+    assert result["logical_checkpoint_base_geometry_work"] == 7
+    assert result["candidate_full_geometry_evaluation_count"] == 2
+    assert result["logical_candidate_acquisition_work"] == 22
+    assert result["candidate_acquisition_status"] == "exact"
+    assert result["selector_call_count"] == 1
+    assert result["refit_estimator_status"] == "not_applicable"
+    assert result["logical_total_estimator_work"] == 40
+    assert result["logical_total_estimator_work_status"] == "exact"
+    assert result["selection_round_ledger_complete"] is True
+
+    run["trajectory"]["points"][0]["patch_decision"]["metadata"][
+        "estimator_work"
+    ]["selector_round_count"] = 2
+    inconsistent = complete_estimator_work([run], route="avqds")
+    assert inconsistent["candidate_acquisition_status"] == "lower_bound"
+    assert inconsistent["logical_total_estimator_work_status"] == "lower_bound"
+
+
+def test_complete_estimator_work_consumes_exact_exchange_ledgers() -> None:
+    certification = {
+        "schema": "paper_ii_exchange_certification_estimator_work_v1",
+        "base_runtime_parameter_count": 2,
+        "patched_runtime_parameter_count": 3,
+        "refit_requested": True,
+        "refit_counter_available": True,
+        "refit_objective_evaluation_attempt_count": 2,
+        "refit_objective_evaluation_count": 2,
+        "logical_refit_entry_count": 8,
+        "full_geometry_evaluation_attempt_count": 1,
+        "full_geometry_evaluation_count": 1,
+        "logical_full_geometry_entry_count": 11,
+        "ray_overlap_check_count": 1,
+        "velocity_check_count": 1,
+        "complete": True,
+        "logical_total_estimator_entries": 19,
+        "family": "singleton_d0",
+        "kind": "insert",
+        "reason": "certified",
+        "removed_runtime_indices": [],
+        "inserted_selection": [["c", 2]],
+    }
+    selector_pass = {
+        "pass_index": 0,
+        "pre_runtime_parameter_count": 2,
+        "positioned_candidate_column_count": 2,
+        "candidate_pool_count": 2,
+        "allowed_deletion_atom_count": 0,
+        "insertions_enabled": True,
+        "logical_shared_cache_entry_count": 9,
+        "complete": True,
+    }
+    selector_work = {
+        "schema": "paper_ii_generalized_exchange_estimator_work_v1",
+        "selector_pass_count": 1,
+        "selector_passes": [selector_pass],
+        "positioned_candidate_column_count": 2,
+        "logical_shared_cache_entry_count": 9,
+        "structural_candidate_record_count": 3,
+        "certification_attempt_count": 1,
+        "certification_attempts": [certification],
+        "refit_objective_evaluation_attempt_count": 2,
+        "refit_objective_evaluation_count": 2,
+        "logical_refit_entry_count": 8,
+        "full_geometry_evaluation_attempt_count": 1,
+        "full_geometry_evaluation_count": 1,
+        "logical_finalist_geometry_entry_count": 11,
+        "ray_overlap_check_count": 1,
+        "velocity_check_count": 1,
+        "attempt_record_count": 1,
+        "attempt_reason_counts": {"certified": 1},
+        "serialized_attempt_record_count": 1,
+        "serialized_attempt_ledger_complete": True,
+        "logical_total_selector_estimator_entries": 28,
+        "complete": True,
+    }
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [
+            {
+                "runtime_parameter_count": 3,
+                "parameter_control_rhs_evaluation_count": 0,
+                "integration_rhs_evaluation_count": 1,
+            }
+        ],
+        "summary": {"rhs_evaluation_count": 1},
+        "trajectory": {
+            "points": [
+                {
+                    "fixed_step": {"support_labels": ["a", "b", "c"]},
+                    "patch_decision": {
+                        "accepted": True,
+                        "metadata": {
+                            "selection_round_work_schema": (
+                                "paper_ii_exchange_selection_round_work_v1"
+                            ),
+                            "selector_call_count": 1,
+                            "accepted_selector_count": 1,
+                            "selection_round_work": [
+                                {
+                                    "schema": (
+                                        "paper_ii_exchange_selection_round_work_v1"
+                                    ),
+                                    "selector_call_index": 0,
+                                    "pre_runtime_parameter_count": 2,
+                                    "post_runtime_parameter_count": 3,
+                                    "accepted": True,
+                                    "patch_kind": "append",
+                                    "reason": "accepted",
+                                    "estimator_work": selector_work,
+                                    "complete": True,
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        },
+    }
+
+    result = complete_estimator_work([run], route="q_compiled")
+
+    assert result["logical_integration_geometry_work"] == 11
+    assert result["logical_checkpoint_base_geometry_work"] == 7
+    assert result["logical_candidate_acquisition_work"] == 9
+    assert result["candidate_acquisition_status"] == "exact"
+    assert result["certification_full_geometry_evaluation_count"] == 1
+    assert result["logical_certification_geometry_work"] == 11
+    assert result["certification_geometry_status"] == "exact"
+    assert result["refit_objective_evaluation_count"] == 2
+    assert result["logical_refit_estimator_work"] == 8
+    assert result["refit_estimator_status"] == "exact"
+    assert result["selector_call_count"] == 1
+    assert result["logical_total_estimator_work"] == 46
+    assert result["logical_total_estimator_work_status"] == "exact"
+    assert result["selection_round_ledger_complete"] is True
+
+    run["trajectory"]["points"][0]["patch_decision"]["metadata"][
+        "selector_call_count"
+    ] = 2
+    inconsistent = complete_estimator_work([run], route="q_compiled")
+    assert inconsistent["candidate_acquisition_status"] == "lower_bound"
+    assert inconsistent["certification_geometry_status"] == "lower_bound"
+    assert inconsistent["refit_estimator_status"] == "lower_bound"
+    assert inconsistent["logical_total_estimator_work_status"] == "lower_bound"
+
+
+def test_incomplete_exact_avqds_receipt_remains_a_lower_bound() -> None:
+    round_work = {
+        "geometry_evaluation_attempt_count": 2,
+        "geometry_evaluation_count": 1,
+        "logical_geometry_entry_count": 11,
+        "complete": False,
+    }
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [],
+        "summary": {"rhs_evaluation_count": 0},
+        "trajectory": {
+            "points": [
+                {
+                    "fixed_step": {"support_labels": ["a", "b"]},
+                    "patch_decision": {
+                        "metadata": {
+                            "candidate_geometry_rounds": [round_work],
+                            "estimator_work": {
+                                "schema": "paper_ii_avqds_estimator_work_v1",
+                                "selector_round_count": 1,
+                                "full_geometry_evaluation_attempt_count": 2,
+                                "full_geometry_evaluation_count": 1,
+                                "logical_candidate_geometry_entries": 11,
+                                "complete": False,
+                            },
+                        }
+                    },
+                }
+            ]
+        },
+    }
+
+    result = complete_estimator_work([run], route="avqds")
+
+    assert result["logical_candidate_acquisition_work"] == 11
+    assert result["candidate_acquisition_status"] == "lower_bound"
+    assert result["logical_total_estimator_work_status"] == "lower_bound"
+
+
 def test_structural_churn_finds_delete_readd_redelete_cycle() -> None:
     run = {
         "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
