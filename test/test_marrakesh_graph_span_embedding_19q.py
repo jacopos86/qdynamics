@@ -5,12 +5,10 @@ analytic ``marrakesh_graph_span_v1`` cost proxy.  Sizes 4..12 are the
 historical Paper-I Hubbard--Holstein entries and are sealed.
 
 Size 19 (Paper-IV H2O, 12 fermion + 7 boson qubits) is a CHOSEN extension,
-not a derivation.  It keeps the three structural properties the historical
-entries share -- nested prefixes, a tree-valued induced subgraph, and two
-arms grown from the anchor qubit 3 and interleaved by the parity of the
-logical index -- but those properties do not pin it: 430 distinct
-tree-valued 19-tuples satisfy them and reproduce all six historical entries.
-The choice moves the reported numbers (see the note above
+not a derivation.  The user selected embedding F, which preserves the nested,
+tree-valued historical prefix and places the seven added qubits contiguously
+on hardware row 0.  Other admissible continuations reproduce all six
+historical entries.  The choice moves the reported numbers (see the note above
 ``_MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1`` in
 ``pipelines/static_adapt/hh_backend_compile_oracle.py``).
 
@@ -63,7 +61,7 @@ HISTORICAL_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
 # Paper-IV H2O continuation of the same rule (see the module comment).
 EMBEDDING_19Q_V1: tuple[int, ...] = (
     0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21,
-    8, 20, 9, 24, 10, 25, 11,
+    8, 9, 10, 11, 12, 13, 14,
 )
 EXPECTED_SIZES = (4, 6, 8, 9, 10, 12, 19)
 
@@ -140,18 +138,7 @@ def test_every_entry_is_the_chosen_tuple_truncated() -> None:
     below are what actually check the sequence against the hardware.
     """
 
-    chosen_top_arm = [4, 5, 6, 7, 8, 9, 10, 11]
-    chosen_bottom_arm = [16, 23, 22, 21, 20, 24, 25]
-    sequence = [0, 1, 2, 3]
-    top_index = bottom_index = 0
-    for logical in range(4, 19):
-        if logical % 2 == 0:
-            sequence.append(chosen_top_arm[top_index])
-            top_index += 1
-        else:
-            sequence.append(chosen_bottom_arm[bottom_index])
-            bottom_index += 1
-    assert tuple(sequence) == EMBEDDING_19Q_V1
+    sequence = list(EMBEDDING_19Q_V1)
     for size in EXPECTED_SIZES:
         assert marrakesh_logical_embedding_v1(size) == tuple(sequence[:size])
 
@@ -216,10 +203,10 @@ def test_boson_block_steiner_spans_are_pinned_for_the_tracked_fixture() -> None:
 
     The Paper-IV H2O register puts the three vibrational modes at logical
     qubits 12-13, 14-16 and 17-18.  Under the chosen embedding those land on
-    physical (8, 20), (9, 24, 10) and (25, 11), whose Steiner span edge
-    counts on FakeMarrakesh are (10, 8, 8).  Alternative admissible
-    embeddings give different numbers -- B gives (8, 7, 6), the row-0 fill F
-    gives (1, 2, 1) -- so this triple is the visible consequence of the
+    physical (8, 9), (10, 11, 12) and (13, 14), whose Steiner span edge
+    counts on FakeMarrakesh are (1, 2, 1).  Alternative admissible
+    embeddings give different numbers -- lane gives (10, 8, 8) and B gives
+    (8, 7, 6) -- so this triple is the visible consequence of the
     choice, and any future embedding change must update it deliberately.
     """
 
@@ -253,7 +240,7 @@ def test_boson_block_steiner_spans_are_pinned_for_the_tracked_fixture() -> None:
     physical_blocks = tuple(
         tuple(embedding[logical] for logical in block) for block in boson_blocks
     )
-    assert physical_blocks == ((8, 20), (9, 24, 10), (25, 11))
+    assert physical_blocks == ((8, 9), (10, 11, 12), (13, 14))
 
     spans = tuple(
         marrakesh_graph_span_edges_for_support(
@@ -261,7 +248,7 @@ def test_boson_block_steiner_spans_are_pinned_for_the_tracked_fixture() -> None:
         )
         for block in physical_blocks
     )
-    assert spans == (10, 8, 8)
+    assert spans == (1, 2, 1)
 
 
 @pytest.mark.parametrize("size", EXPECTED_SIZES)
@@ -317,19 +304,19 @@ def test_oracle_constructs_at_19q_and_prices_supports_on_the_new_qubits() -> Non
 
     # A support spanning exactly the seven qubits added beyond size 12.
     new_physical = [EMBEDDING_19Q_V1[q] for q in range(12, 19)]
-    assert new_physical == [8, 20, 9, 24, 10, 25, 11]
+    assert new_physical == [8, 9, 10, 11, 12, 13, 14]
     assert marrakesh_graph_span_edges_for_support(
         new_physical, coupling_edges=oracle.coupling_edges
-    ) == 13
+    ) == 6
     assert marrakesh_graph_span_edges_for_support(
-        [20, 25], coupling_edges=oracle.coupling_edges
-    ) == 5
+        [9, 13], coupling_edges=oracle.coupling_edges
+    ) == 4
     # Trivial supports.
     assert marrakesh_graph_span_edges_for_support(
         [EMBEDDING_19Q_V1[18]], coupling_edges=oracle.coupling_edges
     ) == 0
 
-    # Logical support {17, 18} (highest boson qubits) -> physical {25, 11}.
+    # Logical support {17, 18} (highest boson qubits) -> physical {13, 14}.
     label = "".join("z" if q in (17, 18) else "e" for q in range(19))[::-1]
     snapshot = oracle.snapshot_base(())
     estimate = oracle.estimate_insertion(
@@ -338,9 +325,9 @@ def test_oracle_constructs_at_19q_and_prices_supports_on_the_new_qubits() -> Non
     assert isinstance(estimate, CompileCostEstimate)
     assert estimate.source_mode == MARRAKESH_GRAPH_SPAN_MODE
     row = estimate.selected_backend_row["pauli_terms"][0]
-    assert sorted(row["physical_support"]) == [11, 25]
+    assert sorted(row["physical_support"]) == [13, 14]
     assert row["span_edges"] == marrakesh_graph_span_edges_for_support(
-        [11, 25], coupling_edges=oracle.coupling_edges
+        [13, 14], coupling_edges=oracle.coupling_edges
     )
     assert estimate.c_hat_2q == pytest.approx(2.0)
     assert estimate.c_hat_d == pytest.approx(2.0 * row["span_edges"])

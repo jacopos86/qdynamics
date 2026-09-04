@@ -136,9 +136,9 @@ MARRAKESH_GRAPH_SPAN_MODE = "marrakesh_graph_span_v1"
 # those six entries.  It is a CHOSEN extension.  The three structural
 # properties the historical entries share --- every entry is a prefix of the
 # next (nested), every induced subgraph is a tree, and logical indices >= 4
-# alternate between two arms grown from the anchor qubit 3 (even -> top arm,
-# odd -> bottom arm) --- are kept by the size-19 entry, but they do not pin
-# it.  Enumerating every two-arm, parity-interleaved, tree-growing
+# initially alternate between two arms grown from the anchor qubit 3 --- do
+# not pin the size-19 continuation.  Enumerating every two-arm,
+# parity-interleaved, tree-growing
 # continuation of the 12-tuple on the real FakeMarrakesh coupling map yields
 # 430 distinct tree-valued 19-tuples.  Six historical entries cannot
 # discriminate among them: all 430 reproduce sizes 4..12 exactly.
@@ -151,11 +151,11 @@ MARRAKESH_GRAPH_SPAN_MODE = "marrakesh_graph_span_v1"
 #               rightward from 23 (24, 25, ...) is one turn among several.
 #
 # NAMED ALTERNATIVES (each reproduces all six historical entries exactly)
-#   lane (the entry below): ..., 8, 20,  9, 24, 10, 25, 11
+#   lane:                   ..., 8, 20,  9, 24, 10, 25, 11
 #   B:                      ..., 17, 20, 27, 36, 26, 41, 25
 #   C:                      ..., 8, 36,  9, 41, 10, 40, 11
 #   D:                      ..., 8, 20,  9, 36, 10, 41, 11
-#   F (row-0 fill):         ..., 8,  9, 10, 11, 12, 13, 14
+#   F (the selected entry): ..., 8,  9, 10, 11, 12, 13, 14
 #
 # THE CHOICE MOVES THE REPORTED NUMBERS.  Against the tracked 19q H2O fixture
 # register (boson modes at logical qubits 12-13, 14-16, 17-18), the Steiner
@@ -164,12 +164,14 @@ MARRAKESH_GRAPH_SPAN_MODE = "marrakesh_graph_span_v1"
 # and over the whole 19-qubit register
 #   pairwise-distance sum: lane 862, B 784, F 1008
 #   diameter:              lane 13,  B 10
-# So the entry below is neither unique nor cost-minimal.  Every
+# F was selected by the user for the Paper-IV H2O campaign because it keeps
+# each mode register contiguous on one hardware row.  It is not the
+# whole-register distance minimum.  Every
 # marrakesh_graph_span_v1 cost reported for the H2O problem --- c_hat_2q,
 # c_hat_d, every selector ranking that consumes them --- moves if it changes.
 #
-# STATUS: the size-19 row is a scientific decision recorded here for the user
-# to overrule, not a derivation an agent may re-derive or silently retune.
+# STATUS: the size-19 row is the user-selected F embedding, not a derivation
+# an agent may re-derive or silently retune.
 # Changing it is a deliberate, user-authorized act; the pinned tuples and the
 # boson-block Steiner numbers in
 # test/test_marrakesh_graph_span_embedding_19q.py make any change visible.
@@ -182,7 +184,7 @@ _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     12: (0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21),
     19: (
         0, 1, 2, 3, 4, 16, 5, 23, 6, 22, 7, 21,
-        8, 20, 9, 24, 10, 25, 11,
+        8, 9, 10, 11, 12, 13, 14,
     ),
 }
 _PAULI_CHARS = {"e", "x", "y", "z"}
