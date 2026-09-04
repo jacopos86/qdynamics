@@ -16,12 +16,20 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
 )
 
 
-REPORT_SCHEMA = "paper_ii_selector_human_report_v3"
+REPORT_SCHEMA = "paper_ii_selector_human_report_v4"
+FRESH_ROUTE_ORDER = ("q_compiled", "gamma_compiled", "avqds")
 DISPLAY_LABELS = {
     "q_compiled": r"$\Gamma(v^\star)$",
     "gamma_compiled": r"$\Gamma(v)$",
     "repaired_proxy": "repaired proxy",
     "old_proxy": "old proxy$^{*}$",
+    "avqds": "AVQDS",
+}
+MARKDOWN_LABELS = {
+    "q_compiled": "Gamma(v*) realized",
+    "gamma_compiled": "Gamma(v) ideal-ranked",
+    "repaired_proxy": "Repaired proxy",
+    "old_proxy": "Old proxy",
     "avqds": "AVQDS",
 }
 
@@ -120,28 +128,64 @@ def bind_terminal_costs(
     *,
     terminal_cost_root: Path,
     include_complete_target: bool = False,
+    route_order: Sequence[str] = ROUTE_ORDER,
+    require_all_routes: bool = False,
 ) -> list[dict[str, Any]]:
     """Return same-cell route-best comparisons with verified fresh costs."""
 
+    route_order = tuple(route_order)
+    if not route_order or len(route_order) != len(set(route_order)):
+        raise ValueError("route_order must contain unique route names")
     selected: list[dict[str, Any]] = []
     for raw_cell in comparison.get("cells") or ():
+        raw_routes = raw_cell.get("routes") or {}
+        display_complete = all(route in raw_routes for route in route_order)
         complete_target = bool(
-            raw_cell.get("all_routes_complete")
+            display_complete
             and all(
-                (raw_cell.get("routes") or {}).get(route, {})
+                raw_routes.get(route, {})
                 .get("accuracy", {})
                 .get("qualifies_individually")
                 is True
-                for route in ROUTE_ORDER
+                for route in route_order
             )
         )
-        if raw_cell.get("reportable_current_best") is not True and not (
+        if require_all_routes:
+            if not display_complete:
+                continue
+        elif raw_cell.get("reportable_current_best") is not True and not (
             include_complete_target and complete_target
         ):
             continue
         cell = dict(raw_cell)
+        cell["_report_routes"] = list(route_order)
+        cell["missing_routes"] = [
+            route for route in route_order if route not in raw_routes
+        ]
+        cell["all_routes_complete"] = display_complete
+        present_routes = [route for route in route_order if route in raw_routes]
+        achieved_route = max(
+            present_routes,
+            key=lambda route: float(raw_routes[route]["accuracy"]["accuracy_burden"]),
+        )
+        cell["achieved_accuracy_floor"] = {
+            "route": achieved_route,
+            "accuracy_burden": float(
+                raw_routes[achieved_route]["accuracy"]["accuracy_burden"]
+            ),
+        }
+        pairwise = raw_cell.get("pairwise_accuracy") or {}
+        requested_pairs = [
+            f"{left}__{right}"
+            for index, left in enumerate(route_order)
+            for right in route_order[index + 1 :]
+        ]
+        if requested_pairs and all(name in pairwise for name in requested_pairs):
+            cell["available_routes_clique"] = all(
+                pairwise[name].get("passes") is True for name in requested_pairs
+            )
         costs: dict[str, Any] = {}
-        for route in ROUTE_ORDER:
+        for route in route_order:
             if route not in cell["routes"]:
                 continue
             route_record = cell["routes"][route]
@@ -157,18 +201,21 @@ def bind_terminal_costs(
         raise ValueError("no reportable same-cell route-best comparisons are ready")
 
     def priority(cell: Mapping[str, Any]) -> tuple[Any, ...]:
+        report_routes = tuple(cell.get("_report_routes") or route_order)
         routes = cell.get("routes") or {}
         all_individual = all(
-            record.get("accuracy", {}).get("qualifies_individually") is True
-            for record in routes.values()
+            routes[route].get("accuracy", {}).get("qualifies_individually") is True
+            for route in report_routes
+            if route in routes
         )
         worst_burden = max(
-            float(record["accuracy"]["accuracy_burden"])
-            for record in routes.values()
+            float(routes[route]["accuracy"]["accuracy_burden"])
+            for route in report_routes
+            if route in routes
         )
         return (
             -int(cell.get("all_routes_complete") is True),
-            -len(routes),
+            -sum(route in routes for route in report_routes),
             -int(all_individual),
             -int(cell.get("available_routes_clique") is True),
             worst_burden,
@@ -176,6 +223,10 @@ def bind_terminal_costs(
         )
 
     return sorted(selected, key=priority)
+
+
+def _report_routes(cell: Mapping[str, Any]) -> tuple[str, ...]:
+    return tuple(cell.get("_report_routes") or ROUTE_ORDER)
 
 
 def _sci(value: float) -> str:
@@ -200,7 +251,7 @@ def _tex_escape(value: str) -> str:
 
 def _values(cell: Mapping[str, Any], path: Sequence[str]) -> dict[str, Any]:
     result: dict[str, Any] = {}
-    for route in ROUTE_ORDER:
+    for route in _report_routes(cell):
         if route not in cell["routes"]:
             continue
         value: Any = cell["routes"][route]
@@ -213,14 +264,14 @@ def _values(cell: Mapping[str, Any], path: Sequence[str]) -> dict[str, Any]:
 def _cost_values(cell: Mapping[str, Any], name: str) -> dict[str, int]:
     return {
         route: int(cell["terminal_costs"][route][name])
-        for route in ROUTE_ORDER
+        for route in _report_routes(cell)
         if route in cell["terminal_costs"]
     }
 
 
 def _deletion_values(cell: Mapping[str, Any], name: str) -> dict[str, str | None]:
     result: dict[str, str | None] = {}
-    for route in ROUTE_ORDER:
+    for route in _report_routes(cell):
         if route not in cell["routes"]:
             continue
         outcomes = cell["routes"][route]["deletion_gate_outcomes"]
@@ -243,7 +294,7 @@ def _work_values(
     """Render exact work values numerically and bounds with an explicit sign."""
 
     result: dict[str, int | str | None] = {}
-    for route in ROUTE_ORDER:
+    for route in _report_routes(cell):
         if route not in cell["routes"]:
             continue
         work = cell["routes"][route]["estimator_work"]
@@ -262,7 +313,7 @@ def _support_values(cell: Mapping[str, Any], name: str) -> dict[str, int | str]:
     """Mark net support counts as bounds when in-checkpoint edits were lost."""
 
     result: dict[str, int | str] = {}
-    for route in ROUTE_ORDER:
+    for route in _report_routes(cell):
         if route not in cell["routes"]:
             continue
         motion = cell["routes"][route]["support_motion"]
@@ -297,6 +348,7 @@ def _row(
     formatter,
     lower_is_better: bool = True,
     highlight_best: bool = True,
+    route_order: Sequence[str] = ROUTE_ORDER,
 ) -> str:
     numeric = {
         route: float(value)
@@ -307,7 +359,7 @@ def _row(
         min(numeric.values()) if lower_is_better else max(numeric.values())
     ) if numeric else None
     cells = []
-    for route in ROUTE_ORDER:
+    for route in route_order:
         if route not in values:
             cells.append(r"\emph{pending}")
             continue
@@ -329,7 +381,7 @@ def _row(
 
 def _status_row(cell: Mapping[str, Any]) -> str:
     cells = []
-    for route in ROUTE_ORDER:
+    for route in _report_routes(cell):
         if route not in cell["routes"]:
             cells.append(r"\emph{pending}")
             continue
@@ -345,61 +397,69 @@ def _status_row(cell: Mapping[str, Any]) -> str:
 
 
 def _cell_table(cell: Mapping[str, Any]) -> str:
+    routes = _report_routes(cell)
+    column_count = len(routes) + 1
+
+    def row(label: str, values: Mapping[str, Any], **kwargs: Any) -> str:
+        return _row(label, values, route_order=routes, **kwargs)
+
     rows = [
-        r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrr@{}}",
+        r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X"
+        + "r" * len(routes)
+        + r"@{}}",
         r"\toprule",
-        "Metric & " + " & ".join(DISPLAY_LABELS[route] for route in ROUTE_ORDER) + r" \\",
+        "Metric & " + " & ".join(DISPLAY_LABELS[route] for route in routes) + r" \\",
         r"\midrule",
-        r"\multicolumn{6}{@{}l}{\emph{Average exact errors and achieved accuracy}} \\",
-        _row(
+        rf"\multicolumn{{{column_count}}}{{@{{}}l}}{{\emph{{Average exact errors and achieved accuracy}}}} \\",
+        row(
             "Mean infidelity",
             _values(cell, ("accuracy", "mean_infidelity")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
-        _row(
+        row(
             r"Mean $|\Delta E|$",
             _values(cell, ("accuracy", "mean_abs_energy_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
-        _row(
+        row(
             "Mean doublon error",
             _values(cell, ("accuracy", "mean_abs_doublon_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
-        _row(
+        row(
             r"Mean $|\Delta n|$",
             _values(cell, ("accuracy", "mean_abs_charge_imbalance_error")),
             formatter=lambda value: f"${_sci(float(value))}$",
         ),
-        _row(
+        row(
             "Accuracy burden",
             _values(cell, ("accuracy", "accuracy_burden")),
             formatter=lambda value: f"{float(value):.3f}",
         ),
         _status_row(cell),
         r"\addlinespace[2pt]",
-        r"\multicolumn{6}{@{}l}{\emph{Propagation and logical estimator work}} \\",
-        _row(
+        rf"\multicolumn{{{column_count}}}{{@{{}}l}}{{\emph{{Propagation and logical estimator work}}}} \\",
+        row(
             "Accepted timesteps",
             _values(cell, ("time_step_count",)),
             formatter=lambda value: _int(int(value)),
         ),
-        _row(
+        row(
             r"Terminal $N_\theta$",
             _values(cell, ("n_theta",)),
             formatter=lambda value: _int(int(value)),
         ),
-        _row(
+        row(
             "RHS geometries",
             _values(cell, ("estimator_work", "rhs_geometry_evaluation_count")),
             formatter=lambda value: _int(int(value)),
         ),
-        _row(
+        row(
             "Propagation geometry elements",
             _work_values(cell, "logical_integration_geometry_work"),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
-        _row(
+        row(
             "Checkpoint geometry elements",
             _work_values(
                 cell,
@@ -408,7 +468,7 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             ),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
-        _row(
+        row(
             "Candidate acquisition elements",
             _work_values(
                 cell,
@@ -417,7 +477,7 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             ),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
-        _row(
+        row(
             "Finalist geometry elements",
             _work_values(
                 cell,
@@ -426,7 +486,7 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             ),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
-        _row(
+        row(
             "Local-refit estimator elements",
             _work_values(
                 cell,
@@ -435,7 +495,7 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             ),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
-        _row(
+        row(
             "Total logical estimator elements",
             _work_values(
                 cell,
@@ -445,57 +505,57 @@ def _cell_table(cell: Mapping[str, Any]) -> str:
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
         ),
         r"\addlinespace[2pt]",
-        r"\multicolumn{6}{@{}l}{\emph{Fresh terminal FakeMarrakesh compilation}} \\",
-        _row(r"$N_{2q}$", _cost_values(cell, "N2q"), formatter=lambda value: _int(int(value))),
-        _row(r"$d_{2q}$", _cost_values(cell, "D2q"), formatter=lambda value: _int(int(value))),
-        _row(r"Total depth $D_c$", _cost_values(cell, "Dc"), formatter=lambda value: _int(int(value))),
+        rf"\multicolumn{{{column_count}}}{{@{{}}l}}{{\emph{{Fresh terminal FakeMarrakesh compilation}}}} \\",
+        row(r"$N_{2q}$", _cost_values(cell, "N2q"), formatter=lambda value: _int(int(value))),
+        row(r"$d_{2q}$", _cost_values(cell, "D2q"), formatter=lambda value: _int(int(value))),
+        row(r"Total depth $D_c$", _cost_values(cell, "Dc"), formatter=lambda value: _int(int(value))),
         r"\addlinespace[2pt]",
-        r"\multicolumn{6}{@{}l}{\emph{Accepted net support motion and observed recurrence}} \\",
-        _row(
+        rf"\multicolumn{{{column_count}}}{{@{{}}l}}{{\emph{{Accepted net support motion and observed recurrence}}}} \\",
+        row(
             "Coordinates added",
             _support_values(cell, "added_coordinate_count"),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
-        _row(
+        row(
             "Coordinates deleted",
             _support_values(cell, "deleted_coordinate_count"),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
-        _row(
+        row(
             r"Deleted then re-added ($\leq2$ edits)",
             _support_values(cell, "short_delete_to_readd_count"),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
-        _row(
+        row(
             r"Added then re-deleted ($\leq2$ edits)",
             _support_values(cell, "short_add_to_redelete_count"),
             formatter=lambda value: str(value) if isinstance(value, str) else _int(int(value)),
             highlight_best=False,
         ),
-        _row(
+        row(
             "Support-changing checkpoints",
             _values(cell, ("support_motion", "support_changing_checkpoint_count")),
             formatter=lambda value: _int(int(value)),
             highlight_best=False,
         ),
         r"\addlinespace[2pt]",
-        r"\multicolumn{6}{@{}l}{\emph{Deletion-bearing finalist outcomes}} \\",
-        _row(
+        rf"\multicolumn{{{column_count}}}{{@{{}}l}}{{\emph{{Deletion-bearing finalist outcomes}}}} \\",
+        row(
             "Finalists tested with deletion",
             _deletion_values(cell, "deletion_bearing_finalist_attempt_count"),
             formatter=str,
             highlight_best=False,
         ),
-        _row(
+        row(
             "Failed post-delete gates",
             _deletion_values(cell, "post_delete_gate_failure_count"),
             formatter=str,
             highlight_best=False,
         ),
-        _row(
+        row(
             "Committed deletion patches",
             _deletion_values(cell, "committed_deletion_patch_count"),
             formatter=str,
@@ -514,10 +574,22 @@ def render_latex(
     markdown_name: str,
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
+    report_routes = _report_routes(selected_cells[0])
     route_counts = comparison.get("summary", {}).get("route_available_counts", {})
-    fresh_routes = ("q_compiled", "gamma_compiled", "repaired_proxy", "avqds")
+    fresh_routes = tuple(route for route in report_routes if route != "old_proxy")
     fresh_available = sum(int(route_counts.get(route, 0)) for route in fresh_routes)
-    fresh_target = 4 * len(comparison.get("cells") or ())
+    fresh_target = len(fresh_routes) * len(comparison.get("cells") or ())
+    fresh_only = report_routes == FRESH_ROUTE_ORDER
+    report_title = (
+        "Paper II fresh selector comparison"
+        if fresh_only
+        else "Paper II current-best selector comparison"
+    )
+    route_description = (
+        r"Three fresh side-by-side routes"
+        if fresh_only
+        else r"Five side-by-side routes"
+    )
     pages = []
     for index, cell in enumerate(selected_cells):
         achieved = cell["achieved_accuracy_floor"]
@@ -535,8 +607,8 @@ def render_latex(
                 )
             lead = rf"""
 \begin{{center}}
-{{\LARGE\bfseries Paper II current-best selector comparison}}\\[3pt]
-{{\small Five side-by-side routes on locked final $t=20$ cells;
+{{\LARGE\bfseries {_tex_escape(report_title)}}}\\[3pt]
+{{\small {route_description} on locked final $t=20$ cells;
 $\Gamma(v^\star)$ is realized and $\Gamma(v)$ is ideal-ranked; generated {_tex_escape(str(comparison['generated_utc'])[:10])}}}\\[2pt]
 {{\small Interim exact-estimator refresh: {fresh_available} of {fresh_target} fresh final runs available.}}
 \end{{center}}
@@ -571,7 +643,7 @@ lower bounds are not declared winners.
             + ", ".join(DISPLAY_LABELS[route] for route in missing)
             + "."
             if missing
-            else " All five routes are present."
+            else f" All {len(report_routes)} displayed routes are present."
         )
         match_note = (
             r"\textbf{Accuracy basis:} least accurate available route is "
@@ -587,9 +659,10 @@ lower bounds are not declared winners.
 {{\small
 {_cell_table(cell)}
 }}
-{{\scriptsize $g(p)=p(p+1)/2+p+2$; $\geq$ marks an incomplete-round/refit or
-net-motion lower bound.  No hardware-shot ledger; dash means not applicable;
-$^*$historical stitched old-proxy baseline.  Full definitions: linked Markdown.}}
+{{\scriptsize $g(p)=p(p+1)/2+p+2$; $\geq$ marks an incomplete support-motion
+or deletion-attempt ledger.  Estimator totals are exact for every displayed
+fresh run.  No hardware-shot ledger; dash means not applicable.  Full
+definitions: linked Markdown.}}
 """
         pages.append(page.strip())
     body = "\n\n\\newpage\n\n".join(pages)
@@ -622,10 +695,12 @@ def render_markdown(
     calibration_path: Path | None = None,
     calibration: Mapping[str, Any] | None = None,
 ) -> str:
+    report_routes = _report_routes(selected_cells[0])
     route_counts = comparison.get("summary", {}).get("route_available_counts", {})
-    fresh_routes = ("q_compiled", "gamma_compiled", "repaired_proxy", "avqds")
+    fresh_routes = tuple(route for route in report_routes if route != "old_proxy")
     fresh_available = sum(int(route_counts.get(route, 0)) for route in fresh_routes)
-    fresh_target = 4 * len(comparison.get("cells") or ())
+    fresh_target = len(fresh_routes) * len(comparison.get("cells") or ())
+    fresh_only = report_routes == FRESH_ROUTE_ORDER
     if calibration is not None and calibration_path is not None:
         calibration_lines = [
             f"- Calibration gate: `{calibration.get('status')}`; receipt "
@@ -643,7 +718,11 @@ def render_markdown(
     else:
         calibration_lines = ["- Calibration gate: no receipt supplied."]
     lines = [
-        "# Paper II current-best selector comparison",
+        (
+            "# Paper II fresh selector comparison"
+            if fresh_only
+            else "# Paper II current-best selector comparison"
+        ),
         "",
         "This Markdown file is the agent-facing authority for the same-stem human PDF.",
         "",
@@ -652,12 +731,20 @@ def render_markdown(
         f"- Schema: `{REPORT_SCHEMA}`.",
         f"- Included cells: {len(selected_cells)} same-drive, same-controller route-best comparisons.",
         f"- Fresh final runs available: {fresh_available}/{fresh_target}; unfinished routes are shown as pending.",
-        f"- Complete five-route cells: {sum(cell.get('all_routes_complete') is True for cell in selected_cells)}.",
+        f"- Complete displayed-route cells: {sum(cell.get('all_routes_complete') is True for cell in selected_cells)}.",
         f"- Available-route strict accuracy cliques: {sum(cell.get('available_routes_clique') is True for cell in selected_cells)}.",
         "- Scope: locked final 501-point t=0..20 cells only; no screens, threshold ladders, smoke runs, or precursor rows.",
-        "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; fresh AVQDS.",
+        (
+            "- Route columns: fresh realized `Gamma(v*)` compiled; fresh ideal `Gamma(v)`-ranked compiled; fresh AVQDS."
+            if fresh_only
+            else "- Route columns: realized `Gamma(v*)` compiled; ideal `Gamma(v)`-ranked compiled; repaired analytical proxy; historical old proxy; fresh AVQDS."
+        ),
         "- Internal provenance mapping: `q_compiled` is the manuscript's realized `Gamma(v*)` route; `gamma_compiled` is its ideal `Gamma(v)`-ranked route. The legacy keys remain unchanged so existing actions and receipts retain stable identities.",
-        "- A cell is shown once either compiled Gamma route is available alongside the old and repaired proxy routes. Missing compiled routes and fresh AVQDS remain explicitly pending.",
+        (
+            "- Only cells with all three fresh displayed routes are shown."
+            if fresh_only
+            else "- A cell is shown once either compiled Gamma route is available alongside the old and repaired proxy routes. Missing compiled routes and fresh AVQDS remain explicitly pending."
+        ),
         f"- Fresh terminal compilation: {sum(len(cell.get('terminal_costs') or {}) for cell in selected_cells)} displayed route/cell arms, all validated under local-only `FakeMarrakesh`, optimization level 1, transpiler seed 7, with terminal-reconstruction parity and trajectory-digest binding.",
         "- Accuracy basis: within the locked cell, retain each route's current best final trajectory and set the achieved comparison level by the least accurate available route; do not discard the page merely because a common qualification gate fails.",
         "- Evidence status: analysis only; no manuscript or source-map adoption.",
@@ -699,8 +786,10 @@ def render_markdown(
                 + "`."
             ),
             "",
-            "| Metric | Gamma(v*) realized | Gamma(v) ideal-ranked | Repaired proxy | Old proxy | AVQDS |",
-            "|---|---:|---:|---:|---:|---:|",
+            "| Metric | "
+            + " | ".join(MARKDOWN_LABELS[route] for route in report_routes)
+            + " |",
+            "|---|" + "---:|" * len(report_routes),
         ])
         metrics = [
             ("mean_infidelity", lambda r: r["accuracy"]["mean_infidelity"]),
@@ -728,7 +817,7 @@ def render_markdown(
         ]
         for name, getter in metrics:
             values = []
-            for route in ROUTE_ORDER:
+            for route in report_routes:
                 if route not in cell["routes"]:
                     values.append("pending")
                     continue
@@ -770,12 +859,12 @@ def render_markdown(
                 cell["terminal_costs"][route][cost_name]
                 if route in cell["terminal_costs"]
                 else "pending"
-                for route in ROUTE_ORDER
+                for route in report_routes
             ]
             lines.append("| terminal_" + cost_name + " | " + " | ".join(str(value) for value in values) + " |")
 
         lines.extend(["", "Provenance:"])
-        for route in ROUTE_ORDER:
+        for route in report_routes:
             if route not in cell["routes"]:
                 lines.append(f"- `{route}`: pending for this cell.")
                 continue
@@ -822,7 +911,10 @@ def render_markdown(
     for cell in comparison.get("cells") or ():
         if str(cell["cell_id"]) in selected_ids:
             continue
-        missing = ", ".join(cell.get("missing_routes") or ()) or "none"
+        cell_routes = cell.get("routes") or {}
+        missing = ", ".join(
+            route for route in report_routes if route not in cell_routes
+        ) or "none"
         lines.append(
             f"- `{cell['cell_id']}`: tier `{cell['comparison_tier']}`; missing routes: {missing}."
         )
@@ -845,6 +937,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "individual target even if a strict pairwise accuracy match fails."
         ),
     )
+    parser.add_argument(
+        "--fresh-only",
+        action="store_true",
+        help=(
+            "Render only complete fresh AVQDS, Gamma(v-star), and Gamma(v) "
+            "cells; omit both proxy routes."
+        ),
+    )
     return parser
 
 
@@ -863,10 +963,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     calibration = _read_json(calibration_path) if calibration_path is not None else None
     if calibration is not None and str(calibration.get("status", "")).upper() == "ERROR":
         raise ValueError("calibration gate reports ERROR; refusing to build report")
+    report_routes = FRESH_ROUTE_ORDER if args.fresh_only else ROUTE_ORDER
     selected = bind_terminal_costs(
         comparison,
         terminal_cost_root=terminal_root,
         include_complete_target=args.include_complete_target,
+        route_order=report_routes,
+        require_all_routes=args.fresh_only,
     )
     tex_path = args.output_tex.expanduser().resolve()
     md_path = args.output_md.expanduser().resolve()

@@ -6,6 +6,7 @@ from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
     ROUTE_ORDER,
 )
 from pipelines.time_dynamics.diagnostics.paper_ii_four_route_report import (
+    FRESH_ROUTE_ORDER,
     bind_terminal_costs,
     render_latex,
     render_markdown,
@@ -187,6 +188,19 @@ def test_report_binds_five_fresh_costs_and_renders_five_columns(tmp_path) -> Non
     assert "logical_refit_estimator_work" in markdown
     assert ">=300" in markdown
     assert "unavailable_statevector_no_shot_ledger" in markdown
+
+    fresh = bind_terminal_costs(
+        comparison,
+        terminal_cost_root=tmp_path,
+        route_order=FRESH_ROUTE_ORDER,
+        require_all_routes=True,
+    )
+    fresh_tex = render_latex(comparison, fresh, markdown_name="report.md")
+    assert "Three fresh side-by-side routes" in fresh_tex
+    assert "repaired proxy" not in fresh_tex
+    assert "old proxy" not in fresh_tex
+    assert "AVQDS" in fresh_tex
+    assert "Xrrr" in fresh_tex
 
 
 def test_report_can_show_complete_individually_qualified_unmatched_cell(tmp_path) -> None:
