@@ -458,6 +458,8 @@ from pipelines.static_adapt.builders.shared_pauli_pool_contract import (
 )
 from pipelines.contracts.problem import ProblemRequest, ResolvedProblemContext
 from pipelines.static_adapt.builders.problem_registry import (
+    H2O_LINEAR_FD_FAMILY_KEY as _H2O_LINEAR_FD_FAMILY_KEY,
+    molecular_vibronic_h2o_linear_fd_fixture_attestation,
     resolve_problem_context,
     resolve_problem_context_from_namespace,
     supported_continuation_modes_for_problem,
@@ -22265,6 +22267,20 @@ class _DefaultNoPruneNumericalSession:
             ),
             "no_credentials_serialized": True,
         }
+        if (
+            str(self.context.resolved_problem.family_key).strip().lower()
+            == _H2O_LINEAR_FD_FAMILY_KEY
+        ):
+            # The direct checkpoint schema describes a problem by scalar
+            # settings only; the molecular-vibronic H2O Hamiltonian lives
+            # in its fixture file, so the checkpoint attests the fixture
+            # identity (bytes, register, cutoffs) for accepted-state resume.
+            # Other families keep their envelope byte-for-byte unchanged.
+            output_payload["problem_attestation"] = (
+                molecular_vibronic_h2o_linear_fd_fixture_attestation(
+                    self.context.resolved_problem
+                )
+            )
         _publish_active_cli_current_checkpoint(
             output_payload,
             ledger_payload=ledger_payload,
@@ -29939,8 +29955,19 @@ def _hydrate_default_no_prune_numerical_session(
         selected_count_rows.append(
             (controller_id, int(selection_counts[pool_index]))
         )
+    # The O(1) ledger port (34c87900) replaced the materialized
+    # ``occurrences`` list above with ``restored_occurrence_count`` but left
+    # this reference behind, so every accepted-state resume (HH and H2O)
+    # raised NameError here.  The identity covers the complete restored
+    # prefix, exactly the rows the pre-port list held.
     estimator_prefix_identity = (
-        _default_no_prune_estimator_prefix_identity(occurrences)
+        _default_no_prune_estimator_prefix_identity(
+            _default_no_prune_ledger_occurrence_rows(
+                restored_ledger,
+                0,
+                restored_occurrence_count,
+            )
+        )
     )
     accepted_snapshot = _AcceptedStateSnapshot(
         controller_round=int(hydration.controller_round),

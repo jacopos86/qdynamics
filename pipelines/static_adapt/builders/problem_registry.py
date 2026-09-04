@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from pathlib import Path
 from typing import Any, Callable
@@ -1190,6 +1191,21 @@ def _resolve_molecular_vibronic_h2o_context(
     )
 
 
+def _sha256_and_byte_count(path: Path) -> tuple[str, int]:
+    """Return ``(sha256_hexdigest, byte_count)`` for one file, streamed."""
+
+    digest = hashlib.sha256()
+    byte_count = 0
+    with open(path, "rb") as handle:
+        while True:
+            chunk = handle.read(1 << 20)
+            if not chunk:
+                break
+            byte_count += len(chunk)
+            digest.update(chunk)
+    return digest.hexdigest(), int(byte_count)
+
+
 def _resolve_molecular_vibronic_h2o_linear_fd_context(
     family_spec: ProblemFamilySpec,
     request: ProblemRequest,
@@ -1202,6 +1218,15 @@ def _resolve_molecular_vibronic_h2o_linear_fd_context(
     fixture = cached.fixture
     _validate_h2o_linear_fd_request_controls(request, model)
     layout = _build_molecular_vibronic_h2o_linear_fd_layout(request)
+    # The fixture file defines this family's Hamiltonian, so its byte
+    # identity is the problem identity a checkpoint must attest.  The path
+    # string is deliberately not identity: it differs between the CHTC
+    # sandbox and a local checkout for the same bytes.  The digest is
+    # streamed: the production fixture is 28 MB and this runs on every
+    # problem resolution.
+    fixture_sha256, fixture_byte_count = _sha256_and_byte_count(
+        Path(cached.fixture_path)
+    )
     h_poly = hamiltonian if hamiltonian is not None else model.h_vibronic
     num_particles = tuple(int(v) for v in model.num_particles)
     mode_cutoffs = tuple(int(v) for v in model.mode_cutoffs)
@@ -1301,11 +1326,87 @@ def _resolve_molecular_vibronic_h2o_linear_fd_context(
             "vibronic_h2o_linear_fd_fixture": fixture,
             "vibronic_h2o_linear_fd_model": model,
             "vibronic_h2o_linear_fd_fixture_path": str(cached.fixture_path),
+            "vibronic_h2o_linear_fd_fixture_sha256": fixture_sha256,
+            "vibronic_h2o_linear_fd_fixture_byte_count": fixture_byte_count,
             "vibronic_h2o_linear_fd_fixture_metadata": dict(cached.metadata),
             "vibronic_h2o_linear_fd_mode_labels": mode_labels,
             "vibronic_h2o_linear_fd_mode_cutoffs": mode_cutoffs,
         },
     )
+
+
+H2O_LINEAR_FD_FIXTURE_ATTESTATION_SCHEMA_V1 = (
+    "paper_iv_h2o_linear_fd_fixture_attestation_v1"
+)
+
+
+def molecular_vibronic_h2o_linear_fd_fixture_attestation(
+    problem: ResolvedProblemContext,
+) -> dict[str, Any]:
+    """Return the fixture identity a Paper-IV H2O checkpoint must attest.
+
+    The molecular-vibronic linear-FD Hamiltonian is defined entirely by the
+    fixture file, so accepted-state resume compares this attestation between
+    the checkpoint and the freshly resolved problem.  Identity is the SHA-256
+    of the fixture bytes plus the register structure it encodes; the fixture
+    path string is excluded on purpose because it is not identity.
+    """
+
+    if not isinstance(problem, ResolvedProblemContext):
+        raise TypeError("problem must be a ResolvedProblemContext.")
+    if str(problem.family_key) != H2O_LINEAR_FD_FAMILY_KEY:
+        raise ValueError(
+            "Fixture attestation is defined only for the "
+            f"{H2O_LINEAR_FD_FAMILY_KEY!r} family, got {problem.family_key!r}."
+        )
+    runtime_data = problem.runtime_data
+    if not isinstance(runtime_data, dict):
+        raise ValueError(
+            "Resolved H2O linear-FD problem carries no runtime data, so its "
+            "fixture identity cannot be attested."
+        )
+    try:
+        fixture_sha256 = str(runtime_data["vibronic_h2o_linear_fd_fixture_sha256"])
+        fixture_byte_count = int(
+            runtime_data["vibronic_h2o_linear_fd_fixture_byte_count"]
+        )
+        metadata = dict(runtime_data["vibronic_h2o_linear_fd_fixture_metadata"])
+        mode_labels = tuple(
+            str(value)
+            for value in runtime_data["vibronic_h2o_linear_fd_mode_labels"]
+        )
+        mode_cutoffs = tuple(
+            int(value)
+            for value in runtime_data["vibronic_h2o_linear_fd_mode_cutoffs"]
+        )
+    except KeyError as exc:
+        raise ValueError(
+            "Resolved H2O linear-FD problem lacks the fixture identity field "
+            f"{exc.args[0]!r}; resolve it through the problem registry."
+        ) from exc
+    if len(fixture_sha256) != 64 or any(
+        character not in "0123456789abcdef" for character in fixture_sha256
+    ):
+        raise ValueError("H2O fixture SHA-256 must be 64 lowercase hex digits.")
+    if fixture_byte_count < 1:
+        raise ValueError("H2O fixture byte count must be positive.")
+    return {
+        "schema": H2O_LINEAR_FD_FIXTURE_ATTESTATION_SCHEMA_V1,
+        "family_key": H2O_LINEAR_FD_FAMILY_KEY,
+        "fixture_sha256": fixture_sha256,
+        "fixture_byte_count": fixture_byte_count,
+        "fixture_schema": str(metadata.get("schema", "")),
+        "fixture_model_role": str(metadata.get("model_role", "")),
+        "fixture_production_status": str(metadata.get("production_status", "")),
+        "fixture_derivative_source": str(metadata.get("derivative_source", "")),
+        "n_spatial_orbitals": int(problem.request.num_sites),
+        "num_particles": [int(value) for value in problem.sector.num_particles],
+        "mode_labels": list(mode_labels),
+        "mode_cutoffs": list(mode_cutoffs),
+        "fermion_qubits": int(problem.layout.fermion_qubits),
+        "boson_qubits": int(problem.layout.boson_qubits),
+        "total_qubits": int(problem.layout.total_qubits),
+    }
 
 
 def _resolve_spin_boson_problem_context(
