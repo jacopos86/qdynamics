@@ -31,7 +31,7 @@
       "src",
       "chtc/paper_ii_production_v2/input/seeds"
     ],
-    "telemetry_implementation_commit": "1feca59dfc9fa7232ca875c0f1d424335ad37cd5",
+    "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
     "compile_worker_reconciliation_head": "7128545afb85af0fc70b2acc6ae2b8a07c949602"
   },
   "inputs": {
