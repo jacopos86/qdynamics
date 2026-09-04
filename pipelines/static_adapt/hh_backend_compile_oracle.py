@@ -126,24 +126,53 @@ class BackendCompileBaseSnapshot:
 
 MARRAKESH_GRAPH_SPAN_MODE = "marrakesh_graph_span_v1"
 # Logical-to-physical embedding into FakeMarrakesh (156-qubit heavy-hex).
-# Generating rule (verified against the coupling map; every entry is a prefix
-# of the next, and every induced subgraph is a tree):
-#   * logical 0..3 -> physical 0..3, the first data row of the lattice;
-#   * two arms then grow from the anchor qubit 3 and are interleaved so that
-#     even logical indices >= 4 take the next qubit of the top arm and odd
-#     logical indices take the next qubit of the bottom arm;
-#   * top arm: continue the first data row rightward, 4, 5, 6, 7, 8, 9, ...;
-#   * bottom arm: the column-3 connector 16, the second data row qubit 23
-#     beneath it, then the second row walked leftward, 22, 21, 20; 20 is a
-#     dead end (its only neighbour is 21), so the walk resumes rightward from
-#     23 along the second row, 24, 25, 26, ...
-# Sizes 4..12 are the historical Paper-I Hubbard--Holstein L=2 entries and
-# must never change.  Size 19 (Paper-IV H2O, 12 fermion + 7 boson qubits)
-# is the same rule continued; at logical index 15 the bottom arm has to turn
-# because 20 is a dead end.  Alternatives rejected there: descending through
-# the row-1/row-2 connector 36 under qubit 21 (leaves the two-row band the
-# historical entries occupy) and dropping the alternation to fill from the
-# first row only (breaks the interleaving rule).  Both would also be trees.
+#
+# WHAT IS DERIVED, AND WHAT IS CHOSEN
+# -----------------------------------
+# Sizes 4..12 are the historical Paper-I Hubbard--Holstein L=2 entries.  They
+# back sealed Paper-I graph-span costs and must never change.
+#
+# Size 19 (Paper-IV H2O, 12 fermion + 7 boson qubits) is NOT derived from
+# those six entries.  It is a CHOSEN extension.  The three structural
+# properties the historical entries share --- every entry is a prefix of the
+# next (nested), every induced subgraph is a tree, and logical indices >= 4
+# alternate between two arms grown from the anchor qubit 3 (even -> top arm,
+# odd -> bottom arm) --- are kept by the size-19 entry, but they do not pin
+# it.  Enumerating every two-arm, parity-interleaved, tree-growing
+# continuation of the 12-tuple on the real FakeMarrakesh coupling map yields
+# 430 distinct tree-valued 19-tuples.  Six historical entries cannot
+# discriminate among them: all 430 reproduce sizes 4..12 exactly.
+#
+# CHOICE POINTS (all three are free, none is forced by the historical table)
+#   logical 12: top arm continues to 8, or descends the connector 17;
+#   logical 13: bottom arm continues to 20, or descends the connector 36;
+#   logical 15: 20 is a dead end (its only neighbour is 21), so a bottom arm
+#               that took 20 at index 13 must turn somewhere; resuming
+#               rightward from 23 (24, 25, ...) is one turn among several.
+#
+# NAMED ALTERNATIVES (each reproduces all six historical entries exactly)
+#   lane (the entry below): ..., 8, 20,  9, 24, 10, 25, 11
+#   B:                      ..., 17, 20, 27, 36, 26, 41, 25
+#   C:                      ..., 8, 36,  9, 41, 10, 40, 11
+#   D:                      ..., 8, 20,  9, 36, 10, 41, 11
+#   F (row-0 fill):         ..., 8,  9, 10, 11, 12, 13, 14
+#
+# THE CHOICE MOVES THE REPORTED NUMBERS.  Against the tracked 19q H2O fixture
+# register (boson modes at logical qubits 12-13, 14-16, 17-18), the Steiner
+# span edge counts per boson-mode block are
+#   lane (10, 8, 8)      B (8, 7, 6)      F (1, 2, 1)
+# and over the whole 19-qubit register
+#   pairwise-distance sum: lane 862, B 784, F 1008
+#   diameter:              lane 13,  B 10
+# So the entry below is neither unique nor cost-minimal.  Every
+# marrakesh_graph_span_v1 cost reported for the H2O problem --- c_hat_2q,
+# c_hat_d, every selector ranking that consumes them --- moves if it changes.
+#
+# STATUS: the size-19 row is a scientific decision recorded here for the user
+# to overrule, not a derivation an agent may re-derive or silently retune.
+# Changing it is a deliberate, user-authorized act; the pinned tuples and the
+# boson-block Steiner numbers in
+# test/test_marrakesh_graph_span_embedding_19q.py make any change visible.
 _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     4: (0, 1, 2, 3),
     6: (0, 1, 2, 3, 4, 16),
@@ -168,6 +197,12 @@ class MarrakeshGraphSpanBaseSnapshot:
     backend_name: str
     graph_snapshot: dict[str, Any]
     base_absolute_cost: dict[str, float]
+
+
+def marrakesh_graph_span_supported_sizes_v1() -> tuple[int, ...]:
+    """Register sizes the fixed FakeMarrakesh embedding table covers."""
+
+    return tuple(sorted(_MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1))
 
 
 def marrakesh_logical_embedding_v1(num_qubits: int) -> tuple[int, ...]:

@@ -2,11 +2,28 @@
 
 The table maps logical qubits to physical FakeMarrakesh qubits for the
 analytic ``marrakesh_graph_span_v1`` cost proxy.  Sizes 4..12 are the
-historical Paper-I Hubbard--Holstein entries; size 19 is the Paper-IV H2O
-(12 fermion + 7 boson qubit) continuation of the same generating rule.  Every
-size is checked against the real coupling map: prefix nesting, distinct
-in-range qubits, connectivity, and the tree property the historical entries
-share.
+historical Paper-I Hubbard--Holstein entries and are sealed.
+
+Size 19 (Paper-IV H2O, 12 fermion + 7 boson qubits) is a CHOSEN extension,
+not a derivation.  It keeps the three structural properties the historical
+entries share -- nested prefixes, a tree-valued induced subgraph, and two
+arms grown from the anchor qubit 3 and interleaved by the parity of the
+logical index -- but those properties do not pin it: 430 distinct
+tree-valued 19-tuples satisfy them and reproduce all six historical entries.
+The choice moves the reported numbers (see the note above
+``_MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1`` in
+``pipelines/static_adapt/hh_backend_compile_oracle.py``).
+
+So these tests separate two kinds of claim:
+
+* PINS -- the chosen tuples themselves, byte-for-byte, and the boson-block
+  Steiner span edges they imply on the tracked 19q H2O fixture register.
+  These exist so that changing the choice is a visible, deliberate test
+  update rather than a silent cost shift.
+* PROPERTIES -- what is actually checked against the real coupling map:
+  distinct in-range qubits, prefix nesting, and growth by adjacency into a
+  tree at every logical index.  A property test constrains the choice; it
+  does not make it.
 """
 
 from __future__ import annotations
@@ -112,22 +129,139 @@ def test_resource_estimation_mirror_table_is_identical() -> None:
     assert span_module.marrakesh_logical_embedding_v1(19) == EMBEDDING_19Q_V1
 
 
-def test_generating_rule_reproduces_every_entry() -> None:
-    """Logical 0..3 -> row 0; then alternate the top and bottom arms."""
+def test_every_entry_is_the_chosen_tuple_truncated() -> None:
+    """Every table row is a prefix of the one chosen 19-tuple.
 
-    top_arm = [4, 5, 6, 7, 8, 9, 10, 11]
-    bottom_arm = [16, 23, 22, 21, 20, 24, 25]
+    This is a PIN, not a derivation.  The two arm lists below are a
+    transcription of the chosen tuple, so agreeing with them proves only
+    that the table is internally consistent -- that all seven rows are
+    prefixes of a single sequence -- and nothing about why that sequence
+    rather than one of the other 429 admissible ones.  The property tests
+    below are what actually check the sequence against the hardware.
+    """
+
+    chosen_top_arm = [4, 5, 6, 7, 8, 9, 10, 11]
+    chosen_bottom_arm = [16, 23, 22, 21, 20, 24, 25]
     sequence = [0, 1, 2, 3]
     top_index = bottom_index = 0
     for logical in range(4, 19):
         if logical % 2 == 0:
-            sequence.append(top_arm[top_index])
+            sequence.append(chosen_top_arm[top_index])
             top_index += 1
         else:
-            sequence.append(bottom_arm[bottom_index])
+            sequence.append(chosen_bottom_arm[bottom_index])
             bottom_index += 1
+    assert tuple(sequence) == EMBEDDING_19Q_V1
     for size in EXPECTED_SIZES:
         assert marrakesh_logical_embedding_v1(size) == tuple(sequence[:size])
+
+
+def test_chosen_tuple_grows_by_adjacency_into_a_tree_at_every_index(
+    marrakesh_graph,
+) -> None:
+    """PROPERTY: from the coupling map alone, with nothing hard-coded.
+
+    At every logical index the next physical qubit is new, in range, and
+    adjacent to exactly one already-placed qubit.  "Exactly one" is the tree
+    condition stated incrementally: a second edge back into the placed set
+    would close a cycle.  Index 0 has no predecessor.  This constrains, but
+    does not determine, the chosen tuple.
+    """
+
+    num_qubits, _edges, adjacency = marrakesh_graph
+    embedding = marrakesh_logical_embedding_v1(19)
+
+    placed: list[int] = []
+    for logical, physical in enumerate(embedding):
+        assert 0 <= physical < num_qubits
+        assert physical in adjacency
+        assert physical not in placed
+        back_edges = sorted(
+            other for other in placed if other in adjacency[physical]
+        )
+        if logical == 0:
+            assert back_edges == []
+        else:
+            assert len(back_edges) == 1, (
+                f"logical {logical} -> physical {physical} attaches to "
+                f"{back_edges}; a tree extension attaches to exactly one "
+                "already-placed qubit"
+            )
+        placed.append(physical)
+
+
+@pytest.mark.parametrize("size", EXPECTED_SIZES)
+def test_each_table_entry_extends_its_predecessor_by_adjacent_qubits(
+    size: int, marrakesh_graph
+) -> None:
+    """PROPERTY: nesting plus adjacency-only growth between table sizes."""
+
+    _num_qubits, _edges, adjacency = marrakesh_graph
+    smaller = [other for other in EXPECTED_SIZES if other < size]
+    if not smaller:
+        return
+    previous = marrakesh_logical_embedding_v1(max(smaller))
+    embedding = marrakesh_logical_embedding_v1(size)
+    assert embedding[: len(previous)] == previous
+
+    placed = list(previous)
+    for physical in embedding[len(previous) :]:
+        assert physical not in placed
+        assert any(other in adjacency[physical] for other in placed)
+        placed.append(physical)
+
+
+def test_boson_block_steiner_spans_are_pinned_for_the_tracked_fixture() -> None:
+    """PIN: the cost the chosen 19-tuple actually imposes on H2O.
+
+    The Paper-IV H2O register puts the three vibrational modes at logical
+    qubits 12-13, 14-16 and 17-18.  Under the chosen embedding those land on
+    physical (8, 20), (9, 24, 10) and (25, 11), whose Steiner span edge
+    counts on FakeMarrakesh are (10, 8, 8).  Alternative admissible
+    embeddings give different numbers -- B gives (8, 7, 6), the row-0 fill F
+    gives (1, 2, 1) -- so this triple is the visible consequence of the
+    choice, and any future embedding change must update it deliberately.
+    """
+
+    from qiskit_ibm_runtime.fake_provider import FakeMarrakesh
+    from src.quantum.chemistry.vibronic_h2o_linear_fd import (
+        load_production_vibronic_h2o_fixture,
+    )
+
+    fixture_path = (
+        REPO_ROOT
+        / "test_support"
+        / "paper_iv_h2o"
+        / "h2o_linear_fd_work373_ref484_fixture_20260826.json"
+    )
+    assert fixture_path.is_file(), fixture_path
+    layout = load_production_vibronic_h2o_fixture(fixture_path).layout
+
+    # The register the pin is stated against.
+    assert layout.n_total_qubits == 19
+    assert layout.n_fermion_qubits == 12
+    boson_blocks = tuple(tuple(block.qubits) for block in layout.boson_modes)
+    assert boson_blocks == ((12, 13), (14, 15, 16), (17, 18))
+
+    coupling_edges = sorted(
+        {
+            tuple(sorted((int(u), int(v))))
+            for u, v in FakeMarrakesh().coupling_map.get_edges()
+        }
+    )
+    embedding = marrakesh_logical_embedding_v1(19)
+    physical_blocks = tuple(
+        tuple(embedding[logical] for logical in block) for block in boson_blocks
+    )
+    assert physical_blocks == ((8, 20), (9, 24, 10), (25, 11))
+
+    spans = tuple(
+        marrakesh_graph_span_edges_for_support(
+            list(block), coupling_edges=coupling_edges
+        )
+        for block in physical_blocks
+    )
+    assert spans == (10, 8, 8)
 
 
 @pytest.mark.parametrize("size", EXPECTED_SIZES)

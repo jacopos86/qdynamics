@@ -47,8 +47,12 @@ from pipelines.static_adapt.sr_snake.contracts import (
     SRStopPolicy,
     SingletonAdmission,
 )
+from pipelines.resource_estimation.pauli_graph_span import (
+    marrakesh_graph_span_supported_sizes_v1,
+)
 from src.quantum.chemistry.vibronic_h2o_linear_fd import (
     load_cached_production_vibronic_h2o_linear_fd_fixture,
+    load_production_vibronic_h2o_fixture,
 )
 
 
@@ -139,6 +143,47 @@ def _write_json(path: Path, payload: Any) -> None:
         json.dumps(payload, allow_nan=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def validate_cost_mode_register_size(cost_mode: str, *, num_qubits: int) -> None:
+    """Fail closed when the requested cost mode cannot price this register.
+
+    ``marrakesh_graph_span_v1`` prices every Pauli support on one fixed
+    logical-to-physical FakeMarrakesh embedding, and that embedding exists
+    only for the sizes in the graph-span table.  The oracle itself only
+    discovers a missing size when it is constructed, which on the production
+    H2O route is minutes into the run and after ``protocol.json`` and
+    ``launch_manifest.json`` have already been written.  The register size is
+    known from the fixture before any of that, so the launcher checks it here.
+
+    This is a launcher-side runnability check, deliberately not part of
+    :func:`build_h2o_ra_request`: the request and its resolved protocol digest
+    are identity, are pinned byte-for-byte by the tests, and must not acquire
+    a new failure mode.
+    """
+
+    if str(cost_mode).strip() != H2O_COST_MODE_MARRAKESH_GRAPH_SPAN:
+        return
+    supported = marrakesh_graph_span_supported_sizes_v1()
+    if int(num_qubits) in supported:
+        return
+    raise ValueError(
+        f"--cost-mode {H2O_COST_MODE_MARRAKESH_GRAPH_SPAN} has no "
+        f"logical-to-physical FakeMarrakesh embedding for a "
+        f"{int(num_qubits)}-qubit register. Supported register sizes: "
+        f"{list(supported)}. The embedding table lives in "
+        "pipelines/static_adapt/hh_backend_compile_oracle.py "
+        "(_MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1); extending it is a scientific "
+        "decision that changes every graph-span cost reported for that "
+        "register size, not a routine edit. Use --cost-mode "
+        f"{H2O_COST_MODE_PROXY} for this fixture."
+    )
+
+
+def _fixture_register_qubit_count(fixture: Path) -> int:
+    """Register size from the fixture alone (no Hamiltonian construction)."""
+
+    return int(load_production_vibronic_h2o_fixture(fixture).layout.n_total_qubits)
 
 
 def _problem(fixture: Path) -> Any:
@@ -362,6 +407,12 @@ def main() -> None:
                 "its estimator-ledger sidecar) elsewhere, or write to a new "
                 "output directory."
             )
+
+    # Fail closed on an unpriceable register before anything is written.
+    validate_cost_mode_register_size(
+        args.cost_mode,
+        num_qubits=_fixture_register_qubit_count(fixture),
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     result_path = output_dir / "result.json"

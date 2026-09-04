@@ -23,9 +23,32 @@ PAPER_I_MARRAKESH_GRAPH_SPAN_PROFILE_V1 = (
     "paper_i_fake_marrakesh_graph_span_v1"
 )
 
-# Mirror of the table in pipelines/static_adapt/hh_backend_compile_oracle.py;
-# the generating rule is documented there and the two tables are asserted
-# equal by test/test_marrakesh_graph_span_embedding_19q.py.
+# Mirror of the table in pipelines/static_adapt/hh_backend_compile_oracle.py.
+# The two tables are asserted equal by
+# test/test_marrakesh_graph_span_embedding_19q.py.
+#
+# Sizes 4..12 are the historical Paper-I Hubbard--Holstein L=2 entries and
+# must never change.  Size 19 (Paper-IV H2O) is NOT derived from them: it is
+# a CHOSEN extension that keeps the three properties the historical entries
+# share (nested prefixes, tree-valued induced subgraph, two arms grown from
+# the anchor qubit 3 and interleaved by parity of the logical index) but is
+# not pinned by them.  430 distinct tree-valued 19-tuples satisfy those
+# properties and reproduce all six historical entries; the choice points sit
+# at logical 12 (top arm 8 vs connector 17), logical 13 (bottom arm 20 vs
+# connector 36) and logical 15 (20 is a dead end, so the bottom arm must
+# turn).  Named alternatives, and the Steiner span edges per boson-mode block
+# of the tracked 19q H2O fixture register (boson modes at logical 12-13,
+# 14-16, 17-18):
+#   lane (this table): ..., 8, 20, 9, 24, 10, 25, 11    -> (10, 8, 8)
+#   B:                 ..., 17, 20, 27, 36, 26, 41, 25  -> ( 8, 7, 6)
+#   C:                 ..., 8, 36, 9, 41, 10, 40, 11
+#   D:                 ..., 8, 20, 9, 36, 10, 41, 11
+#   F (row-0 fill):    ..., 8, 9, 10, 11, 12, 13, 14    -> ( 1, 2, 1)
+# Whole-register pairwise-distance sum: lane 862, B 784, F 1008; diameter
+# lane 13, B 10.  The size-19 row is therefore neither unique nor
+# cost-minimal: it is a scientific decision recorded for the user to
+# overrule, and changing it changes every graph-span cost reported for the
+# H2O problem.  See the full note in hh_backend_compile_oracle.py.
 _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1: dict[int, tuple[int, ...]] = {
     4: (0, 1, 2, 3),
     6: (0, 1, 2, 3, 4, 16),
@@ -93,6 +116,12 @@ class PauliGraphSpanLedger:
             "absolute_theta_count": float(self.independent_parameter_count),
             "ordered_support_sha256": str(self.ordered_support_sha256),
         }
+
+
+def marrakesh_graph_span_supported_sizes_v1() -> tuple[int, ...]:
+    """Register sizes the fixed FakeMarrakesh embedding table covers."""
+
+    return tuple(sorted(_MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1))
 
 
 def marrakesh_logical_embedding_v1(num_qubits: int) -> tuple[int, ...]:
@@ -477,6 +506,7 @@ __all__ = [
     "evaluate_pauli_graph_span_ansatz",
     "extract_pauli_graph_span_terms",
     "marrakesh_graph_span_edges_for_support",
+    "marrakesh_graph_span_supported_sizes_v1",
     "marrakesh_logical_embedding_v1",
     "marrakesh_pauli_support_from_label",
     "one_qubit_template_count",

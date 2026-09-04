@@ -973,3 +973,72 @@ def test_h2o_cli_exposes_cost_mode_flag() -> None:
         check=True,
     )
     assert "--cost-mode {proxy,marrakesh_graph_span_v1}" in completed.stdout
+
+
+# --- Early fail-closed on an unpriceable register (Paper IV, 2026-09-03) ---
+#
+# --cost-mode marrakesh_graph_span_v1 prices supports on one fixed
+# logical-to-physical FakeMarrakesh embedding, and that embedding exists only
+# for the sizes in _MARRAKESH_GRAPH_SPAN_EMBEDDINGS_V1. Before this check the
+# missing size surfaced only when the oracle was constructed -- minutes into a
+# production round, after protocol.json and launch_manifest.json had already
+# been written, so a launch looked healthy and then died. The register size is
+# known from the fixture, so the launcher rejects it in seconds, before it
+# writes anything. The 20260724 fixture is a 15-qubit register and 15 is
+# deliberately absent from the table.
+
+
+def test_graph_span_cost_mode_is_rejected_for_an_unsupported_register() -> None:
+    from pipelines.static_adapt.ra_adapt.h2o_application import (
+        validate_cost_mode_register_size,
+    )
+
+    # The default proxy mode is register-size agnostic.
+    validate_cost_mode_register_size("proxy", num_qubits=15)
+    # Supported sizes stay supported.
+    validate_cost_mode_register_size("marrakesh_graph_span_v1", num_qubits=19)
+    with pytest.raises(ValueError, match=r"15-qubit register"):
+        validate_cost_mode_register_size(
+            "marrakesh_graph_span_v1", num_qubits=15
+        )
+
+
+def test_h2o_cli_graph_span_fails_before_writing_protocol_json(
+    tmp_path: Path,
+) -> None:
+    """The 15q fixture must be refused in seconds, with nothing written."""
+    import subprocess
+    import sys
+
+    out = tmp_path / "out"
+    started = time.monotonic()
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--output-dir",
+            str(out),
+            "--cost-mode",
+            "marrakesh_graph_span_v1",
+            "--maximum-controller-rounds",
+            "1",
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    elapsed = time.monotonic() - started
+
+    assert completed.returncode != 0
+    assert "marrakesh_graph_span_v1" in completed.stderr
+    assert "15-qubit register" in completed.stderr
+    assert "Supported register sizes" in completed.stderr
+    # Nothing was written: not the protocol, not the manifest, not the dir.
+    assert not (out / "protocol.json").exists()
+    assert not (out / "launch_manifest.json").exists()
+    assert not out.exists()
+    # Seconds, not the minutes an oracle-construction failure used to cost.
+    assert elapsed < 120.0
