@@ -1,0 +1,50 @@
+{
+  "action_count": 60,
+  "actions_jsonl": {
+    "path": "/tmp/paperii-exact-package-426807d9/input/actions.jsonl",
+    "sha256": "9134012a2f2cc7fcabd0e2277a8d20578c0c40f0f7bffa03a2abcfa91eff6860"
+  },
+  "apm_action_count": 45,
+  "avqds_action_count": 15,
+  "blocks": [],
+  "campaign_id": "paper_ii_final_estimator_telemetry_v1",
+  "cell_count": 15,
+  "code_revision": "426807d9ccf599f16bed0d2c7679fd32bdbfca8d",
+  "comparator_mode": "fresh_exact_telemetry",
+  "compile_workers": 8,
+  "excluded_cell_count": 3,
+  "lock": {
+    "path": "/private/tmp/holstein-paperii-exact-debug/pipelines/time_dynamics/campaigns/paper_ii_final_matched_cells_v1.json",
+    "schema": "paper_ii_final_matched_cells_v1",
+    "sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030",
+    "source_campaign_id": "paper_ii_final_selector_comparison_v1"
+  },
+  "output_root": "raw_outputs",
+  "precursor_action_count": 0,
+  "registry_bindings": {
+    "apm_arm": "exchange",
+    "comparator_arm": "avqds",
+    "extra_flags": [
+      "--record-statevector"
+    ],
+    "gate": "mclachlan_l2_1e-3",
+    "horizon": "t20",
+    "numerics": "euler_ridge1e-6",
+    "regime": "hh_snake_nph1",
+    "search_profile": "paper_declared_v1"
+  },
+  "route_count": 3,
+  "schema": "paper_ii_final_estimator_telemetry_prepare_v1",
+  "seed": {
+    "path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+  },
+  "selector_routes": {
+    "paper_ii_exchange_gamma_compiled_v1": "exchange_gamma_compiled",
+    "paper_ii_exchange_legacy_proxy_fixed_v1": "exchange_legacy_proxy_fixed",
+    "paper_ii_exchange_q_compiled_v1": "exchange_q_compiled"
+  },
+  "source_package_sha256": "09b9d837bae8981a53ca1dd7df206c4b1b7aac322bf0dcf1c35dbe2b4c8fffe5",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "telemetry_contract": "paper_ii_exact_logical_estimator_telemetry_20260903"
+}
