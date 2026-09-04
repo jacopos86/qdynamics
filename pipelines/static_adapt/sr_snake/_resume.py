@@ -41,6 +41,15 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS,
     INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS,
     INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD,
+    canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract,
+    canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256,
+)
+from pipelines.static_adapt.builders.problem_registry import (
+    H2O_LINEAR_FD_FIXTURE_ATTESTATION_SCHEMA_V1,
+    molecular_vibronic_h2o_linear_fd_fixture_attestation,
+)
+from src.quantum.chemistry.vibronic_h2o_linear_fd import (
+    H2O_LINEAR_FD_FAMILY_KEY,
 )
 
 
@@ -1416,6 +1425,211 @@ class CanonicalAcceptedStateHydration:
         return dict(_thaw_json(self.terminal_signed_checkpoint))
 
 
+# Paper-IV molecular-vibronic H2O linear-FD application (2026-09-03).
+#
+# The direct checkpoint schema describes a problem by scalar settings, which
+# is complete for the lattice families but not for a Hamiltonian defined by a
+# fixture file.  The named H2O branch therefore binds the checkpoint to the
+# fixture identity written by ``_write_current_checkpoint`` (SHA-256 of the
+# fixture bytes plus the register it encodes) and pins the route settings to
+# the canonical H2O derivative-resolved contract, derived from that contract
+# function so the pin cannot drift from it.  The canonical HH and named
+# pure-Hubbard branches below are unchanged.
+_H2O_LINEAR_FD_FAMILY = H2O_LINEAR_FD_FAMILY_KEY
+_H2O_ROUTE_PROFILE_PREFIX = "paper_iv_h2o_ra_adapt__"
+_H2O_CANONICAL_INTERFACE = "run_ra_adapt_problem_request_v1"
+_PROBLEM_ATTESTATION_FIELD = "problem_attestation"
+# The route settings the canonical HH branch pins literally, reused as the
+# key list for the H2O pin (the H2O values come from its canonical contract).
+_PINNED_CANONICAL_ROUTE_SETTING_KEYS: tuple[str, ...] = (
+    "problem",
+    "adapt_pool",
+    "adapt_inner_optimizer",
+    "adapt_maxiter",
+    "adapt_seed",
+    "phase0_pilot_enabled",
+    "phase3_response_coordinate_scope",
+    "phase3_runtime_split_child_set_symmetry_policy",
+    "phase3_runtime_split_max_subset_size",
+    "phase3_runtime_split_subset_sizes",
+    "adapt_pool_class_filter_json",
+    "adapt_pool_label_filter_json",
+)
+_H2O_PINNED_ROUTE_SETTING_KEYS: tuple[str, ...] = (
+    *_PINNED_CANONICAL_ROUTE_SETTING_KEYS,
+    "adapt_max_depth",
+    "phase3_runtime_split_child_padding_policy",
+)
+
+
+def _h2o_application_lanes() -> frozenset[str]:
+    # Lazy: the RA engine owns the lane identifiers and imports this package.
+    from pipelines.static_adapt.ra_adapt.engine import (
+        H2O_LINEAR_FD_FAMILY,
+        H2O_RA_MACRO_APPLICATION_LANE,
+        H2O_RA_SECTOR_COMPLETE_PAULI_BLOCK_APPLICATION_LANE,
+    )
+
+    if str(H2O_LINEAR_FD_FAMILY) != _H2O_LINEAR_FD_FAMILY:
+        raise AssertionError(
+            "RA engine and problem registry disagree on the H2O family key."
+        )
+    return frozenset(
+        {
+            str(H2O_RA_MACRO_APPLICATION_LANE),
+            str(H2O_RA_SECTOR_COMPLETE_PAULI_BLOCK_APPLICATION_LANE),
+        }
+    )
+
+
+def paper_iv_h2o_linear_fd_required_route_settings() -> dict[str, Any]:
+    """Return the H2O route settings an accepted checkpoint must carry.
+
+    Derived from the canonical H2O derivative-resolved contract function so
+    the pin follows that contract; the engine's H2O route inherits these
+    settings unchanged from it.
+    """
+
+    execution = _mapping(
+        canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract().get(
+            "execution_settings"
+        ),
+        owner="canonical H2O route contract execution_settings",
+    )
+    missing = [
+        key for key in _H2O_PINNED_ROUTE_SETTING_KEYS if key not in execution
+    ]
+    if missing:
+        raise AssertionError(
+            "Canonical H2O route contract lost pinned execution settings: "
+            + ", ".join(missing)
+            + "."
+        )
+    return {key: execution[key] for key in _H2O_PINNED_ROUTE_SETTING_KEYS}
+
+
+def paper_iv_h2o_linear_fd_application_admitted(
+    *,
+    expected_problem: ResolvedProblemContext,
+    route_contract: Mapping[str, Any],
+) -> bool:
+    """Return whether the resume names the Paper-IV H2O application.
+
+    Admitted iff the resolved problem is the ``molecular_vibronic_h2o_linear_fd``
+    family requested under its own problem key and the authenticated route
+    contract identifies the H2O RA application lane: an RA route whose profile
+    carries the ``paper_iv_h2o_ra_adapt__`` prefix, whose semantic invariants
+    name one of the two H2O application lanes, the H2O problem family, and the
+    canonical H2O regime/horizon/pool source locks, and whose lineage parent is
+    the canonical H2O derivative-resolved contract.
+    """
+
+    request = expected_problem.request
+    if (
+        str(expected_problem.family_key) != _H2O_LINEAR_FD_FAMILY
+        or str(request.problem_key) != _H2O_LINEAR_FD_FAMILY
+    ):
+        return False
+    invariants = route_contract.get("semantic_invariants")
+    lineage = route_contract.get("lineage_authority")
+    if not isinstance(invariants, Mapping) or not isinstance(lineage, Mapping):
+        return False
+    canonical = canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
+    canonical_invariants = _mapping(
+        canonical.get("semantic_invariants"),
+        owner="canonical H2O route contract semantic_invariants",
+    )
+    return bool(
+        str(route_contract.get("route_family", "")) == "ra_adapt"
+        and str(route_contract.get("route_profile", "")).startswith(
+            _H2O_ROUTE_PROFILE_PREFIX
+        )
+        and invariants.get("canonical_interface") == _H2O_CANONICAL_INTERFACE
+        and invariants.get("application_lane") in _h2o_application_lanes()
+        and invariants.get("problem_family") == _H2O_LINEAR_FD_FAMILY
+        and invariants.get("regime_physics_source")
+        == canonical_invariants.get("regime_physics_source")
+        and invariants.get("controller_horizon_source")
+        == canonical_invariants.get("controller_horizon_source")
+        and invariants.get("operator_pool_identity")
+        == canonical_invariants.get("operator_pool_identity")
+        and lineage.get("parent_route_profile")
+        == str(canonical.get("route_profile", ""))
+        and str(lineage.get("parent_contract_sha256", "")).lower()
+        == canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256()
+    )
+
+
+def _validate_problem_family_binding(
+    *,
+    envelope: Mapping[str, Any],
+    expected_problem: ResolvedProblemContext,
+) -> None:
+    """Refuse a checkpoint written for a different problem family early."""
+
+    settings_raw = envelope.get("settings")
+    declared = (
+        settings_raw.get("problem")
+        if isinstance(settings_raw, Mapping)
+        else None
+    )
+    expected = str(expected_problem.request.problem_key)
+    if declared != expected:
+        raise CanonicalResumeError(
+            f"Accepted checkpoint describes problem {declared!r}; the resume "
+            f"request resolves problem {expected!r} (family "
+            f"{str(expected_problem.family_key)!r}). Cross-family "
+            "accepted-state resume is refused."
+        )
+
+
+def _validate_h2o_fixture_attestation(
+    *,
+    envelope: Mapping[str, Any],
+    expected_problem: ResolvedProblemContext,
+) -> dict[str, Any]:
+    """Bind the checkpoint to the fixture bytes that define the H2O problem."""
+
+    attestation_raw = envelope.get(_PROBLEM_ATTESTATION_FIELD)
+    if attestation_raw is None:
+        raise CanonicalResumeError(
+            "Paper-IV H2O resume requires the checkpoint fixture attestation "
+            f"({_PROBLEM_ATTESTATION_FIELD}); this checkpoint carries none."
+        )
+    attestation = _mapping(
+        attestation_raw,
+        owner=_PROBLEM_ATTESTATION_FIELD,
+    )
+    try:
+        expected = molecular_vibronic_h2o_linear_fd_fixture_attestation(
+            expected_problem
+        )
+    except (TypeError, ValueError) as exc:
+        raise CanonicalResumeError(
+            "Resolved Paper-IV H2O problem cannot attest its fixture identity."
+        ) from exc
+    if attestation.get("schema") != H2O_LINEAR_FD_FIXTURE_ATTESTATION_SCHEMA_V1:
+        raise CanonicalResumeError(
+            "Paper-IV H2O fixture attestation schema is unsupported."
+        )
+    mismatches = [
+        key
+        for key, expected_value in expected.items()
+        if attestation.get(key) != expected_value
+    ]
+    mismatches.extend(
+        f"unexpected:{key}" for key in sorted(set(attestation) - set(expected))
+    )
+    if mismatches:
+        raise CanonicalResumeError(
+            "Paper-IV H2O fixture attestation disagrees with the resolved "
+            "problem: "
+            + ", ".join(mismatches)
+            + "."
+        )
+    return attestation
+
+
 def _validate_problem_binding(
     *,
     envelope: Mapping[str, Any],
@@ -1452,29 +1666,68 @@ def _validate_problem_binding(
         and str(request.problem_key) == "hh"
         and int(request.num_sites) == 2
     )
-    if not canonical_hh and not pure_hubbard_noise_application:
-        raise CanonicalResumeError(
-            "Canonical accepted-state resume is restricted to canonical "
-            "L=2 Hubbard--Holstein or the exact named L=2 pure-Hubbard "
-            "controller-noise application."
-        )
-    expected_particles = tuple(expected_problem.default_num_particles)
+    h2o_linear_fd_application = paper_iv_h2o_linear_fd_application_admitted(
+        expected_problem=expected_problem,
+        route_contract=route_contract,
+    )
     if (
-        float(request.v_nn) != 0.0
-        or float(request.t_prime) != 0.0
-        or (
-            request.n_fermions is not None
-            and int(request.n_fermions) != sum(expected_particles)
-        )
-        or request.molecular_problem_json is not None
-        or request.molecular_vibronic_h2_fixture_json is not None
-        or request.molecular_vibronic_h2o_fixture_json is not None
-        or request.molecular_vibronic_h2o_linear_fd_fixture_json is not None
+        not canonical_hh
+        and not pure_hubbard_noise_application
+        and not h2o_linear_fd_application
     ):
         raise CanonicalResumeError(
-            "Canonical HH resume cannot attest noncanonical problem "
-            "extensions omitted by the direct checkpoint schema."
+            "Canonical accepted-state resume is restricted to canonical "
+            "L=2 Hubbard--Holstein, the exact named L=2 pure-Hubbard "
+            "controller-noise application, or the named Paper-IV "
+            "molecular-vibronic H2O linear-FD application."
         )
+    expected_particles = tuple(expected_problem.default_num_particles)
+    problem_attestation: dict[str, Any] | None = None
+    if h2o_linear_fd_application:
+        if (
+            float(request.v_nn) != 0.0
+            or float(request.t_prime) != 0.0
+            or (
+                request.n_fermions is not None
+                and int(request.n_fermions) != sum(expected_particles)
+            )
+            or request.molecular_problem_json is not None
+            or request.molecular_vibronic_h2_fixture_json is not None
+            or request.molecular_vibronic_h2o_fixture_json is not None
+            or request.molecular_vibronic_h2o_linear_fd_fixture_json
+            in {None, ""}
+        ):
+            raise CanonicalResumeError(
+                "Named Paper-IV H2O resume requires exactly the linear-FD "
+                "fixture problem extension and no other."
+            )
+        problem_attestation = _validate_h2o_fixture_attestation(
+            envelope=envelope,
+            expected_problem=expected_problem,
+        )
+    else:
+        if (
+            float(request.v_nn) != 0.0
+            or float(request.t_prime) != 0.0
+            or (
+                request.n_fermions is not None
+                and int(request.n_fermions) != sum(expected_particles)
+            )
+            or request.molecular_problem_json is not None
+            or request.molecular_vibronic_h2_fixture_json is not None
+            or request.molecular_vibronic_h2o_fixture_json is not None
+            or request.molecular_vibronic_h2o_linear_fd_fixture_json is not None
+        ):
+            raise CanonicalResumeError(
+                "Canonical HH resume cannot attest noncanonical problem "
+                "extensions omitted by the direct checkpoint schema."
+            )
+        if envelope.get(_PROBLEM_ATTESTATION_FIELD) is not None:
+            raise CanonicalResumeError(
+                "Canonical HH or named pure-Hubbard checkpoints carry no "
+                f"{_PROBLEM_ATTESTATION_FIELD}; this checkpoint was written "
+                "for a fixture-defined problem."
+            )
     if pure_hubbard_noise_application and not (
         float(request.t) == 1.0
         and float(request.u) in {1.5, 8.0}
@@ -1539,24 +1792,37 @@ def _validate_problem_binding(
         route_contract.get("execution_settings"),
         owner="route contract execution_settings",
     )
-    required_route_settings = {
-        "problem": (
-            "hubbard" if pure_hubbard_noise_application else "hh"
-        ),
-        "adapt_pool": "full_meta",
-        "adapt_inner_optimizer": "POWELL",
-        "adapt_maxiter": 200,
-        "adapt_seed": 7,
-        "phase0_pilot_enabled": False,
-        "phase3_response_coordinate_scope": (
-            "full_active_plus_singleton_v1"
-        ),
-        "phase3_runtime_split_child_set_symmetry_policy": "hard_guard",
-        "phase3_runtime_split_max_subset_size": 1,
-        "phase3_runtime_split_subset_sizes": "1",
-        "adapt_pool_class_filter_json": None,
-        "adapt_pool_label_filter_json": None,
-    }
+    if h2o_linear_fd_application:
+        required_route_settings = (
+            paper_iv_h2o_linear_fd_required_route_settings()
+        )
+        route_mismatch_message = (
+            "Checkpoint route is not the canonical Paper-IV H2O linear-FD "
+            "derivative-resolved route: "
+        )
+    else:
+        required_route_settings = {
+            "problem": (
+                "hubbard" if pure_hubbard_noise_application else "hh"
+            ),
+            "adapt_pool": "full_meta",
+            "adapt_inner_optimizer": "POWELL",
+            "adapt_maxiter": 200,
+            "adapt_seed": 7,
+            "phase0_pilot_enabled": False,
+            "phase3_response_coordinate_scope": (
+                "full_active_plus_singleton_v1"
+            ),
+            "phase3_runtime_split_child_set_symmetry_policy": "hard_guard",
+            "phase3_runtime_split_max_subset_size": 1,
+            "phase3_runtime_split_subset_sizes": "1",
+            "adapt_pool_class_filter_json": None,
+            "adapt_pool_label_filter_json": None,
+        }
+        route_mismatch_message = (
+            "Checkpoint route is not the canonical unfiltered guarded "
+            "Paper-I HH route: "
+        )
     route_mismatches = [
         key
         for key, expected_value in required_route_settings.items()
@@ -1564,8 +1830,7 @@ def _validate_problem_binding(
     ]
     if route_mismatches:
         raise CanonicalResumeError(
-            "Checkpoint route is not the canonical unfiltered guarded "
-            "Paper-I HH route: "
+            route_mismatch_message
             + ", ".join(route_mismatches)
             + "."
         )
@@ -1610,6 +1875,8 @@ def _validate_problem_binding(
         "comparison_space_label": receipt.comparison_space_label,
         "reference_state": reference_manifest,
     }
+    if problem_attestation is not None:
+        binding_payload["fixture_attestation"] = problem_attestation
     return receipt.problem_request_sha256, _digest_json(binding_payload)
 
 
@@ -5647,6 +5914,10 @@ def load_canonical_accepted_state_resume(
     envelope = _load_json_object(
         source_path,
         owner="canonical accepted checkpoint",
+    )
+    _validate_problem_family_binding(
+        envelope=envelope,
+        expected_problem=expected_problem,
     )
     raw_adapt = _mapping(envelope.get("adapt_vqe"), owner="adapt_vqe")
     raw_checkpoint = _mapping(

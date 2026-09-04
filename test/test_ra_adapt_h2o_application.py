@@ -537,28 +537,20 @@ def test_h2o_cli_wall_budget_stops_after_the_round_in_flight(
 
 
 @_cli_runs
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "Blocked upstream of the wall-clock seam: --resume-checkpoint on the "
-        "H2O route fails in sr_snake/_resume.py _validate_problem_binding "
-        "(CanonicalResumeError: accepted-state resume is restricted to "
-        "canonical L=2 Hubbard--Holstein or the named L=2 pure-Hubbard "
-        "application; it also rejects any request carrying "
-        "molecular_vibronic_h2o_linear_fd_fixture_json and requires "
-        "adapt_pool == 'full_meta'). Admitting the Paper-IV route to "
-        "canonical resume is a scientific-surface decision; this test "
-        "flips to a hard failure (strict xfail) once it is made."
-    ),
-)
 def test_h2o_cli_segment_chain_resumes_from_the_wall_clock_stop(
     h2o_segment_chain,
 ) -> None:
-    """(b) the campaign design: segment 2 continues from segment 1."""
+    """(b) the campaign design: segment 2 continues from segment 1.
+
+    Admitted 2026-09-03 by the named ``paper_iv_h2o_linear_fd_application``
+    branch of ``sr_snake/_resume.py::_validate_problem_binding`` (fixture
+    attestation + canonical H2O route pin); the admissibility regressions
+    live in ``test_paper_iv_h2o_resume_admissibility.py``.
+    """
 
     segment_one = h2o_segment_chain["segment_one"]
     segment_two = h2o_segment_chain["root"] / "segment_2"
+    started = time.monotonic()
     second = _run_h2o_cli(
         "--output-dir",
         str(segment_two),
@@ -589,10 +581,25 @@ def test_h2o_cli_segment_chain_resumes_from_the_wall_clock_stop(
         > second_trajectory[0]["controller_round"]
     )
     checkpoint = segment_two / "current.json"
-    assert _load_json(checkpoint)["checkpoint"]["depth"] == 2
+    second_envelope = _load_json(checkpoint)
+    assert second_envelope["checkpoint"]["depth"] == 2
     _sidecar_of(checkpoint)
-    # Segment 1's checkpoint is untouched by the resumed segment.
-    assert _load_json(segment_one / "current.json")["checkpoint"]["depth"] == 1
+    # Segment 1's checkpoint is untouched by the resumed segment, and both
+    # segments attest the same fixture bytes.
+    first_envelope = _load_json(segment_one / "current.json")
+    assert first_envelope["checkpoint"]["depth"] == 1
+    assert first_envelope["problem_attestation"]["fixture_sha256"] == (
+        hashlib.sha256(_FIXTURE.read_bytes()).hexdigest()
+    )
+    assert second_envelope["problem_attestation"] == (
+        first_envelope["problem_attestation"]
+    )
+    print(
+        "segment chain: segment 1 "
+        f"{h2o_segment_chain['first'].elapsed_seconds:.1f} s wall "
+        "(depth 1); segment 2 "
+        f"{time.monotonic() - started:.1f} s wall (depth 1 -> 2)"
+    )
 
 
 @_cli_runs
