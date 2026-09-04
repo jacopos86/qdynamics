@@ -23,10 +23,12 @@ from pipelines.static_adapt.ra_adapt.adapters import (
     GLOBAL_SINGLE_PAULI_ADAPTER_ID,
     GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
     GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID,
+    H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID,
     MACRO_GRADIENT_PHASE0_ADAPTER_ID,
     MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
     PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON,
     PHASE_I_VISIBILITY_ALL_EXECUTABLE,
+    PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS,
     PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
     GlobalSinglePauliWordCandidateAdapter,
     GlobalSingletonGradientPhase0CandidateAdapter,
@@ -86,9 +88,14 @@ from pipelines.static_adapt.ra_adapt.contracts import (
 from pipelines.static_adapt.ra_adapt.pools import (
     CandidateInventory,
     CandidateRecord,
+    H2O_SECTOR_COMPLETE_PAULI_BLOCK_CONSTRUCTION,
+    H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY,
+    H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA,
+    H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA,
     build_candidate_inventory_lineage_receipt,
     guarded_singleton_generator_identity,
     require_h2o_symmetry_complete_problem,
+    sector_complete_pauli_block_identity,
 )
 from pipelines.static_adapt.ra_adapt.replay_evidence import (
     build_ra_controller_replay_evidence,
@@ -3262,11 +3269,222 @@ def _required_phase3_stabilization(
     return matches[0]
 
 
+_STAGED_CHILD_MANIFEST_FIELDS = frozenset(
+    {
+        "label",
+        "representation_id",
+        "generator_identity",
+        "parent_identities",
+        "family_id",
+        "stage_family",
+        "construction",
+        "execution_mode",
+        "serialized_terms_exyz",
+        "symmetry_receipt",
+    }
+)
+_SECTOR_BLOCK_EXECUTION_MODES = frozenset(
+    {"termwise_product", "grouped_exact"}
+)
+
+
+def _is_staged_sector_complete_pauli_block_row(
+    metadata: Mapping[str, Any],
+    *,
+    adapter_id: str | None,
+    staged_child_exposure_id: str | None,
+) -> bool:
+    """Recognise a staged H2O sector-complete Pauli block by what it is.
+
+    Staged sector blocks are absent from the authenticated executable pool
+    by construction: the H2O sector arm's ``executable_pool`` is the
+    derivative-resolved macro parent supply, and the blocks themselves are
+    produced by ``expose_children``.  Absence is therefore evidence about
+    the exposure route, not about tampering, and the row must be projected
+    through its own lineage instead of raising.
+
+    Admission is two-keyed and fail-closed.  The executing adapter must
+    declare the sector-block Phase-II exposure capability
+    (:data:`PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS`) and name the
+    sector-block adapter identity, and the row itself must carry the pool's
+    own identity and pool schemas plus the same adapter identity.  Every
+    route whose adapter does not declare that capability -- every Paper-I
+    route, and the H2O ``macro_generator_v1`` arm -- fails this predicate
+    for every row, so the single-Pauli dispatch below is reached exactly
+    when it was reached before.
+    """
+
+    if (
+        str(staged_child_exposure_id or "")
+        != PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS
+        or str(adapter_id or "")
+        != H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID
+    ):
+        return False
+    block = metadata.get("sector_complete_pauli_block")
+    return bool(
+        str(metadata.get("ra_adapter_id", ""))
+        == H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID
+        and str(metadata.get("generator_identity_schema", ""))
+        == H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA
+        and isinstance(block, Mapping)
+        and str(block.get("schema", ""))
+        == H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA
+    )
+
+
+def _staged_sector_block_lineage(
+    metadata: Mapping[str, Any],
+    *,
+    label: str,
+    generator_identity: str,
+    by_label: Mapping[str, CandidateRecord],
+    executable_inventory: CandidateInventory,
+) -> tuple[str, tuple[str, ...], str]:
+    """Authenticate one staged H2O sector block against its parent pool.
+
+    The block's label and generator identity are a pure content digest of
+    its serialized Pauli terms, so both are re-derived here rather than
+    trusted.  The fixed-sector hard guard, the grouping receipt, and the
+    retained-parent ancestry are then bound to the authenticated executable
+    inventory, exactly as the guarded-singleton path binds its own children.
+    """
+
+    raw_manifest = metadata.get("ra_candidate_manifest")
+    if not isinstance(raw_manifest, Mapping):
+        raise RuntimeError(
+            "Accepted staged RA sector block is missing its "
+            "candidate-manifest binding."
+        )
+    if set(raw_manifest) != _STAGED_CHILD_MANIFEST_FIELDS:
+        raise RuntimeError(
+            "Accepted staged RA sector block has a malformed candidate "
+            "manifest."
+        )
+    raw_parent_identities = raw_manifest.get("parent_identities")
+    raw_serialized_terms = raw_manifest.get("serialized_terms_exyz")
+    raw_symmetry_receipt = raw_manifest.get("symmetry_receipt")
+    if (
+        not isinstance(raw_parent_identities, (tuple, list))
+        or not raw_parent_identities
+        or not isinstance(raw_serialized_terms, (tuple, list))
+        or not raw_serialized_terms
+        or not all(
+            isinstance(term, Mapping) for term in raw_serialized_terms
+        )
+        or not isinstance(raw_symmetry_receipt, Mapping)
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block manifest has invalid lineage, "
+            "terms, or symmetry evidence."
+        )
+    parent_identities = tuple(
+        str(value) for value in raw_parent_identities
+    )
+    execution_mode = str(raw_manifest["execution_mode"])
+    (
+        intrinsic_label,
+        intrinsic_identity,
+    ) = sector_complete_pauli_block_identity(
+        serialized_terms_exyz=raw_serialized_terms,
+    )
+    if (
+        str(raw_manifest["representation_id"])
+        != CANDIDATE_REPRESENTATION_MACRO
+        or str(raw_manifest["label"]) != label
+        or str(raw_manifest["generator_identity"]) != generator_identity
+        or intrinsic_label != label
+        or intrinsic_identity != generator_identity
+        or str(raw_manifest["construction"])
+        != H2O_SECTOR_COMPLETE_PAULI_BLOCK_CONSTRUCTION
+        or execution_mode not in _SECTOR_BLOCK_EXECUTION_MODES
+        or not str(raw_manifest["family_id"]).strip()
+        or not str(raw_manifest["stage_family"]).strip()
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block failed its intrinsic identity "
+            "or construction binding."
+        )
+    block = metadata["sector_complete_pauli_block"]
+    individually_safe = block.get("individually_sector_preserving")
+    raw_single_pauli_child = block.get("raw_single_pauli_child")
+    if (
+        str(block.get("grouping_policy", ""))
+        != H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY
+        or not isinstance(individually_safe, bool)
+        or not isinstance(raw_single_pauli_child, bool)
+        or isinstance(block.get("component_count"), bool)
+        or block.get("component_count") != len(raw_serialized_terms)
+        or raw_single_pauli_child
+        != bool(individually_safe and len(raw_serialized_terms) == 1)
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block grouping receipt is "
+            "inconsistent with its executed block."
+        )
+    if (
+        str(raw_symmetry_receipt.get("label", "")) != label
+        or str(raw_symmetry_receipt.get("execution_mode", ""))
+        != execution_mode
+        or isinstance(raw_symmetry_receipt.get("component_count"), bool)
+        or raw_symmetry_receipt.get("component_count")
+        != len(raw_serialized_terms)
+        or raw_symmetry_receipt.get("grouped_preserves_fixed_counts")
+        is not True
+        or raw_symmetry_receipt.get("execution_preserves_fixed_counts")
+        is not True
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block failed its fixed-sector "
+            "hard-guard binding."
+        )
+    raw_parent_labels = metadata.get("parent_labels")
+    if (
+        not isinstance(raw_parent_labels, (tuple, list))
+        or len(raw_parent_labels) != len(parent_identities)
+        or any(
+            str(parent_label) not in by_label
+            for parent_label in raw_parent_labels
+        )
+        or tuple(
+            str(by_label[str(parent_label)].generator_identity)
+            for parent_label in raw_parent_labels
+        )
+        != parent_identities
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block names an unauthenticated "
+            "parent label."
+        )
+    authenticated_parent_identities = {
+        str(record.generator_identity)
+        for record in executable_inventory.candidates
+    }
+    raw_pool_parents = metadata.get("parent_generator_ids")
+    if (
+        not set(parent_identities) <= authenticated_parent_identities
+        or not isinstance(raw_pool_parents, (tuple, list))
+        or tuple(str(value) for value in raw_pool_parents)
+        != parent_identities
+    ):
+        raise RuntimeError(
+            "Accepted staged RA sector block manifest is not bound to the "
+            "authenticated parent inventory."
+        )
+    return (
+        CANDIDATE_REPRESENTATION_MACRO,
+        parent_identities,
+        canonical_sha256(dict(raw_manifest)),
+    )
+
+
 def _accepted_candidate_lineage_receipts(
     row: Mapping[str, Any],
     *,
     candidate_representation: str | None,
     executable_inventory: CandidateInventory,
+    adapter_id: str | None = None,
+    staged_child_exposure_id: str | None = None,
 ) -> list[CandidateLineageReceipt]:
     """Project accepted rows through authenticated or preserved lineage."""
 
@@ -3311,7 +3529,27 @@ def _accepted_candidate_lineage_receipts(
                 "Accepted RA candidate lacks its executable-pool identity."
             ) from exc
         candidate = by_identity.get((label, generator_identity))
-        if candidate is None:
+        staged_sector_block = (
+            candidate is None
+            and _is_staged_sector_complete_pauli_block_row(
+                metadata,
+                adapter_id=adapter_id,
+                staged_child_exposure_id=staged_child_exposure_id,
+            )
+        )
+        if staged_sector_block:
+            (
+                representation,
+                parent_identities,
+                manifest_sha256,
+            ) = _staged_sector_block_lineage(
+                metadata,
+                label=label,
+                generator_identity=generator_identity,
+                by_label=by_label,
+                executable_inventory=executable_inventory,
+            )
+        elif candidate is None:
             if (
                 candidate_representation
                 != CANDIDATE_REPRESENTATION_SINGLE_PAULI
@@ -3330,19 +3568,7 @@ def _accepted_candidate_lineage_receipts(
                         "Accepted staged RA child is missing its "
                         "candidate-manifest binding."
                     )
-                required_manifest_fields = {
-                    "label",
-                    "representation_id",
-                    "generator_identity",
-                    "parent_identities",
-                    "family_id",
-                    "stage_family",
-                    "construction",
-                    "execution_mode",
-                    "serialized_terms_exyz",
-                    "symmetry_receipt",
-                }
-                if set(raw_manifest) != required_manifest_fields:
+                if set(raw_manifest) != _STAGED_CHILD_MANIFEST_FIELDS:
                     raise RuntimeError(
                         "Accepted staged RA child has a malformed "
                         "candidate manifest."
@@ -4116,6 +4342,7 @@ def _accepted_round_scientific_receipts(
     executable_inventory: CandidateInventory,
     algorithm_id: str | None = None,
     trust_policy_id: str = SOURCE_GRAM_NO_OVERLAP_TRUST,
+    staged_child_exposure_id: str | None = None,
 ) -> list[dict[str, Any]]:
     raw_history = finalization.get("history")
     stationary_semantic = bool(
@@ -4320,6 +4547,8 @@ def _accepted_round_scientific_receipts(
             raw_row,
             candidate_representation=candidate_representation,
             executable_inventory=executable_inventory,
+            adapter_id=adapter_id,
+            staged_child_exposure_id=staged_child_exposure_id,
         )
         canonical_full_response_v2 = bool(
             str(algorithm_id or "") == RA_ADAPT_ALGORITHM_ID
@@ -6124,6 +6353,13 @@ def run_ra_adapt(
         executable_inventory=executable_inventory,
         algorithm_id=protocol.algorithm_id,
         trust_policy_id=protocol.trust_policy_id,
+        staged_child_exposure_id=str(
+            getattr(
+                public_request.adapter,
+                "phase_ii_candidate_exposure_id",
+                "",
+            )
+        ),
     )
     route_contract = finalization.get("sr_route_profile_contract")
     if not isinstance(route_contract, Mapping):

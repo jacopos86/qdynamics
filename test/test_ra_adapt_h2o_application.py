@@ -26,6 +26,7 @@ from pipelines.static_adapt.ra_adapt.engine import (
     build_resolved_ra_protocol,
 )
 from pipelines.static_adapt.ra_adapt.h2o_application import (
+    H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK,
     H2O_INSERTION_APPEND_ONLY,
     _engine_wall_budget_seconds,
     _problem,
@@ -635,6 +636,125 @@ def test_h2o_cli_wall_budget_leaves_the_protocol_digest_unchanged(
     result = _load_json(segment_one / "result.json")
     assert result["protocol"]["sha256"] == reference.sha256
     assert "maximum_wall_seconds" not in json.dumps(with_budget)
+
+
+# --- Opt-in sector-complete-block arm (Paper IV, 2026-09-03) ---------------
+#
+# The sector arm stages its accepted candidates through expose_children, so
+# every accepted block is absent from the executable pool by construction.
+# Before the accepted-lineage fix, run_ra_adapt raised
+# "Accepted RA candidate is absent from the authenticated executable
+# inventory" after the first accepted round: current.json and its sidecars
+# were written but result.json was not, and the process exited 1.  This is
+# the end-to-end regression, opt-in for the same reason as the macro chain:
+#     PAPER_IV_H2O_CLI_RUNS=1 .venv/bin/python -m pytest \
+#         test/test_ra_adapt_h2o_application.py -k sector_arm
+
+
+def _run_h2o_sector_cli(
+    *arguments: str,
+) -> subprocess.CompletedProcess[str]:
+    started = time.monotonic()
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipelines.static_adapt.ra_adapt.h2o_application",
+            "--fixture",
+            str(_FIXTURE),
+            "--candidate-representation",
+            H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK,
+            "--insertion",
+            H2O_INSERTION_APPEND_ONLY,
+            "--maximum-controller-rounds",
+            "2",
+            *arguments,
+        ],
+        cwd=str(_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    completed.elapsed_seconds = time.monotonic() - started  # type: ignore[attr-defined]
+    return completed
+
+
+@pytest.fixture(scope="module")
+def h2o_sector_arm_segment(tmp_path_factory: pytest.TempPathFactory):
+    """One bounded sector-arm segment: zero wall budget, fresh start.
+
+    The horizon is two rounds so that the wall-clock budget, not the round
+    cap, is the condition that stops the segment after its first accepted
+    round -- the campaign's own segment shape, and the same shape as the
+    macro-arm chain above.
+    """
+
+    if os.environ.get(_CLI_RUNS_ENV) != "1":
+        pytest.skip(f"set {_CLI_RUNS_ENV}=1 to run the H2O sector arm")
+    segment = tmp_path_factory.mktemp("h2o_sector") / "segment_1"
+    completed = _run_h2o_sector_cli(
+        "--output-dir",
+        str(segment),
+        "--max-wall-seconds",
+        "0",
+    )
+    return {"segment": segment, "completed": completed}
+
+
+@_cli_runs
+def test_h2o_sector_arm_completes_its_first_accepted_round(
+    h2o_sector_arm_segment,
+) -> None:
+    """The regression: the sector arm finalizes instead of exiting 1."""
+
+    completed = h2o_sector_arm_segment["completed"]
+    assert (
+        "absent from the authenticated executable inventory"
+        not in completed.stderr
+    ), completed.stderr[-4000:]
+    assert completed.returncode == 0, completed.stderr[-4000:]
+
+    segment = h2o_sector_arm_segment["segment"]
+    assert (segment / "current.json").is_file()
+    _sidecar_of(segment / "current.json")
+    assert (segment / "estimator_call_ledger.json").is_file()
+
+    manifest = _load_json(segment / "launch_manifest.json")
+    assert manifest["candidate_mode"] == (
+        H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK
+    )
+    assert manifest["candidate_representation"] == (
+        CANDIDATE_REPRESENTATION_MACRO
+    )
+
+    summary = _load_json(segment / "summary.json")
+    assert summary["stop_reason"] == "wall_clock_budget_v1"
+    assert summary["completed_controller_rounds"] == 1
+
+    result = _load_json(segment / "result.json")
+    stop = result["run"]["stop"]
+    assert stop["primary_reason"] == "wall_clock_budget_v1"
+    assert stop["completed_controller_rounds"] == 1
+
+
+@_cli_runs
+def test_h2o_sector_arm_accepted_lineage_is_a_staged_block(
+    h2o_sector_arm_segment,
+) -> None:
+    """The accepted round carries authenticated sector-block lineage."""
+
+    segment = h2o_sector_arm_segment["segment"]
+    result = _load_json(segment / "result.json")
+    rounds = result["scientific_receipts"]["accepted_round_receipts"]
+    assert len(rounds) == 1
+    lineage = rounds[0]["accepted_candidate_lineage"]
+    assert len(lineage) == 1
+    selected = lineage[0]
+    assert selected["representation_id"] == CANDIDATE_REPRESENTATION_MACRO
+    assert selected["candidate_label"].startswith("h2o_sector_block::")
+    assert selected["generator_identity"].startswith("h2o-sector-block:")
+    assert selected["parent_identities"]
+    assert len(selected["candidate_manifest_sha256"]) == 64
+
 
 # --- Opt-in Marrakesh graph-span selector cost (Paper IV, 2026-09-03) -------
 #
