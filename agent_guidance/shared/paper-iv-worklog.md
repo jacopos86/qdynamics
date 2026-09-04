@@ -231,3 +231,27 @@ preflight 21/21 on the merged HEAD. Macro arm measured end-to-end under the
 runner env with compact layout: `--max-wall-seconds 0` → exit 0, 368 s,
 394 MB, `result.json` with `primary_reason == wall_clock_budget_v1`, seg01
 renders with `--resume-checkpoint` and matching sidecar digests.
+
+## Round 3 — 2026-09-03 (Opus 5 builders; merged at `315b96e2`)
+
+| Commit | Lane | Evidence |
+|---|---|---|
+| `73854cbc` | H2O admitted to canonical accepted-state resume: named `paper_iv_h2o_linear_fd_application` branch (family + problem key + route family/profile prefix + canonical interface + application lane + parent contract sha), fixture-sha **attestation** written into the checkpoint for the H2O family only (15 fields, no path strings), 14 required route settings read from the canonical H2O v3 contract; HH/pure-Hubbard branches byte-identical. Also the exact `NameError occurrences` fix. Lane contract `molecular-vibronic/AGENTS.md` rewritten. | 14 passed + 1 xfail (1113 s opt-in); macro arm seg1 depth 1 `E=−74.955593524326` → seg2 from a **relocated** fixture path depth 2 `E=−74.959928311698`; also under compact layout |
+| `eecf2b8f` | Sector-block lineage: parallel fail-closed validation branch keyed on adapter capability + row schema (relaxing the `single_pauli_word_v1` gate could not work — the guarded body demands one term + runtime-split metadata); sibling sites `:3516/:3610/:3629` untouched, Paper-I path byte-identical | 10 passed; opt-in sector arm 2 rounds → exit 0 + `result.json`, 294 s, 534 MB; 190 passed / 9 pre-existing across five suites |
+| `3bcf490f` | Embedding claim made honest (chosen, not derived; alternatives B/C/D/F with spans in the code comment), two coupling-map property tests, `(10,8,8)` boson-block spans pinned against the tracked fixture, `validate_cost_mode_register_size` before any file is written (0.42 s fail on the 15q fixture, nothing created) | 65 passed; default sha `34683ac8…` unchanged |
+| `315b96e2` | merge of the three | fast baseline **237 passed, 21 skipped, 1 pre-existing failure**; package rebuilt, preflight **21/21** |
+
+Sector-arm end-to-end resume test un-xfailed after the merge (uncommitted
+until the opt-in chain run confirms it).
+
+### Still gated on the user
+
+1. Embedding choice — lane (10,8,8) / B (8,7,6) / F (1,2,1). Recommendation: F.
+2. Install the opus-only subagent hook (`.claude/hooks/require-opus-subagents.py`, self-tested).
+3. Remove the 36 held jobs whose `image.sif` no longer exists.
+
+### Stale, not regressed
+
+`agent_guidance/static-adapt/failure-atlas.md` was generated 2026-08-18 at
+`ce2adf79` by `pipelines/shell/failure_atlas.py`; it is hundreds of commits
+stale independent of this work.
