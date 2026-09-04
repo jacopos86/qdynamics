@@ -54,6 +54,12 @@ H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA = (
 H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA = (
     "paper_iv_h2o_sector_complete_pauli_block_identity_v1"
 )
+H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY = (
+    "individually_safe_else_complete_xy_flip_support_v1"
+)
+H2O_SECTOR_COMPLETE_PAULI_BLOCK_CONSTRUCTION = (
+    "h2o_fixed_sector_pauli_block_from_retained_parent_v1"
+)
 
 EXPECTED_PARENT_COUNTS = {3: 123, 7: 171}
 EXPECTED_EXECUTABLE_MACRO_COUNTS = {3: 102, 7: 148}
@@ -1137,6 +1143,22 @@ def _sector_block_identity(
     return f"h2o_sector_block::{digest[:16]}", f"h2o-sector-block:{digest[:16]}"
 
 
+def sector_complete_pauli_block_identity(
+    *,
+    serialized_terms_exyz: Sequence[Mapping[str, Any]],
+) -> tuple[str, str]:
+    """Identify a staged H2O sector block from its own serialized terms.
+
+    This is the sector-block analogue of
+    :func:`guarded_singleton_generator_identity`: the label and generator
+    identity are a pure content digest of the block's serialized Pauli
+    terms, so an accepted lineage row can be re-derived from the manifest
+    it carries instead of being trusted.
+    """
+
+    return _sector_block_identity(serialized_terms_exyz)
+
+
 def build_h2o_sector_complete_pauli_block_pool(
     problem: ResolvedProblemContext,
     *,
@@ -1276,7 +1298,7 @@ def build_h2o_sector_complete_pauli_block_pool(
                     "family_id": str(parent.family_id),
                     "stage_family": str(parent.stage_family),
                     "construction": (
-                        "h2o_fixed_sector_pauli_block_from_retained_parent_v1"
+                        H2O_SECTOR_COMPLETE_PAULI_BLOCK_CONSTRUCTION
                     ),
                     "execution_mode": execution_mode,
                     "serialized_terms_exyz": serialized,
@@ -1291,7 +1313,7 @@ def build_h2o_sector_complete_pauli_block_pool(
                                 H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA
                             ),
                             "grouping_policy": (
-                                "individually_safe_else_complete_xy_flip_support_v1"
+                                H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY
                             ),
                             "component_count": int(len(serialized)),
                             "individually_sector_preserving": bool(
@@ -1375,7 +1397,7 @@ def build_h2o_sector_complete_pauli_block_pool(
                 "sector_complete_pauli_blocks_from_retained_parents_v1"
             ),
             "grouping_policy": (
-                "individually_safe_else_complete_xy_flip_support_v1"
+                H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY
             ),
             "source_parent_count": int(len(source)),
             "source_parent_labels": [
@@ -1744,6 +1766,8 @@ __all__ = [
     "EXPECTED_PARENT_COUNTS",
     "H2O_DERIVATIVE_RESOLVED_POOL",
     "H2O_LINEAR_FD_FAMILY",
+    "H2O_SECTOR_COMPLETE_PAULI_BLOCK_CONSTRUCTION",
+    "H2O_SECTOR_COMPLETE_PAULI_BLOCK_GROUPING_POLICY",
     "H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA",
     "H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA",
     "H2O_SYMMETRY_COMPLETE_POOL_SCHEMA",
@@ -1781,6 +1805,7 @@ __all__ = [
     "build_staged_single_pauli_pool",
     "build_parent_template_inventory",
     "guarded_singleton_generator_identity",
+    "sector_complete_pauli_block_identity",
     "require_paper_i_l3_page12_problem",
     "require_paper_i_pure_hubbard_noise_page12_problem",
     "require_paper_i_hubbard_l4_problem",
