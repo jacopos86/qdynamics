@@ -673,3 +673,73 @@ new seeds comparable to the locked one.
 These are production runs. Their configuration is fixed by the manifest before
 launch and is not adjusted after seeing results. Regime choice must be made now,
 not after the first returns.
+
+## STOP: the two Paper II sources diverged (2026-09-04)
+
+Landing the "notation revision" is **not a copy**. Both candidate sources branch
+from committed `054451d` and were edited independently:
+
+| source | adds over `054451d` | unique content lost if overwritten |
+|---|---:|---:|
+| `AP-McLachlan---Paper-II/…/time_dynamics_paper_II.tex` (repo, uncommitted) | 663 lines | **144** |
+| `Documents/Codex/2026-09-01/l-2-relates-to-eq-9/outputs/…tex` (newest, ungit) | 589 lines | **151** |
+
+The 144 figure survives normalizing $L^2\to m(\dot\theta)$ and
+$\tau_{L^2}\to\tau_m$, so it is not a rename artifact — they are whole rewritten
+paragraphs. Neither source is a superset.
+
+They edit the **same sections in the same proportions**, which is the signature
+of two agents rewriting the same passages in parallel:
+
+| section | A-only lines | B-only lines |
+|---|---:|---:|
+| AP-McLachlan: joint support-patch dynamics | 41 | 48 |
+| Generalized exchange support patch | 35 | 43 |
+| Structural and numerical failure | 18 | 15 |
+| Geometry-aware fixed-support time-step control | 14 | 7 |
+| Time-point geometry | 12 | 11 |
+| Operating decision rule / time-point algorithm | 12 | 12 |
+| all others | 14 | 15 |
+
+This is exactly the collision `PAPER_II_METRIC_WHITENED_AVQDS_EDITOR_HANDOFF_20260903.md`
+warned about: it named both worktrees, selected neither, and authorized no
+synchronization between them. **Choosing a base is a user decision; overwriting
+either direction destroys ~150 lines of drafted prose.**
+
+Supersedes the earlier recommendation in this file to "land the
+$m(\dot\theta)$ rename" — that was written before the divergence was measured.
+
+## Queued main-results changes (user-directed 2026-09-04)
+
+These are generator changes and apply to whichever base wins:
+
+1. Drop the `combined` controller (`state_motion_1e-3_plus_parameter_5e-5`)
+   from the main results. Table I 11 rows → 8, matched pairs 8 → 6.
+2. Table columns become $N_{2q}$, $D_{2q}$, $D_c$, $\mathcal E$ — Paper I's
+   presentation — **plus the internal time-step count** $N_{\rm step}$.
+3. **No fidelity.** Report total energy, doublon, and charge-imbalance
+   $\Delta n$ errors instead of $\overline{1-F}$.
+4. **Retire "$\Gamma$ route" naming.** It is the only route; call it APM.
+
+Measured effect of (1) on the surviving claims:
+
+| quantity | with `combined` | without |
+|---|---|---|
+| completed cells | 11 | 8 |
+| matched pairs | 8 | 6 |
+| $N_{2q}$ reduction range | 29.6--95.4% | 29.6--95.4% (unchanged) |
+| mean infidelity range | $1.35\times10^{-6}$--$2.56\times10^{-5}$ | $1.35\times10^{-6}$--$8.03\times10^{-6}$ |
+| terminal $N_\theta$ | 44--50 | 44--50 (unchanged) |
+
+Dropping `combined` costs two matched pairs and **improves** the reported
+infidelity ceiling by a factor of 3.2, because $2.56\times10^{-5}$ was the
+strong--fast `combined` cell. The headline reduction range is untouched.
+
+Note on (2): Paper I's $\mathcal E$ is the *total* logical scalar-estimator
+count. Paper II's $W_{\rm geom}$ is propagation-only. To print $\mathcal E$
+with Paper I's meaning, use `logical_total_estimator_work`, not $W_{\rm geom}$,
+and carry its per-cell `exact` / `lower_bound` status.
+
+Generator: `pipelines/time_dynamics/diagnostics/q_compiled_manuscript_assets.py`,
+present only in worktree `codex-paper-ii-dual-selector-overnight-20260903`.
+Tables are generated; do not hand-edit them.
