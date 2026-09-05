@@ -50,3 +50,10 @@ Currently seven; the instruction was three. Candidate three:
 | response spectra | the only frequency-domain result |
 
 That drops all three state-motion trajectory panels and the $(0.3,1)$ $\delta\theta$ panel. If the state-motion panels are the ones to keep instead, the workflow and one trajectory panel come out. Needs a decision.
+
+## Addendum (2026-09-05) — for the Paper II editor
+
+| # | proposal |
+|---|---|
+| 13 | Table II, "true exchanges" column: every reported cell shows 0 because the search never enumerated an exchange candidate — the $d\ge1$ rung was refused whole at the joint-work cap before permission or scoring (`exchange_structural.py`, `deletion_family.py`; confirmed across all 26 compiled runs). The caption or §5.4 must say this is a property of the executed search, not evidence about exchange. The repair is committed (`3f3f89fd` on `claude/paper-ii-corrected-campaign-20260905`) and a corrected campaign is being packaged; until it returns, the eleven cells are insertion-plus-separate-prune evidence. |
+| 14 | §5.2 sentence "the selector ranks candidates by signed realized captured drift, and appending a deletion to an insertion cannot raise that quantity" was my explanation and is wrong — exchanges never reached ranking. Replace with the cap statement in #13. |
