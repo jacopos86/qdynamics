@@ -743,3 +743,54 @@ and carry its per-cell `exact` / `lower_bound` status.
 Generator: `pipelines/time_dynamics/diagnostics/q_compiled_manuscript_assets.py`,
 present only in worktree `codex-paper-ii-dual-selector-overnight-20260903`.
 Tables are generated; do not hand-edit them.
+
+## True exchange never enumerated; repair committed (2026-09-05)
+
+**No AP-McLachlan production run has ever built a true-exchange candidate.**
+Codex's audit of all 26 completed compiled runs: 1,717 accepted insertions,
+912 accepted deletions, 0 exchange certification attempts, 0 accepted
+exchanges. Cause (`exchange_structural.py:377-410`,
+`deletion_family.py:123-130`): the $d=0$ singleton family is admitted first
+and charges the joint-work budget; each $d\ge1$ rung is then charged
+$|{\rm rung}|\times|{\rm pool}|$ (48,720--165,865 measured against the 50,000
+cap), `JointWorkGuard.admit` refuses it, the refusal is sticky, and the caller
+breaks out of the rung loop before any $(D\ne\varnothing,A\ne\varnothing)$
+candidate exists. Raising the cap is not a repair: the optimal face-partitioned
+reserve admits $d=1$ at 0 of 352 exchange-capable checkpoints.
+
+My earlier attribution to `debt_ranking` / `signed_realized_drift` was wrong:
+that ranking stage is one exchanges never reached.
+
+**Repair** (`c564f158`, branch `claude/paper-ii-main-results-20260904`,
+worktree `claude-paper-ii-main-results`): a declared exchange insertion
+frontier. A $d\ge1$ deletion set is paired with the top-$W$ (atom, cut)
+positions of the already-scored $d=0$ pass, sealed before the first rung is
+sized, so a rung declares $|{\rm rung}|\times(1+W)$ -- 378 against 127,624 at
+the median $|J_{\rm del}|=42$, $W=8$. Whole-family admission, the sole cap,
+and enumeration-order-independent sealed score order are preserved; default
+`None` reproduces the historical search bitwise. New profile
+`paper_declared_exchange_v1` (W=8) enters `run_id`, so corrected runs cannot
+aggregate into existing cells. Chosen by a 31-agent adversarial review of five
+designs; rejected: budget reserve (0/352), non-sticky guard ($0\to0$),
+two-pass allocation (enumerated set non-monotone in the cap).
+
+Verified here, not in the workflow sandbox: lane suite 328 passed; artifact
+re-validation surface 142 passed; `paper_declared_v1` argv/run_id/provenance
+byte-identical pre/post (sha256 `f92586b7`); GitNexus 9 files, 41 symbols, 0
+affected flows, low.
+
+**Scope, honestly.** 4,648 of 5,000 sampled selector calls have the insertion
+face closed by the $L^2$ gate and are unchanged. On the 352 full-face
+checkpoints pure deletions also enter for the first time, so insertion and
+prune outcomes change there too. $|A|\ge2$ exchange stays gated by
+`max_insertion_batch_size=1`. Admission is necessary, not sufficient: deletion
+permission has never run on the exchange face, and the label-collision
+materialization defect (20 of 21 exchange attempts in the one guard-bearing
+artifact) is a separate repair.
+
+**Consequence for the manuscript.** Table II's "true exchanges = 0" column is
+a statement that the search never enumerated one, not a result about
+exchange. The corrected batch is a NEW campaign under
+`paper_declared_exchange_v1`; the reported eleven cells stand as
+insertion-plus-separate-prune evidence. Handoff to Codex for CHTC
+resubmission issued 2026-09-05.
