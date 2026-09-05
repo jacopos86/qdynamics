@@ -646,14 +646,22 @@ def complete_estimator_work(
     inference_counts: Counter[str] = Counter()
 
     for run in runs:
-        initial_labels = tuple(
-            str(value)
-            for value in (run.get("initial_state") or {}).get(
-                "runtime_coordinate_labels", ()
-            )
-        )
-        if not initial_labels:
+        initial_state = run.get("initial_state") or {}
+        raw_initial_labels = initial_state.get("runtime_coordinate_labels", None)
+        # An empty initial support is legitimate physics: SIAM logical_shared
+        # runs start from the seed reference with no runtime coordinate at all.
+        # Only an absent or non-sequence key is a telemetry defect.
+        if not isinstance(raw_initial_labels, (list, tuple)):
             raise ValueError("run omits initial runtime-coordinate labels")
+        initial_labels = tuple(str(value) for value in raw_initial_labels)
+        if not initial_labels:
+            declared_initial = (run.get("summary") or {}).get(
+                "runtime_parameter_count_initial", None
+            )
+            if declared_initial is not None and int(declared_initial) != 0:
+                raise ValueError(
+                    "run declares initial runtime coordinates but omits their labels"
+                )
         checkpoint_pre = len(initial_labels)
         for point in ((run.get("trajectory") or {}).get("points") or ()):
             fixed = point.get("fixed_step") or {}
