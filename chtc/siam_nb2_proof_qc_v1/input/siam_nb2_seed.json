@@ -1,0 +1,65 @@
+{
+  "digests": {
+    "initial_state_semantic_sha256": "33acae4affe31b6c314f7ce39c7167b48ebc7ee61395196f9fc23bf10407976f",
+    "ordered_logical_pool_sha256": "95559237a0ae7be1b98b6a749bac53fcde0310329fc7fe22595585408cd80199",
+    "post_quench_hamiltonian_sha256": "13afb45989e536ef19c7269ede799fbc3dceb6304d5b5776a034049b3737f15b",
+    "pre_quench_hamiltonian_sha256": "3f47c41b3592816e82457ecbd30c3cc7e13bac51e98abc008249395f267fba8e"
+  },
+  "layout": {
+    "electron_counts": {
+      "down": 1,
+      "up": 2
+    },
+    "mode_order": "spin_blocked_jordan_wigner",
+    "n_qubits": 6,
+    "sector_dimension": 9
+  },
+  "physical": {
+    "electron_counts": {
+      "down": 1,
+      "up": 2
+    },
+    "hopping": 1.0,
+    "mode_order": "spin_blocked_jordan_wigner",
+    "model": "siam_finite_box_screening_v1",
+    "n_bath": 2,
+    "n_qubits": 6,
+    "schema": "siam_screening_config_v1",
+    "sector_dimension": 9,
+    "u": 1.5,
+    "v_post_quench": 0.7071067811865475,
+    "v_pre_quench": 0.0
+  },
+  "pool": {
+    "block_count": 14,
+    "ordered_labels": [
+      "K_hyb_up_0_1",
+      "K_bath_up_1_2",
+      "K_hyb_down_3_4",
+      "K_bath_down_4_5",
+      "J_hyb_up_0_1",
+      "J_bath_up_1_2",
+      "J_hyb_down_3_4",
+      "J_bath_down_4_5",
+      "Qd_centered",
+      "A_hyb_up",
+      "A_hyb_down",
+      "X_d_1",
+      "X_d_2",
+      "P_d_1"
+    ],
+    "schema": "siam_screening_logical_pool_v1"
+  },
+  "preparation": {
+    "deterministic": true,
+    "rng_seed": null,
+    "schema": "siam_decoupled_closed_shell_seed_v1",
+    "state_identity": {
+      "encoding": "little_endian_int64_real_then_imag",
+      "phase_rule": "first_amplitude_above_quantum_real_nonnegative",
+      "quantum_hex": "0x1.19799812dea11p-40",
+      "schema": "phase_canonical_quantized_complex_v1"
+    }
+  },
+  "schema": "siam_screening_seed_v2"
+}

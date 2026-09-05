@@ -1,0 +1,12 @@
+{
+  "avqds": {
+    "peak_rss_mb": 105.8125,
+    "rss_before_mb": 99.03125,
+    "wall_seconds": 31.28457999229431
+  },
+  "exchange_q_compiled": {
+    "peak_rss_mb": 170.15625,
+    "rss_before_mb": 105.8125,
+    "wall_seconds": 133.5970368385315
+  }
+}
