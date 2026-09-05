@@ -70,3 +70,14 @@ The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remain
 - Exchange-arm r01 not prepared: at the coupled threshold it would repeat the zero-exchange screen; it waits on the $\tau_{\rm pre}$ decision.
 - Local $t=20$ sweep on the production strong--fast $\delta\theta$ argv of `9720203.8` (workers 2/3 instead of 4/8, results unaffected) with $\tau_{\rm pre}\in\{2\times10^{-2},5\times10^{-2},10^{-1}\}$: `/tmp/perm_sweep/t20/sf20_<tag>.{json,log}`, ram_guard 4 GB each. Control is `9720203.8` itself.
 - Watch list now: `9720203` (10), `9720069.3`, `9720251`.
+## 20260905T233500Z — heartbeat: three corrected HH cells back; AVQDS r01 running
+
+| action | exit | wall | MemoryUsage | true exchanges (time points) | $N_\theta$ | steps | permitted/evaluated deletion sets |
+|---|---:|---:|---:|---|---:|---:|---|
+| `midres__delta_theta_5e-5` | 0 | 94 min | 1465 MB | 2 ($t=0.04, 0.08$) | 42 | 960,117 | 166/4,706,498 |
+| `fastweak__state_motion_5e-5` | 0 | 110 min | 1709 MB | 1 ($t=0.08$) | 43 | 499,108 | 209/5,117,416 |
+| `midres__state_motion_5e-5` | 0 | 109 min | 1709 MB | 3 ($t=0.04, 0.08, 7.72$) | 40 | 501,412 | 200/4,591,935 |
+
+- All three archived on the remote and fetched to `archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/`, receipts `code_revision a43bcd86`. The $t=7.72$ commit on strong--mid state motion is the first true exchange after the opening time points under the coupled threshold.
+- `9720203`: 8 running (`.0 .1 .2 .6 .7 .8 .9 .10`), 1.5--2.2 GB. `9720069.3`: running. `9720251` (AVQDS r01): running, just started.
+- Local $t=20$ sweep: 1--3 of 500 time points after 10 min at workers 2/3 — 25--40 h projected; too slow. Moving the sweep to CHTC.

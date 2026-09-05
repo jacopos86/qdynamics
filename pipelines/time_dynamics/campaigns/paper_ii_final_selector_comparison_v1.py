@@ -46,6 +46,7 @@ EXPECTED_ROUTE_COUNT = 3
 EXCLUSION_REASON = "not_in_final_matched_set"
 ADOPTION_STATUSES = ("pair_matched_comparison", "individual_response_target")
 ROUTE_BUNDLE_FLAG = "--exchange-route-bundle"
+PERMISSION_RAY_FLAG = "--exchange-permission-ray-distance-max"
 COMPARATOR_REUSE = "locked_historical_avqds_15_cells"
 ACTIONS_SCHEMA = "paper_ii_final_selector_comparison_actions_v1"
 SUMMARY_SCHEMA = "paper_ii_final_selector_comparison_prepare_v1"
@@ -95,6 +96,10 @@ class MatchedCellLock:
     registry_bindings: Mapping[str, Any]
     seed: Mapping[str, Any]
     selector_routes: Mapping[str, str]
+    # Declared threshold for the pre-permission ray bound on an unrefit
+    # deletion, carried as the lock's own argv literal.  None is the
+    # historical coupling to the post-refit ray tolerance.
+    permission_ray_distance_max: str | None = None
 
     @property
     def grid(self) -> tuple[tuple[str, str], ...]:
@@ -325,11 +330,29 @@ def load_lock(
         runs.ARMS[bindings["comparator_arm"]].is_comparator,
         "comparator_arm must be a comparator arm",
     )
-    _require(
-        tuple(str(flag) for flag in bindings.get("extra_flags") or ())
-        == ("--record-statevector",),
-        "locked final campaign permits only --record-statevector as an extra flag",
-    )
+    extra = tuple(str(flag) for flag in bindings.get("extra_flags") or ())
+    permission_ray_distance_max: str | None = None
+    if extra == ("--record-statevector",):
+        pass
+    elif (
+        len(extra) == 3
+        and extra[:2] == ("--record-statevector", PERMISSION_RAY_FLAG)
+    ):
+        try:
+            declared = float(extra[2])
+        except ValueError:
+            declared = math.nan
+        _require(
+            math.isfinite(declared) and declared > 0.0,
+            f"{PERMISSION_RAY_FLAG} must be a positive finite literal",
+        )
+        permission_ray_distance_max = str(extra[2])
+    else:
+        _require(
+            False,
+            "locked campaign permits only --record-statevector, optionally "
+            f"followed by {PERMISSION_RAY_FLAG} <value>, as extra flags",
+        )
 
     seed = payload["seed"]
     _require(
@@ -354,6 +377,7 @@ def load_lock(
         registry_bindings=dict(bindings),
         seed=dict(seed),
         selector_routes=selector_routes,
+        permission_ray_distance_max=permission_ray_distance_max,
     )
 
 
@@ -463,6 +487,28 @@ def _parse_and_assert(
         raise MatchedCellLockError(f"{label}: generalized-exchange policy drifted")
     if int(parsed.support_patch_scoring_workers) != CAMPAIGN_SCORING_WORKERS:
         raise MatchedCellLockError(f"{label}: scoring-worker contract drifted")
+    assert_permission_ray_distance_max(parsed, lock=lock, label=label)
+
+
+def assert_permission_ray_distance_max(
+    parsed: Any, *, lock: MatchedCellLock, label: str
+) -> None:
+    """Require the effective pre-permission threshold to be the lock's."""
+
+    effective = parsed.exchange_permission_ray_distance_max
+    declared = lock.permission_ray_distance_max
+    if declared is None:
+        if effective is not None:
+            raise MatchedCellLockError(
+                f"{label}: {PERMISSION_RAY_FLAG} {effective} is not declared by the lock"
+            )
+        return
+    if effective is None or not math.isclose(
+        float(effective), float(declared), rel_tol=1.0e-12, abs_tol=0.0
+    ):
+        raise MatchedCellLockError(
+            f"{label}: {PERMISSION_RAY_FLAG} {effective} != locked {declared}"
+        )
 
 
 def build_actions(
@@ -497,6 +543,13 @@ def build_actions(
     # settings and are not part of the lock; they are appended per package so
     # the slot sizing travels with the argv and its provenance.
     extra_flags = extra_flags + tuple(str(flag) for flag in execution_flags)
+    if lock.permission_ray_distance_max is not None:
+        # A scientific setting declared by the lock, emitted as its literal so
+        # the argv, the run id, and the receipt carry exactly what was locked.
+        extra_flags = extra_flags + (
+            PERMISSION_RAY_FLAG,
+            str(lock.permission_ray_distance_max),
+        )
     root = Path(output_root)
     rows: list[dict[str, Any]] = []
     for cell in lock.cells:
@@ -722,7 +775,9 @@ __all__ = [
     "MatchedCell",
     "MatchedCellLock",
     "MatchedCellLockError",
+    "PERMISSION_RAY_FLAG",
     "UnboundSelectorRouteError",
+    "assert_permission_ray_distance_max",
     "bind_selector_routes",
     "build_actions",
     "load_lock",

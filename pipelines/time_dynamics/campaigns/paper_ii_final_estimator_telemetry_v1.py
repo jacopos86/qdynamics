@@ -102,6 +102,9 @@ def _assert_common_fresh_run(
         raise selector.MatchedCellLockError("code revision drifted")
     if not bool(parsed.record_statevector):
         raise selector.MatchedCellLockError("--record-statevector is required")
+    selector.assert_permission_ray_distance_max(
+        parsed, lock=lock, label=str(trajectory)
+    )
 
     horizon = runs.HORIZONS[str(lock.registry_bindings["horizon"])]
     times = _resolve_times(parsed)
