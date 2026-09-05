@@ -432,3 +432,64 @@ It is defensible only if every completed cell still appears in the paper, with
 the non-flattering ones in the appendix rather than dropped — which is the
 structure already proposed. Under that constraint this is emphasis, not
 selective reporting. Cells must not be removed from Table I on this basis.
+
+## Mainlining state vs parameter motion (2026-09-04)
+
+Directive: carry state-vs-parameter controller results in the main text rather
+than only in the appendix.
+
+**The locked comparison already supports four times what §5.3 reports.**
+`four_route_analysis/comparison.json` (SHA-256 `a5e0e1a8e0f0cfff...`, the same
+file Table~I cites) contains 8 within-drive state-vs-parameter pairs. §5.3
+currently reports 2 of them, both realized-$\Gamma$. The 5 AVQDS-side pairs are
+absent from the manuscript entirely.
+
+$W_{\rm geom}$ = integration + checkpoint-base geometry work, matching
+Appendix~\ref{app:estimator_query_accounting}. Reproduces §5.3's published
+$-58.0\%$/$-59.0\%$ and $-53.9\%$/$-60.6\%$ exactly.
+
+| drive | route | steps | $W_{\rm geom}$ | burden ratio | factor-2 | $N_\theta$ |
+|---|---|---:|---:|---:|:---:|---|
+| fast--weak | realized-$\Gamma$ | $-29.8\%$ | $-22.4\%$ | 1.30 | yes | 45→49 |
+| fast--weak | AVQDS | $-37.5\%$ | $-38.4\%$ | 1.25 | yes | 61→60 |
+| mid-resonant | realized-$\Gamma$ | $-53.9\%$ | $-58.0\%$ | 1.12 | yes | 49→48 |
+| mid-resonant | AVQDS | $-47.3\%$ | $-46.3\%$ | 1.26 | yes | 60→60 |
+| slow--strong | AVQDS | $-51.7\%$ | $-49.3\%$ | 1.91 | yes | 62→64 |
+| fast--fast | realized-$\Gamma$ | $-60.6\%$ | $-59.0\%$ | 2.54 | **NO** | 47→49 |
+| fast--fast | AVQDS | $-26.6\%$ | $+26.8\%$ | 0.56 | yes | 65→**100** |
+| weak--slow | AVQDS | $-60.2\%$ | $\mathbf{-76.6\%}$ | **1.03** | yes | 945→**370** |
+
+**7 of 8 reduce propagation work (22.4--76.6%); 7 of 8 hold factor-two
+accuracy.**
+
+### What this changes about the claim
+
+1. **It is not an AP-McLachlan trick.** Five of the eight pairs are AVQDS. The
+   controller reduces append-only AVQDS propagation work by 38.4--76.6% on four
+   of five drives. A numerical construction that also helps the comparator is a
+   contribution to McLachlan dynamics generally, and is far harder to dismiss
+   than one that only helps the proposing method.
+2. **The strongest single data point is unreported.** weak--slow AVQDS:
+   $-76.6\%$ propagation work at burden ratio **1.03** — essentially unchanged
+   accuracy — with terminal support falling 945→370.
+3. **Both exceptions are fast--fast and both are explainable.**
+   Realized-$\Gamma$ takes the largest work saving ($-59.0\%$) but fails the
+   factor-two rule at 2.54. AVQDS is the only work *increase*, caused by support
+   growth 65→100 against quadratic $g(p)$, and it buys a 0.56 burden ratio.
+   Report both; neither is a defect to hide.
+
+### Recommended main-text form
+
+Replace §5.3's two prose paragraphs with the 8-row table above plus the
+retained-metric-eigenmode paragraph as-is. This mainlines state vs parameter
+motion on locked evidence, needs no new runs, and states the two fast--fast
+exceptions in the same table rather than omitting them.
+
+Caveat to state in the caption: the comparison is at equal nominal cap
+($5\times10^{-5}$ in both controllers), and the two caps have different units,
+so the burden-ratio column is what establishes accuracy comparability — not the
+cap value. This is the same standard the retained-metric-eigenmode ablation
+already meets by construction.
+
+This supersedes the "both metric controllers in the appendix" recommendation
+above: the state-vs-parameter comparison belongs in the main text.
