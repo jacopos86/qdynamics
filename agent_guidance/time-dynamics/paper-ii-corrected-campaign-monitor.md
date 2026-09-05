@@ -23,3 +23,6 @@ Decisions: none required. Fetches: none.
 - Packages `chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_812d20c3_20260905` and `..._full_apm_..._source_812d20c3_20260905` (`46df0ab1`), source-locked to `812d20c3` whose `pipelines/src` equals the tree on ap2001. Exchange arm on `siam_nb4_pilot_exchange_v1` (frontier 8), AVQDS default.
 - Uploaded. All 809 `(path, sha256)` rows of the source-tree contract verified on the remote: 0 mismatches. LIFECYCLE_OK both; dry-run 1 job each. Awaiting user "submit".
 - `9720203`: 11 running. `9720069.3`: running.
+## 20260905T215118Z — SIAM r00 rebuilt packages submitted (standing authorization)
+
+- AVQDS screen → `9720216`; exchange screen (frontier 8) → `9720217`. Source lock `812d20c3`, byte contract pre-verified on the remote. These replace `9720204/9720211` and `9720205/9720212`, all of which failed at startup and hold no outputs.
