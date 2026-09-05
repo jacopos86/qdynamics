@@ -262,39 +262,61 @@ Headline range by main-text controller restriction:
 | state motion + combined | 6 | 4 | 29.6--47.6% |
 | **state motion only** | **3** | **2** | **29.6--35.6%** |
 
-### Why state-motion-only weakens the comparator, not just the range
+### Correction (2026-09-04): the shot axis was omitted above
 
-Each locked cell fixes one controller for *both* arms
-(`paper_ii_final_matched_cells_v1.json`: the AVQDS arm of
-`fastfast__state_motion_5e-5` is
-`screen_avqds_...__avqds__state_motion_5e-5__fastfast__...`). A state-motion
-main text therefore reports every AVQDS comparator under a controller this
-paper introduced, not the raw-coordinate rule AVQDS publishes
-(Eq.~\ref{eq:raw_coordinate_step_control}, Yao2021). The structural claim —
-prune-and-exchange reduces compiled cost at matched accuracy — is strongest
-when the comparator runs its own published numerics.
+The paragraph previously here argued that running AVQDS under the state
+controller weakens the comparator. That is wrong, and it ignored the axis the
+state controller exists to move. Within-drive controller effect, from the
+fresh comparison (`four_route_analysis_exact_20260904_partial45`):
 
-`\delta\theta` is also the best-populated controller in the lock: 6 cells, 5
-complete, 1 pending (`weakslow`). State motion has 5 cells, 3 complete, and
-`strongfast` has no state-motion cell at all.
+| drive | route | steps $\delta\theta$ | steps state | $\Delta$ | $W_{\rm tot}$ $\delta\theta$ | $W_{\rm tot}$ state | $\Delta$ | burden |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| mid-resonant | realized-$\Gamma$ | 1,084,151 | 499,904 | $-53.9\%$ | $1.715\times10^9$ | $0.879\times10^9$ | $\mathbf{-48.8\%}$ | 0.0503→0.0564 (+12%) |
+| mid-resonant | AVQDS | 947,997 | 499,904 | $-47.3\%$ | $1.715\times10^9$ | $0.922\times10^9$ | $\mathbf{-46.2\%}$ | 0.0304→0.0381 (+26%) |
+| fast--fast | realized-$\Gamma$ | 1,279,472 | 504,448 | $-60.6\%$ | $1.719\times10^9$ | $0.778\times10^9$ | $\mathbf{-54.8\%}$ | 0.0399→0.1016 (+154%) |
+| fast--fast | AVQDS | 687,788 | 504,448 | $-26.7\%$ | $1.484\times10^9$ | $1.896\times10^9$ | $+27.7\%$ | 0.0486→0.0271 ($-44\%$) |
 
-### Adopted scoping recommendation
+The state controller cuts realized-$\Gamma$ estimator work by 48.8--54.8% and
+AVQDS estimator work by 46.2% on mid-resonant. It does not handicap the
+comparator: on fast--fast AVQDS it buys 44% lower accuracy burden for 27.7%
+more work, because that AVQDS support grows to 100 coordinates and $g(p)$ is
+quadratic in support size.
 
-Keep the user's structure — one controller carries the main text, controller
-comparison moves to the appendix — but invert which controller is primary:
+**The circuit axis and the shot axis are different claims.** Terminal
+$\boldsymbol C_{\rm comp}$ reduction is the structural (prune--exchange)
+contribution; $W_{\rm geom}$ reduction is the numerical (controller)
+contribution. A main text scoped to state motion leads with the second.
 
-1. **Main text**: $\delta\theta$ cells only. Table I becomes 5 rows, 4 matched
-   pairs, 32.9--95.4%. Fig.~1 (strong--fast, $\delta\theta$) is unchanged.
-   AVQDS runs its published controller in every reported comparison.
-2. **Appendix controller section** (extend
-   `app:metric_eigenmode_controller`): state motion vs parameter motion at
-   common $\tau_{L^2}$ (the existing 53.9--60.6% step and 58.0--59.0%
-   $W_{\rm geom}$ result), then whitened parameter motion (retained-metric
-   eigenmode, 62.2%/34.6%). Both already have locked evidence.
-3. The `combined` controller leaves the main text with state motion.
+### The actual constraint on a state-motion main text
 
-This costs 4 matched pairs relative to the current draft and nothing from the
-headline range.
+Not comparator fidelity — **cell coverage and one failed accuracy match**:
+
+- Only 3 of the 5 locked `state_motion_5e-5` cells have a realized-$\Gamma$
+  trajectory: fast--weak (matched), mid-resonant (matched), fast--fast
+  (**unmatched**, burden $0.0399\to0.1016$ fails the factor-two rule).
+  `slowstrong__state_motion_5e-5` and `weakslow__state_motion_5e-5` are locked
+  and incomplete.
+- `strongfast` has **no** state-motion cell in the locked 15. Fig.~1 is
+  strong--fast/$\delta\theta$; a state-motion main text has no strong--fast
+  counterpart without extending the lock, which is a production run under the
+  separation rule.
+
+So state-motion-only today is 3 cells / 2 matched pairs / 29.6--35.6%, and a
+new Fig.~1 drawn from fast--weak or mid-resonant.
+
+### Revised recommendation
+
+Run the two locked-but-incomplete state-motion cells (`slowstrong`,
+`weakslow`) before deciding the main-text spine. They are already in the
+manifest, so completing them is collection, not a new configuration choice.
+That takes state motion from 3 cells to 5 and settles whether the matched-pair
+count supports carrying the main text. Hold the $\delta\theta$/state-motion
+scoping decision until they return.
+
+If the state-motion spine is adopted regardless of that outcome, the honest
+main-text framing leads with $W_{\rm geom}$ (48.8--54.8% realized-$\Gamma$
+estimator-work reduction) and reports terminal compiled resources second, with
+the fast--fast accuracy-match failure stated rather than dropped.
 
 ### Submission-readiness state of the manuscript
 
