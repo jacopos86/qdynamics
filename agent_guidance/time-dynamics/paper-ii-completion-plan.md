@@ -812,3 +812,9 @@ and carry its per-cell `exact` / `lower_bound` status.
 Generator: `pipelines/time_dynamics/diagnostics/q_compiled_manuscript_assets.py`,
 present only in worktree `codex-paper-ii-dual-selector-overnight-20260903`.
 Tables are generated; do not hand-edit them.
+
+**Submitted 2026-09-05 (user "submit"):** `9720203` (11 APM), `9720204`
+(SIAM AVQDS r00), `9720205` (SIAM exchange r00). Receipt:
+`chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/submission_receipt_9720203_9720204_9720205.json`
+on the campaign branch. Monitoring is per §7 and happens only when this
+session is invoked; unattended coverage needs a scheduled task.
