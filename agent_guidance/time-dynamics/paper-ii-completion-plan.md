@@ -220,3 +220,110 @@ in hand, with scope limits named rather than implied.
   and measurement gating. Needs a scoped refresh.
 - **P1 in progress**: table above drafted; the four open decisions are unsettled.
 - **P2 not started**: campaign spec exists, CHTC generation does not.
+
+## arXiv preprint scoping audit (2026-09-04)
+
+Trigger: proposal to restrict the main text to state-motion controllers and
+move state-vs-parameter motion, plus whitened parameter motion, to the
+appendix.
+
+**Negative result first: state-motion-only main text costs six of the eight
+matched pairs and the entire upper half of the headline range.** It also
+removes Fig.~1 (no strong--fast state-motion cell exists in the locked 15) and
+leaves zero main-text comparisons in which AVQDS runs its own published
+controller.
+
+### Measured consequence, locked Table I (11 completed cells)
+
+Terminal compiled-resource reduction, realized-$\Gamma$ vs AVQDS, from
+`generated/paper_ii_t20_q_compiled_frontier_table.tex`
+(comparison_sha256 `a5e0e1a8e0f0cfff...`):
+
+| drive | controller | matched | $N_{2q}$ | $D_{2q}$ | $D_c$ |
+|---|---|---|---:|---:|---:|
+| fast--weak | $\delta\theta$ | yes | 44.2% | 52.1% | 54.7% |
+| fast--weak | combined | yes | 47.6% | 51.2% | 48.5% |
+| fast--weak | state motion | yes | 35.6% | 33.3% | 33.1% |
+| mid-resonant | $\delta\theta$ | yes | 32.9% | 37.3% | 36.0% |
+| mid-resonant | state motion | yes | 29.6% | 29.7% | 28.6% |
+| slow--strong | $\delta\theta$ | no | 25.5% | 29.9% | 33.4% |
+| strong--fast | $\delta\theta$ | yes | **95.4%** | **96.1%** | **96.1%** |
+| strong--fast | combined | yes | 43.1% | 45.2% | 47.4% |
+| fast--fast | $\delta\theta$ | yes | 41.3% | 48.3% | 48.7% |
+| fast--fast | combined | no | 38.4% | 39.6% | 36.3% |
+| fast--fast | state motion | no | 61.8% | 62.2% | 60.7% |
+
+Headline range by main-text controller restriction:
+
+| Main-text scope | cells | matched pairs | $N_{2q}$ reduction |
+|---|---:|---:|---|
+| all three controllers (current) | 11 | 8 | 29.6--95.4% |
+| $\delta\theta$ only | 5 | 4 | 32.9--95.4% |
+| state motion + combined | 6 | 4 | 29.6--47.6% |
+| **state motion only** | **3** | **2** | **29.6--35.6%** |
+
+### Why state-motion-only weakens the comparator, not just the range
+
+Each locked cell fixes one controller for *both* arms
+(`paper_ii_final_matched_cells_v1.json`: the AVQDS arm of
+`fastfast__state_motion_5e-5` is
+`screen_avqds_...__avqds__state_motion_5e-5__fastfast__...`). A state-motion
+main text therefore reports every AVQDS comparator under a controller this
+paper introduced, not the raw-coordinate rule AVQDS publishes
+(Eq.~\ref{eq:raw_coordinate_step_control}, Yao2021). The structural claim —
+prune-and-exchange reduces compiled cost at matched accuracy — is strongest
+when the comparator runs its own published numerics.
+
+`\delta\theta` is also the best-populated controller in the lock: 6 cells, 5
+complete, 1 pending (`weakslow`). State motion has 5 cells, 3 complete, and
+`strongfast` has no state-motion cell at all.
+
+### Adopted scoping recommendation
+
+Keep the user's structure — one controller carries the main text, controller
+comparison moves to the appendix — but invert which controller is primary:
+
+1. **Main text**: $\delta\theta$ cells only. Table I becomes 5 rows, 4 matched
+   pairs, 32.9--95.4%. Fig.~1 (strong--fast, $\delta\theta$) is unchanged.
+   AVQDS runs its published controller in every reported comparison.
+2. **Appendix controller section** (extend
+   `app:metric_eigenmode_controller`): state motion vs parameter motion at
+   common $\tau_{L^2}$ (the existing 53.9--60.6% step and 58.0--59.0%
+   $W_{\rm geom}$ result), then whitened parameter motion (retained-metric
+   eigenmode, 62.2%/34.6%). Both already have locked evidence.
+3. The `combined` controller leaves the main text with state motion.
+
+This costs 4 matched pairs relative to the current draft and nothing from the
+headline range.
+
+### Submission-readiness state of the manuscript
+
+Current build is clean: 14 pages, revtex4-2 `pra reprint`, 45 inline
+`\bibitem`s, 0 overfull boxes, no undefined references or citations.
+
+Blockers for arXiv, in order:
+
+1. `\placeholder{Add funding, compute resources, discussions, and advisor
+   acknowledgments.}` at `time_dynamics_paper_II.tex:738` — the only live
+   placeholder in the source.
+2. `\graphicspath{{../../}{}}` escapes the source directory; an arXiv tarball
+   needs flattened `figures/` paths.
+3. **Source-of-truth split.** Three divergent `.tex` files exist and the newest
+   is not in git:
+   - `AP-McLachlan---Paper-II/Paper_II_overleaf_20260901/` @ `main`,
+     uncommitted, sha256 `cd35061e...` (2026-09-04 16:06)
+   - `Documents/Codex/2026-09-01/l-2-relates-to-eq-9/outputs/` sha256
+     `f5b5e035...` (2026-09-04 18:21) — identical structure, renames
+     $L^2\to m(\dot\theta)$ and $\tau_{L^2}\to\tau_m$ across 61 lines; **in no
+     git repository**
+   - worktree `codex/repaired-proxy-paper-ii-20260903` sha256 `e965398b...`
+     (2026-09-03), 1376 lines divergent
+   The $m(\dot\theta)$ rename must land in the manuscript repository before any
+   scoping edit, or the edit will be made against superseded notation.
+
+### Not adopted without user decision
+
+Evidence status of the fresh 30/45 selector comparison remains `analysis only`;
+its calibration gate is `INCOMPLETE` (`benchmark_point_sameness` and
+`response_normalized_matched_accuracy` not run). Table I continues to draw on
+the locked cells, not that comparison.
