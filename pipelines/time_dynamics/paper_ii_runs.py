@@ -437,6 +437,40 @@ SIAM_NB4_PILOT_SEARCH = SearchProfile(
     ),
 )
 
+# The SIAM Nb=4 pilot budget with the exchange face reachable.  The work
+# limits are identical to ``siam_nb4_pilot_v1``; the only difference is that a
+# d >= 1 deletion set is paired with the top 8 positioned insertions sealed
+# from the d = 0 pass rather than the whole insertion face.  Before this
+# profile no SIAM production run ever enumerated a true-exchange patch: every
+# d >= 1 rung was refused whole at the joint-work cap, so the arm reduced to
+# append-only in practice.  Its own ``profile_id``, so every packaged action,
+# receipt, and campaign cell separates from the runs whose search could not
+# reach exchange at all.
+SIAM_NB4_PILOT_EXCHANGE_SEARCH = SearchProfile(
+    profile_id="siam_nb4_pilot_exchange_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    exchange_insertion_frontier=8,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=4 pilot budget with the exchange face reachable. Identical "
+        "work limits to siam_nb4_pilot_v1; the insertion face offered to a "
+        "d >= 1 deletion set is a declared width-8 frontier sealed from the "
+        "d = 0 pass, so an exchange-bearing rung fits under the same "
+        "nonbinding 50,000 joint-evaluation cap."
+    ),
+)
+
+# Every search budget a registered SIAM Nb=4 command may run under, keyed by
+# the profile id that its action, manifest, and receipt record.
+SIAM_NB4_SEARCH_PROFILES: Mapping[str, SearchProfile] = {
+    profile.profile_id: profile
+    for profile in (SIAM_NB4_PILOT_SEARCH, SIAM_NB4_PILOT_EXCHANGE_SEARCH)
+}
+
 CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
     profile_id="cap_sensitivity_2x_v1",
     pool_size=128,
@@ -1376,6 +1410,10 @@ class SIAMNB4RunCommand:
     code_revision: str
     activation_cut: float
     resume_from_run_json: str | None = None
+    # ``None`` is the historical pilot budget, so every pre-existing command
+    # keeps its exact argv and run id.  A registered id selects another
+    # registered SIAM Nb=4 budget (currently the exchange-frontier one).
+    search_profile_id: str | None = None
 
     def __post_init__(self) -> None:
         registered_arm = SIAM_NB4_ARMS.get(self.arm.arm_id)
@@ -1399,6 +1437,15 @@ class SIAMNB4RunCommand:
             raise ValueError("SIAM Nb=4 continuation requires a prior run JSON")
         if not self.segment.requires_resume and resume_path:
             raise ValueError("SIAM Nb=4 screen must start from the immutable seed")
+        if (
+            self.search_profile_id is not None
+            and str(self.search_profile_id) not in SIAM_NB4_SEARCH_PROFILES
+        ):
+            raise ValueError(
+                "SIAM Nb=4 supports only registered search profiles: "
+                f"{sorted(SIAM_NB4_SEARCH_PROFILES)}"
+            )
+
     @property
     def run_id(self) -> str:
         cut_token = format(float(self.activation_cut), ".12g").replace("-", "m")
@@ -1409,7 +1456,9 @@ class SIAMNB4RunCommand:
 
     @property
     def search_profile(self) -> SearchProfile:
-        return SIAM_NB4_PILOT_SEARCH
+        if self.search_profile_id is None:
+            return SIAM_NB4_PILOT_SEARCH
+        return SIAM_NB4_SEARCH_PROFILES[str(self.search_profile_id)]
 
     def argv(self) -> tuple[str, ...]:
         cut = repr(float(self.activation_cut))
@@ -1460,6 +1509,7 @@ def build_siam_nb4_screen_run(
     output_json: str,
     code_revision: str,
     activation_cut: float = SIAM_NB4_INITIAL_ACTIVATION_CUT,
+    search_profile_id: str | None = None,
 ) -> SIAMNB4RunCommand:
     """Build one ``0<=t<=1`` screen rung; the common initial cut is 1e-3."""
 
@@ -1474,6 +1524,9 @@ def build_siam_nb4_screen_run(
         output_json=str(output_json),
         code_revision=str(code_revision),
         activation_cut=float(activation_cut),
+        search_profile_id=(
+            None if search_profile_id is None else str(search_profile_id)
+        ),
     )
 
 def build_siam_nb4_continuation_run(
@@ -1484,6 +1537,7 @@ def build_siam_nb4_continuation_run(
     activation_cut: float,
     output_json: str,
     code_revision: str,
+    search_profile_id: str | None = None,
 ) -> SIAMNB4RunCommand:
     """Build one exact ``1<=t<=5`` continuation at a method-owned cut."""
 
@@ -1498,6 +1552,9 @@ def build_siam_nb4_continuation_run(
         output_json=str(output_json),
         code_revision=str(code_revision),
         activation_cut=float(activation_cut),
+        search_profile_id=(
+            None if search_profile_id is None else str(search_profile_id)
+        ),
         resume_from_run_json=str(resume_from_run_json),
     )
 
@@ -1520,6 +1577,7 @@ __all__ = [
     "SIAM_NB4_ARMS", "SIAM_NB4_CONTINUATION_SEGMENT",
     "SIAM_NB4_CONTINUATION_TIMES", "SIAM_NB4_FULL_TIMES",
     "SIAM_NB4_INITIAL_ACTIVATION_CUT", "SIAM_NB4_PILOT_SEARCH",
+    "SIAM_NB4_PILOT_EXCHANGE_SEARCH", "SIAM_NB4_SEARCH_PROFILES",
     "SIAM_NB4_SCREEN_SEGMENT", "SIAM_NB4_SCREEN_TIMES",
     "SIAM_NB4_TIME_STEP", "SIAMNB4RunCommand", "SIAMNB4Segment",
     "build_siam_nb4_continuation_run", "build_siam_nb4_screen_run",

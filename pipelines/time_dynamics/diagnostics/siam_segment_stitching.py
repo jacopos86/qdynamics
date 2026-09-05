@@ -1116,6 +1116,7 @@ def build_siam_nb4_stitch_completion_receipt(
 
     source_proofs: list[dict[str, Any]] = []
     action_ids: set[str] = set()
+    search_profile_ids: set[str] = set()
     for ordinal, (source, receipt_path) in enumerate(
         zip(source_stitches, receipt_paths)
     ):
@@ -1147,6 +1148,14 @@ def build_siam_nb4_stitch_completion_receipt(
         if action_id in action_ids:
             raise ValueError("SIAM stitched completion repeats a source action ID.")
         action_ids.add(action_id)
+        # The continuation inherits the screen's ansatz, so a stitch across two
+        # different declared search budgets is not one trajectory.
+        search_profile_ids.add(str(verified["search_profile_id"]))
+        if len(search_profile_ids) != 1:
+            raise ValueError(
+                "SIAM stitched completion pairs segments from different search "
+                f"profiles: {sorted(search_profile_ids)}."
+            )
         source_proofs.append(
             {
                 "ordinal": ordinal,
@@ -1288,6 +1297,7 @@ def validate_siam_nb4_stitch_completion_receipt(
     ) != len(stitch_sources):
         raise ValueError("SIAM stitched completion source count mismatch.")
     action_ids: set[str] = set()
+    search_profile_ids: set[str] = set()
     for ordinal, (source, stitch_source) in enumerate(zip(sources, stitch_sources)):
         source = _mapping(source, name=f"SIAM completion source {ordinal}")
         stitch_source = _mapping(
@@ -1379,6 +1389,12 @@ def validate_siam_nb4_stitch_completion_receipt(
         if action_id in action_ids:
             raise ValueError("SIAM stitched completion repeats a source action ID.")
         action_ids.add(action_id)
+        search_profile_ids.add(str(verified["search_profile_id"]))
+        if len(search_profile_ids) != 1:
+            raise ValueError(
+                "SIAM stitched completion pairs segments from different search "
+                f"profiles: {sorted(search_profile_ids)}."
+            )
 
     required_checks = {
         "stitched_trajectory_digest_bound",

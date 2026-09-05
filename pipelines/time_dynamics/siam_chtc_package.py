@@ -37,7 +37,9 @@ from pipelines.time_dynamics.paper_ii_runs import (
     SIAM_NB4_CONTINUATION_SEGMENT,
     SIAM_NB4_PILOT_SEARCH,
     SIAM_NB4_SCREEN_SEGMENT,
+    SIAM_NB4_SEARCH_PROFILES,
     STATE_MOTION_CONTROL_CALIBRATED,
+    SearchProfile,
     build_siam_nb4_continuation_run,
     build_siam_nb4_screen_run,
 )
@@ -703,6 +705,48 @@ def _registered_cut(value: float) -> tuple[float, int]:
     return canonical_registered_cut(value)
 
 
+def _registered_search_profile(value: Any) -> SearchProfile:
+    """Resolve one registered SIAM Nb=4 search budget by its profile id."""
+
+    profile = SIAM_NB4_SEARCH_PROFILES.get(str(value))
+    if profile is None:
+        raise ValueError(
+            "SIAM Nb=4 search profile is not registered: "
+            f"{value!r}; known: {sorted(SIAM_NB4_SEARCH_PROFILES)}"
+        )
+    return profile
+
+
+def _declared_search_profile_id(value: Any) -> str | None:
+    """Validate an optional declared profile id from a package document.
+
+    ``None`` -- the key is absent -- is the historical pilot budget, so every
+    v4/v5 document written before the exchange frontier existed keeps its exact
+    bytes and its exact meaning.
+    """
+
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("SIAM declared search profile id must be a string")
+    profile = _registered_search_profile(value)
+    if profile.profile_id == SIAM_NB4_PILOT_SEARCH.profile_id:
+        raise ValueError(
+            "SIAM default search profile must stay implicit; the key is "
+            "written only for a non-default budget"
+        )
+    return profile.profile_id
+
+
+def _document_search_profile(document: Mapping[str, Any]) -> SearchProfile:
+    """The search budget one action/receipt document declares."""
+
+    profile_id = _declared_search_profile_id(document.get("search_profile_id"))
+    if profile_id is None:
+        return SIAM_NB4_PILOT_SEARCH
+    return SIAM_NB4_SEARCH_PROFILES[profile_id]
+
+
 def _load_json_object(path: Path, *, label: str) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -1049,6 +1093,7 @@ def _validate_source_completion_receipt(
     activation_cut: float,
     seed_sha256: str,
     resume_metadata: Mapping[str, Any],
+    search_profile_id: str | None = None,
 ) -> dict[str, Any]:
     if path.name != "action_receipt.json":
         raise ValueError(
@@ -1066,6 +1111,20 @@ def _validate_source_completion_receipt(
     )
     if verified_receipt["trajectory_bytes"] != trajectory_path.stat().st_size:
         raise ValueError("SIAM screen action receipt trajectory byte-count mismatch")
+    # A continuation inherits the screen's ansatz, so the two segments must
+    # have searched under the same declared budget.  A frontier screen cannot
+    # be continued by a historical-budget continuation, or the reverse.
+    expected_profile_id = (
+        SIAM_NB4_PILOT_SEARCH.profile_id
+        if search_profile_id is None
+        else _registered_search_profile(search_profile_id).profile_id
+    )
+    if verified_receipt["search_profile_id"] != expected_profile_id:
+        raise ValueError(
+            "SIAM continuation and its screen ran different search profiles: "
+            f"{verified_receipt['search_profile_id']!r} != "
+            f"{expected_profile_id!r}"
+        )
     if receipt.get("schema") not in {
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3,
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4,
@@ -1103,6 +1162,7 @@ def _validate_source_completion_receipt(
         activation_cut=activation_cut,
         output_json=receipt_output_path,
         code_revision=str(resume_metadata["source_revision"]),
+        search_profile_id=search_profile_id,
     )
     expected_run_id = expected_command.run_id
     if receipt.get("run_id") != expected_run_id:
@@ -1500,6 +1560,20 @@ def validate_siam_nb4_completion_receipt(
         raise ValueError(
             "SIAM v3/v4 completion receipt must not declare a ladder route"
         )
+    # The declared search budget must agree across the receipt and both
+    # digest-bound documents, and must be one this build registers.  An absent
+    # key everywhere is the historical pilot budget.
+    search_profile = _document_search_profile(action_document)
+    declared_profile_id = action_document.get("search_profile_id")
+    if (
+        manifest_document.get("search_profile_id") != declared_profile_id
+        or document.get("search_profile_id") != declared_profile_id
+    ):
+        raise ValueError(
+            "SIAM completion search-profile identity is inconsistent across "
+            "its digest-bound documents"
+        )
+    _declared_search_profile_id(declared_profile_id)
     expected_action_fields = {
         "schema": action_schema,
         "package_id": package_id,
@@ -1701,6 +1775,7 @@ def validate_siam_nb4_completion_receipt(
             activation_cut=cut,
             output_json=output_path,
             code_revision=revision,
+            search_profile_id=declared_profile_id,
         )
     else:
         if resume_path is None:
@@ -1712,6 +1787,7 @@ def validate_siam_nb4_completion_receipt(
             activation_cut=cut,
             output_json=output_path,
             code_revision=revision,
+            search_profile_id=declared_profile_id,
         )
     if tuple(runner_argv) != tuple(expected_command.argv()):
         raise ValueError(
@@ -1776,6 +1852,7 @@ def validate_siam_nb4_completion_receipt(
         ),
         "activation_cut_identity_migrated": ladder_resolution.migrated,
         "segment": segment.segment_id,
+        "search_profile_id": search_profile.profile_id,
         "runner_argv_sha256": runner_argv_sha256,
         "action_json_sha256": action_json_sha256,
         "package_manifest_sha256": package_manifest_sha256,
@@ -1823,6 +1900,7 @@ def prepare_siam_nb4_chtc_action(
     arm: str,
     segment: str,
     route_id: str = ROUTE_HISTORICAL,
+    search_profile: SearchProfile = SIAM_NB4_PILOT_SEARCH,
     resume_from_run_json: str | Path | None = None,
     resume_action_receipt_json: str | Path | None = None,
     request_cpus: int = 2,
@@ -1843,6 +1921,14 @@ def prepare_siam_nb4_chtc_action(
     emits v5 documents that additionally carry the route bundle id and its
     contract digest, and requires the caller's action id to be exactly the one
     ``siam_nb4_ladder.siam_nb4_action_id`` builds for that rung.
+
+    ``search_profile`` names the registered SIAM Nb=4 work budget.  The default
+    is the pilot budget every prior package ran under, and it is written
+    nowhere, so those documents stay byte-identical.  A non-default budget --
+    currently ``siam_nb4_pilot_exchange_v1``, which makes the exchange face
+    reachable -- emits its ``--exchange-insertion-frontier`` flag and records
+    ``search_profile_id`` in the action, manifest, and receipt, so the two
+    lineages never validate against each other.
     """
 
     root = Path(repo_root).resolve()
@@ -1868,6 +1954,18 @@ def prepare_siam_nb4_chtc_action(
     registered_segment = _registered_segment(segment)
     cut, cut_index = _registered_cut(activation_cut)
     canonical_route = _canonical_route_id(route_id)
+    if search_profile is not SIAM_NB4_SEARCH_PROFILES.get(
+        getattr(search_profile, "profile_id", None)
+    ):
+        raise ValueError(
+            "SIAM Nb=4 packages require a registered search profile: "
+            f"{sorted(SIAM_NB4_SEARCH_PROFILES)}"
+        )
+    declared_search_profile_id = (
+        None
+        if search_profile.profile_id == SIAM_NB4_PILOT_SEARCH.profile_id
+        else search_profile.profile_id
+    )
     route_bundle_id = _assert_arm_on_route(canonical_arm, route_id=canonical_route)
     route_contract_sha = _route_contract_sha256(route_bundle_id)
     historical_route = canonical_route == ROUTE_HISTORICAL
@@ -1957,6 +2055,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             seed_sha256=seed_sha,
             resume_metadata=resume_metadata,
+            search_profile_id=declared_search_profile_id,
         )
         completion_receipt_content = completion_receipt_source.read_bytes()
     elif resume_from_run_json not in {None, ""} or resume_action_receipt_json not in {
@@ -2079,6 +2178,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             output_json=output_rel,
             code_revision=revision,
+            search_profile_id=declared_search_profile_id,
         )
     else:
         assert resume_rel is not None
@@ -2089,6 +2189,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             output_json=output_rel,
             code_revision=revision,
+            search_profile_id=declared_search_profile_id,
         )
     argv = tuple(command.argv())
     _validate_runner_argv(
@@ -2157,6 +2258,10 @@ def prepare_siam_nb4_chtc_action(
         "require_complete_candidate_pool": True,
         "output_uniqueness_scope": "package_id/action_id",
     }
+    if declared_search_profile_id is not None:
+        # Written only for a non-default budget, so the v4/v5 documents that
+        # predate the exchange frontier keep their exact frozen bytes.
+        action_payload["search_profile_id"] = declared_search_profile_id
     if not historical_route:
         action_payload["route_id"] = canonical_route
         action_payload["route_bundle_id"] = route_bundle_id
@@ -2450,6 +2555,8 @@ def prepare_siam_nb4_chtc_action(
             "wrapper_sha256": _sha256(temp_wrapper),
             "submit_descriptor_sha256": _sha256(temp_submit),
         }
+        if declared_search_profile_id is not None:
+            manifest_payload["search_profile_id"] = declared_search_profile_id
         if not historical_route:
             manifest_payload["route_id"] = canonical_route
             manifest_payload["route_bundle_id"] = route_bundle_id
@@ -2706,6 +2813,7 @@ def _assert_completed_configuration(
 ) -> None:
     """Bind the emitted run lock and structural summary to the staged action."""
 
+    search_profile = _document_search_profile(action)
     expected_execution = dict(action.get("expected_execution_contract") or {})
     expected_support = expected_execution.get("support_patch_config")
     expected_solve_repair = expected_execution.get("solve_repair_config")
@@ -2868,15 +2976,15 @@ def _assert_completed_configuration(
                 "completed SIAM trajectory changed the exchange route contract"
             )
     expected_guards = {
-        "max_structural_pool_size": SIAM_NB4_PILOT_SEARCH.pool_size,
+        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
-            SIAM_NB4_PILOT_SEARCH.joint_patch_evaluations
+            search_profile.joint_patch_evaluations
         ),
         "max_certification_attempts_per_level": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_level
+            search_profile.certification_attempts_per_level
         ),
         "max_certification_attempts_per_deletion_branch": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_deletion_branch
+            search_profile.certification_attempts_per_deletion_branch
         ),
         "max_insertion_batch_size": 1,
         "residual_ratio_threshold": 0.02,
@@ -2901,18 +3009,18 @@ def _assert_completed_configuration(
         "insertion_gate_mode": expected_gate,
         "append_occurrence_policy": "layer_reuse",
         "allow_incomplete_candidate_pool": False,
-        "max_structural_pool_size": SIAM_NB4_PILOT_SEARCH.pool_size,
+        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
-            SIAM_NB4_PILOT_SEARCH.joint_patch_evaluations
+            search_profile.joint_patch_evaluations
         ),
         "max_certification_attempts_per_level": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_level
+            search_profile.certification_attempts_per_level
         ),
         "max_certification_attempts_per_deletion_branch": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_deletion_branch
+            search_profile.certification_attempts_per_deletion_branch
         ),
         "max_insertion_rounds_per_checkpoint": (
-            SIAM_NB4_PILOT_SEARCH.rounds_per_checkpoint
+            search_profile.rounds_per_checkpoint
         ),
         "max_insertion_batch_size": 1,
         "append_schur_max_condition_number": None,
@@ -3459,6 +3567,16 @@ def run_prepared_siam_action(
 
     segment = _registered_segment(str(action["segment"]))
     arm = _canonical_arm(str(action["arm"]))
+    try:
+        declared_search_profile_id = _declared_search_profile_id(
+            action.get("search_profile_id")
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    if manifest.get("search_profile_id") != action.get("search_profile_id"):
+        raise SystemExit(
+            "SIAM manifest and action declare different search profiles"
+        )
     cut = float(action["activation_cut"])
     if not math.isfinite(cut) or cut <= 0.0:
         raise SystemExit("SIAM action activation cut is invalid")
@@ -3519,6 +3637,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             seed_sha256=str(action["seed_sha256"]),
             resume_metadata=verified_resume,
+            search_profile_id=declared_search_profile_id,
         )
         for field, value in verified_completion.items():
             if resume.get(field) != value:
@@ -3536,6 +3655,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             output_json=output_path,
             code_revision=expected_source_revision,
+            search_profile_id=declared_search_profile_id,
         )
     else:
         assert resume_path is not None
@@ -3546,6 +3666,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             output_json=output_path,
             code_revision=expected_source_revision,
+            search_profile_id=declared_search_profile_id,
         )
     argv = tuple(command.argv())
     _validate_runner_argv(
@@ -3613,6 +3734,10 @@ def run_prepared_siam_action(
         "action_contract": action,
         "package_manifest_contract": manifest,
     }
+    if declared_search_profile_id is not None:
+        # Only a non-default budget writes the key, so the historical receipts
+        # stay byte-identical while the frontier lineage is self-describing.
+        base_receipt["search_profile_id"] = declared_search_profile_id
     if route_lineage:
         # Route identity travels with the receipt so a downstream reader never
         # has to reopen the package to learn which exchange route ran.
