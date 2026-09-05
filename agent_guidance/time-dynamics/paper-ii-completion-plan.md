@@ -282,6 +282,34 @@ comparator: on fast--fast AVQDS it buys 44% lower accuracy burden for 27.7%
 more work, because that AVQDS support grows to 100 coordinates and $g(p)$ is
 quadratic in support size.
 
+#### Why the one exception is not a controller cost
+
+The state norm $\sqrt{v^\top Gv}$ is classical once $G$, $f$, and
+$\|\bar d\|_2^2$ are estimated (Sec.~\ref{sec:numerical_stabilization}), so it
+adds zero estimator evaluations per right-hand-side evaluation. At fixed
+support, fewer steps therefore means strictly less work. The fast--fast AVQDS
+increase is entirely support growth, not controller overhead:
+
+| drive | route | terminal $N_\theta$, $\delta\theta$ → state |
+|---|---|---|
+| mid-resonant | AVQDS | 60 → 60 |
+| fast--fast | AVQDS | 65 → **100** |
+| mid-resonant | realized-$\Gamma$ | 49 → 48 |
+| fast--fast | realized-$\Gamma$ | 47 → 49 |
+
+Append-only AVQDS grew 54% more support under state-motion control on
+fast--fast; $g(p)=p(p+1)/2+p+2$ then outruns the 26.7% step saving. AP-McLachlan
+holds its support in both drives, which is the prune--exchange claim doing the
+work.
+
+#### Units precision
+
+These are logical geometry-entry counts for the dense-statevector
+implementation, not hardware shots. Physical shot count is
+`unavailable_statevector_no_shot_ledger` for every cell. Manuscript prose must
+keep timestep count, estimator/query work, and terminal circuit resources
+distinct and must not call $W_{\rm geom}$ a shot count.
+
 **The circuit axis and the shot axis are different claims.** Terminal
 $\boldsymbol C_{\rm comp}$ reduction is the structural (prune--exchange)
 contribution; $W_{\rm geom}$ reduction is the numerical (controller)
