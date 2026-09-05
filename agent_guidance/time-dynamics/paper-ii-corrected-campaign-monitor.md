@@ -26,3 +26,18 @@ Decisions: none required. Fetches: none.
 ## 20260905T215118Z — SIAM r00 rebuilt packages submitted (standing authorization)
 
 - AVQDS screen → `9720216`; exchange screen (frontier 8) → `9720217`. Source lock `812d20c3`, byte contract pre-verified on the remote. These replace `9720204/9720211` and `9720205/9720212`, all of which failed at startup and hold no outputs.
+## 20260905T230840Z — SIAM r00 screens complete, fetched, receipt-valid
+
+- `9720216.0` AVQDS: exit 0, 5.3 min, 196 MB; 25,700 steps, terminal support 15, 11 accepted patches. Receipt valid vs `812d20c3`, profile `siam_nb4_pilot_v1`.
+- `9720217.0` exchange (frontier 8): exit 0, 61.1 min, 977 MB; 25,700 steps, terminal support 25, 19 accepted, **0 true exchanges**. Receipt valid vs `812d20c3`, profile `siam_nb4_pilot_exchange_v1`.
+- Frontier telemetry on the exchange screen:
+  - decisions by face: {'insert_only': 1, 'delete_only': 81, 'full': 18}
+  - true_exchange_face_open: {'False': 82, 'True': 18}
+  - exchange_frontier present at decision: {'frontier set': 19, 'frontier None': 82}
+  - admitted families: {'singleton_d0': 100, 'singleton_d1': 99, 'singleton_d2': 93, 'singleton_d3': 79, 'singleton_d4': 72, 'singleton_d5': 62, 'singleton_d6': 24, 'singleton_d7': 8, 'singleton_d8': 7, 'singleton_d9': 5, 'singleton_d10': 1}
+  - guard rejections (family:size): {'singleton_d7:None': 15, 'singleton_d6:None': 35, 'singleton_d5:None': 9, 'singleton_d4:None': 5}
+  - materialized attempt kinds: {'insert': 19}
+  - committed reasons: {'accepted_generalized_exchange_insert': 19}
+- Fetched to `raw_outputs/<package>/<action_id>/` in the campaign worktree (outputs land there, not under `archives/`). Not scored yet (§8.2 scoring is the next step, needs the Nb=4 exact-reference store).
+- `9720203`: 11 running, peak 2.2 GB. `9720069.3`: running, 3.2 GB.
+- Scheduled heartbeat dispatched 22:05:52Z, no transcript, no log block: presumed stalled on a permission prompt. Manual heartbeats continue from the session.
