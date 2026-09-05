@@ -93,9 +93,9 @@
    "request_cpus": 9,
    "compile_workers": 8,
    "scoring_workers": 4,
-   "request_memory": "6GB",
+   "request_memory": "12GB",
    "request_disk": "40GB",
-   "max_runtime_seconds": 432000
+   "max_runtime_seconds": 172800
   },
   "thread_environment": {
    "OPENBLAS_NUM_THREADS": 1,
@@ -117,7 +117,7 @@
  "package_files": {
   "run_action.py": "1c04ae2591c25ac647f3a5e6e3827eff8140be93057063acaa47cf2ae5eaa287",
   "run_action_apptainer.sh": "8e9db0bc9061e77336985aeeebdb2ad5d1ee3d330d7cf18a280435b3e711018f",
-  "submit_apm.sub": "93b47044db84cd34824e6f3a0229c3c5cccbb3ecf3b6b58439461b308d2c3c1e",
+  "submit_apm.sub": "235643ef60c3e3a52119a2e38316bf12cd56adf9146a3dc592ec3d45963f3f3b",
   "validate_package.py": "64326f7b66134f078a2e7accb381ef204a5c7960be154280e4ea6c5ee899363b"
  },
  "submission": {

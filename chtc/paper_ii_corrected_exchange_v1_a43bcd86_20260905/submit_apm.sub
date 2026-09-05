@@ -12,8 +12,8 @@ output = chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/logs/apm.$(Cluste
 error = chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/logs/apm.$(Cluster).$(Process).err
 requirements = TARGET.HasSIF
 request_cpus = 9
-request_memory = 6GB
+request_memory = 12GB
 request_disk = 40GB
-+MaxRuntime = 432000
++MaxRuntime = 172800
 +JobBatchName = "paper-ii-corrected-exchange-apm-v1"
 queue action_id from chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/input/action_ids_apm.txt
