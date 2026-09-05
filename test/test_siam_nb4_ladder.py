@@ -81,9 +81,11 @@ def _argv_sha256(argv: list[str]) -> str:
     ).hexdigest()
 
 
-def _action_id(arm: str, segment: str, cut: float) -> str:
+def _action_id(
+    arm: str, segment: str, cut: float, route_id: str = ladder.ROUTE_HISTORICAL
+) -> str:
     return ladder.siam_nb4_action_id(
-        arm=arm, segment=segment, activation_cut=cut
+        arm=arm, segment=segment, activation_cut=cut, route_id=route_id
     )
 
 
@@ -297,6 +299,7 @@ def _raw_receipt(
     *,
     package_tag: str = "",
     legacy_r00: bool = False,
+    route_id: str = ladder.ROUTE_HISTORICAL,
 ) -> dict[str, object]:
     if legacy_r00:
         assert cut == LEGACY_CUT
@@ -306,7 +309,7 @@ def _raw_receipt(
         package_index = 0
         package_ladder_sha256 = SIAM_NB4_LEGACY_LADDER_SHA256
     else:
-        action_id = _action_id(arm, segment, cut)
+        action_id = _action_id(arm, segment, cut, route_id)
         package_ladder = SIAM_NB4_ACTIVATION_CUT_LADDER
         package_index = package_ladder.index(cut)
         package_ladder_sha256 = SIAM_NB4_CANONICAL_LADDER_SHA256
@@ -610,6 +613,8 @@ def _record(
     scored: bool = True,
     failure_reason: str = "runner failed",
     legacy_r00: bool = False,
+    route_id: str = ladder.ROUTE_HISTORICAL,
+    exchange_route_bundle: str | None = None,
 ) -> ladder.SIAMNb4ActionRecord:
     if legacy_r00:
         assert cut == LEGACY_CUT
@@ -617,8 +622,8 @@ def _record(
         action_id = f"siam-nb4-{arm}-{token}-r00-cut1em03"
         screen_id = f"siam-nb4-{arm}-screen-r00-cut1em03"
     else:
-        action_id = _action_id(arm, segment, cut)
-        screen_id = _action_id(arm, ladder.SEGMENT_SCREEN, cut)
+        action_id = _action_id(arm, segment, cut, route_id)
+        screen_id = _action_id(arm, ladder.SEGMENT_SCREEN, cut, route_id)
     if state != ladder.STATE_COMPLETED:
         return ladder.SIAMNb4ActionRecord(
             action_id=action_id,
@@ -626,13 +631,16 @@ def _record(
             segment=segment,
             activation_cut=cut,
             state=state,
+            route_id=route_id,
             resume_from_action_id=(
                 screen_id if segment == ladder.SEGMENT_CONTINUATION else None
             ),
             failure_reason=(failure_reason if state == ladder.STATE_FAILED else ""),
         )
 
-    receipt = _raw_receipt(arm, segment, cut, legacy_r00=legacy_r00)
+    receipt = _raw_receipt(
+        arm, segment, cut, legacy_r00=legacy_r00, route_id=route_id
+    )
     score = None
     proof = None
     if scored:
@@ -650,12 +658,18 @@ def _record(
             energy=energy,
             primitive_responses=primitive_responses,
         )
+        if exchange_route_bundle is not None:
+            score["method"]["exchange_route_bundle"] = exchange_route_bundle
+            score["method"]["exchange_route_contract_sha256"] = "5" * 64
+            score.pop("score_sha256")
+            score = {**score, "score_sha256": _canonical_sha256(score)}
         if segment == ladder.SEGMENT_CONTINUATION:
             screen_receipt = _raw_receipt(
                 arm,
                 ladder.SEGMENT_SCREEN,
                 cut,
                 legacy_r00=legacy_r00,
+                route_id=route_id,
             )
             proof = _stitch_proof(
                 arm,
@@ -670,6 +684,7 @@ def _record(
         segment=segment,
         activation_cut=cut,
         state=state,
+        route_id=route_id,
         resume_from_action_id=(
             screen_id if segment == ladder.SEGMENT_CONTINUATION else None
         ),
@@ -1269,3 +1284,134 @@ def test_plan_json_is_executor_ready_and_has_no_submission_side_effect() -> None
     assert payload["next_actions"][0]["kind"] == ladder.KIND_RUN
     assert payload["next_actions"][0]["qiskit_compilation_requested"] is False
     assert payload["next_actions"][0]["exact_reference_blind"] is True
+
+
+FROZEN_HISTORICAL_ACTION_IDS = {
+    (ladder.ARM_FULL_APM, ladder.SEGMENT_SCREEN, SIAM_NB4_ACTIVATION_CUT_LADDER[0]):
+        "siam-nb4-full_apm-screen-r00-cut1em02",
+    (ladder.ARM_FULL_APM, ladder.SEGMENT_CONTINUATION, SIAM_NB4_ACTIVATION_CUT_LADDER[7]):
+        "siam-nb4-full_apm-continue-r07-cut3em06",
+    (ladder.ARM_AVQDS, ladder.SEGMENT_SCREEN, SIAM_NB4_ACTIVATION_CUT_LADDER[0]):
+        "siam-nb4-avqds-screen-r00-cut1em02",
+}
+
+
+def test_historical_action_ids_are_byte_identical_and_qc_ids_are_new() -> None:
+    for (arm, segment, cut), frozen in FROZEN_HISTORICAL_ACTION_IDS.items():
+        assert ladder.siam_nb4_action_id(
+            arm=arm, segment=segment, activation_cut=cut
+        ) == frozen
+        assert ladder.siam_nb4_action_id(
+            arm=arm,
+            segment=segment,
+            activation_cut=cut,
+            route_id=ladder.ROUTE_HISTORICAL,
+        ) == frozen
+        compiled = ladder.siam_nb4_action_id(
+            arm=arm,
+            segment=segment,
+            activation_cut=cut,
+            route_id=ladder.ROUTE_Q_COMPILED,
+        )
+        assert compiled == frozen.replace("siam-nb4-", "siam-nb4-qc-", 1)
+        assert compiled != frozen
+
+    assert ladder.ROUTE_TOKENS[ladder.ROUTE_HISTORICAL] is None
+    assert ladder.ROUTE_TOKENS[ladder.ROUTE_Q_COMPILED] == "qc"
+
+
+def test_compiled_q_ladder_opens_at_r00_in_the_avqds_lane() -> None:
+    plan = ladder.plan_siam_nb4_ladder([], route_id=ladder.ROUTE_Q_COMPILED)
+    assert plan.route_id == ladder.ROUTE_Q_COMPILED
+    assert plan.phase == "avqds_screening"
+    assert len(plan.next_actions) == 1
+    action = plan.next_actions[0]
+    assert (action.arm, action.segment, action.activation_cut, action.ladder_index) == (
+        ladder.ARM_AVQDS,
+        ladder.SEGMENT_SCREEN,
+        INITIAL_CUT,
+        0,
+    )
+    assert action.action_id == "siam-nb4-qc-avqds-screen-r00-cut1em02"
+    assert action.route_id == ladder.ROUTE_Q_COMPILED
+    assert plan.to_json_dict()["route_id"] == ladder.ROUTE_Q_COMPILED
+
+    historical = ladder.plan_siam_nb4_ladder([])
+    assert historical.next_actions[0].action_id == (
+        "siam-nb4-avqds-screen-r00-cut1em02"
+    )
+    assert historical.route_id == ladder.ROUTE_HISTORICAL
+
+
+def test_plan_refuses_a_record_from_another_route() -> None:
+    record = _screen(ladder.ARM_AVQDS, INITIAL_CUT)
+    with pytest.raises(ladder.SIAMNb4LadderError, match="belongs to route"):
+        ladder.plan_siam_nb4_ladder([record], route_id=ladder.ROUTE_Q_COMPILED)
+
+
+def _compiled_q_screen(arm: str, cut: float, *, route_bundle: str):
+    """Build one completed compiled-Q screen record with a declared route."""
+
+    return _record(
+        arm,
+        ladder.SEGMENT_SCREEN,
+        cut,
+        route_id=ladder.ROUTE_Q_COMPILED,
+        exchange_route_bundle=route_bundle,
+    )
+
+
+def test_compiled_q_ladder_refuses_a_score_from_the_historical_route() -> None:
+    off_route = _compiled_q_screen(
+        ladder.ARM_FULL_APM,
+        INITIAL_CUT,
+        route_bundle="paper_ii_generalized_exchange_v2",
+    )
+    with pytest.raises(ladder.SIAMNb4LadderError, match="is not on the"):
+        ladder.plan_siam_nb4_ladder([off_route], route_id=ladder.ROUTE_Q_COMPILED)
+
+    on_route = _compiled_q_screen(
+        ladder.ARM_FULL_APM,
+        INITIAL_CUT,
+        route_bundle=ladder.ROUTE_Q_COMPILED,
+    )
+    # The exchange lane still needs its comparator screen, so the planner blocks
+    # rather than accepting the arm; the route itself is no longer the reason.
+    with pytest.raises(
+        ladder.SIAMNb4LadderError, match="before a valid broad-safe AVQDS screen"
+    ):
+        ladder.plan_siam_nb4_ladder([on_route], route_id=ladder.ROUTE_Q_COMPILED)
+
+
+def test_compiled_q_avqds_lane_is_its_own_and_advances_to_full_apm() -> None:
+    screen = _record(
+        ladder.ARM_AVQDS,
+        ladder.SEGMENT_SCREEN,
+        INITIAL_CUT,
+        route_id=ladder.ROUTE_Q_COMPILED,
+    )
+    assert screen.action_id == "siam-nb4-qc-avqds-screen-r00-cut1em02"
+    plan = ladder.plan_siam_nb4_ladder([screen], route_id=ladder.ROUTE_Q_COMPILED)
+    emitted = {row.action_id for row in plan.next_actions}
+    assert "siam-nb4-qc-avqds-continue-r00-cut1em02" in emitted
+    assert "siam-nb4-qc-full_apm-screen-r00-cut1em02" in emitted
+    assert all(row.route_id == ladder.ROUTE_Q_COMPILED for row in plan.next_actions)
+    assert plan.phase == "two_arm_screening"
+
+
+def test_historical_ladder_accepts_a_pre_route_and_a_labelled_historical_score() -> None:
+    record = _screen(ladder.ARM_FULL_APM, INITIAL_CUT)
+    assert "exchange_route_bundle" not in record.score["method"]
+
+    labelled = _record(
+        ladder.ARM_FULL_APM,
+        ladder.SEGMENT_SCREEN,
+        INITIAL_CUT,
+        exchange_route_bundle="paper_ii_generalized_exchange_v2",
+    )
+    for candidate in (record, labelled):
+        with pytest.raises(
+            ladder.SIAMNb4LadderError,
+            match="before a valid broad-safe AVQDS screen",
+        ):
+            ladder.plan_siam_nb4_ladder([candidate])

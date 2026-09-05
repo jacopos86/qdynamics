@@ -25,6 +25,9 @@ from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
     SIAM_OFFLINE_SCORE_V1,
     SIAM_OFFLINE_SCORE_V2,
     SIAM_OFFLINE_SCORE_V3,
+    SIAM_OFFLINE_SCORE_V4,
+    SIAM_ROUTE_HISTORICAL_UNRECORDED,
+    SIAM_ROUTE_NOT_APPLICABLE,
     SIAM_SIGMA_V2_TRANSITION_V1,
     _aggregate_accuracy_burden,
     _relative_energy_guard,
@@ -312,7 +315,7 @@ def test_sigma_v2_rescore_is_version_bound_and_transitionable(tmp_path: Path) ->
         seed_path=seed,
         reference_store_root=tmp_path / "exact",
     )
-    assert score["schema"] == SIAM_OFFLINE_SCORE_V3
+    assert score["schema"] == SIAM_OFFLINE_SCORE_V4
     assert score["observable_contract"]["schema"] == SIAM_OBSERVABLES_V2
     assert score["reference"]["store_schema"] == SIAM_EXACT_REFERENCE_STORE_V2
     assert score["reference"]["reference_schema"] == SIAM_REFERENCE_V2
@@ -719,7 +722,7 @@ def test_scorer_reports_primitive_derived_and_safety_roles(tmp_path: Path) -> No
         reference_store_root=tmp_path / "exact",
     )
 
-    assert score["schema"] == SIAM_OFFLINE_SCORE_V3
+    assert score["schema"] == SIAM_OFFLINE_SCORE_V4
     assert len(score["score_sha256"]) == 64
     assert set(score["primitive_response_metrics"]) == {"m_d", "D_d", "C_1", "C_2"}
     assert set(score["derived_screening_metrics"]) == {"Sigma_1", "Sigma_2"}
@@ -1514,7 +1517,7 @@ def test_actual_short_siam_runner_output_crosses_offline_proof_boundary(
     assert score["diagnostics"]["initial_boundary"]["pass"] is True
     assert score["diagnostics"]["resume"]["schema"] == RESUME_SCHEMA_V2
     assert score["diagnostics"]["resume"]["reconstruction_pass"] is True
-    assert score["schema"] == SIAM_OFFLINE_SCORE_V3
+    assert score["schema"] == SIAM_OFFLINE_SCORE_V4
     assert score["thresholds"]["relative_energy_drift_ceiling"] == 1.0e-3
 
 
@@ -1559,3 +1562,133 @@ def test_immutable_writers_preserve_historical_v1_receipts(tmp_path: Path) -> No
 
     assert json.loads(score_path.read_text()) == legacy_score
     assert json.loads(pair_path.read_text()) == legacy_pair
+
+
+Q_COMPILED_ROUTE = "paper_ii_exchange_q_compiled_v1"
+
+
+def _inject_route_guards(run: Path, *, bundle_id: str, digest: str) -> None:
+    """Stamp one exchange route contract into an already-written raw run."""
+
+    payload = json.loads(run.read_text(encoding="utf-8"))
+    guards = dict(payload["run_lock"]["policy"]["guards"])
+    guards["exchange_route_contract"] = {
+        "bundle_id": bundle_id,
+        "objective_id": "realized_q",
+        "cost_model_id": "compiled_population",
+        "kernel_id": "shifted_paper_i",
+        "compiler": None,
+    }
+    guards["exchange_route_contract_sha256"] = digest
+    payload["run_lock"]["policy"]["guards"] = guards
+    run.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def test_v4_score_records_the_exchange_route_identity(tmp_path: Path) -> None:
+    seed, _store, artifact = _fixture(tmp_path)
+
+    historical = tmp_path / "historical.json"
+    _raw_run(historical, seed=seed, artifact=artifact, policy="exchange")
+    historical_score = score_siam_raw_run(
+        run_path=historical,
+        seed_path=seed,
+        reference_store_root=tmp_path / "exact",
+    )
+    assert historical_score["schema"] == SIAM_OFFLINE_SCORE_V4
+    assert historical_score["method"]["exchange_route_bundle"] == (
+        SIAM_ROUTE_HISTORICAL_UNRECORDED
+    )
+    assert historical_score["method"]["exchange_route_contract_sha256"] is None
+
+    comparator = tmp_path / "avqds.json"
+    _raw_run(comparator, seed=seed, artifact=artifact, policy="avqds")
+    comparator_score = score_siam_raw_run(
+        run_path=comparator,
+        seed_path=seed,
+        reference_store_root=tmp_path / "exact",
+    )
+    assert comparator_score["method"]["exchange_route_bundle"] == (
+        SIAM_ROUTE_NOT_APPLICABLE
+    )
+    assert comparator_score["method"]["exchange_route_contract_sha256"] is None
+
+    compiled = tmp_path / "compiled.json"
+    _raw_run(compiled, seed=seed, artifact=artifact, policy="exchange")
+    _inject_route_guards(compiled, bundle_id=Q_COMPILED_ROUTE, digest="9" * 64)
+    compiled_score = score_siam_raw_run(
+        run_path=compiled,
+        seed_path=seed,
+        reference_store_root=tmp_path / "exact",
+    )
+    assert compiled_score["method"]["exchange_route_bundle"] == Q_COMPILED_ROUTE
+    assert compiled_score["method"]["exchange_route_contract_sha256"] == "9" * 64
+    # The comparison fingerprint deliberately excludes ``policy``: the two
+    # structural arms must share the shared protocol, not the exchange route.
+    assert (
+        compiled_score["method"]["comparison_fingerprint"]
+        == historical_score["method"]["comparison_fingerprint"]
+    )
+
+
+def test_pre_route_v3_score_reads_as_historical_unrecorded(tmp_path: Path) -> None:
+    seed, _store, artifact = _fixture(tmp_path)
+    run = tmp_path / "run.json"
+    _raw_run(run, seed=seed, artifact=artifact, policy="exchange")
+    score = score_siam_raw_run(
+        run_path=run,
+        seed_path=seed,
+        reference_store_root=tmp_path / "exact",
+    )
+
+    legacy = json.loads(json.dumps(score))
+    legacy["schema"] = SIAM_OFFLINE_SCORE_V3
+    legacy["method"].pop("exchange_route_bundle")
+    legacy["method"].pop("exchange_route_contract_sha256")
+    legacy = _redigest_score(legacy)
+
+    verified = _verified_score(legacy)
+    assert verified["schema"] == SIAM_OFFLINE_SCORE_V3
+    assert "exchange_route_bundle" not in verified["method"]
+    assert scoring_module._score_route(verified) == SIAM_ROUTE_HISTORICAL_UNRECORDED
+
+
+def test_matched_pair_binds_the_declared_exchange_route(tmp_path: Path) -> None:
+    seed, _store, artifact = _fixture(tmp_path)
+    scores = {}
+    for method in ("exchange", "avqds"):
+        run = tmp_path / f"{method}.json"
+        _raw_run(
+            run,
+            seed=seed,
+            artifact=artifact,
+            policy=method,
+            perturbation=1.0e-8,
+        )
+        if method == "exchange":
+            _inject_route_guards(
+                run, bundle_id=Q_COMPILED_ROUTE, digest="7" * 64
+            )
+        scores[method] = score_siam_raw_run(
+            run_path=run,
+            seed_path=seed,
+            reference_store_root=tmp_path / "exact",
+        )
+
+    pair = classify_siam_matched_pair(
+        scores["exchange"],
+        scores["avqds"],
+        expected_apm_route=Q_COMPILED_ROUTE,
+    )
+    assert pair["matched_accuracy"]["apm_route"] == Q_COMPILED_ROUTE
+    assert pair["matched_accuracy"]["avqds_route"] == SIAM_ROUTE_NOT_APPLICABLE
+
+    with pytest.raises(ValueError, match="route differs from the campaign route"):
+        classify_siam_matched_pair(
+            scores["exchange"],
+            scores["avqds"],
+            expected_apm_route=SIAM_ROUTE_HISTORICAL_UNRECORDED,
+        )
+
+    # An unlabelled historical pilot can never satisfy a compiled-Q campaign.
+    unlabelled = classify_siam_matched_pair(scores["exchange"], scores["avqds"])
+    assert unlabelled["matched_accuracy"]["apm_route"] == Q_COMPILED_ROUTE

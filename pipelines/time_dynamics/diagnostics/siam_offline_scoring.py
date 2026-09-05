@@ -51,12 +51,24 @@ from src.quantum.vqe_latex_python_pairs import hamiltonian_matrix
 SIAM_OFFLINE_SCORE_V1 = "siam_offline_accuracy_score_v1"
 SIAM_OFFLINE_SCORE_V2 = "siam_offline_accuracy_score_v2"
 SIAM_OFFLINE_SCORE_V3 = "siam_offline_accuracy_score_v3"
+SIAM_OFFLINE_SCORE_V4 = "siam_offline_accuracy_score_v4"
 SIAM_MATCHED_PAIR_V1 = "siam_matched_accuracy_pair_v1"
 SIAM_MATCHED_PAIR_V2 = "siam_matched_accuracy_pair_v2"
 SIAM_MATCHED_PAIR_V3 = "siam_matched_accuracy_pair_v3"
 SIAM_SIGMA_V2_TRANSITION_V1 = "siam_sigma_v2_reporting_transition_v1"
 SIAM_ACCURACY_POLICY_V2 = "siam_response_matched_accuracy_policy_v2"
 SIAM_NB4_PRIMITIVE_NAMES = ("m_d", "D_d", "C_1", "C_2", "C_3", "C_4")
+
+# Exchange-route identity recorded on every v4 score.
+#
+# ``not_applicable`` is the comparator (AVQDS) arm: it has no exchange route by
+# construction, so it can never be confused with an unrecorded one.
+SIAM_ROUTE_NOT_APPLICABLE = "not_applicable"
+# ``historical_unrecorded`` is an exchange-arm score whose run lock predates the
+# route guards (every pilot scored before the route contract existed).  It is a
+# distinct value from any registered bundle id, so a compiled-Q result can never
+# be paired against, or mistaken for, an unlabelled historical one.
+SIAM_ROUTE_HISTORICAL_UNRECORDED = "historical_unrecorded"
 
 INDIVIDUAL_RESPONSE_TARGET = 0.05
 BROAD_RESPONSE_GUARD = 0.15
@@ -116,6 +128,43 @@ def _observable_contract_v2_record() -> dict[str, Any]:
         "integrated_screening": "Sigma_r=S_d2+sum_{j<=r}C_j",
         "primitive_gate_set_unchanged": True,
     }
+
+
+def _exchange_route_identity(
+    lock: Mapping[str, Any], *, structural_policy: str
+) -> tuple[str, str | None]:
+    """Return ``(route bundle id, route contract digest)`` for one run lock.
+
+    The exchange route identity is recorded in ``run_lock.policy.guards`` as
+    ``exchange_route_contract`` / ``exchange_route_contract_sha256``.
+
+    It is deliberately *not* folded into ``comparison_fingerprint``.  That
+    digest hashes ``shared_protocol`` only -- physics, numerics, the time-step
+    controller and the candidate pool -- because those are exactly the things
+    the two structural arms must hold fixed to be comparable at all.  The
+    exchange route is a property of the exchange arm itself; the AVQDS
+    comparator has none.  Folding it into the comparison digest would make
+    every exchange/AVQDS pair incomparable.  Route identity is therefore
+    enforced separately, by ``classify_siam_matched_pair(expected_apm_route=)``
+    and by the ladder/stitch route checks.  Do not add it to the fingerprint.
+    """
+
+    if str(structural_policy) == "avqds":
+        return SIAM_ROUTE_NOT_APPLICABLE, None
+    policy = lock.get("policy")
+    guards = policy.get("guards") if isinstance(policy, Mapping) else None
+    contract = guards.get("exchange_route_contract") if isinstance(
+        guards, Mapping
+    ) else None
+    if not isinstance(contract, Mapping):
+        return SIAM_ROUTE_HISTORICAL_UNRECORDED, None
+    bundle_id = str(contract.get("bundle_id") or "").strip()
+    if not bundle_id:
+        raise ValueError(
+            "SIAM exchange route contract is present but lacks its bundle id."
+        )
+    digest = guards.get("exchange_route_contract_sha256")
+    return bundle_id, (None if digest is None else str(digest))
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -686,6 +735,9 @@ def _score_core(
     method = str(policy.get("structural_policy", ""))
     if method not in {"exchange", "avqds"}:
         raise ValueError(f"Unsupported SIAM structural arm {method!r}.")
+    exchange_route_bundle, exchange_route_contract_sha256 = (
+        _exchange_route_identity(lock, structural_policy=method)
+    )
     time_values = [float(value) for value in times]
     exact_series = {name: [float(value) for value in exact[name]] for name in sorted(exact)}
     observed_series = {
@@ -699,7 +751,7 @@ def _score_core(
         for name in sorted(observed)
     }
     return {
-        "schema": SIAM_OFFLINE_SCORE_V3,
+        "schema": SIAM_OFFLINE_SCORE_V4,
         "accuracy_policy": _accuracy_policy_v2_record(),
         "observable_contract": _observable_contract_v2_record(),
         "reporting_only": True,
@@ -714,6 +766,8 @@ def _score_core(
         },
         "method": {
             "structural_policy": method,
+            "exchange_route_bundle": exchange_route_bundle,
+            "exchange_route_contract_sha256": exchange_route_contract_sha256,
             "comparison_fingerprint": comparison_fingerprint,
             "physics_fingerprint": str(lock.get("physics_fingerprint", "")),
             "run_lock_schema": str(lock.get("schema", "")),
@@ -1384,7 +1438,11 @@ def _verified_score(
         # silently reinterpreted under the v2 energy-normalization policy.
         if require_sigma_v2:
             raise ValueError("Canonical reporting requires Sigma-v2 SIAM scores.")
-    elif schema not in {SIAM_OFFLINE_SCORE_V2, SIAM_OFFLINE_SCORE_V3}:
+    elif schema not in {
+        SIAM_OFFLINE_SCORE_V2,
+        SIAM_OFFLINE_SCORE_V3,
+        SIAM_OFFLINE_SCORE_V4,
+    }:
         raise ValueError("Matched comparison requires SIAM offline-score documents.")
     else:
         if schema == SIAM_OFFLINE_SCORE_V2 and require_sigma_v2:
@@ -1407,7 +1465,7 @@ def _verified_score(
             payload,
             required_primitive_names=required_primitive_names,
         )
-        if schema == SIAM_OFFLINE_SCORE_V3:
+        if schema in {SIAM_OFFLINE_SCORE_V3, SIAM_OFFLINE_SCORE_V4}:
             _validate_sigma_v2_reporting(payload)
     components = _quality_components_from_score(payload)
     declared_components = payload["summary"].get(
@@ -1423,7 +1481,11 @@ def _verified_score(
         abs_tol=1.0e-15,
     ):
         raise ValueError("SIAM offline-score aggregate burden is inconsistent.")
-    if schema in {SIAM_OFFLINE_SCORE_V2, SIAM_OFFLINE_SCORE_V3}:
+    if schema in {
+        SIAM_OFFLINE_SCORE_V2,
+        SIAM_OFFLINE_SCORE_V3,
+        SIAM_OFFLINE_SCORE_V4,
+    }:
         pair_components = _pair_quality_components_from_score(payload)
         declared_pair_components = payload["summary"].get(
             "pair_normalized_accuracy_components"
@@ -1435,10 +1497,29 @@ def _verified_score(
     return payload
 
 
+def _score_route(score: Mapping[str, Any]) -> str:
+    """Return the exchange route a score declares, tolerating pre-v4 scores."""
+
+    method = score.get("method")
+    if not isinstance(method, Mapping):
+        return SIAM_ROUTE_HISTORICAL_UNRECORDED
+    return str(
+        method.get("exchange_route_bundle", SIAM_ROUTE_HISTORICAL_UNRECORDED)
+    )
+
+
 def classify_siam_matched_pair(
-    first: Mapping[str, Any], second: Mapping[str, Any]
+    first: Mapping[str, Any],
+    second: Mapping[str, Any],
+    *,
+    expected_apm_route: str | None = None,
 ) -> dict[str, Any]:
-    """Classify one exchange/AVQDS pair after proving comparability."""
+    """Classify one exchange/AVQDS pair after proving comparability.
+
+    ``expected_apm_route`` binds the pair to one exchange route bundle.  A
+    campaign that declares its route passes it here so a compiled-Q APM arm can
+    never be paired against, or reported as, the historical route.
+    """
 
     left = _verified_score(first)
     right = _verified_score(second)
@@ -1450,6 +1531,10 @@ def classify_siam_matched_pair(
         raise ValueError("Matched SIAM pair requires exactly exchange and AVQDS arms.")
     apm = methods["exchange"]
     avqds = methods["avqds"]
+    apm_route = _score_route(apm)
+    avqds_route = _score_route(avqds)
+    if expected_apm_route is not None and apm_route != str(expected_apm_route):
+        raise ValueError("SIAM APM arm route differs from the campaign route")
     comparable_fields = (
         ("method", "comparison_fingerprint"),
         ("method", "code_revision"),
@@ -1566,6 +1651,8 @@ def classify_siam_matched_pair(
             },
         },
         "matched_accuracy": {
+            "apm_route": apm_route,
+            "avqds_route": avqds_route,
             "both_inside_broad_guard": both_broad,
             "both_pass_energy_conservation": both_energy_safe,
             "both_pass_fidelity": both_fidelity_safe,
@@ -1627,6 +1714,16 @@ def build_siam_sigma_v2_transition_receipt(
             raise ValueError(
                 f"Sigma-v2 transition changes {section}.{field}; rerun identity differs."
             )
+    # Route identity is stable across an offline rescore, but a v2 predecessor
+    # predates the route fields entirely.  A field the old document never
+    # recorded cannot have changed, so compare it only when it is present.
+    for field in ("exchange_route_bundle", "exchange_route_contract_sha256"):
+        if field in old["method"] and old["method"][field] != new["method"].get(
+            field
+        ):
+            raise ValueError(
+                f"Sigma-v2 transition changes method.{field}; route identity differs."
+            )
     if old["accuracy_policy"] != new["accuracy_policy"] or (
         old["thresholds"] != new["thresholds"]
     ):
@@ -1669,7 +1766,7 @@ def build_siam_sigma_v2_transition_receipt(
             "artifact_retained": True,
         },
         "replacement": {
-            "score_schema": SIAM_OFFLINE_SCORE_V3,
+            "score_schema": str(new["schema"]),
             "score_sha256": str(replacement_score["score_sha256"]),
             "observable_schema": SIAM_OBSERVABLES_V2,
             "reporting_semantics": "Sigma_r=S_d2+sum_{j<=r}C_j",
@@ -1773,6 +1870,9 @@ __all__ = [
     "SIAM_OFFLINE_SCORE_V1",
     "SIAM_OFFLINE_SCORE_V2",
     "SIAM_OFFLINE_SCORE_V3",
+    "SIAM_OFFLINE_SCORE_V4",
+    "SIAM_ROUTE_HISTORICAL_UNRECORDED",
+    "SIAM_ROUTE_NOT_APPLICABLE",
     "SIAM_SIGMA_V2_TRANSITION_V1",
     "SIAM_ACCURACY_POLICY_V2",
     "build_siam_sigma_v2_transition_receipt",

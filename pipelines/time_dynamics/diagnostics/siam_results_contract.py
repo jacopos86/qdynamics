@@ -27,6 +27,8 @@ from pipelines.resource_estimation.pauli_graph_span import (
 from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
     SIAM_ACCURACY_POLICY_V2,
     SIAM_OFFLINE_SCORE_V3,
+    SIAM_OFFLINE_SCORE_V4,
+    SIAM_ROUTE_HISTORICAL_UNRECORDED,
     _verified_score,
     classify_siam_matched_pair,
 )
@@ -559,7 +561,10 @@ def _verified_score_artifact(
         raise SIAMResultsContractError(
             f"{expected_slot} offline score fails verification: {path}: {exc}"
         ) from exc
-    if verified.get("schema") != SIAM_OFFLINE_SCORE_V3:
+    if verified.get("schema") not in {
+        SIAM_OFFLINE_SCORE_V3,
+        SIAM_OFFLINE_SCORE_V4,
+    }:
         raise SIAMResultsContractError(
             "SIAM promotion requires Sigma-v2 offline scores."
         )
@@ -1316,6 +1321,31 @@ def _format_graph(values: Sequence[float]) -> str:
     return "(" + ",".join(f"{value:.0f}" for value in values) + ")"
 
 
+def _promotion_route(
+    verified_documents: Mapping[str, Mapping[str, Any]],
+) -> str:
+    """Return the exchange route bundle this promotion table reports.
+
+    The route is read from the structural (``full_apm``) arm; the AVQDS
+    comparator has none.  Scores written before the route guards existed read as
+    ``historical_unrecorded``, which is never equal to a registered bundle id.
+    """
+
+    apm = verified_documents.get("full_apm")
+    if apm is None:
+        return SIAM_ROUTE_HISTORICAL_UNRECORDED
+    method = _mapping(apm.get("method"), label="SIAM full APM score method")
+    return str(
+        method.get("exchange_route_bundle", SIAM_ROUTE_HISTORICAL_UNRECORDED)
+    )
+
+
+def _contract_route(contract: Mapping[str, Any]) -> str:
+    """Return a promotion document's declared route, tolerating pre-route ones."""
+
+    return str(contract.get("route", SIAM_ROUTE_HISTORICAL_UNRECORDED))
+
+
 def _canonical_promotion_role(value: str) -> str:
     role = str(value).strip().lower()
     if role not in {
@@ -1431,6 +1461,9 @@ def render_siam_results_latex_fragment(contract: Mapping[str, Any]) -> str:
     else:
         evidence_label = "diagnostic screening evidence; not manuscript promotion"
     lines.append(rf"\multicolumn{{8}}{{l}}{{Evidence role: {evidence_label}.}} \\")
+    lines.append(
+        rf"\multicolumn{{8}}{{l}}{{Exchange route: {_contract_route(contract)}.}} \\"
+    )
     lines.extend((r"\hline", r"\end{tabular}"))
     return "\n".join(lines) + "\n"
 
@@ -1495,7 +1528,8 @@ def render_siam_results_pdf(contract: Mapping[str, Any]) -> bytes:
         margin,
         page_height - 54.0,
         (
-            f"Role: {role_label} | grid: {int(grid['point_count'])} points, "
+            f"Role: {role_label} | route: {_contract_route(payload)} | "
+            f"grid: {int(grid['point_count'])} points, "
             f"t={float(grid['initial_time']):g}..{float(grid['terminal_time']):g}"
         ),
     )
@@ -1918,6 +1952,11 @@ def build_siam_results_promotion(
             "reader_verdict": "pending",
         }
 
+    # One promotion table belongs to one exchange route.  The route is a header
+    # field, not a column: the reader-facing rows compare the two structural
+    # arms, and the comparator arm is on no exchange route at all.
+    route = _promotion_route(verified_documents)
+
     identity_core = {
         "seed_sha256": identity["seed_sha256"],
         "post_quench_hamiltonian_sha256": identity[
@@ -1940,6 +1979,7 @@ def build_siam_results_promotion(
             next(iter(verified_documents.values()))["observable_contract"]
         ),
         "promotion_role": role,
+        "route": route,
         "manuscript_contract": {
             "validated_stitched_t5_required": (
                 role == SIAM_RESULTS_MANUSCRIPT_ROLE

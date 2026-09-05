@@ -234,6 +234,33 @@ def _stable_segment_contract(run: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _exchange_route_identity(
+    run: Mapping[str, Any],
+) -> tuple[str | None, str | None]:
+    """Return ``(route bundle id, route contract digest)`` for one raw segment.
+
+    Route identity is read from ``run_lock.policy.guards``.  It is deliberately
+    kept out of :func:`_stable_segment_contract`: that contract is embedded and
+    digested inside already-sealed segment-lineage documents, so extending it
+    would move ``source_protocol_sha256`` for evidence that never changed.  The
+    stitcher enforces route agreement directly instead.
+    """
+
+    lock = _mapping(run.get("run_lock"), name="SIAM run lock")
+    policy = lock.get("policy")
+    guards = policy.get("guards") if isinstance(policy, Mapping) else None
+    if not isinstance(guards, Mapping):
+        return None, None
+    contract = guards.get("exchange_route_contract")
+    bundle_id = (
+        str(contract.get("bundle_id") or "") or None
+        if isinstance(contract, Mapping)
+        else None
+    )
+    digest = guards.get("exchange_route_contract_sha256")
+    return bundle_id, (None if digest is None else str(digest))
+
+
 def _validate_run_lock_grid(
     run: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]
 ) -> None:
@@ -607,6 +634,12 @@ def stitch_siam_nb4_segments(
         )
     if contracts[0]["seed_sha256"] != seed_sha256:
         raise ValueError("SIAM segments do not bind the supplied Nb4 seed bytes.")
+    route_identities = [_exchange_route_identity(run) for run in runs]
+    if any(identity != route_identities[0] for identity in route_identities[1:]):
+        raise ValueError(
+            "SIAM segments were produced on different exchange routes; a stitched "
+            "horizon must stay on one route contract."
+        )
 
     row_groups = [_rows(run) for run in runs]
     for run, rows in zip(runs, row_groups):
@@ -884,7 +917,10 @@ def _canonical_proof_arm(value: Any) -> str:
     token = str(value or "").strip().lower().replace("-", "_")
     if token == "avqds":
         return "avqds"
-    if token in {"apm", "exchange", "full_apm"}:
+    # ``exchange_q_compiled`` is the compiled-Q route's arm id.  It is the same
+    # structural proof arm as ``exchange`` -- the route it ran on is carried
+    # separately, by ``route_bundle_id``, never by collapsing the arm family.
+    if token in {"apm", "exchange", "full_apm", "exchange_q_compiled"}:
         return "exchange"
     raise ValueError(f"SIAM stitched completion arm is invalid: {value!r}.")
 
@@ -1068,6 +1104,7 @@ def build_siam_nb4_stitch_completion_receipt(
 
     protocol = _mapping(stitch.get("protocol"), name="SIAM stitch protocol")
     arm = _canonical_proof_arm(protocol.get("structural_policy"))
+    route_bundle_id, route_contract_sha256 = _exchange_route_identity(stitched)
     seed_sha256 = _require_sha256(
         stitch.get("seed_sha256"), name="SIAM stitch seed SHA-256"
     )
@@ -1139,6 +1176,8 @@ def build_siam_nb4_stitch_completion_receipt(
         "status": "COMPLETED",
         "problem_family": "siam",
         "arm": arm,
+        "route_bundle_id": route_bundle_id,
+        "route_contract_sha256": route_contract_sha256,
         "stitched_trajectory": {
             "path": str(trajectory_path.resolve()),
             "sha256": hashlib.sha256(stitched_bytes).hexdigest(),
@@ -1189,6 +1228,15 @@ def validate_siam_nb4_stitch_completion_receipt(
     arm = _canonical_proof_arm(core.get("arm"))
     if core.get("arm") != arm:
         raise ValueError("SIAM stitched completion arm is not canonical.")
+    # Receipts sealed before the route guards existed simply omit these keys.
+    route_bundle_id = core.get("route_bundle_id")
+    if route_bundle_id is not None and not str(route_bundle_id).strip():
+        raise ValueError("SIAM stitched completion route bundle id is empty.")
+    route_contract_sha256 = core.get("route_contract_sha256")
+    if route_contract_sha256 is not None:
+        _require_sha256(
+            route_contract_sha256, name="SIAM stitched completion route SHA-256"
+        )
 
     trajectory = _mapping(
         core.get("stitched_trajectory"), name="SIAM stitched trajectory binding"

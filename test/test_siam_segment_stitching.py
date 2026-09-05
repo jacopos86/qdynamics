@@ -95,6 +95,28 @@ def _row(time: float, index: int, *, interval_cost: int) -> dict:
     }
 
 
+def _route_guards(route_bundle_id: str | None) -> dict:
+    """Return the run-lock guards for one exchange route (or the pre-route set)."""
+
+    guards: dict = {"max_structural_pool_size": 64}
+    if route_bundle_id is None:
+        return guards
+    contract = {
+        "bundle_id": route_bundle_id,
+        "objective_id": "realized_q",
+        "cost_model_id": "compiled_population",
+        "kernel_id": "shifted_paper_i",
+        "compiler": None,
+    }
+    guards["exchange_route_contract"] = contract
+    guards["exchange_route_contract_sha256"] = hashlib.sha256(
+        json.dumps(
+            contract, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
+    return guards
+
+
 def _run(
     seed: Path,
     times: tuple[float, ...],
@@ -102,6 +124,7 @@ def _run(
     cut: float,
     interval_cost: int,
     arm: str = "exchange",
+    route_bundle_id: str | None = None,
 ) -> dict:
     start = SIAM_NB4_TIMES.index(times[0])
     rows = [
@@ -123,7 +146,7 @@ def _run(
         inverse_policy={"pinv_rcond": 1.0e-10, "ridge_lambda": 1.0e-6, "solve_damping": 0.0},
         solve_repair={"profile_id": "state_motion", "state_motion_l2_step_max": 5.0e-5},
         structural_policy=arm,
-        guards={"max_structural_pool_size": 64},
+        guards=_route_guards(route_bundle_id),
         time_step_controller={"state_motion_l2_step_max": 5.0e-5},
         candidate_pool={
             "schema": "paper_ii_effective_candidate_pool_v1",
@@ -398,7 +421,11 @@ def _write_action_receipt(
 
 
 def _pair(
-    tmp_path: Path, *, arm: str = "exchange"
+    tmp_path: Path,
+    *,
+    arm: str = "exchange",
+    first_route: str | None = None,
+    second_route: str | None = None,
 ) -> tuple[Path, Path, Path, dict, dict]:
     seed = tmp_path / "seed.json"
     write_siam_seed_manifest(seed, PILOT_NB4)
@@ -410,6 +437,7 @@ def _pair(
         cut=1.0e-3,
         interval_cost=2,
         arm=arm,
+        route_bundle_id=first_route,
     )
     # A terminal segment row must not contribute work after its endpoint.  Put
     # deliberately bogus values here to prove the stitcher retains only the
@@ -424,6 +452,7 @@ def _pair(
         cut=1.0e-4,
         interval_cost=3,
         arm=arm,
+        route_bundle_id=second_route,
     )
     prepared = prepare_siam_resume_lineage(first_path, first)
     second["segment_lineage"] = finalize_siam_resume_lineage(
@@ -436,9 +465,14 @@ def _pair(
 
 
 def _completed_stitch_inputs(
-    tmp_path: Path, *, arm: str = "avqds"
+    tmp_path: Path, *, arm: str = "avqds", route_bundle_id: str | None = None
 ) -> tuple[Path, tuple[Path, Path], Path]:
-    seed, first_path, second_path, _first, _second = _pair(tmp_path, arm=arm)
+    seed, first_path, second_path, _first, _second = _pair(
+        tmp_path,
+        arm=arm,
+        first_route=route_bundle_id,
+        second_route=route_bundle_id,
+    )
     stitched_path = tmp_path / "stitched.json"
     stitch_siam_nb4_segments(
         (first_path, second_path), seed_path=seed, output_path=stitched_path
@@ -763,3 +797,61 @@ def test_stitched_completion_validator_rejects_self_contained_tampering(
 
     with pytest.raises(ValueError, match=message):
         validate_siam_nb4_stitch_completion_receipt(tampered)
+
+
+Q_COMPILED_ROUTE = "paper_ii_exchange_q_compiled_v1"
+
+
+def test_stitch_refuses_segments_from_different_exchange_routes(
+    tmp_path: Path,
+) -> None:
+    seed, first_path, second_path, _first, _second = _pair(
+        tmp_path,
+        first_route=None,
+        second_route=Q_COMPILED_ROUTE,
+    )
+
+    with pytest.raises(ValueError, match="different exchange routes"):
+        stitch_siam_nb4_segments((first_path, second_path), seed_path=seed)
+
+
+def test_stitched_completion_records_the_compiled_q_route(tmp_path: Path) -> None:
+    stitched_path, source_receipts, seed = _completed_stitch_inputs(
+        tmp_path, arm="exchange", route_bundle_id=Q_COMPILED_ROUTE
+    )
+
+    receipt = build_siam_nb4_stitch_completion_receipt(
+        stitched_path,
+        source_action_receipt_paths=source_receipts,
+    )
+    verified = validate_siam_nb4_stitch_completion_receipt(
+        receipt,
+        expected_trajectory_sha256=_file_sha256(stitched_path),
+        expected_seed_sha256=_file_sha256(seed),
+        expected_arm="exchange_q_compiled",
+    )
+    assert verified["arm"] == "exchange"
+    assert verified["route_bundle_id"] == Q_COMPILED_ROUTE
+    assert len(verified["route_contract_sha256"]) == 64
+
+
+def test_historical_stitch_pair_is_unchanged_and_records_no_route(
+    tmp_path: Path,
+) -> None:
+    stitched_path, source_receipts, seed = _completed_stitch_inputs(
+        tmp_path, arm="exchange"
+    )
+
+    receipt = build_siam_nb4_stitch_completion_receipt(
+        stitched_path,
+        source_action_receipt_paths=source_receipts,
+    )
+    verified = validate_siam_nb4_stitch_completion_receipt(
+        receipt,
+        expected_trajectory_sha256=_file_sha256(stitched_path),
+        expected_seed_sha256=_file_sha256(seed),
+        expected_arm="exchange",
+    )
+    assert verified["arm"] == "exchange"
+    assert verified["route_bundle_id"] is None
+    assert verified["route_contract_sha256"] is None
