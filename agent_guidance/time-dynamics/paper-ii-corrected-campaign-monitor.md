@@ -64,3 +64,9 @@ $(2.4,3)$, 51 points, profile `paper_declared_exchange_v1`, head `2c25b0bf`; con
 | $10^{-1}$ | 4 | 0.12, 0.16, 0.20, 0.84 | 27 | 776 | 15.5 | 10.4 | 6.78 | 4,229/1,102,044 | 207/14 | 193 |
 
 The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remains the authority: it rejected 131--193 deletion-bearing finalists once the pre-bound was widened. Accuracy is not monotone in $\tau_{\rm pre}$ on this horizon; one cell at $t=2$ under the smoke controller does not fix a value. Next: the same sweep at $t=20$ under the production $\delta\theta$ controller of the campaign cell (control = `9720203.8`, running on CHTC).
+## 20260905T235500Z — SIAM AVQDS r01 screen submitted; $t=20$ threshold sweep launched
+
+- `chtc/siam_nb4_qc_avqds_screen_r01_cut3em03_source_2c25b0bf_20260905` (`04994d0d`, cut $3.33\times10^{-3}$, 2 CPU / 2 GB / 40 GB / 43200 s). Tree `pipelines src` re-uploaded to the corrected staging dir (no excludes); all 809 contract rows verified on the remote; LIFECYCLE_OK; submitted → **`9720251`**. Running HH jobs transfer only `chtc/<pkg>` + image, so the tree refresh does not touch them.
+- Exchange-arm r01 not prepared: at the coupled threshold it would repeat the zero-exchange screen; it waits on the $\tau_{\rm pre}$ decision.
+- Local $t=20$ sweep on the production strong--fast $\delta\theta$ argv of `9720203.8` (workers 2/3 instead of 4/8, results unaffected) with $\tau_{\rm pre}\in\{2\times10^{-2},5\times10^{-2},10^{-1}\}$: `/tmp/perm_sweep/t20/sf20_<tag>.{json,log}`, ram_guard 4 GB each. Control is `9720203.8` itself.
+- Watch list now: `9720203` (10), `9720069.3`, `9720251`.
