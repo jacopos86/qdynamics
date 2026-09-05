@@ -691,18 +691,30 @@ executable plan are in
 What replaced the plan: stage 1 now builds every row with the frozen
 three-complete-layer VQE (the matrix seeds' protocol; the frozen worker's
 missing executor gradient was ported from 267516ea). Local smokes:
-anchor `(U=4, g=0.5, n_ph=1)` ΔE 1.7e-11 in 8 s; `intermediate_weak`
+anchor `(U, g, n_ph) = (4, 0.5, 1)` ΔE 1.7e-11 in 8 s; `intermediate_weak`
 (the row the search could not seed in 14.6 h) ΔE 6.2e-8 in 190 s; the nph=7
-row exceeded 8 GB before finishing. Stage 2 is the staged screen/promotion
-machinery parameterized by regime (`--regime R --promotion-horizon t10`),
-two bounded 126-point segments, not the packagers.
+row exceeded 8 GB before finishing. Stage 1.5 (new, local) builds each
+regime's six exact references on the locked grid and registers its
+exact-response scales (22 s at 6 qubits; the anchor's scales match the
+calibration sidecar to four digits). Stage 2 is the staged screen/promotion
+machinery parameterized by regime and by the arm that realizes APM
+(`--regime R --apm-arm exchange_q_compiled`), t5 screen → t20 promotion under
+the locked response-normalized matched-pair policy, not the packagers.
+
+Settled 2026-09-05 (user): the survey keeps the matched-pair qualification
+(D2), and the `report_refresh_required` block does not gate this campaign
+(Q3). Measured the same day: the calibration seed's `dv = 0.25` is a uniform
+site potential, a constant `-dv·N_e` at fixed filling, so the anchor at
+`dv = 0` is the same dynamics; the frozen worker cannot seed `dv ≠ 0` (its VQE
+objective and exact qualifier disagree on that term's sign, ΔE = 2·dv·N_e).
 
 Open for the user (recommendations in the handoff §2): D1 which rows
 (recommend all seven seeds, dynamics on the four 6–8-qubit rows first, nph=7
-deferred); D2 survey qualification policy (recommend `componentwise_1e-4`;
-the matched-pair policy needs a per-regime exact-response sidecar producer that
-does not exist). Submission also waits on the `report_refresh_required` block
-(OPEN_DECISIONS C5) and the SSH master.
+deferred); D3 which lineage runs stage 2, because the results PDF's route
+(`Gamma(v*)` realized = `exchange_q_compiled`) exists only on
+`codex/paper-ii-exact-estimator-telemetry-20260903` (recommend cutting the
+survey branch from it and cherry-picking this branch's commits). Submission
+also waits on the SSH master and the words "submit stage 1".
 
 ## STOP: the two Paper II sources diverged (2026-09-04)
 

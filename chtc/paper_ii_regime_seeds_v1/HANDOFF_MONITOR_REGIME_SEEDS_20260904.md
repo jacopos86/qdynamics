@@ -17,6 +17,8 @@ Everything below was verified against source, the CHTC rescue mirror
 | The bundle "has never been submitted" | Submitted 2026-08-22 as **cluster 9674800** (6 procs). The three nph=3 procs exited 0 after 13 h 00 m / 15 h 18 m / 25 h 10 m with **zero seed artifacts**; the three nph=7 procs were evicted at 24.3–24.5 GB after ~1 h and were **still held on 2026-08-31** (procs 3–5, `run_seed_apptainer.sh weak_strong / intermediate_strong / strong_strong_u8`). | `~/chtc_rescue/home/Holstein_paper_ii_regime_seeds_v1/logs/paper-ii-regime-seeds.9674800.*.log`; `~/chtc_rescue/scheduler/condor_q_20260831T215057.txt` |
 | Resubmitting the bundle would produce seeds | The conditioning-stress builder has produced **0 artifacts in 10 CHTC jobs** (cluster 9663698, 4 jobs, 2026-08-18; cluster 9674800). Its Pareto front admits only architectures with a driven-snapshot fit at `d_FS <= 1e-6`; the best fit ever reached was 5.5e-4 (strong_weak_u8), median 2.9e-3. `intermediate_weak` never met even the 1e-4 ground-state gate (best 2.5e-4 in 825 architectures, 14.6 h). | `raw_outputs/paper_ii_regime_seeds_v1/*/search_batches.jsonl` in the mirror; `pipelines/time_dynamics/fixed_vqe_conditioning.py::pareto_front` |
 | Stage 2 uses the three prospective packagers | The packagers admit only the frozen matrix `paper_ii_parallel_benchmarks_20260828` (exactly 8 seeds / 39 references, payload digest pinned in `parallel_benchmark_matrix.py`, seven test files). That matrix names `n_ph_max_7` in `excluded` and contains no `(U=4, g=0.5)` cell, so it cannot take this grid or the anchor. Its six HH seeds already exist (cluster 9714490–9714495, 2026-08-29, ΔE ≤ 5.2e-8). | `pipelines/time_dynamics/campaigns/paper_ii_parallel_benchmark_matrix_v1.json`; `prospective_apm_exchange_worker._registered_subjects`; mirror `Holstein_paper_ii_prospective_seeds_267516ea_20260829/source/raw_outputs/paper_ii_seed/*/seed_qualification_receipt.json` |
+| Stage 2 can run on `main` | The route the results PDF reports (`paper_ii_current_best_compiled_vs_proxy.pdf`, "Gamma(v*) realized", internal key `q_compiled`, arm `exchange_q_compiled`) exists only on `codex/paper-ii-exact-estimator-telemetry-20260903` (worktree `codex-paper-ii-dual-selector-overnight-20260903`, 51 commits ahead of / 17 behind `main`, merge-base `557f20ae`). `main` has only the legacy `exchange` selector, which the PDF does not report, and the staged machinery hard-wired that arm. The plan's own queued change says the Γ route is the only route and is to be called APM. | `git rev-list --left-right --count main...HEAD` in that worktree; `paper_ii_runs.py` there registers `exchange_q_compiled`, `exchange_gamma_compiled`, `exchange_legacy_proxy_fixed` |
+| The anchor row nests the published point | Only within the fixed-filling sector. The calibration seed carries a scalar site potential `dv = 0.25`, which the runtime applies uniformly as `-dv * sum n_{i,sigma}` (Frobenius difference of the static Hamiltonian 4.47; ground energy −0.401 vs 0.159), a constant `-dv*N_e = -0.5` that commutes with everything. The manuscript's model has no such term. The frozen seed worker cannot build a seed at `dv = 0.25` (its VQE objective and exact qualifier apply that term with opposite signs: measured ΔE = 2·dv·N_e = 1.0), so every regime seed is built at `dv = 0`; errors and response scales are differences and are unaffected. | `src/quantum/hubbard_latex_python_pairs.py::_parse_site_potential` (scalar → uniform); local `matrix_at(0)` comparison; `raw_outputs/.../anchor_u4_g0p5_nph1` rebuild at `dv = 0.25` |
 | The image only needs building | `image.def` was not in git at all (added in d4ea8c37, absent since); local builds are impossible here (arm64, no apptainer). The pinned campaign image `fa5c4ea8…` (216,371,200 B, 2026-08-26) was in the mirror and is now installed locally; the remote `Holstein_paper_ii_regime_seeds_v1/` dir still holds the **older** 2026-05-17 image `68e8335f…`. | `CAMPAIGN_STATE_20260817.md:21`; `input/runtime_image_identity.json` |
 
 Two more facts that gate submission:
@@ -29,7 +31,7 @@ Two more facts that gate submission:
   and a direct connect timed out (GlobalProtect VPN + one Duo push are needed).
   Every remote number in this handoff is from the 2026-08-31 mirror.
 
-## 1. What was built instead (all on branch `fable/paper-ii-regime-seeds-chtc-20260904`, commit `48336a01`)
+## 1. What was built instead (branch `fable/paper-ii-regime-seeds-chtc-20260904`: commits `48336a01`, `910d8738`, and the 2026-09-05 commit that carries stage 1.5 and this revision)
 
 The seed protocol is the one the six matrix seeds were built with: the frozen
 three-complete-layer fixed-structure VQE
@@ -45,7 +47,9 @@ on CHTC in 13 s–26 min per seed at ≤ 394 MB.
 | Stage-1 bundle rewritten | `chtc/paper_ii_regime_seeds_v1/{run_seed.sh, submit_regime_seeds_v1.sub, input/regimes.tsv, input/regime_ids.txt, input/regime_queue.txt, input/runtime_image_identity.json}` | Seventh anchor row; per-row `request_memory`; image sha bound; lifecycle validator passes. |
 | Post-fetch installer | `chtc/paper_ii_regime_seeds_v1/install_seeds.py`, `test/test_paper_ii_regime_seed_install.py` | The only bridge from fetched `raw_outputs/` to the registry paths `input/seeds/<regime_id>.json`; refuses unsealed, unqualified, physics-mismatched, or tampered seeds. |
 | Registry | `pipelines/time_dynamics/paper_ii_runs.py` (`_HH_REGIME_ROWS` + anchor) | `resolve_regime("anchor_u4_g0p5_nph1")` exists; `SeedNotBuiltError` until installed. |
-| Stage-2 survey path | `pipelines/time_dynamics/campaigns/paper_ii_staged_accuracy_v1.py` (`--regime`, `--promotion-horizon`, `campaign_id_for`), tests | The proven staged screen/promotion machinery (the locked 15 cells came from it) now runs for any registered regime with a suffixed campaign id; the canonical response-normalized policy stays refused for regimes without their own exact-response sidecar. Defaults unchanged (10 tests). |
+| Stage-2 survey path | `pipelines/time_dynamics/campaigns/paper_ii_staged_accuracy_v1.py` (`--regime`, `--promotion-horizon`, `--apm-arm`, `campaign_id_for`), `pipelines/time_dynamics/staged_campaign.py` (`StagedCampaign.apm_arm`), tests | The proven staged screen/promotion machinery (the locked 15 cells came from it) runs for any registered regime with a suffixed campaign id, under the **same response-normalized matched-pair policy** once the regime's exact-response scales are registered, and with the APM method realized by any registered non-comparator arm (`--apm-arm exchange_q_compiled` on the dual-selector lineage). Ledger vocabulary, defaults, and the locked campaign are unchanged (12 tests). |
+| Stage 1.5: per-regime exact response scales | `pipelines/time_dynamics/diagnostics/build_regime_response_scales.py`, `test/test_build_regime_response_scales.py`; registry `pipelines/time_dynamics/campaigns/paper_ii_exact_response_scales_by_regime.json` (written by the producer) | Builds the six content-addressed exact references of a regime's installed seed on the locked grid (126-point t5 screen + 376-point continuation, the same floats the record step keys on), derives `RMS_t[O(t)-O(0)]` with the loader's own formula, writes the v1-schema sidecar and a registry row, and round-trips it through the campaign loader. For the calibration seed it reproduces all six locked reference keys bit-exactly. |
+| Seed settings identity | `build_hh_fixed_layer_seed.py` writes `t_prime = 0`, `v_nn = 0`, `initial_state_source` | The response-scale loader refuses a seed that leaves these implicit; the runtime loader already defaulted them to zero, so behaviour is unchanged. `regimes.tsv` gained an explicit `dv` column (all rows `0.0`). |
 | Image definition restored | `chtc/time_dynamics_optuna/image.def` | `build_image.sh` / `submit_image_build.sub` work again. |
 
 ### Local measurements (Apple M4, `.venv` Python 3.12, RAM-guarded)
@@ -55,6 +59,14 @@ on CHTC in 13 s–26 min per seed at ≤ 394 MB.
 | `anchor_u4_g0p5_nph1` (U=4, g=0.5, nph=1) | 6 | 216 | 1.69e-11 | 8 s | 87 MB | qualified |
 | `intermediate_weak` (U=1.25, g=0.354, nph=3) | 8 | 972 | 6.23e-08 | 190 s | 664 MB | qualified (the row the search could not seed in 14.6 h) |
 | `weak_strong` (U=0.25, g=0.791, nph=7) | 10 | — | — | > 31 min, unfinished | > 8,000 MB | killed by the 8 GB RAM guard at 412 s (peak 8,014 MB during pool/architecture construction); rerun under a 14 GB guard held 2.3–5.4 GB RSS in the VQE phase and was stopped at 31 min, unfinished. The `request_memory = 16GB` row is sized from that peak; the true wall is unknown and is measured on CHTC, not here. |
+
+Stage 1.5 on the anchor seed (six drives, 501-point grid, 40 substeps, 6
+qubits): **22 s wall, 75 MB peak**; the resulting t20 scales agree with the
+calibration seed's tracked sidecar to four digits (fastfast energy 0.2464 vs
+0.24639, doublon 0.0413 vs 0.04133, site 0.1118 vs 0.11178), as they must for
+the same physics up to the inert `dv` shift. At 8 qubits the cost is the same
+order; at 10 qubits (nph=7) it is a 1024-dimensional `expm` per substep, still
+minutes.
 
 Dynamics smoke on the anchor seed (production runner, `smoke` horizon, 13 points,
 `fastweak`): `exchange` ran 12 steps and accepted one generalized-exchange delete
@@ -67,39 +79,55 @@ campaign id `paper_ii_staged_accuracy_euler_v1__anchor_u4_g0p5_nph1__t10`;
 `prepare-chtc` emits `PREPARED_NOT_SUBMITTED` and its descriptor passes
 `chtc/validate_condor_submit_lifecycle.py`.
 
-## 2. Decisions that are the user's (reply "yes" to take the recommendations)
+## 2. Decisions (user's; two settled on 2026-09-05, one open, one new)
 
-**D1 — which regime rows enter stage 1 and stage 2.**
-→ Recommendation: build all seven seeds (nph ≤ 3 rows and the anchor cost
-seconds to minutes); run stage-2 dynamics first on the four 6–8-qubit rows
-(`anchor_u4_g0p5_nph1`, `weak_weak`, `intermediate_weak`, `strong_weak_u8`)
-and defer the three nph=7 rows. Basis: the locked 8-qubit 616-coordinate
-`hh_fixedvqe_nph3` cells needed 7–24 h for a whole t10 (cluster 9674614); a
-972-coordinate nph=3 seed is ~1.5× that, so a t5 segment stays under 48 h. At
-nph=7 the state space is 16× larger and the seed build alone exceeded 8 GB
-here; the frozen matrix already excludes `n_ph_max_7`.
+Notation: the model is `H_HH(U, g, omega_0 = 1, t = 1)` at `n_ph^max`, the
+survey compares the APM route (the manuscript's realized Γ(θ̇*) selector) with
+AVQDS across regimes `(U, g, n_ph^max)`, six drives `(A, ω)`, three step
+controllers, on the locked grid.
 
-**D2 — stage-2 qualification policy for survey regimes.**
-→ Recommendation: `componentwise_1e-4` (infidelity ≤ 1e-4 plus the absolute
-energy 1e-2 / doublon 5e-3 / occupation 5e-3 ceilings), because the
-response-normalized matched-pair policy needs a verified exact-response sidecar
-per regime and **no producer for that sidecar exists in the tree** (only the
-loader `response_scales.load_verified_response_scale_index`). Choosing the
-matched-pair policy adds an increment: write the per-regime sidecar producer
-first.
+**D1 (open) — which Hamiltonian points get regime blocks.**
+→ Recommendation: seeds for all seven rows (seconds to minutes each at
+`n_ph^max ≤ 3`); dynamics first on the four 6–8-qubit rows
+(`(4, 0.5, 1)`, `(0.25, 0.354, 3)`, `(1.25, 0.354, 3)`, `(8, 0.354, 3)`);
+`n_ph^max = 7` (10 qubits) later. Basis: the locked 8-qubit 616-coordinate
+cells needed 7–24 h for a whole t10 (cluster 9674614); a 972-coordinate seed
+is ~1.5× that; the frozen matrix already excludes `n_ph_max_7`; the nph=7
+seed build alone exceeded 8 GB here.
+
+**D2 (settled 2026-09-05, user) — qualification policy.** The survey keeps
+the locked campaign's response-normalized matched-pair policy (relative
+target 0.05, guard 0.15, matched within ×2, infidelity ≤ 1e-4, absolute
+guards 1e-2 / 5e-3 / 5e-3). The per-regime exact response scales are a local
+exact-diagonalization step (stage 1.5 below, 22 s at 6 qubits), not a reason
+to weaken the policy. `componentwise_1e-4` remains available only as the
+legacy ingestion replay.
+
+**Q3 (settled 2026-09-05, user: yes) — submit before the report refresh.**
+The `report_refresh_required` block (OPEN_DECISIONS C5) does not gate this
+campaign.
+
+**D3 (new) — which code lineage runs stage 2.** The Γ(θ̇*) route is not on
+`main`. Options: (a) cut the survey branch from
+`codex/paper-ii-exact-estimator-telemetry-20260903` and cherry-pick the two
+commits of this branch onto it (the touched files are identical between the
+two lineages except `paper_ii_runs.py`, `compiled_ansatz.py`, and the runner,
+none of which this branch edits in conflicting places), or (b) wait for the
+queued landing of that lineage onto `main`. → Recommendation: (a), because
+the seeds and the stage-1.5 scales are lineage-independent and stage 2 can
+then start the day the seeds return. Stage 1 does not depend on D3.
 
 **Gates only the user can open:** GlobalProtect VPN + `ssh -MNf ap2001` (one
-Duo push), lifting or overriding the C5 `report_refresh_required` block, and
-the words "submit stage 1".
+Duo push), and the words "submit stage 1".
 
 ## 3. Anchors
 
 | Field | Value |
 |---|---|
 | Checkout | `/Users/lordskyler/Holstein_test` (main at `0027ac5c` when this branch was cut) |
-| Work here | worktree `/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-seeds-20260904`, branch `fable/paper-ii-regime-seeds-chtc-20260904`, commit `48336a01` (code), the following commit (this handoff, the regenerated parameters doc, the plan correction; `git log -1 -- chtc/paper_ii_regime_seeds_v1/HANDOFF_MONITOR_REGIME_SEEDS_20260904.md`) |
+| Work here | worktree `/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-seeds-20260904`, branch `fable/paper-ii-regime-seeds-chtc-20260904`; `git log --oneline main..HEAD` lists the commits (48336a01 code, 910d8738 handoff, then the 2026-09-05 stage-1.5/route revision) |
 | Python | `/Users/lordskyler/Holstein_test/.venv/bin/python` (3.12). System `python3` is 3.9 and cannot import the package. |
-| Test baseline | `PYTHONPATH=. .venv/bin/python -m pytest test/test_paper_ii_runs.py test/test_prospective_hh_seed_worker.py test/test_compiled_ansatz.py test/test_build_hh_fixed_layer_seed.py test/test_paper_ii_regime_seed_install.py test/test_paper_ii_staged_accuracy_campaign.py test/test_staged_campaign.py test/test_staged_campaign_chtc.py test/test_staged_campaign_artifacts.py test/test_staged_campaign_ingestion.py test/test_prospective_hh_seed_activation.py test/test_prospective_hh_seed_ingestion.py -q -p no:cacheprovider` → **149 passed, 2 failed**; the 2 failures (`test_staged_campaign_chtc.py::test_t20_package_copies_each_resume_source_and_preserves_global_grid`, `::test_package_can_exclude_in_flight_t5_actions_and_emit_ready_promotions`) fail identically on unmodified main. Every test file constructing `CompiledAnsatzExecutor` (19 files): **1061 passed, 10 failed, 14 skipped** in 6 m 18 s; all 10 failures (`test_hh_realtime_checkpoint_controller.py` ×7, `test_time_dynamics_resume.py::test_continuation_matches_an_uninterrupted_trajectory`, `test_ra_adapt_semantic_closure_routes.py` ×2) reproduce on unmodified main. |
+| Test baseline | `PYTHONPATH=. .venv/bin/python -m pytest test/test_paper_ii_runs.py test/test_prospective_hh_seed_worker.py test/test_compiled_ansatz.py test/test_build_hh_fixed_layer_seed.py test/test_paper_ii_regime_seed_install.py test/test_paper_ii_staged_accuracy_campaign.py test/test_staged_campaign.py test/test_staged_campaign_chtc.py test/test_staged_campaign_artifacts.py test/test_staged_campaign_ingestion.py test/test_prospective_hh_seed_activation.py test/test_prospective_hh_seed_ingestion.py -q -p no:cacheprovider` plus `test/test_build_regime_response_scales.py test/test_exact_reference_store.py` → **161 passed, 2 failed**; the 2 failures (`test_staged_campaign_chtc.py::test_t20_package_copies_each_resume_source_and_preserves_global_grid`, `::test_package_can_exclude_in_flight_t5_actions_and_emit_ready_promotions`) fail identically on unmodified main. Every test file constructing `CompiledAnsatzExecutor` (19 files): **1061 passed, 10 failed, 14 skipped** in 6 m 18 s; all 10 failures (`test_hh_realtime_checkpoint_controller.py` ×7, `test_time_dynamics_resume.py::test_continuation_matches_an_uninterrupted_trajectory`, `test_ra_adapt_semantic_closure_routes.py` ×2) reproduce on unmodified main. |
 | Image | `chtc/time_dynamics_optuna/image.sif`, sha256 `fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f`, 216,371,200 B (gitignored; copy in both the checkout and the worktree; source `~/chtc_rescue/home/Holstein_siam_nb4_source_ba50339c_20260828/chtc/time_dynamics_optuna/image.sif`) |
 | Submit node | `jsstrobel@ap2001.chtc.wisc.edu` via GlobalProtect; alias `ap2001` (ControlMaster in `~/.ssh/config`). Never enter the password; one Duo push per login; read-only queries are one-shot. |
 | Remote quota | `/home` 35.7 GB used of 40.96 GB soft / 51.2 GB hard on 2026-09-03; `/staging/jsstrobel` does not exist. |
@@ -204,58 +232,86 @@ receipt.
 Partial returns are fine: install the rows that came back; stage 2 can start on
 them while nph=7 rows are still queued.
 
-## 6. Increments — stage 2 (regime survey), per installed regime R
+### I4 — stage 1.5: exact response scales per installed regime (local, minutes)
 
-Only after `install_seeds.py` installed R and the seeds commit exists.
-Configuration is fixed here: screen `t5` (126 points) → promotion `t10`
-(126 continuation points via `--resume-from-run-json`), Euler ridge 1e-6,
-`mclachlan_l2_1e-3` gate, `paper_declared_v1` search profile, the three
-controllers × six drives × {avqds, exchange} = 36 cells, thresholds from the
-default extension seed (3e-6, 1e-6, 3e-7, 1e-7), policy per D2.
-
+Goal: regime R can be qualified under the locked matched-pair policy.
 ```bash
 cd /Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-seeds-20260904
-R=anchor_u4_g0p5_nph1; D=$(date +%Y%m%d)
-PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
-  next --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --promotion-horizon t10 \
-  --submission-policy-replay componentwise_1e-4 --output-root output/paper_ii_regime_survey/$R/raw \
+R=anchor_u4_g0p5_nph1
+PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  /Users/lordskyler/Holstein_test/.venv/bin/python -m pipelines.time_dynamics.diagnostics.build_regime_response_scales --regime $R
+git add pipelines/time_dynamics/campaigns/paper_ii_exact_response_scales_$R.json pipelines/time_dynamics/campaigns/paper_ii_exact_response_scales_by_regime.json
+git commit -m "paper ii: exact response scales for regime $R"
+```
+Expected: JSON summary with six drives × {t5, t20} scales, `verified_index_schema
+= paper_ii_response_scale_index_v2`, references under
+`output/paper_ii_regime_survey_$R/exact_references/` (six keys), and a registry
+row whose `sha256` matches the sidecar. Wall: ~22 s at 6 qubits, minutes at 8–10.
+**Stop condition:** any `ResponseScaleIntegrityError` (the loader re-derives
+every scale from the reference data; a mismatch means the seed or the store
+changed under it). Never edit a sidecar by hand.
+
+## 6. Increments — stage 2 (regime survey), per installed regime R
+
+Only after I3 installed R and I4 registered its scales. Configuration is
+fixed here, identical to the locked calibration campaign except for the seed:
+screen `t5` (126 points) → promotion `t20` (376 continuation points via
+`--resume-from-run-json`; the response-scale loader binds exactly t5 and
+t20), Euler ridge 1e-6, `mclachlan_l2_1e-3` gate, `paper_declared_v1` search
+profile, three controllers × six drives × {AVQDS, APM} = 36 cells, thresholds
+from the default extension seed (3e-6, 1e-6, 3e-7, 1e-7), the
+response-normalized matched-pair policy, and the APM arm per D3
+(`--apm-arm exchange_q_compiled` on the dual-selector lineage; on `main` only
+the legacy `exchange` arm exists and the flag defaults to it).
+
+```bash
+cd <survey checkout per D3>
+R=anchor_u4_g0p5_nph1; D=$(date +%Y%m%d); ARM=exchange_q_compiled
+PYTHONPATH=. .venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
+  next --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --apm-arm $ARM \
+  --output-root output/paper_ii_regime_survey/$R/raw \
   --worklist-json output/paper_ii_regime_survey/$R/worklist_screen.json
-PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
-  prepare-chtc --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --promotion-horizon t10 \
-  --submission-policy-replay componentwise_1e-4 \
+PYTHONPATH=. .venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
+  prepare-chtc --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --apm-arm $ARM \
   --package-dir chtc/paper_ii_regime_survey_v1_${R}_screen_t5_$D
-/Users/lordskyler/Holstein_test/.venv/bin/python chtc/validate_condor_submit_lifecycle.py chtc/paper_ii_regime_survey_v1_${R}_screen_t5_$D/*.sub
+.venv/bin/python chtc/validate_condor_submit_lifecycle.py chtc/paper_ii_regime_survey_v1_${R}_screen_t5_$D/*.sub
 ```
 Expected: `"status": "PREPARED_NOT_SUBMITTED"`, `"stage": "screen_t5_frontier"`,
+campaign id `paper_ii_staged_accuracy_euler_v1__<R>__t20__exchange_q_compiled`,
 36 action ids, `input/seed.json` whose sha256 equals the installed seed's,
 `input/code_revision.txt` = the committed HEAD (commit before preparing; a
-dirty tree is stamped `-dirty`). The package descriptor requests 2 CPU / 10 GB
-/ 40 GB and `+MaxRuntime = 43200` (inert; boundedness comes from the 126-point
-grid). For the 972-coordinate nph=3 rows, edit nothing: the locked 616-coordinate
-cells ran under 16 GB with the production descriptor, and 10 GB was enough for
-every staged-accuracy screen; if a proc is held on memory, report it.
+dirty tree is stamped `-dirty`), and every APM action's `runner_argv` carrying
+`--exchange-route-bundle paper_ii_exchange_q_compiled_v1`. The package
+descriptor requests 2 CPU / 10 GB / 40 GB and `+MaxRuntime = 43200` (inert;
+boundedness comes from the grids). The Γ(θ̇*) route compiles patches
+(FakeMarrakesh, ~30 s per large-miss checkpoint at 4 compile workers); the
+dual-selector campaign ran with `request_cpus = compile_workers + 1 = 4`
+(cluster 9718529) — use the same and pass `--compile-workers 3` if the
+lineage's prepare step exposes it; report, do not guess, if it does not.
 
-Submit the package only with the user's explicit "submit <package dir>";
-upload with the same rsync pattern as I2 into
-`Holstein_paper_ii_regime_survey_v1_<R>_<D>/`, record the cluster id in a
-receipt next to the package, monitor as in I3. Fetch to
+Submit only with the user's explicit "submit <package dir>"; upload with the
+I2 rsync pattern into `Holstein_paper_ii_regime_survey_v1_<R>_<D>/`, record
+the cluster id beside the package, monitor as in I3. Wall-time basis for the
+t5→t20 continuation at 8 qubits / 972 coordinates: the locked 616-coordinate
+whole-t10 cells took 7–24 h, so expect roughly 20–50 h per continuation; that
+is under the 72 h hold but not by much, so watch the first returns and report
+any proc past 48 h. Fetch to
 `output/paper_ii_regime_survey/$R/fetched/cluster_<id>/`, then ingest:
 ```bash
-PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
-  record-package --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --promotion-horizon t10 \
-  --submission-policy-replay componentwise_1e-4 \
+PYTHONPATH=. .venv/bin/python -m pipelines.time_dynamics.campaigns.paper_ii_staged_accuracy_v1 \
+  record-package --ledger output/paper_ii_regime_survey/$R/ledger.json --regime $R --apm-arm $ARM \
   --actions-jsonl chtc/paper_ii_regime_survey_v1_${R}_screen_t5_$D/input/actions.jsonl \
   --artifact-root output/paper_ii_regime_survey/$R/fetched/cluster_<id>/raw_outputs \
   --seed-json chtc/paper_ii_regime_seeds_v1/input/seeds/$R.json \
-  --reference-store-root output/paper_ii_regime_survey/$R/exact_references
+  --reference-store-root output/paper_ii_regime_survey_$R/exact_references
 ```
-`record-package` computes the exact reference for each cell locally
-(`--reference-substeps 40`); at 8 qubits this is seconds per cell. Then `next`
-again: the ledger opens the `t10` promotion actions (each carries
+The reference store root is the one stage 1.5 filled, so `record-package`
+reuses the six references instead of rebuilding them. Then `next` again: the
+ledger opens the `t20` promotion actions (each carrying
 `resume_from_run_path` to its own t5 `run.json`), and the same `prepare-chtc`
 → submit → fetch → `record-package` cycle runs once more with a
-`..._promote_t10_<D>` package dir. The campaign is complete for R when `next`
-reports `stage: complete`.
+`..._promote_t20_<D>` package dir. R is complete when `next` reports
+`stage: complete`.
 
 Order: `anchor_u4_g0p5_nph1` first (it nests the published point and is the
 cheapest), then `weak_weak`, `intermediate_weak`, `strong_weak_u8`; nph=7 rows
@@ -280,6 +336,16 @@ only after the user reopens D1 with the measured seed cost in hand.
   from CHTC (x86) and are installed only through the receipt path.
 - `prepare-chtc` with an absolute `--package-dir` writes absolute paths into the
   descriptor; always pass a repo-relative `chtc/...` directory.
+- The frozen seed worker is self-consistent only at `dv = 0`: its VQE
+  objective and exact qualifier apply a scalar site potential with opposite
+  signs (ΔE = 2·dv·N_e). Keep every regime row at `dv = 0`; the term is a
+  constant at fixed filling.
+- The response-scale loader binds exactly `t5` and `t20` and keys references on
+  the combined grid (126-point screen + 376-point continuation); a plain
+  `linspace(0, 20, 501)` differs in the last bit at 72 points and yields a
+  different key. `build_regime_response_scales.locked_grid()` is that grid.
+- A seed artifact without explicit `t_prime`, `v_nn`, `initial_state_source`
+  settings loads in the runner but is refused by the response-scale loader.
 - Two pre-existing failures in `test_staged_campaign_chtc.py` and one in
   `test_ra_adapt_semantic_closure_routes.py` (plus the eight in
   `test_hh_realtime_checkpoint_controller.py` / `test_time_dynamics_resume.py`)

@@ -1,8 +1,8 @@
-regime_id	u	g_ep	nph	optimizer_seed
-weak_weak	0.25	0.353553390593	3	11
-intermediate_weak	1.25	0.353553390593	3	23
-strong_weak_u8	8.00	0.353553390593	3	37
-weak_strong	0.25	0.790569415042	7	53
-intermediate_strong	1.25	0.790569415042	7	71
-strong_strong_u8	8.00	0.790569415042	7	89
-anchor_u4_g0p5_nph1	4.00	0.5	1	97
+regime_id	u	g_ep	nph	dv	optimizer_seed
+weak_weak	0.25	0.353553390593	3	0.0	11
+intermediate_weak	1.25	0.353553390593	3	0.0	23
+strong_weak_u8	8.00	0.353553390593	3	0.0	37
+weak_strong	0.25	0.790569415042	7	0.0	53
+intermediate_strong	1.25	0.790569415042	7	0.0	71
+strong_strong_u8	8.00	0.790569415042	7	0.0	89
+anchor_u4_g0p5_nph1	4.00	0.5	1	0.0	97

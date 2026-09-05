@@ -18,7 +18,7 @@ install_seeds = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(install_seeds)
 
-TSV = "regime_id\tu\tg_ep\tnph\toptimizer_seed\nanchor_u4_g0p5_nph1\t4.00\t0.5\t1\t97\nweak_weak\t0.25\t0.353553390593\t3\t11\n"
+TSV = "regime_id\tu\tg_ep\tnph\tdv\toptimizer_seed\nanchor_u4_g0p5_nph1\t4.00\t0.5\t1\t0.0\t97\nweak_weak\t0.25\t0.353553390593\t3\t0.0\t11\n"
 
 
 def _computation(order, *, signed_error: float) -> worker.SeedComputation:
@@ -38,10 +38,10 @@ def _computation(order, *, signed_error: float) -> worker.SeedComputation:
     )
 
 
-def _build(tmp_path: Path, regime_id: str, *, u: float, g: float, nph: int, seed: int, signed_error: float) -> Path:
+def _build(tmp_path: Path, regime_id: str, *, u: float, g: float, nph: int, seed: int, signed_error: float, dv: float = 0.0) -> Path:
     identity = runner.build_seed_identity(
         regime_id=regime_id, u=u, g_ep=g, n_ph_max=nph, optimizer_seed=seed,
-        artifact_path="seed.json",
+        artifact_path="seed.json", dv=dv,
     )
     raw = tmp_path / "fetched" / "raw_outputs" / "paper_ii_regime_seeds_v1" / regime_id
     runner.build_regime_seed(
@@ -55,7 +55,7 @@ def _build(tmp_path: Path, regime_id: str, *, u: float, g: float, nph: int, seed
 def test_installs_qualified_rows_and_reports_the_rest(tmp_path: Path) -> None:
     tsv = tmp_path / "regimes.tsv"
     tsv.write_text(TSV, encoding="utf-8")
-    _build(tmp_path, "anchor_u4_g0p5_nph1", u=4.0, g=0.5, nph=1, seed=97, signed_error=2.0e-8)
+    _build(tmp_path, "anchor_u4_g0p5_nph1", u=4.0, g=0.5, nph=1, seed=97, signed_error=2.0e-8, dv=0.0)
     dest = tmp_path / "seeds"
     receipt = install_seeds.install(
         fetched_root=tmp_path / "fetched",
@@ -84,7 +84,7 @@ def test_physics_mismatch_and_tampering_are_refused(tmp_path: Path) -> None:
     tsv = tmp_path / "regimes.tsv"
     tsv.write_text(TSV, encoding="utf-8")
     # Built at the wrong cutoff for its row name.
-    _build(tmp_path, "anchor_u4_g0p5_nph1", u=4.0, g=0.5, nph=3, seed=97, signed_error=2.0e-8)
+    _build(tmp_path, "anchor_u4_g0p5_nph1", u=4.0, g=0.5, nph=3, seed=97, signed_error=2.0e-8, dv=0.0)
     receipt = install_seeds.install(
         fetched_root=tmp_path / "fetched", regime_ids=["anchor_u4_g0p5_nph1"],
         regimes_tsv=tsv, dest=tmp_path / "seeds",

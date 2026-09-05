@@ -46,6 +46,7 @@ from pipelines.time_dynamics.response_scales import (
 )
 from pipelines.time_dynamics.staged_campaign import (
     ACTION_RECORD_SAFEGUARD,
+    METHOD_APM,
     AccuracyPolicy,
     CampaignLedger,
     CellAction,
@@ -75,10 +76,75 @@ DEFAULT_REGIME = "hh_snake_nph1"
 DEFAULT_PROMOTION_HORIZON = "t20"
 
 
-def campaign_id_for(regime: str, promotion_horizon: str) -> str:
-    if regime == DEFAULT_REGIME and promotion_horizon == DEFAULT_PROMOTION_HORIZON:
+DEFAULT_APM_ARM = METHOD_APM
+REGIME_RESPONSE_SCALE_REGISTRY = Path(__file__).with_name(
+    "paper_ii_exact_response_scales_by_regime.json"
+)
+REGIME_RESPONSE_SCALE_REGISTRY_SCHEMA = "paper_ii_exact_response_scales_by_regime_v1"
+
+
+def campaign_id_for(
+    regime: str, promotion_horizon: str, apm_arm: str = DEFAULT_APM_ARM
+) -> str:
+    if (
+        regime == DEFAULT_REGIME
+        and promotion_horizon == DEFAULT_PROMOTION_HORIZON
+        and apm_arm == DEFAULT_APM_ARM
+    ):
         return CAMPAIGN_ID
-    return f"{CAMPAIGN_ID}__{regime}__{promotion_horizon}"
+    suffix = f"{CAMPAIGN_ID}__{regime}__{promotion_horizon}"
+    return suffix if apm_arm == DEFAULT_APM_ARM else f"{suffix}__{apm_arm}"
+
+
+def _regime_response_scales(regime: str) -> Mapping[str, Any]:
+    """Load a survey regime's verified exact-response index from the registry.
+
+    Stage 1.5 writes the registry row with
+    ``pipelines.time_dynamics.diagnostics.build_regime_response_scales``; the
+    loader re-derives every scale from the content-addressed exact reference,
+    so a stale or edited sidecar fails closed here rather than at scoring time.
+    """
+
+    repository_root = Path(__file__).resolve().parents[3]
+    registry_path = REGIME_RESPONSE_SCALE_REGISTRY
+    producer = (
+        "PYTHONPATH=. python -m pipelines.time_dynamics.diagnostics."
+        f"build_regime_response_scales --regime {regime}"
+    )
+    if not registry_path.is_file():
+        raise ValueError(
+            f"no exact-response scales are registered for regime {regime!r}: "
+            f"{registry_path.name} is absent. Build them first with `{producer}`."
+        )
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if registry.get("schema") != REGIME_RESPONSE_SCALE_REGISTRY_SCHEMA:
+        raise ValueError(f"unsupported response-scale registry: {registry_path}")
+    row = (registry.get("regimes") or {}).get(regime)
+    if not isinstance(row, Mapping):
+        raise ValueError(
+            f"no exact-response scales are registered for regime {regime!r}. "
+            f"Build them first with `{producer}`."
+        )
+    def _resolve(value: str) -> Path:
+        path = Path(str(value))
+        return path if path.is_absolute() else repository_root / path
+    seed_path = _resolve(runs.REGIMES[regime].seed_path)
+    return load_verified_response_scale_index(
+        _resolve(row["sidecar"]),
+        expected_sidecar_sha256=str(row["sha256"]),
+        exact_reference_root=_resolve(row["exact_reference_root"]),
+        seed_path=seed_path,
+        regime_id=regime,
+        family_key=SEED.family_key,
+        controller_ids=CONTROLLER_IDS,
+        expected_drives={
+            drive_id: {
+                "amplitude": runs.DRIVES[drive_id].amplitude,
+                "omega": runs.DRIVES[drive_id].omega,
+            }
+            for drive_id in DRIVE_IDS
+        },
+    )
 PRIOR_ENERGY_TARGET = 1.0e-4
 ACCURACY_CEILING = 1.0e-4
 PREFERRED_ACCURACY_FLOOR = 1.0e-5
@@ -168,6 +234,7 @@ def build_campaign(
     submission_policy_replay: str = "canonical",
     regime: str = DEFAULT_REGIME,
     promotion_horizon: str = DEFAULT_PROMOTION_HORIZON,
+    apm_arm: str = DEFAULT_APM_ARM,
 ) -> StagedCampaign:
     if regime not in runs.REGIMES:
         raise KeyError(f"unknown regime {regime!r}; known: {sorted(runs.REGIMES)}")
@@ -183,17 +250,13 @@ def build_campaign(
         methods=METHOD_IDS,
     )
     if submission_policy_replay == "canonical":
-        if regime != DEFAULT_REGIME:
-            raise ValueError(
-                "canonical response-normalized qualification is bound to the "
-                f"{DEFAULT_REGIME} exact-response sidecar "
-                f"({EXACT_RESPONSE_SCALES.name}); regime {regime!r} has no "
-                "verified sidecar. Bind one per regime through "
-                "response_scales.load_verified_response_scale_index, or run the "
-                "regime under submission_policy_replay='componentwise_1e-4'."
-            )
+        response_scales = (
+            _response_scales()
+            if regime == DEFAULT_REGIME
+            else _regime_response_scales(regime)
+        )
         accuracy_policy = AccuracyPolicy.response_normalized_matched_pair(
-            response_scales=_response_scales(),
+            response_scales=response_scales,
             response_relative_target=RESPONSE_RELATIVE_TARGET,
             response_relative_guard=RESPONSE_RELATIVE_GUARD,
             matched_accuracy_factor=MATCHED_ACCURACY_FACTOR,
@@ -226,6 +289,7 @@ def build_campaign(
         ),
         promotion_horizon=promotion_horizon,
         comparator_first=True,
+        apm_arm=apm_arm,
     )
 
 
@@ -359,7 +423,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--promotion-horizon",
         choices=tuple(runs.HORIZONS),
         default=DEFAULT_PROMOTION_HORIZON,
-        help="continuation horizon after the t5 screen (survey campaigns use t10)",
+        help="continuation horizon after the t5 screen",
+    )
+    parser.add_argument(
+        "--apm-arm",
+        choices=tuple(
+            arm_id for arm_id, arm in runs.ARMS.items() if not arm.is_comparator
+        ),
+        default=DEFAULT_APM_ARM,
+        help=(
+            "registered arm that realizes the APM method (the manuscript's "
+            "realized Gamma(v*) route is exchange_q_compiled where registered)"
+        ),
     )
     parser.add_argument(
         "--submission-policy-replay",
@@ -425,8 +500,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         submission_policy_replay=str(args.submission_policy_replay),
         regime=str(args.regime),
         promotion_horizon=str(args.promotion_horizon),
+        apm_arm=str(args.apm_arm),
     )
-    campaign_id = campaign_id_for(str(args.regime), str(args.promotion_horizon))
+    campaign_id = campaign_id_for(
+        str(args.regime), str(args.promotion_horizon), str(args.apm_arm)
+    )
     default_seed_path = runs.REGIMES[str(args.regime)].seed_path
     ledger = _load_ledger(args.ledger)
     declared_policy = campaign.accuracy_policy.to_json_dict()
@@ -617,8 +695,10 @@ if __name__ == "__main__":
 
 __all__ = [
     "CAMPAIGN_ID",
+    "DEFAULT_APM_ARM",
     "DEFAULT_PROMOTION_HORIZON",
     "DEFAULT_REGIME",
+    "REGIME_RESPONSE_SCALE_REGISTRY",
     "build_campaign",
     "campaign_id_for",
     "main",

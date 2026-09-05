@@ -87,6 +87,10 @@ def test_qualified_seed_writes_sealed_artifact_and_receipt(tmp_path: Path) -> No
     receipt = json.loads((out.parent / "seed_receipt.json").read_text())
     assert artifact["schema"] == runner.SEED_ARTIFACT_SCHEMA_V1
     assert artifact["adapt_vqe"]["parameterization_execution_mode"] == "per_pauli_term"
+    # response_scales._physical_identity requires these to be explicit.
+    assert artifact["settings"]["t_prime"] == 0.0
+    assert artifact["settings"]["v_nn"] == 0.0
+    assert artifact["settings"]["initial_state_source"] == runner.SEED_INITIALIZER
     assert artifact["regime_id"] == "anchor_u4_g0p5_nph1"
     assert artifact["conditioning_search_used"] is False
     core = {k: v for k, v in artifact.items() if k != "seed_artifact_sha256"}

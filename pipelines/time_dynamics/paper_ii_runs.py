@@ -935,7 +935,10 @@ class Regime:
 # wrote an artifact at its 1e-4 gate (clusters 9663698 and 9674800: every
 # Pareto front was empty because no driven-snapshot fit reached 1e-6), and its
 # nph=7 rows were held at the 24 GB memory limit on 2026-08-22. The nph=7 cells
-# are 10 qubits against 8, 16x the state space of the locked evidence.
+# are 10 qubits against 8, 16x the state space of the locked evidence. Every
+# regime seed is built at dv = 0; the calibration seed's dv = 0.25 is a uniform
+# site potential (a constant -dv*N_e at fixed filling), so the anchor is the
+# same dynamics with energies 0.5 above the locked convention.
 _HH_REGIME_ROWS = (
     ("weak_weak", 0.25, 0.353553390593, 3),
     ("intermediate_weak", 1.25, 0.353553390593, 3),

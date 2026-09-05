@@ -151,6 +151,16 @@ def _artifact_payload(
     order: worker.HHSeedWorkOrder,
 ) -> dict[str, Any]:
     payload = dict(result.runtime_payload)
+    # The runtime loader defaults t_prime and v_nn to zero when absent; the
+    # response-scale loader (response_scales._physical_identity) refuses a seed
+    # that leaves them implicit.  Declare the zeros and the initializer label
+    # so the regime seed carries the same physical identity vocabulary as the
+    # calibration seed (whose value is "adapt_vqe").
+    settings = dict(payload.get("settings") or {})
+    settings.setdefault("t_prime", 0.0)
+    settings.setdefault("v_nn", 0.0)
+    settings["initial_state_source"] = SEED_INITIALIZER
+    payload["settings"] = settings
     payload.update(
         {
             "schema": SEED_ARTIFACT_SCHEMA_V1,

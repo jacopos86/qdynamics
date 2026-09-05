@@ -6,7 +6,7 @@
 PYTHONPATH=. python3 -m pipelines.time_dynamics.write_paper_ii_manifest
 ```
 
-Source commit at generation: `48336a01851aadd48a43c4009f1f0b89d41e576d`
+Source commit at generation: `910d87384a36284d3616901473584fb741ae6204`
 
 Every Paper-II run is composed from the registry in
 `pipelines/time_dynamics/paper_ii_runs.py`. A run is one choice from each

@@ -57,6 +57,7 @@ def read_regime_rows(regimes_tsv: Path) -> dict[str, dict[str, Any]]:
                 "u": float(row["u"]),
                 "g_ep": float(row["g_ep"]),
                 "nph": int(row["nph"]),
+                "dv": float(row.get("dv", 0.0)),
                 "optimizer_seed": int(row["optimizer_seed"]),
             }
     return rows
@@ -82,11 +83,15 @@ def verify_receipt(
     if not error <= ENERGY_GATE:
         raise ValueError(f"energy_error {error} exceeds the gate")
     physical = receipt.get("physical") or {}
-    expected = {"U": row["u"], "g": row["g_ep"], "n_ph_max": row["nph"]}
+    expected = {
+        "U": row["u"], "g": row["g_ep"], "n_ph_max": row["nph"],
+        "staggered_potential": row["dv"],
+    }
     actual = {
         "U": float(physical.get("U", float("nan"))),
         "g": float(physical.get("g", float("nan"))),
         "n_ph_max": int(physical.get("n_ph_max", -1)),
+        "staggered_potential": float(physical.get("staggered_potential", float("nan"))),
     }
     if actual != expected:
         raise ValueError(f"receipt physics {actual} != regimes.tsv {expected}")
