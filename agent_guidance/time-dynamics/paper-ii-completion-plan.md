@@ -874,3 +874,18 @@ condor_submit chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_a3d1cebe_2026
 Also: `9720069.4` (Codex anchor, source `426807d9`) finished and is fetched
 with sha verified (`7ccf5b33`); ingestion into Codex's ledger deferred.
 `9720069.3` still running.
+
+**Staging trap (2026-09-05).** The §3 upload recipe in
+`HANDOFF_MONITOR_REGIME_SEEDS_20260904.md` uses `--exclude 'artifacts'`,
+intended for output dirs; it also drops the source package
+`pipelines/artifacts/`. Any package whose runner verifies the uploaded tree
+(SIAM `_verify_source_tree_contract`, 809 files) then fails at startup with
+`SIAM source-tree file is missing: pipelines/artifacts/__init__.py`, exit 1
+in ~10 s. The HH final-telemetry packager is immune (it extracts its own
+source tarball). `9720204/9720205` died this way and were resubmitted once as
+`9720211/9720212` after re-uploading `pipelines/artifacts/`. Before the
+regime-seeds bundle or any further SIAM rung is uploaded with that recipe,
+either drop the exclude or re-upload `pipelines/artifacts/` afterward.
+Scheduled heartbeat `paper-ii-corrected-campaign-chtc-heartbeat` (every 6 h,
+runs only while the desktop app is open) now watches `9720203`, `9720211`,
+`9720212`, `9720069.3`.
