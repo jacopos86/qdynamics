@@ -72,6 +72,29 @@ allowed at all. Every one of these was a correction the user had to repeat.
   agent's job is to test that, not to recite the guard's intent.
 
 <!-- gitnexus:start -->
+### Naming and vocabulary (user-directed 2026-09-05)
+
+The failure being corrected: inventing column headers and quantity names
+("retired", "re-inserted", "most events", "ending active", "deletions", "A/D",
+"D->A") and reporting them as established, forcing the user to ask what each
+one means.
+
+- **Never introduce a name for a quantity.** Use a term that already appears in
+  the manuscript, or state the quantity in a full sentence in the paper's own
+  vocabulary -- support, generator, coordinate, time point, insertion,
+  deletion, patch, commit, certification, gate. A short label is allowed only
+  after that sentence exists in the caption or text.
+- **Every number reported carries its definition and its horizon in the same
+  breath**, or it is not reported. "16" is not a result; "16 generators were
+  deleted and later re-inserted at some later time point over t=0 to 20" is.
+- **Never call an existing repository quantity arbitrary** without first
+  reading its definition in code. Windows, thresholds and cutoffs are recorded
+  parameters until proven otherwise.
+- **Say a finding once.** One sentence, with the number, then stop. Do not
+  restate it in a summary, a table, and a closing line.
+- **Never hand the user text to paste into their own configuration.** If a
+  repository instruction file needs changing, change it.
+
 ## Subagent model invariant (user-directed 2026-09-03)
 
 The failure being corrected: a 13-agent workflow fan-out that inherited the
