@@ -1228,6 +1228,9 @@ def build_selector_inputs(
         interaction_frontier_widths=exchange_config.search.interaction_frontier_widths,
         max_joint_patch_evaluations=exchange_config.search.joint_patch_evaluations,
         scoring_workers=int(exchange_config.search.scoring_workers),
+        exchange_insertion_frontier=(
+            exchange_config.search.exchange_insertion_frontier
+        ),
     )
 
     route = exchange_config.route
@@ -1753,6 +1756,11 @@ def select_generalized_exchange_patch(
         ]
         payload["frontiers_used"] = int(selection.telemetry.frontiers_used)
         payload["q_base"] = float(selection.telemetry.q_base)
+        if selection.telemetry.exchange_frontier is not None:
+            payload["exchange_frontier"] = [
+                [str(a), int(c)]
+                for a, c in selection.telemetry.exchange_frontier
+            ]
     if selection.committed is not None:
         payload["committed"] = {
             "removed_runtime_indices": [

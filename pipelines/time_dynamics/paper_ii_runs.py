@@ -341,6 +341,7 @@ class SearchProfile:
     certification_attempts_per_deletion_branch: int
     rounds_per_checkpoint: int
     insertion_cardinality: int = 1
+    exchange_insertion_frontier: int | None = None
     paper_facing_allowed: bool = False
     note: str = ""
 
@@ -355,10 +356,15 @@ class SearchProfile:
         ):
             if int(getattr(self, name)) < 1:
                 raise ValueError(f"{name} must be at least 1")
+        if (
+            self.exchange_insertion_frontier is not None
+            and int(self.exchange_insertion_frontier) < 1
+        ):
+            raise ValueError("exchange_insertion_frontier must be at least 1")
 
     @property
     def flags(self) -> tuple[str, ...]:
-        return (
+        emitted: tuple[str, ...] = (
             "--max-structural-pool-size", str(int(self.pool_size)),
             "--max-joint-patch-evaluations",
             str(int(self.joint_patch_evaluations)),
@@ -369,6 +375,14 @@ class SearchProfile:
             "--max-insertion-rounds-per-checkpoint",
             str(int(self.rounds_per_checkpoint)),
             "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
+        )
+        if self.exchange_insertion_frontier is None:
+            # Byte-identical to every profile that predates the exchange-face
+            # bound, so their run ids and argv stay unchanged.
+            return emitted
+        return emitted + (
+            "--exchange-insertion-frontier",
+            str(int(self.exchange_insertion_frontier)),
         )
 
 DIAGNOSTIC_FAST_SEARCH = SearchProfile(
@@ -437,11 +451,38 @@ CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
     ),
 )
 
+# The declared budget with the exchange face reachable.  Identical work limits
+# to paper_declared_v1: the only difference is that a d >= 1 deletion set is
+# paired with the top 8 positioned insertions of the d = 0 pass rather than all
+# of them, so the first exchange-bearing rung declares |J_del| x 9 (~378 at the
+# measured median |J_del| = 42) instead of |J_del| x 2030 (48,720-165,865
+# measured) and fits under the same 50,000 cap.  Its own profile_id, so every
+# run id and campaign cell separates from the runs whose search could not
+# reach exchange at all.
+PAPER_DECLARED_EXCHANGE_SEARCH = SearchProfile(
+    profile_id="paper_declared_exchange_v1",
+    pool_size=128,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    exchange_insertion_frontier=8,
+    paper_facing_allowed=True,
+    note=(
+        "Declared Paper-II finite-work search budget with the exchange face "
+        "reachable. Deletion rungs stay complete; the insertion face offered "
+        "to a deletion set is a declared width-8 frontier sealed from the "
+        "d = 0 pass, so the exchange face is an approximation of the "
+        "specification's full product and the other two faces are not."
+    ),
+)
+
 SEARCH_PROFILES: Mapping[str, SearchProfile] = {
     profile.profile_id: profile
     for profile in (
         DIAGNOSTIC_FAST_SEARCH,
         PAPER_DECLARED_SEARCH,
+        PAPER_DECLARED_EXCHANGE_SEARCH,
         CAP_SENSITIVITY_2X_SEARCH,
     )
 }

@@ -188,6 +188,10 @@ class SupportPatchControllerConfig:
     # reported configuration, so a flagless call is the paper's route
     # rather than a diagnostic one.
     max_joint_patch_evaluations: int | None = 50000
+    # Positioned insertions offered to each deletion set in a d >= 1 rung.
+    # None (default) is the unrestricted branch pool, i.e. the historical
+    # search; a finite width is the declared exchange-face bound.
+    exchange_insertion_frontier: int | None = None
     prune_history_window: int = 3
     prune_history_lambda: float = 0.0
     prune_appended_origin_target_policy: str = PRUNE_TARGET_ALL_ACTIVE
@@ -336,6 +340,11 @@ class SupportPatchControllerConfig:
             raise ValueError("AP support-patch decisions must not use reference trajectories.")
         if bool(self.uses_future_exact_forecast_for_decision):
             raise ValueError("AP support-patch decisions must not use future exact forecasts.")
+        if (
+            self.exchange_insertion_frontier is not None
+            and int(self.exchange_insertion_frontier) < 1
+        ):
+            raise ValueError("exchange_insertion_frontier must be at least 1.")
         AppendCostSettings.from_config(self)
 
     def to_json_dict(self) -> dict[str, Any]:
@@ -462,6 +471,13 @@ class SupportPatchControllerConfig:
                 self.uses_future_exact_forecast_for_decision
             ),
         }
+        if self.exchange_insertion_frontier is not None:
+            # Emitted only when declared: an undeclared bound must leave the
+            # provenance object identical to every stored lineage's, so that a
+            # completed run still validates against a recomputed contract.
+            payload["exchange_insertion_frontier"] = int(
+                self.exchange_insertion_frontier
+            )
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
         )

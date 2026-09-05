@@ -261,6 +261,7 @@ class StructuralEnumeration:
     scoring_workers_effective_max: int = 1
     compile_guard: JointWorkGuard | None = None
     compile_calls: int = 0
+    exchange_frontier: tuple[tuple[str, int], ...] | None = None
 
     def ranked(self, *, score_floor: float = 0.0) -> tuple[StructuralCandidate, ...]:
         """Non-stay candidates above the floor, score-descending, frozen ties."""
@@ -347,6 +348,7 @@ def iter_structural_families(
         | None
     ) = None,
     population_accuracy_debt: bool | None = None,
+    exchange_insertion_frontier: int | None = None,
 ):
     """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
 
@@ -365,6 +367,17 @@ def iter_structural_families(
     child may re-enter).  ``cuts_by_atom`` holds each child's retained
     original-layout cuts.  Multi-child plans (``|A| >= 2``) additionally need
     ``tokens_commute`` for the whole-word quotient.
+
+    ``exchange_insertion_frontier`` declares how many positioned insertions a
+    ``d >= 1`` deletion set is paired with.  ``None`` pairs it with the whole
+    branch pool, so a family declares ``|D_{k,d}| x |C_{k,D}|`` typed patches
+    and the joint-work guard refuses the first exchange-bearing rung at
+    production pool sizes.  A finite width ``W`` pairs it with the ``W``
+    highest-scoring ``(atom, cut)`` positions of the already-scored ``d = 0``
+    family, sealed before the first rung is built, so a family declares
+    ``|D_{k,d}| x (1 + W)`` instead.  The width is run configuration and is
+    never derived from the residual budget, so the enumerated candidate set
+    stays monotone in ``max_joint_patch_evaluations``.
     """
 
     n = int(base_f.reshape(-1).size)
@@ -605,12 +618,22 @@ def iter_structural_families(
 
     candidates: list[StructuralCandidate] = []
     singleton_best: dict[str, float] = {}
+    singleton_cut_best: dict[tuple[str, int], float] = {}
 
     def note_priority(atom_id: str, score: float) -> None:
         if np.isfinite(float(score)):
             prior = singleton_best.get(atom_id)
             if prior is None or float(score) > prior:
                 singleton_best[atom_id] = float(score)
+
+    def note_cut_priority(atom_id: str, cut: int, score: float) -> None:
+        """Per-position ``d = 0`` rank: the frontier's only ordering signal."""
+
+        if np.isfinite(float(score)):
+            key = (str(atom_id), int(cut))
+            prior = singleton_cut_best.get(key)
+            if prior is None or float(score) > prior:
+                singleton_cut_best[key] = float(score)
 
     # ---- d = 0: stay + every pure singleton insertion ----------------------
     pure_pool = candidate_pool_for_deletion(())
@@ -649,9 +672,44 @@ def iter_structural_families(
                     (), ((str(atom_id), cut),), None, "singleton_d0"
                 )
                 family_out.append(candidate)
-                note_priority(str(atom_id), priority_value(candidate))
+                # One ranking key for both seals: the frontier is sealed on
+                # exactly the ordinate child acquisition uses, so a route that
+                # redefines priority_value moves both together.
+                priority = priority_value(candidate)
+                note_priority(str(atom_id), priority)
+                note_cut_priority(str(atom_id), cut, priority)
         candidates.extend(family_out)
         yield "singleton_d0", tuple(family_out), None
+
+    # ---- sealed exchange insertion frontier --------------------------------
+    # Sealed HERE, before the first rung is sized, from scores the d = 0 family
+    # has already paid for: no new solve, no new measurement, and no dependence
+    # on rung enumeration order.  ``None`` reproduces the unrestricted product
+    # exactly, which is what the oracle and every small-system caller use.
+    if exchange_insertion_frontier is None:
+        exchange_frontier: tuple[tuple[str, int], ...] | None = None
+    else:
+        frontier_width = int(exchange_insertion_frontier)
+        if frontier_width < 1:
+            raise ValueError("exchange_insertion_frontier must be at least 1.")
+        exchange_frontier = tuple(
+            sorted(
+                singleton_cut_best,
+                key=lambda p: (-singleton_cut_best[p], str(p[0]), int(p[1])),
+            )
+        )[:frontier_width]
+
+    def rung_insertions(pool: tuple[str, ...]) -> tuple[tuple[str, int], ...]:
+        """Positioned insertions offered to one deletion set, in frozen order."""
+
+        if exchange_frontier is None:
+            return tuple(
+                (str(atom_id), int(cut))
+                for atom_id in pool
+                for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ()))
+            )
+        allowed = set(pool)
+        return tuple(p for p in exchange_frontier if p[0] in allowed)
 
     # ---- d >= 1 rungs: pure deletion + singleton exchange ------------------
     for d, rung in iter_deletion_rungs(
@@ -663,11 +721,13 @@ def iter_structural_families(
             continue
         family = f"singleton_d{d}"
         size = 0
-        members: list[tuple[tuple[int, ...], tuple[str, ...]]] = []
+        members: list[
+            tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
+        ] = []
         for removed in rung:
-            pool = candidate_pool_for_deletion(removed)
-            members.append((removed, pool))
-            size += 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pool)
+            insertions = rung_insertions(candidate_pool_for_deletion(removed))
+            members.append((removed, insertions))
+            size += 1 + len(insertions)
         # Admit the raw family before permission. Otherwise refused sets evade
         # the work accounting and the search can walk unbounded combinatorial
         # rungs while scoring nothing.
@@ -683,19 +743,18 @@ def iter_structural_families(
                 reject_family(compile_guard, family)
                 break
             permitted_members = []
-            for removed, pool in members:
+            for removed, insertions in members:
                 if deletion_permission is not None and not bool(
                     deletion_permission(removed).permitted
                 ):
                     continue
-                permitted_members.append((removed, pool))
+                permitted_members.append((removed, insertions))
             compiled_size = 0
-            for removed, pool in permitted_members:
+            for removed, insertions in permitted_members:
                 compiled_size += int(active_population_face(removed, ()))
                 compiled_size += sum(
                     1
-                    for atom_id in pool
-                    for cut in cuts_by_atom.get(atom_id, ())
+                    for atom_id, cut in insertions
                     if active_population_face(
                         removed, ((str(atom_id), int(cut)),)
                     )
@@ -709,15 +768,14 @@ def iter_structural_families(
             # the replay below re-reads identical decisions); only the
             # permitted members' solves are warmed.
             warm_keys: list[tuple] = []
-            for removed, pool in permitted_members:
+            for removed, insertions in permitted_members:
                 if compile_guard is None and deletion_permission is not None:
                     if not bool(deletion_permission(removed).permitted):
                         continue
                 warm_keys.append((removed, ()))
-                for atom_id in pool:
-                    for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
-                        warm_keys.append(((), ((str(atom_id), int(cut)),)))
-                        warm_keys.append((removed, ((str(atom_id), int(cut)),)))
+                for atom_id, cut in insertions:
+                    warm_keys.append(((), ((str(atom_id), int(cut)),)))
+                    warm_keys.append((removed, ((str(atom_id), int(cut)),)))
             workers_effective_max = max(
                 workers_effective_max,
                 _warm_solve_memo(
@@ -733,19 +791,18 @@ def iter_structural_families(
                     ]
                 )
         family_out = []
-        for removed, pool in permitted_members:
+        for removed, insertions in permitted_members:
             if compile_guard is None and deletion_permission is not None:
                 permission = deletion_permission(removed)
                 if not bool(permission.permitted):
                     continue
             family_out.append(scored(removed, (), None, family))
-            for atom_id in pool:
-                for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
-                    candidate = scored(
-                        removed, ((str(atom_id), cut),), None, family
-                    )
-                    family_out.append(candidate)
-                    note_priority(str(atom_id), priority_value(candidate))
+            for atom_id, cut in insertions:
+                candidate = scored(
+                    removed, ((str(atom_id), int(cut)),), None, family
+                )
+                family_out.append(candidate)
+                note_priority(str(atom_id), priority_value(candidate))
         candidates.extend(family_out)
         yield family, tuple(family_out), None
 
@@ -872,6 +929,7 @@ def iter_structural_families(
         scoring_workers_effective_max=workers_effective_max,
         compile_guard=compile_guard,
         compile_calls=int(compile_calls_total),
+        exchange_frontier=exchange_frontier,
     )
 
 

@@ -87,13 +87,21 @@ class JointWorkGuard:
     ``max_joint_patch_evaluations = None`` disables the guard.  A finite value
     admits a complete family exactly when
     ``N_done + N_next <= max_joint_patch_evaluations``; rejection evaluates
-    none of the family and freezes further admissions (families are exposed in
-    deterministic order, so a rejected family also ends escalation).
+    none of the family and freezes further admissions, and the caller ends
+    escalation on the same event.
+
+    Freezing is a declared stop, not a proof that every later family would
+    also overrun: families are exposed in deterministic order, but that order
+    is not size-monotone (a rung's cardinality ``C(m, d)`` is unimodal in
+    ``d``).  ``rejected_family_size`` records what the refused family would
+    have cost, so a run can be audited for a cap that bound without
+    reconstructing the family size from the pool.
     """
 
     max_joint_patch_evaluations: int | None = None
     scored_count: int = 0
     rejected_family: str | None = None
+    rejected_family_size: int | None = None
     admitted_families: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -127,6 +135,7 @@ class JointWorkGuard:
             > int(self.max_joint_patch_evaluations)
         ):
             self.rejected_family = str(family_label)
+            self.rejected_family_size = int(family_size)
             return False
         self.scored_count += int(family_size)
         self.admitted_families.append(str(family_label))
@@ -143,6 +152,11 @@ class JointWorkGuard:
             "admitted_families": [str(x) for x in self.admitted_families],
             "rejected_family": (
                 None if self.rejected_family is None else str(self.rejected_family)
+            ),
+            "rejected_family_size": (
+                None
+                if self.rejected_family_size is None
+                else int(self.rejected_family_size)
             ),
         }
 

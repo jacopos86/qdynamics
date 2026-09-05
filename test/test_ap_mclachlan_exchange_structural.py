@@ -195,6 +195,115 @@ def test_work_guard_rejects_complete_family_and_freezes() -> None:
     assert result.guard.scored_count == len(result.candidates)
 
 
+def test_exchange_frontier_admits_the_rung_the_full_pool_refuses() -> None:
+    """Fails before the repair: every d >= 1 family is refused whole.
+
+    The cap is set to exactly the d = 0 family plus a width-1 exchange face on
+    both d >= 1 rungs.  Unrestricted, the d = 1 family declares
+    |rung| x |pool| and overruns; frontier-bounded it declares |rung| x 2 and
+    fits, so true exchange patches are enumerated for the first time.
+    """
+
+    _s, _e, _c, cuts, kwargs = _setup()
+    per_pool = len(cuts["ca"]) + len(cuts["cb"])
+    kwargs["max_joint_patch_evaluations"] = (1 + per_pool) + 3 * (1 + 1)
+
+    unrestricted = enumerate_structural_candidates(**kwargs)
+    assert unrestricted.guard.rejected_family == "singleton_d1"
+    assert Counter(c.kind for c in unrestricted.candidates)["exchange"] == 0
+
+    restricted = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=1
+    )
+    assert restricted.guard.rejected_family is None
+    assert restricted.guard.admitted_families == [
+        "singleton_d0",
+        "singleton_d1",
+        "singleton_d2",
+    ]
+    kinds = Counter(c.kind for c in restricted.candidates)
+    assert kinds["delete"] == 3
+    assert kinds["exchange"] == 3
+    assert len(restricted.exchange_frontier) == 1
+
+
+def test_exchange_frontier_bounds_the_declared_family_size() -> None:
+    """The work bound: every d >= 1 family declares |rung| x (1 + W)."""
+
+    _s, _e, _c, cuts, kwargs = _setup()
+    per_pool = len(cuts["ca"]) + len(cuts["cb"])
+    width = 2
+    result = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=width
+    )
+
+    per_set: Counter = Counter()
+    for candidate in result.candidates:
+        if candidate.removed_runtime_indices:
+            per_set[candidate.removed_runtime_indices] += 1
+    # Deletion-subset completeness is untouched; only the insertion face is
+    # bounded, at exactly 1 + W members per deletion set.
+    assert set(per_set) == {(0,), (1,), (0, 1)}
+    assert set(per_set.values()) == {1 + width}
+    assert result.guard.scored_count == (1 + per_pool) + 3 * (1 + width)
+    assert result.guard.scored_count == len(result.candidates)
+    assert len(result.exchange_frontier) == width
+    for candidate in result.candidates:
+        if candidate.removed_runtime_indices and candidate.inserted_selection:
+            assert candidate.inserted_selection[0] in result.exchange_frontier
+
+
+def test_exchange_frontier_none_is_the_unrestricted_product() -> None:
+    """The default is bitwise the historical search, not an approximation."""
+
+    _s, _e, _c, _cuts, kwargs = _setup()
+    baseline = enumerate_structural_candidates(**kwargs)
+    explicit = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=None
+    )
+    signature = [
+        (c.removed_runtime_indices, c.inserted_selection, c.score, c.family)
+        for c in baseline.candidates
+    ]
+    assert signature == [
+        (c.removed_runtime_indices, c.inserted_selection, c.score, c.family)
+        for c in explicit.candidates
+    ]
+    assert baseline.exchange_frontier is None
+    assert baseline.guard.to_json_dict() == explicit.guard.to_json_dict()
+
+
+def test_exchange_frontier_order_is_sealed_before_any_rung() -> None:
+    """The frontier is the top of the d = 0 ranking, by score then identity."""
+
+    _s, _e, _c, _cuts, kwargs = _setup()
+    full = enumerate_structural_candidates(**kwargs)
+    d0_best: dict[tuple[str, int], float] = {}
+    for candidate in full.candidates:
+        if candidate.family != "singleton_d0" or not candidate.inserted_selection:
+            continue
+        key = (
+            str(candidate.inserted_selection[0][0]),
+            int(candidate.inserted_selection[0][1]),
+        )
+        if np.isfinite(candidate.score):
+            d0_best[key] = max(d0_best.get(key, -np.inf), float(candidate.score))
+    expected = tuple(
+        sorted(d0_best, key=lambda p: (-d0_best[p], str(p[0]), int(p[1])))
+    )[:3]
+
+    result = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=3
+    )
+    assert result.exchange_frontier == expected
+
+
+def test_exchange_frontier_width_must_be_at_least_one() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+    with pytest.raises(ValueError):
+        enumerate_structural_candidates(**kwargs, exchange_insertion_frontier=0)
+
+
 def test_priorities_are_max_singleton_scores_and_universe_is_sorted() -> None:
     _s, _e, _c, _cuts, kwargs = _setup()
     result = enumerate_structural_candidates(**kwargs)

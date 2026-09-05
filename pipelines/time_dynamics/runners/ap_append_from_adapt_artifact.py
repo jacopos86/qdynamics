@@ -2080,6 +2080,21 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--exchange-insertion-frontier",
+        type=int,
+        default=None,
+        help=(
+            "Positioned insertions offered to each deletion set in a "
+            "d >= 1 rung, taken from the top of the d = 0 singleton ranking "
+            "and sealed before any rung is built. None (default) offers the "
+            "whole branch pool, so a rung declares |rung| x |pool| typed "
+            "patches and the joint-work guard refuses the first exchange-"
+            "bearing rung at production pool sizes; a finite width W declares "
+            "|rung| x (1 + W) instead. Deletion-subset completeness is "
+            "unaffected."
+        ),
+    )
+    parser.add_argument(
         "--support-patch-scoring-workers",
         type=int,
         default=2,
@@ -2246,6 +2261,11 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             None
             if args.max_joint_patch_evaluations is None
             else int(args.max_joint_patch_evaluations)
+        ),
+        exchange_insertion_frontier=(
+            None
+            if args.exchange_insertion_frontier is None
+            else int(args.exchange_insertion_frontier)
         ),
         append_schur_max_condition_number=(
             float(args.append_schur_max_condition_number)

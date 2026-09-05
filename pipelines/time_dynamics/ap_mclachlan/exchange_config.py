@@ -258,6 +258,10 @@ class ExchangeSearchBudget:
     interaction_frontier_widths: tuple[int, ...] | None
     scoring_workers: int
     structural_score_floor: float
+    # Positioned insertions offered to one deletion set in a d >= 1 rung.
+    # None is the unrestricted branch pool.  Serialized only when declared, so
+    # every pre-existing lineage keeps a byte-identical provenance object.
+    exchange_insertion_frontier: int | None = None
 
 
 @dataclass(frozen=True)
@@ -271,9 +275,21 @@ class APGeneralizedExchangeConfig:
     route: ExchangeRouteConfig
 
     def to_json_dict(self) -> dict[str, object]:
-        """Return the four-class provenance object."""
+        """Return the four-class provenance object.
 
-        return asdict(self)
+        An undeclared search bound is omitted rather than emitted as ``None``,
+        so a lineage that never set it re-derives byte-identically and stored
+        artifacts keep validating against a recomputed contract.
+        """
+
+        payload = asdict(self)
+        search = payload.get("search")
+        if (
+            isinstance(search, dict)
+            and search.get("exchange_insertion_frontier") is None
+        ):
+            search.pop("exchange_insertion_frontier", None)
+        return payload
 
     @classmethod
     def from_route_config(cls, config: Any) -> "APGeneralizedExchangeConfig":
@@ -367,6 +383,11 @@ class APGeneralizedExchangeConfig:
                 ),
                 scoring_workers=int(config.support_patch_scoring_workers),
                 structural_score_floor=float(config.structural_score_floor),
+                exchange_insertion_frontier=(
+                    None
+                    if getattr(config, "exchange_insertion_frontier", None) is None
+                    else int(config.exchange_insertion_frontier)
+                ),
             ),
             route=ExchangeRouteConfig(
                 bundle=resolve_route_bundle(
