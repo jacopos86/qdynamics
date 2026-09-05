@@ -3,10 +3,10 @@
 **Executor:** Codex · **Written:** 2026-09-05 · **Contract:** `agent_guidance/shared/agent-handoff-contract.md`
 **Branch to work on:** `fable/paper-ii-regime-survey-20260905`
 (worktree `/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905`)
-for everything Hubbard–Holstein; `fable/siam-search-profiles-20260905`
-(worktree `/Users/lordskyler/Holstein_test.worktrees/siam-search-profiles-20260905`)
-for everything SIAM. Python is always `/Users/lordskyler/Holstein_test/.venv/bin/python`
-with `PYTHONPATH=.` from the worktree root.
+for everything, Hubbard–Holstein and SIAM. Python is always
+`/Users/lordskyler/Holstein_test/.venv/bin/python` with `PYTHONPATH=.` from the
+worktree root. Nothing is run from the old SIAM branch
+`fable/siam-search-profiles-20260905`.
 
 ## 1. What this campaign produces
 
@@ -36,23 +36,25 @@ Each point goes through three steps:
    t = 5→20 continuation, qualified under the same matched-pair accuracy
    policy as the published cells.
 
-### 1b. SIAM
+### 1b. SIAM (single impurity, U = 1.5, Nb bath sites)
 
-**SIAM is not yet on the current method.** Everything SIAM that exists,
-including the two results below, ran on the older exchange scoring rule
-(historical pilot lineage `origin/codex/paper-ii-search-profiles-20260824`),
-not on the compiled-Q route (`exchange_q_compiled`), and without the
-exact-estimator accounting the Hubbard–Holstein cells carry. Those results
-are historical pilots. The SIAM comparison counts as complete only when both
-arms have been run on the survey branch's compiled-Q route with the
-estimator accounting, Nb = 2 locally and Nb = 4 on CHTC. Section 8 holds the
-work needed to get there; it is being built now and this section will be
-replaced when it lands.
+Both SIAM arms run on this branch's compiled-Q route with the same exact
+estimator accounting as the Hubbard–Holstein cells: AVQDS vs compiled-Q
+exchange (`exchange_q_compiled`, route bundle `paper_ii_exchange_q_compiled_v1`),
+scored offline against the exact sector reference and classified by the
+response-normalized burden ratio (ceiling 2.0). Every score, receipt and
+estimator record now carries the route identity, so a compiled-Q arm cannot
+be paired against or reported as the historical route.
 
-| system | qubits | historical pilot state (old scoring rule) |
+| system | qubits | state |
 |---|---:|---|
-| Nb = 2 proof pair | 6 | exchange burden 0.3564, AVQDS 0.3525, matched pair, ratio 1.011 (commit `e073fe48`, SIAM branch) |
-| Nb = 4 pilot | 10 | exchange rung r07 to t = 5 qualified, burden 0.0554 (commit `8edc93a3`); AVQDS t = 5 at cut 1e-3 outside the broad guard |
+| Nb = 2 proof pair | 6 | **done on this branch** (`chtc/siam_nb2_proof_qc_v1/`, commit `2163171b`): both arms qualified; burden AVQDS 0.3525, compiled-Q 0.3589, ratio 1.018, `qualified_pair`; estimator work exact: AVQDS 967,888 (12 parameters, 61 rotations), compiled-Q 928,409 (11 parameters, 59 rotations); wall 55 s / 165 s, peak 105 / 166 MB |
+| Nb = 4 ladder | 10 | **to run on CHTC** (§8): r00 screen packages for both arms are prepared and not submitted; climb the activation-cut ladder until the t = 5 pair is matched |
+
+The earlier SIAM numbers (Nb = 2 ratio 1.011 at `e073fe48`; Nb = 4 exchange
+r07 burden 0.0554 at `8edc93a3`, both on `fable/siam-search-profiles-20260905`)
+came from the older exchange rule without estimator accounting. They are
+history, not evidence for this comparison.
 
 ## 2. What the user does (nothing else is needed from them)
 
@@ -68,13 +70,16 @@ replaced when it lands.
 cd /Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905
 git log --oneline -1                              # expect this branch's head
 ls -la chtc/time_dynamics_optuna/image.sif        # 216,371,200 bytes; sha256 fa5c4ea8…
-PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pytest test/test_paper_ii_runs.py test/test_paper_ii_staged_accuracy_campaign.py test/test_build_hh_fixed_layer_seed.py test/test_build_regime_response_scales.py test/test_compiled_ansatz.py test/test_paper_ii_regime_seed_install.py -q -p no:cacheprovider
+PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pytest test/test_paper_ii_runs.py test/test_paper_ii_staged_accuracy_campaign.py test/test_build_hh_fixed_layer_seed.py test/test_build_regime_response_scales.py test/test_compiled_ansatz.py test/test_paper_ii_regime_seed_install.py test/test_siam_compiled_q_route.py test/test_siam_chtc_package.py test/test_siam_nb4_ladder.py test/test_siam_offline_scoring.py test/test_siam_segment_stitching.py test/test_siam_estimator_work.py -q -p no:cacheprovider
 ```
-Expected: 139 passed on the last line. Then stage the bundle remotely:
+Expected: 334 passed, 0 failed on the last line. Then stage the bundle remotely:
 ```bash
 ssh ap2001 'quota -s | tail -3; mkdir -p Holstein_paper_ii_regime_seeds_v1_20260905/{logs,raw_outputs}'
 rsync -azR --exclude '.git' --exclude '__pycache__' --exclude '*.pyc' --exclude 'output' --exclude 'raw_outputs' --exclude 'logs' --exclude 'artifacts' --exclude 'chtc/time_dynamics_optuna/image.sif' \
-  ./pipelines ./src ./chtc/paper_ii_regime_seeds_v1 ./chtc/time_dynamics_optuna ./chtc/validate_condor_submit_lifecycle.py \
+  ./pipelines ./src ./chtc/paper_ii_regime_seeds_v1 \
+  ./chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_2163171b_20260905 \
+  ./chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_2163171b_20260905 \
+  ./chtc/time_dynamics_optuna ./chtc/validate_condor_submit_lifecycle.py \
   ap2001:Holstein_paper_ii_regime_seeds_v1_20260905/
 # -R keeps the chtc/ prefix on the remote side; the submit file and scripts address chtc/... paths.
 ssh ap2001 'for p in Holstein_siam_nb4_source_ba50339c_20260828 Holstein_siam_nb4_frontier_after_9712800_ebdf7ca5_20260827; do f=$HOME/$p/chtc/time_dynamics_optuna/image.sif; [ -f "$f" ] && { echo "$f"; sha256sum "$f"; break; }; done'
@@ -165,7 +170,8 @@ rows (the 6-qubit anchor is a few hours). Order: anchor, then the three
 ## 7. Monitoring and repair (Codex, unattended between Duo pushes)
 
 Heartbeat: 15 min after each submission, then every 2 h while seed jobs run
-and every 6 h while dynamics jobs run. Each heartbeat is exactly one queue
+and every 6 h while dynamics jobs run (SIAM screens and continuations are
+dynamics jobs). Each heartbeat is exactly one queue
 query and one history query (never poll):
 ```bash
 ssh -O check ap2001 || { echo "SSH master expired: ask the user to run ssh -MNf ap2001"; exit 0; }
@@ -177,7 +183,7 @@ Decide per proc from those two files:
 
 | observation | action |
 |---|---|
-| finished, `ExitCode 0` | fetch, verify, install/ingest (§4, §6) |
+| finished, `ExitCode 0` | fetch, verify, install/ingest (§4, §6, §8) |
 | finished, `ExitCode 3` on a seed job | unqualified seed: record ΔE from its receipt, no retry |
 | finished, other nonzero exit | fetch logs, report; no retry without the user |
 | held, `HoldReasonCode 34` (memory) on a **seed** job | resubmit that one row once with `request_memory` doubled (edit only `input/regime_queue.txt`, same everything else), record a `resource_retry_<cluster>_<proc>.json` receipt; a second memory hold → report |
@@ -192,54 +198,137 @@ cut, seed, or grid between attempts. Every repair is a resubmission of an
 identical job with only a resource request changed, and it gets a receipt.
 Fetch before any other action on a finished job; never delete remote files.
 
-## 8. SIAM — historical pilot lineage (superseded; kept until the compiled-Q SIAM lane lands)
+## 8. SIAM Nb = 4 — compiled-Q ladder (CHTC)
 
-Worktree `/Users/lordskyler/Holstein_test.worktrees/siam-search-profiles-20260905`
-(branch `fable/siam-search-profiles-20260905`, base `d5590449` (`d55904498125ca087ee8541772410f66c50a92b7`) on
-`origin/codex/paper-ii-search-profiles-20260824`, the only lineage whose
-runner output the SIAM scorer accepts and the lineage all committed r00–r07
-scores came from).
+All from the survey worktree. Activation-cut ladder
+(`SIAM_NB4_ACTIVATION_CUT_LADDER`): r00 = 1e-2, r01 = 3.33e-3, r02 = 1e-3,
+r03 = 3.33e-4, r04 = 1e-4, r05 = 3.33e-5, r06 = 1e-5, … r10 = 1e-7. One rung
+of one arm is two dependent `queue 1` jobs: a **screen** (t 0→1, 101 points)
+and, if the screen qualifies, a **continuation** (t 1→5, 401 points) resumed
+from the screen's `run.json`. Action ids carry the route token `qc`:
+`siam-nb4-qc-<lane>-<screen|continue>-r<NN>-cut<tok>`, lane `avqds` or
+`full_apm` (the compiled-Q exchange arm's ladder lane). Each job's outputs
+land in `raw_outputs/<package>/<action id>/{run.json,action_receipt.json}`.
 
-Done: Nb = 2 proof pair (`chtc/siam_nb2_proof_v1/`, commit `e073fe48`) and
-the Nb = 4 exchange r07 t = 5 score (`output/siam_screening/nb4_pilot_v1/attempts/cluster_9716077/`,
-commit `8edc93a3`).
+Prepared (commit `67f3a05e`, source-locked to
+`2163171bbbf98015fe741b445fc9e1dd3e1794aa`, schema `siam_nb4_chtc_action_v5`,
+2 CPU / 2 GB / 40 GB / `+MaxRuntime 43200`, `requirements = TARGET.HasSIF`):
 
-Do not run new SIAM jobs from this section: they would extend the old
-scoring rule, not the current method. The steps below stay only as the
-record of how the pilot lineage is operated.
+| package | arm | action id | action sha256 |
+|---|---|---|---|
+| `chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_2163171b_20260905` | `avqds` | `siam-nb4-qc-avqds-screen-r00-cut1em02` | `f127a0d4a37c178b291af986cc59ff2e65132abe9698381471a0da798bf6a1f5` |
+| `chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_2163171b_20260905` | `exchange_q_compiled` | `siam-nb4-qc-full_apm-screen-r00-cut1em02` | `091a9e44aa10d7b0a866b2879519f29c7afb6fec15e31738a07035f9e75b102c` |
 
-1. Rescore the committed AVQDS t = 5 run (cluster 9714524) on this machine so
-   both arms share one exact-reference platform, then classify the pair.
-   The raw run is under `~/chtc_rescue/home/Holstein_siam_nb4_source_446b75f3_20260828/`
-   (find `*9714524*/run.json` or the `continue_*avqds*cut1em03` raw_outputs);
-   stitch it with its screen (`stitch_siam_nb4_segments`, seed
-   `chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json`),
-   `score_siam_raw_run` with `reference_store_root=output/siam_screening/nb4_pilot_v1/exact_references`,
-   then `classify_siam_matched_pair(avqds_score, exchange_score)`. Expected:
-   AVQDS still outside the broad guard (burden ≈ 1.8) → pair unmatched.
-2. Prepare the AVQDS r03 (cut 3.33e-4) screen package and, after it returns,
-   its continuation package; each is one `queue 1` job:
-   ```bash
-   PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -c "
-   from pipelines.time_dynamics.siam_chtc_package import prepare_siam_nb4_chtc_action as p
-   r=p(repo_root='.', package_dir='chtc/siam_nb4_avqds_screen_r03_cut3em04_source_d5590449_$(date +%Y%m%d)',
-       seed_path='chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json',
-       image_path='chtc/time_dynamics_optuna/image.sif', source_revision='d55904498125ca087ee8541772410f66c50a92b7',
-       action_id='siam-nb4-avqds-screen-r03-cut3em04', activation_cut=0.000333333333333, arm='avqds',
-       segment='screen_t0_t1_101', request_cpus=2, request_memory_gb=2, request_disk_gb=40, max_runtime_seconds=43200)
-   print(r.package_dir, r.action_sha256)"
-   ```
-   The continuation call is the same with `segment='continue_t1_t5_401'`,
-   `resume_from_run_json=<the fetched screen run.json>`,
-   `resume_action_receipt_json=<its action_receipt.json>`, and
-   `max_runtime_seconds=172800`. Expected wall: screen ~10 min, continuation
-   ~1 h 20 m, memory < 250 MB. Upload, "submit", monitor per §7, fetch,
-   stitch, score, classify. If the pair is then matched, the Nb = 4 result is
-   complete; if AVQDS is still outside the guard, the next rung is r04
-   (cut 1e-4), same procedure.
+Both share seed sha `5752bc1e…` (copied into each `input/seed.json`) and the
+compiled-Q route contract sha `7883d937…c356b1`.
 
-The SIAM packager requires a clean tree (`git diff --quiet <rev> -- pipelines src`
-and no untracked files under `pipelines/` or `src/`); commit before packaging.
+**8.1 Submit the two r00 screens** (after §3 upload; `submit` from the user):
+```bash
+ssh ap2001 'cd Holstein_paper_ii_regime_seeds_v1_20260905 && for p in chtc/siam_nb4_qc_*_source_2163171b_20260905; do python3 chtc/validate_condor_submit_lifecycle.py $p/submit.sub && echo LIFECYCLE_OK $p; done'
+ssh ap2001 'cd Holstein_paper_ii_regime_seeds_v1_20260905 && condor_submit chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_2163171b_20260905/submit.sub && condor_submit chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_2163171b_20260905/submit.sub'
+```
+Record both cluster ids; monitor per §7. Expected: AVQDS screen ≈ 10 min,
+< 300 MB; compiled-Q screen about 3× that (Nb = 2 ratio). Record the actual
+`RemoteWallClockTime` and `MemoryUsage` — they size the continuation.
+
+**8.2 Fetch, verify, score a finished segment** (`P` = its package dir,
+`A` = its action id, `LANE` = `avqds` or `full_apm`, `ARM` = `avqds` or
+`exchange_q_compiled`):
+```bash
+rsync -az ap2001:Holstein_paper_ii_regime_seeds_v1_20260905/raw_outputs/$P/ raw_outputs/$P/
+rsync -az ap2001:Holstein_paper_ii_regime_seeds_v1_20260905/$P/logs/ $P/logs/
+PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python - <<EOF
+import json
+from pipelines.time_dynamics.siam_chtc_package import validate_siam_nb4_completion_receipt
+from pipelines.time_dynamics.diagnostics.siam_exact_reference_store import SIAMExactReferenceStore
+from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
+    score_siam_raw_run, SIAM_NB4_FULL_TIMES, SIAM_NB4_SCREEN_TIMES, SIAM_NB4_CONTINUATION_TIMES)
+P, A, ARM = "$P", "$A", "$ARM"
+seed = f"{P}/input/seed.json"; run = f"raw_outputs/{P}/{A}/run.json"
+receipt = json.load(open(f"raw_outputs/{P}/{A}/action_receipt.json"))
+validate_siam_nb4_completion_receipt(receipt, expected_source_revision="2163171bbbf98015fe741b445fc9e1dd3e1794aa", expected_arm=ARM)
+store = SIAMExactReferenceStore("output/siam_screening/nb4_qc_v1/exact_references")
+full = store.get_or_build(seed_path=seed, times=SIAM_NB4_FULL_TIMES)      # already built here (key bc163af8…, 3 s, 115 MB); reused
+view = store.prefix_view(full, times=SIAM_NB4_SCREEN_TIMES) if "-screen-" in A else store.slice_view(full, times=SIAM_NB4_CONTINUATION_TIMES)
+score = score_siam_raw_run(run_path=run, seed_path=seed, reference_store_root=store.root, verified_reference=view)
+json.dump(score, open(f"raw_outputs/{P}/{A}/score.json", "w"), indent=2, sort_keys=True)
+s = score["summary"]; print(A, s["classification"], "burden", s["aggregate_accuracy_burden"], "broad_guard", s["broad_response_guard_pass"], "route", score["method"]["exchange_route_bundle"])
+EOF
+```
+The receipt validator and the scorer both fail closed on a wrong source
+revision, seed, grid or route; a failure is reported, never worked around.
+
+**8.3 Decide the next job for that arm** (each arm climbs on its own):
+
+| segment result | next action for that arm |
+|---|---|
+| screen `qualified` | prepare and submit the **continuation** of the same rung (8.4) |
+| screen not qualified (outside the broad guard or a target fails) | prepare and submit the **next rung's screen** (8.4, `r+1`) |
+| continuation `qualified` | stitch, estimator work, and — once the other arm also has a qualified t = 5 — classify the pair (8.5) |
+| continuation not qualified | next rung's screen for that arm |
+| r10 reached without qualifying | stop; report |
+
+**8.4 Prepare the next package** (commit first; the packager refuses a dirty
+`pipelines/` or `src/`; `SEG` is `screen_t0_t1_101` or `continue_t1_t5_401`,
+`CUT` the rung's cut from the ladder above, `REV` the branch head's full
+hash):
+```bash
+PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python - <<EOF
+from pathlib import Path
+from pipelines.time_dynamics.siam_chtc_package import prepare_siam_nb4_chtc_action
+from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+ROUTE = "paper_ii_exchange_q_compiled_v1"; LANE, ARM, SEG, CUT, REV = "$LANE", "$ARM", "$SEG", $CUT, "$REV"
+aid = siam_nb4_action_id(arm=LANE, segment=SEG, activation_cut=CUT, route_id=ROUTE)
+tok = aid.split("-")[-2] + "_" + aid.split("-")[-1]          # e.g. r01_cut3em03
+kind = "screen" if SEG.startswith("screen") else "continue"
+pkg = Path(f"chtc/siam_nb4_qc_{LANE}_{kind}_{tok}_source_{REV[:8]}_$(date +%Y%m%d)")
+extra = {}
+if kind == "continue":                                     # bind to the fetched screen
+    extra = dict(resume_from_run_json="raw_outputs/<screen package>/<screen action id>/run.json",
+                 resume_action_receipt_json="raw_outputs/<screen package>/<screen action id>/action_receipt.json")
+p = prepare_siam_nb4_chtc_action(repo_root=".", package_dir=pkg,
+    seed_path="chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_2163171b_20260905/input/seed.json",
+    image_path="chtc/time_dynamics_optuna/image.sif", source_revision=REV, action_id=aid,
+    activation_cut=CUT, arm=ARM, segment=SEG, route_id=ROUTE, request_cpus=2,
+    request_memory_gb=2, request_disk_gb=40,
+    max_runtime_seconds=43200 if kind == "screen" else 172800, **extra)
+print(p.package_dir, p.action_sha256)
+EOF
+```
+Set `request_memory_gb` to twice the screen's observed `MemoryUsage` (GB,
+rounded up) when that exceeds 1 GB. Validate with
+`chtc/validate_condor_submit_lifecycle.py <pkg>/submit.sub`, commit the
+package directory, rsync it with the same `-azR` form as §3, then ask for
+"submit". Continuations are 48 h bounded (`172800`), inside the 72 h hold.
+
+**8.5 Close a rung pair** (both arms have a qualified continuation):
+```bash
+PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python - <<EOF
+import json, subprocess
+from pipelines.time_dynamics.diagnostics.siam_segment_stitching import stitch_siam_nb4_segments
+from pipelines.time_dynamics.diagnostics.siam_offline_scoring import score_siam_raw_run, classify_siam_matched_pair
+SEED = "chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_2163171b_20260905/input/seed.json"
+OUT = "output/siam_screening/nb4_qc_v1"; scores = {}
+for arm, screen_run, cont_run in (("avqds", "<avqds screen run.json>", "<avqds continuation run.json>"),
+                                  ("exchange_q_compiled", "<full_apm screen run.json>", "<full_apm continuation run.json>")):
+    stitched = f"{OUT}/{arm}_t0_t5_501.json"
+    stitch_siam_nb4_segments([screen_run, cont_run], seed_path=SEED, output_path=stitched)
+    scores[arm] = score_siam_raw_run(run_path=stitched, seed_path=SEED, reference_store_root=f"{OUT}/exact_references")
+    json.dump(scores[arm], open(f"{OUT}/{arm}_t0_t5_501.score.json", "w"), indent=2, sort_keys=True)
+    subprocess.run(["/Users/lordskyler/Holstein_test/.venv/bin/python", "pipelines/time_dynamics/diagnostics/siam_estimator_work.py",
+                    "--trajectory-json", stitched, "--seed-json", SEED, "--arm", arm,
+                    "--output", f"{OUT}/{arm}_t0_t5_501.estimator_work.json"], check=True, env={"PYTHONPATH": "."})
+pair = classify_siam_matched_pair(scores["avqds"], scores["exchange_q_compiled"], expected_apm_route="paper_ii_exchange_q_compiled_v1")
+json.dump(pair, open(f"{OUT}/matched_pair.json", "w"), indent=2, sort_keys=True)
+m = pair["matched_accuracy"]; print(m["classification"], "ratio", m["burden_ratio"], {a: scores[a]["summary"]["aggregate_accuracy_burden"] for a in scores})
+EOF
+```
+`qualified_pair` → the Nb = 4 result is complete: commit the stitched
+trajectories, scores, estimator records and `matched_pair.json` under
+`chtc/siam_nb4_qc_result_<date>/` and report the two estimator-work totals.
+Ratio above 2.0 (pair unmatched) → the arm with the **larger** burden climbs
+one rung (8.4) and the other arm's t = 5 result is kept; classify again when
+the new t = 5 arrives.
 
 ## 9. Report back
 
@@ -270,9 +359,20 @@ Deviations: <anything done differently, and why>
 - Calibration seed convention: its scalar `dv = 0.25` is a uniform site
   potential, a constant −0.5 at half filling; every regime seed is built at
   `dv = 0`; errors and response scales are differences and unaffected.
-- Test baseline on the survey branch: 139 passed (six modules above plus the
-  installer and staged-campaign files); on the seeds branch 161 passed / 2
-  failed, both failures pre-existing on unmodified `main`.
+- SIAM on the compiled-Q route, this branch: engine `fc2de280` (empty-ansatz
+  `nq` fix, `selection_route_bundle`, `Arm.dynamics_policy`, SIAM arm
+  registration), runner fields `e23f35fe`, route identity through scorer /
+  ladder / stitcher / bindings `3d45cba1` `ccab8ada`, estimator adapter
+  `a2ab82ac` `543d4d48` `c90d6847`, packager v5 route lineage `26fd877f`,
+  Nb = 2 evidence `2163171b`, r00 packages `67f3a05e`.
+- SIAM Nb = 2 compiled-Q pair, this machine: AVQDS 55 s / 105 MB, compiled-Q
+  165 s / 166 MB (`--compile-workers 1`); exact reference key `03c64995…`,
+  data sha `aae315a4…`; score schema `siam_offline_accuracy_score_v4`.
+- Test baseline on the survey branch: 334 passed, 0 failed for the
+  §3 list; `test/test_staged_campaign_chtc.py` has 2 failures and
+  `test/test_siam_stable_bindings.py` 4, all pre-existing on unmodified `main`
+  (the latter read an untracked planner receipt that exists only in the main
+  checkout).
 - Image: sha256 `fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f`,
   216,371,200 B, from `~/chtc_rescue/home/Holstein_siam_nb4_source_ba50339c_20260828/chtc/time_dynamics_optuna/image.sif`.
 - Remote: `/home` had 4.9 GB headroom on 2026-09-03; no `/staging`; 138 held

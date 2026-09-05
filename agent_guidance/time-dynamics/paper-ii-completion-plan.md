@@ -716,6 +716,33 @@ deferred); D3 which lineage runs stage 2, because the results PDF's route
 survey branch from it and cherry-picking this branch's commits). Submission
 also waits on the SSH master and the words "submit stage 1".
 
+### SIAM moved onto the compiled-Q route (2026-09-05)
+
+User correction: the SIAM results above ran on the older exchange rule
+without the exact-estimator accounting; one more AVQDS run would not have
+completed a current-method comparison. Done on
+`fable/paper-ii-regime-survey-20260905` (commits fc2de280 … 67f3a05e):
+
+- engine: SIAM starts from an empty ansatz, so the compiled-cost runtime read
+  `nq = None` and every compiled-Q bundle died at the first checkpoint; fixed
+  via `state_num_qubits`. `Arm.dynamics_policy` separates the runner policy
+  (`exchange`/`avqds`) from the arm id; `exchange_q_compiled` is registered
+  for the Nb=2 proof pair and the Nb=4 ladder.
+- identity: every SIAM score (schema v4), ladder action id (route token
+  `qc`), stitch, binding and estimator record carries the route bundle;
+  `classify_siam_matched_pair(..., expected_apm_route=...)` refuses a
+  cross-route pair.
+- estimator accounting: `siam_estimator_work.py` gives
+  `logical_total_estimator_work` with exact status for any registered arm and
+  checks the run lock's route bundle.
+- packager: `prepare_siam_nb4_chtc_action(route_id=...)` emits v5 documents
+  for the compiled-Q lineage; the historical lineage's v4 bytes are frozen
+  by test.
+- evidence: Nb=2 compiled-Q pair `qualified_pair`, ratio 1.018, estimator
+  work AVQDS 967,888 vs compiled-Q 928,409 (`chtc/siam_nb2_proof_qc_v1/`).
+  Nb=4 r00 screen packages for both arms prepared, not submitted; the ladder
+  procedure is §8 of the CHTC handoff.
+
 ## STOP: the two Paper II sources diverged (2026-09-04)
 
 Landing the "notation revision" is **not a copy**. Both candidate sources branch
