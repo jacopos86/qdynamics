@@ -52,3 +52,15 @@ Decisions: none required. Fetches: none.
   - Singleton pass fraction of the angle bound over (checkpoint, coordinate) pairs at $c_\mu=1$: SIAM 2.1% at $2\times10^{-3}$, 22% at $5\times10^{-2}$, 40% at $10^{-1}$; HH 0.4%, 4.2%, 7.6%.
   - Consequence for the locked results: every deletion in Paper II's reported trajectories, maintenance included, removed a coordinate with $|\theta_\mu c_\mu|\lesssim2\times10^{-3}$.
 - Added `exchange_permission_ray_distance_max` (`--exchange-permission-ray-distance-max`), default None = the historical coupling, provenance byte-identical when undeclared; a declared value changes only the pre-permission bound, the post-refit certificates (Eqs. patch_ray_distance, patch_velocity_continuity) unchanged. Local sweep on strong--fast $t=0\to2$: control, $2\times10^{-2}$, $5\times10^{-2}$, $10^{-1}$ (`/tmp/perm_sweep/`). Adoption of a value is the user's decision.
+## 20260905T234500Z — pre-permission threshold sweep, strong--fast $t=0\to2$ (local, smoke controller)
+
+$(2.4,3)$, 51 points, profile `paper_declared_exchange_v1`, head `2c25b0bf`; control = threshold undeclared ($2\times10^{-3}$ coupling). Errors against the exact reference (`/tmp/perm_sweep/exact_references`), units $10^{-4}$.
+
+| $\tau_{\rm pre}$ | true exch. | at $t$ | $N_\theta$ | steps | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | permitted/evaluated | del.-bearing finalists tested/certified | post-refit ray rejections |
+|---|---:|---|---:|---:|---:|---:|---:|---|---|---|
+| $2\times10^{-3}$ (control) | 1 | 0.56 | 40 | 1130 | 91.2 | 15.5 | 20.2 | 29/469,720 | 8/8 | 0 |
+| $2\times10^{-2}$ | 2 | 0.12, 0.56 | 37 | 912 | 516 | 77.7 | 124 | 91/1,313,341 | 21/11 | 10 |
+| $5\times10^{-2}$ | 4 | 0.12, 0.16, 0.20, 0.60 | 34 | 792 | 571 | 143 | 145 | 1,431/1,002,149 | 147/16 | 131 |
+| $10^{-1}$ | 4 | 0.12, 0.16, 0.20, 0.84 | 27 | 776 | 15.5 | 10.4 | 6.78 | 4,229/1,102,044 | 207/14 | 193 |
+
+The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remains the authority: it rejected 131--193 deletion-bearing finalists once the pre-bound was widened. Accuracy is not monotone in $\tau_{\rm pre}$ on this horizon; one cell at $t=2$ under the smoke controller does not fix a value. Next: the same sweep at $t=20$ under the production $\delta\theta$ controller of the campaign cell (control = `9720203.8`, running on CHTC).
