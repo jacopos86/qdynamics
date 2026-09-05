@@ -88,6 +88,7 @@ class MatchedCellLock:
 
     path: Path
     sha256: str
+    campaign_id: str
     payload: Mapping[str, Any]
     cells: tuple[MatchedCell, ...]
     exclusions: tuple[tuple[str, str], ...]
@@ -199,7 +200,33 @@ def _verify_submission_evidence(payload: Mapping[str, Any]) -> None:
     )
 
 
-def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
+def lock_parameters(path: str | Path) -> dict[str, Any]:
+    """Return a lock's own declared identity and shape, without validating it.
+
+    A packager that must accept more than one lock reads its parameters here
+    and hands them straight back to :func:`load_lock`, so the loader still
+    fails closed on every check that is not the shape the lock declares about
+    itself.  Callers that intend a single fixed campaign pass nothing and get
+    the module constants.
+    """
+
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    routes = payload.get("selector_routes")
+    cells = payload.get("cells")
+    return {
+        "campaign_id": str(payload.get("campaign_id") or ""),
+        "expected_cell_count": len(cells) if isinstance(cells, list) else 0,
+        "expected_route_count": len(routes) if isinstance(routes, Mapping) else 0,
+    }
+
+
+def load_lock(
+    path: str | Path = LOCK_JSON,
+    *,
+    campaign_id: str = CAMPAIGN_ID,
+    expected_cell_count: int = EXPECTED_CELL_COUNT,
+    expected_route_count: int = EXPECTED_ROUTE_COUNT,
+) -> MatchedCellLock:
     """Read and validate the matched-cell lock, failing closed on drift."""
 
     lock_path = Path(path)
@@ -208,15 +235,15 @@ def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
     payload = json.loads(lock_path.read_text(encoding="utf-8"))
     _require(payload.get("schema") == LOCK_SCHEMA, "lock schema mismatch")
     _require(payload.get("status") == LOCK_STATUS, "lock status mismatch")
-    _require(payload.get("campaign_id") == CAMPAIGN_ID, "lock campaign_id mismatch")
+    _require(payload.get("campaign_id") == campaign_id, "lock campaign_id mismatch")
     _require("code_revision" not in payload, "lock must not pin a code_revision")
     _verify_submission_evidence(payload)
 
     raw_cells = payload.get("cells")
     _require(isinstance(raw_cells, list), "lock cells must be a list")
     _require(
-        len(raw_cells) == EXPECTED_CELL_COUNT,
-        f"lock must carry exactly {EXPECTED_CELL_COUNT} cells; got {len(raw_cells)}",
+        len(raw_cells) == expected_cell_count,
+        f"lock must carry exactly {expected_cell_count} cells; got {len(raw_cells)}",
     )
     cells: list[MatchedCell] = []
     seen_ids: set[str] = set()
@@ -312,14 +339,15 @@ def load_lock(path: str | Path = LOCK_JSON) -> MatchedCellLock:
 
     routes = payload["selector_routes"]
     _require(
-        len(routes) == EXPECTED_ROUTE_COUNT,
-        f"lock must bind exactly {EXPECTED_ROUTE_COUNT} selector routes",
+        len(routes) == expected_route_count,
+        f"lock must bind exactly {expected_route_count} selector routes",
     )
     selector_routes = {str(route_id): str(spec["arm"]) for route_id, spec in routes.items()}
 
     return MatchedCellLock(
         path=lock_path,
         sha256=str(file_sha256(lock_path)),
+        campaign_id=str(campaign_id),
         payload=payload,
         cells=tuple(cells),
         exclusions=tuple(exclusions),
@@ -444,7 +472,7 @@ def build_actions(
     source_package_sha256: str | None = None,
     execution_flags: Sequence[str] = (),
 ) -> tuple[dict[str, Any], ...]:
-    """Build exactly ``15 cells x 3 routes`` APM actions and zero comparators."""
+    """Build exactly ``cells x routes`` APM actions and zero comparators."""
 
     if source_package_sha256 is not None:
         source_package_sha256 = _bound_sha256(
@@ -483,7 +511,7 @@ def build_actions(
                 ).encode("utf-8")
             ).hexdigest()
             action_id = _action_id(cell, arm_id)
-            output_json = root / CAMPAIGN_ID / action_id / "run.json"
+            output_json = root / lock.campaign_id / action_id / "run.json"
             command = runs.build_run(
                 regime=str(bindings["regime"]),
                 arm=arm_id,
@@ -509,7 +537,7 @@ def build_actions(
             rows.append(
                 {
                     "schema": ACTIONS_SCHEMA,
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": lock.campaign_id,
                     "action_id": action_id,
                     "cell_id": cell.cell_id,
                     "drive": cell.drive,
@@ -539,10 +567,9 @@ def build_actions(
                     "source_package_sha256": source_package_sha256,
                 }
             )
-    if len(rows) != EXPECTED_CELL_COUNT * EXPECTED_ROUTE_COUNT:
-        raise MatchedCellLockError(
-            f"expected {EXPECTED_CELL_COUNT * EXPECTED_ROUTE_COUNT} actions; got {len(rows)}"
-        )
+    expected = len(lock.cells) * len(routes)
+    if len(rows) != expected:
+        raise MatchedCellLockError(f"expected {expected} actions; got {len(rows)}")
     ids = [row["action_id"] for row in rows]
     if len(set(ids)) != len(ids):
         raise MatchedCellLockError("action ids are not unique")
@@ -571,10 +598,18 @@ def prepare(
     lock_json: str | Path = LOCK_JSON,
     source_package_sha256: str | None = None,
     execution_flags: Sequence[str] = (),
+    campaign_id: str = CAMPAIGN_ID,
+    expected_cell_count: int = EXPECTED_CELL_COUNT,
+    expected_route_count: int = EXPECTED_ROUTE_COUNT,
 ) -> dict[str, Any]:
     """Validate the lock, build the actions, write the JSONL, and summarize."""
 
-    lock = load_lock(lock_json)
+    lock = load_lock(
+        lock_json,
+        campaign_id=campaign_id,
+        expected_cell_count=expected_cell_count,
+        expected_route_count=expected_route_count,
+    )
     seed_sha = _verify_seed(lock)
     routes = bind_selector_routes(lock.selector_routes)
     rows = build_actions(
@@ -587,7 +622,7 @@ def prepare(
     avqds_rows = [row for row in rows if row["method"] != "apm"]
     return {
         "schema": SUMMARY_SCHEMA,
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": lock.campaign_id,
         "status": LOCK_STATUS,
         "lock": {
             "path": str(lock.path),
@@ -691,6 +726,7 @@ __all__ = [
     "bind_selector_routes",
     "build_actions",
     "load_lock",
+    "lock_parameters",
     "main",
     "prepare",
     "write_actions_jsonl",

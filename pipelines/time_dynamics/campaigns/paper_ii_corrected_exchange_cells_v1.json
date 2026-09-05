@@ -1,5 +1,5 @@
 {
-  "adoption_note": "The fifteen cells, cuts, statuses, stitched source trajectories, run-lock fingerprints, exact references, and metrics are bound to the verified 371-row post-coverage ledger and promotion preview.",
+  "adoption_note": "The eleven cells, cuts, statuses, stitched source trajectories, run-lock fingerprints, exact references, and metrics are bound to the verified 371-row post-coverage ledger and promotion preview.",
   "adoption_status_vocabulary": {
     "source": "pipelines/time_dynamics/diagnostics/promotion_preview.py",
     "values": [
@@ -1596,6 +1596,7 @@
     "canonicalizer": "pipelines.time_dynamics.campaign._canonical_cut",
     "label_format": "{cut:.12g}"
   },
+  "exclusion_note": "Seven exclusions: the four combined-cap (state_motion_1e-3_plus_parameter_5e-5) cells withheld from this campaign per author direction, plus the three cells the parent paper_ii_final_matched_cells_v1 lock already excluded (midres and slowstrong on the combined controller, strongfast on state_motion_5e-5). The loader requires cells + exclusions to partition drives x controllers, so the inherited three are carried forward verbatim with the same reason.",
   "exclusions": [
     {
       "controller": "state_motion_1e-3_plus_parameter_5e-5",
@@ -1609,6 +1610,21 @@
     },
     {
       "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "midres",
+      "reason": "not_in_final_matched_set"
+    },
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "slowstrong",
+      "reason": "not_in_final_matched_set"
+    },
+    {
+      "controller": "state_motion_1e-3_plus_parameter_5e-5",
+      "drive": "strongfast",
+      "reason": "not_in_final_matched_set"
+    },
+    {
+      "controller": "state_motion_5e-5",
       "drive": "strongfast",
       "reason": "not_in_final_matched_set"
     },
@@ -1654,7 +1670,7 @@
     }
   },
   "grid": {
-    "cell_count": 15,
+    "cell_count": 11,
     "controllers": [
       "delta_theta_5e-5",
       "state_motion_1e-3_plus_parameter_5e-5",
@@ -1668,7 +1684,7 @@
       "strongfast",
       "fastfast"
     ],
-    "excluded_count": 3,
+    "excluded_count": 7,
     "relation": "cells + exclusions = drives x controllers"
   },
   "lock_id": "paper_ii_corrected_exchange_cells_v1",
