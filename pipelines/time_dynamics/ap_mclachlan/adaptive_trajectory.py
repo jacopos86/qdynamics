@@ -192,6 +192,12 @@ class SupportPatchControllerConfig:
     # None (default) is the unrestricted branch pool, i.e. the historical
     # search; a finite width is the declared exchange-face bound.
     exchange_insertion_frontier: int | None = None
+    # Threshold for the pre-permission ray bound on the unrefit deletion
+    # (Paper II Eq. deletion_ray_bound).  None (default) reuses the post-refit
+    # ray tolerance ``prune_ray_distance_tol``, the coupling every stored
+    # lineage ran under; a declared value is a separate pre-permission
+    # threshold and leaves the post-refit certificate unchanged.
+    exchange_permission_ray_distance_max: float | None = None
     prune_history_window: int = 3
     prune_history_lambda: float = 0.0
     prune_appended_origin_target_policy: str = PRUNE_TARGET_ALL_ACTIVE
@@ -345,6 +351,12 @@ class SupportPatchControllerConfig:
             and int(self.exchange_insertion_frontier) < 1
         ):
             raise ValueError("exchange_insertion_frontier must be at least 1.")
+        if self.exchange_permission_ray_distance_max is not None and not (
+            float(self.exchange_permission_ray_distance_max) > 0.0
+        ):
+            raise ValueError(
+                "exchange_permission_ray_distance_max must be positive."
+            )
         AppendCostSettings.from_config(self)
 
     def to_json_dict(self) -> dict[str, Any]:
@@ -477,6 +489,11 @@ class SupportPatchControllerConfig:
             # completed run still validates against a recomputed contract.
             payload["exchange_insertion_frontier"] = int(
                 self.exchange_insertion_frontier
+            )
+        if self.exchange_permission_ray_distance_max is not None:
+            # Same rule: undeclared leaves the provenance object byte-identical.
+            payload["exchange_permission_ray_distance_max"] = float(
+                self.exchange_permission_ray_distance_max
             )
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()

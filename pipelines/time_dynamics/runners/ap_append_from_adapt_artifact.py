@@ -2095,6 +2095,20 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--exchange-permission-ray-distance-max",
+        type=float,
+        default=None,
+        help=(
+            "Threshold for the pre-permission ray bound sin(min(pi/2, "
+            "sum_{mu in D} |theta_mu c_mu|)) on an unrefit deletion batch. "
+            "None (default) reuses the post-refit ray tolerance "
+            "--prune-ray-distance-tol, so only near-zero-angle coordinates "
+            "are ever deletable; a declared value is a separate "
+            "pre-permission threshold and leaves the post-refit ray and "
+            "velocity certificates unchanged."
+        ),
+    )
+    parser.add_argument(
         "--support-patch-scoring-workers",
         type=int,
         default=2,
@@ -2266,6 +2280,11 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             None
             if args.exchange_insertion_frontier is None
             else int(args.exchange_insertion_frontier)
+        ),
+        exchange_permission_ray_distance_max=(
+            None
+            if args.exchange_permission_ray_distance_max is None
+            else float(args.exchange_permission_ray_distance_max)
         ),
         append_schur_max_condition_number=(
             float(args.append_schur_max_condition_number)

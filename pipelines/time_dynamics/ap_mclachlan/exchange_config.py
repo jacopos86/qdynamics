@@ -231,6 +231,11 @@ class ExchangeEligibilityConfig:
     minimum_surviving_support: int
     protect_drive_aligned: bool
     allow_incomplete_candidate_pool: bool
+    # Threshold for the pre-permission ray bound on an unrefit deletion.
+    # None reuses the post-refit ray tolerance.  Serialized only when
+    # declared, so every pre-existing lineage keeps a byte-identical
+    # provenance object.
+    permission_ray_distance_max: float | None = None
 
 
 @dataclass(frozen=True)
@@ -289,6 +294,12 @@ class APGeneralizedExchangeConfig:
             and search.get("exchange_insertion_frontier") is None
         ):
             search.pop("exchange_insertion_frontier", None)
+        eligibility = payload.get("eligibility")
+        if (
+            isinstance(eligibility, dict)
+            and eligibility.get("permission_ray_distance_max") is None
+        ):
+            eligibility.pop("permission_ray_distance_max", None)
         return payload
 
     @classmethod
@@ -331,6 +342,12 @@ class APGeneralizedExchangeConfig:
                 protect_drive_aligned=bool(config.protect_drive_aligned_atoms),
                 allow_incomplete_candidate_pool=bool(
                     config.allow_incomplete_candidate_pool
+                ),
+                permission_ray_distance_max=(
+                    None
+                    if getattr(config, "exchange_permission_ray_distance_max", None)
+                    is None
+                    else float(config.exchange_permission_ray_distance_max)
                 ),
             ),
             certification=ExchangeCertificationConfig(
@@ -422,8 +439,22 @@ class APGeneralizedExchangeConfig:
         )
 
 
+def permission_ray_distance_max(config: "APGeneralizedExchangeConfig") -> float:
+    """Threshold applied to the pre-permission ray bound of an unrefit deletion.
+
+    An undeclared threshold reuses the post-refit ray tolerance, the coupling
+    every stored lineage ran under.
+    """
+
+    declared = config.eligibility.permission_ray_distance_max
+    if declared is None:
+        return float(config.certification.ray_distance_max)
+    return float(declared)
+
+
 __all__ = [
     "APGeneralizedExchangeConfig",
+    "permission_ray_distance_max",
     "COMPILE_BACKEND_NAME",
     "COMPILE_COORDINATE_WEIGHTS",
     "COMPILE_OPTIMIZATION_LEVEL",

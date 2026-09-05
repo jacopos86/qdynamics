@@ -68,6 +68,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
     ExchangeEligibilityConfig,
     ExchangeRouteBundle,
     ExchangeRouteConfig,
+    permission_ray_distance_max,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
@@ -199,7 +200,7 @@ def _build_deletion_permission_evaluator(
         norm_b_sq=float(evaluation.geometry.norm_b_sq),
         theta_runtime=np.asarray(theta_runtime, dtype=float),
         rotation_coefficients=_runtime_rotation_coefficient_l1(state),
-        ray_distance_max=float(exchange_config.certification.ray_distance_max),
+        ray_distance_max=permission_ray_distance_max(exchange_config),
         normalized_schur_loss_max=float(
             exchange_config.certification.velocity_change_max
         ),
