@@ -926,9 +926,16 @@ class Regime:
         return _Path(self.seed_path).exists()
 
 
-# The six-cell HH regime matrix (chtc/paper_ii_regime_seeds_v1/input/regimes.tsv).
-# The nph=7 cells are the expensive ones: 10 qubits against 8, and the three
-# strong-phonon seed builds died on a 24 GB memory limit on 2026-08-22.
+# The HH regime matrix (chtc/paper_ii_regime_seeds_v1/input/regimes.tsv): the
+# 2026-08-22 six-cell grid plus the 2026-09-04 anchor row at the published
+# calibration point (U=4, g_ep=0.5, n_ph=1), the only row that nests the locked
+# hh_snake_nph1 evidence. Seeds come from the frozen three-complete-layer
+# fixed-structure VQE (chtc/paper_ii_regime_seeds_v1/run_seed.sh, the
+# prospective HH seed policy). The earlier conditioning-stress search never
+# wrote an artifact at its 1e-4 gate (clusters 9663698 and 9674800: every
+# Pareto front was empty because no driven-snapshot fit reached 1e-6), and its
+# nph=7 rows were held at the 24 GB memory limit on 2026-08-22. The nph=7 cells
+# are 10 qubits against 8, 16x the state space of the locked evidence.
 _HH_REGIME_ROWS = (
     ("weak_weak", 0.25, 0.353553390593, 3),
     ("intermediate_weak", 1.25, 0.353553390593, 3),
@@ -936,6 +943,7 @@ _HH_REGIME_ROWS = (
     ("weak_strong", 0.25, 0.790569415042, 7),
     ("intermediate_strong", 1.25, 0.790569415042, 7),
     ("strong_strong_u8", 8.00, 0.790569415042, 7),
+    ("anchor_u4_g0p5_nph1", 4.00, 0.5, 1),
 )
 
 REGIMES: Mapping[str, Regime] = {

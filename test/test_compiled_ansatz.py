@@ -138,6 +138,88 @@ def test_compiled_ansatz_parity_per_pauli_term_mode():
     assert np.linalg.norm(psi_slow - psi_fast) < 1e-10
 
 
+def test_exact_reverse_energy_gradient_matches_centered_finite_difference() -> None:
+    from src.quantum.compiled_polynomial import (
+        compile_polynomial_action,
+        energy_via_one_apply,
+    )
+
+    terms = [
+        AnsatzTerm(
+            label="first",
+            polynomial=PauliPolynomial(
+                "JW",
+                [
+                    PauliTerm(2, ps="xx", pc=0.75),
+                    PauliTerm(2, ps="zy", pc=-0.4),
+                ],
+            ),
+        ),
+        AnsatzTerm(
+            label="second",
+            polynomial=PauliPolynomial(
+                "JW",
+                [
+                    PauliTerm(2, ps="xz", pc=0.3),
+                    PauliTerm(2, ps="yy", pc=0.65),
+                ],
+            ),
+        ),
+    ]
+    hamiltonian = PauliPolynomial(
+        "JW",
+        [
+            PauliTerm(2, ps="ze", pc=0.8),
+            PauliTerm(2, ps="ez", pc=-0.35),
+            PauliTerm(2, ps="xx", pc=0.25),
+        ],
+    )
+    theta = np.asarray([0.17, -0.23, 0.31, -0.11], dtype=float)
+    psi_ref = _random_state(2, seed=317)
+    executor = CompiledAnsatzExecutor(
+        terms,
+        coefficient_tolerance=1.0e-12,
+        ignore_identity=True,
+        sort_terms=True,
+        parameterization_mode="per_pauli_term",
+    )
+    compiled_h = compile_polynomial_action(
+        hamiltonian,
+        tol=1.0e-12,
+        pauli_action_cache=executor.pauli_action_cache,
+    )
+
+    energy, gradient, prepared = executor.energy_and_runtime_gradient(
+        theta,
+        psi_ref,
+        compiled_h,
+    )
+    np.testing.assert_allclose(
+        prepared,
+        executor.prepare_state(theta, psi_ref),
+        rtol=0.0,
+        atol=1.0e-13,
+    )
+
+    epsilon = 1.0e-7
+    finite_difference = np.empty_like(theta)
+    for index in range(theta.size):
+        plus = np.array(theta, copy=True)
+        minus = np.array(theta, copy=True)
+        plus[index] += epsilon
+        minus[index] -= epsilon
+        energy_plus, _ = energy_via_one_apply(
+            executor.prepare_state(plus, psi_ref), compiled_h
+        )
+        energy_minus, _ = energy_via_one_apply(
+            executor.prepare_state(minus, psi_ref), compiled_h
+        )
+        finite_difference[index] = (energy_plus - energy_minus) / (2.0 * epsilon)
+
+    assert np.isfinite(energy)
+    np.testing.assert_allclose(gradient, finite_difference, rtol=1.0e-6, atol=5.0e-8)
+
+
 def test_grouped_exact_large_dimension_path_matches_dense() -> None:
     poly = PauliPolynomial(
         "JW",

@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from pipelines.time_dynamics import paper_ii_runs as runs
 from pipelines.time_dynamics.campaigns import paper_ii_staged_accuracy_v1 as staged
 from pipelines.time_dynamics.staged_campaign import (
     AccuracyMetrics,
@@ -185,3 +188,47 @@ def test_apm_is_seeded_at_t5_then_reopens_after_matched_avqds_t20_scout() -> Non
     ]
     assert len(apm) == 1
     assert apm[0].horizon == "t20"
+
+
+def test_survey_campaign_binds_regime_and_shorter_promotion_horizon() -> None:
+    campaign = staged.build_campaign(
+        prior_root=None,
+        submission_policy_replay="componentwise_1e-4",
+        regime="anchor_u4_g0p5_nph1",
+        promotion_horizon="t10",
+    )
+    assert {cell.regime for cell in campaign.cells} == {"anchor_u4_g0p5_nph1"}
+    assert len(campaign.cells) == 36
+    assert (campaign.screen_horizon, campaign.promotion_horizon) == ("t5", "t10")
+    assert staged.campaign_id_for("anchor_u4_g0p5_nph1", "t10") == (
+        "paper_ii_staged_accuracy_euler_v1__anchor_u4_g0p5_nph1__t10"
+    )
+    assert staged.campaign_id_for(staged.DEFAULT_REGIME, staged.DEFAULT_PROMOTION_HORIZON) == (
+        staged.CAMPAIGN_ID
+    )
+    first = campaign.next_actions(CampaignLedger())
+    assert first and all(action.horizon == "t5" for action in first)
+    command = campaign.build_run_command(
+        first[0],
+        output_json="out/run.json",
+        numerics=staged.NUMERICS_ID,
+        gate=runs.MCLACHLAN_L2_GATE.gate_id,
+        search_profile=runs.PAPER_DECLARED_SEARCH.profile_id,
+    )
+    argv = command.argv()
+    assert argv[argv.index("--artifact-json") + 1] == runs.REGIMES[
+        "anchor_u4_g0p5_nph1"
+    ].seed_path
+
+
+def test_canonical_policy_refuses_a_regime_without_its_own_response_sidecar() -> None:
+    with pytest.raises(ValueError, match="exact-response sidecar"):
+        staged.build_campaign(prior_root=None, regime="weak_weak", promotion_horizon="t10")
+    with pytest.raises(KeyError, match="unknown regime"):
+        staged.build_campaign(prior_root=None, regime="not_a_regime")
+
+
+def test_default_campaign_is_unchanged_by_the_survey_parameters() -> None:
+    default = staged.build_campaign(prior_root=None)
+    assert {cell.regime for cell in default.cells} == {staged.DEFAULT_REGIME}
+    assert default.promotion_horizon == staged.DEFAULT_PROMOTION_HORIZON == "t20"

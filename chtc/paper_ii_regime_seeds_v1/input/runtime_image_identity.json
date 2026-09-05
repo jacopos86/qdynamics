@@ -1,0 +1,12 @@
+{
+  "image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "qiskit_compilation_authorized": false,
+  "requirements_expression": "TARGET.HasSIF",
+  "runtime_image_identity_sha256": "3257f469b62238e957bb420064a6d6f671f5ccf2cca5c4ce1dea08eb285fe871",
+  "runtime_kind": "apptainer_sif",
+  "schema": "paper_ii_runtime_image_identity_v1"
+}

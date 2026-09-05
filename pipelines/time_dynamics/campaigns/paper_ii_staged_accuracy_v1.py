@@ -65,6 +65,20 @@ from pipelines.time_dynamics.staged_campaign_chtc import (
 
 
 CAMPAIGN_ID = "paper_ii_staged_accuracy_euler_v1"
+# The locked calibration campaign runs the seed every measurement was taken on
+# to the t20 promotion horizon. A regime survey reuses the same staged machinery
+# for another registered regime and a shorter promotion horizon; its campaign id
+# and output root are suffixed so it can never be confused with the locked
+# ledger, and the canonical response-normalized policy stays bound to the
+# calibration seed's verified exact-response sidecar.
+DEFAULT_REGIME = "hh_snake_nph1"
+DEFAULT_PROMOTION_HORIZON = "t20"
+
+
+def campaign_id_for(regime: str, promotion_horizon: str) -> str:
+    if regime == DEFAULT_REGIME and promotion_horizon == DEFAULT_PROMOTION_HORIZON:
+        return CAMPAIGN_ID
+    return f"{CAMPAIGN_ID}__{regime}__{promotion_horizon}"
 PRIOR_ENERGY_TARGET = 1.0e-4
 ACCURACY_CEILING = 1.0e-4
 PREFERRED_ACCURACY_FLOOR = 1.0e-5
@@ -152,14 +166,32 @@ def build_campaign(
     *,
     prior_root: str | Path | None,
     submission_policy_replay: str = "canonical",
+    regime: str = DEFAULT_REGIME,
+    promotion_horizon: str = DEFAULT_PROMOTION_HORIZON,
 ) -> StagedCampaign:
+    if regime not in runs.REGIMES:
+        raise KeyError(f"unknown regime {regime!r}; known: {sorted(runs.REGIMES)}")
+    if promotion_horizon not in runs.HORIZONS:
+        raise KeyError(
+            f"unknown promotion horizon {promotion_horizon!r}; "
+            f"known: {sorted(runs.HORIZONS)}"
+        )
     cells = factorial_cells(
-        regime="hh_snake_nph1",
+        regime=regime,
         drives=DRIVE_IDS,
         controllers=CONTROLLER_IDS,
         methods=METHOD_IDS,
     )
     if submission_policy_replay == "canonical":
+        if regime != DEFAULT_REGIME:
+            raise ValueError(
+                "canonical response-normalized qualification is bound to the "
+                f"{DEFAULT_REGIME} exact-response sidecar "
+                f"({EXACT_RESPONSE_SCALES.name}); regime {regime!r} has no "
+                "verified sidecar. Bind one per regime through "
+                "response_scales.load_verified_response_scale_index, or run the "
+                "regime under submission_policy_replay='componentwise_1e-4'."
+            )
         accuracy_policy = AccuracyPolicy.response_normalized_matched_pair(
             response_scales=_response_scales(),
             response_relative_target=RESPONSE_RELATIVE_TARGET,
@@ -192,6 +224,7 @@ def build_campaign(
             minimum_threshold=1.0e-12,
             maximum_rungs_per_horizon=24,
         ),
+        promotion_horizon=promotion_horizon,
         comparator_first=True,
     )
 
@@ -200,8 +233,10 @@ def _load_ledger(path: Path) -> CampaignLedger:
     return CampaignLedger.read(path) if path.is_file() else CampaignLedger()
 
 
-def _action_output_path(output_root: Path, action: CellAction) -> Path:
-    return output_root / CAMPAIGN_ID / action.action_id / "run.json"
+def _action_output_path(
+    output_root: Path, action: CellAction, *, campaign_id: str = CAMPAIGN_ID
+) -> Path:
+    return output_root / campaign_id / action.action_id / "run.json"
 
 
 def _resolved_action(
@@ -226,15 +261,17 @@ def _next_payload(
     ledger: CampaignLedger,
     output_root: Path,
     search_profile: str,
+    campaign_id: str = CAMPAIGN_ID,
+    seed_path: str = SEED.artifact_json,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for action in campaign.next_actions(ledger):
         row = action.to_json_dict()
         if action.action != ACTION_RECORD_SAFEGUARD:
-            output = _action_output_path(output_root, action)
+            output = _action_output_path(output_root, action, campaign_id=campaign_id)
             command = campaign.build_run_command(
                 action,
-                seed_path=SEED.artifact_json,
+                seed_path=seed_path,
                 output_json=str(output),
                 numerics=NUMERICS_ID,
                 gate=runs.MCLACHLAN_L2_GATE.gate_id,
@@ -250,7 +287,7 @@ def _next_payload(
             )
         rows.append(row)
     return {
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": campaign_id,
         "stage": campaign.stage(ledger),
         "ledger_record_count": len(ledger.records),
         "action_count": len(rows),
@@ -310,6 +347,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--ledger", required=True, type=Path)
     parser.add_argument("--prior-root", type=Path)
     parser.add_argument(
+        "--regime",
+        choices=tuple(runs.REGIMES),
+        default=DEFAULT_REGIME,
+        help=(
+            "registered regime whose seed every cell starts from; anything but "
+            f"{DEFAULT_REGIME} is a survey campaign with a suffixed campaign id"
+        ),
+    )
+    parser.add_argument(
+        "--promotion-horizon",
+        choices=tuple(runs.HORIZONS),
+        default=DEFAULT_PROMOTION_HORIZON,
+        help="continuation horizon after the t5 screen (survey campaigns use t10)",
+    )
+    parser.add_argument(
         "--submission-policy-replay",
         choices=("canonical", "componentwise_1e-4"),
         default="canonical",
@@ -361,16 +413,21 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if (
         args.submission_policy_replay != "canonical"
+        and args.regime == DEFAULT_REGIME
         and args.command not in ("record", "record-package", "record-safeguard")
     ):
         parser.error(
             "a legacy --submission-policy-replay is permitted only for "
-            "ingesting already-submitted evidence"
+            "ingesting already-submitted evidence of the locked campaign"
         )
     campaign = build_campaign(
         prior_root=args.prior_root,
         submission_policy_replay=str(args.submission_policy_replay),
+        regime=str(args.regime),
+        promotion_horizon=str(args.promotion_horizon),
     )
+    campaign_id = campaign_id_for(str(args.regime), str(args.promotion_horizon))
+    default_seed_path = runs.REGIMES[str(args.regime)].seed_path
     ledger = _load_ledger(args.ledger)
     declared_policy = campaign.accuracy_policy.to_json_dict()
     if args.command == "reclassify":
@@ -383,7 +440,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "ledger": str(args.ledger),
                     "record_count": before,
                     "qualification_policy": declared_policy,
@@ -413,6 +470,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             ledger=ledger,
             output_root=args.output_root,
             search_profile=str(args.search_profile),
+            campaign_id=campaign_id,
+            seed_path=default_seed_path,
         )
         if args.action_dir is not None:
             _write_action_files(payload, args.action_dir)
@@ -432,11 +491,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.package_dir is None:
             parser.error("prepare-chtc requires --package-dir")
         prepared = prepare_staged_chtc_campaign(
-            campaign_id=CAMPAIGN_ID,
+            campaign_id=campaign_id,
             campaign=campaign,
             ledger=ledger,
             package_dir=args.package_dir,
-            seed_path=SEED.artifact_json if args.seed_json is None else args.seed_json,
+            seed_path=default_seed_path if args.seed_json is None else args.seed_json,
             numerics=NUMERICS_ID,
             gate=runs.MCLACHLAN_L2_GATE.gate_id,
             search_profile=str(args.search_profile),
@@ -448,7 +507,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "stage": campaign.stage(ledger),
                     "status": "PREPARED_NOT_SUBMITTED",
                     **prepared.to_json_dict(),
@@ -496,7 +555,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "ledger": str(args.ledger),
                     "ledger_record_count": len(ledger.records),
                     "next_stage": campaign.stage(ledger),
@@ -540,7 +599,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         json.dumps(
             {
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": campaign_id,
                 "ledger": str(args.ledger),
                 "ledger_record_count": len(ledger.records),
                 "next_stage": campaign.stage(ledger),
@@ -556,4 +615,11 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["CAMPAIGN_ID", "build_campaign", "main"]
+__all__ = [
+    "CAMPAIGN_ID",
+    "DEFAULT_PROMOTION_HORIZON",
+    "DEFAULT_REGIME",
+    "build_campaign",
+    "campaign_id_for",
+    "main",
+]

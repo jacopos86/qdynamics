@@ -218,6 +218,20 @@ class CompiledAnsatzExecutor:
                     )
             self._plans.append(plan)
 
+        runtime_steps: list[CompiledRotationStep] = []
+        if self.parameterization_mode == "per_pauli_term":
+            for plan in self._plans:
+                if int(plan.runtime_start) != len(runtime_steps):
+                    raise ValueError(
+                        "compiled per-Pauli runtime rotation sequence is not contiguous."
+                    )
+                runtime_steps.extend(plan.steps)
+            if len(runtime_steps) != int(self.runtime_parameter_count):
+                raise ValueError(
+                    "compiled per-Pauli runtime rotation sequence is incomplete."
+                )
+        self._runtime_steps = tuple(runtime_steps)
+
     @staticmethod
     def _normalize_invariant_basis_indices(
         indices: np.ndarray | None,
@@ -1140,6 +1154,88 @@ class CompiledAnsatzExecutor:
             for logical_idx in range(logical_count)
         }
         return np.asarray(psi, dtype=complex), tangents
+
+    def energy_and_runtime_gradient(
+        self,
+        theta: np.ndarray,
+        psi_ref: np.ndarray,
+        compiled_h: Any,
+    ) -> tuple[float, np.ndarray, np.ndarray]:
+        """Return energy, exact reverse-mode gradient, and prepared state.
+
+        This narrow reverse pass is for the ``per_pauli_term`` execution mode.
+        It differentiates the same ordered compiled rotations used by
+        :meth:`prepare_state`; no parameter-shift approximation or finite
+        difference enters.  The terminal cotangent is ``H|psi>`` and is
+        propagated through the adjoint suffix one rotation at a time, so the
+        work scales linearly in the number of runtime rotations instead of
+        requiring one full state preparation per coordinate.
+        """
+
+        if self.parameterization_mode != "per_pauli_term":
+            raise ValueError(
+                "energy_and_runtime_gradient requires "
+                "parameterization_mode='per_pauli_term'."
+            )
+        theta_vec = np.asarray(theta, dtype=float).reshape(-1)
+        runtime_count = int(self.runtime_parameter_count)
+        if int(theta_vec.size) != runtime_count:
+            raise ValueError(
+                f"theta length mismatch: got {theta_vec.size}, expected "
+                f"{runtime_count}."
+            )
+
+        psi = np.asarray(psi_ref, dtype=complex).reshape(-1).copy()
+        if self.nq is not None:
+            expected_dim = 1 << int(self.nq)
+            if int(psi.size) != expected_dim:
+                raise ValueError(
+                    f"psi_ref length mismatch: got {psi.size}, expected "
+                    f"{expected_dim} for nq={self.nq}."
+                )
+
+        if len(self._runtime_steps) != runtime_count:
+            raise ValueError("compiled runtime rotation sequence is incomplete.")
+        states_after = np.empty((runtime_count, int(psi.size)), dtype=complex)
+        for runtime_index, step in enumerate(self._runtime_steps):
+            angle = float(theta_vec[runtime_index])
+            if angle != 0.0:
+                psi = apply_exp_term(
+                    psi,
+                    step.action,
+                    coeff=complex(step.coeff_real),
+                    dt=angle,
+                    tol=self.coefficient_tolerance,
+                )
+            states_after[runtime_index, :] = psi
+
+        from src.quantum.compiled_polynomial import energy_via_one_apply
+
+        energy, terminal_cotangent = energy_via_one_apply(psi, compiled_h)
+        cotangent = np.asarray(terminal_cotangent, dtype=complex)
+        gradient = np.empty(runtime_count, dtype=float)
+        for runtime_index in range(runtime_count - 1, -1, -1):
+            step = self._runtime_steps[runtime_index]
+            state_after = states_after[runtime_index]
+            local_derivative = (
+                -1.0j
+                * float(step.coeff_real)
+                * apply_compiled_pauli(state_after, step.action)
+            )
+            gradient[runtime_index] = float(
+                2.0 * np.real(np.vdot(cotangent, local_derivative))
+            )
+            angle = float(theta_vec[runtime_index])
+            if angle != 0.0:
+                cotangent = apply_exp_term(
+                    cotangent,
+                    step.action,
+                    coeff=complex(step.coeff_real),
+                    dt=-angle,
+                    tol=self.coefficient_tolerance,
+                )
+
+        return float(energy), gradient, np.asarray(psi, dtype=complex)
 
 
 __all__ = ["CompiledAnsatzExecutor"]

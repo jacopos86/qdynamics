@@ -1,0 +1,24 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+%files
+    chtc/time_dynamics_optuna/requirements-chtc.txt /opt/requirements-chtc.txt
+
+%post
+    set -eux
+    # Keep the build wheel-only. Prior apt-based builds failed on CHTC because
+    # execute-node /tmp settings prevented apt signature temp files.
+    python -m pip install --upgrade pip setuptools wheel
+    python -m pip install --no-cache-dir -r /opt/requirements-chtc.txt
+    rm -f /opt/requirements-chtc.txt
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export OMP_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export VECLIB_MAXIMUM_THREADS=1
+    export NUMEXPR_NUM_THREADS=1
+
+%runscript
+    exec python "$@"

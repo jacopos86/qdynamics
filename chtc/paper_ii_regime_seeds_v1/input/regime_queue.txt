@@ -1,0 +1,7 @@
+weak_weak, 4GB
+intermediate_weak, 4GB
+strong_weak_u8, 4GB
+weak_strong, 16GB
+intermediate_strong, 16GB
+strong_strong_u8, 16GB
+anchor_u4_g0p5_nph1, 2GB
