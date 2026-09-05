@@ -15,3 +15,6 @@ Decisions: none required. Fetches: none.
 - resubmitted:   siam_nb4_qc_full_apm_screen_r00_cut1em02: cluster 9720212
 - `9720203`: 11/11 running; `.0` image 0.87→1.44 GB over 10 min (executing).
 
+## 20260905T214824Z — SIAM r00 second startup failure: source-lock mismatch (no further retry)
+
+- `9720211.0`, `9720212.0`: ExitCode 1 at 16 s / 11 s. `_verify_source_tree_contract` line 531: `SIAM source-tree bytes differ: pipelines/time_dynamics/campaigns/paper_ii_corrected_exchange_cells_v1.json`. The contract hashes file contents; the packages are locked to `a3d1cebe` while the uploaded tree is the branch head (campaign files changed at `a43bcd86`). Attempt 2 of 2 exhausted; not resubmitted. Fix is a rebuild of both packages on the uploaded tree's revision, not a retry.
