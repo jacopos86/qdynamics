@@ -62,9 +62,10 @@ PYTHONPATH=. /Users/lordskyler/Holstein_test/.venv/bin/python -m pytest test/tes
 Expected: 139 passed on the last line. Then stage the bundle remotely:
 ```bash
 ssh ap2001 'quota -s | tail -3; mkdir -p Holstein_paper_ii_regime_seeds_v1_20260905/{logs,raw_outputs}'
-rsync -az --exclude '.git' --exclude '__pycache__' --exclude '*.pyc' --exclude 'output' --exclude 'raw_outputs' --exclude 'logs' --exclude 'artifacts' --exclude 'chtc/time_dynamics_optuna/image.sif' \
-  pipelines src chtc/paper_ii_regime_seeds_v1 chtc/time_dynamics_optuna chtc/validate_condor_submit_lifecycle.py \
+rsync -azR --exclude '.git' --exclude '__pycache__' --exclude '*.pyc' --exclude 'output' --exclude 'raw_outputs' --exclude 'logs' --exclude 'artifacts' --exclude 'chtc/time_dynamics_optuna/image.sif' \
+  ./pipelines ./src ./chtc/paper_ii_regime_seeds_v1 ./chtc/time_dynamics_optuna ./chtc/validate_condor_submit_lifecycle.py \
   ap2001:Holstein_paper_ii_regime_seeds_v1_20260905/
+# -R keeps the chtc/ prefix on the remote side; the submit file and scripts address chtc/... paths.
 ssh ap2001 'for p in Holstein_siam_nb4_source_ba50339c_20260828 Holstein_siam_nb4_frontier_after_9712800_ebdf7ca5_20260827; do f=$HOME/$p/chtc/time_dynamics_optuna/image.sif; [ -f "$f" ] && { echo "$f"; sha256sum "$f"; break; }; done'
 ```
 If a remote copy prints sha `fa5c4ea8…`, symlink it; otherwise rsync the
@@ -183,7 +184,7 @@ Fetch before any other action on a finished job; never delete remote files.
 ## 8. SIAM (local except one CHTC pair)
 
 Worktree `/Users/lordskyler/Holstein_test.worktrees/siam-search-profiles-20260905`
-(branch `fable/siam-search-profiles-20260905`, base `d5590449` on
+(branch `fable/siam-search-profiles-20260905`, base `d5590449` (`d55904498125ca087ee8541772410f66c50a92b7`) on
 `origin/codex/paper-ii-search-profiles-20260824`, the only lineage whose
 runner output the SIAM scorer accepts and the lineage all committed r00–r07
 scores came from).
@@ -210,7 +211,7 @@ Remaining, in order:
    from pipelines.time_dynamics.siam_chtc_package import prepare_siam_nb4_chtc_action as p
    r=p(repo_root='.', package_dir='chtc/siam_nb4_avqds_screen_r03_cut3em04_source_d5590449_$(date +%Y%m%d)',
        seed_path='chtc/siam_nb4_full_apm_screen_r00_sigma_v2_epoch_ba50339c_source_74da5166_20260828/input/seed.json',
-       image_path='chtc/time_dynamics_optuna/image.sif', source_revision='d5590449',
+       image_path='chtc/time_dynamics_optuna/image.sif', source_revision='d55904498125ca087ee8541772410f66c50a92b7',
        action_id='siam-nb4-avqds-screen-r03-cut3em04', activation_cut=0.000333333333333, arm='avqds',
        segment='screen_t0_t1_101', request_cpus=2, request_memory_gb=2, request_disk_gb=40, max_runtime_seconds=43200)
    print(r.package_dir, r.action_sha256)"
