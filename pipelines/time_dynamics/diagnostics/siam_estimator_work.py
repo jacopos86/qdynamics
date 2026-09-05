@@ -366,7 +366,11 @@ def main(argv: Any = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trajectory-json", type=Path, required=True)
     parser.add_argument("--seed-json", type=Path)
-    parser.add_argument("--arm", required=True, choices=sorted(_ARM_ROUTES))
+    parser.add_argument(
+        "--arm",
+        required=True,
+        help="registered arm id (any key of paper_ii_runs.ARMS; unknown ids fail closed)",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     payload = build_siam_estimator_work_record(

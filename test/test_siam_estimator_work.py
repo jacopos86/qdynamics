@@ -388,3 +388,32 @@ def test_compiled_q_arm_is_admitted_but_bound_to_its_route_bundle(siam_smoke_run
     )
     assert record["arm"] == "exchange"
     assert record["exchange_route_bundle"] == "paper_ii_generalized_exchange_v2"
+
+
+def test_cli_admits_registered_arms_and_fails_closed_on_unknown_ids(
+    siam_smoke_runs, tmp_path: Path
+) -> None:
+    from pipelines.time_dynamics.diagnostics import siam_estimator_work as sew
+
+    out = tmp_path / "avqds.estimator_work.json"
+    rc = sew.main(
+        [
+            "--trajectory-json", str(siam_smoke_runs["avqds"]),
+            "--seed-json", str(siam_smoke_runs["seed"]),
+            "--arm", "avqds",
+            "--output", str(out),
+        ]
+    )
+    assert rc == 0
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["arm"] == "avqds"
+    assert record["exchange_route_bundle"] == sew.ROUTE_NOT_APPLICABLE
+    with pytest.raises(ValueError, match="unknown SIAM arm"):
+        sew.main(
+            [
+                "--trajectory-json", str(siam_smoke_runs["avqds"]),
+                "--seed-json", str(siam_smoke_runs["seed"]),
+                "--arm", "not_an_arm",
+                "--output", str(tmp_path / "x.json"),
+            ]
+        )
