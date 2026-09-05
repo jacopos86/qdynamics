@@ -89,11 +89,16 @@ ROUTE_TOKENS: Mapping[str, str | None] = {
 _HISTORICAL_BUNDLE_ID = EXCHANGE_ROUTE_BUNDLES[
     EXCHANGE_ROUTE_BUNDLE_HISTORICAL
 ].bundle_id
+# A registered route other than the historical one accepts exactly its own
+# bundle id, so the table stays derived from ``ROUTE_TOKENS`` and cannot drift
+# out of sync with it.
 _ACCEPTED_EXCHANGE_SCORE_ROUTES: Mapping[str, frozenset[str]] = {
-    ROUTE_HISTORICAL: frozenset(
-        {SIAM_ROUTE_HISTORICAL_UNRECORDED, _HISTORICAL_BUNDLE_ID}
-    ),
-    ROUTE_Q_COMPILED: frozenset({ROUTE_Q_COMPILED}),
+    route: (
+        frozenset({SIAM_ROUTE_HISTORICAL_UNRECORDED, _HISTORICAL_BUNDLE_ID})
+        if route == ROUTE_HISTORICAL
+        else frozenset({route})
+    )
+    for route in ROUTE_TOKENS
 }
 # The comparator arm is on no exchange route at all.  A pre-route AVQDS score
 # simply never recorded the field.
