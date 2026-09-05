@@ -364,3 +364,27 @@ def test_siam_estimator_work_rejects_a_stitch_marker_digest_mismatch(
         build_siam_estimator_work_record(
             target, seed_path=siam_smoke_runs["seed"], arm="exchange"
         )
+
+
+def test_compiled_q_arm_is_admitted_but_bound_to_its_route_bundle(siam_smoke_runs) -> None:
+    from pipelines.time_dynamics.diagnostics import siam_estimator_work as sew
+
+    arm_id, policy, bundle = sew._arm_binding("exchange_q_compiled")
+    assert (arm_id, policy, bundle) == (
+        "exchange_q_compiled", "exchange", "paper_ii_exchange_q_compiled_v1"
+    )
+    assert sew._arm_binding("exchange")[2] == "paper_ii_generalized_exchange_v2"
+    assert sew._arm_binding("avqds")[2] == sew.ROUTE_NOT_APPLICABLE
+    # The historical smoke run's lock records the historical bundle, so the
+    # compiled-Q arm label is refused on it: route identity is not inferable
+    # from the structural policy alone.
+    with pytest.raises(ValueError, match="route bundle"):
+        sew.build_siam_estimator_work_record(
+            siam_smoke_runs["exchange"], seed_path=siam_smoke_runs["seed"],
+            arm="exchange_q_compiled",
+        )
+    record = sew.build_siam_estimator_work_record(
+        siam_smoke_runs["exchange"], seed_path=siam_smoke_runs["seed"], arm="exchange"
+    )
+    assert record["arm"] == "exchange"
+    assert record["exchange_route_bundle"] == "paper_ii_generalized_exchange_v2"

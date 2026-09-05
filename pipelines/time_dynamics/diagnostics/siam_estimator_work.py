@@ -50,10 +50,36 @@ SIAM_ESTIMATOR_WORK_V1 = "siam_logical_estimator_work_v1"
 # selects an accounting branch; it does not assert a route-bundle identity for
 # the run.
 _APM_ACCOUNTING_ROUTE = "q_compiled"
-_ARM_ROUTES: Mapping[str, str] = {
-    "avqds": "avqds",
-    "exchange": _APM_ACCOUNTING_ROUTE,
-}
+ROUTE_NOT_APPLICABLE = "not_applicable"
+
+
+def _arm_binding(arm: str) -> tuple[str, str, str]:
+    """Resolve a registered arm to (arm_id, dynamics_policy, expected route bundle).
+
+    Every registered arm (``exchange``, ``exchange_q_compiled``, ``avqds``, ...)
+    is admitted; the run lock's ``structural_policy`` is compared with the arm's
+    dynamics policy, and for exchange-family arms the run lock's recorded route
+    bundle must equal the arm's registered ``--exchange-route-bundle`` (the
+    historical arm carries none and binds ``EXCHANGE_ROUTE_BUNDLE_HISTORICAL``).
+    """
+
+    from pipelines.time_dynamics import paper_ii_runs as _runs
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+        EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
+    )
+
+    arm_id = str(arm).strip().lower()
+    registered = _runs.ARMS.get(arm_id)
+    if registered is None:
+        raise ValueError(f"unknown SIAM arm {arm!r}; known: {sorted(_runs.ARMS)}")
+    if registered.is_comparator:
+        return arm_id, str(registered.dynamics_policy), ROUTE_NOT_APPLICABLE
+    flags = list(registered.flags)
+    if "--exchange-route-bundle" in flags:
+        bundle = str(flags[flags.index("--exchange-route-bundle") + 1])
+    else:
+        bundle = str(EXCHANGE_ROUTE_BUNDLE_HISTORICAL)
+    return arm_id, str(registered.dynamics_policy), bundle
 
 PHYSICAL_SHOTS_STATUS = "unavailable_statevector_no_shot_ledger"
 
@@ -192,12 +218,8 @@ def build_siam_estimator_work_record(
     :func:`complete_estimator_work`.
     """
 
-    arm_id = str(arm).strip().lower()
-    route = _ARM_ROUTES.get(arm_id)
-    if route is None:
-        raise ValueError(
-            f"unknown SIAM arm {arm!r}; known: {sorted(_ARM_ROUTES)}"
-        )
+    arm_id, dynamics_policy, expected_bundle = _arm_binding(arm)
+    route = "avqds" if dynamics_policy == "avqds" else _APM_ACCOUNTING_ROUTE
 
     trajectory_source = Path(trajectory_path)
     payload, trajectory_sha256 = _load_trajectory_snapshot(trajectory_source)
@@ -216,10 +238,26 @@ def build_siam_estimator_work_record(
         raise ValueError("SIAM estimator-work seed digest differs from its run lock.")
     policy = _mapping(run_lock.get("policy"), name="SIAM run-lock policy")
     locked_arm = str(policy.get("structural_policy", "")).strip().lower()
-    if locked_arm != arm_id:
+    if locked_arm != dynamics_policy:
         raise ValueError(
-            f"SIAM run lock declares structural policy {locked_arm!r}, not {arm_id!r}."
+            f"SIAM run lock declares structural policy {locked_arm!r}, not "
+            f"{dynamics_policy!r} (arm {arm_id!r})."
         )
+    guards = policy.get("guards") if isinstance(policy.get("guards"), Mapping) else {}
+    contract = guards.get("exchange_route_contract")
+    if expected_bundle == ROUTE_NOT_APPLICABLE:
+        locked_bundle = ROUTE_NOT_APPLICABLE
+    else:
+        locked_bundle = (
+            str(contract.get("bundle_id") or "")
+            if isinstance(contract, Mapping)
+            else ""
+        ) or "historical_unrecorded"
+        if locked_bundle != expected_bundle:
+            raise ValueError(
+                f"SIAM run lock records exchange route bundle {locked_bundle!r}, "
+                f"but arm {arm_id!r} requires {expected_bundle!r}."
+            )
 
     initial_state = _mapping(payload.get("initial_state"), name="SIAM initial state")
     final_state = _mapping(payload.get("final_state"), name="SIAM final state")
@@ -263,6 +301,8 @@ def build_siam_estimator_work_record(
         "parameterization_mode": "logical_shared",
         "arm": arm_id,
         "estimator_accounting_route": route,
+        "arm": arm_id,
+        "exchange_route_bundle": locked_bundle,
         "segment_role": segment["segment_role"],
         "segment_stitching": segment["segment_stitching"],
         "n_theta_terminal": n_theta_terminal,
