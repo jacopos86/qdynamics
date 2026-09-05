@@ -493,3 +493,70 @@ already meets by construction.
 
 This supersedes the "both metric controllers in the appendix" recommendation
 above: the state-vs-parameter comparison belongs in the main text.
+
+## Correction: "7 of 8 hold factor-two accuracy" was the wrong test (2026-09-04)
+
+The previous section applied the *aggregate* accuracy burden. The manuscript's
+declared rule (§\ref{sec:matched_comparison}) is stricter: both arms must
+qualify individually against the absolute safety ceilings **and** their
+**componentwise** response burdens must agree within a factor of two, over the
+three observable components (doublon, energy, max site occupation; infidelity
+is excluded). Reproduced against the stored
+`pairwise_accuracy.old_proxy__avqds.worst_component_ratio` for
+`weakslow__delta_theta_5e-5`: computed 1.8580, stored 1.8580.
+
+Under the declared rule the state-vs-parameter comparison is **4 of 8**, not
+7 of 8:
+
+| drive | route | both qualify | burden ratio | worst component | matched |
+|---|---|:---:|---:|---:|:---:|
+| fast--weak | realized-$\Gamma$ | yes | 1.30 | 1.66 | **yes** |
+| fast--weak | AVQDS | yes | 1.25 | 1.28 | **yes** |
+| mid-resonant | realized-$\Gamma$ | yes | 1.12 | **5.62** | no |
+| mid-resonant | AVQDS | yes | 1.26 | 1.55 | **yes** |
+| slow--strong | AVQDS | yes | 1.91 | 2.21 | no |
+| fast--fast | realized-$\Gamma$ | yes | 2.54 | 2.98 | no |
+| fast--fast | AVQDS | yes | 1.79 | 1.88 | **yes** |
+| weak--slow | AVQDS | **no** | 1.03 | 1.06 | no |
+
+### The manuscript's own published number fails this rule
+
+§5.3 currently reports mid-resonant realized-$\Gamma$ at $-53.9\%$ steps and
+$-58.0\%$ $W_{\rm geom}$. That pair has worst component ratio **5.62**, driven
+by normalized energy error $0.0086$ ($\delta\theta$) against $0.0484$ (state
+motion). Aggregate burden ratio is 1.12, which is why it looked matched. It is
+not matched under the declared rule, and §5.3 does not currently claim matched
+accuracy for it — it reports the infidelity change and stops. **The prose must
+not be upgraded to a matched-accuracy claim.**
+
+Note the rule's behavior here: it fails the pair because the $\delta\theta$ arm
+is unusually *accurate* on energy, not because state motion is inaccurate. That
+is a property of a ratio test and is not grounds for changing the rule
+post hoc.
+
+### What survives as a matched-accuracy claim
+
+| drive | route | steps | $W_{\rm geom}$ |
+|---|---|---:|---:|
+| fast--weak | realized-$\Gamma$ | $-29.8\%$ | $-22.4\%$ |
+| fast--weak | AVQDS | $-37.5\%$ | $-38.4\%$ |
+| mid-resonant | AVQDS | $-47.3\%$ | $-46.3\%$ |
+| fast--fast | AVQDS | $-26.6\%$ | $+26.8\%$ |
+
+**Three of four matched pairs reduce propagation work by 22.4--46.3%; the
+fourth increases it by 26.8%. Exactly one is realized-$\Gamma$.**
+
+The equal-nominal-cap results ($-58.0\%$, $-59.0\%$, and the $-76.6\%$
+weak--slow AVQDS point) remain reportable as equal-cap ablations, clearly
+labeled as such, which is what §5.3 does today. They are not matched-accuracy
+results.
+
+### Consequence for mainlining
+
+The 8-row table recommended above stays, but its caption must carry the
+declared-rule column and say plainly that 4 of 8 pairs are matched. Mainlining
+the comparison is still right; describing it as a matched-accuracy query
+reduction is not. To obtain a matched state-vs-parameter comparison at the
+strength the appendix ablation already has, the state cap would have to be
+retuned per drive the way $\epsilon_y$ was — that is new production work under
+the separation rule, not a re-read of existing artifacts.
