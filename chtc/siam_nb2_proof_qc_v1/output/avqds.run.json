@@ -44,7 +44,7 @@
     "parameterization_label": "per logical / macro generator",
     "parameterization_mode": "logical_shared",
     "provenance": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "electron_counts": {
         "down": 1,
         "up": 2
@@ -159,7 +159,7 @@
     ]
   },
   "fixed_vqe_conditioning_stress": {
-    "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+    "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
     "online_injection_used": false,
     "present": false,
     "route_family": null,
@@ -177,7 +177,7 @@
     "metadata": {
       "drive_source": "none",
       "runtime_provenance": {
-        "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+        "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
         "electron_counts": {
           "down": 1,
           "up": 2
@@ -236,7 +236,7 @@
     "parameterization_label": "per logical / macro generator",
     "parameterization_mode": "logical_shared",
     "provenance": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "electron_counts": {
         "down": 1,
         "up": 2
@@ -8579,7 +8579,7 @@
     "parameterization_mode": "logical_shared",
     "problem_family": "siam",
     "schema": "paper_ii_resume_state_v2",
-    "seed_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+    "seed_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
     "theta_logical": [
       -0.6069120972799865,
       -0.596852090064972,
@@ -8611,7 +8611,7 @@
     "time": 1.0
   },
   "run_lock": {
-    "code_revision": "566ef29bef56955086a4fdf7157d0b78d2468865",
+    "code_revision": "c90d68470d414252f6f1eab8c6c60565be52b187",
     "comparison_fingerprint": "ce85ee661be872d4801a6e2029829d5fe2ca20125068edd6d7b92ede1966e1cf",
     "numerics": {
       "integrator_method": "euler",
@@ -8665,7 +8665,7 @@
       "exact_reference_sha256": null,
       "family_key": "siam",
       "n_ph_max": null,
-      "seed_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "seed_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "seed_sha256": "8fd4f2f51db2eef3ab8f7a02102d1063fb25b944286a77fa0074c543303d4af9",
       "time_grid": {
         "ordered_values_sha256": "d8f605a92f793fe2048016c368730bc76216694c3b2137ab238dbcea3d062deb",
@@ -8761,7 +8761,7 @@
     }
   },
   "schema": "ap_mclachlan_append_from_adapt_artifact_v1",
-  "source_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+  "source_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
   "summary": {
     "accepted_append_count": 9,
     "accepted_appended_coordinate_count": 0,
@@ -8823,7 +8823,7 @@
     "final_site_occupations_abs_error_max": null,
     "final_site_occupations_exact": null,
     "fixed_vqe_conditioning_stress": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "online_injection_used": false,
       "present": false,
       "route_family": null,
@@ -9117,7 +9117,7 @@
     "inverse_policy_id": "supported_eigh_ridge_v1",
     "metadata": {
       "append_min_time": 0.0,
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "compile_workers": 1,
       "diagnostic_append_pool_mode": "none",
       "drive_aligned_ansatz_requested": true,

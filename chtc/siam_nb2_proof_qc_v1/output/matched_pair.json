@@ -11,14 +11,14 @@
       "broad_response_guard_pass": true,
       "g_E": 0.00048135783017393884,
       "individual_target_pass": true,
-      "score_sha256": "fd9462be16752e0775b3b3d4e500b77c1de9d4836b734ae954c5a2412c305555"
+      "score_sha256": "8ed6b22040c302f1cd812f087c2f47a8ced9c271e0fbdf03cac8407b83222ff7"
     },
     "full_apm": {
       "aggregate_accuracy_burden": 0.35890325778519067,
       "broad_response_guard_pass": true,
       "g_E": 0.0005454276292153136,
       "individual_target_pass": true,
-      "score_sha256": "3e127c5939e4e4ae042f4b4f62a418882785fa11c3e9640921caab3da7cee5eb"
+      "score_sha256": "dd505863d020e6162d13bf322c9cd129aa072c67e580f04da81c796f430d4290"
     }
   },
   "comparison_fingerprint": "ce85ee661be872d4801a6e2029829d5fe2ca20125068edd6d7b92ede1966e1cf",
@@ -55,6 +55,8 @@
     ]
   },
   "matched_accuracy": {
+    "apm_route": "paper_ii_exchange_q_compiled_v1",
+    "avqds_route": "not_applicable",
     "both_inside_broad_guard": true,
     "both_pass_energy_conservation": true,
     "both_pass_fidelity": true,
@@ -83,12 +85,12 @@
     "reporting_role": "offline_derived_from_checkpoint_statevectors",
     "schema": "siam_screening_observables_v2"
   },
-  "pair_sha256": "f18796ff9b56845bc54422e874fc46e098410d9913f83560ee76a3c32c5149c8",
+  "pair_sha256": "8c67d0f0cf6db5ca6b8996465eb6d41a8f2ab6efce892cac8385159d357dd41f",
   "reference": {
-    "data_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/reference.npz",
+    "data_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/reference.npz",
     "data_sha256": "aae315a4a61d847da72e979ab65c905b22bac5470a504ee1f166d00228bba08a",
     "key": "03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061",
-    "manifest_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/manifest.json",
+    "manifest_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/manifest.json",
     "manifest_sha256": "b5b9b3441704f3c8632f3d76a1eebc9ecb786e8bacf10805786708535445145c",
     "observable_schema": "siam_screening_observables_v2",
     "propagator_schema": "siam_exact_sector_eigh_v1",

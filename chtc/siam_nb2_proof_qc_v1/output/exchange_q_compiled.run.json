@@ -44,7 +44,7 @@
     "parameterization_label": "per logical / macro generator",
     "parameterization_mode": "logical_shared",
     "provenance": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "electron_counts": {
         "down": 1,
         "up": 2
@@ -155,7 +155,7 @@
     ]
   },
   "fixed_vqe_conditioning_stress": {
-    "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+    "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
     "online_injection_used": false,
     "present": false,
     "route_family": null,
@@ -173,7 +173,7 @@
     "metadata": {
       "drive_source": "none",
       "runtime_provenance": {
-        "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+        "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
         "electron_counts": {
           "down": 1,
           "up": 2
@@ -232,7 +232,7 @@
     "parameterization_label": "per logical / macro generator",
     "parameterization_mode": "logical_shared",
     "provenance": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "electron_counts": {
         "down": 1,
         "up": 2
@@ -8557,7 +8557,7 @@
     "parameterization_mode": "logical_shared",
     "problem_family": "siam",
     "schema": "paper_ii_resume_state_v2",
-    "seed_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+    "seed_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
     "theta_logical": [
       -0.5785140864975276,
       -0.0036363694315541054,
@@ -8587,7 +8587,7 @@
     "time": 1.0
   },
   "run_lock": {
-    "code_revision": "566ef29bef56955086a4fdf7157d0b78d2468865",
+    "code_revision": "c90d68470d414252f6f1eab8c6c60565be52b187",
     "comparison_fingerprint": "ce85ee661be872d4801a6e2029829d5fe2ca20125068edd6d7b92ede1966e1cf",
     "numerics": {
       "integrator_method": "euler",
@@ -8641,7 +8641,7 @@
       "exact_reference_sha256": null,
       "family_key": "siam",
       "n_ph_max": null,
-      "seed_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "seed_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "seed_sha256": "8fd4f2f51db2eef3ab8f7a02102d1063fb25b944286a77fa0074c543303d4af9",
       "time_grid": {
         "ordered_values_sha256": "d8f605a92f793fe2048016c368730bc76216694c3b2137ab238dbcea3d062deb",
@@ -8749,7 +8749,7 @@
     }
   },
   "schema": "ap_mclachlan_append_from_adapt_artifact_v1",
-  "source_artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+  "source_artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
   "summary": {
     "accepted_append_count": 10,
     "accepted_appended_coordinate_count": 0,
@@ -8812,7 +8812,7 @@
     "final_site_occupations_abs_error_max": null,
     "final_site_occupations_exact": null,
     "fixed_vqe_conditioning_stress": {
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "online_injection_used": false,
       "present": false,
       "route_family": null,
@@ -9117,7 +9117,7 @@
     "inverse_policy_id": "supported_eigh_ridge_v1",
     "metadata": {
       "append_min_time": 0.0,
-      "artifact_json": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+      "artifact_json": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
       "compile_workers": 1,
       "diagnostic_append_pool_mode": "none",
       "drive_aligned_ansatz_requested": true,
@@ -9805,17 +9805,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -9834,17 +9834,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -9860,7 +9860,7 @@
                 "cache_hits": 47,
                 "compile_calls": 28,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 1.4888867078116164,
+                "compile_seconds": 3.2612467520521022,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -11565,17 +11565,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -11594,17 +11594,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -11620,7 +11620,7 @@
                 "cache_hits": 66,
                 "compile_calls": 41,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 1.7809150759130716,
+                "compile_seconds": 3.6237634171848185,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -14011,17 +14011,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -14040,17 +14040,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -14066,7 +14066,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 1.0626465000095777,
+                "compile_seconds": 1.3621151249972172,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -14543,17 +14543,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -14572,17 +14572,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -14598,7 +14598,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.9664540420053527,
+                "compile_seconds": 1.6814777919789776,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -15237,17 +15237,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -15266,17 +15266,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -15292,7 +15292,7 @@
                 "cache_hits": 79,
                 "compile_calls": 54,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 2.256113419891335,
+                "compile_seconds": 4.751586165861227,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -17995,17 +17995,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -18024,17 +18024,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -18050,7 +18050,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.9395698750158772,
+                "compile_seconds": 2.1486082909977995,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -18535,17 +18535,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -18564,17 +18564,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -18590,7 +18590,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8629248749930412,
+                "compile_seconds": 1.920241125044413,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -19075,17 +19075,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -19104,17 +19104,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -19130,7 +19130,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.838222041958943,
+                "compile_seconds": 1.5747560409945436,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -19777,17 +19777,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -19806,17 +19806,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -19832,7 +19832,7 @@
                 "cache_hits": 102,
                 "compile_calls": 67,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 2.6337007918627933,
+                "compile_seconds": 4.766850336571224,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -23294,17 +23294,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -23323,17 +23323,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -23349,7 +23349,7 @@
                 "cache_hits": 134,
                 "compile_calls": 134,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 5.2961011687875725,
+                "compile_seconds": 8.175900078786071,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -29978,17 +29978,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -30007,17 +30007,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -30033,7 +30033,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8755447079893202,
+                "compile_seconds": 2.1157204160117544,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -30696,17 +30696,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -30725,17 +30725,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -30751,7 +30751,7 @@
                 "cache_hits": 150,
                 "compile_calls": 93,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 3.9615920862415805,
+                "compile_seconds": 6.154178875207435,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -34982,17 +34982,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -35011,17 +35011,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -35037,7 +35037,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8683077919995412,
+                "compile_seconds": 1.1519061249564402,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -35546,17 +35546,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -35575,17 +35575,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -35601,7 +35601,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8591659999801777,
+                "compile_seconds": 1.1232310410123318,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -36110,17 +36110,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -36139,17 +36139,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -36165,7 +36165,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8646270410390571,
+                "compile_seconds": 1.1519765830016695,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -36674,17 +36674,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -36703,17 +36703,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -36729,7 +36729,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8885447920183651,
+                "compile_seconds": 1.1071970000048168,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -37238,17 +37238,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -37267,17 +37267,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -37293,7 +37293,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8651689169928432,
+                "compile_seconds": 1.1322066250140779,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -37802,17 +37802,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -37831,17 +37831,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -37857,7 +37857,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 0.8167748749838211,
+                "compile_seconds": 1.4534018330159597,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -38368,17 +38368,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -38397,17 +38397,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -38423,7 +38423,7 @@
                 "cache_hits": 0,
                 "compile_calls": 1,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 1.0214334159973077,
+                "compile_seconds": 1.1551672089844942,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -39094,17 +39094,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -39123,17 +39123,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -39149,7 +39149,7 @@
                 "cache_hits": 173,
                 "compile_calls": 106,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 6.300234213646036,
+                "compile_seconds": 7.198872469423804,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -43966,17 +43966,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -43995,17 +43995,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -44021,7 +44021,7 @@
                 "cache_hits": 194,
                 "compile_calls": 119,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 5.449894416844472,
+                "compile_seconds": 8.329881758778356,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -49350,17 +49350,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -49379,17 +49379,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -49405,7 +49405,7 @@
                 "cache_hits": 217,
                 "compile_calls": 224,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 17.973268048313912,
+                "compile_seconds": 14.909034131269436,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -59234,17 +59234,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -59263,17 +59263,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -59289,7 +59289,7 @@
                 "cache_hits": 0,
                 "compile_calls": 4,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 2.3778480420005508,
+                "compile_seconds": 1.535826959006954,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -60188,17 +60188,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -60217,17 +60217,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -60243,7 +60243,7 @@
                 "cache_hits": 239,
                 "compile_calls": 344,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 27.142400052573066,
+                "compile_seconds": 22.283864994416945,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {
@@ -75478,17 +75478,17 @@
                         "instruction_durations_present": true,
                         "num_qubits": 156,
                         "operation_names": [
-                          "for_loop",
-                          "cz",
-                          "switch_case",
-                          "sx",
-                          "rz",
-                          "x",
+                          "id",
                           "delay",
                           "measure",
-                          "id",
+                          "for_loop",
+                          "if_else",
+                          "sx",
+                          "switch_case",
+                          "cz",
+                          "rz",
                           "reset",
-                          "if_else"
+                          "x"
                         ],
                         "target_present": true
                       },
@@ -75507,17 +75507,17 @@
                     "instruction_durations_present": true,
                     "num_qubits": 156,
                     "operation_names": [
-                      "for_loop",
-                      "cz",
-                      "switch_case",
-                      "sx",
-                      "rz",
-                      "x",
+                      "id",
                       "delay",
                       "measure",
-                      "id",
+                      "for_loop",
+                      "if_else",
+                      "sx",
+                      "switch_case",
+                      "cz",
+                      "rz",
                       "reset",
-                      "if_else"
+                      "x"
                     ],
                     "target_present": true
                   },
@@ -75533,7 +75533,7 @@
                 "cache_hits": 0,
                 "compile_calls": 2,
                 "compile_execution_mode": "spawn_pool_serial",
-                "compile_seconds": 1.8023335000616498,
+                "compile_seconds": 1.5852130410494283,
                 "compile_timeout_seconds": 300.0,
                 "compile_workers": 1,
                 "parent_blas_env_before_pool": {

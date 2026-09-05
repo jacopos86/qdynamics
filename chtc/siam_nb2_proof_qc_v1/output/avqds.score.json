@@ -102,8 +102,10 @@
     ]
   },
   "method": {
-    "code_revision": "566ef29bef56955086a4fdf7157d0b78d2468865",
+    "code_revision": "c90d68470d414252f6f1eab8c6c60565be52b187",
     "comparison_fingerprint": "ce85ee661be872d4801a6e2029829d5fe2ca20125068edd6d7b92ede1966e1cf",
+    "exchange_route_bundle": "not_applicable",
+    "exchange_route_contract_sha256": null,
     "physics_fingerprint": "efe9a033bd0aae4d8b7753a6e22e0ecec2b9290462552718c8ecc1a7911aa20c",
     "run_lock_schema": "paper_ii_run_lock_v4",
     "structural_policy": "avqds"
@@ -139,10 +141,10 @@
     }
   },
   "reference": {
-    "data_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/reference.npz",
+    "data_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/reference.npz",
     "data_sha256": "aae315a4a61d847da72e979ab65c905b22bac5470a504ee1f166d00228bba08a",
     "key": "03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061",
-    "manifest_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/manifest.json",
+    "manifest_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/manifest.json",
     "manifest_sha256": "b5b9b3441704f3c8632f3d76a1eebc9ecb786e8bacf10805786708535445145c",
     "observable_schema": "siam_screening_observables_v2",
     "propagator_schema": "siam_exact_sector_eigh_v1",
@@ -150,8 +152,8 @@
     "store_schema": "siam_exact_reference_store_v2"
   },
   "reporting_only": true,
-  "schema": "siam_offline_accuracy_score_v3",
-  "score_sha256": "fd9462be16752e0775b3b3d4e500b77c1de9d4836b734ae954c5a2412c305555",
+  "schema": "siam_offline_accuracy_score_v4",
+  "score_sha256": "8ed6b22040c302f1cd812f087c2f47a8ced9c271e0fbdf03cac8407b83222ff7",
   "series": {
     "absolute_error": {
       "C_1": [
@@ -1030,9 +1032,9 @@
   },
   "source": {
     "post_quench_hamiltonian_sha256": "13afb45989e536ef19c7269ede799fbc3dceb6304d5b5776a034049b3737f15b",
-    "run_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/output/avqds.run.json",
-    "run_sha256": "8cafbcb1771ddef48d69036e56dbfb8a31b10078a65efb5701592ef568c92fc0",
-    "seed_path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/f599e340-b770-44fe-be43-fb369d1136be/scratchpad/impl-siam-qc-engine/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
+    "run_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/output/avqds.run.json",
+    "run_sha256": "a7ceeff20d6c307cced403938216d1d170eada83b8e0df25a36cc3089bb2212b",
+    "seed_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/chtc/siam_nb2_proof_qc_v1/input/siam_nb2_seed.json",
     "seed_sha256": "8fd4f2f51db2eef3ab8f7a02102d1063fb25b944286a77fa0074c543303d4af9"
   },
   "summary": {
