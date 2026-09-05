@@ -377,3 +377,58 @@ Evidence status of the fresh 30/45 selector comparison remains `analysis only`;
 its calibration gate is `INCOMPLETE` (`benchmark_point_sameness` and
 `response_normalized_matched_accuracy` not run). Table I continues to draw on
 the locked cells, not that comparison.
+
+## Which controller maximizes APM's margin over AVQDS (2026-09-04)
+
+Question asked: on current results, which controller makes AP-McLachlan look
+best relative to AVQDS.
+
+**Answer: $\delta\theta$** — and the reason is that the state controller's work
+saving largely *cancels* against AVQDS, because both arms of a cell share the
+controller.
+
+### Ranked on the paper's own success criterion (matched accuracy)
+
+| controller | matched pairs | mean $N_{2q}$ reduction | mean $D_c$ reduction | mean $W$ reduction vs AVQDS |
+|---|---:|---:|---:|---:|
+| **$\delta\theta$** | **4** | **+53.4%** | **+58.9%** | +4.2% |
+| combined | 2 | +45.4% | +48.0% | +1.5% |
+| state motion | 2 | +32.6% | +30.8% | +4.7% |
+
+Per-cell $N_{2q}$: $\delta\theta$ = fast--weak 44.2, mid-res 32.9,
+**strong--fast 95.4**, fast--fast 41.3; state = fast--weak 35.6, mid-res 29.6.
+
+### Why the work axis does not separate them
+
+The controller applies to both arms, so the 48.8--54.8% realized-$\Gamma$
+estimator-work saving recorded above is matched by a 46.2% AVQDS saving.
+The *ratio* barely moves:
+
+| drive | $W_{\rm APM}/W_{\rm AVQDS}$, $\delta\theta$ | same, state motion |
+|---|---:|---:|
+| mid-resonant | 1.000 | 0.953 |
+| fast--fast | 1.158 | **0.410** |
+
+State motion's headline "+31.8% mean work advantage over all completed cells"
+comes almost entirely from fast--fast, where AVQDS's append-only support grew
+to 100 coordinates. **That cell fails the factor-two accuracy match**
+(burden ratio 3.74) and therefore cannot carry the claim. Excluding it, state
+motion's advantage over AVQDS is +4.7% on one cell — indistinguishable from
+$\delta\theta$'s +4.2% on three.
+
+Restated: the state controller is the better controller in absolute terms
+(verified, 46--55% work reduction on both policies), but it is not the
+controller that maximizes APM's *relative* margin, because AVQDS collects the
+same benefit.
+
+$W$ figures are from the fresh analysis-only comparison
+(`four_route_analysis_exact_20260904_partial45`), whose calibration gate is
+`INCOMPLETE`. $N_{2q}$/$D_c$ and every match flag are from locked Table I.
+
+### Selection-integrity note
+
+Choosing the main-text spine after seeing which subset flatters is post-hoc.
+It is defensible only if every completed cell still appears in the paper, with
+the non-flattering ones in the appendix rather than dropped — which is the
+structure already proposed. Under that constraint this is emphasis, not
+selective reporting. Cells must not be removed from Table I on this basis.
