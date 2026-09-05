@@ -816,3 +816,25 @@ $(0.3,1)$ cannot exercise the fix: its insertion face opens at only 69/266
 checkpoints and the corrected run admitted no $d\ge1$ rung there either.
 Artifacts: `/tmp/exch_test/sf_paper_declared_v1.json`,
 `/tmp/exch_test/sf_paper_declared_exchange_v1.json`.
+
+### Integrated head for the corrected campaign (2026-09-05)
+
+`claude/paper-ii-corrected-campaign-20260905` (worktree
+`claude-paper-ii-corrected-campaign`) = regime-survey head `823b6bd8` (SIAM on
+the compiled-Q route, exact estimator accounting) + the frontier repair
+resolved onto the compiled-Q selector (`3f3f89fd`) + the draft corrected lock
+(`8bd011fb`). This supersedes `c564f158` on `claude/paper-ii-main-results-20260904`
+for campaign purposes; that commit stays as the repair's clean-base reference.
+
+Resolution facts: frontier sealed on `priority_value`, permission-before-scoring
+preserved on frontier-bounded members, `None` path bitwise identical to `823b6bd8`
+over five scenarios, 634/0 lane tests, byte-identical `paper_declared_v1`
+provenance on both arms. Git had auto-merged three blocks without markers that
+still walked the old pool shape; fixed by hand.
+
+CHTC: staging dir `Holstein_paper_ii_corrected_exchange_v1_8bd011fb_20260905`
+created, image symlinked (sha `fa5c4ea8`). Remote headroom 8.85 GB after the
+authorized removal of three redundant staging dirs (all with exact local
+`run.json` counts in `chtc_rescue/home/`). `9720069.3/.4` (Codex's Euler
+anchors, source `426807d9`, APM arm -- defective search, evidence kept
+separate) running healthy; procs 0--2 exited 0.
