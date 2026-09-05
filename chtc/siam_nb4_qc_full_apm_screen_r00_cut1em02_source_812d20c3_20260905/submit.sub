@@ -1,0 +1,24 @@
+universe = vanilla
+executable = chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905/run_action_apptainer.sh
+arguments = siam-nb4-qc-full_apm-screen-r00-cut1em02
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs
+log = chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905/logs/siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0.$(Cluster).$(Process).log
+output = chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905/logs/siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0.$(Cluster).$(Process).out
+error = chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905/logs/siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 2GB
+request_disk = 40GB
++SIAMSourceEpochId = "siam-nb4-source-8d23dac9e14c08411400"
++SIAMScientificActionId = "siam-nb4-qc-full_apm-screen-r00-cut1em02"
++SIAMIntentionalSourceRebaseline = False
++MaxRuntime = 43200
++JobBatchName = "siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0"
+queue 1
