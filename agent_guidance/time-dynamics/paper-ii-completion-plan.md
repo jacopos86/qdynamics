@@ -794,3 +794,25 @@ exchange. The corrected batch is a NEW campaign under
 `paper_declared_exchange_v1`; the reported eleven cells stand as
 insertion-plus-separate-prune evidence. Handoff to Codex for CHTC
 resubmission issued 2026-09-05.
+
+### Smoke: first true exchange committed (2026-09-05)
+
+$(2.4,3)$, $t=0\to2$, 51 points, production `paper_declared_v1` settings
+(rk4, ridge $10^{-7}$, cap 50,000), APM `exchange` arm, local, both profiles:
+
+| profile | accepted | `singleton_d1` admitted | exchange attempts | exchange committed | $E_{\rm final}$ |
+|---|---:|---:|---:|---:|---:|
+| `paper_declared_v1` | 20 | 37/50 | 0 | 0 | 2.378711 |
+| `paper_declared_exchange_v1` | 23 | **50/50** | 1 | **1** | 2.265243 |
+
+Control admits `singleton_d1` only on delete-only checkpoints, where the
+family is $|{\rm rung}|$; on every full-face checkpoint it is refused at
+48,432--92,890 against the cap. Corrected admits it everywhere; the cap now
+binds at $d=3,4$ (44,640--237,336). The one exchange: point 14, $t=0.56$,
+removed coordinate 22, inserted `paop_dbl_x(site=0->phonon=1)::r3` at cut 29,
+reason `certified`. First true exchange any AP-McLachlan run has committed.
+
+$(0.3,1)$ cannot exercise the fix: its insertion face opens at only 69/266
+checkpoints and the corrected run admitted no $d\ge1$ rung there either.
+Artifacts: `/tmp/exch_test/sf_paper_declared_v1.json`,
+`/tmp/exch_test/sf_paper_declared_exchange_v1.json`.
