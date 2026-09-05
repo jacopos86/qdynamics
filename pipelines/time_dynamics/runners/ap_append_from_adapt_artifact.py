@@ -79,6 +79,12 @@ from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_SUPPORTED_PARAMETERIZATION_MODES,
     state_from_scaffold_runtime_input,
 )
+from pipelines.time_dynamics.ap_mclachlan.support_patch import (
+    PATCH_APPEND,
+    PATCH_DELETE,
+    PATCH_EXCHANGE,
+    PATCH_INSERT,
+)
 from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
     APPEND_OCCURRENCE_POLICIES,
     APPEND_OCCURRENCE_POLICY_LAYER_REUSE,
@@ -638,6 +644,58 @@ def _plot_rows(
             {} if selected_candidate is None else dict(selected_candidate.metadata or {})
         )
         patch_metadata = {**selected_metadata, **decision_metadata}
+        # Commit-kind telemetry consumed by
+        # diagnostics/siam_segment_stitching._row_costs.  Ported from the
+        # search-profiles lineage, which read per-checkpoint multi-commit keys
+        # (``checkpoint_commit_kinds`` and the ``*_by_kind`` coordinate maps).
+        # This branch's selector commits at most one patch per checkpoint and
+        # emits none of those keys, so every lookup below takes the lineage's
+        # own single-commit fallback: the kind tuple degenerates to the accepted
+        # ``patch_kind``, and the coordinate counts to the committed selection.
+        # The derivation is kept in the lineage's shape so that reinstating the
+        # multi-commit keys needs no change here.  One deliberate deviation: the
+        # lineage read the two PATCH_EXCHANGE coordinate counts straight out of
+        # the by-kind maps with no fallback, which would pin them to zero on this
+        # branch and silently zero the exchange columns of the stitched cost
+        # table.  They take the same single-commit fallback as the append and
+        # delete counts here.
+        committed_patch = dict(patch_metadata.get("committed", {}) or {})
+        committed_insertions = tuple(
+            committed_patch.get("inserted_selection", ()) or ()
+        )
+        committed_removals = tuple(
+            committed_patch.get("removed_runtime_indices", ()) or ()
+        )
+        effective_inserted_count = (
+            int(patch_metadata["checkpoint_inserted_coordinate_count"])
+            if patch_metadata.get("checkpoint_inserted_coordinate_count") is not None
+            else (
+                int(selected_score.inserted_count)
+                if selected_score is not None
+                else int(len(committed_insertions))
+            )
+        )
+        effective_removed_count = (
+            int(patch_metadata["checkpoint_deleted_coordinate_count"])
+            if patch_metadata.get("checkpoint_deleted_coordinate_count") is not None
+            else (
+                int(len(selected_score.removed_runtime_indices))
+                if selected_score is not None
+                else int(len(committed_removals))
+            )
+        )
+        checkpoint_commit_kinds = tuple(
+            str(kind)
+            for kind in (patch_metadata.get("checkpoint_commit_kinds", ()) or ())
+        )
+        if not checkpoint_commit_kinds and bool(decision.accepted):
+            checkpoint_commit_kinds = (str(decision.patch_kind),)
+        inserted_by_kind = dict(
+            patch_metadata.get("checkpoint_inserted_coordinates_by_kind", {}) or {}
+        )
+        deleted_by_kind = dict(
+            patch_metadata.get("checkpoint_deleted_coordinates_by_kind", {}) or {}
+        )
         selected_cost = (
             {}
             if selected_candidate is None
@@ -810,6 +868,60 @@ def _plot_rows(
                 "logical_parameter_count": int(point.logical_parameter_count),
                 "patch_kind": str(decision.patch_kind),
                 "patch_accepted": bool(decision.accepted),
+                "patch_commit_count": int(len(checkpoint_commit_kinds)),
+                "patch_commit_kinds": list(checkpoint_commit_kinds),
+                "patch_append_commit_count": int(
+                    sum(
+                        1
+                        for kind in checkpoint_commit_kinds
+                        if kind in {PATCH_APPEND, PATCH_INSERT}
+                    )
+                ),
+                "patch_delete_commit_count": int(
+                    sum(1 for kind in checkpoint_commit_kinds if kind == PATCH_DELETE)
+                ),
+                "patch_exchange_commit_count": int(
+                    sum(1 for kind in checkpoint_commit_kinds if kind == PATCH_EXCHANGE)
+                ),
+                "patch_append_inserted_coordinate_count": int(
+                    sum(
+                        int(inserted_by_kind.get(kind, 0) or 0)
+                        for kind in {PATCH_APPEND, PATCH_INSERT}
+                    )
+                    if inserted_by_kind
+                    else (
+                        effective_inserted_count
+                        if str(decision.patch_kind) in {PATCH_APPEND, PATCH_INSERT}
+                        else 0
+                    )
+                ),
+                "patch_exchange_inserted_coordinate_count": int(
+                    inserted_by_kind.get(PATCH_EXCHANGE, 0) or 0
+                    if inserted_by_kind
+                    else (
+                        effective_inserted_count
+                        if str(decision.patch_kind) == PATCH_EXCHANGE
+                        else 0
+                    )
+                ),
+                "patch_delete_deleted_coordinate_count": int(
+                    deleted_by_kind.get(PATCH_DELETE, 0)
+                    if deleted_by_kind
+                    else (
+                        effective_removed_count
+                        if str(decision.patch_kind) == PATCH_DELETE
+                        else 0
+                    )
+                ),
+                "patch_exchange_deleted_coordinate_count": int(
+                    deleted_by_kind.get(PATCH_EXCHANGE, 0) or 0
+                    if deleted_by_kind
+                    else (
+                        effective_removed_count
+                        if str(decision.patch_kind) == PATCH_EXCHANGE
+                        else 0
+                    )
+                ),
                 "patch_selected_label": decision.selected_label,
                 "patch_reason": str(decision.reason),
                 "patch_candidate_count": int(decision.candidate_count),
@@ -1246,6 +1358,14 @@ def _summary_from_rows(
                 1
                 for row in rows
                 if bool(row.get("integration_local_subdivision_applied", False))
+            )
+        ),
+        "uncured_local_subdivision_count": int(
+            sum(
+                1
+                for row in rows
+                if "not_cured"
+                in str(row.get("integration_local_subdivision_reason") or "")
             )
         ),
         "accepted_internal_substep_count": int(
