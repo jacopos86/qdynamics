@@ -591,3 +591,85 @@ name, and §\ref{sec:evidence_scope} should state it explicitly rather than
 leave it inferable from the seed name. The SIAM Nb=2 proof pair is the
 ready-made generality answer, but it is new production work under the
 separation rule and Paper III already consumes that lane.
+
+## SIAM dimension, regime coverage, and the CHTC handoff (2026-09-04)
+
+### SIAM is not larger at Nb=2; it is larger at Nb=4
+
+`SIAMLayout`: `modes_per_spin = n_bath + 1`, `n_qubits = 2 * modes_per_spin`.
+
+| system | qubits | Hilbert dim |
+|---|---:|---:|
+| Paper II locked Hubbard--Holstein ($L=2$, $n_{\rm ph}^{\max}=1$) | 6 | 64 |
+| SIAM $N_b=2$ | 6 | 64 |
+| SIAM $N_b=4$ | 10 | 1024 |
+
+SIAM $N_b=2$ is the same size as the published system, so it is a *generality*
+result, not a scale result. $N_b=4$ is 16$\times$ the state space.
+
+### The locked evidence is one Hamiltonian regime
+
+From `hh_snake_nph1.json` (`seed_sha256 7a36a2da...`), identical in all 15 cells:
+
+```text
+L = 2       t = 1.0      U = 4.0      g_ep = 0.5
+omega0 = 1.0             n_ph_max = 1
+boundary = open          boson_encoding = binary
+hilbert_dim = 64         num_qubits = 6      hamiltonian.num_terms = 17
+```
+
+Six *drives* $(A,\omega)$ were varied. **One coupling regime.** This is
+open decision #2 of P1, still unsettled.
+
+### A regime bundle is already staged and has never been submitted
+
+`chtc/paper_ii_regime_seeds_v1` — seed construction via
+`runners/build_fixed_vqe_conditioning_seed.py`, 6 jobs, 4 CPU / 24 GB / 40 GB
+disk / 24 h cap, `queue regime_id from input/regime_ids.txt`. No outputs exist
+anywhere in the tree.
+
+| regime_id | $U$ | $g_{\rm ep}$ | $n_{\rm ph}^{\max}$ | qubits |
+|---|---:|---:|---:|---:|
+| `weak_weak` | 0.25 | 0.3536 | 3 | 8 |
+| `intermediate_weak` | 1.25 | 0.3536 | 3 | 8 |
+| `strong_weak_u8` | 8.00 | 0.3536 | 3 | 8 |
+| `weak_strong` | 0.25 | 0.7906 | 7 | 10 |
+| `intermediate_strong` | 1.25 | 0.7906 | 7 | 10 |
+| `strong_strong_u8` | 8.00 | 0.7906 | 7 | 10 |
+
+**Defect: the grid does not contain the published regime.** $U=4.0$ falls
+between `intermediate` (1.25) and `strong` (8.00); $g_{\rm ep}=0.5$ falls
+between the two $g$ columns; $n_{\rm ph}^{\max}=1$ appears in no row. Nothing
+in the new grid nests the existing evidence, so a referee cannot check that the
+seed-construction path reproduces the published point.
+
+**Decision (agent's call): add a seventh anchor row**
+`anchor_u4_g0p5_nph1` at $U=4.0$, $g_{\rm ep}=0.5$, $n_{\rm ph}^{\max}=1$. It
+is the cheapest job in the set (6 qubits) and it is the only row that makes the
+new seeds comparable to the locked one.
+
+### Blockers before this can be handed to Codex
+
+1. **`chtc/time_dynamics_optuna/image.sif` is absent from this checkout.** The
+   submit file names it in `transfer_input_files`. It is a container image and
+   correctly not in git; `chtc/time_dynamics_optuna/build_image.sh` is present.
+   The image must be built or fetched before submission.
+2. **The handoff is two stages, not one.** `paper_ii_regime_seeds_v1` produces
+   *seeds*. The dynamics campaign consumes them and cannot be materialized
+   until the seed SHA-256s return. Codex monitors stage 1, then generates
+   stage 2 from the returned seeds using an existing packager
+   (`prospective_apm_exchange_chtc_package.py`,
+   `prospective_avqds_trajectory_chtc_package.py`,
+   `prospective_exact_reference_chtc_package.py`).
+3. **Stage 2 must be segmented.** A pool hold at 72 h transfers nothing. The
+   locked $t=0\to20$ runs at 6 qubits already needed screen/continuation
+   staging; at 8--10 qubits with 16$\times$ the state space, whole-horizon jobs
+   will not exit normally. Stage 2 jobs must be bounded time segments that
+   terminate on their own, in the pattern of `SIAM_NB4_SCREEN_SEGMENT` /
+   `SIAM_NB4_CONTINUATION_SEGMENT`.
+
+### Separation-rule note
+
+These are production runs. Their configuration is fixed by the manifest before
+launch and is not adjusted after seeing results. Regime choice must be made now,
+not after the first returns.
