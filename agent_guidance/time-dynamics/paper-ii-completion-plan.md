@@ -889,3 +889,22 @@ either drop the exclude or re-upload `pipelines/artifacts/` afterward.
 Scheduled heartbeat `paper-ii-corrected-campaign-chtc-heartbeat` (every 6 h,
 runs only while the desktop app is open) now watches `9720203`, `9720211`,
 `9720212`, `9720069.3`.
+
+### Branch map for Paper II agents (2026-09-05)
+
+| what | where | head |
+|---|---|---|
+| manuscript | `AP-McLachlan---Paper-II`, branch `main` | `daa7ed5` (editor's uncommitted work present; not touched by the run agent) |
+| Table I/II and spectra generators (`pipelines/time_dynamics/diagnostics/q_compiled_manuscript_assets.py`, `paper_ii_response_spectra.py`) | Holstein_test `claude/paper-ii-main-results-20260904`, worktree `Holstein_test.worktrees/claude-paper-ii-main-results` | `c564f158` |
+| corrected campaign: frontier repair on the compiled-Q selector, campaign loader, packages, monitor log | `claude/paper-ii-corrected-campaign-20260905`, worktree `claude-paper-ii-corrected-campaign` | moves with the monitor log |
+
+The generators exist only on `main-results`. Do not merge the two Holstein
+branches during the campaign: the repair is present on both in two
+resolutions and the campaign source locks are fixed. One integration into
+`main` after the corrected results return.
+
+Live CHTC set: `9720203` (11 APM, corrected exchange), `9720216` (SIAM AVQDS
+r00), `9720217` (SIAM exchange r00, frontier), `9720069.3` (Codex anchor).
+Dead, no outputs: `9720204/9720205` (excluded `pipelines/artifacts/`),
+`9720211/9720212` (stale `a3d1cebe` lock). Standing submit authorization
+granted by the user 2026-09-05.
