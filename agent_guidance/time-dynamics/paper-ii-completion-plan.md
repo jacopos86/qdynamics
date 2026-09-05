@@ -838,3 +838,39 @@ authorized removal of three redundant staging dirs (all with exact local
 `run.json` counts in `chtc_rescue/home/`). `9720069.3/.4` (Codex's Euler
 anchors, source `426807d9`, APM arm -- defective search, evidence kept
 separate) running healthy; procs 0--2 exited 0.
+
+### Corrected campaign staged on CHTC — awaiting "submit" (2026-09-05)
+
+Branch `claude/paper-ii-corrected-campaign-20260905` @ `5d04df1d`:
+`a3d1cebe` SIAM frontier profile `siam_nb4_pilot_exchange_v1` + packager emits
+the flag; `8d5af122` SIAM r00 screens rebuilt; `a43bcd86` campaign loader
+parameterized (lock-owned `campaign_id`, cell/route counts from the lock);
+`4c9984b0` HH package; `5d04df1d` resources sized. Three refuters
+`fatal=false`; validation report `/tmp/paper_ii_packages_validation.md`.
+
+Remote: `~/Holstein_paper_ii_corrected_exchange_v1_4c9984b0_20260905/` on
+ap2001, image symlinked (`fa5c4ea8`), quota 32.3/40.96 GB.
+
+| package | source lock | jobs | cpu / mem / disk / MaxRuntime | remote check |
+|---|---|---:|---|---|
+| `chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/submit_apm.sub` | `a43bcd86` | 11 APM, 0 AVQDS (comparators reused from the exact-estimator campaign) | 9 / 12 GB / 40 GB / 172800 | LIFECYCLE_OK, dry-run 11 |
+| `chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_a3d1cebe_20260905/submit.sub` | `a3d1cebe` | 1 | 2 / 2 GB / 40 GB / 43200 | LIFECYCLE_OK, dry-run 1 |
+| `chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_a3d1cebe_20260905/submit.sub` | `a3d1cebe` | 1 | 2 / 2 GB / 40 GB / 43200 | LIFECYCLE_OK, dry-run 1 |
+
+Every APM argv: `--exchange-route-bundle paper_ii_exchange_q_compiled_v1
+--exchange-insertion-frontier 8 --max-joint-patch-evaluations 50000
+--ridge-lambda 1e-06 --integrator euler --t-final 20.0 --num-times 501`
+(the lock's `euler_ridge1e-6` numerics, as the original 15-cell campaign).
+Sizing basis: worst completed $t{=}20$ APM job 22.9 h / 9.8 GB
+(`9719355.28`); the frontier admits rungs the old search refused, so 12 GB and
+48 h. Submit commands (from the remote staging dir):
+
+```
+condor_submit chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/submit_apm.sub
+condor_submit chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_a3d1cebe_20260905/submit.sub
+condor_submit chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_a3d1cebe_20260905/submit.sub
+```
+
+Also: `9720069.4` (Codex anchor, source `426807d9`) finished and is fetched
+with sha verified (`7ccf5b33`); ingestion into Codex's ledger deferred.
+`9720069.3` still running.
