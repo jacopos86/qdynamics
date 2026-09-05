@@ -239,7 +239,11 @@ class CompiledCostRuntime:
         self.blocks = tuple(blocks)
         self.contract = contract
         self.backend, self.backend_provenance = _resolve_compile_backend_cached(contract)
-        self.nq = int(state.executor.nq)
+        # SIAM seeds start from an empty ansatz, where ``executor`` carries no
+        # qubit count; ``state_num_qubits`` falls back to log2 of the
+        # reference-state dimension.  Reading ``executor.nq`` directly made
+        # every compiled-cost bundle raise at the first checkpoint.
+        self.nq = int(cpc.state_num_qubits(state))
         self.ref_state = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
         self.base_terms = tuple(cpc.base_word(state))
         self.base_word_sha256 = cpc.word_key(
@@ -1678,7 +1682,12 @@ def select_generalized_exchange_patch(
     }
 
     payload: dict[str, Any] = {
+        # ``selection_policy`` names the selection *family* and is pinned to the
+        # v2 string that historical readers match on.  The closed route bundle
+        # actually in force is reported alongside it, so a compiled-Q run is not
+        # mislabelled as the historical route.
         "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
+        "selection_route_bundle": str(bundle.bundle_id),
         "generalized_exchange_domain": domain.to_json_dict(),
         "deletion_fallback_used": bool(deletion_fallback_used),
         "realized_candidate_l2": (

@@ -473,6 +473,17 @@ class Arm:
     required_step_control_id: str | None = None
     note: str = ""
 
+    @property
+    def dynamics_policy(self) -> str:
+        """The runner's ``--dynamics-policy`` value for this arm.
+
+        The runner admits exactly ``exchange`` and ``avqds``.  The arm id is a
+        finer label (route bundles share the exchange policy), so it is never a
+        policy value.
+        """
+
+        return "avqds" if self.is_comparator else "exchange"
+
 
 EXCHANGE = Arm(
     arm_id="exchange",
@@ -1172,7 +1183,7 @@ LOCKED_STRUCTURAL_POLICY: tuple[str, ...] = (
 SIAM_NB2_PROOF_HORIZON = Horizon("t1_26", 1.0, 26)
 
 SIAM_NB2_PROOF_ARMS: Mapping[str, Arm] = {
-    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS, EXCHANGE_Q_COMPILED)
 }
 
 SIAM_NB4_TIME_STEP = 1.0e-2
@@ -1188,7 +1199,7 @@ SIAM_NB4_CONTINUATION_TIMES: tuple[float, ...] = SIAM_NB4_FULL_TIMES[100:]
 SIAM_NB4_INITIAL_ACTIVATION_CUT = 1.0e-3
 
 SIAM_NB4_ARMS: Mapping[str, Arm] = {
-    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS, EXCHANGE_Q_COMPILED)
 }
 
 @dataclass(frozen=True)
@@ -1260,7 +1271,7 @@ class SIAMProofRunCommand:
         policy_flags = (
             ()
             if "--dynamics-policy" in self.arm.flags
-            else ("--dynamics-policy", self.arm.arm_id)
+            else ("--dynamics-policy", self.arm.dynamics_policy)
         )
         return (
             "--siam-seed-json", str(self.seed_path),
@@ -1329,7 +1340,8 @@ class SIAMNB4RunCommand:
         registered_arm = SIAM_NB4_ARMS.get(self.arm.arm_id)
         if registered_arm is None or self.arm != registered_arm:
             raise ValueError(
-                "SIAM Nb=4 supports only full exchange APM and AVQDS"
+                "SIAM Nb=4 supports only registered arms: "
+                f"{sorted(SIAM_NB4_ARMS)}"
             )
         if self.segment not in (
             SIAM_NB4_SCREEN_SEGMENT,
@@ -1365,11 +1377,14 @@ class SIAMNB4RunCommand:
             if not self.segment.requires_resume
             else ("--resume-from-run-json", str(self.resume_from_run_json))
         )
-        exchange_flags = self.arm.flags if self.arm.arm_id == "exchange" else ()
+        # Gate on the structural policy, not the arm id: every non-comparator
+        # arm is an exchange route and must keep its own flags (including
+        # --exchange-route-bundle) and the mclachlan_l2 insertion gate.
+        exchange_flags = () if self.arm.is_comparator else self.arm.flags
         exchange_gate_flags = (
-            ("--insertion-gate-mode", "mclachlan_l2")
-            if self.arm.arm_id == "exchange"
-            else ()
+            ()
+            if self.arm.is_comparator
+            else ("--insertion-gate-mode", "mclachlan_l2")
         )
         return (
             *resume_flags,
@@ -1382,7 +1397,7 @@ class SIAMNB4RunCommand:
             *exchange_gate_flags,
             "--insertion-l2-cut", cut,
             "--avqds-l2-cut", cut,
-            "--dynamics-policy", self.arm.arm_id,
+            "--dynamics-policy", self.arm.dynamics_policy,
             *exchange_flags,
             "--parameterization-mode", "logical_shared",
             "--append-occurrence-policy", "layer_reuse",

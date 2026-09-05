@@ -56,6 +56,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     select_generalized_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
     APGeneralizedExchangeConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
@@ -1340,7 +1341,17 @@ def run_append_mclachlan_trajectory(
         controller_resume_state=terminal_controller_resume_state,
         metadata={
             "trajectory_kind": "generalized_exchange_support_patch",
+            # Family label (pinned for historical readers) plus the closed route
+            # bundle actually in force, so compiled-Q runs are distinguishable.
             "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
+            "selection_route_bundle": str(
+                getattr(
+                    support_patch_config,
+                    "exchange_route_bundle",
+                    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
+                )
+                or EXCHANGE_ROUTE_BUNDLE_HISTORICAL
+            ),
             "uses_reference_for_decision": False,
             "uses_exact_reference_for_decision": False,
             "uses_future_exact_forecast_for_decision": False,

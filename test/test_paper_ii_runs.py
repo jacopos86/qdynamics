@@ -12,7 +12,17 @@ import pytest
 
 from pipelines.time_dynamics.paper_ii_runs import (
     ARMS,
+    AVQDS,
+    EXCHANGE,
+    EXCHANGE_GAMMA_COMPILED,
+    EXCHANGE_LEGACY_PROXY_FIXED,
+    EXCHANGE_Q_COMPILED,
     REGIMES,
+    SIAM_NB2_PROOF_ARMS,
+    SIAM_NB4_ARMS,
+    build_siam_nb2_proof_run,
+    build_siam_nb4_continuation_run,
+    build_siam_nb4_screen_run,
     SeedNotBuiltError,
     available_regimes,
     DRIVES,
@@ -380,3 +390,497 @@ def test_selector_bundle_arms_are_exchange_plus_one_closed_bundle() -> None:
                        regime="hh_snake_nph1", output_json="x.json").argv())
     )
     assert historical.exchange_route_bundle == "paper_ii_generalized_exchange_v2"
+
+
+# --- SIAM route arms -------------------------------------------------------
+#
+# The compiled-Q arm is EXCHANGE plus one --exchange-route-bundle, so it shares
+# the exchange *policy* while carrying a different arm id.  The SIAM commands
+# used to pass the arm id straight to --dynamics-policy (which admits only
+# exchange/avqds) and to gate the route flags on ``arm_id == "exchange"``, so a
+# bundle arm lost both its bundle flag and the mclachlan_l2 insertion gate.
+#
+# The frozen tuples below were captured from the pre-change code.  They exist so
+# that any drift in the historical exchange and avqds argv fails here rather
+# than silently changing what a locked SIAM run executes.
+
+FROZEN_NB2_EXCHANGE_ARGV: tuple[str, ...] = (
+    '--siam-seed-json',
+    'SEED.json',
+    '--t-final',
+    '1.0',
+    '--num-times',
+    '26',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--insertion-gate-mode',
+    'mclachlan_l2',
+    '--insertion-l2-cut',
+    '1.0e-3',
+    '--dynamics-policy',
+    'exchange',
+    '--debt-policy',
+    'drift_ranked',
+    '--prune-history-lambda',
+    '0.0',
+    '--prune-target-policy',
+    'all_active',
+    '--prune-ray-distance-tol',
+    '2.0e-3',
+    '--parameterization-mode',
+    'logical_shared',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+FROZEN_NB2_AVQDS_ARGV: tuple[str, ...] = (
+    '--siam-seed-json',
+    'SEED.json',
+    '--t-final',
+    '1.0',
+    '--num-times',
+    '26',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--dynamics-policy',
+    'avqds',
+    '--avqds-l2-cut',
+    '1.0e-3',
+    '--parameterization-mode',
+    'logical_shared',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+FROZEN_NB4_SCREEN_EXCHANGE_ARGV: tuple[str, ...] = (
+    '--siam-seed-json',
+    'SEED.json',
+    '--times',
+    '0.0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29,0.3,0.31,0.32,0.33,0.34,0.35000000000000003,0.36,0.37,0.38,0.39,0.4,0.41000000000000003,0.42,0.43,0.44,0.45,0.46,0.47000000000000003,0.48,0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.5700000000000001,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.6900000000000001,0.7000000000000001,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,0.8200000000000001,0.8300000000000001,0.84,0.85,0.86,0.87,0.88,0.89,0.9,0.91,0.92,0.93,0.9400000000000001,0.9500000000000001,0.96,0.97,0.98,0.99,1.0',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--insertion-gate-mode',
+    'mclachlan_l2',
+    '--insertion-l2-cut',
+    '0.001',
+    '--avqds-l2-cut',
+    '0.001',
+    '--dynamics-policy',
+    'exchange',
+    '--debt-policy',
+    'drift_ranked',
+    '--prune-history-lambda',
+    '0.0',
+    '--prune-target-policy',
+    'all_active',
+    '--prune-ray-distance-tol',
+    '2.0e-3',
+    '--parameterization-mode',
+    'logical_shared',
+    '--append-occurrence-policy',
+    'layer_reuse',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+FROZEN_NB4_SCREEN_AVQDS_ARGV: tuple[str, ...] = (
+    '--siam-seed-json',
+    'SEED.json',
+    '--times',
+    '0.0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25,0.26,0.27,0.28,0.29,0.3,0.31,0.32,0.33,0.34,0.35000000000000003,0.36,0.37,0.38,0.39,0.4,0.41000000000000003,0.42,0.43,0.44,0.45,0.46,0.47000000000000003,0.48,0.49,0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.5700000000000001,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.6900000000000001,0.7000000000000001,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,0.8200000000000001,0.8300000000000001,0.84,0.85,0.86,0.87,0.88,0.89,0.9,0.91,0.92,0.93,0.9400000000000001,0.9500000000000001,0.96,0.97,0.98,0.99,1.0',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--insertion-l2-cut',
+    '0.001',
+    '--avqds-l2-cut',
+    '0.001',
+    '--dynamics-policy',
+    'avqds',
+    '--parameterization-mode',
+    'logical_shared',
+    '--append-occurrence-policy',
+    'layer_reuse',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+FROZEN_NB4_CONTINUATION_EXCHANGE_ARGV: tuple[str, ...] = (
+    '--resume-from-run-json',
+    'PRIOR.json',
+    '--siam-seed-json',
+    'SEED.json',
+    '--times',
+    '1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.1300000000000001,1.1400000000000001,1.1500000000000001,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.26,1.27,1.28,1.29,1.3,1.31,1.32,1.33,1.34,1.35,1.36,1.37,1.3800000000000001,1.3900000000000001,1.4000000000000001,1.41,1.42,1.43,1.44,1.45,1.46,1.47,1.48,1.49,1.5,1.51,1.52,1.53,1.54,1.55,1.56,1.57,1.58,1.59,1.6,1.61,1.62,1.6300000000000001,1.6400000000000001,1.6500000000000001,1.6600000000000001,1.67,1.68,1.69,1.7,1.71,1.72,1.73,1.74,1.75,1.76,1.77,1.78,1.79,1.8,1.81,1.82,1.83,1.84,1.85,1.86,1.87,1.8800000000000001,1.8900000000000001,1.9000000000000001,1.9100000000000001,1.92,1.93,1.94,1.95,1.96,1.97,1.98,1.99,2.0,2.0100000000000002,2.02,2.0300000000000002,2.04,2.05,2.06,2.07,2.08,2.09,2.1,2.11,2.12,2.13,2.14,2.15,2.16,2.17,2.18,2.19,2.2,2.21,2.22,2.23,2.24,2.25,2.2600000000000002,2.27,2.2800000000000002,2.29,2.3000000000000003,2.31,2.32,2.33,2.34,2.35,2.36,2.37,2.38,2.39,2.4,2.41,2.42,2.43,2.44,2.45,2.46,2.47,2.48,2.49,2.5,2.5100000000000002,2.52,2.5300000000000002,2.54,2.5500000000000003,2.56,2.57,2.58,2.59,2.6,2.61,2.62,2.63,2.64,2.65,2.66,2.67,2.68,2.69,2.7,2.71,2.72,2.73,2.74,2.75,2.7600000000000002,2.77,2.7800000000000002,2.79,2.8000000000000003,2.81,2.82,2.83,2.84,2.85,2.86,2.87,2.88,2.89,2.9,2.91,2.92,2.93,2.94,2.95,2.96,2.97,2.98,2.99,3.0,3.0100000000000002,3.02,3.0300000000000002,3.04,3.0500000000000003,3.06,3.0700000000000003,3.08,3.09,3.1,3.11,3.12,3.13,3.14,3.15,3.16,3.17,3.18,3.19,3.2,3.21,3.22,3.23,3.24,3.25,3.2600000000000002,3.27,3.2800000000000002,3.29,3.3000000000000003,3.31,3.3200000000000003,3.33,3.34,3.35,3.36,3.37,3.38,3.39,3.4,3.41,3.42,3.43,3.44,3.45,3.46,3.47,3.48,3.49,3.5,3.5100000000000002,3.52,3.5300000000000002,3.54,3.5500000000000003,3.56,3.5700000000000003,3.58,3.59,3.6,3.61,3.62,3.63,3.64,3.65,3.66,3.67,3.68,3.69,3.7,3.71,3.72,3.73,3.74,3.75,3.7600000000000002,3.77,3.7800000000000002,3.79,3.8000000000000003,3.81,3.8200000000000003,3.83,3.84,3.85,3.86,3.87,3.88,3.89,3.9,3.91,3.92,3.93,3.94,3.95,3.96,3.97,3.98,3.99,4.0,4.01,4.0200000000000005,4.03,4.04,4.05,4.0600000000000005,4.07,4.08,4.09,4.1,4.11,4.12,4.13,4.14,4.15,4.16,4.17,4.18,4.19,4.2,4.21,4.22,4.23,4.24,4.25,4.26,4.2700000000000005,4.28,4.29,4.3,4.3100000000000005,4.32,4.33,4.34,4.3500000000000005,4.36,4.37,4.38,4.39,4.4,4.41,4.42,4.43,4.44,4.45,4.46,4.47,4.48,4.49,4.5,4.51,4.5200000000000005,4.53,4.54,4.55,4.5600000000000005,4.57,4.58,4.59,4.6000000000000005,4.61,4.62,4.63,4.64,4.65,4.66,4.67,4.68,4.69,4.7,4.71,4.72,4.73,4.74,4.75,4.76,4.7700000000000005,4.78,4.79,4.8,4.8100000000000005,4.82,4.83,4.84,4.8500000000000005,4.86,4.87,4.88,4.89,4.9,4.91,4.92,4.93,4.94,4.95,4.96,4.97,4.98,4.99,5.0',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--insertion-gate-mode',
+    'mclachlan_l2',
+    '--insertion-l2-cut',
+    '0.001',
+    '--avqds-l2-cut',
+    '0.001',
+    '--dynamics-policy',
+    'exchange',
+    '--debt-policy',
+    'drift_ranked',
+    '--prune-history-lambda',
+    '0.0',
+    '--prune-target-policy',
+    'all_active',
+    '--prune-ray-distance-tol',
+    '2.0e-3',
+    '--parameterization-mode',
+    'logical_shared',
+    '--append-occurrence-policy',
+    'layer_reuse',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+FROZEN_NB4_CONTINUATION_AVQDS_ARGV: tuple[str, ...] = (
+    '--resume-from-run-json',
+    'PRIOR.json',
+    '--siam-seed-json',
+    'SEED.json',
+    '--times',
+    '1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.1300000000000001,1.1400000000000001,1.1500000000000001,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.26,1.27,1.28,1.29,1.3,1.31,1.32,1.33,1.34,1.35,1.36,1.37,1.3800000000000001,1.3900000000000001,1.4000000000000001,1.41,1.42,1.43,1.44,1.45,1.46,1.47,1.48,1.49,1.5,1.51,1.52,1.53,1.54,1.55,1.56,1.57,1.58,1.59,1.6,1.61,1.62,1.6300000000000001,1.6400000000000001,1.6500000000000001,1.6600000000000001,1.67,1.68,1.69,1.7,1.71,1.72,1.73,1.74,1.75,1.76,1.77,1.78,1.79,1.8,1.81,1.82,1.83,1.84,1.85,1.86,1.87,1.8800000000000001,1.8900000000000001,1.9000000000000001,1.9100000000000001,1.92,1.93,1.94,1.95,1.96,1.97,1.98,1.99,2.0,2.0100000000000002,2.02,2.0300000000000002,2.04,2.05,2.06,2.07,2.08,2.09,2.1,2.11,2.12,2.13,2.14,2.15,2.16,2.17,2.18,2.19,2.2,2.21,2.22,2.23,2.24,2.25,2.2600000000000002,2.27,2.2800000000000002,2.29,2.3000000000000003,2.31,2.32,2.33,2.34,2.35,2.36,2.37,2.38,2.39,2.4,2.41,2.42,2.43,2.44,2.45,2.46,2.47,2.48,2.49,2.5,2.5100000000000002,2.52,2.5300000000000002,2.54,2.5500000000000003,2.56,2.57,2.58,2.59,2.6,2.61,2.62,2.63,2.64,2.65,2.66,2.67,2.68,2.69,2.7,2.71,2.72,2.73,2.74,2.75,2.7600000000000002,2.77,2.7800000000000002,2.79,2.8000000000000003,2.81,2.82,2.83,2.84,2.85,2.86,2.87,2.88,2.89,2.9,2.91,2.92,2.93,2.94,2.95,2.96,2.97,2.98,2.99,3.0,3.0100000000000002,3.02,3.0300000000000002,3.04,3.0500000000000003,3.06,3.0700000000000003,3.08,3.09,3.1,3.11,3.12,3.13,3.14,3.15,3.16,3.17,3.18,3.19,3.2,3.21,3.22,3.23,3.24,3.25,3.2600000000000002,3.27,3.2800000000000002,3.29,3.3000000000000003,3.31,3.3200000000000003,3.33,3.34,3.35,3.36,3.37,3.38,3.39,3.4,3.41,3.42,3.43,3.44,3.45,3.46,3.47,3.48,3.49,3.5,3.5100000000000002,3.52,3.5300000000000002,3.54,3.5500000000000003,3.56,3.5700000000000003,3.58,3.59,3.6,3.61,3.62,3.63,3.64,3.65,3.66,3.67,3.68,3.69,3.7,3.71,3.72,3.73,3.74,3.75,3.7600000000000002,3.77,3.7800000000000002,3.79,3.8000000000000003,3.81,3.8200000000000003,3.83,3.84,3.85,3.86,3.87,3.88,3.89,3.9,3.91,3.92,3.93,3.94,3.95,3.96,3.97,3.98,3.99,4.0,4.01,4.0200000000000005,4.03,4.04,4.05,4.0600000000000005,4.07,4.08,4.09,4.1,4.11,4.12,4.13,4.14,4.15,4.16,4.17,4.18,4.19,4.2,4.21,4.22,4.23,4.24,4.25,4.26,4.2700000000000005,4.28,4.29,4.3,4.3100000000000005,4.32,4.33,4.34,4.3500000000000005,4.36,4.37,4.38,4.39,4.4,4.41,4.42,4.43,4.44,4.45,4.46,4.47,4.48,4.49,4.5,4.51,4.5200000000000005,4.53,4.54,4.55,4.5600000000000005,4.57,4.58,4.59,4.6000000000000005,4.61,4.62,4.63,4.64,4.65,4.66,4.67,4.68,4.69,4.7,4.71,4.72,4.73,4.74,4.75,4.76,4.7700000000000005,4.78,4.79,4.8,4.8100000000000005,4.82,4.83,4.84,4.8500000000000005,4.86,4.87,4.88,4.89,4.9,4.91,4.92,4.93,4.94,4.95,4.96,4.97,4.98,4.99,5.0',
+    '--integrator',
+    'euler',
+    '--ridge-lambda',
+    '1e-06',
+    '--solve-damping',
+    '0.0',
+    '--pinv-rcond',
+    '1e-10',
+    '--solve-repair',
+    '--solve-repair-profile',
+    'minimal',
+    '--solve-repair-state-motion-l2-step-max',
+    '5.0e-5',
+    '--solve-repair-kink-eta-max',
+    '5.0e-3',
+    '--solve-repair-max-local-subdivisions',
+    '11',
+    '--fail-on-unsupported-steps',
+    '--max-structural-pool-size',
+    '64',
+    '--max-joint-patch-evaluations',
+    '50000',
+    '--max-certification-attempts-per-level',
+    '12',
+    '--max-certification-attempts-per-deletion-branch',
+    '2',
+    '--max-insertion-rounds-per-checkpoint',
+    '12',
+    '--max-insertion-batch-size',
+    '1',
+    '--no-append-schur-condition-gate',
+    '--insertion-l2-cut',
+    '0.001',
+    '--avqds-l2-cut',
+    '0.001',
+    '--dynamics-policy',
+    'avqds',
+    '--parameterization-mode',
+    'logical_shared',
+    '--append-occurrence-policy',
+    'layer_reuse',
+    '--record-statevector',
+    '--require-complete-candidate-pool',
+    '--progress-log-every',
+    '1',
+    '--code-revision',
+    'REV',
+    '--output-json',
+    'OUT.json',
+)
+
+
+def _nb2(arm: str) -> tuple[str, ...]:
+    return build_siam_nb2_proof_run(
+        seed_path="SEED.json",
+        arm=arm,
+        output_json="OUT.json",
+        code_revision="REV",
+    ).argv()
+
+
+def _nb4_screen(arm: str) -> tuple[str, ...]:
+    return build_siam_nb4_screen_run(
+        seed_path="SEED.json",
+        arm=arm,
+        output_json="OUT.json",
+        code_revision="REV",
+    ).argv()
+
+
+def _nb4_continuation(arm: str) -> tuple[str, ...]:
+    return build_siam_nb4_continuation_run(
+        seed_path="SEED.json",
+        arm=arm,
+        resume_from_run_json="PRIOR.json",
+        activation_cut=1.0e-3,
+        output_json="OUT.json",
+        code_revision="REV",
+    ).argv()
+
+
+@pytest.mark.parametrize(
+    "actual, frozen",
+    [
+        (_nb2("exchange"), FROZEN_NB2_EXCHANGE_ARGV),
+        (_nb2("avqds"), FROZEN_NB2_AVQDS_ARGV),
+        (_nb4_screen("exchange"), FROZEN_NB4_SCREEN_EXCHANGE_ARGV),
+        (_nb4_screen("avqds"), FROZEN_NB4_SCREEN_AVQDS_ARGV),
+        (_nb4_continuation("exchange"), FROZEN_NB4_CONTINUATION_EXCHANGE_ARGV),
+        (_nb4_continuation("avqds"), FROZEN_NB4_CONTINUATION_AVQDS_ARGV),
+    ],
+    ids=[
+        "nb2_exchange", "nb2_avqds",
+        "nb4_screen_exchange", "nb4_screen_avqds",
+        "nb4_continuation_exchange", "nb4_continuation_avqds",
+    ],
+)
+def test_registered_siam_argv_is_unchanged(
+    actual: tuple[str, ...], frozen: tuple[str, ...]
+) -> None:
+    """The historical exchange and avqds SIAM commands are byte-identical."""
+
+    assert tuple(actual) == frozen
+
+
+def test_arm_dynamics_policy_is_the_structural_policy_not_the_arm_id() -> None:
+    assert EXCHANGE.dynamics_policy == "exchange"
+    assert EXCHANGE_Q_COMPILED.dynamics_policy == "exchange"
+    assert EXCHANGE_GAMMA_COMPILED.dynamics_policy == "exchange"
+    assert EXCHANGE_LEGACY_PROXY_FIXED.dynamics_policy == "exchange"
+    assert AVQDS.dynamics_policy == "avqds"
+    # Every arm's policy is one the runner actually admits.
+    for arm in ARMS.values():
+        assert arm.dynamics_policy in {"exchange", "avqds"}
+
+
+def test_compiled_q_is_a_registered_siam_arm() -> None:
+    assert SIAM_NB2_PROOF_ARMS["exchange_q_compiled"] is EXCHANGE_Q_COMPILED
+    assert SIAM_NB4_ARMS["exchange_q_compiled"] is EXCHANGE_Q_COMPILED
+
+
+@pytest.mark.parametrize(
+    "argv_of",
+    [_nb2, _nb4_screen, _nb4_continuation],
+    ids=["nb2_proof", "nb4_screen", "nb4_continuation"],
+)
+def test_compiled_q_siam_argv_keeps_the_route_and_the_gate(argv_of) -> None:
+    argv = list(argv_of("exchange_q_compiled"))
+    parsed = _parser().parse_args(argv)
+
+    assert parsed.dynamics_policy == "exchange"
+    assert parsed.exchange_route_bundle == "paper_ii_exchange_q_compiled_v1"
+    assert parsed.insertion_gate_mode == "mclachlan_l2"
+    assert parsed.debt_policy == "drift_ranked"
+    # --dynamics-policy is passed exactly once, never as the arm id.
+    assert argv.count("--dynamics-policy") == 1
+    assert "exchange_q_compiled" not in argv
+
+
+@pytest.mark.parametrize(
+    "argv_of",
+    [_nb2, _nb4_screen, _nb4_continuation],
+    ids=["nb2_proof", "nb4_screen", "nb4_continuation"],
+)
+def test_avqds_siam_argv_carries_no_exchange_route(argv_of) -> None:
+    argv = list(argv_of("avqds"))
+    parsed = _parser().parse_args(argv)
+
+    assert parsed.dynamics_policy == "avqds"
+    assert "--exchange-route-bundle" not in argv
+    assert "--insertion-gate-mode" not in argv
+
+
+def test_siam_run_ids_name_the_route() -> None:
+    nb2 = build_siam_nb2_proof_run(
+        seed_path="SEED.json", arm="exchange_q_compiled",
+        output_json="OUT.json", code_revision="REV",
+    )
+    assert nb2.run_id == "siam_nb2_t1_26_exchange_q_compiled"
+    nb4 = build_siam_nb4_screen_run(
+        seed_path="SEED.json", arm="exchange_q_compiled",
+        output_json="OUT.json", code_revision="REV",
+    )
+    assert nb4.run_id.startswith("siam_nb4_")
+    assert "_exchange_q_compiled_cut" in nb4.run_id
