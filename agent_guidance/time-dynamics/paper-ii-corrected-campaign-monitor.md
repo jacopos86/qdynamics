@@ -81,3 +81,9 @@ The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remain
 - All three archived on the remote and fetched to `archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/`, receipts `code_revision a43bcd86`. The $t=7.72$ commit on strong--mid state motion is the first true exchange after the opening time points under the coupled threshold.
 - `9720203`: 8 running (`.0 .1 .2 .6 .7 .8 .9 .10`), 1.5--2.2 GB. `9720069.3`: running. `9720251` (AVQDS r01): running, just started.
 - Local $t=20$ sweep: 1--3 of 500 time points after 10 min at workers 2/3 — 25--40 h projected; too slow. Moving the sweep to CHTC.
+## 20260906T000500Z — pre-permission threshold pilot submitted to CHTC; local $t=20$ sweep stopped
+
+- Locks `pipelines/time_dynamics/campaigns/paper_ii_permission_threshold_{2em02,5em02,1em01}_cells_v1.json` (`aa863835`): the strong--fast $(2.4,3)$ $\delta\theta$ cell of the corrected lock, verbatim, with `extra_flags` declaring `--exchange-permission-ray-distance-max` at $2\times10^{-2}$, $5\times10^{-2}$, $10^{-1}$. Loader/packager accept exactly that declaration and assert it on every argv; the corrected lock's actions are unchanged (53 tests).
+- Packages `chtc/paper_ii_permission_threshold_{2em02,5em02,1em01}_v1_2c769d52_20260905` (`dc32da45`), source-locked to `2c769d52` (tarball `66938ce6…`), same slot as the corrected campaign (9 CPU / 12 GB / 40 GB / 172800 s). Each argv differs from the corrected strong--fast $\delta\theta$ action only by the flag pair, output path, and code revision. Validated locally and on the remote with the container sha; LIFECYCLE_OK.
+- Submitted: **`9720253`** ($10^{-1}$), **`9720254`** ($2\times10^{-2}$), **`9720255`** ($5\times10^{-2}$). Control is `9720203.8` (running). Local `/tmp/perm_sweep/t20/` runs killed (they were mine; 1--3 of 500 time points after 20 min).
+- Watch list: `9720203` (8), `9720069.3`, `9720251`, `9720253`, `9720254`, `9720255`.
