@@ -38,16 +38,27 @@ Each point goes through three steps:
 
 ### 1b. SIAM
 
-| system | qubits | state | what remains |
-|---|---:|---|---|
-| Nb = 2 proof pair | 6 | **done** (commit `e073fe48` on the SIAM branch): exchange burden 0.3564, AVQDS 0.3525, matched pair, ratio 1.011, cost comparison admissible | nothing |
-| Nb = 4 pilot | 10 | exchange rung r07 to t = 5 is **qualified** (burden 0.0554, commit `8edc93a3`); the committed AVQDS t = 5 rung (cut 1e-3, cluster 9714524) fails the broad response guard | one tighter AVQDS rung: screen (~10 min) + continuation (~1 h 20 m), then rescore both arms on one machine |
+**SIAM is not yet on the current method.** Everything SIAM that exists,
+including the two results below, ran on the older exchange scoring rule
+(historical pilot lineage `origin/codex/paper-ii-search-profiles-20260824`),
+not on the compiled-Q route (`exchange_q_compiled`), and without the
+exact-estimator accounting the Hubbard–Holstein cells carry. Those results
+are historical pilots. The SIAM comparison counts as complete only when both
+arms have been run on the survey branch's compiled-Q route with the
+estimator accounting, Nb = 2 locally and Nb = 4 on CHTC. Section 8 holds the
+work needed to get there; it is being built now and this section will be
+replaced when it lands.
+
+| system | qubits | historical pilot state (old scoring rule) |
+|---|---:|---|
+| Nb = 2 proof pair | 6 | exchange burden 0.3564, AVQDS 0.3525, matched pair, ratio 1.011 (commit `e073fe48`, SIAM branch) |
+| Nb = 4 pilot | 10 | exchange rung r07 to t = 5 qualified, burden 0.0554 (commit `8edc93a3`); AVQDS t = 5 at cut 1e-3 outside the broad guard |
 
 ## 2. What the user does (nothing else is needed from them)
 
-1. GlobalProtect on, then one Duo push: `ssh -MNf ap2001` (verify with
-   `ssh -O check ap2001` → `Master running`). The master lasts 8 h; when it
-   expires Codex stops and asks for this again.
+1. The SSH master to `ap2001` is already up. Only when Codex reports it
+   expired (it lasts 8 h): GlobalProtect on, then one Duo push,
+   `ssh -MNf ap2001` (verify with `ssh -O check ap2001` → `Master running`).
 2. Say **"submit"** when Codex reports a package is ready. Codex never submits
    without it.
 
@@ -181,7 +192,7 @@ cut, seed, or grid between attempts. Every repair is a resubmission of an
 identical job with only a resource request changed, and it gets a receipt.
 Fetch before any other action on a finished job; never delete remote files.
 
-## 8. SIAM (local except one CHTC pair)
+## 8. SIAM — historical pilot lineage (superseded; kept until the compiled-Q SIAM lane lands)
 
 Worktree `/Users/lordskyler/Holstein_test.worktrees/siam-search-profiles-20260905`
 (branch `fable/siam-search-profiles-20260905`, base `d5590449` (`d55904498125ca087ee8541772410f66c50a92b7`) on
@@ -193,7 +204,9 @@ Done: Nb = 2 proof pair (`chtc/siam_nb2_proof_v1/`, commit `e073fe48`) and
 the Nb = 4 exchange r07 t = 5 score (`output/siam_screening/nb4_pilot_v1/attempts/cluster_9716077/`,
 commit `8edc93a3`).
 
-Remaining, in order:
+Do not run new SIAM jobs from this section: they would extend the old
+scoring rule, not the current method. The steps below stay only as the
+record of how the pilot lineage is operated.
 
 1. Rescore the committed AVQDS t = 5 run (cluster 9714524) on this machine so
    both arms share one exact-reference platform, then classify the pair.
