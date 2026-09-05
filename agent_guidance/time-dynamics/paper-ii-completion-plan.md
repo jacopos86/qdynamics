@@ -560,3 +560,34 @@ reduction is not. To obtain a matched state-vs-parameter comparison at the
 strength the appendix ablation already has, the state cap would have to be
 retuned per drive the way $\epsilon_y$ was — that is new production work under
 the separation rule, not a re-read of existing artifacts.
+
+## Model identity of the locked evidence (2026-09-04)
+
+**Every Paper II locked cell is Hubbard--Holstein. There is no SIAM evidence in
+the lock.** All 92 physics blocks across the 15 cells and every route agree:
+
+```text
+family_key           hh
+operator_label       hh_spinful_onsite_density
+n_ph_max             1
+seed_sha256          7a36a2da06bba447...  (hh_snake_nph1.json, single seed)
+```
+
+The SIAM route *is* enabled on `main` and imports cleanly:
+`siam_nb2_proof_v1` and `siam_nb4_pilot_v1` search profiles, arms
+`exchange`/`avqds`, builders `build_siam_nb2_proof_run`,
+`build_siam_nb4_screen_run`, `build_siam_nb4_continuation_run`
+(`pipelines/time_dynamics/paper_ii_runs.py`, ported 2026-08-31 from
+`codex/paper-ii-search-profiles-20260824`), backed by
+`src/quantum/siam_model.py` and `pipelines/time_dynamics/siam_seed.py`.
+
+SIAM screening artifacts exist but sit in other worktrees and are
+Paper-III-facing (`codex-paper-iii-quantum-comparators-20260903`,
+`codex-siam-repaired-proxy-20260903`). None feed Paper II.
+
+**Preprint consequence.** The manuscript's entire evidence base is one model,
+one seed, one lattice, one drive family. That is a scope limit a referee will
+name, and §\ref{sec:evidence_scope} should state it explicitly rather than
+leave it inferable from the seed name. The SIAM Nb=2 proof pair is the
+ready-made generality answer, but it is new production work under the
+separation rule and Paper III already consumes that lane.
