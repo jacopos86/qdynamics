@@ -37,3 +37,18 @@ def test_eleven_cell_lock_loads_and_declares_the_literal(tmp_path: Path):
     assert len(lock.cells) == 11 and len(lock.exclusions) == 7  # 6 drives x 3 controllers
     assert lock.permission_ray_distance_max == "1e-2"
     assert lock.campaign_id == "paper_ii_corrected_exchange_tau_1em02_v1"
+
+
+def test_cells_scope_with_cut_overrides_and_no_threshold(tmp_path: Path):
+    out = bundle.write_lock(
+        literal=None, scope="cells", cell_ids=["fastweak__delta_theta_5e-5", "slowstrong__delta_theta_5e-5"],
+        apm_cut_overrides={"fastweak__delta_theta_5e-5": 1e-7, "slowstrong__delta_theta_5e-5": 1e-6},
+        campaign_id="paper_ii_corrected_exchange_next_rung_v1", purpose="next rung", output=tmp_path / "lock.json",
+    )
+    lock = selector.load_lock(out, **selector.lock_parameters(out))
+    assert lock.permission_ray_distance_max is None
+    assert {c.cell_id: c.apm_cut for c in lock.cells} == {
+        "fastweak__delta_theta_5e-5": 1e-7, "slowstrong__delta_theta_5e-5": 1e-6,
+    }
+    assert lock.campaign_id == "paper_ii_corrected_exchange_next_rung_v1"
+    assert json.loads(out.read_text())["registry_bindings"]["extra_flags"] == ["--record-statevector"]

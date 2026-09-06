@@ -31,7 +31,7 @@ from pipelines.time_dynamics.campaigns import (
 
 CORRECTED_LOCK = Path(selector.__file__).with_name("paper_ii_corrected_exchange_cells_v1.json")
 TEMPLATE_PACKAGE = Path("chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905")
-SCOPES = {"strongfast_dtheta": ("strongfast__delta_theta_5e-5",), "eleven": None}
+SCOPES = {"strongfast_dtheta": ("strongfast__delta_theta_5e-5",), "eleven": None, "cells": ()}
 _LITERAL = re.compile(r"^[0-9.]+e-[0-9]+$")
 
 
@@ -44,7 +44,11 @@ def token_for(literal: str) -> str:
     return f"{mantissa.replace('.', 'p')}em{int(exponent):02d}"
 
 
-def campaign_id_for(literal: str, scope: str) -> str:
+def campaign_id_for(literal: str | None, scope: str) -> str:
+    if scope == "cells":
+        raise ValueError("scope 'cells' needs an explicit campaign_id")
+    if literal is None:
+        raise ValueError("an undeclared threshold needs an explicit campaign_id")
     token = token_for(literal)
     if scope == "strongfast_dtheta":
         return f"paper_ii_permission_threshold_{token}_v1"
@@ -54,23 +58,43 @@ def campaign_id_for(literal: str, scope: str) -> str:
 
 
 def write_lock(
-    *, literal: str, scope: str, output: Path | None = None, created: str | None = None
+    *,
+    literal: str | None,
+    scope: str,
+    output: Path | None = None,
+    created: str | None = None,
+    cell_ids: Sequence[str] | None = None,
+    apm_cut_overrides: Mapping[str, float] | None = None,
+    campaign_id: str | None = None,
+    purpose: str | None = None,
 ) -> Path:
-    """Write the lock for ``literal`` over ``scope`` and return its path."""
+    """Write the lock for ``literal`` over ``scope`` and return its path.
+
+    ``literal=None`` keeps the manuscript's permission bound (no extra flag).
+    ``scope="cells"`` takes ``cell_ids`` explicitly; ``apm_cut_overrides``
+    moves a cell to another activation-threshold rung, which the purpose text
+    must say.
+    """
 
     payload = json.loads(CORRECTED_LOCK.read_text(encoding="utf-8"))
     parent = hashlib.sha256(CORRECTED_LOCK.read_bytes()).hexdigest()
-    cell_ids = SCOPES[scope]
-    cells = [c for c in payload["cells"] if cell_ids is None or c["cell_id"] in cell_ids]
+    cell_ids = tuple(cell_ids) if scope == "cells" else SCOPES[scope]
+    if scope == "cells" and not cell_ids:
+        raise ValueError("scope 'cells' needs cell_ids")
+    cells = [json.loads(json.dumps(c)) for c in payload["cells"] if cell_ids is None or c["cell_id"] in cell_ids]
     if cell_ids is not None and len(cells) != len(cell_ids):
         raise ValueError("scope names a cell absent from the corrected lock")
-    campaign_id = campaign_id_for(literal, scope)
+    for cell in cells:
+        override = (apm_cut_overrides or {}).get(cell["cell_id"])
+        if override is not None:
+            cell["apm_cut"] = float(override)
+    campaign_id = campaign_id or campaign_id_for(literal, scope)
     lock = dict(payload)
     lock["campaign_id"] = campaign_id
     lock["lock_id"] = f"{campaign_id[:-3]}_cells_v1"  # paper_ii_..._<tok>_v1 -> ..._<tok>_cells_v1
     lock["created"] = created or _dt.date.today().isoformat()
     lock["parent_matched_cell_lock_sha256"] = parent
-    lock["purpose"] = (
+    lock["purpose"] = purpose or (
         f"Pre-permission ray threshold {literal}: the corrected exchange campaign's "
         f"{'strong--fast (2.4,3) delta-theta cell' if cell_ids else 'eleven cells'} "
         "re-run with the ray bound of Paper II Eq. deletion_ray_bound tested at "
@@ -95,7 +119,11 @@ def write_lock(
             "relation": "cells + exclusions = drives x controllers",
         }
     bindings = dict(payload["registry_bindings"])
-    bindings["extra_flags"] = ["--record-statevector", selector.PERMISSION_RAY_FLAG, literal]
+    bindings["extra_flags"] = (
+        ["--record-statevector"]
+        if literal is None
+        else ["--record-statevector", selector.PERMISSION_RAY_FLAG, literal]
+    )
     lock["registry_bindings"] = bindings
     path = output or CORRECTED_LOCK.with_name(f"{lock['lock_id']}.json")
     path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -130,9 +158,7 @@ def build_package(
     template = repo_root / template
     lock_path = Path(lock_path)
     lock = selector.load_lock(lock_path, **selector.lock_parameters(lock_path))
-    literal = lock.permission_ray_distance_max
-    if literal is None:
-        raise ValueError("bundle locks must declare the pre-permission threshold")
+    literal = lock.permission_ray_distance_max  # None keeps the manuscript's bound
     campaign_id = telemetry.campaign_id_for(lock)
     with tempfile.TemporaryDirectory(prefix="paper_ii_bundle_") as scratch:
         pkg = Path(scratch) / package_dir.name
@@ -183,7 +209,17 @@ def build_package(
                 (pkg / name).chmod(0o755)
 
         n = len(rows)
-        rewrite("run_action.py", [("EXPECTED_ACTION_COUNT = 11", f"EXPECTED_ACTION_COUNT = {n}")])
+        # Campaigns share action ids, and every job stages its archive into the
+        # submit directory's archives/: prefix the archive and receipt names with
+        # the campaign id so a later stage-out cannot overwrite an earlier one.
+        rewrite(
+            "run_action.py",
+            [
+                ("EXPECTED_ACTION_COUNT = 11", f"EXPECTED_ACTION_COUNT = {n}"),
+                ('target = archive_dir / f"{action_id}.tar.gz"', 'target = archive_dir / f"{CAMPAIGN_ID}__{action_id}.tar.gz"'),
+                ('archive_dir / f"{action_id}.archive.json"', 'archive_dir / f"{CAMPAIGN_ID}__{action_id}.archive.json"'),
+            ],
+        )
         rewrite("run_action_apptainer.sh")
         rewrite("submit_apm.sub", [('"paper-ii-corrected-exchange-apm-v1"', f'"{campaign_id.replace("_", "-")}"')])
         validator = (template / "validate_package.py").read_text()
@@ -191,7 +227,7 @@ def build_package(
         validator = validator.replace(
             "PACKAGE = Path(__file__).resolve().parent",
             "PACKAGE = Path(__file__).resolve().parent\n"
-            f"EXPECTED_ACTION_COUNT = {n}\nEXPECTED_PERMISSION_RAY = \"{literal}\"",
+            f"EXPECTED_ACTION_COUNT = {n}\nEXPECTED_PERMISSION_RAY = {literal!r}",
         )
         anchor = '            "declared exchange frontier absent",\n        )\n'
         if anchor not in validator:
@@ -200,8 +236,8 @@ def build_package(
             anchor,
             anchor
             + '        require(\n            flag_pair(runner, "--exchange-permission-ray-distance-max")\n'
-            '            == ("--exchange-permission-ray-distance-max", EXPECTED_PERMISSION_RAY),\n'
-            '            "declared pre-permission threshold absent",\n        )\n',
+            '            == (None if EXPECTED_PERMISSION_RAY is None else ("--exchange-permission-ray-distance-max", EXPECTED_PERMISSION_RAY)),\n'
+            '            "declared pre-permission threshold drift",\n        )\n',
         )
         validator = validator.replace(
             '"pipelines/time_dynamics/campaigns/paper_ii_corrected_exchange_cells_v1.json",',
@@ -219,6 +255,7 @@ def build_package(
                                   "purpose": f"pre-permission ray threshold {literal}"})
         manifest["routes"] = {route: n for route in manifest["routes"]}
         manifest["search"]["exchange_permission_ray_distance_max"] = literal
+        manifest["search"]["apm_cuts"] = {row["cell_id"]: row["apm_cut"] for row in rows}
         manifest["source"].update({
             "code_revision": source_revision, "archive": f"input/{archive.name}", "archive_sha256": source_sha,
             "archive_command": f"git archive --format=tar.gz {source_revision} pipelines src chtc/paper_ii_production_v2/input/seeds",
@@ -245,17 +282,29 @@ def build_package(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--literal", required=True, help="threshold literal as it appears on the argv, e.g. 5e-3")
+    parser.add_argument("--literal", default=None, help="threshold literal as it appears on the argv, e.g. 5e-3; omit to keep the manuscript's bound")
     parser.add_argument("--scope", choices=sorted(SCOPES), default="eleven")
+    parser.add_argument("--cell", action="append", default=[], help="scope 'cells': a cell id, repeatable")
+    parser.add_argument("--apm-cut", action="append", default=[], help="cell_id=cut to move a cell to another activation-threshold rung")
+    parser.add_argument("--campaign-id", default=None)
+    parser.add_argument("--purpose", default=None)
     parser.add_argument("--source-revision", default=None, help="commit to archive; default HEAD (must be clean)")
     parser.add_argument("--build", action="store_true", help="also build the package under chtc/")
     args = parser.parse_args(argv)
-    lock_path = write_lock(literal=args.literal, scope=args.scope)
+    overrides = {}
+    for item in args.apm_cut:
+        cell_id, _, value = item.partition("=")
+        overrides[cell_id] = float(value)
+    lock_path = write_lock(
+        literal=args.literal, scope=args.scope, cell_ids=args.cell or None,
+        apm_cut_overrides=overrides or None, campaign_id=args.campaign_id, purpose=args.purpose,
+    )
     print("lock", lock_path)
     if args.build:
         rev = args.source_revision or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         date = _dt.date.today().strftime("%Y%m%d")
-        pkg = Path("chtc") / f"{campaign_id_for(args.literal, args.scope)}_{rev[:8]}_{date}"
+        campaign_id = args.campaign_id or campaign_id_for(args.literal, args.scope)
+        pkg = Path("chtc") / f"{campaign_id}_{rev[:8]}_{date}"
         print("package", build_package(lock_path=lock_path, package_dir=pkg, source_revision=rev))
     return 0
 
