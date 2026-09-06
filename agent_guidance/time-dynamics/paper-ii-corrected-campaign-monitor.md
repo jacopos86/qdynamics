@@ -186,3 +186,11 @@ Strong--fast $(2.4,3)$ $\delta\theta$ at $t=20$, errors in $10^{-4}$ ($\overline
 | $10^{-1}$ | 0 | 39 | 110 | 76 | 271 | 21.0 | 2441 | 21.7 | 12.3 | 35.4 | -- |
 
 At $10^{-2}$: same exchange count as the control, 27\% shallower terminal circuit, but $\overline{|\Delta n|}$ 3.6× worse, $\overline{|\Delta E|}$ 1.4× worse, $\mathcal E$ +19\%, $N_{\rm step}$ +30\%. Only $5\times10^{-3}$ (`9720454`) and the $2\times10^{-2}$ rerun (`9720483`) remain.
+## 20260906T043000Z — strong--slow $\delta\theta$ at $\tau_m=10^{-6}$ back (`9720482.1`, exit 0, 83 min, 1709 MB; preserved as `161b3d04`)
+
+| $\tau_m$ | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | $N_\theta$ | $\mathcal E$ ($10^8$) | $N_{\rm step}$ ($10^3$) | exchange commits | matched vs AVQDS (worst factor) |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| $3\times10^{-6}$ (corrected) | 2.98 | 3.52 | 7.37 | 50 | 11.7 | 749 | 4 | no (2.83) |
+| $10^{-6}$ | 4.52 | 2.05 | 2.64 | 46 | 9.15 | 621 | 4 | no (2.27) |
+
+Doublon and charge-imbalance errors fall, the energy error rises; still outside the factor-two rule. Next rung $3\times10^{-7}$ submitted (lock `paper_ii_corrected_exchange_next_rung2_cells_v1`). Weak--fast $\delta\theta$ at $10^{-7}$ (`9720482.0`) still running.
