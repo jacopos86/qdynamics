@@ -171,3 +171,6 @@ Twice the exchanges and an 18\% shallower terminal circuit, at a tenfold loss in
 ## 20260906T033500Z — pre-repair gamma-route jobs removed (user direction)
 
 `condor_rm 9719355.2 9719355.5 9719355.8 9719355.29 9718536.1 9718536.3 9718542.0 9718545.0` — Codex's ideal-$\Gamma$ (gamma-compiled) APM jobs on `426807d9` / `4bca80b0`, all pre-repair and on a route the manuscript no longer reports; 52 cores released for the idle Paper I jobs. Kept: `9719356.0/.1/.2/.10`, the fresh exact-estimator AVQDS comparators (weak--slow ×3, strong--fast $\delta\theta$; AVQDS has no exchange search). Their outputs land in `~/Holstein_paper_ii_final_estimator_telemetry_v1_426807d9_20260904/` (Codex's staging dir).
+## 20260906T042000Z — SIAM AVQDS r04 scored; r05 submitted
+
+- r04 (`9720495`, exit 0, 6 min, 269 MB, `4c7405bf`): `candidate_outside_broad_guard`, burden 0.981, $N_\theta=22$. Ladder so far: r00 3.855, r01 0.916, r02 **0.438 (inside the broad guard, individual target failed)**, r03 0.961, r04 0.981 — the burden bottomed at cut $10^{-3}$ and rises again with tighter cuts, so the activation cut alone is not driving the AVQDS arm to the target on this seed. §8.3 is followed to r05 (cut $3.33\times10^{-5}$) since each rung costs six minutes; if r05 does not improve on r02, the ladder decision for the AVQDS arm should be revisited rather than climbed to r10.
