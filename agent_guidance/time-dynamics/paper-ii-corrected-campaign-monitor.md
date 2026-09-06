@@ -213,3 +213,6 @@ The energy error barely moves with the cut (AVQDS: 4.24); the corrected search c
 ## 20260906T052500Z — SIAM AVQDS r07 scored; r08 submitted
 
 r07 (`9720671`, exit 0, 27 min, 293 MB, `34f89a50`): `candidate_broad_guard`, burden 0.324, $C_3$ 1.30 (r06 1.20), $N_\theta=90$; every other component $\le0.05$. $C_3$ has stopped responding to the cut. r08 (cut $10^{-6}$) submitted to close the ladder formally; r09/r10 follow the same way unless $C_3$ moves.
+## 20260906T053500Z — $2\times10^{-2}$ pilot rerun back (`9720483`, exit 0, 148 min, 1709 MB; `47a6008b`)
+
+$\tau_{\rm pre}=2\times10^{-2}$: 6 true exchanges, $N_\theta=36$, $(N_{2q},D_{2q},D_c)=(98,77,276)$, $\mathcal E=17.5\times10^8$, $N_{\rm step}=2{,}240\times10^3$, errors $(19.2,\,11.5,\,35.4)\times10^{-4}$; 1,238 / 18.1M deletion sets permitted. Same pattern as $5\times10^{-2}$ and $10^{-1}$: shallower circuit, order-of-magnitude accuracy loss. Only $5\times10^{-3}$ (`9720454`) is outstanding.
