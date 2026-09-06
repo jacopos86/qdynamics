@@ -1,0 +1,102 @@
+COST-FUNCTIONAL DIVERGENCE: Hubbard--Holstein vs pure-Hubbard RA runs
+Written 2026-09-06. TENTATIVE -- the reruns are the fix; this note is the
+specification for what the rerun must change. Do not edit results to match it.
+
+WHY THIS FILE EXISTS
+The completed Paper-I Hubbard--Holstein (L=2, six regimes) and pure-Hubbard
+(L=3, L=4) campaigns were ranked by DIFFERENT cost functionals. Neither the
+manuscript nor the run receipts say so. When the runs are redone, the selector
+cost must be unified and the manuscript's cost section reconciled with whatever
+is chosen. Verified against source on 2026-09-06; every line reference below was
+read, not inferred.
+
+WHAT DIFFERS (four items, all confirmed in code)
+
+                    Paper I, Sec. "Relative        HH runs            pure-Hubbard
+                    resource-cost factor"          (executed)         runs
+  coordinates       dN_2q, dD_2q, dD_c             dN_2q, dD_2q,      matches paper
+                                                   dN_1q
+  centering         population median              zero               matches paper
+  scale             population MAD                 median of the      matches paper
+                                                   nonzero |marginal|
+  weights           0.30 / 0.30 / 0.25             0.20 / 0.20 / 0.05 0.30/0.30/0.25
+                    (stated for "all RA methods")  over sum-lambda
+                                                   = 0.65
+
+  score factor      K = 2/(2 - Cbar), score        multiplier         same
+                    = DeltaE / K                   1 - Cbar/2
+                    -- THESE ARE THE SAME THING. DeltaE/K = DeltaE*(1 - Cbar/2).
+                       The score-factor application is NOT a divergence.
+
+SOURCE OF EACH CLAIM
+  Third coordinate is the one-qubit COUNT, not total circuit depth:
+    pipelines/scaffold/hh_continuation_scoring.py, _signed_compiled_marginal_components
+    fields = {"2q": raw_delta_compiled_count_2q,
+              "d":  raw_delta_compiled_depth_2q,
+              "1q": raw_delta_compiled_count_1q}
+    and result["theta"] = result["shot"] = 0.0
+  Zero centering and the nonzero-|marginal| median scale:
+    pipelines/scaffold/hh_continuation_scoring.py,
+    _zero_centered_signed_hardware_cost_normalization
+      medians = {key: 0.0 for key in _HARDWARE_COST_COMPONENTS}
+      scale   = median(|raw|) over the strictly nonzero magnitudes
+      component_transform = "(2/pi)*atan(raw_signed_delta/scale)"
+      weighted_index_formula = "sum(lambda_a*u_a)/sum(lambda_a)"
+      score_factor_formula = "1-0.5*weighted_index", bounds [0.5, 1.5]
+  Weights actually applied to HH record ranking:
+    pipelines/static_adapt/adapt_pipeline.py default block --
+      cost_lambda_2q 0.2, cost_lambda_d 0.2, cost_lambda_1q 0.05,
+      cost_lambda_theta 0.05, cost_lambda_shot 0.15
+    Sum-lambda = 0.65, but theta and shot are hard-zeroed above, so 0.20 of the
+    0.65 divisor rides on two identically-zero numerators. That does not merely
+    rescale the ranking: the score is DeltaE*(1 - Cbar/2) and DeltaE varies per
+    record, so damping Cbar by 0.65/0.45 reweights energy against cost and can
+    reorder candidates.
+  The manuscript-faithful alternative already exists and was NOT selected:
+    pipelines/static_adapt/ra_adapt/engine.py, the
+    compiled_marginal_median_mad_signed_arctan_v1 block, lambda 0.30/0.30/0.25,
+    third slot raw_delta_compiled_depth.
+  (0.30, 0.30, 0.25) in the HH receipts governs the class-representative argmin
+    only, not record ranking. See AUDIT-20260906.md line C49 in the
+    ADAPT---Paper-I repository.
+
+THIS IS NOT A BUG
+All five sealed HH contracts declare zero_centered_signed_arctan_v1 and the code
+obeys them. The runs did what they were configured to do. The defect is that the
+manuscript describes one functional and six of its reported regimes used another.
+
+WHAT THE MANUSCRIPT CURRENTLY SAYS THAT THE HH RUNS DO NOT SUPPORT
+  Paper_I_overleaf_20260818/Paper_I.tex:1150-1153
+    "All RA methods use ... relative cost-term weights
+     (lambda_2q, lambda_2qd, lambda_c) = (0.30, 0.30, 0.25)."
+    False for the six HH regimes on both the weights and the third coordinate's
+    identity: there is no lambda_c coordinate in the HH cost vector at all.
+  Paper_I_overleaf_20260818/Paper_I.tex:136-138 (abstract)
+    "... lowers two-qubit depth by 20.0%-54.8% and total circuit depth by
+     24.4%-43.7% across all six regimes."
+    The number is measured and correct. But the HH selector never scored total
+    circuit depth, so this must not be written as the selector optimizing D_c.
+    It is an unscored quantity that improved. Relatedly, RA-Insert LOSES on D_c
+    in W-S and I-S, which is exactly what a cost vector omitting D_c predicts.
+
+WHAT THE RERUN SHOULD USE
+Recommendation, not a decision -- the choice of functional is the author's:
+  coordinates  dN_2q, dD_2q, dD_c   (score the resource the paper reports)
+  centering    zero                 (a marginal of zero means "no added cost";
+                                     median centering can reward a record for
+                                     being cheaper than its peers while it still
+                                     grows the circuit, which does not support an
+                                     absolute-reduction claim)
+  scale        state it explicitly and use one rule everywhere
+  weights      state them explicitly; do not let hard-zeroed slots sit in the
+               sum-lambda divisor
+This is NEITHER current implementation. If it is adopted, the manuscript's
+cost section must be rewritten to the zero-centered form, and the sentence at
+Paper_I.tex:1150 corrected.
+
+BEFORE SUBMITTING ANY RERUN
+Assert the applied functional on a small real cell and read it back out of the
+receipt -- a settings block records the request, not what the solver used. Check
+the resolved phase1_lambda_*/phase2_lambda_*, the normalization mode, and the
+identity of the third coordinate. Keep the existing results separately; they are
+the record of what the current manuscript's numbers came from.
