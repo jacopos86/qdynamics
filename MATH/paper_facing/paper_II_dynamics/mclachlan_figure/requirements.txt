@@ -1,0 +1,2 @@
+# SVG generation; these versions were exercised when this package was built.
+matplotlib==3.10.8
