@@ -284,3 +284,6 @@ The energy error sits at $(13$--$16)\times10^{-4}$ across four rungs while the A
 | $3.33\times10^{-8}$ | 6.25 | 2.99 | 3.49 | 48 | 7.47 | 7 | 3.14 |
 
 Not monotone in $\tau_m$; no rung reaches the factor-two rule (AVQDS energy error $1.99\times10^{-4}$). No further rung. Both corrected cells that left the rule (weak--fast $\delta\theta$, strong--slow $\delta\theta$) stay outside it at every rung tried; which rung to print for them is a reporting decision (the lock's cut keeps the row comparable to the reported one; $10^{-7}$ is the closest to the rule).
+## 20260906T180000Z — SIAM exchange r01 scored; r02 submitted
+
+Exchange arm r01 (`9721122`, exit 0, 45 min, 977 MB, `2ef146d6`, profile `siam_nb4_pilot_exchange_v1`): `candidate_outside_broad_guard`, burden 3.79 (r00 5.66), $C_3$ 15.0, $N_\theta=24$, 0 true exchanges (19 of 1.96M deletion sets permitted under the manuscript bound). r02 (cut $10^{-3}$) submitted.
