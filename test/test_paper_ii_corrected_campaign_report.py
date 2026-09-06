@@ -32,3 +32,25 @@ def test_match_text_reports_the_verdict_and_worst_factor() -> None:
     assert _match_text({"passes": False, "worst_component_ratio": 2.82}) == "no (2.82)"
     assert _match_text(None) == "--"
     assert _match_text({"passes": False, "worst_component_ratio": None}) == "--"
+
+
+def test_manuscript_rows_for_apm_and_motion(tmp_path: Path) -> None:
+    from pipelines.time_dynamics.diagnostics.paper_ii_corrected_campaign_report import (
+        _manuscript_motion_row,
+        _manuscript_row,
+    )
+
+    table = tmp_path / "table.tex"
+    table.write_text(
+        "\n".join(
+            [
+                r"$(0.3,\,1)$ & $\delta\theta$ & APM & 3.15 & 3.75 & 8.08 & 55 & 188 & 139 & 505 & 23.7 & 66.5 \\",
+                r" &  & AVQDS & 1.47 & 1.36 & 7.95 & 945 & 2835 & 2710 & 9708 & 549 & 93.2 \\",
+                r"$(0.3,\,1)$ & $\delta\theta$ & 23.7 & 279 & 267 & 0 & 191 & 209 & 884/707 \\",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert _manuscript_row(table, "weakslow", "delta_theta_5e-5", "APM")[:3] == ["3.15", "3.75", "8.08"]
+    assert _manuscript_row(table, "weakslow", "delta_theta_5e-5", "AVQDS")[3] == "945"
+    assert _manuscript_motion_row(table, "weakslow", "delta_theta_5e-5") == ["23.7", "279", "267", "0", "191", "209", "884/707"]

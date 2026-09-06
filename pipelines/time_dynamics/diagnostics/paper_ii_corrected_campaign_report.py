@@ -59,16 +59,36 @@ def _work_total(route: Mapping[str, Any]) -> tuple[int | None, bool]:
     return recovered, False
 
 
-def _fallback_avqds_row(table_tex: Path, drive: str, controller: str) -> list[str] | None:
-    """The AVQDS row printed in the manuscript table for a cell (already scaled)."""
+def _manuscript_row(table_tex: Path, drive: str, controller: str, method: str) -> list[str] | None:
+    """The APM or AVQDS row printed in the manuscript's Table I for a cell (already scaled)."""
 
     lines = table_tex.read_text(encoding="utf-8").splitlines()
     head = f"{DRIVE_TEX[drive]} & {CONTROLLER_TEX[controller]} & APM"
     for index, line in enumerate(lines):
-        if line.startswith(head) and index + 1 < len(lines):
-            cells = [c.strip() for c in lines[index + 1].rstrip("\\ ").split("&")]
-            if len(cells) >= 12 and cells[2] == "AVQDS":
-                return cells[3:12]
+        if line.startswith(head):
+            if method == "APM":
+                cells = [c.strip() for c in line.rstrip("\\ ").split("&")]
+                return cells[3:12] if len(cells) >= 12 else None
+            if index + 1 < len(lines):
+                cells = [c.strip() for c in lines[index + 1].rstrip("\\ ").split("&")]
+                if len(cells) >= 12 and cells[2] == "AVQDS":
+                    return cells[3:12]
+    return None
+
+
+def _fallback_avqds_row(table_tex: Path, drive: str, controller: str) -> list[str] | None:
+    return _manuscript_row(table_tex, drive, controller, "AVQDS")
+
+
+def _manuscript_motion_row(table_tex: Path, drive: str, controller: str) -> list[str] | None:
+    """The row of the manuscript's Table II for a cell: E, ins., del., exch., del-then-re-ins., ins-then-del., tested/failed."""
+
+    head = f"{DRIVE_TEX[drive]} & {CONTROLLER_TEX[controller]} & "
+    for line in table_tex.read_text(encoding="utf-8").splitlines():
+        if line.startswith(head) and "APM" not in line and "pending" not in line:
+            cells = [c.strip() for c in line.rstrip("\\ ").split("&")]
+            if len(cells) == 9:
+                return cells[2:9]
     return None
 
 
@@ -173,11 +193,15 @@ def build(
             first = label == "APM reported"
             lead = head if first else ["", ""]
             if route is None:
-                fallback = _fallback_avqds_row(manuscript_table, drive, controller) if label == "AVQDS" else None
+                fallback = _manuscript_row(manuscript_table, drive, controller, "AVQDS" if label == "AVQDS" else "APM")
                 if fallback is None:
                     t1.append(" & ".join(lead + [label] + ["--"] * 11) + r" \\")
                     continue
-                t1.append(" & ".join(lead + [label] + fallback + ["--", "--"]) + r" \\")
+                t1.append(" & ".join(lead + [label] + fallback + (["0", "--"] if label != "AVQDS" else ["--", "--"])) + r" \\")
+                if label == "APM reported":
+                    motion = _manuscript_motion_row(manuscript_table, drive, controller)
+                    if motion is not None:
+                        t2.append(" & ".join(head + ["reported"] + motion + ["--"]) + r" \\")
                 continue
             cost, _ = _cost_record(root, r["cell_id"], "avqds" if label == "AVQDS" else "q_compiled")
             total, exact = _work_total(route)

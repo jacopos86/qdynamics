@@ -3,16 +3,16 @@
 \usepackage[T1]{fontenc}\setlength{\parskip}{4pt}
 \begin{document}
 \section*{Corrected exchange-face campaign against the current manuscript values}
-Generated 2026-09-06 14:52Z.  10 of 11 corrected cells returned so far; the remaining cells (weak--slow $\delta\theta$, weak--slow state motion, strong--slow state motion) are appended when they land.  \emph{Corrected} trajectories run the exchange-face search with the declared insertion frontier ($W=8$, profile \texttt{paper\_declared\_exchange\_v1}), which admits every deletion-cardinality rung the joint-work cap had refused whole; every other setting is the reported cell's.  Under the reported permission bound, a deletion batch is admitted only when $\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]\le2\times10^{-3}$, so every committed exchange below removes a coordinate whose accumulated effective angle was at most $2\times10^{-3}$ at the time point.
+Generated 2026-09-06 14:54Z.  10 of 11 corrected cells returned so far; the remaining cells (weak--slow $\delta\theta$, weak--slow state motion, strong--slow state motion) are appended when they land.  \emph{Corrected} trajectories run the exchange-face search with the declared insertion frontier ($W=8$, profile \texttt{paper\_declared\_exchange\_v1}), which admits every deletion-cardinality rung the joint-work cap had refused whole; every other setting is the reported cell's.  Under the reported permission bound, a deletion batch is admitted only when $\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]\le2\times10^{-3}$, so every committed exchange below removes a coordinate whose accumulated effective angle was at most $2\times10^{-3}$ at the time point.
 \begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
 \caption{Manuscript Table~I columns for every corrected cell.  \emph{reported}: the AP-McLachlan trajectory in the current manuscript; \emph{corrected}: the same cell re-run with the declared exchange insertion frontier ($W=8$), which lets the search enumerate true-exchange patches; AVQDS: the locked comparator.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$, $\overline{|\Delta n|}$ in $10^{-4}$ over all 501 reporting times; $\mathcal E$ in $10^{8}$; $N_{\rm step}$ in $10^{3}$; \emph{exch.} counts committed patches that both delete and insert; \emph{matched} is the declared matched-accuracy rule against AVQDS with the worst componentwise factor in parentheses.}
 \begin{tabular}{lllrrrrrrrrrrl}\toprule
 $(A,\omega)$ & controller & trajectory & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch. & matched \\ \midrule
-$(0.3,\,1)$ & $\delta\theta$ & APM reported & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+$(0.3,\,1)$ & $\delta\theta$ & APM reported & 3.15 & 3.75 & 8.08 & 55 & 188 & 139 & 505 & 23.7 & 66.5 & 0 & -- \\
  &  & APM corrected & 2.17 & 1.65 & 7.45 & 59 & 185 & 139 & 502 & 27.1 & 73.9 & 40 & -- \\
  &  & AVQDS & 1.47 & 1.36 & 7.95 & 945 & 2835 & 2710 & 9708 & 549 & 93.2 & -- & -- \\
 \addlinespace[2pt]
-$(0.3,\,1)$ & state motion & APM reported & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+$(0.3,\,1)$ & state motion & APM reported & 2.96 & 3.70 & 8.24 & 59 & 180 & 140 & 490 & 19.7 & 52.3 & 0 & -- \\
  &  & APM corrected & 2.16 & 2.84 & 7.09 & 59 & 213 & 173 & 600 & 20.3 & 49.1 & 28 & -- \\
  &  & AVQDS & 1.51 & 1.45 & 7.92 & 370 & 2049 & 1933 & 7209 & 45.0 & 37.1 & -- & -- \\
 \addlinespace[2pt]
@@ -53,8 +53,10 @@ $(0.6,\,6)$ & state motion & APM reported & 17.1 & 2.72 & 6.60 & 49 & 162 & 128 
 \caption{Structural actions at generator granularity for the reported and corrected AP-McLachlan trajectories (manuscript Table~II).  \emph{Inserted} and \emph{deleted} count structural events; \emph{exch.} counts time points whose committed patch both deletes and inserts; \emph{del.\ then re-ins.} a generator deleted and later re-inserted, \emph{ins.\ then del.} a generator inserted and later deleted; \emph{finalists tested/failed} are deletion-bearing finalists materialized and sent to the hard gates, over those failing a gate after materialization; \emph{exchange commits} counts accepted exchange patches over all selector rounds (several may commit inside one time point).}
 \begin{tabular}{lllrrrrrrcr}\toprule
 $(A,\omega)$ & controller & trajectory & $\mathcal E$ & ins. & del. & exch. & \shortstack{del.\ then\\re-ins.} & \shortstack{ins.\ then\\del.} & \shortstack{finalists\\tested/failed} & \shortstack{exchange\\commits} \\ \midrule
+$(0.3,\,1)$ & $\delta\theta$ & reported & 23.7 & 279 & 267 & 0 & 191 & 209 & 884/707 & -- \\
  &  & corrected & 27.1 & 287 & 280 & 40 & 202 & 219 & 804/621 & 32 \\
 \addlinespace[2pt]
+$(0.3,\,1)$ & state motion & reported & 19.7 & 247 & 230 & 0 & 169 & 187 & 656/507 & -- \\
  &  & corrected & 20.3 & 194 & 197 & 28 & 129 & 143 & 761/619 & 24 \\
 \addlinespace[2pt]
 $(0.6,\,3)$ & $\delta\theta$ & reported & 10.8 & 47 & 38 & 0 & 12 & 21 & 30/0 & 0 \\
