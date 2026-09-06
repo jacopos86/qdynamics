@@ -174,3 +174,15 @@ Twice the exchanges and an 18\% shallower terminal circuit, at a tenfold loss in
 ## 20260906T042000Z — SIAM AVQDS r04 scored; r05 submitted
 
 - r04 (`9720495`, exit 0, 6 min, 269 MB, `4c7405bf`): `candidate_outside_broad_guard`, burden 0.981, $N_\theta=22$. Ladder so far: r00 3.855, r01 0.916, r02 **0.438 (inside the broad guard, individual target failed)**, r03 0.961, r04 0.981 — the burden bottomed at cut $10^{-3}$ and rises again with tighter cuts, so the activation cut alone is not driving the AVQDS arm to the target on this seed. §8.3 is followed to r05 (cut $3.33\times10^{-5}$) since each rung costs six minutes; if r05 does not improve on r02, the ladder decision for the AVQDS arm should be revisited rather than climbed to r10.
+## 20260906T042500Z — $10^{-2}$ pilot back (`9720455`, exit 0, 143 min, 1709 MB; preserved as `6d3310f7`)
+
+Strong--fast $(2.4,3)$ $\delta\theta$ at $t=20$, errors in $10^{-4}$ ($\overline{|\Delta n|}$ as twice the mean maximal site-occupation error):
+
+| $\tau_{\rm pre}$ | true exch. | $N_\theta$ | $N_{2q}$ | $D_{2q}$ | $D_c$ | $\mathcal E$ ($10^8$) | $N_{\rm step}$ ($10^3$) | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | permitted / evaluated |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| $2\times10^{-3}$ control | 4 | 42 | 132 | 98 | 365 | 16.7 | 1589 | 4.30 | 1.45 | 4.64 | 129 / 4.76M |
+| $10^{-2}$ | 4 | 40 | 105 | 76 | 266 | 19.9 | 2068 | 5.92 | 2.12 | 16.5 | 784 / 4.12M |
+| $5\times10^{-2}$ | 8 | 40 | 111 | 84 | 301 | 16.9 | 1775 | 9.68 | 14.6 | 42.0 | 4,300 / 3.70M |
+| $10^{-1}$ | 0 | 39 | 110 | 76 | 271 | 21.0 | 2441 | 21.7 | 12.3 | 35.4 | -- |
+
+At $10^{-2}$: same exchange count as the control, 27\% shallower terminal circuit, but $\overline{|\Delta n|}$ 3.6× worse, $\overline{|\Delta E|}$ 1.4× worse, $\mathcal E$ +19\%, $N_{\rm step}$ +30\%. Only $5\times10^{-3}$ (`9720454`) and the $2\times10^{-2}$ rerun (`9720483`) remain.
