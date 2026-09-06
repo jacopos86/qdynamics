@@ -291,6 +291,26 @@ STATE_MOTION_CONTROL_CALIBRATED = StepControl(
     note="Paper-facing state-motion controller calibrated at fixed accuracy.",
 )
 
+STATE_MOTION_CONTROL_CALIBRATED_SUB15 = StepControl(
+    control_id="state_motion_5e-5_sub15",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "5.0e-5",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "15",
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=15,
+    note=(
+        "Named experiment: the paper-facing state-motion controller with the local "
+        "subdivision budget raised from 11 to 15 for the strong--fast (2.4,3) drive, "
+        "where 11 leaves about half of the steps uncured in both arms."
+    ),
+)
+
 COMPOSED_CONTROL_CALIBRATED = StepControl(
     control_id="state_motion_1e-3_plus_parameter_5e-5",
     flags=(
@@ -319,6 +339,7 @@ STEP_CONTROLS: Mapping[str, StepControl] = {
         COMPOSED_CONTROL_PARAMETER_TIGHT_100X,
         DELTA_THETA_CONTROL_CALIBRATED,
         STATE_MOTION_CONTROL_CALIBRATED,
+        STATE_MOTION_CONTROL_CALIBRATED_SUB15,
         COMPOSED_CONTROL_CALIBRATED,
     )
 }

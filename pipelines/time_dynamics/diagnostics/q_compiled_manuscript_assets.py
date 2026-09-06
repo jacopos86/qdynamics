@@ -30,6 +30,7 @@ CONTROLLER_ORDER = {
     "delta_theta_5e-5": 0,
     "state_motion_1e-3_plus_parameter_5e-5": 1,
     "state_motion_5e-5": 2,
+    "state_motion_5e-5_sub15": 3,
 }
 # Drives are named by their amplitude and frequency, not by internal run
 # labels: the historical labels order the two words inconsistently and two of
@@ -46,6 +47,7 @@ CONTROLLER_TEX = {
     "delta_theta_5e-5": r"$\delta\theta$",
     "state_motion_1e-3_plus_parameter_5e-5": "combined",
     "state_motion_5e-5": "state motion",
+    "state_motion_5e-5_sub15": "state motion (15 subdiv.)",
 }
 # Controllers withheld from the main results (user direction 2026-09-04).  The
 # combined cap mixes a state-motion and a raw-parameter bound in one arm, so it
