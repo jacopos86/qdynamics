@@ -152,3 +152,13 @@ PYTHONPATH=. .venv/bin/python pipelines/time_dynamics/diagnostics/paper_ii_corre
 - $5\times10^{-2}$ pilot fetched to `archives/paper_ii_permission_threshold_5em02_v1_2c769d52_20260905/`: 8 true exchanges, $N_\theta=40$, 1,775,269 steps, 4,300/3,698,861 deletion sets permitted (control 129/4,758,651).
 - Submitted (standing authorization): `9720482` next activation-threshold rung for the two corrected cells that failed the matched-accuracy rule — weak--fast $\delta\theta$ $\tau_m$ $3\times10^{-7}\to10^{-7}$, strong--slow $\delta\theta$ $3\times10^{-6}\to10^{-6}$ (lock `paper_ii_corrected_exchange_next_rung_cells_v1`, package `chtc/paper_ii_corrected_exchange_next_rung_v1_4b27eb00_20260906`); `9720483` the $2\times10^{-2}$ pilot rerun (`chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906`); `9720484` SIAM AVQDS r03 (cut $3.33\times10^{-4}$, `96bad0b4`, 821 contract rows verified) after r02 scored `candidate_broad_guard` (burden 0.438, broad guard pass, individual target fail).
 - Watch list: `9720203` (3), `9720253`, `9720454`, `9720455`, `9720482` (2), `9720483`, `9720484`. Fetch from `archives_by_receipt/` (by receipt) rather than `archives/`.
+## 20260906T031500Z — first $t=20$ pilot point: $\tau_{\rm pre}=5\times10^{-2}$ is too loose
+
+Strong--fast $(2.4,3)$ $\delta\theta$, errors against the exact reference in $10^{-4}$ ($\overline{|\Delta n|}$ as in the comparison tool, twice the mean maximal site-occupation error):
+
+| run | true exchanges | $N_\theta$ | $N_{2q}$ | $D_{2q}$ | $D_c$ | $\mathcal E$ ($10^8$) | $N_{\rm step}$ ($10^3$) | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| control, coupled bound (`9720203.8`) | 4 | 42 | 132 | 98 | 365 | 16.7 | 1589 | 4.30 | 1.45 | 4.64 |
+| $\tau_{\rm pre}=5\times10^{-2}$ (`9720255`) | 8 | 40 | 111 | 84 | 301 | 16.9 | 1775 | 9.68 | 14.6 | 42.0 |
+
+Twice the exchanges and an 18\% shallower terminal circuit, at a tenfold loss in doublon and charge-imbalance accuracy: deletions of rotated coordinates that pass the post-refit gates (ray $\le2\times10^{-3}$, velocity $\le10^{-3}$) still accumulate state error over 501 time points. The $5\times10^{-3}$ and $10^{-2}$ pilots (`9720454`, `9720455`) are the decisive ones.
