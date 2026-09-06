@@ -311,3 +311,121 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+TWO_ARM_TEMPLATE = Path(
+    "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-dual-selector-overnight-20260903/chtc/"
+    "paper_ii_final_estimator_telemetry_v1_426807d9_20260904"
+)
+
+
+def build_two_arm_package(
+    *,
+    lock_path: Path,
+    package_dir: Path,
+    source_revision: str,
+    repo_root: Path = Path("."),
+    template: Path = TWO_ARM_TEMPLATE,
+    compile_workers: int = 8,
+    apm_memory: str = "12GB",
+    avqds_memory: str = "6GB",
+    max_runtime_seconds: int = 172800,
+) -> Path:
+    """Template the exact-estimator telemetry package (APM + fresh AVQDS arms) for ``lock_path``.
+
+    Used for cells that need a fresh AVQDS comparator; every action carries
+    the same source archive, and archives are campaign-prefixed.
+    """
+
+    repo_root = Path(repo_root)
+    template = Path(template)
+    lock_path = Path(lock_path)
+    lock = selector.load_lock(lock_path, **selector.lock_parameters(lock_path))
+    campaign_id = telemetry.campaign_id_for(lock)
+    with tempfile.TemporaryDirectory(prefix="paper_ii_two_arm_") as scratch:
+        pkg = Path(scratch) / package_dir.name
+        (pkg / "input").mkdir(parents=True)
+        (pkg / "logs").mkdir()
+        archive = pkg / "input" / f"source_{source_revision[:8]}.tar.gz"
+        subprocess.run(
+            ["git", "-C", str(repo_root), "archive", "--format=tar.gz", "-o", str(archive.resolve()),
+             source_revision, "pipelines", "src", "chtc/paper_ii_production_v2/input/seeds"],
+            check=True,
+        )
+        source_sha = _sha256(archive)
+        shutil.copy(lock_path, pkg / "input/matched_cells_lock.json")
+        for name in ("calibration_receipt.json", "report_refresh_resolution.json"):
+            shutil.copy(template / "input" / name, pkg / "input" / name)
+        summary = telemetry.prepare(
+            output_root="raw_outputs", actions_jsonl=pkg / "input/actions.jsonl", lock_json=lock_path,
+            source_package_sha256=source_sha, compile_workers=compile_workers,
+            comparator_mode=telemetry.COMPARATOR_MODE,
+        )
+        rows = [json.loads(line) for line in (pkg / "input/actions.jsonl").read_text().splitlines() if line]
+        if any(r["code_revision"] != source_revision for r in rows):
+            raise RuntimeError("actions do not carry the requested source revision (dirty tree?)")
+        apm = [r for r in rows if r["method"] == "apm"]
+        avq = [r for r in rows if r["method"] == "avqds"]
+        (pkg / "input/prepare_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+        (pkg / "input/action_ids.txt").write_text("".join(r["action_id"] + "\n" for r in rows))
+        (pkg / "input/action_ids_apm.txt").write_text("".join(r["action_id"] + "\n" for r in apm))
+        (pkg / "input/action_ids_avqds.txt").write_text("".join(r["action_id"] + "\n" for r in avq))
+        manifest = json.loads((template / "input/manifest.json").read_text())
+        t_rev, t_sha, t_campaign = manifest["source"]["code_revision"], manifest["source"]["archive_sha256"], manifest["campaign_id"]
+
+        def rewrite(name: str, extra: Sequence[tuple[str, str]] = ()) -> None:
+            text = (template / name).read_text()
+            text = text.replace(template.name, package_dir.name).replace(f"source_{t_rev[:8]}.tar.gz", archive.name)
+            text = text.replace(t_rev, source_revision).replace(t_sha, source_sha).replace(f'"{t_campaign}"', f'"{campaign_id}"')
+            for old, new in extra:
+                if old not in text:
+                    raise RuntimeError(f"{name}: template anchor missing: {old!r}")
+                text = text.replace(old, new)
+            (pkg / name).write_text(text)
+            if name.endswith(".sh"):
+                (pkg / name).chmod(0o755)
+
+        n, na, nv = len(rows), len(apm), len(avq)
+        rewrite("run_action.py", [
+            ("EXPECTED_ACTION_COUNT = 60", f"EXPECTED_ACTION_COUNT = {n}"),
+            ('target = archive_dir / f"{action_id}.tar.gz"', 'target = archive_dir / f"{CAMPAIGN_ID}__{action_id}.tar.gz"'),
+            ('archive_dir / f"{action_id}.archive.json"', 'archive_dir / f"{CAMPAIGN_ID}__{action_id}.archive.json"'),
+        ])
+        run_action = (pkg / "run_action.py").read_text()
+        if "CAMPAIGN_ID" not in run_action.split("def ")[0]:
+            run_action = run_action.replace("EXPECTED_ACTION_COUNT =", f'CAMPAIGN_ID = "{campaign_id}"\nEXPECTED_ACTION_COUNT =', 1)
+            (pkg / "run_action.py").write_text(run_action)
+        rewrite("run_action_apptainer.sh")
+        rewrite("submit_apm.sub", [("+MaxRuntime = 432000", f"+MaxRuntime = {max_runtime_seconds}"), ("request_memory = 6GB", f"request_memory = {apm_memory}"),
+                                   ('"paper-ii-exact-estimator-apm-v1"', f'"{campaign_id.replace("_", "-")}-apm"')])
+        rewrite("submit_avqds.sub", [("+MaxRuntime = 432000", f"+MaxRuntime = {max_runtime_seconds}"), ("request_memory = 6GB", f"request_memory = {avqds_memory}"),
+                                     ('"paper-ii-exact-estimator-avqds-v1"', f'"{campaign_id.replace("_", "-")}-avqds"')])
+        validator = (template / "validate_package.py").read_text()
+        validator = re.sub(r"== 60\b", f"== {n}", validator)
+        validator = re.sub(r"== 45\b", f"== {na}", validator)
+        validator = re.sub(r"== 15\b", f"== {nv}", validator)
+        validator = re.sub(r"EXPECTED_ROUTES = \{[^}]*\}", 'EXPECTED_ROUTES = {\n    "paper_ii_exchange_q_compiled_v1",\n}', validator, flags=re.S)
+        validator = validator.replace(t_rev, source_revision).replace(t_sha, source_sha).replace(f'"{t_campaign}"', f'"{campaign_id}"')
+        (pkg / "validate_package.py").write_text(validator)
+        manifest["campaign_id"] = campaign_id
+        manifest["created_utc"] = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        manifest["purpose"] = json.loads(lock_path.read_text())["purpose"]
+        manifest["scope"].update({"action_count": n, "cell_count": len(lock.cells), "routes_per_cell": 2, "apm_routes_per_cell": 1,
+                                  "apm_action_count": na, "avqds_action_count": nv})
+        manifest["routes"] = {"paper_ii_exchange_q_compiled_v1": na, "avqds": nv}
+        manifest["source"].update({"code_revision": source_revision, "archive": f"input/{archive.name}", "archive_sha256": source_sha,
+                                   "template_package": template.name})
+        manifest["runtime"]["apm"].update({"request_memory": apm_memory, "max_runtime_seconds": max_runtime_seconds})
+        manifest["runtime"]["avqds"].update({"request_memory": avqds_memory, "max_runtime_seconds": max_runtime_seconds})
+        for key, rel in (("actions_jsonl", "input/actions.jsonl"), ("action_ids", "input/action_ids.txt"), ("action_ids_apm", "input/action_ids_apm.txt"),
+                         ("action_ids_avqds", "input/action_ids_avqds.txt"), ("prepare_summary", "input/prepare_summary.json"),
+                         ("matched_cells_lock", "input/matched_cells_lock.json"), ("calibration_receipt", "input/calibration_receipt.json"),
+                         ("report_refresh_resolution", "input/report_refresh_resolution.json")):
+            manifest["inputs"][key]["path"] = rel
+            manifest["inputs"][key]["sha256"] = _sha256(pkg / rel)
+        manifest["package_files"] = {name: _sha256(pkg / name) for name in ("run_action.py", "run_action_apptainer.sh", "submit_apm.sub", "submit_avqds.sub", "validate_package.py")}
+        (pkg / "input/manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
+        if package_dir.exists():
+            shutil.rmtree(package_dir)
+        shutil.move(str(pkg), str(package_dir))
+    return package_dir
