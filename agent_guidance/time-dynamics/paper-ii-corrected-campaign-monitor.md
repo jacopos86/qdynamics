@@ -87,3 +87,20 @@ The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remain
 - Packages `chtc/paper_ii_permission_threshold_{2em02,5em02,1em01}_v1_2c769d52_20260905` (`dc32da45`), source-locked to `2c769d52` (tarball `66938ce6…`), same slot as the corrected campaign (9 CPU / 12 GB / 40 GB / 172800 s). Each argv differs from the corrected strong--fast $\delta\theta$ action only by the flag pair, output path, and code revision. Validated locally and on the remote with the container sha; LIFECYCLE_OK.
 - Submitted: **`9720253`** ($10^{-1}$), **`9720254`** ($2\times10^{-2}$), **`9720255`** ($5\times10^{-2}$). Control is `9720203.8` (running). Local `/tmp/perm_sweep/t20/` runs killed (they were mine; 1--3 of 500 time points after 20 min).
 - Watch list: `9720203` (8), `9720069.3`, `9720251`, `9720253`, `9720254`, `9720255`.
+## 20260906T004500Z — what the stored certification telemetry says about the pre-permission threshold
+
+`pipelines/time_dynamics/diagnostics/deletion_permission_response.py` replays each time point's selector rounds on the entry support and pairs every materialized deletion-bearing finalist's accumulated effective angle $a_D=\sum_{\mu\in D}|\theta_\mu c_\mu|$ (Eq. deletion_angle_sum) with the post-refit ray distance and velocity value its certification recorded. Ten runs: the four $t=2$ sweep runs, the three corrected cells back so far, three locked $t=20$ cells. 441 finalists; 43 unattributed (coefficient of a label absent from every final support). Entry angles are recorded for state-motion runs and first-order estimated ($\theta+\Delta t\,\dot\theta$) for $\delta\theta$ runs (15 rows).
+
+| $a_D$ | finalists materialized | certified | post-refit ray $\le2\times10^{-3}$ | median post-refit ray | median ray / $a_D$ |
+|---|---:|---:|---:|---:|---:|
+| $=0$ (coordinate appended earlier in the same time point) | 3 | 3 | 3 | 0 | -- |
+| $(0,\,2\times10^{-3})$ | 71 | 69 (97%) | 69 (100%) | $2.1\times10^{-4}$ | 0.35 |
+| $[2\times10^{-3},\,5\times10^{-3})$ | 18 | 7 (39%) | 7 (39%) | $2.1\times10^{-3}$ | 0.70 |
+| $[5\times10^{-3},\,10^{-2})$ | 15 | 2 (13%) | 2 (13%) | $3.4\times10^{-3}$ | 0.50 |
+| $[10^{-2},\,2\times10^{-2})$ | 33 | 5 (15%) | 4 (12%) | $8.6\times10^{-3}$ | 0.59 |
+| $[2\times10^{-2},\,5\times10^{-2})$ | 123 | 11 (9%) | 11 (9%) | $1.3\times10^{-2}$ | 0.39 |
+| $[5\times10^{-2},\,10^{-1})$ | 135 | 3 (2%) | 3 (2%) | $3.4\times10^{-2}$ | 0.53 |
+
+- The bounded local refit (Eq. patch_ray_refit) recovers a constant fraction, not orders of magnitude: post-refit ray $\approx0.35$--$0.7\,a_D$. The post-refit certificate at $2\times10^{-3}$ therefore admits deletions up to $a_D\approx4$--$6\times10^{-3}$ routinely and only exceptional coordinates beyond that. A pre-permission threshold above $\sim10^{-2}$ mostly manufactures rejected finalists (each costing a full patched geometry plus refit in $\mathcal E$), bounded by the 12-per-level / 2-per-branch certification caps.
+- Every accepted exchange under the coupled bound removed a coordinate with $a_D<2\times10^{-3}$: strong--mid $\delta\theta$ 2 dormant, weak--fast state motion 3 dormant, strong--mid state motion 3 dormant; the $t=2$ control's single exchange removed a coordinate appended two rounds earlier in the same time point. The $t=2$ run at $10^{-1}$ is the only one whose exchanges removed rotated coordinates (4).
+- Pilot extended with $\tau_{\rm pre}=5\times10^{-3}$ and $10^{-2}$ (locks `paper_ii_permission_threshold_{5em03,1em02}_cells_v1`), so the strong--fast $\delta\theta$ pilot spans $\{2\times10^{-3}$ control, $5\times10^{-3}, 10^{-2}, 2\times10^{-2}, 5\times10^{-2}, 10^{-1}\}$.

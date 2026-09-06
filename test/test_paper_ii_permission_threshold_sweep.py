@@ -26,6 +26,8 @@ SWEEP = {
     "2e-2": CAMPAIGNS / "paper_ii_permission_threshold_2em02_cells_v1.json",
     "5e-2": CAMPAIGNS / "paper_ii_permission_threshold_5em02_cells_v1.json",
     "1e-1": CAMPAIGNS / "paper_ii_permission_threshold_1em01_cells_v1.json",
+    "5e-3": CAMPAIGNS / "paper_ii_permission_threshold_5em03_cells_v1.json",
+    "1e-2": CAMPAIGNS / "paper_ii_permission_threshold_1em02_cells_v1.json",
 }
 FLAG = selector.PERMISSION_RAY_FLAG
 
