@@ -194,3 +194,7 @@ At $10^{-2}$: same exchange count as the control, 27\% shallower terminal circui
 | $10^{-6}$ | 4.52 | 2.05 | 2.64 | 46 | 9.15 | 621 | 4 | no (2.27) |
 
 Doublon and charge-imbalance errors fall, the energy error rises; still outside the factor-two rule. Next rung $3\times10^{-7}$ submitted (lock `paper_ii_corrected_exchange_next_rung2_cells_v1`). Weak--fast $\delta\theta$ at $10^{-7}$ (`9720482.0`) still running.
+## 20260906T043500Z — SIAM AVQDS r05 scored; r06 submitted; strong--slow rung $3\times10^{-7}$ running
+
+- r05 (`9720664`, exit 0, 6 min, `7cf306c6`): `candidate_broad_guard`, burden 0.519, inside the broad guard, individual target failed; $N_\theta=32$. Normalized response components: $m_d$ 0.002, $D_d$ 0.007, $C_1$ 0.049, $C_2$ 0.044, **$C_3$ 2.07**, $C_4$ 0.081, fidelity 0.007 — one bath-correlator component carries the whole burden at every rung so far (r02 0.438, r03 0.961, r04 0.981, r05 0.519), and the activation cut does not move it monotonically. r06 (cut $10^{-5}$) submitted per §8.3; the remaining rungs cost six minutes each, but whether the AVQDS arm can reach the individual target on $C_3$ by the cut alone is a question for the user once r10 is reached or earlier.
+- Strong--slow $\delta\theta$ at $\tau_m=3\times10^{-7}$: `9720666` (`85288674`), running.
