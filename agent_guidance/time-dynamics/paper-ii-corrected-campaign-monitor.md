@@ -251,3 +251,6 @@ Fourth rungs submitted as `9720908` (weak--fast $10^{-8}$, strong--slow $10^{-7}
 **Local runs stopped**: the three local AVQDS ridge-sweep runs launched 2026-09-05 12:58 for the floor rule (`/tmp/ridge_sweep`, $\lambda\in\{10^{-5},10^{-6},10^{-7}\}$, weak--slow) were killed after 20 h with no output; if the floor rule is still wanted it goes to CHTC. No other local Paper II runs.
 
 **Codex AVQDS comparators**: `9719356.0` and `.2` restarted at ~11:50Z (evicted after ~36 h; AVQDS has no checkpoint), `.1` and `.10` at 43--46 h. All four are inside the 72 h window only if they finish before ~2026-09-07 evening.
+## 20260906T161000Z — strong--slow $\delta\theta$ at $\tau_m=10^{-7}$ (`9720908.1`, exit 0, 83 min, `804e2c7a`)
+
+Errors $(4.27, 1.52, 4.54)\times10^{-4}$, $N_\theta=50$, $\mathcal E=8.38\times10^8$, $N_{\rm step}=444\times10^3$, 4 exchange commits; matched vs AVQDS: no (2.14; the energy component, AVQDS $1.99\times10^{-4}$). Rung sequence $3\times10^{-6}\to10^{-7}$: worst factor 2.83, 2.27, 2.47, 2.14. Fifth rung $3.33\times10^{-8}$ submitted (lock `paper_ii_corrected_exchange_next_rung5_cells_v1`).
