@@ -120,3 +120,19 @@ The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remain
 - SIAM AVQDS r01 (`9720251`): exit 0, 7 min, 269 MB; receipt VALID vs `2c25b0bf`; `candidate_outside_broad_guard`, burden 0.916 (r00: 3.855), broad guard fail → r02 (cut $10^{-3}$) prepared on `1e7aa28f` (`d554d78a`), tree re-uploaded, 815 contract rows verified, LIFECYCLE_OK, submitted → **`9720456`**. Exchange-arm ladder still held for the $\tau_{\rm pre}$ decision.
 - Codex anchors `9720069.3` (exit 0, 490 min, 3.4 GB) and `.4` fetched to `archives/codex_gapfill_weakslow_20260905/` (kept separate): source `426807d9`, no frontier, weak--slow state motion $N_\theta=59$ / state-motion-plus-parameter $N_\theta=62$, **0 true exchanges** each. The corrected `9720203.1` supersedes them for the pending Table I row.
 - Watch list: `9720203` (3), `9720253`, `9720254`, `9720255`, `9720454`, `9720455`, `9720456`.
+## 20260906T021500Z — corrected cells against the locked Table I values (8 of 11)
+
+Errors against the exact reference (`output/paper_ii_staged/exact_references`, 501 points), units $10^{-4}$; $\mathcal E$ in $10^{8}$ (all `exact`); $N_{\rm step}$ in $10^{3}$. "locked → corrected".
+
+| cell | $\overline{\|\Delta E\|}$ | $\overline{\|\Delta D\|}$ | $\overline{\|\Delta n\|}$ | $N_\theta$ | $N_{2q}$ | $D_{2q}$ | $D_c$ | $\mathcal E$ | $N_{\rm step}$ | exch. |
+|---|---|---|---|---|---|---|---|---|---|---:|
+| weak--fast $\delta\theta$ | 8.18 → 16.2 | 1.81 → 3.03 | 6.31 → 4.08 | 45 → 50 | 130 → 152 | 91 → 115 | 309 → 402 | 10.8 → 9.37 | 709 → 524 | 3 |
+| weak--fast state motion | 8.96 → 3.73 | 3.01 → 2.00 | 6.26 → 1.82 | 49 → 43 | 150 → 164 | 128 → 128 | 463 → 442 | 8.37 → 6.83 | 498 → 499 | 1 |
+| weak--fastest $\delta\theta$ | 5.73 → 5.41 | 0.93 → 2.77 | 4.09 → 2.37 | 47 → 44 | 159 → 117 | 125 → 85 | 430 → 322 | 17.2 → 17.1 | 1279 → 1391 | 3 |
+| weak--fastest state motion | 17.1 → 6.17 | 2.72 → 1.29 | 6.60 → 1.84 | 49 → 51 | 162 → 169 | 128 → 112 | 450 → 407 | 7.78 → 7.95 | 504 → 506 | 3 |
+| strong--mid $\delta\theta$ | 1.03 → 6.52 | 1.89 → 2.23 | 3.53 → 1.25 | 49 → 42 | 145 → 170 | 116 → 131 | 426 → 437 | 17.2 → 10.5 | 1084 → 960 | 2 |
+| strong--mid state motion | 5.80 → 2.71 | 1.87 → 2.59 | 2.86 → 1.44 | 48 → 40 | 152 → 154 | 130 → 117 | 478 → 406 | 8.79 → 5.92 | 500 → 501 | 3 |
+| strong--slow $\delta\theta$ | 3.40 → 2.98 | 2.54 → 3.52 | 2.56 → 3.68 | 50 → 50 | 187 → 158 | 150 → 132 | 498 → 472 | 11.3 → 11.7 | 700 → 749 | 4 |
+| strong--fast $\delta\theta$ | 3.50 → 4.30 | 1.44 → 1.45 | 4.71 → 2.32 | 44 → 42 | 144 → 132 | 113 → 98 | 432 → 365 | 14.0 → 16.7 | 1227 → 1589 | 4 |
+
+Matched-accuracy status against the locked AVQDS comparators is not re-derived here; the table generator on `claude/paper-ii-main-results-20260904` does that once all eleven cells are in.
