@@ -121,6 +121,9 @@ def build(
     corrected_cost_root: Path,
     manuscript_table: Path,
     output_dir: Path,
+    extra_sections: Sequence[str] = (),
+    matched_column: bool = True,
+    intro_extra: str = "",
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "figures").mkdir(exist_ok=True)
@@ -158,12 +161,13 @@ def build(
         r"enumerate true-exchange patches; AVQDS: the locked comparator.  $\overline{|\Delta E|}$, "
         r"$\overline{|\Delta D|}$, $\overline{|\Delta n|}$ in $10^{-4}$ over all 501 reporting "
         r"times; $\mathcal E$ in $10^{8}$; $N_{\rm step}$ in $10^{3}$; \emph{exch.} counts "
-        r"committed patches that both delete and insert; \emph{matched} is the declared "
-        r"matched-accuracy rule against AVQDS with the worst componentwise factor in parentheses.}",
-        r"\begin{tabular}{lllrrrrrrrrrrl}\toprule",
+        r"committed patches that both delete and insert"
+        + (r"; \emph{matched} is the declared matched-accuracy rule against AVQDS with the worst "
+           r"componentwise factor in parentheses.}" if matched_column else ".}"),
+        r"\begin{tabular}{lllrrrrrrrrrr" + ("l" if matched_column else "") + r"}\toprule",
         r"$(A,\omega)$ & controller & trajectory & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & "
         r"$\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & "
-        r"$N_{\rm step}$ & exch. & matched \\ \midrule",
+        r"$N_{\rm step}$ & exch." + (r" & matched" if matched_column else "") + r" \\ \midrule",
     ]
     t2 = [
         r"\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}",
@@ -195,9 +199,10 @@ def build(
             if route is None:
                 fallback = _manuscript_row(manuscript_table, drive, controller, "AVQDS" if label == "AVQDS" else "APM")
                 if fallback is None:
-                    t1.append(" & ".join(lead + [label] + ["--"] * 11) + r" \\")
+                    t1.append(" & ".join(lead + [label] + ["--"] * (11 if matched_column else 10)) + r" \\")
                     continue
-                t1.append(" & ".join(lead + [label] + fallback + (["0", "--"] if label != "AVQDS" else ["--", "--"])) + r" \\")
+                tail = (["0"] if label != "AVQDS" else ["--"]) + (["--"] if matched_column else [])
+                t1.append(" & ".join(lead + [label] + fallback + tail) + r" \\")
                 if label == "APM reported":
                     motion = _manuscript_motion_row(manuscript_table, drive, controller)
                     if motion is not None:
@@ -213,8 +218,8 @@ def build(
                     + [label]
                     + _accuracy_cells(route)
                     + [str(int(route["n_theta"])), str(cost["N2q"]), str(cost["D2q"]), str(cost["Dc"]),
-                       work_text, _scaled(int(route["time_step_count"]), STEP_UNIT), exch,
-                       "--" if label == "AVQDS" else _match_text(pair)]
+                       work_text, _scaled(int(route["time_step_count"]), STEP_UNIT), exch]
+                    + ([("--" if label == "AVQDS" else _match_text(pair))] if matched_column else [])
                 )
                 + r" \\"
             )
@@ -318,10 +323,12 @@ def build(
             r"$\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]\le2\times10^{-3}$, so every committed "
             r"exchange below removes a coordinate whose accumulated effective angle was at most "
             r"$2\times10^{-3}$ at the time point.",
+            intro_extra,
             *t1,
             *t2,
+            *extra_sections,
             r"\clearpage",
-            r"\section*{Observables}",
+            r"\section*{Observables of the corrected cells}",
             *figure_tex,
             r"\end{document}",
             "",
