@@ -104,3 +104,19 @@ The post-refit ray certificate (Eq. patch_ray_distance, $2\times10^{-3}$) remain
 - The bounded local refit (Eq. patch_ray_refit) recovers a constant fraction, not orders of magnitude: post-refit ray $\approx0.35$--$0.7\,a_D$. The post-refit certificate at $2\times10^{-3}$ therefore admits deletions up to $a_D\approx4$--$6\times10^{-3}$ routinely and only exceptional coordinates beyond that. A pre-permission threshold above $\sim10^{-2}$ mostly manufactures rejected finalists (each costing a full patched geometry plus refit in $\mathcal E$), bounded by the 12-per-level / 2-per-branch certification caps.
 - Every accepted exchange under the coupled bound removed a coordinate with $a_D<2\times10^{-3}$: strong--mid $\delta\theta$ 2 dormant, weak--fast state motion 3 dormant, strong--mid state motion 3 dormant; the $t=2$ control's single exchange removed a coordinate appended two rounds earlier in the same time point. The $t=2$ run at $10^{-1}$ is the only one whose exchanges removed rotated coordinates (4).
 - Pilot extended with $\tau_{\rm pre}=5\times10^{-3}$ and $10^{-2}$ (locks `paper_ii_permission_threshold_{5em03,1em02}_cells_v1`), so the strong--fast $\delta\theta$ pilot spans $\{2\times10^{-3}$ control, $5\times10^{-3}, 10^{-2}, 2\times10^{-2}, 5\times10^{-2}, 10^{-1}\}$.
+## 20260906T015500Z — heartbeat after the tunnel reopened: 8/11 corrected cells back; pilot at six values; SIAM r01 scored, r02 submitted
+
+| corrected cell | exit | wall | MemoryUsage | true exchanges (time points) | $N_\theta$ | steps | permitted/evaluated |
+|---|---:|---:|---:|---|---:|---:|---|
+| `fastfast__delta_theta_5e-5` | 0 | 211 min | 1709 MB | 3 ($0.04, 0.24, 1.36$) | 44 | 1,390,854 | 356/5,403,601 |
+| `fastfast__state_motion_5e-5` | 0 | 192 min | 1709 MB | 3 ($0.04, 0.24, 1.36$) | 51 | 505,956 | 314/6,845,879 |
+| `fastweak__delta_theta_5e-5` | 0 | 156 min | 1709 MB | 3 ($0.64, 4.64, 8.68$) | 50 | 523,605 | 405/8,122,596 |
+| `slowstrong__delta_theta_5e-5` | 0 | 127 min | 1954 MB | 4 ($0.84, 1.40, 2.88, 9.08$) | 50 | 748,635 | 233/7,291,139 |
+| `strongfast__delta_theta_5e-5` (pilot control) | 0 | 131 min | 1465 MB | 4 ($0.84, 0.92, 3.36, 11.24$) | 42 | 1,589,477 | 129/4,758,651 |
+| earlier: `midres` $\delta\theta$ / sm, `fastweak` sm | 0 | 94--110 min | 1.5--1.7 GB | 2 / 3 / 1 | 42 / 40 / 43 | | |
+
+- Still running: `9720203.0` weak--slow $\delta\theta$, `.1` weak--slow state motion, `.7` strong--slow state motion (2.4--2.7 GB, > 9 h). Under the coupled bound every accepted exchange removed a coordinate the permission test had bounded at $a_D\le2\times10^{-3}$; the diagnostic's "rotated" labels on $\delta\theta$ cells (7 of 31 commits) are first-order entry-angle estimates, not recorded angles, and are not evidence against that bound.
+- Pilot: `9720454` ($5\times10^{-3}$), `9720455` ($10^{-2}$) submitted (`1e7aa28f`, tarball `5e79c267…`); `9720253/54/55` running (1.7 GB). Six values now on the strong--fast $\delta\theta$ cell including the finished control.
+- SIAM AVQDS r01 (`9720251`): exit 0, 7 min, 269 MB; receipt VALID vs `2c25b0bf`; `candidate_outside_broad_guard`, burden 0.916 (r00: 3.855), broad guard fail → r02 (cut $10^{-3}$) prepared on `1e7aa28f` (`d554d78a`), tree re-uploaded, 815 contract rows verified, LIFECYCLE_OK, submitted → **`9720456`**. Exchange-arm ladder still held for the $\tau_{\rm pre}$ decision.
+- Codex anchors `9720069.3` (exit 0, 490 min, 3.4 GB) and `.4` fetched to `archives/codex_gapfill_weakslow_20260905/` (kept separate): source `426807d9`, no frontier, weak--slow state motion $N_\theta=59$ / state-motion-plus-parameter $N_\theta=62$, **0 true exchanges** each. The corrected `9720203.1` supersedes them for the pending Table I row.
+- Watch list: `9720203` (3), `9720253`, `9720254`, `9720255`, `9720454`, `9720455`, `9720456`.
