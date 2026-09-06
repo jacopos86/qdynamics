@@ -246,28 +246,54 @@ def siam_section(score_files: Sequence[Path], figdir: Path) -> str:
         lines.append(f"{r['arm']} & {r['segment']} & {r['rung']} & {ct} & {comps} & {r['burden']:.3g} & {r['n_theta']} & "
                      f"{'--' if r['exchanges'] is None else r['exchanges']}" + r" \\")
     lines += [r"\bottomrule\end{tabular}\end{table}"]
-    # infidelity-vs-time figure from the score series when available
+    # Observables of the latest screen of each arm against the exact reference.
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(1, 1, figsize=(6.0, 2.6))
-    drawn = 0
+    contract = _load_json(rows[0]["path"]).get("observable_contract", {}) if rows else {}
+    lines += [
+        r"Observables (offline, from the checkpoint statevectors): impurity number $N_d=n_{d\uparrow}+n_{d\downarrow}$, impurity "
+        r"double occupancy $D_d$, impurity magnetization $m_d$, impurity spin square $S_d^2=\tfrac34(N_d-2D_d)$, impurity--bath spin "
+        r"correlators $C_1,\dots,C_4$ by bath site, and the integrated screening $\Sigma_r=S_d^2+\sum_{j\le r}C_j$.  Each response "
+        r"component above is the mean absolute error of that observable divided by its RMS excursion along the exact reference; the "
+        r"table below gives the mean absolute errors and the excursions themselves for the latest screen of each arm.",
+    ]
+    names = ("N_d", "D_d", "m_d", "S_d2", "C_1", "C_2", "C_3", "C_4", "Sigma_4")
+    latest = {}
     for r in rows:
-        s = _load_json(r["path"])
-        ser = s.get("series") or {}
-        inf = ser.get("infidelity"); times = ser.get("time") or ser.get("times")
-        if inf and times and len(inf) == len(times):
-            ax.semilogy(times, np.asarray(inf, dtype=float) + 1e-16, linewidth=0.9, label=f"{r['arm']} rung {r['rung']}")
-            drawn += 1
-    if drawn:
-        ax.set_xlabel(r"$t$"); ax.set_ylabel("infidelity"); ax.grid(alpha=0.18, linewidth=0.5)
-        ax.legend(fontsize=6, ncol=3, frameon=False)
-        fig.tight_layout(); fig.savefig(figdir / "siam_ladder_infidelity.pdf", bbox_inches="tight")
-        lines += [r"\begin{figure}[H]\centering\includegraphics[width=0.8\linewidth]{figures/siam_ladder_infidelity.pdf}"
-                  r"\caption{Infidelity against the exact SIAM reference over each screen.  " + siam_text + r".}\end{figure}"]
-    plt.close(fig)
+        if r["segment"].startswith("$t\\in[0,1]") or "0,1" in r["segment"]:
+            if r["arm"] not in latest or r["rung"] > latest[r["arm"]]["rung"]:
+                latest[r["arm"]] = r
+    if latest:
+        lines += [r"\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{4pt}\begin{tabular}{ll" + "r" * len(names) + r"}\toprule",
+                  r"arm & quantity & " + " & ".join(f"${n.replace('S_d2', 'S_d^2').replace('Sigma_4', chr(92) + 'Sigma_4')}$" for n in names) + r" \\ \midrule"]
+        for arm, r in latest.items():
+            prm = _load_json(r["path"]).get("primitive_response_metrics", {})
+            def val(n, key):
+                e = prm.get(n) or prm.get(n.replace("S_d2", "S_d2")) or {}
+                v = e.get(key); return "--" if v is None else f"{v:.2e}"
+            lines.append(f"{arm} (rung {r['rung']}) & mean abs.\ error & " + " & ".join(val(n, "mean_absolute_error") for n in names) + r" \\")
+            lines.append(f" & RMS excursion of the exact reference & " + " & ".join(val(n, "response_scale") for n in names) + r" \\")
+        lines += [r"\bottomrule\end{tabular}\end{table}"]
+        for arm, r in latest.items():
+            s = _load_json(r["path"]); ser = s["series"]; t = np.asarray(ser["time"], dtype=float)
+            plt.rcParams.update({"font.size": 7.5, "axes.linewidth": 0.7})
+            fig, axes = plt.subplots(3, 3, figsize=(7.4, 5.2), sharex=True)
+            for ax, n in zip(axes.flat, names):
+                ax.plot(t, np.asarray(ser["exact"][n], dtype=float), color="black", linestyle=":", linewidth=1.1, label="exact")
+                ax.plot(t, np.asarray(ser["observed"][n], dtype=float), color="#8b1a1a" if "APM" in arm else "#1f5aa6", linewidth=1.0, label=arm)
+                ax.set_ylabel("$" + n.replace("S_d2", "S_d^2").replace("Sigma_4", "\\Sigma_4") + "$"); ax.grid(alpha=0.18, linewidth=0.5)
+            for ax in axes[-1]:
+                ax.set_xlabel(r"$t$")
+            handles, labels = axes[0, 0].get_legend_handles_labels()
+            fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.01), frameon=False, ncol=2)
+            fig.tight_layout(rect=(0, 0, 1, 0.97), pad=0.5, w_pad=0.9)
+            fname = f"siam_observables_{'avqds' if 'AVQDS' in arm else 'apm'}_r{r['rung']:02d}.pdf"
+            fig.savefig(figdir / fname, bbox_inches="tight"); plt.close(fig)
+            lines += [rf"\begin{{figure}}[H]\centering\includegraphics[width=0.92\linewidth]{{figures/{fname}}}"
+                      rf"\caption{{{arm}, rung {r['rung']} screen ($t\in[0,1]$): observables against the exact reference.  " + siam_text + r".}\end{figure}"]
     return "\n".join(lines)
 
 
