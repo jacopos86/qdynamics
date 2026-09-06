@@ -1,0 +1,103 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-qc-full_apm-screen-r01-cut3em03",
+  "action_json_sha256": "6f9d814256b492121429f1d0febd56d89e2e140a027ead93af21e0664fad53fd",
+  "activation_cut_ladder": [
+    "0.01",
+    "0.00333333333333",
+    "0.001",
+    "0.000333333333333",
+    "0.0001",
+    "3.33333333333e-05",
+    "1e-05",
+    "3.33333333333e-06",
+    "1e-06",
+    "3.33333333333e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/siam-nb4-qc-full_apm-screen-r01-cut3em03/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_exchange_q_compiled_cut0.00333333333333",
+  "files": {
+    "action": {
+      "bytes": 235104,
+      "path": "chtc/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/input/action.json",
+      "sha256": "6f9d814256b492121429f1d0febd56d89e2e140a027ead93af21e0664fad53fd"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1366,
+      "path": "chtc/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/submit.sub",
+      "sha256": "c1e14232f1a54f3ef7a6db654584706a36c03989224fa25ce490bb57cbe7e4cc"
+    },
+    "worker": {
+      "bytes": 858,
+      "path": "chtc/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/run_action.py",
+      "sha256": "0231b73a6cb00a0e55f441cd2a729e62c46333fb74af52adb4acb88732111f40"
+    },
+    "wrapper": {
+      "bytes": 1713,
+      "path": "chtc/siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906/run_action_apptainer.sh",
+      "sha256": "c659d8bc4f3aa7e88483dcb1b3f18b8c8b87a8be145fe870527d9b4b0774f302"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_qc_full_apm_screen_r01_cut3em03_source_2ef146d6_20260906",
+  "prepared_at": "2026-09-06T17:06:51+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "route_bundle_id": "paper_ii_exchange_q_compiled_v1",
+  "route_contract_sha256": "7883d93767e00523539d509abf92d126b0effd255eeefc8184a11f2636c356b1",
+  "route_id": "paper_ii_exchange_q_compiled_v1",
+  "runner_argv_sha256": "7ee6aa0e1da3dc2713f0931e208df1208f4e4ccc6d904dc640c8b5158d2d46b3",
+  "schema": "siam_nb4_chtc_package_manifest_v5",
+  "scientific_identity": {
+    "action_id": "siam-nb4-qc-full_apm-screen-r01-cut3em03",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-4c826dabe394196ca270"
+  },
+  "search_profile_id": "siam_nb4_pilot_exchange_v1",
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-4c826dabe394196ca270",
+    "source_revision": "2ef146d65907f0b7dbd4dfe150cac8992c0dcffc",
+    "source_tree_files_sha256": "6b4afe32e43dac4fc70b1c546984275315a8e97b662d339638d1e99ccf0a94cc"
+  },
+  "source_revision": "2ef146d65907f0b7dbd4dfe150cac8992c0dcffc",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 825,
+  "source_tree_files_sha256": "6b4afe32e43dac4fc70b1c546984275315a8e97b662d339638d1e99ccf0a94cc",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "c1e14232f1a54f3ef7a6db654584706a36c03989224fa25ce490bb57cbe7e4cc",
+  "worker_sha256": "0231b73a6cb00a0e55f441cd2a729e62c46333fb74af52adb4acb88732111f40",
+  "wrapper_sha256": "c659d8bc4f3aa7e88483dcb1b3f18b8c8b87a8be145fe870527d9b4b0774f302"
+}
