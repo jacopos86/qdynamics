@@ -216,3 +216,38 @@ r07 (`9720671`, exit 0, 27 min, 293 MB, `34f89a50`): `candidate_broad_guard`, bu
 ## 20260906T053500Z — $2\times10^{-2}$ pilot rerun back (`9720483`, exit 0, 148 min, 1709 MB; `47a6008b`)
 
 $\tau_{\rm pre}=2\times10^{-2}$: 6 true exchanges, $N_\theta=36$, $(N_{2q},D_{2q},D_c)=(98,77,276)$, $\mathcal E=17.5\times10^8$, $N_{\rm step}=2{,}240\times10^3$, errors $(19.2,\,11.5,\,35.4)\times10^{-4}$; 1,238 / 18.1M deletion sets permitted. Same pattern as $5\times10^{-2}$ and $10^{-1}$: shallower circuit, order-of-magnitude accuracy loss. Only $5\times10^{-3}$ (`9720454`) is outstanding.
+## 20260906T144000Z — morning consolidation: pilot complete at six values; 10/11 corrected cells; rungs; local runs stopped
+
+**Pre-permission threshold pilot, strong--fast $(2.4,3)$ $\delta\theta$, $t=20$** (errors $10^{-4}$; $\overline{|\Delta n|}$ as twice the mean maximal site-occupation error):
+
+| $\tau_{\rm pre}$ | cluster | true exch. | $N_\theta$ | $N_{2q}$ | $D_{2q}$ | $D_c$ | $\mathcal E$ ($10^8$) | $N_{\rm step}$ ($10^3$) | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| $2\times10^{-3}$ (manuscript bound) | `9720203.8` | 4 | 42 | 132 | 98 | 365 | 16.7 | 1589 | 4.30 | 1.45 | 4.64 |
+| $5\times10^{-3}$ | `9720454` (`3e871cf3`) | 4 | 31 | 103 | 89 | 321 | 11.5 | 1519 | 27.4 | 3.30 | 17.2 |
+| $10^{-2}$ | `9720455` | 4 | 40 | 105 | 76 | 266 | 19.9 | 2068 | 5.92 | 2.12 | 16.5 |
+| $2\times10^{-2}$ | `9720483` | 6 | 36 | 98 | 77 | 276 | 17.5 | 2240 | 19.2 | 11.5 | 35.4 |
+| $5\times10^{-2}$ | `9720255` | 8 | 40 | 111 | 84 | 301 | 16.9 | 1775 | 9.68 | 14.6 | 42.0 |
+| $10^{-1}$ | `9720253` | 0 | 39 | 110 | 76 | 271 | 21.0 | 2441 | 21.7 | 12.3 | 35.4 |
+
+Every decoupled value loses at least a factor 3.6 on $\overline{|\Delta n|}$ and none keeps $\overline{|\Delta E|}$ within a factor two of the control; the post-refit certificates at $(2\times10^{-3},10^{-3})$ do not protect the trajectory once rotated coordinates become deletable. Exchange counts stay at 4--8 (0 at $10^{-1}$). On this cell the manuscript's coupled bound is the accuracy-preserving choice; adoption remains the user's decision.
+
+**Corrected campaign** (10 of 11 back; strong--slow state motion `9720203.7` running, 16 h): weak--slow $\delta\theta$ (`9720203.0`, 505 min, 3.2 GB, `d2622832`): 32 true exchanges, $N_\theta=59$, errors $(2.17, 1.65, 7.45)$ vs locked $(3.15, 3.75, 8.08)$, $(N_{2q},D_{2q},D_c)=(185,139,502)$ vs $(188,139,505)$, $\mathcal E$ 27.1 vs 23.7, $N_{\rm step}$ 73.9 vs 66.5 ($10^3$). Weak--slow state motion (`9720203.1`, 380 min, 2.9 GB, `ae15a0f6`): 24 true exchanges, $N_\theta=59$, errors $(2.16, 2.84, 7.09)$ vs $(2.96, 3.70, 8.24)$, $(213,173,600)$ vs $(180,140,490)$, $\mathcal E$ 20.3 vs 19.7, $N_{\rm step}$ 49.8 vs 52.3.
+
+**Activation-threshold rungs for the two non-matched corrected cells** (manuscript bound):
+
+| cell | $\tau_m$ | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | $N_\theta$ | $\mathcal E$ | matched (worst factor) |
+|---|---|---:|---:|---:|---:|---:|---|
+| strong--slow $\delta\theta$ | $3\times10^{-6}$ | 2.98 | 3.52 | 7.37 | 50 | 11.7 | no (2.83) |
+| | $10^{-6}$ | 4.52 | 2.05 | 2.64 | 46 | 9.15 | no (2.27) |
+| | $3\times10^{-7}$ (`9720666`, `ca1be191`) | 4.93 | 2.93 | 3.34 | 42 | 8.48 | no (2.47) |
+| weak--fast $\delta\theta$ | $3\times10^{-7}$ | 16.2 | 3.03 | 8.17 | 50 | 9.37 | no (2.82) |
+| | $10^{-7}$ | 15.4 | 2.88 | 8.20 | 45 | 11.0 | no (2.67) |
+| | $3.33\times10^{-8}$ (`9720676`, `f07c4d21`) | 13.1 | 2.92 | 5.93 | 50 | 11.1 | no (2.27) |
+
+Fourth rungs submitted as `9720908` (weak--fast $10^{-8}$, strong--slow $10^{-7}$).
+
+**SIAM AVQDS ladder**: r08 (`9720692`, 45 min) burden 0.285, $C_3$ 1.14, $N_\theta=124$; r09 (cut $3.33\times10^{-7}$) submitted `9720906`. The individual target is not reached by the cut alone on this seed.
+
+**Local runs stopped**: the three local AVQDS ridge-sweep runs launched 2026-09-05 12:58 for the floor rule (`/tmp/ridge_sweep`, $\lambda\in\{10^{-5},10^{-6},10^{-7}\}$, weak--slow) were killed after 20 h with no output; if the floor rule is still wanted it goes to CHTC. No other local Paper II runs.
+
+**Codex AVQDS comparators**: `9719356.0` and `.2` restarted at ~11:50Z (evicted after ~36 h; AVQDS has no checkpoint), `.1` and `.10` at 43--46 h. All four are inside the 72 h window only if they finish before ~2026-09-07 evening.
