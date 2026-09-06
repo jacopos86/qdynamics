@@ -198,3 +198,6 @@ Doublon and charge-imbalance errors fall, the energy error rises; still outside 
 
 - r05 (`9720664`, exit 0, 6 min, `7cf306c6`): `candidate_broad_guard`, burden 0.519, inside the broad guard, individual target failed; $N_\theta=32$. Normalized response components: $m_d$ 0.002, $D_d$ 0.007, $C_1$ 0.049, $C_2$ 0.044, **$C_3$ 2.07**, $C_4$ 0.081, fidelity 0.007 — one bath-correlator component carries the whole burden at every rung so far (r02 0.438, r03 0.961, r04 0.981, r05 0.519), and the activation cut does not move it monotonically. r06 (cut $10^{-5}$) submitted per §8.3; the remaining rungs cost six minutes each, but whether the AVQDS arm can reach the individual target on $C_3$ by the cut alone is a question for the user once r10 is reached or earlier.
 - Strong--slow $\delta\theta$ at $\tau_m=3\times10^{-7}$: `9720666` (`85288674`), running.
+## 20260906T045500Z — SIAM AVQDS r06 scored; r07 submitted
+
+r06 (`9720667`, exit 0, 18 min, 293 MB, `864aece6`): `candidate_broad_guard`, burden 0.300, $C_3$ 1.20 (r05 2.07), $N_\theta=80$ (r05 32). The cut now moves $C_3$ at the price of a much larger support; r07 (cut $3.33\times10^{-6}$) submitted.
