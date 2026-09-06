@@ -333,7 +333,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_dir=args.output_dir,
     )
     if args.compile:
-        subprocess.run(["tectonic", "-q", "paper_ii_corrected_vs_reported.tex"], cwd=args.output_dir, check=True)
+        subprocess.run(["tectonic", "paper_ii_corrected_vs_reported.tex"], cwd=args.output_dir, check=True)
         print(args.output_dir / "paper_ii_corrected_vs_reported.pdf")
     return 0
 

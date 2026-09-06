@@ -2,8 +2,8 @@
   "cells": [
     {
       "achieved_accuracy_floor": {
-        "accuracy_burden": 1.2326370102540722,
-        "route": "old_proxy"
+        "accuracy_burden": 1.9615690846765057,
+        "route": "q_compiled"
       },
       "all_routes_clique": false,
       "all_routes_complete": false,
@@ -19,12 +19,17 @@
       "four_way_complete": false,
       "fresh_comparison_fingerprint": null,
       "missing_routes": [
-        "q_compiled",
         "gamma_compiled",
         "repaired_proxy",
         "avqds"
       ],
-      "pairwise_accuracy": {},
+      "pairwise_accuracy": {
+        "q_compiled__old_proxy": {
+          "burden_ratio": null,
+          "passes": false,
+          "worst_component_ratio": null
+        }
+      },
       "reference": {
         "data_sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c",
         "manifest_path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/output/paper_ii_staged/exact_references/e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc/manifest.json",
@@ -454,6 +459,305 @@
           },
           "time_step_count": 166918,
           "trajectory_kind": "historical_stitched"
+        },
+        "q_compiled": {
+          "accuracy": {
+            "accuracy_burden": 1.9615690846765057,
+            "comparison_eligible": false,
+            "mean_abs_charge_imbalance_error": 0.0007445404484643972,
+            "mean_abs_doublon_error": 0.00016497394915958777,
+            "mean_abs_energy_error": 0.00021689146945810594,
+            "mean_infidelity": 1.0880060233523075e-05,
+            "mean_max_abs_site_occupation_error": 0.0003722702242321986,
+            "qualifies_individually": false,
+            "response_components": {
+              "mean_abs_doublon_error": 1.5086540987777497,
+              "mean_abs_energy_error": 3.5176148009752914,
+              "mean_infidelity": 0.10880060233523074,
+              "mean_max_abs_site_occupation_error": 0.8541220328305802
+            }
+          },
+          "cell_id": "weakslow__delta_theta_5e-5",
+          "completion": {
+            "code_revision": "a43bcd86e9c257e651a851ac66fc74f3336ffaf5",
+            "completion_receipt": {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__delta_theta_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__delta_theta_5e-5__exchange_q_compiled/completion_receipt.json",
+              "sha256": "528b9768a469c256c69509e800c569125e9c5fa0a5bb7c67393348841e7cd1e7"
+            },
+            "completion_status": "SUCCESS_EXACT",
+            "estimator_work_status": "EXACT",
+            "route_contract_sha256": "None",
+            "worker_terminal_cost": {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__delta_theta_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__delta_theta_5e-5__exchange_q_compiled/terminal_qiskit_cost.json",
+              "sha256": "619bf5d60bb48233b14af174d67c84667e28be225bc5e96b173f0e97181761b2"
+            }
+          },
+          "controller": "delta_theta_5e-5",
+          "deletion_gate_outcomes": {
+            "applicable": true,
+            "attempt_record_complete": false,
+            "certified_deletion_bearing_finalist_count": 183,
+            "committed_deletion_patch_count": 183,
+            "deletion_bearing_finalist_attempt_count": 804,
+            "multi_commit_checkpoint_count": 73,
+            "post_delete_failure_reason_counts": {
+              "materialization_failed:inserted coordinate labels collide with existing runtime labels.": 6,
+              "realized_q_loss_budget_exceeded": 228,
+              "smoothness_eta_above_max": 387
+            },
+            "post_delete_gate_failure_count": 621,
+            "pre_certification_failure_reason_counts": {},
+            "pre_certification_rejection_count": 0
+          },
+          "drive": "weakslow",
+          "estimator_work": {
+            "candidate_acquisition_status": "exact",
+            "candidate_column_inference_counts": {
+              "empty_candidate_pool": 1,
+              "persisted_exact": 648
+            },
+            "candidate_full_geometry_evaluation_count": 0,
+            "certification_full_geometry_evaluation_count": 1139,
+            "certification_geometry_status": "exact",
+            "checkpoint_base_geometry_evaluation_count": 501,
+            "checkpoint_base_status": "exact",
+            "logical_candidate_acquisition_work": 2555689213,
+            "logical_certification_geometry_work": 2275661,
+            "logical_checkpoint_base_geometry_work": 1051211,
+            "logical_integration_geometry_work": 147574730,
+            "logical_refit_estimator_work": 728965,
+            "logical_total_estimator_work": 2707319780,
+            "logical_total_estimator_work_status": "exact",
+            "physical_shots": null,
+            "physical_shots_status": "unavailable_statevector_no_shot_ledger",
+            "refit_estimator_status": "exact",
+            "refit_objective_evaluation_count": 11610,
+            "rhs_geometry_evaluation_count": 73864,
+            "selection_round_ledger_complete": true,
+            "selector_call_count": 648
+          },
+          "n_theta": 59,
+          "route": "q_compiled",
+          "route_bundle": "paper_ii_exchange_q_compiled_v1",
+          "route_label": "realized Gamma(v*) compiled",
+          "run_locks": [
+            {
+              "code_revision": "a43bcd86e9c257e651a851ac66fc74f3336ffaf5",
+              "comparison_fingerprint": "9ce95af1a548624445ca8cf61563edca67e7dd42881229a842f88530ebe5338d",
+              "numerics": {
+                "integrator_method": "euler",
+                "inverse_policy": {
+                  "pinv_rcond": 1e-10,
+                  "ridge_lambda": 1e-06,
+                  "solve_damping": 0.0
+                },
+                "solve_repair": {
+                  "condition_number_fail": null,
+                  "condition_number_max": null,
+                  "condition_number_max_status": "soft_kappa_warn_not_repair_trigger",
+                  "enabled": false,
+                  "local_subdivision_enabled": true,
+                  "local_subdivision_factor": 2,
+                  "max_local_subdivisions": 10,
+                  "min_local_dt": 1e-06,
+                  "parameter_step_max": null,
+                  "pinv_rcond_ladder": [
+                    1e-10
+                  ],
+                  "profile_id": "ap_mclachlan_state_space_solve_repair_v2",
+                  "release_kink_severity_scale": 4.0,
+                  "release_kink_threshold_scale": 0.5,
+                  "release_patience_max": 5,
+                  "release_patience_min": 1,
+                  "rho_num_max": null,
+                  "ridge_ladder": [
+                    1e-06
+                  ],
+                  "score_candidate_kink_weight": 0.25,
+                  "score_cost_weight": 0.001,
+                  "score_kappa_weight": 0.25,
+                  "score_rho_weight": 1.0,
+                  "score_state_motion_weight": 1.0,
+                  "score_temporal_kink_weight": 1.0,
+                  "selection_policy": "state_space_candidate_set_score_v1",
+                  "solve_damping_ladder": [
+                    0.0
+                  ],
+                  "state_motion_l2_step_max": 0.01,
+                  "state_space_kink_eta_max": 0.005,
+                  "strict_finite_shot_validation": false,
+                  "theta_dot_l2_max": null,
+                  "theta_dot_l2_max_status": "archaic_diagnostic_only_not_repair_guard"
+                }
+              },
+              "physics": {
+                "drive_profile": {
+                  "A": 0.3,
+                  "custom_weights": null,
+                  "family_key": "hh",
+                  "include_identity": false,
+                  "omega": 1.0,
+                  "operator_label": "hh_spinful_onsite_density",
+                  "pattern": "staggered",
+                  "phi": 0.0,
+                  "reference_method_name": "exponential_midpoint_magnus2_order2",
+                  "spatial_weights": [
+                    1.0,
+                    -1.0
+                  ],
+                  "t0": 0.0,
+                  "tbar": 1.0,
+                  "time_sampling": "midpoint"
+                },
+                "exact_reference_json": null,
+                "exact_reference_sha256": null,
+                "family_key": "hh",
+                "n_ph_max": 1,
+                "seed_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+                "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+                "time_grid": {
+                  "ordered_values_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+                  "point_count": 501,
+                  "t_final": 20.0,
+                  "t_initial": 0.0
+                }
+              },
+              "physics_fingerprint": "412db8f20193a9ce83b93ac7fd2c57beb5af9adbb64533195c49a004c1af1ebe",
+              "policy": {
+                "guards": {
+                  "exchange_route_contract": {
+                    "bundle_id": "paper_ii_exchange_q_compiled_v1",
+                    "compiler": {
+                      "backend_name": "FakeMarrakesh",
+                      "compile_timeout_seconds": 300.0,
+                      "coordinate_weights": {
+                        "delta_d2q": 0.3,
+                        "delta_dc": 0.25,
+                        "delta_n2q": 0.3
+                      },
+                      "optimization_level": 1,
+                      "scale_floor": 1e-12,
+                      "structural_angle": 1.0,
+                      "transpile_seed": 7
+                    },
+                    "cost_model_id": "compiled_marrakesh_population_v1",
+                    "kernel_id": "shifted_paper_i_v1",
+                    "objective_id": "realized_captured_drift_q_v1"
+                  },
+                  "exchange_route_contract_sha256": "7883d93767e00523539d509abf92d126b0effd255eeefc8184a11f2636c356b1",
+                  "max_certification_attempts_per_deletion_branch": 2,
+                  "max_certification_attempts_per_level": 12,
+                  "max_insertion_batch_size": 1,
+                  "max_joint_patch_evaluations": 50000,
+                  "max_structural_pool_size": 128,
+                  "residual_ratio_threshold": 0.02
+                },
+                "structural_policy": "exchange"
+              },
+              "schema": "paper_ii_run_lock_v4",
+              "shared_protocol": {
+                "candidate_pool": {
+                  "append_occurrence_policy": "layer_reuse",
+                  "candidate_pool_deduplicated": 125,
+                  "candidate_pool_order": "frozen_pool_order",
+                  "candidate_pool_raw": 349,
+                  "ordered_atom_contract_sha256": "32f010c7c8776289be89aeeb7008c80bc8c0d80b0af5140d27c3480ff3f661a6",
+                  "schema": "paper_ii_effective_candidate_pool_v1"
+                },
+                "numerics": {
+                  "integrator_method": "euler",
+                  "inverse_policy": {
+                    "pinv_rcond": 1e-10,
+                    "ridge_lambda": 1e-06,
+                    "solve_damping": 0.0
+                  },
+                  "solve_repair": {
+                    "condition_number_fail": null,
+                    "condition_number_max": null,
+                    "condition_number_max_status": "soft_kappa_warn_not_repair_trigger",
+                    "enabled": false,
+                    "local_subdivision_enabled": true,
+                    "local_subdivision_factor": 2,
+                    "max_local_subdivisions": 10,
+                    "min_local_dt": 1e-06,
+                    "parameter_step_max": null,
+                    "pinv_rcond_ladder": [
+                      1e-10
+                    ],
+                    "profile_id": "ap_mclachlan_state_space_solve_repair_v2",
+                    "release_kink_severity_scale": 4.0,
+                    "release_kink_threshold_scale": 0.5,
+                    "release_patience_max": 5,
+                    "release_patience_min": 1,
+                    "rho_num_max": null,
+                    "ridge_ladder": [
+                      1e-06
+                    ],
+                    "score_candidate_kink_weight": 0.25,
+                    "score_cost_weight": 0.001,
+                    "score_kappa_weight": 0.25,
+                    "score_rho_weight": 1.0,
+                    "score_state_motion_weight": 1.0,
+                    "score_temporal_kink_weight": 1.0,
+                    "selection_policy": "state_space_candidate_set_score_v1",
+                    "solve_damping_ladder": [
+                      0.0
+                    ],
+                    "state_motion_l2_step_max": 0.01,
+                    "state_space_kink_eta_max": 0.005,
+                    "strict_finite_shot_validation": false,
+                    "theta_dot_l2_max": null,
+                    "theta_dot_l2_max_status": "archaic_diagnostic_only_not_repair_guard"
+                  }
+                },
+                "physics_fingerprint": "412db8f20193a9ce83b93ac7fd2c57beb5af9adbb64533195c49a004c1af1ebe",
+                "time_step_controller": {
+                  "composed_parameter_step_max": null,
+                  "local_subdivision_enabled": true,
+                  "max_local_subdivisions": 10,
+                  "parameter_displacement_max": 5e-05,
+                  "state_motion_l2_step_max": 0.01
+                }
+              }
+            }
+          ],
+          "run_sources": [
+            {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__delta_theta_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__delta_theta_5e-5__exchange_q_compiled/run.json",
+              "sha256": "382957df339491b8459a7fd00fb92d9666184df8404011f5e538a2932a9d1e6c"
+            }
+          ],
+          "support_motion": {
+            "added_coordinate_count": 346,
+            "decision_reason_counts": {
+              "accepted_generalized_exchange_delete": 151,
+              "accepted_generalized_exchange_exchange": 32,
+              "accepted_generalized_exchange_insert": 173,
+              "append_not_considered": 1,
+              "attempt_budget_exhausted": 2,
+              "escalation_predicate_false": 142
+            },
+            "deleted_coordinate_count": 315,
+            "final_coordinate_count": 59,
+            "initial_coordinate_count": 28,
+            "multi_commit_checkpoint_count": 73,
+            "persisted_candidate_count_sum": 14428674,
+            "persisted_scored_count_sum": 829957,
+            "persisted_scored_not_selected_lower_bound": 829601,
+            "same_checkpoint_base_replacement_count": 7,
+            "short_add_to_redelete_count": 105,
+            "short_cycle_window_support_changes": 2,
+            "short_delete_to_readd_count": 113,
+            "support_changing_checkpoint_count": 357,
+            "support_event_ledger_complete": false
+          },
+          "terminal_runtime_source_artifact": {
+            "declared_path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+            "resolved_path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+            "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+          },
+          "time_step_count": 73864,
+          "trajectory_kind": "direct_t0_t20"
         }
       }
     },
@@ -916,8 +1220,8 @@
     },
     {
       "achieved_accuracy_floor": {
-        "accuracy_burden": 1.302927404006745,
-        "route": "old_proxy"
+        "accuracy_burden": 2.218626568379973,
+        "route": "q_compiled"
       },
       "all_routes_clique": false,
       "all_routes_complete": false,
@@ -933,12 +1237,17 @@
       "four_way_complete": false,
       "fresh_comparison_fingerprint": null,
       "missing_routes": [
-        "q_compiled",
         "gamma_compiled",
         "repaired_proxy",
         "avqds"
       ],
-      "pairwise_accuracy": {},
+      "pairwise_accuracy": {
+        "q_compiled__old_proxy": {
+          "burden_ratio": null,
+          "passes": false,
+          "worst_component_ratio": null
+        }
+      },
       "reference": {
         "data_sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c",
         "manifest_path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/output/paper_ii_staged/exact_references/e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc/manifest.json",
@@ -1369,6 +1678,306 @@
           },
           "time_step_count": 39408,
           "trajectory_kind": "historical_stitched"
+        },
+        "q_compiled": {
+          "accuracy": {
+            "accuracy_burden": 2.218626568379973,
+            "comparison_eligible": false,
+            "mean_abs_charge_imbalance_error": 0.0007094445979871722,
+            "mean_abs_doublon_error": 0.0002843404388893955,
+            "mean_abs_energy_error": 0.0002158592264086995,
+            "mean_infidelity": 9.745707797379825e-06,
+            "mean_max_abs_site_occupation_error": 0.0003547222989935861,
+            "qualifies_individually": false,
+            "response_components": {
+              "mean_abs_doublon_error": 2.6002370117465317,
+              "mean_abs_energy_error": 3.5008735550523054,
+              "mean_infidelity": 0.09745707797379824,
+              "mean_max_abs_site_occupation_error": 0.8138607693688693
+            }
+          },
+          "cell_id": "weakslow__state_motion_5e-5",
+          "completion": {
+            "code_revision": "a43bcd86e9c257e651a851ac66fc74f3336ffaf5",
+            "completion_receipt": {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__state_motion_5e-5__exchange_q_compiled/completion_receipt.json",
+              "sha256": "c53fffc584a95073608fd4f2284082902a8e10ec3c179ac40b6df8c1eda30149"
+            },
+            "completion_status": "SUCCESS_EXACT",
+            "estimator_work_status": "EXACT",
+            "route_contract_sha256": "None",
+            "worker_terminal_cost": {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__state_motion_5e-5__exchange_q_compiled/terminal_qiskit_cost.json",
+              "sha256": "895a66decee3aa2c2c185254daadb6a25110540f8008541726ee6fda23f9ab64"
+            }
+          },
+          "controller": "state_motion_5e-5",
+          "deletion_gate_outcomes": {
+            "applicable": true,
+            "attempt_record_complete": false,
+            "certified_deletion_bearing_finalist_count": 142,
+            "committed_deletion_patch_count": 142,
+            "deletion_bearing_finalist_attempt_count": 761,
+            "multi_commit_checkpoint_count": 39,
+            "post_delete_failure_reason_counts": {
+              "materialization_failed:inserted coordinate labels collide with existing runtime labels.": 11,
+              "realized_l2_not_improved": 3,
+              "realized_q_loss_budget_exceeded": 103,
+              "smoothness_eta_above_max": 502
+            },
+            "post_delete_gate_failure_count": 619,
+            "pre_certification_failure_reason_counts": {},
+            "pre_certification_rejection_count": 0
+          },
+          "drive": "weakslow",
+          "estimator_work": {
+            "candidate_acquisition_status": "exact",
+            "candidate_column_inference_counts": {
+              "empty_candidate_pool": 1,
+              "persisted_exact": 613
+            },
+            "candidate_full_geometry_evaluation_count": 0,
+            "certification_full_geometry_evaluation_count": 991,
+            "certification_geometry_status": "exact",
+            "checkpoint_base_geometry_evaluation_count": 501,
+            "checkpoint_base_status": "exact",
+            "logical_candidate_acquisition_work": 1922200868,
+            "logical_certification_geometry_work": 2060815,
+            "logical_checkpoint_base_geometry_work": 1055067,
+            "logical_integration_geometry_work": 103608631,
+            "logical_refit_estimator_work": 744214,
+            "logical_total_estimator_work": 2029669595,
+            "logical_total_estimator_work_status": "exact",
+            "physical_shots": null,
+            "physical_shots_status": "unavailable_statevector_no_shot_ledger",
+            "refit_estimator_status": "exact",
+            "refit_objective_evaluation_count": 11554,
+            "rhs_geometry_evaluation_count": 49812,
+            "selection_round_ledger_complete": true,
+            "selector_call_count": 613
+          },
+          "n_theta": 59,
+          "route": "q_compiled",
+          "route_bundle": "paper_ii_exchange_q_compiled_v1",
+          "route_label": "realized Gamma(v*) compiled",
+          "run_locks": [
+            {
+              "code_revision": "a43bcd86e9c257e651a851ac66fc74f3336ffaf5",
+              "comparison_fingerprint": "45394449e8b0e26b623cf23b3c2b43b545435451f03a02bb32c11407d02ca2b1",
+              "numerics": {
+                "integrator_method": "euler",
+                "inverse_policy": {
+                  "pinv_rcond": 1e-10,
+                  "ridge_lambda": 1e-06,
+                  "solve_damping": 0.0
+                },
+                "solve_repair": {
+                  "condition_number_fail": null,
+                  "condition_number_max": null,
+                  "condition_number_max_status": "soft_kappa_warn_not_repair_trigger",
+                  "enabled": true,
+                  "local_subdivision_enabled": true,
+                  "local_subdivision_factor": 2,
+                  "max_local_subdivisions": 11,
+                  "min_local_dt": 1e-06,
+                  "parameter_step_max": null,
+                  "pinv_rcond_ladder": [
+                    1e-10
+                  ],
+                  "profile_id": "ap_mclachlan_state_space_solve_repair_v2",
+                  "release_kink_severity_scale": 4.0,
+                  "release_kink_threshold_scale": 0.5,
+                  "release_patience_max": 5,
+                  "release_patience_min": 1,
+                  "rho_num_max": null,
+                  "ridge_ladder": [
+                    1e-06
+                  ],
+                  "score_candidate_kink_weight": 0.25,
+                  "score_cost_weight": 0.001,
+                  "score_kappa_weight": 0.25,
+                  "score_rho_weight": 1.0,
+                  "score_state_motion_weight": 1.0,
+                  "score_temporal_kink_weight": 1.0,
+                  "selection_policy": "state_space_candidate_set_score_v1",
+                  "solve_damping_ladder": [
+                    0.0
+                  ],
+                  "state_motion_l2_step_max": 5e-05,
+                  "state_space_kink_eta_max": 0.005,
+                  "strict_finite_shot_validation": false,
+                  "theta_dot_l2_max": null,
+                  "theta_dot_l2_max_status": "archaic_diagnostic_only_not_repair_guard"
+                }
+              },
+              "physics": {
+                "drive_profile": {
+                  "A": 0.3,
+                  "custom_weights": null,
+                  "family_key": "hh",
+                  "include_identity": false,
+                  "omega": 1.0,
+                  "operator_label": "hh_spinful_onsite_density",
+                  "pattern": "staggered",
+                  "phi": 0.0,
+                  "reference_method_name": "exponential_midpoint_magnus2_order2",
+                  "spatial_weights": [
+                    1.0,
+                    -1.0
+                  ],
+                  "t0": 0.0,
+                  "tbar": 1.0,
+                  "time_sampling": "midpoint"
+                },
+                "exact_reference_json": null,
+                "exact_reference_sha256": null,
+                "family_key": "hh",
+                "n_ph_max": 1,
+                "seed_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+                "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+                "time_grid": {
+                  "ordered_values_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+                  "point_count": 501,
+                  "t_final": 20.0,
+                  "t_initial": 0.0
+                }
+              },
+              "physics_fingerprint": "412db8f20193a9ce83b93ac7fd2c57beb5af9adbb64533195c49a004c1af1ebe",
+              "policy": {
+                "guards": {
+                  "exchange_route_contract": {
+                    "bundle_id": "paper_ii_exchange_q_compiled_v1",
+                    "compiler": {
+                      "backend_name": "FakeMarrakesh",
+                      "compile_timeout_seconds": 300.0,
+                      "coordinate_weights": {
+                        "delta_d2q": 0.3,
+                        "delta_dc": 0.25,
+                        "delta_n2q": 0.3
+                      },
+                      "optimization_level": 1,
+                      "scale_floor": 1e-12,
+                      "structural_angle": 1.0,
+                      "transpile_seed": 7
+                    },
+                    "cost_model_id": "compiled_marrakesh_population_v1",
+                    "kernel_id": "shifted_paper_i_v1",
+                    "objective_id": "realized_captured_drift_q_v1"
+                  },
+                  "exchange_route_contract_sha256": "7883d93767e00523539d509abf92d126b0effd255eeefc8184a11f2636c356b1",
+                  "max_certification_attempts_per_deletion_branch": 2,
+                  "max_certification_attempts_per_level": 12,
+                  "max_insertion_batch_size": 1,
+                  "max_joint_patch_evaluations": 50000,
+                  "max_structural_pool_size": 128,
+                  "residual_ratio_threshold": 0.02
+                },
+                "structural_policy": "exchange"
+              },
+              "schema": "paper_ii_run_lock_v4",
+              "shared_protocol": {
+                "candidate_pool": {
+                  "append_occurrence_policy": "layer_reuse",
+                  "candidate_pool_deduplicated": 125,
+                  "candidate_pool_order": "frozen_pool_order",
+                  "candidate_pool_raw": 349,
+                  "ordered_atom_contract_sha256": "32f010c7c8776289be89aeeb7008c80bc8c0d80b0af5140d27c3480ff3f661a6",
+                  "schema": "paper_ii_effective_candidate_pool_v1"
+                },
+                "numerics": {
+                  "integrator_method": "euler",
+                  "inverse_policy": {
+                    "pinv_rcond": 1e-10,
+                    "ridge_lambda": 1e-06,
+                    "solve_damping": 0.0
+                  },
+                  "solve_repair": {
+                    "condition_number_fail": null,
+                    "condition_number_max": null,
+                    "condition_number_max_status": "soft_kappa_warn_not_repair_trigger",
+                    "enabled": true,
+                    "local_subdivision_enabled": true,
+                    "local_subdivision_factor": 2,
+                    "max_local_subdivisions": 11,
+                    "min_local_dt": 1e-06,
+                    "parameter_step_max": null,
+                    "pinv_rcond_ladder": [
+                      1e-10
+                    ],
+                    "profile_id": "ap_mclachlan_state_space_solve_repair_v2",
+                    "release_kink_severity_scale": 4.0,
+                    "release_kink_threshold_scale": 0.5,
+                    "release_patience_max": 5,
+                    "release_patience_min": 1,
+                    "rho_num_max": null,
+                    "ridge_ladder": [
+                      1e-06
+                    ],
+                    "score_candidate_kink_weight": 0.25,
+                    "score_cost_weight": 0.001,
+                    "score_kappa_weight": 0.25,
+                    "score_rho_weight": 1.0,
+                    "score_state_motion_weight": 1.0,
+                    "score_temporal_kink_weight": 1.0,
+                    "selection_policy": "state_space_candidate_set_score_v1",
+                    "solve_damping_ladder": [
+                      0.0
+                    ],
+                    "state_motion_l2_step_max": 5e-05,
+                    "state_space_kink_eta_max": 0.005,
+                    "strict_finite_shot_validation": false,
+                    "theta_dot_l2_max": null,
+                    "theta_dot_l2_max_status": "archaic_diagnostic_only_not_repair_guard"
+                  }
+                },
+                "physics_fingerprint": "412db8f20193a9ce83b93ac7fd2c57beb5af9adbb64533195c49a004c1af1ebe",
+                "time_step_controller": {
+                  "composed_parameter_step_max": null,
+                  "local_subdivision_enabled": true,
+                  "max_local_subdivisions": 11,
+                  "parameter_displacement_max": null,
+                  "state_motion_l2_step_max": 5e-05
+                }
+              }
+            }
+          ],
+          "run_sources": [
+            {
+              "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__state_motion_5e-5__exchange_q_compiled/run.json",
+              "sha256": "911e349817c2126b3718a6ce60c2c491433476477a09ed3bf2387ba2b926d148"
+            }
+          ],
+          "support_motion": {
+            "added_coordinate_count": 245,
+            "decision_reason_counts": {
+              "accepted_generalized_exchange_delete": 118,
+              "accepted_generalized_exchange_exchange": 24,
+              "accepted_generalized_exchange_insert": 115,
+              "append_not_considered": 1,
+              "attempt_budget_exhausted": 2,
+              "escalation_predicate_false": 241
+            },
+            "deleted_coordinate_count": 214,
+            "final_coordinate_count": 59,
+            "initial_coordinate_count": 28,
+            "multi_commit_checkpoint_count": 39,
+            "persisted_candidate_count_sum": 14734914,
+            "persisted_scored_count_sum": 577843,
+            "persisted_scored_not_selected_lower_bound": 577586,
+            "same_checkpoint_base_replacement_count": 1,
+            "short_add_to_redelete_count": 63,
+            "short_cycle_window_support_changes": 2,
+            "short_delete_to_readd_count": 58,
+            "support_changing_checkpoint_count": 259,
+            "support_event_ledger_complete": false
+          },
+          "terminal_runtime_source_artifact": {
+            "declared_path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+            "resolved_path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+            "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+          },
+          "time_step_count": 49072,
+          "trajectory_kind": "direct_t0_t20"
         }
       }
     },
@@ -12430,7 +13039,7 @@
     "physical_shots": "unavailable: these runs use dense statevector evaluation and persist no estimator circuits, commuting groups, precision, or shot allocation",
     "total": "integration + checkpoint base + candidate acquisition + certification + local refit; status records exact versus lower bound"
   },
-  "generated_utc": "2026-09-06T02:12:38.734025+00:00",
+  "generated_utc": "2026-09-06T14:51:40.150086+00:00",
   "matched_cell_lock": {
     "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/pipelines/time_dynamics/campaigns/paper_ii_final_matched_cells_v1.json",
     "sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030"
@@ -12478,7 +13087,7 @@
       "avqds": 11,
       "gamma_compiled": 0,
       "old_proxy": 15,
-      "q_compiled": 8,
+      "q_compiled": 10,
       "repaired_proxy": 0
     }
   },
