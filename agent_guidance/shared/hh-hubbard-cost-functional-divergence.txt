@@ -100,3 +100,47 @@ receipt -- a settings block records the request, not what the solver used. Check
 the resolved phase1_lambda_*/phase2_lambda_*, the normalization mode, and the
 identity of the third coordinate. Keep the existing results separately; they are
 the record of what the current manuscript's numbers came from.
+
+DO NOT "FIX" THE CLASS-REPRESENTATIVE ARGMIN -- IT IS ALREADY FAITHFUL
+Added 2026-09-06 after a wrong reading was caught by the author. Two separate
+code paths select on cost. Only one of them diverges.
+
+  1. CLASS-REPRESENTATIVE ARGMIN (eq:class_representative in the manuscript).
+     FIRES, and matches the paper. The six-regime HH costexp protocols set
+       semantic_invariants.insertion_equivalence_policy
+         = "termwise_cross_component_commutation_min_cost_realization_v1"
+     which activates _default_no_prune_costexp_realization_active and the
+     min-cost member materialization in adapt_pipeline.py. Weights from
+     chtc/paper_i_ra_adapt_repair_20260727/
+       ra_adapt_costexp_depthfix_sixregime_20260820_v2_chtc/protocols/*.json:
+       weight_2q 0.30, weight_depth_2q 0.30, weight_depth 0.25,
+       weight_1q 0.0, weight_size 0.0
+     costexp_signed_penalty_total has five slots, but two carry zero weight, so
+     the effective objective is exactly (dN_2q, dD_2q, dD_c) at (0.30,0.30,0.25)
+     -- the manuscript's three coordinates at the manuscript's weights, over
+     raw_delta_compiled_* from backend_transpile_v1, i.e. real routing, not the
+     appendix surrogates. The manuscript is correct here. Change nothing.
+
+     Traps that produced a wrong reading once already:
+       - sr_snake_route_profile.py declares
+         "..._earliest_representative_v1" for its six profiles. Those are
+         different routes. The executed six-regime HH arms come from the chtc
+         protocol tree above, which overrides it. Do not conclude the argmin is
+         dead from the route-profile file alone.
+       - min(members) at adapt_pipeline.py:13341 is the earliest-cut
+         enumeration used by the earliest-representative routes. It is not the
+         costexp path.
+       - COSTEXP_INHERITED_SIGNED_PENALTY_WEIGHTS (1.0, 0.0, 0.1, 0.0, 0.01)
+         is the inherited default for the two arms that omit an overlay. The
+         depthfix six-regime arms carry an explicit overlay and do not use it.
+
+  2. RECORD-RANKING COST TERM K_t (Sec. "Relative resource-cost factor").
+     THIS is the divergence documented at the top of this file: zero centering,
+     nonzero-|marginal| median scale, dN_1q as the third coordinate, and
+     0.20/0.20/0.05 over a 0.65 divisor. Confined to
+     pipelines/scaffold/hh_continuation_scoring.py.
+
+So Paper_I.tex:1150 ("All RA methods use ... (0.30,0.30,0.25)") is true of the
+class-representative argmin and false of the Phase-I--III ranking weights it
+actually refers to. The rerun changes K_t. It must leave the class
+representative alone.
