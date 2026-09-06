@@ -405,6 +405,9 @@ def build_two_arm_package(
         validator = re.sub(r"== 45\b", f"== {na}", validator)
         validator = re.sub(r"== 15\b", f"== {nv}", validator)
         validator = re.sub(r"EXPECTED_ROUTES = \{[^}]*\}", 'EXPECTED_ROUTES = {\n    "paper_ii_exchange_q_compiled_v1",\n}', validator, flags=re.S)
+        # one APM route plus AVQDS per cell instead of the template's three plus AVQDS
+        validator = re.sub(r"len\(cell_rows\) == 4\b", "len(cell_rows) == 2", validator)
+        validator = re.sub(r"== 4,(\s*\"cell width drift\")", r"== 2,\1", validator)
         validator = validator.replace(t_rev, source_revision).replace(t_sha, source_sha).replace(f'"{t_campaign}"', f'"{campaign_id}"')
         # the template also names its campaign inside an f-string path and its own module name
         validator = validator.replace(f"raw_outputs/{t_campaign}/", f"raw_outputs/{campaign_id}/")
