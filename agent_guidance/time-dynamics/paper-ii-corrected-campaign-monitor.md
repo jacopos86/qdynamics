@@ -273,3 +273,14 @@ The energy error sits at $(13$--$16)\times10^{-4}$ across four rungs while the A
 - §8.3/8.4: AVQDS continuation $t=1\to5$ (401 points) resumed from the r09 screen, 2 CPU / 2 GB / 40 GB / 172800 s → **`9721121`** (`chtc/siam_nb4_qc_avqds_continue_r09_cut3em07_source_2ef146d6_20260906`, `ee9095b8`; contract 825 rows verified).
 - Exchange arm resumed at the manuscript's permission bound (the pilot found no adoptable decoupled threshold): r01 screen, cut $3.33\times10^{-3}$, profile `siam_nb4_pilot_exchange_v1` (frontier 8) → **`9721122`**. Its r00 screen had burden 5.659 outside the broad guard.
 - Watch list: `9720203.7`, `9719356.*`, `9721087`, `9721121`, `9721122`.
+## 20260906T173500Z — strong--slow $\delta\theta$ at $\tau_m=3.33\times10^{-8}$ (`9721087`, exit 0, 80 min, `1bd74f03`): ladder stopped for this cell
+
+| $\tau_m$ | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | $N_\theta$ | $\mathcal E$ | exchange commits | worst factor |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| $3\times10^{-6}$ | 2.98 | 3.52 | 7.37 | 50 | 11.7 | 4 | 2.83 |
+| $10^{-6}$ | 4.52 | 2.05 | 2.64 | 46 | 9.15 | 4 | 2.27 |
+| $3\times10^{-7}$ | 4.93 | 2.93 | 3.34 | 42 | 8.48 | 4 | 2.47 |
+| $10^{-7}$ | 4.27 | 1.52 | 4.54 | 50 | 8.38 | 4 | 2.14 |
+| $3.33\times10^{-8}$ | 6.25 | 2.99 | 3.49 | 48 | 7.47 | 7 | 3.14 |
+
+Not monotone in $\tau_m$; no rung reaches the factor-two rule (AVQDS energy error $1.99\times10^{-4}$). No further rung. Both corrected cells that left the rule (weak--fast $\delta\theta$, strong--slow $\delta\theta$) stay outside it at every rung tried; which rung to print for them is a reporting decision (the lock's cut keeps the row comparable to the reported one; $10^{-7}$ is the closest to the rule).
