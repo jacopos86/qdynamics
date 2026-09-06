@@ -47,11 +47,13 @@ HH_SEED = Path("chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json")
 def hh_hamiltonian_text(seed_path: Path = HH_SEED, drive: Mapping[str, Any] | None = None) -> str:
     """The Hubbard--Holstein problem as recorded in the seed (and the drive of a run)."""
 
-    st = json.loads(seed_path.read_text(encoding="utf-8"))["settings"]
+    seed = json.loads(seed_path.read_text(encoding="utf-8"))
+    st = seed["settings"]
+    n_qubits = int(seed["hamiltonian"]["num_qubits"])
     text = (
         rf"Hubbard--Holstein chain, $L={int(st['L'])}$ sites ({st['boundary']} boundary), $t={st['t']:g}$, "
         rf"$U={st['u']:g}$, $g_{{\rm ep}}={st['g_ep']:g}$, $\omega_0={st['omega0']:g}$, $n_{{\rm ph}}\le{int(st['n_ph_max'])}$ "
-        rf"({2 * int(st['L']) * (1 + int(st['n_ph_max']))} qubits)"
+        rf"({n_qubits} qubits)"
     )
     if drive:
         w = drive.get("spatial_weights")
