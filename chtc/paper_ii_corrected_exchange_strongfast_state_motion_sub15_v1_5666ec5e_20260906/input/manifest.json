@@ -1,0 +1,130 @@
+{
+ "schema": "paper_ii_final_estimator_telemetry_package_v1",
+ "campaign_id": "paper_ii_corrected_exchange_strongfast_state_motion_sub15_v1",
+ "status": "PREPARED_NOT_SUBMITTED",
+ "created_utc": "2026-09-06T23:40:42Z",
+ "scope": {
+  "action_count": 2,
+  "cell_count": 1,
+  "routes_per_cell": 2,
+  "apm_routes_per_cell": 1,
+  "apm_action_count": 1,
+  "avqds_action_count": 1,
+  "precursor_action_count": 0,
+  "time_span": [
+   0.0,
+   20.0
+  ],
+  "time_point_count": 501,
+  "fresh_trajectories": true,
+  "purpose": "exact logical candidate-estimator accounting"
+ },
+ "routes": {
+  "paper_ii_exchange_q_compiled_v1": 1,
+  "avqds": 1
+ },
+ "source": {
+  "code_revision": "5666ec5e5749a732ed9d46c09b9f3b0b43aae992",
+  "archive": "input/source_5666ec5e.tar.gz",
+  "archive_sha256": "64bf1ceb7d155daa53096a5f62a54bbdbe43072462ec44bb39fcfdeb408906db",
+  "included_paths": [
+   "pipelines",
+   "src",
+   "chtc/paper_ii_production_v2/input/seeds"
+  ],
+  "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
+  "compile_worker_reconciliation_head": "7128545afb85af0fc70b2acc6ae2b8a07c949602",
+  "template_package": "paper_ii_final_estimator_telemetry_v1_426807d9_20260904"
+ },
+ "inputs": {
+  "actions_jsonl": {
+   "path": "input/actions.jsonl",
+   "sha256": "c85670ea3edea87b63f784964a6cea69c6377916c5623c6f63d4eab2c803a096"
+  },
+  "action_ids": {
+   "path": "input/action_ids.txt",
+   "sha256": "b7591d06d62d93c101dff69b63960e6f9ff4df28cb453f637a28b12df87377b1"
+  },
+  "action_ids_apm": {
+   "path": "input/action_ids_apm.txt",
+   "sha256": "e85f0e896ce46f7c2ba9038e33ac7bf7cb391c61cab6ee1a0e3fc088c92d8e6f"
+  },
+  "action_ids_avqds": {
+   "path": "input/action_ids_avqds.txt",
+   "sha256": "e61673d37f31572346c0d13b5229d1fa73a807879f3b68d6305c19d51f2659d7"
+  },
+  "prepare_summary": {
+   "path": "input/prepare_summary.json",
+   "sha256": "e0b6eeade909436aa84d56c2baf11c8cae1d3b0513978f1fe5aae54e514ad2ff"
+  },
+  "matched_cells_lock": {
+   "path": "input/matched_cells_lock.json",
+   "sha256": "fbafd400623d776813c49b28f469416a3757960e2d889fc6fc4312248136cad9"
+  },
+  "calibration_receipt": {
+   "path": "input/calibration_receipt.json",
+   "sha256": "46bf1e92d7304da98324eb5ed2e6604bb72a18f078774aaeb7d9efde8bb5fbd9",
+   "status": "INCOMPLETE",
+   "error_count": 0,
+   "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+   ],
+   "allow_unverified_response_scales_used": false,
+   "carried_reason": "post-run comparison checks require the new trajectories"
+  },
+  "report_refresh_resolution": {
+   "path": "input/report_refresh_resolution.json",
+   "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+   "active_blocks": [],
+   "authorizes_new_campaign_submission": true
+  }
+ },
+ "runtime": {
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "container_size_bytes": 216371200,
+  "apm": {
+   "request_cpus": 9,
+   "compile_workers": 8,
+   "scoring_workers": 4,
+   "request_memory": "12GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "avqds": {
+   "request_cpus": 1,
+   "request_memory": "6GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "thread_environment": {
+   "OPENBLAS_NUM_THREADS": 1,
+   "OMP_NUM_THREADS": 1,
+   "MKL_NUM_THREADS": 1,
+   "VECLIB_MAXIMUM_THREADS": 1,
+   "NUMEXPR_NUM_THREADS": 1,
+   "RAYON_NUM_THREADS": 1
+  },
+  "transfer_format": "one gzip archive plus SHA receipt per action"
+ },
+ "completion_contract": {
+  "trajectory_required": true,
+  "exact_estimator_work_required": true,
+  "terminal_qiskit_cost_required": true,
+  "physical_shots": null,
+  "physical_shots_status": "unavailable_statevector_no_shot_ledger"
+ },
+ "package_files": {
+  "run_action.py": "db42190103e0a2d9114ea7744ceac65cb60cdb47486619b0278895b0f4f33bf7",
+  "run_action_apptainer.sh": "d50c945131d523eed621d94d10129dcecc8659377489830898414947660e20a5",
+  "submit_apm.sub": "8e1a40cd57bb5bbf8ff2e4247606c6c32d06994e96040f5d164c4b89212672dc",
+  "submit_avqds.sub": "91003567febc6097e6f73aef24ff03443d9efad7c8cb52c7663ef1efd145337c",
+  "validate_package.py": "a19f80a7bd86b273344104bc2ff13e0dde4400bcfda05f6a4da34e6554928145"
+ },
+ "adoption": {
+  "paper_evidence_adopted": false,
+  "manuscript_updated": false,
+  "purpose": "author-requested exact estimator reruns only"
+ },
+ "purpose": "Strong--fast (2.4,3) state-motion cell with the local subdivision budget raised from 11 to 15 (named experiment state_motion_5e-5_sub15): at 11 the declared state-motion controller left 248 (APM) and 474 (AVQDS) of 501 steps uncured and both trajectories are unusable (energy error O(1)). Same tau_m=3e-6 and AVQDS cut 3e-6, exchange frontier W=8, manuscript permission bound. Cell row otherwise as in paper_ii_corrected_exchange_strongfast_state_motion_cells_v1."
+}
