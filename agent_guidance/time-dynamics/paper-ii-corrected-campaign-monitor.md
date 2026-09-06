@@ -257,3 +257,13 @@ Errors $(4.27, 1.52, 4.54)\times10^{-4}$, $N_\theta=50$, $\mathcal E=8.38\times1
 ## 20260906T163000Z — data figures regenerated from the corrected runs
 
 `agent_guidance/time-dynamics/reports/corrected_assets_20260906/figures/`: `paper_ii_t20_response_spectra.pdf` (+ `spectra_manifest.json`; the four $\delta\theta$ cells with both arms, as in the manuscript: strong--slow, strong--mid, weak--fast, weak--fastest), `paper_ii_t20_q_compiled_weakslow_state_motion.pdf`, `paper_ii_t20_q_compiled_fastfast_state_motion.pdf` (+ manifests). Inputs: the corrected comparison, a flat raw root of corrected APM `run.json` plus the locked AVQDS `run.json` per cell (`/tmp/report/flat_root`), the HH exact-reference store, and the supplement for the weak--slow AVQDS arm. `paper_ii_t20_q_compiled_slowstrong_state_motion.pdf` waits on `9720203.7`. Spectral relative errors (APM, AVQDS): strong--slow doublon (0.0146, 0.0037), staggered (0.0065, 0.0018); strong--mid (0.0026, 0.0016), (0.0017, 0.0013); weak--fast (0.0140, 0.0031), (0.0052, 0.0016); weak--fastest (0.0694, 0.0058), (0.0013, 0.0011). PDFs are gitignored; manifests committed.
+## 20260906T165500Z — weak--fast $\delta\theta$ at $\tau_m=10^{-8}$ (`9720908.0`, exit 0, 128 min, 2198 MB, `94921b13`): ladder stopped for this cell
+
+| $\tau_m$ | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | $N_\theta$ | $\mathcal E$ | exchange commits | worst factor vs AVQDS |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| $3\times10^{-7}$ | 16.2 | 3.03 | 8.17 | 50 | 9.37 | 3 | 2.82 |
+| $10^{-7}$ | 15.4 | 2.88 | 8.20 | 45 | 11.0 | 2 | 2.67 |
+| $3.33\times10^{-8}$ | 13.1 | 2.92 | 5.93 | 50 | 11.1 | 6 | 2.27 |
+| $10^{-8}$ | 13.8 | 2.39 | 7.87 | 53 | 12.4 | 7 | 2.39 |
+
+The energy error sits at $(13$--$16)\times10^{-4}$ across four rungs while the AVQDS comparator is at $4.24\times10^{-4}$; the activation threshold does not move it. No further rung for weak--fast $\delta\theta$; its corrected row is reported outside the matched-accuracy rule (the reported trajectory at $3\times10^{-7}$ was inside it at 1.42). Strong--slow $\delta\theta$ continues at $3.33\times10^{-8}$ (`9721087`).
