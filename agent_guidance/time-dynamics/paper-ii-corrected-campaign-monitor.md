@@ -210,3 +210,6 @@ r06 (`9720667`, exit 0, 18 min, 293 MB, `864aece6`): `candidate_broad_guard`, bu
 | $10^{-7}$ corrected | 15.4 | 2.88 | 8.20 | 45 | 11.0 | 581 | 2 | no (2.67) |
 
 The energy error barely moves with the cut (AVQDS: 4.24); the corrected search commits different early patches on this drive than the reported one did. Third rung $3.33\times10^{-8}$ submitted (lock `paper_ii_corrected_exchange_next_rung3_cells_v1`) to follow the ladder; if it does not close the gap, this cell's corrected row stays unmatched and is reported as such.
+## 20260906T052500Z — SIAM AVQDS r07 scored; r08 submitted
+
+r07 (`9720671`, exit 0, 27 min, 293 MB, `34f89a50`): `candidate_broad_guard`, burden 0.324, $C_3$ 1.30 (r06 1.20), $N_\theta=90$; every other component $\le0.05$. $C_3$ has stopped responding to the cut. r08 (cut $10^{-6}$) submitted to close the ladder formally; r09/r10 follow the same way unless $C_3$ moves.

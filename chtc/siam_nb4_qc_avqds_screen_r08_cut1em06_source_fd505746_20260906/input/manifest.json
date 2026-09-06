@@ -1,0 +1,102 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-qc-avqds-screen-r08-cut1em06",
+  "action_json_sha256": "31822073dfc25baf6257ea6b7e290e67b76b7d3b67875bfb556132ec6a1b51a8",
+  "activation_cut_ladder": [
+    "0.01",
+    "0.00333333333333",
+    "0.001",
+    "0.000333333333333",
+    "0.0001",
+    "3.33333333333e-05",
+    "1e-05",
+    "3.33333333333e-06",
+    "1e-06",
+    "3.33333333333e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/siam-nb4-qc-avqds-screen-r08-cut1em06/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut1em06",
+  "files": {
+    "action": {
+      "bytes": 233766,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/input/action.json",
+      "sha256": "31822073dfc25baf6257ea6b7e290e67b76b7d3b67875bfb556132ec6a1b51a8"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1289,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/submit.sub",
+      "sha256": "444368450a99dab2d498f73014e787d8897965ef3e59b637756c2ad0e73fc144"
+    },
+    "worker": {
+      "bytes": 852,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/run_action.py",
+      "sha256": "528bee0c426ca453e750dba5a742eca675454bdea0b4d6a41b74a5ff6599c94f"
+    },
+    "wrapper": {
+      "bytes": 1704,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906/run_action_apptainer.sh",
+      "sha256": "7a9642ab5adba748b35850d54e02c71cf82c99ae3bed88800835320dd0604a35"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_qc_avqds_screen_r08_cut1em06_source_fd505746_20260906",
+  "prepared_at": "2026-09-06T05:22:46+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "route_bundle_id": "not_applicable",
+  "route_contract_sha256": null,
+  "route_id": "paper_ii_exchange_q_compiled_v1",
+  "runner_argv_sha256": "b33d3fd4bbb276f445b3b4df6bfe7049242a8b10fbba82b9de6c150d7dd50e57",
+  "schema": "siam_nb4_chtc_package_manifest_v5",
+  "scientific_identity": {
+    "action_id": "siam-nb4-qc-avqds-screen-r08-cut1em06",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-afe430831b6b40c30dd9"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-afe430831b6b40c30dd9",
+    "source_revision": "fd505746fb1ef29310699bee1df66eb62afb2e8b",
+    "source_tree_files_sha256": "f1eaf35a81be2912211ef63353a89d96be2b99fc75bdf22ded2b33d59bca83f6"
+  },
+  "source_revision": "fd505746fb1ef29310699bee1df66eb62afb2e8b",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 823,
+  "source_tree_files_sha256": "f1eaf35a81be2912211ef63353a89d96be2b99fc75bdf22ded2b33d59bca83f6",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "444368450a99dab2d498f73014e787d8897965ef3e59b637756c2ad0e73fc144",
+  "worker_sha256": "528bee0c426ca453e750dba5a742eca675454bdea0b4d6a41b74a5ff6599c94f",
+  "wrapper_sha256": "7a9642ab5adba748b35850d54e02c71cf82c99ae3bed88800835320dd0604a35"
+}
