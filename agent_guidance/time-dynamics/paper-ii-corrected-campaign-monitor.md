@@ -267,3 +267,9 @@ Errors $(4.27, 1.52, 4.54)\times10^{-4}$, $N_\theta=50$, $\mathcal E=8.38\times1
 | $10^{-8}$ | 13.8 | 2.39 | 7.87 | 53 | 12.4 | 7 | 2.39 |
 
 The energy error sits at $(13$--$16)\times10^{-4}$ across four rungs while the AVQDS comparator is at $4.24\times10^{-4}$; the activation threshold does not move it. No further rung for weak--fast $\delta\theta$; its corrected row is reported outside the matched-accuracy rule (the reported trajectory at $3\times10^{-7}$ was inside it at 1.42). Strong--slow $\delta\theta$ continues at $3.33\times10^{-8}$ (`9721087`).
+## 20260906T172000Z — SIAM AVQDS r09 **qualified**; continuation and exchange-arm r01 submitted
+
+- r09 (`9720906`, exit 0, 144 min, 342 MB, `3e1691c4`): `qualified` — burden 0.110, broad guard and individual target pass, $C_3$ 0.44, $N_\theta=161$. Ladder: r00 3.855, r01 0.916, r02 0.438, r03 0.961, r04 0.981, r05 0.519, r06 0.300, r07 0.324, r08 0.285, r09 **0.110**.
+- §8.3/8.4: AVQDS continuation $t=1\to5$ (401 points) resumed from the r09 screen, 2 CPU / 2 GB / 40 GB / 172800 s → **`9721121`** (`chtc/siam_nb4_qc_avqds_continue_r09_cut3em07_source_2ef146d6_20260906`, `ee9095b8`; contract 825 rows verified).
+- Exchange arm resumed at the manuscript's permission bound (the pilot found no adoptable decoupled threshold): r01 screen, cut $3.33\times10^{-3}$, profile `siam_nb4_pilot_exchange_v1` (frontier 8) → **`9721122`**. Its r00 screen had burden 5.659 outside the broad guard.
+- Watch list: `9720203.7`, `9719356.*`, `9721087`, `9721121`, `9721122`.
