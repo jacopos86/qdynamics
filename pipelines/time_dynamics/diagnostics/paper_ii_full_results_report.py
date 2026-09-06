@@ -24,6 +24,7 @@ from pipelines.time_dynamics.diagnostics.exact_reference_store import ExactRefer
 from pipelines.time_dynamics.diagnostics.paper_ii_corrected_campaign_report import (
     DRIVE_NAME,
     build,
+    hh_hamiltonian_text,
 )
 from pipelines.time_dynamics.diagnostics.physical_errors import physical_errors
 from pipelines.time_dynamics.diagnostics.q_compiled_manuscript_assets import (
@@ -76,6 +77,7 @@ def _run_record(run_path: Path, store: ExactReferenceStore) -> dict[str, Any]:
         "permitted": summary.get("deletion_permission_permitted_set_count"),
         "evaluated": summary.get("deletion_permission_evaluated_set_count"),
         "t": t, "series": series, "exact": exact,
+        "drive": doc["hamiltonian"].get("drive_profile") or {},
     }
 
 
@@ -91,30 +93,33 @@ HEAD = (r"$\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta
         r"$D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch.")
 
 
-def _multi_figure(runs: Sequence[tuple[str, Mapping[str, Any]]], output: Path, title: str) -> None:
+def _multi_figure(runs: Sequence[tuple[str, Mapping[str, Any]]], output: Path, title: str,
+                  avqds: Mapping[str, Any] | None = None) -> None:
+    """Three observables: exact reference, the corrected AP-McLachlan variants, the AVQDS comparator."""
+
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     plt.rcParams.update({"font.size": 8, "axes.linewidth": 0.7})
-    fig, axes = plt.subplots(2, 3, figsize=(7.4, 4.0), sharex=True)
+    fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.4), sharex=True)
     t_ref = runs[0][1]["t"]; exact = runs[0][1]["exact"]
     for j in range(3):
-        axes[0, j].plot(t_ref, exact[j], color="black", linestyle=":", linewidth=1.0, label="exact")
-    colors = plt.cm.viridis(np.linspace(0.0, 0.9, len(runs)))
+        axes[j].plot(t_ref, exact[j], color="black", linestyle=":", linewidth=1.1, label="exact")
+    colors = plt.cm.viridis(np.linspace(0.0, 0.85, len(runs)))
     for (label, r), color in zip(runs, colors):
         for j in range(3):
-            axes[0, j].plot(r["t"], r["series"][j], color=color, linewidth=1.0, label=label)
-            axes[1, j].semilogy(r["t"], np.abs(r["series"][j] - r["exact"][j]) + 1e-16, color=color, linewidth=0.9)
+            axes[j].plot(r["t"], r["series"][j], color=color, linewidth=0.9, label=label)
+    if avqds is not None:
+        for j in range(3):
+            axes[j].plot(avqds["t"], avqds["series"][j], color="#1f5aa6", linestyle="--", linewidth=1.0, label="AVQDS")
     for j, yl in enumerate((r"$E(t)$", r"$D(t)$", r"$\Delta n(t)$")):
-        axes[0, j].set_ylabel(yl); axes[1, j].set_ylabel("|error|"); axes[1, j].set_xlabel(r"$t$")
-        for a in axes[:, j]:
-            a.grid(alpha=0.18, linewidth=0.5)
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.03), frameon=False, ncol=min(4, len(labels)), fontsize=7)
-    fig.suptitle(title, y=0.90, fontsize=8)
-    fig.tight_layout(rect=(0, 0, 1, 0.88), pad=0.5, w_pad=0.9)
+        axes[j].set_ylabel(yl); axes[j].set_xlabel(r"$t$"); axes[j].grid(alpha=0.18, linewidth=0.5)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.12), frameon=False, ncol=min(4, len(labels)), fontsize=7)
+    fig.suptitle(title, y=0.93, fontsize=8)
+    fig.tight_layout(rect=(0, 0, 1, 0.86), pad=0.5, w_pad=0.9)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, bbox_inches="tight")
     plt.close(fig)
@@ -137,6 +142,7 @@ def pilot_section(control: Path, pilots: Sequence[Path], store: ExactReferenceSt
     runs.sort(key=lambda x: (x[1]["tau_pre"] is not None, x[1]["tau_pre"] or 0.0))
     lines = [
         r"\section*{Pre-permission threshold pilot}",
+        r"\textbf{Hamiltonian.} " + hh_hamiltonian_text(drive=runs[0][1]["drive"]) + ".",
         r"Strong--fast $(2.4,3)$ $\delta\theta$, $t=0\to20$.  The manuscript admits a deletion batch $D$ only when its ray bound "
         r"$\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]$ lies below the post-refit tolerance $2\times10^{-3}$; each pilot "
         r"run tests that bound at $\tau_{\rm pre}$ instead, leaving the post-refit ray and velocity certificates unchanged.  "
@@ -150,7 +156,8 @@ def pilot_section(control: Path, pilots: Sequence[Path], store: ExactReferenceSt
     lines += [r"\bottomrule\end{tabular}\end{table}"]
     _multi_figure(runs, figdir / "pilot_strongfast_dtheta.pdf", "pre-permission threshold pilot, strong--fast delta-theta")
     lines += [r"\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/pilot_strongfast_dtheta.pdf}"
-              r"\caption{Pilot trajectories against the exact reference (top) and their absolute errors (bottom).}\end{figure}"]
+              r"\caption{Total energy, doublon occupation and charge imbalance of the pilot trajectories against the exact reference "
+              r"(the strong--fast AVQDS comparator has no fresh trajectory yet).  " + hh_hamiltonian_text(drive=runs[0][1]["drive"]) + r".}\end{figure}"]
     return "\n".join(lines)
 
 
@@ -158,6 +165,7 @@ def rung_section(cells: Mapping[str, Sequence[tuple[str, Path]]], store: ExactRe
                  avqds: Mapping[str, Path]) -> str:
     lines = [
         r"\section*{Activation-threshold rungs for the two corrected cells outside the factor-two rule}",
+        r"\textbf{Hamiltonian.} " + hh_hamiltonian_text() + r"; the drive of each cell is stated in its caption.",
         r"The activation threshold $\tau_m$ of Eq.~(realized\_mclachlan\_distance) is stepped on the factor-three ladder the "
         r"reported cells were chosen on; every run keeps the declared insertion frontier and the manuscript's permission bound.  "
         r"The AVQDS comparator row is the locked one.",
@@ -176,14 +184,16 @@ def rung_section(cells: Mapping[str, Sequence[tuple[str, Path]]], store: ExactRe
             tex = rf"${float(m):g}\times10^{{{int(e)}}}$" + (f" ({label})" if label else "")
             lines.append(_row(tex, r))
             runs.append((tex, r))
+        a = None
         if cell_id in avqds:
             a = _run_record(avqds[cell_id], store)
             lines.append(_row("AVQDS (locked)", a))
         lines += [r"\bottomrule\end{tabular}\end{table}"]
         fname = f"rungs_{cell_id}.pdf"
-        _multi_figure(runs, figdir / fname, f"{DRIVE_NAME[drive]} {controller.replace('_', ' ')}: activation-threshold rungs")
+        _multi_figure(runs, figdir / fname, f"{DRIVE_NAME[drive]} {controller.replace('_', ' ')}: activation-threshold rungs", avqds=a)
         lines += [rf"\begin{{figure}}[H]\centering\includegraphics[width=\linewidth]{{figures/{fname}}}"
-                  r"\caption{Rung trajectories against the exact reference (top) and absolute errors (bottom).}\end{figure}"]
+                  r"\caption{Total energy, doublon occupation and charge imbalance of the rung trajectories, the exact reference and the "
+                  r"AVQDS comparator.  " + hh_hamiltonian_text(drive=runs[0][1]["drive"]) + r".}\end{figure}"]
     return "\n".join(lines)
 
 
@@ -211,8 +221,15 @@ def siam_section(score_files: Sequence[Path], figdir: Path) -> str:
         })
     rows.sort(key=lambda r: (r["arm"], r["rung"]))
     comp_names = sorted({k for r in rows for k in r["components"]})
+    phys = _load_json(Path("chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_812d20c3_20260905/input/seed.json"))["physical"]
+    siam_text = (
+        rf"single-impurity Anderson model in a finite box, $N_b={int(phys['n_bath'])}$ bath sites ({int(phys['n_qubits'])} qubits), "
+        rf"hopping $t={float(phys['hopping']):g}$, $U={float(phys['u']):g}$, hybridization quench $V: {float(phys['v_pre_quench']):g}\to{float(phys['v_post_quench']):.4g}$ at $t=0$, "
+        rf"$N_\uparrow={int(phys['electron_counts']['up'])}$, $N_\downarrow={int(phys['electron_counts']['down'])}$"
+    )
     lines = [
         r"\section*{SIAM $N_b=4$ (10 qubits) activation-threshold ladder}",
+        r"\textbf{Hamiltonian.} " + siam_text + ".",
         r"Screens over $t\in[0,1]$ (101 points) at the activation cut of each rung, both arms on the compiled-$Q$ route; the AP-McLachlan "
         r"arm uses the declared insertion frontier and the manuscript's permission bound.  Errors are normalized by the RMS excursion of the "
         r"exact reference (the scorer's response components); \emph{burden} is their aggregate.  No target or guard is applied here.",
@@ -249,7 +266,7 @@ def siam_section(score_files: Sequence[Path], figdir: Path) -> str:
         ax.legend(fontsize=6, ncol=3, frameon=False)
         fig.tight_layout(); fig.savefig(figdir / "siam_ladder_infidelity.pdf", bbox_inches="tight")
         lines += [r"\begin{figure}[H]\centering\includegraphics[width=0.8\linewidth]{figures/siam_ladder_infidelity.pdf}"
-                  r"\caption{Infidelity against the exact SIAM reference over each screen.}\end{figure}"]
+                  r"\caption{Infidelity against the exact SIAM reference over each screen.  " + siam_text + r".}\end{figure}"]
     plt.close(fig)
     return "\n".join(lines)
 

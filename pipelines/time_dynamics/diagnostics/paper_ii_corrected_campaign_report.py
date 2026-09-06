@@ -41,6 +41,28 @@ from pipelines.time_dynamics.diagnostics.q_compiled_manuscript_assets import (
     _trajectory_rows,
 )
 
+HH_SEED = Path("chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json")
+
+
+def hh_hamiltonian_text(seed_path: Path = HH_SEED, drive: Mapping[str, Any] | None = None) -> str:
+    """The Hubbard--Holstein problem as recorded in the seed (and the drive of a run)."""
+
+    st = json.loads(seed_path.read_text(encoding="utf-8"))["settings"]
+    text = (
+        rf"Hubbard--Holstein chain, $L={int(st['L'])}$ sites ({st['boundary']} boundary), $t={st['t']:g}$, "
+        rf"$U={st['u']:g}$, $g_{{\rm ep}}={st['g_ep']:g}$, $\omega_0={st['omega0']:g}$, $n_{{\rm ph}}\le{int(st['n_ph_max'])}$ "
+        rf"({2 * int(st['L']) * (1 + int(st['n_ph_max']))} qubits)"
+    )
+    if drive:
+        w = drive.get("spatial_weights")
+        text += (
+            rf"; drive on the on-site density, {drive.get('pattern')} pattern {tuple(w) if w else ''}, "
+            rf"$A={float(drive['A']):g}$, $\omega={float(drive['omega']):g}$, $\bar t={float(drive.get('tbar', 0)):g}$, "
+            rf"$\phi={float(drive.get('phi', 0)):g}$"
+        )
+    return text
+
+
 DRIVE_NAME = {
     "weakslow": "weak--slow",
     "fastweak": "weak--fast",
@@ -124,7 +146,9 @@ def build(
     extra_sections: Sequence[str] = (),
     matched_column: bool = True,
     intro_extra: str = "",
+    hamiltonian_text: str | None = None,
 ) -> dict[str, Any]:
+    hamiltonian_text = hamiltonian_text or hh_hamiltonian_text()
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "figures").mkdir(exist_ok=True)
     locked_cells = {c["cell_id"]: c for c in locked["cells"]}
@@ -272,37 +296,34 @@ def build(
             )
 
         curves = [("APM corrected", r["q_new"], "#8b1a1a", "-", 1.3)]
-        if r["q_old"] is not None:
-            curves.append(("APM reported", r["q_old"], "#d08a00", "-.", 1.0))
         if r["avqds"] is not None:
             curves.append(("AVQDS", r["avqds"], "#1f5aa6", "--", 1.0))
         plt.rcParams.update({"font.size": 8, "axes.linewidth": 0.7})
-        fig, axes = plt.subplots(2, 3, figsize=(7.4, 4.0), sharex=True)
+        fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.3), sharex=True)
         ylabels = (r"$E(t)$", r"$D(t)$", r"$\Delta n(t)$")
         for j in range(3):
-            axes[0, j].plot(t_ref, exact[j], color="black", linestyle=":", linewidth=1.0, label="exact")
+            axes[j].plot(t_ref, exact[j], color="black", linestyle=":", linewidth=1.0, label="exact")
         for label, route, color, style, width in curves:
             t, vals = series(route)
             if not np.allclose(t, t_ref, rtol=0.0, atol=1e-12):
                 raise ValueError(f"{r['cell_id']}: {label} is not on the reporting grid")
             for j in range(3):
-                axes[0, j].plot(t, vals[j], color=color, linestyle=style, linewidth=width, label=label)
-                axes[1, j].semilogy(t, np.abs(vals[j] - exact[j]) + 1e-16, color=color, linestyle=style, linewidth=width)
+                axes[j].plot(t, vals[j], color=color, linestyle=style, linewidth=width, label=label)
         for j in range(3):
-            axes[0, j].set_ylabel(ylabels[j]); axes[1, j].set_ylabel("|error|"); axes[1, j].set_xlabel(r"$t$")
-            for a in axes[:, j]:
-                a.grid(alpha=0.18, linewidth=0.5)
-        handles, labels = axes[0, 0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.02), frameon=False, ncol=4)
-        fig.tight_layout(rect=(0, 0, 1, 0.93), pad=0.5, w_pad=0.9)
+            axes[j].set_ylabel(ylabels[j]); axes[j].set_xlabel(r"$t$"); axes[j].grid(alpha=0.18, linewidth=0.5)
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.06), frameon=False, ncol=3)
+        fig.tight_layout(rect=(0, 0, 1, 0.9), pad=0.5, w_pad=0.9)
         fname = f"{r['cell_id']}.pdf"
         fig.savefig(output_dir / "figures" / fname, bbox_inches="tight")
         plt.close(fig)
+        drive_profile = _load_json(Path(r["q_new"]["run_sources"][0]["path"]))["hamiltonian"].get("drive_profile") or {}
         figure_tex.append(
             r"\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/%s}" % fname
-            + r"\caption{%s $%s$, %s: total energy, doublon occupation and charge imbalance "
-            r"(top) and absolute errors against the exact reference (bottom).}\end{figure}"
-            % (DRIVE_NAME[r["drive"]], DRIVE_TEX[r["drive"]].strip("$"), CONTROLLER_TEX[r["controller"]])
+            + r"\caption{%s $%s$, %s: total energy, doublon occupation and charge imbalance; exact reference, "
+            r"corrected AP-McLachlan trajectory, AVQDS comparator.  %s.}\end{figure}"
+            % (DRIVE_NAME[r["drive"]], DRIVE_TEX[r["drive"]].strip("$"), CONTROLLER_TEX[r["controller"]],
+               hh_hamiltonian_text(drive=drive_profile))
         )
 
     generated = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%d %H:%MZ")
@@ -323,6 +344,8 @@ def build(
             r"$\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]\le2\times10^{-3}$, so every committed "
             r"exchange below removes a coordinate whose accumulated effective angle was at most "
             r"$2\times10^{-3}$ at the time point.",
+            r"\textbf{Hamiltonian.} " + hamiltonian_text + r".  Drives are on-site-density modulations with the staggered pattern $(+1,-1)$, "
+            r"$\bar t=1$, $\phi=0$, at the amplitude and frequency $(A,\omega)$ named in each row.",
             intro_extra,
             *t1,
             *t2,
