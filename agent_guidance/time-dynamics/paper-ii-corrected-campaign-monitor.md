@@ -201,3 +201,12 @@ Doublon and charge-imbalance errors fall, the energy error rises; still outside 
 ## 20260906T045500Z — SIAM AVQDS r06 scored; r07 submitted
 
 r06 (`9720667`, exit 0, 18 min, 293 MB, `864aece6`): `candidate_broad_guard`, burden 0.300, $C_3$ 1.20 (r05 2.07), $N_\theta=80$ (r05 32). The cut now moves $C_3$ at the price of a much larger support; r07 (cut $3.33\times10^{-6}$) submitted.
+## 20260906T050000Z — weak--fast $\delta\theta$ at $\tau_m=10^{-7}$ back (`9720482.0`, exit 0, 115 min, 1954 MB; preserved as `c6afe073`)
+
+| $\tau_m$ | $\overline{|\Delta E|}$ | $\overline{|\Delta D|}$ | $\overline{|\Delta n|}$ | $N_\theta$ | $\mathcal E$ ($10^8$) | $N_{\rm step}$ ($10^3$) | exchange commits | matched vs AVQDS (worst factor) |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| $3\times10^{-7}$ reported | 8.18 | 1.81 | 6.31 | 45 | 10.8 | 709 | 0 | yes (1.42) |
+| $3\times10^{-7}$ corrected | 16.2 | 3.03 | 8.17 | 50 | 9.37 | 524 | 3 | no (2.82) |
+| $10^{-7}$ corrected | 15.4 | 2.88 | 8.20 | 45 | 11.0 | 581 | 2 | no (2.67) |
+
+The energy error barely moves with the cut (AVQDS: 4.24); the corrected search commits different early patches on this drive than the reported one did. Third rung $3.33\times10^{-8}$ submitted (lock `paper_ii_corrected_exchange_next_rung3_cells_v1`) to follow the ladder; if it does not close the gap, this cell's corrected row stays unmatched and is reported as such.
