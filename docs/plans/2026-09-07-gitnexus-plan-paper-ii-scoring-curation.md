@@ -1,12 +1,12 @@
 # GitNexus Engineering Plan
 
 > Task: curate the Paper II implementation before adding optional compiled-cost exchange policies.
-> Evidence verified at commit 74ff226338caa56d29ef28004dd7b37615f5e511; GitNexus refreshed this session with --index-only --pdg, current schema-4 runner, incompleteReasons=[].
+> Evidence verified at commit 3c7251f3f9d5337d4374a5f6e24972be9538e9af; GitNexus refreshed this session with --index-only --pdg, current schema-4 runner, incompleteReasons=[].
 > Evidence provenance schema 2; global dirty digest 0a9c85780067d9afcd0764f307b60891e3cee927ee11eaeb5ec7826d10fd82cd; 16 sorted cited paths; exact generated plan path excluded.
 
 ## 1. Objective
 
-Implement a bounded curation increment: delete confirmed dead machinery, isolate historical acquisition utility, and eliminate disabled-hook work. Preserve current route outputs, public configuration and scientific safeguards. Specify the optional protocol boundary without enabling or implementing it in this increment.
+Implement a bounded curation increment: delete confirmed dead machinery, isolate historical acquisition utility, and eliminate disabled history-hook work. Preserve current route outputs, public configuration and scientific safeguards. Specify the optional protocol boundary without enabling or implementing it in this increment.
 
 ## 2. Current Behaviour
 
@@ -33,33 +33,33 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
 
 [verified] Delete `support_frontier.py` and three stale `adaptive_trajectory.__all__` strings; delete unused `prune_cost` helpers and `support_patch.gain_for_support`. Retain public `PruneCostSettings`, support-patch payloads and tested numeric APIs. Update current module maps; preserve historical handoffs.
 
-[inferred] Extract the arithmetic currently in `iter_structural_families.scored` into proposed `exchange_legacy_scoring.score_legacy_acquisition`, with a small immutable component result. Keep `StructuralScoreWeights` and `StructuralCandidate` at their current public import paths. The helper may invoke the existing q/cost hooks in their current order; it must not own enumeration, compiled ranking or certification. Preserve all score components and operation order for finite inputs. Do not introduce new user-facing knobs.
+[inferred] Extract the arithmetic currently in `iter_structural_families.scored` into proposed module-local `_score_legacy_acquisition`, with a small immutable component result. Keep the helper in `exchange_structural.py` to preserve the exact prospective source-overlay file set. Keep `StructuralScoreWeights` and `StructuralCandidate` at their current public import paths. The helper may invoke the existing q/cost hooks in their current order; it must not own enumeration, compiled ranking or certification. Preserve all score components and operation order for finite inputs. Do not introduce new user-facing knobs.
 
-[inferred] Skip history-loss callback evaluation when lambda_hist is zero; skip memoized condition-number retrieval/log10 when both weighted conditioning terms are zero. Disabled diagnostics may therefore be unavailable without affecting scoring. Keep the unweighted deletion_conditioning hook active, and preserve history recording/serialization. Construct each removed-index set once per q_of call, rather than once per retained index.
+[inferred] Skip history-loss callback evaluation when lambda_hist is zero. Preserve conditioning metadata/log10 work: infinite condition diagnostics can yield zero-times-infinity NaNs even at zero weight, so skipping them would change candidate eligibility. Record that correction separately from this refactor. Keep the unweighted deletion_conditioning hook active, and preserve history recording/serialization. Construct each removed-index set once per q_of call, rather than once per retained index.
 
-[inferred] Add the extracted file to the prospective executor overlay and test that an older source tree plus the overlay carries the import. Document acquisition and final compiled ranking separately.
+[verified] The prospective overlay validator requires an exact file set. A new helper module would invalidate existing work orders in the current loader. Keep the helper in the existing overlaid structural module; no overlay or serialization change. Document acquisition and final compiled ranking separately.
 
 ## 7. Implementation Sequence
 
 1. Capture small pre-change candidate/family fingerprints for default, nonzero hooks, accuracy-debt and bounded/batch frontier cases; preserve the external receipt. Existing baseline: 113 structural/selector/integration/compiled/population tests passed.
 2. Delete the verified dead surface and update its current references. Retain public/tested compatibility APIs.
-3. Extract historical acquisition arithmetic and add zero-work guards. Add focused behavioral tests alongside existing exact nonzero-hook and serial/parallel tests.
-4. Update prospective source composition and its regression; update module ownership descriptions.
+3. Extract historical acquisition arithmetic into a local helper and add the zero-history-work guard. Add focused behavioral tests alongside existing exact nonzero-hook and serial/parallel tests.
+4. Verify the prospective source composition remains unchanged; update module ownership descriptions.
 5. Run the focused numerical, oracle, compatibility and packaging checks; compare baseline fingerprints exactly. Refresh GitNexus after relation changes, inspect staged detect_changes and git diff --check, then commit the coherent increment. Record actual validation and remaining extension work separately; do not rewrite this plan.
 
 ## 8. Test Strategy
 
 [verified] Existing runnable baseline uses `/Users/lordskyler/Holstein_test/.venv/bin/python` under `pipelines/shell/ram_guard.py`.
 
-- Zero-weight history/metadata callbacks that raise if called -> enumerate -> no call, same finite candidate/family fingerprints and telemetry.
-- Nonzero conditioning/history -> retain existing exact formula tests and callback failures. Zero weighted metadata plus positive unweighted conditioning hook -> still changes deletion utility as declared.
+- Zero-weight history callback that raises if called -> enumerate -> no call, same finite candidate/family fingerprints and telemetry. Infinite conditioning metadata -> preserve existing nonfinite score/eligibility behavior.
+- Nonzero conditioning/history -> retain existing exact formula tests and callback failures. Zero weighted conditioning terms plus positive unweighted conditioning hook -> still changes deletion utility as declared.
 - Default and nonzero hooks, batch=1/2, frontier sealed/unrestricted, debt tie ordering -> pre/post fingerprints identical.
 - Whole-family guard, solve error serial timing, Q/Gamma shared population, signed marginals, compilation failures and timeouts -> existing structural/selector/integration/oracle/compiled suites stay green.
-- Prospective historical-base overlay -> extracted source present and its import executable; tamper/hash tests still hold. Existing run/route and SIAM serialization tests preserve omission semantics.
+- Prospective historical-base overlay -> exact existing file set and source composition remain unchanged; tamper/hash tests still hold. Existing run/route and SIAM serialization tests preserve omission semantics.
 
 ## 9. Risk and Impact Analysis
 
-[verified] Historic exchange remains executable in prospective and SIAM routes; all four bundles are registered comparison arms. Removing their zero-default hooks or replacing frontier scores would change scientific behavior. [inferred] The extraction is medium impact and must keep the default population/order unchanged. Disabled-hook short-circuiting intentionally stops callback side effects and nonfinite diagnostics from leaking through multiplication by zero. It does not relax numerical solver or certification checks. Do not cache population-normalized scores across checkpoints.
+[verified] Historic exchange remains executable in prospective and SIAM routes; all four bundles are registered comparison arms. Removing their zero-default hooks or replacing frontier scores would change scientific behavior. [inferred] The extraction is medium impact and must keep the default population/order unchanged. Disabled-history short-circuiting intentionally stops that callback from running; it is score-identical for finite histories. Conditioning metadata behavior, including nonfinite arithmetic, is preserved. It does not relax numerical solver or certification checks. Do not cache population-normalized scores across checkpoints.
 
 [verified] Larger `support_patch` numeric code is test-backed even where no production caller exists. Defer its removal until the scientific invariants are transferred to active authorities. A stale diagnostic-only Paper III demo does not justify resurrecting retired config; it is outside this increment.
 
@@ -72,13 +72,10 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
 | `pipelines/time_dynamics/ap_mclachlan/prune_cost.py` | Delete the private unused payload/conditioning helper island and unused imports. |
 | `pipelines/time_dynamics/ap_mclachlan/support_patch.py` | Delete unused gain_for_support and its export; keep tested mathematical helpers and payload API. |
 | `pipelines/time_dynamics/ap_mclachlan/exchange_structural.py` | Delegate historical acquisition arithmetic; skip inactive work; preserve candidate/weight API and enumeration. |
-| `pipelines/time_dynamics/ap_mclachlan/exchange_legacy_scoring.py` | New bounded helper for current historical utility/rank arithmetic; no compiled-cost policy. |
-| `pipelines/time_dynamics/prospective_apm_exchange_worker.py` | Include extracted module in source-epoch overlay closure. |
 | `pipelines/time_dynamics/README.md` | Correct current module map. |
 | `pipelines/time_dynamics/ap_mclachlan/README.md` | Correct current selector/scoring module map. |
 | `agent_guidance/time-dynamics/AGENTS.md` | Remove stale module entry and distinguish acquisition utility from compiled population rank. |
 | `test/test_ap_mclachlan_exchange_structural.py` | Disabled-hook and active-hook parity scenarios. |
-| `test/test_prospective_apm_exchange_worker.py` | Overlay module presence and executable source closure. |
 
 ## 11. Reusable Implementation Context
 
@@ -89,13 +86,13 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
     "acceptance_criteria": [
       "Delete verified dead machinery",
       "Preserve current scoring/population outputs",
-      "Disabled hooks do no work",
+      "Disabled history hook does no work",
       "Prospective source closure and tests pass",
       "No new protocol enabled"
     ],
     "evidence_provenance": {
       "schema_version": 2,
-      "head_commit": "74ff226338caa56d29ef28004dd7b37615f5e511",
+      "head_commit": "3c7251f3f9d5337d4374a5f6e24972be9538e9af",
       "generated_plan_path": "docs/plans/2026-09-07-gitnexus-plan-paper-ii-scoring-curation.md",
       "global_dirty_digest": {
         "algorithm": "sha256",
@@ -433,17 +430,7 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
       {
         "file": "pipelines/time_dynamics/ap_mclachlan/exchange_structural.py",
         "symbols": [],
-        "intended_change": "Delegate historical acquisition arithmetic; skip inactive work; preserve candidate/weight API and enumeration."
-      },
-      {
-        "file": "pipelines/time_dynamics/ap_mclachlan/exchange_legacy_scoring.py",
-        "symbols": [],
-        "intended_change": "New bounded helper for current historical utility/rank arithmetic; no compiled-cost policy."
-      },
-      {
-        "file": "pipelines/time_dynamics/prospective_apm_exchange_worker.py",
-        "symbols": [],
-        "intended_change": "Include extracted module in source-epoch overlay closure."
+        "intended_change": "Extract local historical acquisition helper; skip zero-weight history callback; preserve conditioning, enumeration and public APIs."
       },
       {
         "file": "pipelines/time_dynamics/README.md",
@@ -463,28 +450,18 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
       {
         "file": "test/test_ap_mclachlan_exchange_structural.py",
         "symbols": [],
-        "intended_change": "Disabled-hook and active-hook parity scenarios."
-      },
-      {
-        "file": "test/test_prospective_apm_exchange_worker.py",
-        "symbols": [],
-        "intended_change": "Overlay module presence and executable source closure."
+        "intended_change": "Extract local historical acquisition helper; skip zero-weight history callback; preserve conditioning, enumeration and public APIs."
       }
     ],
     "tests": [
       {
         "file": "test/test_ap_mclachlan_exchange_structural.py",
         "scenarios": [
-          "disabled hooks not called",
+          "disabled history hook not called",
           "active hook exact weights",
+          "nonfinite conditioning behavior unchanged",
           "serial/parallel bitwise parity",
           "pre/post branch fingerprints"
-        ]
-      },
-      {
-        "file": "test/test_prospective_apm_exchange_worker.py",
-        "scenarios": [
-          "new helper overlay closure for old epoch"
         ]
       }
     ],
@@ -495,11 +472,11 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
     "risks": [
       "Historical scoring still determines compiled acquisition",
       "Source epoch misses extracted files unless explicitly overlaid",
-      "Do not remove Gamma/shared-population checks"
+      "Do not remove Gamma/shared-population checks",
+      "Do not skip zero-weight conditioning metadata: zero times infinity affects eligibility"
     ],
     "assumptions": [
-      "Disabled hooks need not execute: verify raising-callback tests",
-      "New overlay file may be absent in historical base: verify source-closure regression"
+      "Zero history weight means no history callback: verify raising-callback regression"
     ],
     "open_questions": [
       "Future conditional-frontier screening budget and realization population must be fixed before implementation"
@@ -510,7 +487,8 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
       "Do not delete nonzero hooks/history recording/public config",
       "Do not touch manuscript/evidence or run campaigns",
       "No UI actions",
-      "Do not edit the plan during execution"
+      "Do not edit the plan during execution",
+      "Do not change prospective overlay file set or conditioning arithmetic"
     ]
   }
 }
@@ -518,7 +496,7 @@ Implement a bounded curation increment: delete confirmed dead machinery, isolate
 
 ## 12. Assumptions and Open Questions
 
-No unresolved choice blocks curation. [assumed] Disabled weights mean their callbacks need not execute; verify using explicit no-call tests while retaining active-hook behavior. [assumed] Extracted modules can be represented as new overlay files when absent in a source epoch; verify with the source-composition regression before accepting the extraction.
+No unresolved choice blocks curation. [assumed] A zero history weight means its callback need not execute; verify using an explicit no-call test while retaining active-hook behavior. [verified] The independent Claude Opus scout identified the exact source-overlay compatibility boundary and a possible nonfinite conditioning edge case. Keep the existing module set and conditioning arithmetic. Its claim that large-miss excludes exchanges was rejected by source verification: bool(inserted_selection) includes exchanges. A separate compile-worker warm-gating issue is deferred until the compiled protocol/cache increment.
 
 The subsequent optional protocol remains separate from reported defaults:
 
@@ -531,6 +509,6 @@ The subsequent optional protocol remains separate from reported defaults:
 
 ## 13. Definition of Done
 
-Dead code and stale current references are removed; historical arithmetic is isolated; disabled hooks perform no work; active hooks and current candidate populations/order remain verified; prospective overlay is closed; focused checks and graph gate pass; changes are committed on the isolated curation branch. No campaign, manuscript/evidence change, or new compiled protocol is represented as completed by this increment.
+Dead code and stale current references are removed; historical arithmetic is isolated; disabled history hooks perform no work; active hooks and current candidate populations/order remain verified; prospective overlay is closed; focused checks and graph gate pass; changes are committed on the isolated curation branch. No campaign, manuscript/evidence change, or new compiled protocol is represented as completed by this increment.
 
-Files to edit: `pipelines/time_dynamics/ap_mclachlan/support_frontier.py`, `pipelines/time_dynamics/ap_mclachlan/adaptive_trajectory.py`, `pipelines/time_dynamics/ap_mclachlan/prune_cost.py`, `pipelines/time_dynamics/ap_mclachlan/support_patch.py`, `pipelines/time_dynamics/ap_mclachlan/exchange_structural.py`, `pipelines/time_dynamics/ap_mclachlan/exchange_legacy_scoring.py`, `pipelines/time_dynamics/prospective_apm_exchange_worker.py`, `pipelines/time_dynamics/README.md`, `pipelines/time_dynamics/ap_mclachlan/README.md`, `agent_guidance/time-dynamics/AGENTS.md`, `test/test_ap_mclachlan_exchange_structural.py`, `test/test_prospective_apm_exchange_worker.py`
+Files to edit: `pipelines/time_dynamics/ap_mclachlan/support_frontier.py`, `pipelines/time_dynamics/ap_mclachlan/adaptive_trajectory.py`, `pipelines/time_dynamics/ap_mclachlan/prune_cost.py`, `pipelines/time_dynamics/ap_mclachlan/support_patch.py`, `pipelines/time_dynamics/ap_mclachlan/exchange_structural.py`, `pipelines/time_dynamics/README.md`, `pipelines/time_dynamics/ap_mclachlan/README.md`, `agent_guidance/time-dynamics/AGENTS.md`, `test/test_ap_mclachlan_exchange_structural.py`
