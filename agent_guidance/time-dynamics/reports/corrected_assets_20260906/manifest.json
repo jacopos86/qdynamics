@@ -1,9 +1,9 @@
 {
-  "adoption_note": "corrected exchange campaign (frontier repair a43bcd86), 10 of 11 cells; weak--slow and strong--fast AVQDS arms carried from the preceding campaign and their estimator totals reconstructed round by round from the recorded pool size and support (reproduces every persisted AVQDS ledger exactly); strong--slow and strong--fast state motion pending",
+  "adoption_note": "corrected exchange campaign (frontier repair a43bcd86), 11 of 11 cells; weak--slow and strong--fast AVQDS arms carried from the preceding campaign and their estimator totals reconstructed round by round from the recorded pool size and support (reproduces every persisted AVQDS ledger exactly); strong--fast state motion pending adoption of the 15-subdivision named experiment",
   "comparison": {
-    "generated_utc": "2026-09-06T14:51:40.150086+00:00",
-    "path": "/tmp/report/comparison_corrected.json",
-    "sha256": "ca48ff886e8cb01a2f2cc52d9da160866f5f1c7621d6912aa5cb7d69946a558c",
+    "generated_utc": "2026-09-07T02:58:24.216087+00:00",
+    "path": "/tmp/report/comparison_corrected_v2.json",
+    "sha256": "7f864f909977bc1b433f8457fd9b68a32504d8ab82de842e8bc612da1072967b",
     "upstream_status": "analysis_only_not_adopted"
   },
   "coverage": {
@@ -15,6 +15,7 @@
       "midres__delta_theta_5e-5",
       "midres__state_motion_5e-5",
       "slowstrong__delta_theta_5e-5",
+      "slowstrong__state_motion_5e-5",
       "strongfast__delta_theta_5e-5",
       "fastfast__delta_theta_5e-5",
       "fastfast__state_motion_5e-5"
@@ -23,17 +24,11 @@
       "state_motion_1e-3_plus_parameter_5e-5"
     ],
     "locked_cells": 15,
-    "omitted_cells": [
-      {
-        "cell_id": "slowstrong__state_motion_5e-5",
-        "missing": "q_compiled trajectory, avqds terminal compiled cost"
-      }
-    ],
+    "omitted_cells": [],
     "pending_cells": [
-      "strongfast:state_motion_5e-5",
-      "slowstrong:state_motion_5e-5"
+      "strongfast:state_motion_5e-5"
     ],
-    "q_compiled_cells": 10,
+    "q_compiled_cells": 11,
     "supplemented_arms": {
       "strongfast__delta_theta_5e-5": [
         "avqds"
@@ -75,12 +70,12 @@
   },
   "outputs": {
     "figure": {
-      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v2/fig.pdf",
-      "sha256": "bad8b32077ff2419e43f222679a3c943fb83a41c60f981b83e334bb93b3a2510"
+      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v3/fig.pdf",
+      "sha256": "81d5407c2a72598ac98392aa568fb92c9ddb2f8191e7e1227a989f923cf912e9"
     },
     "table": {
-      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v2/paper_ii_t20_q_compiled_frontier_table.tex",
-      "sha256": "d9f67b19223e0a32d7899bf73ffffc5931a9aaa2e3e2b562d5deab1040c4833f"
+      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v3/paper_ii_t20_q_compiled_frontier_table.tex",
+      "sha256": "583219afb004980e7cf3c6aa8431bcfbe524269e80faa730507e1b67aa6678ff"
     }
   },
   "route_bundle": "paper_ii_exchange_q_compiled_v1",
@@ -161,6 +156,17 @@
       "q_compiled": {
         "path": "/tmp/report/terminal_costs_combined/slowstrong__delta_theta_5e-5/q_compiled.json",
         "sha256": "266464931fe08d0809971881fc547fda7a0e17080f2ee03f49cea74f81be6aa8"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/slowstrong__state_motion_5e-5/avqds.json",
+        "sha256": "f1d6cbf45ac8f7dc9c7fc6cd58315090fd716b40ea6daa72a45535d18790a5e5"
+      },
+      "cell_id": "slowstrong__state_motion_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/slowstrong__state_motion_5e-5/q_compiled.json",
+        "sha256": "ffe7191cd7e84c611fb2de2ac79c2ef3a34c895a564e47c35514e069e2512a27"
       }
     },
     {
