@@ -121,7 +121,14 @@ def _generator_motion(route: Mapping[str, Any]) -> dict[str, int]:
         path = Path(str(source.get("path", "")))
         if not path.is_file():
             raise ValueError(f"trajectory artifact missing: {path}")
-        for point in json.loads(path.read_text())["trajectory"]["points"]:
+        payload = json.loads(path.read_text())
+        # Committed exchange patches (D and A both nonempty), summed over every
+        # selector round of every time point; a support diff between reported
+        # points cannot see a delete-only round followed by an insert-only one.
+        exchanges += sum(
+            int(row.get("patch_exchange_commit_count") or 0) for row in payload.get("plot_rows", [])
+        )
+        for point in payload["trajectory"]["points"]:
             labels = ((point.get("fixed_step") or {}).get("support_labels")) or ()
             if not labels:
                 continue
@@ -130,8 +137,6 @@ def _generator_motion(route: Mapping[str, Any]) -> dict[str, int]:
                 current = support
                 continue
             added, removed = support - current, current - support
-            if added and removed:
-                exchanges += 1
             for name in added:
                 history.setdefault(name, []).append("+")
             for name in removed:
@@ -184,6 +189,11 @@ def _recovered_estimator_total(route: Mapping[str, Any]) -> int | None:
     recorded = work.get("candidate_full_geometry_evaluation_count")
     if recorded is None:
         return None
+    # Appendix identity: every greedy round scores the whole pool at the
+    # support it starts from and takes a geometry one coordinate wider; each
+    # round appends exactly one coordinate, so the first round of a time
+    # point starts at the recorded post-commit support minus the number of
+    # rounds.  This reproduces every persisted AVQDS receipt bitwise.
     tried = 0
     candidate = 0
     for source in route.get("run_sources", []):
@@ -191,11 +201,15 @@ def _recovered_estimator_total(route: Mapping[str, Any]) -> int | None:
         if not path.is_file():
             return None
         for row in json.loads(path.read_text())["plot_rows"]:
-            count = int(row.get("patch_scored_count") or 0)
-            if not count:
+            scored = int(row.get("patch_scored_count") or 0)
+            pool = int(row.get("patch_candidate_count") or 0)
+            if not scored or not pool:
                 continue
-            tried += count
-            candidate += count * _geometry_entries(int(row["logical_parameter_count"]) + 1)
+            rounds = scored // pool
+            base = int(row["logical_parameter_count"]) - rounds
+            for r in range(rounds):
+                tried += pool
+                candidate += pool * _geometry_entries(base + r + 1)
     if tried != int(recorded):
         return None
     return (
@@ -341,8 +355,7 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         r"\begin{table*}[t]",
         r"\caption{Completed $t=20$ AP-McLachlan (APM) trajectories and their "
         r"locked AVQDS comparators.  Drives are identified by their amplitude "
-        r"and frequency $(A,\omega)$.  The structural threshold $\tau_m$ applies "
-        r"to APM.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$ and "
+        r"and frequency $(A,\omega)$.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$ and "
         r"$\overline{|\Delta n|}$ are mean absolute errors in total energy, "
         r"doublon occupation and charge imbalance against the independent exact "
         r"reference, averaged over all 501 reporting times.  $N_\theta$ is the "
@@ -350,9 +363,11 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         r"FakeMarrakesh compiled two-qubit count, two-qubit depth and total "
         r"depth, $\mathcal E$ the total logical scalar-estimator count "
         r"(Appendix~\ref{app:estimator_query_accounting}), and $N_{\rm step}$ "
-        r"the internal integration step count.  A $\geq$ prefix marks an "
-        r"$\mathcal E$ resting on a legacy receipt, where the printed value is "
-        r"a proven lower bound.\label{tab:t20_q_compiled_frontier}}",
+        r"the internal integration step count.  Where an AVQDS comparator "
+        r"predates the persisted estimator ledger, its $\mathcal E$ is the "
+        r"Appendix identity evaluated round by round from the recorded pool "
+        r"size and support at every time point; that reconstruction reproduces "
+        r"every persisted AVQDS ledger exactly.\label{tab:t20_q_compiled_frontier}}",
         r"\centering\scriptsize",
         r"\setlength{\tabcolsep}{3.2pt}",
         r"\begin{tabular}{lllrrrrrrrrr}",
@@ -419,14 +434,18 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
             r"several Pauli coordinates.  $\mathcal E$ repeats the total "
             r"scalar-estimator count of Table~\ref{tab:t20_q_compiled_frontier} "
             r"in units of $10^{8}$.  \emph{Inserted} and \emph{deleted} count "
-            r"structural events; \emph{exchanges} counts time points whose "
-            r"committed patch both deletes and inserts.  \emph{Re-inserted} "
+            r"structural events; \emph{exch.} counts committed exchange patches, "
+            r"$D\ne\varnothing$ and $A\ne\varnothing$, over every selector "
+            r"round of every time point.  \emph{del.\ then re-ins.} "
             r"counts a generator deleted and then re-inserted at any later time "
-            r"point, and \emph{retired} a generator inserted and then deleted at "
-            r"any later time point; both range over the whole trajectory. "
-            r"\emph{Deletions} gives deletion-bearing finalists materialized and "
-            r"sent to the hard gates, over those failing a gate after "
-            r"materialization.}",
+            r"point, and \emph{ins.\ then del.} a generator inserted and then "
+            r"deleted at any later time point; both range over the whole "
+            r"trajectory.  \emph{finalists tested/failed} gives deletion-bearing "
+            r"finalists materialized and sent to the hard gates, over those "
+            r"failing a gate after materialization; a $\geq$ prefix marks a "
+            r"trajectory whose attempt record keeps only the final selector round "
+            r"at time points with several commits, so both counts are lower "
+            r"bounds there.}",
             r"\label{tab:t20_q_compiled_support_motion}",
             r"\centering\scriptsize",
             r"\setlength{\tabcolsep}{3.5pt}",
@@ -452,7 +471,8 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
                     str(motion["exchanges"]),
                     str(motion["reinserted"]),
                     str(motion["retired"]),
-                    f"{int(gates['deletion_bearing_finalist_attempt_count'])}/{int(gates['post_delete_gate_failure_count'])}",
+                    ("" if gates.get("attempt_record_complete", True) else r"$\geq$")
+                    + f"{int(gates['deletion_bearing_finalist_attempt_count'])}/{int(gates['post_delete_gate_failure_count'])}",
                 ]
             )
             + r" \\"
