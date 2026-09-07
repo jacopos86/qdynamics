@@ -71,7 +71,6 @@ allowed at all. Every one of these was a correction the user had to repeat.
   of these are *"needless constraints that hurt rather than help"*, and the
   agent's job is to test that, not to recite the guard's intent.
 
-<!-- gitnexus:start -->
 ### Naming and vocabulary (user-directed 2026-09-05)
 
 The failure being corrected: inventing column headers and quantity names
@@ -111,9 +110,10 @@ caching only pays off when the same agent is continued.
 - **This is not a memory-only rule.** It was written here because the memory
   entry alone was judged insufficient; keep both in sync.
 
+<!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Holstein_test** (103520 symbols, 213084 relationships, 722 execution flows).
+This project is indexed by GitNexus as **Holstein_test** (106623 symbols, 219229 relationships, 722 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
