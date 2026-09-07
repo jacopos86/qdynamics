@@ -172,6 +172,81 @@ def _geometry_entries(support: int) -> int:
     return support * (support + 1) // 2 + support + 2
 
 
+def _reuse_adjusted_candidate_work(passes: Sequence[Mapping[str, Any]]) -> int:
+    """Candidate entries a single-coordinate patch consumes, summed over selector calls.
+
+    Each call is charged the new cross row, the diagonal, and the force entry of
+    every positioned candidate against the support it starts from, ``m (p + 2)``,
+    and reuses the base geometry.  The executed ledger additionally pays the
+    ``m (m - 1) / 2`` candidate--candidate block, which no single-coordinate
+    patch reads.
+    """
+
+    return sum(
+        int(row["positioned_candidate_column_count"])
+        * (int(row["pre_runtime_parameter_count"]) + 2)
+        for row in passes
+    )
+
+
+def _reuse_adjusted_estimator_total(route: Mapping[str, Any]) -> int | None:
+    """Estimator count under the reuse policy, for either route.
+
+    APM: the executed total minus its executed candidate charge plus
+    :func:`_reuse_adjusted_candidate_work` over the recorded selector passes.
+    AVQDS: every greedy round is charged ``pool (p_r + 2)`` at the support it
+    starts from, and the base geometry it rebuilds is not charged again; the
+    other stages keep their executed counts.
+    """
+
+    work = route["estimator_work"]
+    sources = [Path(str(src.get("path", ""))) for src in route.get("run_sources", [])]
+    if not sources or not all(path.is_file() for path in sources):
+        return None
+    if str(route.get("route") or route.get("route_label") or "").lower() == "avqds":
+        tried = 0
+        candidate = 0
+        for path in sources:
+            for row in json.loads(path.read_text())["plot_rows"]:
+                scored = int(row.get("patch_scored_count") or 0)
+                pool = int(row.get("patch_candidate_count") or 0)
+                if not scored or not pool:
+                    continue
+                rounds = scored // pool
+                base = int(row["logical_parameter_count"]) - rounds
+                for r in range(rounds):
+                    tried += pool
+                    candidate += pool * (base + r + 2)
+        recorded = work.get("candidate_full_geometry_evaluation_count")
+        if recorded is not None and tried != int(recorded):
+            return None
+        if work.get("logical_total_estimator_work_status") == "exact":
+            return int(work["logical_total_estimator_work"]) - int(
+                work["logical_candidate_acquisition_work"]
+            ) + candidate
+        return (
+            int(work["logical_integration_geometry_work"])
+            + int(work.get("logical_checkpoint_base_geometry_work") or 0)
+            + candidate
+            + int(work.get("logical_certification_geometry_work") or 0)
+            + int(work.get("logical_refit_estimator_work") or 0)
+        )
+    if work.get("logical_total_estimator_work_status") != "exact":
+        return None
+    passes: list[Mapping[str, Any]] = []
+    charged = 0
+    for path in sources:
+        for point in json.loads(path.read_text())["trajectory"]["points"]:
+            metadata = ((point.get("patch_decision") or {}).get("metadata")) or {}
+            for round_work in metadata.get("selection_round_work") or ():
+                for row in (round_work.get("estimator_work") or {}).get("selector_passes") or ():
+                    passes.append(row)
+                    charged += int(row["logical_shared_cache_entry_count"])
+    if charged != int(work["logical_candidate_acquisition_work"]):
+        raise ValueError("selector-pass ledger does not reproduce the executed candidate charge")
+    return int(work["logical_total_estimator_work"]) - charged + _reuse_adjusted_candidate_work(passes)
+
+
 def _recovered_estimator_total(route: Mapping[str, Any]) -> int | None:
     """Total estimator count for an arm whose reported total is an underestimate.
 
@@ -283,6 +358,7 @@ def _q_cells(
         routes = raw_cell.get("routes", {})
         arms: dict[str, Any] = {}
         totals: dict[str, int] = {}
+        totals_reuse: dict[str, int] = {}
         roots: dict[str, Path] = {}
         supplemented: list[str] = []
         missing: list[str] = []
@@ -308,7 +384,12 @@ def _q_cells(
             if not (root / cell_id / f"{route}.json").is_file():
                 missing.append(f"{route} terminal compiled cost")
                 continue
+            reuse = _reuse_adjusted_estimator_total(payload)
+            if reuse is None:
+                missing.append(f"{route} reuse-adjusted estimator total")
+                continue
             arms[route], totals[route], roots[route] = payload, total, root
+            totals_reuse[route] = reuse
         if missing:
             omitted.append({"cell_id": cell_id, "missing": ", ".join(missing)})
             continue
@@ -334,6 +415,8 @@ def _q_cells(
                 "motion": _generator_motion(arms["q_compiled"]),
                 "q_work": totals["q_compiled"],
                 "avqds_work": totals["avqds"],
+                "q_work_reuse": totals_reuse["q_compiled"],
+                "avqds_work_reuse": totals_reuse["avqds"],
                 "supplemented_arms": supplemented,
             }
         )
@@ -369,17 +452,21 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         r"reference, averaged over all 501 reporting times.  $N_\theta$ is the "
         r"terminal active-coordinate count, $(N_{2q},D_{2q},D_c)$ the terminal "
         r"FakeMarrakesh compiled two-qubit count, two-qubit depth and total "
-        r"depth, $\mathcal E$ the total logical scalar-estimator count "
-        r"(Appendix~\ref{app:estimator_query_accounting}), and $N_{\rm step}$ "
+        r"depth, $\mathcal E$ the reuse-adjusted logical scalar-estimator count of "
+        r"Appendix~\ref{app:estimator_query_accounting}, which charges every "
+        r"selector call or greedy round the new cross row, diagonal, and force "
+        r"entry of each candidate against the current support and reuses the "
+        r"base geometry (the executed count $\mathcal E_{\rm exec}$ is in "
+        r"Table~\ref{tab:t20_q_compiled_support_motion}), and $N_{\rm step}$ "
         r"the internal integration step count; $\tau_m$ is the activation "
         r"threshold of the APM arm (AVQDS has no structural threshold).  The "
         r"three errors are in units of $10^{-4}$, $\mathcal E$ in units of "
         r"$10^{8}$ and $N_{\rm step}$ in units of $10^{3}$, as the second "
-        r"header row states.  Where an AVQDS comparator "
-        r"predates the persisted estimator ledger, its $\mathcal E$ is the "
-        r"Appendix identity evaluated round by round from the recorded pool "
-        r"size and support at every time point; that reconstruction reproduces "
-        r"every persisted AVQDS ledger exactly.\label{tab:t20_q_compiled_frontier}}",
+        r"header row states.  Where an AVQDS comparator predates the persisted "
+        r"estimator ledger, its count is evaluated round by round from the "
+        r"recorded pool size and support at every time point; under the "
+        r"executed convention that evaluation reproduces every persisted AVQDS "
+        r"ledger exactly.\label{tab:t20_q_compiled_frontier}}",
         r"\centering\scriptsize",
         r"\setlength{\tabcolsep}{3.2pt}",
         r"\begin{tabular}{lllcrrrrrrrrr}",
@@ -396,8 +483,8 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
             lines.append(r"\addlinespace[1.5pt]")
         for position, (label, route, cost, work) in enumerate(
             (
-                ("APM", cell["q"], cell["q_cost"], cell["q_work"]),
-                ("AVQDS", cell["avqds"], cell["avqds_cost"], cell["avqds_work"]),
+                ("APM", cell["q"], cell["q_cost"], cell["q_work_reuse"]),
+                ("AVQDS", cell["avqds"], cell["avqds_cost"], cell["avqds_work_reuse"]),
             )
         ):
             accuracy = route["accuracy"]
@@ -446,9 +533,13 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
             r"\caption{Structural actions over each reported APM trajectory, counted at "
             r"generator granularity: the selector caps insertions and deletions "
             r"per time point by generator, and one generator expands into "
-            r"several Pauli coordinates.  $\mathcal E$ repeats the total "
-            r"scalar-estimator count of Table~\ref{tab:t20_q_compiled_frontier} "
-            r"in units of $10^{8}$.  \emph{Inserted} and \emph{deleted} count "
+            r"several Pauli coordinates.  $\mathcal E_{\rm exec}$ is the executed "
+            r"scalar-estimator count of the APM arm in units of $10^{8}$: it "
+            r"charges the full positioned-candidate block at every selector call "
+            r"as the implementation evaluated it, of which the reuse-adjusted "
+            r"count $\mathcal E$ of Table~\ref{tab:t20_q_compiled_frontier} "
+            r"retains only the entries a single-coordinate patch consumes.  "
+            r"\emph{Inserted} and \emph{deleted} count "
             r"structural events; \emph{exch.} counts committed exchange patches, "
             r"$D\ne\varnothing$ and $A\ne\varnothing$, over every selector "
             r"round of every time point.  \emph{del.\ then re-ins.} "
@@ -466,7 +557,7 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
             r"\setlength{\tabcolsep}{3.5pt}",
             r"\begin{tabular}{llrrrrrrc}",
             r"\toprule",
-            r"$(A,\omega)$ & ctrl. & $\mathcal E$ & ins. & del. & exch. & "
+            r"$(A,\omega)$ & ctrl. & $\mathcal E_{\rm exec}$ & ins. & del. & exch. & "
             r"\shortstack{del.\ then\\re-ins.} & \shortstack{ins.\ then\\del.} & "
             r"\shortstack{finalists\\tested/failed} \\",
             r"\midrule",
