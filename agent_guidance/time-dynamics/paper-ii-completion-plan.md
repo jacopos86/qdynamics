@@ -674,6 +674,75 @@ These are production runs. Their configuration is fixed by the manifest before
 launch and is not adjusted after seeing results. Regime choice must be made now,
 not after the first returns.
 
+### Corrections after execution (2026-09-04, later session)
+
+**Negative result first: the section above rests on premises that the CHTC
+mirror and the source contradict.** Full evidence, measurements, and the
+executable plan are in
+`chtc/paper_ii_regime_seeds_v1/HANDOFF_MONITOR_REGIME_SEEDS_20260904.md`
+(branch `fable/paper-ii-regime-seeds-chtc-20260904`; code in commit `48336a01`, the handoff in the commit that follows it).
+
+| Claim above | Measured |
+|---|---|
+| Bundle never submitted | Cluster 9674800 ran 2026-08-22: nph=3 procs exited 0 after 13–25 h with **zero seed artifacts** (no driven-snapshot fit reached the 1e-6 gate; best 5.5e-4); nph=7 procs held at 24.3–24.5 GB, still held 2026-08-31. Cluster 9663698 (2026-08-18, same builder): zero artifacts. |
+| Stage 2 uses the prospective packagers | They admit only the frozen matrix `paper_ii_parallel_benchmarks_20260828` (8 seeds / 39 references, digest-pinned, `n_ph_max_7` excluded, no `(U=4, g=0.5)` cell). Its six HH seeds already exist (cluster 9714490–95, ΔE ≤ 5.2e-8, in the rescue mirror). |
+| Image just needs building | `image.def` was absent from git (restored); the pinned image `fa5c4ea8…` is installed from the mirror and bound in `input/runtime_image_identity.json`; the old remote dir holds the 2026-05-17 image. |
+
+What replaced the plan: stage 1 now builds every row with the frozen
+three-complete-layer VQE (the matrix seeds' protocol; the frozen worker's
+missing executor gradient was ported from 267516ea). Local smokes:
+anchor `(U, g, n_ph) = (4, 0.5, 1)` ΔE 1.7e-11 in 8 s; `intermediate_weak`
+(the row the search could not seed in 14.6 h) ΔE 6.2e-8 in 190 s; the nph=7
+row exceeded 8 GB before finishing. Stage 1.5 (new, local) builds each
+regime's six exact references on the locked grid and registers its
+exact-response scales (22 s at 6 qubits; the anchor's scales match the
+calibration sidecar to four digits). Stage 2 is the staged screen/promotion
+machinery parameterized by regime and by the arm that realizes APM
+(`--regime R --apm-arm exchange_q_compiled`), t5 screen → t20 promotion under
+the locked response-normalized matched-pair policy, not the packagers.
+
+Settled 2026-09-05 (user): the survey keeps the matched-pair qualification
+(D2), and the `report_refresh_required` block does not gate this campaign
+(Q3). Measured the same day: the calibration seed's `dv = 0.25` is a uniform
+site potential, a constant `-dv·N_e` at fixed filling, so the anchor at
+`dv = 0` is the same dynamics; the frozen worker cannot seed `dv ≠ 0` (its VQE
+objective and exact qualifier disagree on that term's sign, ΔE = 2·dv·N_e).
+
+Open for the user (recommendations in the handoff §2): D1 which rows
+(recommend all seven seeds, dynamics on the four 6–8-qubit rows first, nph=7
+deferred); D3 which lineage runs stage 2, because the results PDF's route
+(`Gamma(v*)` realized = `exchange_q_compiled`) exists only on
+`codex/paper-ii-exact-estimator-telemetry-20260903` (recommend cutting the
+survey branch from it and cherry-picking this branch's commits). Submission
+also waits on the SSH master and the words "submit stage 1".
+
+### SIAM moved onto the compiled-Q route (2026-09-05)
+
+User correction: the SIAM results above ran on the older exchange rule
+without the exact-estimator accounting; one more AVQDS run would not have
+completed a current-method comparison. Done on
+`fable/paper-ii-regime-survey-20260905` (commits fc2de280 … 67f3a05e):
+
+- engine: SIAM starts from an empty ansatz, so the compiled-cost runtime read
+  `nq = None` and every compiled-Q bundle died at the first checkpoint; fixed
+  via `state_num_qubits`. `Arm.dynamics_policy` separates the runner policy
+  (`exchange`/`avqds`) from the arm id; `exchange_q_compiled` is registered
+  for the Nb=2 proof pair and the Nb=4 ladder.
+- identity: every SIAM score (schema v4), ladder action id (route token
+  `qc`), stitch, binding and estimator record carries the route bundle;
+  `classify_siam_matched_pair(..., expected_apm_route=...)` refuses a
+  cross-route pair.
+- estimator accounting: `siam_estimator_work.py` gives
+  `logical_total_estimator_work` with exact status for any registered arm and
+  checks the run lock's route bundle.
+- packager: `prepare_siam_nb4_chtc_action(route_id=...)` emits v5 documents
+  for the compiled-Q lineage; the historical lineage's v4 bytes are frozen
+  by test.
+- evidence: Nb=2 compiled-Q pair `qualified_pair`, ratio 1.018, estimator
+  work AVQDS 967,888 vs compiled-Q 928,409 (`chtc/siam_nb2_proof_qc_v1/`).
+  Nb=4 r00 screen packages for both arms prepared, not submitted; the ladder
+  procedure is §8 of the CHTC handoff.
+
 ## STOP: the two Paper II sources diverged (2026-09-04)
 
 Landing the "notation revision" is **not a copy**. Both candidate sources branch
@@ -908,3 +977,8 @@ r00), `9720217` (SIAM exchange r00, frontier), `9720069.3` (Codex anchor).
 Dead, no outputs: `9720204/9720205` (excluded `pipelines/artifacts/`),
 `9720211/9720212` (stale `a3d1cebe` lock). Standing submit authorization
 granted by the user 2026-09-05.
+**Submitted 2026-09-05 (user "submit"):** `9720203` (11 APM), `9720204`
+(SIAM AVQDS r00), `9720205` (SIAM exchange r00). Receipt:
+`chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905/submission_receipt_9720203_9720204_9720205.json`
+on the campaign branch. Monitoring is per §7 and happens only when this
+session is invoked; unattended coverage needs a scheduled task.

@@ -6,7 +6,7 @@
 PYTHONPATH=. python3 -m pipelines.time_dynamics.write_paper_ii_manifest
 ```
 
-Source commit at generation: `77aeeba84f47ed2f5372abdb3907f3361d55c1ac`
+Source commit at generation: `910d87384a36284d3616901473584fb741ae6204`
 
 Every Paper-II run is composed from the registry in
 `pipelines/time_dynamics/paper_ii_runs.py`. A run is one choice from each
@@ -46,6 +46,16 @@ that every registered command parses against the runner's live CLI.
 | delta_theta_5e-3 | Published AVQDS Euler control law, at the source's own value. |
 | state_motion_1e-2 | This route's control law. The subdivision budget is 10 because at 4 a step could exhaust it, fail to cure a violation, and advance anyway, taking a measured error from 3.8e-3 to 2.1e-1. |
 | state_motion_1e-2_plus_parameter_5e-3 | Composed controller with both the tangent-state and maximum single-parameter step bounds active. |
+| delta_theta_5e-4_diagnostic | Diagnostic tenfold tightening of the parameter-motion controller. |
+| delta_theta_5e-5_diagnostic | Diagnostic hundredfold tightening of the parameter-motion controller. |
+| state_motion_1e-3_diagnostic | Diagnostic tenfold tightening of the state-motion controller. |
+| state_motion_1e-4_diagnostic | Diagnostic hundredfold tightening of the state-motion controller. |
+| state_motion_5e-5_diagnostic | Diagnostic state-motion calibration immediately below 1.0e-4. |
+| state_motion_1e-3_plus_parameter_5e-4_diagnostic | Diagnostic tenfold tightening of both controller bounds. |
+| state_motion_1e-3_plus_parameter_5e-5_diagnostic | Diagnostic composition of the tenfold-tighter state-motion bound and hundredfold-tighter parameter-motion bound. |
+| delta_theta_5e-5 | Paper-facing parameter-motion controller calibrated at fixed accuracy. |
+| state_motion_5e-5 | Paper-facing state-motion controller calibrated at fixed accuracy. |
+| state_motion_1e-3_plus_parameter_5e-5 | Paper-facing composed controller calibrated at fixed accuracy. |
 
 ### Drives
 
@@ -87,6 +97,7 @@ that every registered command parses against the runner's live CLI.
 | weak_strong | chtc/paper_ii_regime_seeds_v1/input/seeds/weak_strong.json | 7 | **MISSING** |
 | intermediate_strong | chtc/paper_ii_regime_seeds_v1/input/seeds/intermediate_strong.json | 7 | **MISSING** |
 | strong_strong_u8 | chtc/paper_ii_regime_seeds_v1/input/seeds/strong_strong_u8.json | 7 | **MISSING** |
+| anchor_u4_g0p5_nph1 | chtc/paper_ii_regime_seeds_v1/input/seeds/anchor_u4_g0p5_nph1.json | 1 | **MISSING** |
 
 ## Commands
 
@@ -127,15 +138,17 @@ PYTHONPATH=. \
   10 \
   --max-structural-pool-size \
   128 \
-  --no-append-schur-condition-gate \
   --max-joint-patch-evaluations \
   50000 \
   --max-certification-attempts-per-level \
   12 \
   --max-certification-attempts-per-deletion-branch \
   2 \
+  --max-insertion-rounds-per-checkpoint \
+  12 \
   --max-insertion-batch-size \
   1 \
+  --no-append-schur-condition-gate \
   --insertion-gate-mode \
   mclachlan_l2 \
   --insertion-l2-cut \
@@ -191,15 +204,17 @@ PYTHONPATH=. \
   10 \
   --max-structural-pool-size \
   128 \
-  --no-append-schur-condition-gate \
   --max-joint-patch-evaluations \
   50000 \
   --max-certification-attempts-per-level \
   12 \
   --max-certification-attempts-per-deletion-branch \
   2 \
+  --max-insertion-rounds-per-checkpoint \
+  12 \
   --max-insertion-batch-size \
   1 \
+  --no-append-schur-condition-gate \
   --insertion-gate-mode \
   mclachlan_l2 \
   --insertion-l2-cut \
@@ -250,15 +265,17 @@ PYTHONPATH=. \
   10 \
   --max-structural-pool-size \
   128 \
-  --no-append-schur-condition-gate \
   --max-joint-patch-evaluations \
   50000 \
   --max-certification-attempts-per-level \
   12 \
   --max-certification-attempts-per-deletion-branch \
   2 \
+  --max-insertion-rounds-per-checkpoint \
+  12 \
   --max-insertion-batch-size \
   1 \
+  --no-append-schur-condition-gate \
   --dynamics-policy \
   avqds \
   --avqds-l2-cut \
@@ -300,15 +317,17 @@ PYTHONPATH=. \
   --no-solve-repair \
   --max-structural-pool-size \
   128 \
-  --no-append-schur-condition-gate \
   --max-joint-patch-evaluations \
   50000 \
   --max-certification-attempts-per-level \
   12 \
   --max-certification-attempts-per-deletion-branch \
   2 \
+  --max-insertion-rounds-per-checkpoint \
+  12 \
   --max-insertion-batch-size \
   1 \
+  --no-append-schur-condition-gate \
   --dynamics-policy \
   avqds \
   --avqds-l2-cut \
@@ -325,7 +344,7 @@ PYTHONPATH=. \
 Registry-set values, then the runner defaults they sit on. A value marked *default* is not stated anywhere in the registry; it is what the runner uses when nothing overrides it.
 
 
-<details><summary><b>exchange</b> — 108 parameters (11 set by registry)</summary>
+<details><summary><b>exchange</b> — 110 parameters (11 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -347,6 +366,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
+| code_revision | None | default |
 | debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
@@ -409,6 +429,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | ridge_lambda | 1e-07 | default |
 | seed_reference_energy_atol | 1e-12 | default |
 | seed_reference_energy_json | None | default |
+| siam_seed_json | None | default |
 | solve_damping | 0.0 | default |
 | solve_repair | True | default |
 | solve_repair_condition_number_fail | None | default |
@@ -440,7 +461,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>append_only</b> — 108 parameters (13 set by registry)</summary>
+<details><summary><b>append_only</b> — 110 parameters (13 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -462,6 +483,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
+| code_revision | None | default |
 | debt_policy | insertion_only | registry |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
@@ -524,6 +546,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | ridge_lambda | 1e-07 | default |
 | seed_reference_energy_atol | 1e-12 | default |
 | seed_reference_energy_json | None | default |
+| siam_seed_json | None | default |
 | solve_damping | 0.0 | default |
 | solve_repair | True | default |
 | solve_repair_condition_number_fail | None | default |
@@ -555,7 +578,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>avqds</b> — 108 parameters (11 set by registry)</summary>
+<details><summary><b>avqds</b> — 110 parameters (11 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -577,6 +600,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
+| code_revision | None | default |
 | debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
@@ -639,6 +663,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | ridge_lambda | 1e-07 | default |
 | seed_reference_energy_atol | 1e-12 | default |
 | seed_reference_energy_json | None | default |
+| siam_seed_json | None | default |
 | solve_damping | 0.0 | default |
 | solve_repair | True | default |
 | solve_repair_condition_number_fail | None | default |
@@ -670,7 +695,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>avqds_published</b> — 108 parameters (14 set by registry)</summary>
+<details><summary><b>avqds_published</b> — 110 parameters (14 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -692,6 +717,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | False | registry |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
+| code_revision | None | default |
 | debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
@@ -754,6 +780,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | ridge_lambda | 1e-06 | registry |
 | seed_reference_energy_atol | 1e-12 | default |
 | seed_reference_energy_json | None | default |
+| siam_seed_json | None | default |
 | solve_damping | 0.0 | default |
 | solve_repair | False | registry |
 | solve_repair_condition_number_fail | None | default |
@@ -773,7 +800,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | solve_repair_release_patience_min | 1 | default |
 | solve_repair_rho_num_max | 0.01 | default |
 | solve_repair_ridge_ladder | 1e-7,3e-8,1e-8,0,3e-7,1e-6,3e-6,1e-5 | default |
-| solve_repair_state_motion_l2_step_max | 0.05 | default |
+| solve_repair_state_motion_l2_step_max | None | default |
 | solve_repair_strict_finite_shot_validation | False | default |
 | solve_repair_theta_dot_l2_max | None | default |
 | structural_score_floor | 0.0 | default |

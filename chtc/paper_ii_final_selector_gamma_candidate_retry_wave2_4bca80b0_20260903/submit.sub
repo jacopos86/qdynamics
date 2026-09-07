@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903/run_action_apptainer.sh
+arguments = $(action_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = archives
+log = chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903/logs/paper-ii-gamma-retry-w2.$(Cluster).$(Process).log
+output = chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903/logs/paper-ii-gamma-retry-w2.$(Cluster).$(Process).out
+error = chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903/logs/paper-ii-gamma-retry-w2.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 10GB
+request_disk = 40GB
++MaxRuntime = 43200
++JobBatchName = "paper-ii-selector-gamma-retry-w2"
+queue action_id from chtc/paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903/input/action_ids.txt

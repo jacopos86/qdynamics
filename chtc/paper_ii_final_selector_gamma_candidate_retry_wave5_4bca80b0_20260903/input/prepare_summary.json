@@ -1,0 +1,68 @@
+{
+  "action_count": 1,
+  "actions_jsonl": {
+    "path": "input/actions.jsonl",
+    "sha256": "4b384ed4465de4a159c95e4521be025afb7295a562c77dc0802df67c6782af8e"
+  },
+  "apm_action_count": 1,
+  "avqds_action_count": 0,
+  "campaign_id": "paper_ii_final_selector_comparison_v1",
+  "cell_count": 1,
+  "code_revision": "4bca80b01f3d4e20e74f21b21ec36d23374b3392",
+  "comparator_actions": 0,
+  "comparator_reuse": "locked_historical_avqds_15_cells",
+  "created_utc": "2026-09-03T09:44:55Z",
+  "failure_class": "GammaMonotonicityError",
+  "matched_cell_lock_sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030",
+  "output_root": "raw_outputs",
+  "parent_cluster_id": 9718529,
+  "parent_failed_proc_ids": [
+    2
+  ],
+  "precursor_action_count": 0,
+  "prior_retry_proc_ids_excluded": [
+    1,
+    4,
+    5,
+    7,
+    8,
+    10,
+    13,
+    14,
+    16,
+    17,
+    19,
+    20,
+    22,
+    23,
+    25,
+    26,
+    28,
+    29,
+    31,
+    32,
+    34,
+    35,
+    37,
+    38,
+    40,
+    41,
+    43,
+    44
+  ],
+  "repair_policy": "Reject only the invalid Gamma candidate from the shared compiled Q/Gamma population; preserve exact Gamma and all scientific settings.",
+  "retry_package_id": "paper_ii_final_selector_gamma_candidate_retry_wave5_4bca80b0_20260903",
+  "retry_parent_failures": {
+    "path": "input/retry_parent_failures.json",
+    "sha256": "055b954cfe09384491d1f300397917632fc337ee34a41f192a963caff0df7591"
+  },
+  "retry_wave": 5,
+  "route_counts": {
+    "paper_ii_exchange_gamma_compiled_v1": 1
+  },
+  "schema": "paper_ii_final_selector_gamma_candidate_retry_prepare_v1",
+  "scope_note": "Only newly terminal failures from parent cluster 9718529, excluding prior retry waves, are retried. Active and successful parent actions are excluded. Scientific action IDs, arguments, t=20 grid, matched cells, and route contracts are unchanged.",
+  "source_package_sha256": "8f12755668b793062650801eab5755b81ff64c20e851f15e9b0ec18813e047d3",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "terminal_failed_only": true
+}

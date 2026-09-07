@@ -90,12 +90,24 @@ RESPONSE_SCALE_SIDECAR_PATH = (
 FROZEN_MOTION_TOLERANCE = 1.0e-12
 
 # common.py: exact-reference leakage flags for the QPU-faithful boundary.
-EXACT_DECISION_FLAG_KEYS = (
-    "uses_reference_for_decision",
-    "uses_future_exact_forecast_for_decision",
-    "exact_reference_controller_inputs",
+EXACT_DECISION_FLAG_ALIASES = {
+    "uses_reference_for_decision": ("uses_reference_for_decision",),
+    "uses_future_exact_forecast_for_decision": (
+        "uses_future_exact_forecast_for_decision",
+    ),
+    "exact_reference_controller_inputs": (
+        "exact_reference_controller_inputs",
+        "uses_exact_reference_for_decision",
+    ),
+}
+EXACT_DECISION_FLAG_KEYS = tuple(EXACT_DECISION_FLAG_ALIASES)
+DECISION_FLAG_CONTAINERS = (
+    "decision_data_flow",
+    "runtime_contract",
+    "summary",
+    "route_config",
+    "provenance",
 )
-DECISION_FLAG_CONTAINERS = ("runtime_contract", "summary", "route_config", "provenance")
 
 # paper-ii-run SKILL.md:60 -- forbidden seed-artifact provenance markers.
 FORBIDDEN_SEED_MARKERS = ("staged", "fallback", "pending", "recovery")
@@ -790,22 +802,26 @@ def check_qpu_faithful_separation(artifacts: Sequence[Artifact]) -> dict[str, An
         inspected += 1
         payload = artifact.mapping
         observed: dict[str, bool] = {}
-        for key in EXACT_DECISION_FLAG_KEYS:
+        for key, aliases in EXACT_DECISION_FLAG_ALIASES.items():
             seen = False
             for container in DECISION_FLAG_CONTAINERS:
                 node = payload.get(container)
-                if not isinstance(node, Mapping) or key not in node:
+                if not isinstance(node, Mapping):
                     continue
-                seen = True
-                if _truthy(node.get(key)):
-                    leaks.append(
-                        {
-                            "artifact": artifact.relpath,
-                            "container": container,
-                            "field": key,
-                            "value": node.get(key),
-                        }
-                    )
+                for alias in aliases:
+                    if alias not in node:
+                        continue
+                    seen = True
+                    if _truthy(node.get(alias)):
+                        leaks.append(
+                            {
+                                "artifact": artifact.relpath,
+                                "container": container,
+                                "field": alias,
+                                "semantic_flag": key,
+                                "value": node.get(alias),
+                            }
+                        )
             observed[key] = seen
         missing = [key for key, seen in observed.items() if not seen]
         if missing:
@@ -814,6 +830,9 @@ def check_qpu_faithful_separation(artifacts: Sequence[Artifact]) -> dict[str, An
     details = {
         "run_payload_count": inspected,
         "decision_flag_keys": list(EXACT_DECISION_FLAG_KEYS),
+        "decision_flag_aliases": {
+            key: list(value) for key, value in EXACT_DECISION_FLAG_ALIASES.items()
+        },
         "flag_containers": list(DECISION_FLAG_CONTAINERS),
         "leaks": leaks,
         "payloads_without_declared_flags": undeclared,
@@ -1326,6 +1345,27 @@ def _self_test(root: Path) -> int:
             ),
             encoding="utf-8",
         )
+        historical = tmp_root / "historical_staged_run.json"
+        historical.write_text(
+            json.dumps(
+                {
+                    "decision_data_flow": {
+                        "uses_reference_for_decision": False,
+                        "uses_future_exact_forecast_for_decision": False,
+                        "uses_exact_reference_for_decision": False,
+                    },
+                    "trajectory": [
+                        {
+                            "checkpoint_index": 0,
+                            "theta_dot_l2": 0.25,
+                            "rho_num": 0.5,
+                            "rho_miss": 0.01,
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
         bad_seed = tmp_root / "bad_seed_receipt.json"
         bad_seed.write_text(
             json.dumps(
@@ -1389,6 +1429,21 @@ def _self_test(root: Path) -> int:
         expect(
             qpu["status"] == STATUS_ERROR and len(qpu["details"]["leaks"]) == 1,
             f"QPU separation should flag one leak, got {qpu['summary']}",
+        )
+
+        historical_artifacts, historical_unreadable = _load_artifacts(
+            [historical], tmp_root
+        )
+        expect(
+            not historical_unreadable,
+            "historical staged-run fixture should parse",
+        )
+        historical_qpu = check_qpu_faithful_separation(historical_artifacts)
+        expect(
+            historical_qpu["status"] == STATUS_OK,
+            "the staged decision_data_flow contract and historical "
+            "uses_exact_reference_for_decision alias should pass, got "
+            f"{historical_qpu['summary']}",
         )
 
         seeds = check_seed_provenance(artifacts)

@@ -17,8 +17,15 @@ from dataclasses import dataclass, field
 import math
 from typing import Any, Mapping, Sequence
 
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
+    EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    EXCHANGE_ROUTE_BUNDLES,
+)
 from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
     SIAM_NB4_PRIMITIVE_NAMES,
+    SIAM_ROUTE_HISTORICAL_UNRECORDED,
+    SIAM_ROUTE_NOT_APPLICABLE,
     _verified_score,
     classify_siam_matched_pair,
 )
@@ -64,6 +71,41 @@ _RECEIPT_ARM = {ARM_AVQDS: "avqds", ARM_FULL_APM: "exchange"}
 _SCORE_ARM = _RECEIPT_ARM
 _ARM_ORDER = {ARM_AVQDS: 0, ARM_FULL_APM: 1}
 
+# One ladder belongs to exactly one exchange route.  ``historical`` is the
+# pre-route lineage and keeps every action identity byte-identical: its token is
+# ``None``, so no token is ever inserted into a historical action ID.  A
+# registered route bundle gets a short token, which makes a compiled-Q ladder a
+# genuinely new ladder -- new action IDs, opening at r00 in the AVQDS lane --
+# rather than a continuation of the historical one.
+ROUTE_HISTORICAL = "historical"
+ROUTE_Q_COMPILED = EXCHANGE_ROUTE_BUNDLE_Q_COMPILED
+ROUTE_TOKENS: Mapping[str, str | None] = {
+    ROUTE_HISTORICAL: None,
+    ROUTE_Q_COMPILED: "qc",
+}
+
+# The historical lineage accepts either a score that predates the route guards
+# or one that explicitly declares the registered historical bundle.
+_HISTORICAL_BUNDLE_ID = EXCHANGE_ROUTE_BUNDLES[
+    EXCHANGE_ROUTE_BUNDLE_HISTORICAL
+].bundle_id
+# A registered route other than the historical one accepts exactly its own
+# bundle id, so the table stays derived from ``ROUTE_TOKENS`` and cannot drift
+# out of sync with it.
+_ACCEPTED_EXCHANGE_SCORE_ROUTES: Mapping[str, frozenset[str]] = {
+    route: (
+        frozenset({SIAM_ROUTE_HISTORICAL_UNRECORDED, _HISTORICAL_BUNDLE_ID})
+        if route == ROUTE_HISTORICAL
+        else frozenset({route})
+    )
+    for route in ROUTE_TOKENS
+}
+# The comparator arm is on no exchange route at all.  A pre-route AVQDS score
+# simply never recorded the field.
+_ACCEPTED_AVQDS_SCORE_ROUTES = frozenset(
+    {SIAM_ROUTE_NOT_APPLICABLE, SIAM_ROUTE_HISTORICAL_UNRECORDED}
+)
+
 
 class SIAMNb4LadderError(ValueError):
     """The supplied action history cannot drive the canonical SIAM ladder."""
@@ -82,6 +124,16 @@ def _registered_cut(value: float) -> tuple[float, int]:
         "SIAM Nb4 ladder action uses a nonregistered activation cut: "
         f"{cut!r}."
     )
+
+
+def _canonical_route(value: str) -> str:
+    route = str(value).strip()
+    if route not in ROUTE_TOKENS:
+        raise SIAMNb4LadderError(
+            f"SIAM Nb4 ladder route must be one of {sorted(ROUTE_TOKENS)!r}; "
+            f"got {value!r}."
+        )
+    return route
 
 
 def _canonical_arm(value: str) -> str:
@@ -125,15 +177,28 @@ def _cut_token(cut: float) -> str:
     return f"{mantissa}e{sign}{digits}"
 
 
-def siam_nb4_action_id(*, arm: str, segment: str, activation_cut: float) -> str:
-    """Return the unique scientific action identity for one exact rung."""
+def siam_nb4_action_id(
+    *,
+    arm: str,
+    segment: str,
+    activation_cut: float,
+    route_id: str = ROUTE_HISTORICAL,
+) -> str:
+    """Return the unique scientific action identity for one exact rung.
+
+    The route token is inserted only when the route declares one.  The
+    historical route declares ``None``, so every historical action ID is
+    byte-identical to the pre-route identity.
+    """
 
     canonical_arm = _canonical_arm(arm)
     canonical_segment = _canonical_segment(segment)
     cut, index = _registered_cut(activation_cut)
     segment_token = "screen" if canonical_segment == SEGMENT_SCREEN else "continue"
+    route_token = ROUTE_TOKENS[_canonical_route(route_id)]
+    prefix = "siam-nb4-" if route_token is None else f"siam-nb4-{route_token}-"
     return (
-        f"siam-nb4-{canonical_arm}-{segment_token}-"
+        f"{prefix}{canonical_arm}-{segment_token}-"
         f"r{index:02d}-cut{_cut_token(cut)}"
     )
 
@@ -165,6 +230,7 @@ class SIAMNb4ActionRecord:
     segment: str
     activation_cut: float
     state: str
+    route_id: str = ROUTE_HISTORICAL
     resume_from_action_id: str | None = None
     completion_receipt: Mapping[str, Any] | None = None
     score: Mapping[str, Any] | None = None
@@ -174,6 +240,7 @@ class SIAMNb4ActionRecord:
     def __post_init__(self) -> None:
         arm = _canonical_arm(self.arm)
         segment = _canonical_segment(self.segment)
+        route_id = _canonical_route(self.route_id)
         cut, _index = _registered_cut(self.activation_cut)
         state = str(self.state).strip().lower()
         if state not in ACTION_STATES:
@@ -181,9 +248,9 @@ class SIAMNb4ActionRecord:
                 f"SIAM Nb4 action state must be one of {sorted(ACTION_STATES)}."
             )
         expected_id = siam_nb4_action_id(
-            arm=arm, segment=segment, activation_cut=cut
+            arm=arm, segment=segment, activation_cut=cut, route_id=route_id
         )
-        legacy_identity = _is_legacy_r00_identity(
+        legacy_identity = route_id == ROUTE_HISTORICAL and _is_legacy_r00_identity(
             str(self.action_id),
             arm=arm,
             segment=segment,
@@ -199,10 +266,13 @@ class SIAMNb4ActionRecord:
             raise SIAMNb4LadderError("A SIAM screen action cannot resume another action.")
         if segment == SEGMENT_CONTINUATION:
             expected_screen = siam_nb4_action_id(
-                arm=arm, segment=SEGMENT_SCREEN, activation_cut=cut
+                arm=arm,
+                segment=SEGMENT_SCREEN,
+                activation_cut=cut,
+                route_id=route_id,
             )
             accepted_screens = {expected_screen}
-            if cut == 1.0e-3:
+            if route_id == ROUTE_HISTORICAL and cut == 1.0e-3:
                 accepted_screens.add(
                     _legacy_r00_action_id(arm=arm, segment=SEGMENT_SCREEN)
                 )
@@ -249,6 +319,7 @@ class SIAMNb4ActionRecord:
 
         object.__setattr__(self, "arm", arm)
         object.__setattr__(self, "segment", segment)
+        object.__setattr__(self, "route_id", route_id)
         object.__setattr__(self, "activation_cut", cut)
         object.__setattr__(self, "state", state)
         for field_name in (
@@ -270,6 +341,8 @@ class SIAMNb4ActionRecord:
 
     @property
     def uses_legacy_r00_identity(self) -> bool:
+        if self.route_id != ROUTE_HISTORICAL:
+            return False
         return _is_legacy_r00_identity(
             self.action_id,
             arm=self.arm,
@@ -318,6 +391,7 @@ class SIAMNb4NextAction:
     activation_cut: float
     ladder_index: int
     reason: str
+    route_id: str = ROUTE_HISTORICAL
     resume_from_action_id: str | None = None
     exact_reference_blind: bool = True
     qiskit_compilation_requested: bool = False
@@ -327,6 +401,7 @@ class SIAMNb4NextAction:
             "kind": self.kind,
             "action_id": self.action_id,
             "arm": self.arm,
+            "route_id": self.route_id,
             "segment": self.segment,
             "activation_cut": self.activation_cut,
             "ladder_index": self.ladder_index,
@@ -372,10 +447,12 @@ class SIAMNb4LadderPlan:
     complete: bool = False
     blocked: bool = False
     phase: str = "avqds_screening"
+    route_id: str = ROUTE_HISTORICAL
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
             "schema": SIAM_NB4_LADDER_PLAN_V1,
+            "route_id": self.route_id,
             "activation_cut_ladder_contract": ladder_contract_json(),
             "next_actions": [action.to_json_dict() for action in self.next_actions],
             "dispositions": [row.to_json_dict() for row in self.dispositions],
@@ -535,6 +612,21 @@ def _verified_completed_record(record: SIAMNb4ActionRecord) -> _VerifiedRecord:
         raise SIAMNb4LadderError(
             f"Completed action {record.action_id} score arm mismatch."
         )
+    observed_route = str(
+        score.get("method", {}).get(
+            "exchange_route_bundle", SIAM_ROUTE_HISTORICAL_UNRECORDED
+        )
+    )
+    accepted_routes = (
+        _ACCEPTED_AVQDS_SCORE_ROUTES
+        if record.arm == ARM_AVQDS
+        else _ACCEPTED_EXCHANGE_SCORE_ROUTES[record.route_id]
+    )
+    if observed_route not in accepted_routes:
+        raise SIAMNb4LadderError(
+            f"Completed action {record.action_id} score route {observed_route!r} "
+            f"is not on the {record.route_id!r} ladder route."
+        )
     if score.get("method", {}).get("code_revision") != receipt.get(
         "source_revision"
     ):
@@ -685,7 +777,10 @@ def _pair_mismatch_justifies_tightening(
 
 def _validate_history(
     records: Sequence[SIAMNb4ActionRecord | SIAMNb4SafeguardRecord],
+    *,
+    route_id: str = ROUTE_HISTORICAL,
 ) -> tuple[tuple[_VerifiedRecord, ...], tuple[SIAMNb4SafeguardRecord, ...]]:
+    route_id = _canonical_route(route_id)
     action_ids: set[str] = set()
     identities: set[tuple[str, str, float]] = set()
     action_records: list[SIAMNb4ActionRecord] = []
@@ -710,6 +805,11 @@ def _validate_history(
         if record.scientific_identity in identities:
             raise SIAMNb4LadderError(
                 "SIAM Nb4 ladder history repeats a scientific action identity."
+            )
+        if record.route_id != route_id:
+            raise SIAMNb4LadderError(
+                f"SIAM Nb4 action {record.action_id!r} belongs to route "
+                f"{record.route_id!r}, not the planned route {route_id!r}."
             )
         action_ids.add(record.action_id)
         identities.add(record.scientific_identity)
@@ -902,24 +1002,31 @@ def _next_action(
     segment: str,
     cut: float,
     reason: str,
+    route_id: str = ROUTE_HISTORICAL,
     resume_from_action_id: str | None = None,
 ) -> SIAMNb4NextAction:
     registered_cut, index = _registered_cut(cut)
     return SIAMNb4NextAction(
         kind=KIND_RUN,
         action_id=siam_nb4_action_id(
-            arm=arm, segment=segment, activation_cut=registered_cut
+            arm=arm,
+            segment=segment,
+            activation_cut=registered_cut,
+            route_id=route_id,
         ),
         arm=arm,
         segment=segment,
         activation_cut=registered_cut,
         ladder_index=index,
         reason=reason,
+        route_id=_canonical_route(route_id),
         resume_from_action_id=resume_from_action_id,
     )
 
 
-def _safeguard_action(*, arm: str, cut: float, reason: str) -> SIAMNb4NextAction:
+def _safeguard_action(
+    *, arm: str, cut: float, reason: str, route_id: str = ROUTE_HISTORICAL
+) -> SIAMNb4NextAction:
     registered_cut, index = _registered_cut(cut)
     return SIAMNb4NextAction(
         kind=KIND_RECORD_SAFEGUARD,
@@ -929,6 +1036,7 @@ def _safeguard_action(*, arm: str, cut: float, reason: str) -> SIAMNb4NextAction
         activation_cut=registered_cut,
         ladder_index=index,
         reason=reason,
+        route_id=_canonical_route(route_id),
     )
 
 
@@ -1018,6 +1126,7 @@ def _lane_state(
     actions: list[SIAMNb4NextAction],
     dispositions: _DispositionBook,
     initial_index: int = 0,
+    route_id: str = ROUTE_HISTORICAL,
 ) -> _LaneState:
     if initial_index < 0 or initial_index >= len(SIAM_NB4_ACTIVATION_CUT_LADDER):
         raise SIAMNb4LadderError("SIAM lane initial rung is outside the ladder.")
@@ -1059,6 +1168,7 @@ def _lane_state(
                     segment=SEGMENT_SCREEN,
                     cut=cut,
                     reason=reason,
+                    route_id=route_id,
                 ),
                 lookup=lookup,
                 actions=actions,
@@ -1116,6 +1226,7 @@ def _lane_state(
                     _safeguard_action(
                         arm=arm,
                         cut=cut,
+                        route_id=route_id,
                         reason=(
                             f"{arm} remains outside the broad/fidelity/energy "
                             "screen guards at the predeclared floor; retain all "
@@ -1152,6 +1263,7 @@ def _lane_state(
                         f"Resume the valid {arm} screen at the same method-owned "
                         "cut through T=5."
                     ),
+                    route_id=route_id,
                     resume_from_action_id=record.action_id,
                 ),
                 lookup=lookup,
@@ -1221,6 +1333,7 @@ def _next_tighter_after_pair(
     actions: list[SIAMNb4NextAction],
     dispositions: _DispositionBook,
     reason: str,
+    route_id: str = ROUTE_HISTORICAL,
 ) -> None:
     if lane.latest_screen is None:
         raise SIAMNb4LadderError("Pair escalation lost its selected screen rung.")
@@ -1231,6 +1344,7 @@ def _next_tighter_after_pair(
             _safeguard_action(
                 arm=lane.arm,
                 cut=current.activation_cut,
+                route_id=route_id,
                 reason=(
                     f"{reason} The offending arm is already at the predeclared "
                     "activation-cut floor; retain both numerical candidates and "
@@ -1247,6 +1361,7 @@ def _next_tighter_after_pair(
             arm=lane.arm,
             segment=SEGMENT_SCREEN,
             cut=SIAM_NB4_ACTIVATION_CUT_LADDER[next_index],
+            route_id=route_id,
             reason=(
                 f"{reason} Advance only {lane.arm} by the next exact screen rung; "
                 "the other arm's numerical candidate is preserved."
@@ -1295,15 +1410,25 @@ def _offending_arm(
 
 def plan_siam_nb4_ladder(
     records: Sequence[SIAMNb4ActionRecord | SIAMNb4SafeguardRecord],
+    *,
+    route_id: str = ROUTE_HISTORICAL,
 ) -> SIAMNb4LadderPlan:
     """Return the duplicate-free exact action frontier for the SIAM pilot.
 
     The caller owns persistence and execution.  Replaying this function with
     unchanged records returns the same plan; it never submits, writes, scores,
     or opens a trajectory.
+
+    ``route_id`` names the exchange route this ladder belongs to.  A ladder on a
+    registered route bundle is a *new* ladder: it shares no action identity with
+    the historical one and, with no records, opens at r00 in the AVQDS lane
+    exactly like a fresh historical ladder.
     """
 
-    verified, recorded_safeguards = _validate_history(tuple(records))
+    route_id = _canonical_route(route_id)
+    verified, recorded_safeguards = _validate_history(
+        tuple(records), route_id=route_id
+    )
     lookup = _record_lookup(verified)
     dispositions = _DispositionBook()
     actions: list[SIAMNb4NextAction] = []
@@ -1355,6 +1480,7 @@ def plan_siam_nb4_ladder(
         lookup=lookup,
         actions=actions,
         dispositions=dispositions,
+        route_id=route_id,
     )
     comparator_ready = bool(
         avqds.latest_screen is not None
@@ -1371,6 +1497,7 @@ def plan_siam_nb4_ladder(
             actions=actions,
             dispositions=dispositions,
             initial_index=avqds.latest_screen.record.ladder_index,
+            route_id=route_id,
         )
     else:
         dispositions.set(
@@ -1437,6 +1564,7 @@ def plan_siam_nb4_ladder(
                 actions=actions,
                 dispositions=dispositions,
                 reason=reason,
+                route_id=route_id,
             )
 
     emitted_safeguards = [
@@ -1512,6 +1640,7 @@ def plan_siam_nb4_ladder(
         complete=complete,
         blocked=blocked,
         phase=phase,
+        route_id=route_id,
     )
 
 
@@ -1523,6 +1652,9 @@ __all__ = [
     "KIND_RUN",
     "SEGMENT_CONTINUATION",
     "SEGMENT_SCREEN",
+    "ROUTE_HISTORICAL",
+    "ROUTE_Q_COMPILED",
+    "ROUTE_TOKENS",
     "SIAM_NB4_LADDER_PLAN_V1",
     "SIAMNb4ActionRecord",
     "SIAMNb4Disposition",

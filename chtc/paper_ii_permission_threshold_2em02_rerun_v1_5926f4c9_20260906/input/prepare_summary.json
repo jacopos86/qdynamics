@@ -1,0 +1,51 @@
+{
+  "action_count": 1,
+  "actions_jsonl": {
+    "path": "/var/folders/kx/d9rnzzsd4j97qd4n_s9d7n980000gn/T/paper_ii_bundle_v__hg_gr/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/input/actions.jsonl",
+    "sha256": "31d3f0919ffc663b3b0ebe9d1acd1571e2e444518fc59f6574e13094384f6de1"
+  },
+  "apm_action_count": 1,
+  "avqds_action_count": 0,
+  "blocks": [],
+  "campaign_id": "paper_ii_permission_threshold_2em02_rerun_v1",
+  "cell_count": 1,
+  "code_revision": "5926f4c9a2e3038d1fa83ba619bbd785ebc2494c",
+  "comparator_mode": "reuse_locked_exact_estimator_avqds",
+  "comparator_source_campaign_id": "paper_ii_final_estimator_telemetry_v1",
+  "compile_workers": 8,
+  "excluded_cell_count": 0,
+  "lock": {
+    "path": "pipelines/time_dynamics/campaigns/paper_ii_permission_threshold_2em02_rerun_cells_v1.json",
+    "schema": "paper_ii_final_matched_cells_v1",
+    "sha256": "b7961aa6801b04339467ad51d1efc99a69e35570929d54f44484f9ecb4c67214",
+    "source_campaign_id": "paper_ii_permission_threshold_2em02_rerun_v1"
+  },
+  "output_root": "raw_outputs",
+  "precursor_action_count": 0,
+  "registry_bindings": {
+    "apm_arm": "exchange",
+    "comparator_arm": "avqds",
+    "extra_flags": [
+      "--record-statevector",
+      "--exchange-permission-ray-distance-max",
+      "2e-2"
+    ],
+    "gate": "mclachlan_l2_1e-3",
+    "horizon": "t20",
+    "numerics": "euler_ridge1e-6",
+    "regime": "hh_snake_nph1",
+    "search_profile": "paper_declared_exchange_v1"
+  },
+  "route_count": 1,
+  "schema": "paper_ii_final_estimator_telemetry_prepare_v1",
+  "seed": {
+    "path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+  },
+  "selector_routes": {
+    "paper_ii_exchange_q_compiled_v1": "exchange_q_compiled"
+  },
+  "source_package_sha256": "04c8bffda8d7b4ae282e7a76a7cece1497cb72ee19c48124d9ca4ae0184018b5",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "telemetry_contract": "paper_ii_exact_logical_estimator_telemetry_20260903"
+}

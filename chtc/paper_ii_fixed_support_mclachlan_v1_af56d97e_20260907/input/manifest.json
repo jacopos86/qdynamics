@@ -1,0 +1,130 @@
+{
+ "schema": "paper_ii_final_estimator_telemetry_package_v1",
+ "campaign_id": "paper_ii_fixed_support_mclachlan_v1",
+ "status": "PREPARED_NOT_SUBMITTED",
+ "created_utc": "2026-09-07T14:25:32Z",
+ "scope": {
+  "action_count": 12,
+  "cell_count": 6,
+  "routes_per_cell": 2,
+  "apm_routes_per_cell": 1,
+  "apm_action_count": 6,
+  "avqds_action_count": 6,
+  "precursor_action_count": 0,
+  "time_span": [
+   0.0,
+   20.0
+  ],
+  "time_point_count": 501,
+  "fresh_trajectories": true,
+  "purpose": "exact logical candidate-estimator accounting"
+ },
+ "routes": {
+  "paper_ii_exchange_q_compiled_v1": 6,
+  "avqds": 6
+ },
+ "source": {
+  "code_revision": "af56d97e2bd52af2c656abf04efdf9c4636ab057",
+  "archive": "input/source_af56d97e.tar.gz",
+  "archive_sha256": "99aa1cab67e9ee2c39280ed8143b6abad36715fd914f55871d004e15506ab969",
+  "included_paths": [
+   "pipelines",
+   "src",
+   "chtc/paper_ii_production_v2/input/seeds"
+  ],
+  "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
+  "compile_worker_reconciliation_head": "7128545afb85af0fc70b2acc6ae2b8a07c949602",
+  "template_package": "paper_ii_final_estimator_telemetry_v1_426807d9_20260904"
+ },
+ "inputs": {
+  "actions_jsonl": {
+   "path": "input/actions.jsonl",
+   "sha256": "16d470149eff8e315805f09c7be2beb6ffbc040a69d587274f5ff46602a94cde"
+  },
+  "action_ids": {
+   "path": "input/action_ids.txt",
+   "sha256": "ac4d78b07dee8084da633c91895e08025f38d032877df7fcae4e62aa74cd95a1"
+  },
+  "action_ids_apm": {
+   "path": "input/action_ids_apm.txt",
+   "sha256": "62c2ea0eee2fcf2481ef2c02b403e4d8809691a916766bb950093fc7bdc7d36a"
+  },
+  "action_ids_avqds": {
+   "path": "input/action_ids_avqds.txt",
+   "sha256": "55bcdc5e49395b05101ab4944123c24f744b061856dfa0703b6c0e1034ef85bc"
+  },
+  "prepare_summary": {
+   "path": "input/prepare_summary.json",
+   "sha256": "f5c138ffd8f3c1c99033cfe48ff91c1fc7577d275141348ccfa014eba334ebf9"
+  },
+  "matched_cells_lock": {
+   "path": "input/matched_cells_lock.json",
+   "sha256": "6e536799d3ce1f89b8de2556bef1df49c47cfb2b063aad6141576abb4c5c92b8"
+  },
+  "calibration_receipt": {
+   "path": "input/calibration_receipt.json",
+   "sha256": "46bf1e92d7304da98324eb5ed2e6604bb72a18f078774aaeb7d9efde8bb5fbd9",
+   "status": "INCOMPLETE",
+   "error_count": 0,
+   "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+   ],
+   "allow_unverified_response_scales_used": false,
+   "carried_reason": "post-run comparison checks require the new trajectories"
+  },
+  "report_refresh_resolution": {
+   "path": "input/report_refresh_resolution.json",
+   "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+   "active_blocks": [],
+   "authorizes_new_campaign_submission": true
+  }
+ },
+ "runtime": {
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "container_size_bytes": 216371200,
+  "apm": {
+   "request_cpus": 9,
+   "compile_workers": 8,
+   "scoring_workers": 4,
+   "request_memory": "12GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "avqds": {
+   "request_cpus": 1,
+   "request_memory": "3GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "thread_environment": {
+   "OPENBLAS_NUM_THREADS": 1,
+   "OMP_NUM_THREADS": 1,
+   "MKL_NUM_THREADS": 1,
+   "VECLIB_MAXIMUM_THREADS": 1,
+   "NUMEXPR_NUM_THREADS": 1,
+   "RAYON_NUM_THREADS": 1
+  },
+  "transfer_format": "one gzip archive plus SHA receipt per action"
+ },
+ "completion_contract": {
+  "trajectory_required": true,
+  "exact_estimator_work_required": true,
+  "terminal_qiskit_cost_required": true,
+  "physical_shots": null,
+  "physical_shots_status": "unavailable_statevector_no_shot_ledger"
+ },
+ "package_files": {
+  "run_action.py": "c79ae1dd3df94b122539c3f9d18f47d77c99c115ad41523d0c4950733d3d153f",
+  "run_action_apptainer.sh": "35f7e3ad6c1c4e07fac141a04a1a3b2c723e4682fd3edd222010c3ab2bb930c8",
+  "submit_apm.sub": "482626c239fa0e8dee384f41947264218d5ae004985ffb70976b5e4016dcab70",
+  "submit_avqds.sub": "862dd72c16b837bed18bdcd5cb492e96d71d4c8ff1ba10e36052a6200b7e120f",
+  "validate_package.py": "d8b94ecb0d175347e9d99e076cb5bce565d81c7126c356192f50ad1ca300b5dc"
+ },
+ "adoption": {
+  "paper_evidence_adopted": false,
+  "manuscript_updated": false,
+  "purpose": "author-requested exact estimator reruns only"
+ },
+ "purpose": "Fixed-support McLachlan baseline: the six delta-theta cells of the corrected exchange campaign propagated on the 28-coordinate seed support with no structural edits, realized as the AVQDS comparator arm with its activation cut set to 1000000000 so that no append can trigger (identical seed, pool, numerics, raw-coordinate step controller). Only the AVQDS actions of this package are submitted; the APM actions are not run. Cell adoption_status values are copied from the corrected lock and do not describe this experiment."
+}

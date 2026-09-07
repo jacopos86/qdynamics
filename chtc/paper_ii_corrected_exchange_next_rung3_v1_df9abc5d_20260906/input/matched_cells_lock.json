@@ -1,0 +1,248 @@
+{
+  "adoption_note": "Not adopted paper evidence until the user promotes it. Cell rows, cuts, sources, and metrics copied verbatim from the corrected lock.",
+  "adoption_status_vocabulary": {
+    "source": "pipelines/time_dynamics/diagnostics/promotion_preview.py",
+    "values": [
+      "pair_matched_comparison",
+      "individual_response_target"
+    ]
+  },
+  "blocks": {
+    "active": [],
+    "schema": "paper_ii_report_refresh_required_v1",
+    "superseded_sha256": "84c67ea56fd6267b1fb772178f96d0f5025556ad3b64412bb65edc673fc29a11",
+    "supersedes": "chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/report_refresh_required.json"
+  },
+  "campaign_id": "paper_ii_corrected_exchange_next_rung3_v1",
+  "cells": [
+    {
+      "adoption_status": "individual_response_target",
+      "apm_cut": 3.33333333333e-08,
+      "avqds_cut": 3e-06,
+      "cell_id": "fastweak__delta_theta_5e-5",
+      "controller": "delta_theta_5e-5",
+      "drive": "fastweak",
+      "metrics": {
+        "apm": {
+          "accuracy_burden": 0.10681238778769919,
+          "cost_source_kind": "legacy_terminal_qiskit_cost_fallback",
+          "failed_gates": [],
+          "graph": [
+            96,
+            144,
+            246
+          ],
+          "mean_abs_charge_imbalance_error": 0.0004872351771525234,
+          "mean_abs_doublon_error": 0.00019143063758745465,
+          "mean_abs_energy_error": 0.0005604718859741754,
+          "mean_infidelity": 1.1209064981005656e-05,
+          "method": "exchange",
+          "n_theta": 40,
+          "qualification_basis": "individual_response_target",
+          "response_normalized_errors": {
+            "mean_abs_doublon_error": 0.14019546127876228,
+            "mean_abs_energy_error": 0.09732222377337216,
+            "mean_infidelity": 0.11209064981005655,
+            "mean_max_abs_site_occupation_error": 0.06280802784230159
+          },
+          "status": "accuracy_qualified",
+          "threshold": 3e-07,
+          "time_step_count": 698468
+        },
+        "avqds": {
+          "accuracy_burden": 0.06211071046639609,
+          "cost_source_kind": "legacy_terminal_qiskit_cost_fallback",
+          "failed_gates": [],
+          "graph": [
+            170,
+            238,
+            371
+          ],
+          "mean_abs_charge_imbalance_error": 0.0003856223152862311,
+          "mean_abs_doublon_error": 0.00011824416029393094,
+          "mean_abs_energy_error": 0.00042416650365315625,
+          "mean_infidelity": 6.004119580489241e-07,
+          "method": "avqds",
+          "n_theta": 61,
+          "qualification_basis": "individual_response_target",
+          "response_normalized_errors": {
+            "mean_abs_doublon_error": 0.08659687291880985,
+            "mean_abs_energy_error": 0.0736536986399411,
+            "mean_infidelity": 0.0060041195804892405,
+            "mean_max_abs_site_occupation_error": 0.049709418061020985
+          },
+          "status": "accuracy_qualified",
+          "threshold": 3e-06,
+          "time_step_count": 796269
+        }
+      },
+      "paper_status": {
+        "apm": "qualified",
+        "avqds": "qualified",
+        "qualification_basis": "individual_response_target"
+      },
+      "run_lock": {
+        "apm": {
+          "continuation": {
+            "code_revision": "0268f017ce394809071062bd988180737b58ffc2",
+            "comparison_fingerprint": "6b2b78d3f468599ea61973f8a389763f13dc853c1b01bf48f67586b7dc61c669",
+            "physics_fingerprint": "493da05d7a721c4e560d0a7a728443109e9ae0a8ebc70a43782bc4e02d215db7",
+            "schema": "paper_ii_run_lock_v3"
+          },
+          "screen": {
+            "code_revision": "0268f017ce394809071062bd988180737b58ffc2",
+            "comparison_fingerprint": "97e6340d15a22d468579149cd31ba755ba1c52c99ee42bdd028880de42f1355f",
+            "physics_fingerprint": "914173fbc323aaaa6769a65791a78a8f228c83c2bc324b8346c1c7c487871c5b",
+            "schema": "paper_ii_run_lock_v3"
+          }
+        },
+        "avqds": {
+          "continuation": {
+            "code_revision": "79fa325db10f8edbee9f31b77c6e58468d50fb54",
+            "comparison_fingerprint": "589f22c4a47e025db9165e2ebb4940d4bb58f5fe925bbd2723f21a5637b43aee",
+            "physics_fingerprint": "493da05d7a721c4e560d0a7a728443109e9ae0a8ebc70a43782bc4e02d215db7",
+            "schema": "paper_ii_run_lock_v3"
+          },
+          "screen": {
+            "code_revision": "f97317277433eb42876e543533067a8bb247e00b",
+            "comparison_fingerprint": "d98fedf0f47942d92d38ac0990745179fc88d6b4564ce11a4db43730afd8e5fe",
+            "physics_fingerprint": "d1e60156d2b0e3a69839b9b600d0c351818c9be1a5ac447d48eba85b168e74ef",
+            "schema": "paper_ii_run_lock_v2"
+          }
+        },
+        "source_comparison_fingerprint": "97e6340d15a22d468579149cd31ba755ba1c52c99ee42bdd028880de42f1355f"
+      },
+      "source_artifacts": {
+        "apm": {
+          "continuation_run_json": {
+            "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t20__cut3e-07/run.json",
+            "sha256": "bf31190cbc55dee06fdacc48037f7749b4ac0743cc263305b3affc3d95981875"
+          },
+          "screen_run_json": {
+            "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t5__cut3e-07/run.json",
+            "sha256": "3c56ff97de63cf80b48c8c10b78b2d794f4a35c02edeb6c5894efa0d3e959f2e"
+          },
+          "stitched_point_count": 501,
+          "stitched_time_span": [
+            0.0,
+            20.0
+          ],
+          "terminal_cost_json": {
+            "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t20__cut3e-07/terminal_qiskit_cost.json",
+            "sha256": "91cd61b600060089b7c448f702fa7637adacc4dd4d7255befd3698542da7777e"
+          }
+        },
+        "avqds": {
+          "continuation_run_json": {
+            "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06/run.json",
+            "sha256": "7217714e8d64143d0f8f460324c1b9aac2d58156d97b337616c6d65d4f3a1542"
+          },
+          "screen_run_json": {
+            "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t5__cut3e-06/run.json",
+            "sha256": "012e7ef8de0c93093cb6c50f8e8bcbea1e6151e0635e9a06f5b9612e55a5fa8e"
+          },
+          "stitched_point_count": 501,
+          "stitched_time_span": [
+            0.0,
+            20.0
+          ],
+          "terminal_cost_json": {
+            "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06/terminal_qiskit_cost.json",
+            "sha256": "b3d06e893337e7c6fb6c91e036cb8e891ce3a70d2ae30c0c4d610c5164fb3245"
+          }
+        },
+        "exact_reference": {
+          "path": "output/paper_ii_staged/exact_references/4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1/manifest.json",
+          "sha256": "e356fec7593cd3526393867643f8e779e406409adadfd88aecf756183c4afdc3"
+        }
+      },
+      "tuple_id": "88f8c7569da185463675474be5bebe061f66397efadd3ca658daf212153cd76c"
+    }
+  ],
+  "created": "2026-09-05",
+  "cut_convention": {
+    "apm_cut_flag": "--insertion-l2-cut",
+    "avqds_cut_flag": "--avqds-l2-cut",
+    "canonicalizer": "pipelines.time_dynamics.campaign._canonical_cut",
+    "label_format": "{cut:.12g}"
+  },
+  "exclusion_note": "Single-cell grid; nothing excluded.",
+  "exclusions": [],
+  "external_artifacts": {
+    "final_ingestion_receipt": {
+      "path": "chtc/paper_ii_full_factorial_coverage_wave2_b1354438_20260902/final_ingestion_receipt_9718010_20260902.json",
+      "resolution_status": "RESOLVED",
+      "sha256": "5cbfa8c965e63bc52eecdd742e5a2cddab7cdd871d1faf358d65e7db3aa8e615"
+    },
+    "ledger": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/ledger_371_rows_20260902.json",
+      "record_count": 371,
+      "resolution_status": "RESOLVED",
+      "sha256": "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6"
+    },
+    "promotion_preview": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/promotion_preview_20260902.json",
+      "resolution_status": "RESOLVED",
+      "sha256": "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf"
+    },
+    "report_json": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/paper_ii_staged_report_20260902.json",
+      "resolution_status": "RESOLVED",
+      "sha256": "2006f8834020134ad8b9329fdfa5d6242026c38f8b2976a65f8a7a559ee1f791"
+    },
+    "report_refresh_resolution": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/report_refresh_resolution_20260903.json",
+      "resolution_status": "RESOLVED",
+      "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f"
+    },
+    "results_pdf": {
+      "currency_claim": "current_through_coverage_cluster_9718010",
+      "path": "/Users/lordskyler/Documents/Codex/2026-09-01/paper-ii-context-verified-2026-08/outputs/paper_ii_full_factorial_results_refresh_20260901.pdf",
+      "path_authority": "provenance_only_absolute_machine_path",
+      "resolution_status": "RESOLVED",
+      "sha256": "f5e1666a567a7abe3acea4609ce57a3930038f01749cef02ff411dc65151a2e6"
+    }
+  },
+  "grid": {
+    "cell_count": 1,
+    "controllers": [
+      "delta_theta_5e-5"
+    ],
+    "drives": [
+      "fastweak"
+    ],
+    "excluded_count": 0,
+    "relation": "cells + exclusions = drives x controllers"
+  },
+  "lock_id": "paper_ii_corrected_exchange_next_rung3_cells_v1",
+  "parent_matched_cell_lock_sha256": "4705aaf2c36e9e0c8176f7b6c6688a04420898eb22933a71c44b350ff5c892b1",
+  "purpose": "Corrected exchange campaign, second activation-threshold rung for weak--fast (0.6,3) delta-theta: tau_m 1e-7 -> 3.33e-8 after the 1e-7 rung still failed the matched-accuracy rule against AVQDS (worst componentwise factor 2.67; energy error 15.4e-4 against AVQDS 4.24e-4). Declared exchange insertion frontier W=8; the manuscript's permission bound.",
+  "registry_bindings": {
+    "apm_arm": "exchange",
+    "comparator_arm": "avqds",
+    "extra_flags": [
+      "--record-statevector"
+    ],
+    "gate": "mclachlan_l2_1e-3",
+    "horizon": "t20",
+    "numerics": "euler_ridge1e-6",
+    "regime": "hh_snake_nph1",
+    "search_profile": "paper_declared_exchange_v1"
+  },
+  "schema": "paper_ii_final_matched_cells_v1",
+  "seed": {
+    "artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "family_key": "hubbard_holstein",
+    "n_ph_max": 1,
+    "note": "One hash is shared by every cell; verified against the file at load time.",
+    "regime": "calibration",
+    "seed_id": "hh_snake_nph1",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+  },
+  "selector_routes": {
+    "paper_ii_exchange_q_compiled_v1": {
+      "arm": "exchange_q_compiled"
+    }
+  },
+  "status": "PREPARED_NOT_SUBMITTED"
+}

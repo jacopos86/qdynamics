@@ -9,7 +9,7 @@ post-run transaction.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -30,15 +30,22 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from pipelines.time_dynamics.paper_ii_runs import (
+    ARMS,
     EULER_RIDGE1E6_NUMERICS,
     RUNNER_PATH,
     SIAM_NB4_ARMS,
     SIAM_NB4_CONTINUATION_SEGMENT,
     SIAM_NB4_PILOT_SEARCH,
     SIAM_NB4_SCREEN_SEGMENT,
+    SIAM_NB4_SEARCH_PROFILES,
     STATE_MOTION_CONTROL_CALIBRATED,
+    SearchProfile,
     build_siam_nb4_continuation_run,
     build_siam_nb4_screen_run,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
+    EXCHANGE_ROUTE_BUNDLES,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     build_candidate_pool_contract,
@@ -51,6 +58,9 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_LOGICAL_SHARED,
     state_from_scaffold_runtime_input,
+)
+from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
+    SIAM_ROUTE_NOT_APPLICABLE,
 )
 from pipelines.time_dynamics.resume import (
     CONTROLLER_RESUME_SCHEMA_V1,
@@ -90,18 +100,51 @@ SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3 = "siam_nb4_chtc_action_receipt_v3"
 SIAM_NB4_CHTC_ACTION_SCHEMA_V4 = "siam_nb4_chtc_action_v4"
 SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4 = "siam_nb4_chtc_package_manifest_v4"
 SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4 = "siam_nb4_chtc_action_receipt_v4"
+# V5 adds exchange-route identity (``route_bundle_id`` /
+# ``route_contract_sha256``) to the three digest-bound documents.  It is
+# emitted only for a ladder on a registered non-historical exchange route: a
+# historical package stays byte-identical at V4 so the r00--r07 lineage
+# remains reproducible and every V4 reader keeps working unchanged.
+SIAM_NB4_CHTC_ACTION_SCHEMA_V5 = "siam_nb4_chtc_action_v5"
+SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5 = "siam_nb4_chtc_package_manifest_v5"
+SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5 = "siam_nb4_chtc_action_receipt_v5"
 SIAM_SOURCE_TREE_CONTRACT_V1 = "siam_source_tree_contract_v1"
 SIAM_NB4_RESUME_TERMINAL_PROOF_V1 = "siam_nb4_resume_terminal_proof_v1"
 SIAM_SOURCE_EPOCH_CONTRACT_V1 = "siam_source_epoch_contract_v1"
 SIAM_SOURCE_EPOCH_CLOSURE_V1 = "siam_source_epoch_closure_v1"
 SIAM_SOURCE_EPOCH_REBASELINE_V1 = "siam_source_epoch_rebaseline_v1"
 
+# The canonical arm id is the *arm* identity, not the runner policy: the
+# compiled-Q route shares ``--dynamics-policy exchange`` with the historical
+# exchange arm but is a different arm and a different ladder.
 _ARM_ALIASES: Mapping[str, str] = {
     "apm": "exchange",
     "avqds": "avqds",
     "exchange": "exchange",
+    "exchange_q_compiled": "exchange_q_compiled",
     "full_apm": "exchange",
+    "full_apm_q_compiled": "exchange_q_compiled",
 }
+# Method identity is recorded off the arm id; the runner policy is recorded
+# off ``Arm.dynamics_policy``.  The two are deliberately separate axes.
+_ARM_METHOD_LABELS: Mapping[str, str] = {
+    "avqds": "avqds",
+    "exchange": "full_apm",
+    "exchange_q_compiled": "full_apm_q_compiled",
+}
+# The compiled-Q route's batch name carries the arm id verbatim so the route
+# is legible in the pool.  This mirrors
+# ``siam_submission_intent_bridge._accepted_batch_names`` exactly.
+_VERBATIM_BATCH_ARMS = frozenset({"exchange_q_compiled"})
+# ``siam_nb4_ladder`` names the two comparison *lanes*, not the arms: the route
+# is a separate axis there, carried by ``route_id``.  Every exchange-family arm
+# is the ladder's ``full_apm`` lane.
+_LADDER_LANES: Mapping[str, str] = {
+    "avqds": "avqds",
+    "exchange": "full_apm",
+    "exchange_q_compiled": "full_apm",
+}
+ROUTE_HISTORICAL = "historical"
 _SEGMENT_ALIASES = {
     "continuation": SIAM_NB4_CONTINUATION_SEGMENT,
     "continue": SIAM_NB4_CONTINUATION_SEGMENT,
@@ -529,12 +572,122 @@ def _canonical_arm(value: str) -> str:
         arm = _ARM_ALIASES[token]
     except KeyError as exc:
         raise ValueError(
-            "SIAM Nb=4 CHTC arm must be AVQDS or full APM "
-            f"(exchange), got {value!r}"
+            "SIAM Nb=4 CHTC arm must be AVQDS, full APM (exchange), or "
+            "compiled-Q full APM (exchange_q_compiled), got "
+            f"{value!r}"
         ) from exc
     if arm not in SIAM_NB4_ARMS:
         raise RuntimeError(f"registered SIAM arm disappeared: {arm}")
     return arm
+
+
+def _arm_dynamics_policy(canonical_arm: str) -> str:
+    """Return the runner ``--dynamics-policy`` value the arm resolves to.
+
+    The run lock records this string as ``policy.structural_policy``, so every
+    comparison against a run lock or a runner flag keys off this and never off
+    the arm id.  Route bundles share the ``exchange`` policy.
+    """
+
+    try:
+        return ARMS[str(canonical_arm)].dynamics_policy
+    except KeyError as exc:  # pragma: no cover - guarded by _canonical_arm
+        raise ValueError(f"unregistered SIAM arm {canonical_arm!r}") from exc
+
+
+def _arm_method_label(canonical_arm: str) -> str:
+    """Return the reported method identity for one arm id."""
+
+    try:
+        return _ARM_METHOD_LABELS[str(canonical_arm)]
+    except KeyError as exc:  # pragma: no cover - guarded by _canonical_arm
+        raise ValueError(
+            f"SIAM arm {canonical_arm!r} has no registered method label"
+        ) from exc
+
+
+def _arm_route_bundle_id(canonical_arm: str) -> str:
+    """Return the exchange route bundle id this arm actually runs on.
+
+    The comparator arm is on no exchange route at all and reports
+    ``not_applicable``, exactly as ``siam_offline_scoring`` does.  An exchange
+    arm without an explicit ``--exchange-route-bundle`` flag runs the
+    registered historical bundle.
+    """
+
+    if _arm_dynamics_policy(canonical_arm) == "avqds":
+        return SIAM_ROUTE_NOT_APPLICABLE
+    flags = tuple(ARMS[str(canonical_arm)].flags)
+    for index, flag in enumerate(flags[:-1]):
+        if flag == "--exchange-route-bundle":
+            bundle_id = str(flags[index + 1])
+            if bundle_id not in EXCHANGE_ROUTE_BUNDLES:
+                raise ValueError(
+                    f"SIAM arm {canonical_arm!r} names an unregistered "
+                    f"exchange route bundle {bundle_id!r}"
+                )
+            return bundle_id
+    return EXCHANGE_ROUTE_BUNDLE_HISTORICAL
+
+
+def _route_contract_sha256(bundle_id: str) -> str | None:
+    """Return the digest the run lock will record for this bundle.
+
+    This reproduces the runner's computation verbatim -- ``asdict`` of the
+    registered :class:`ExchangeRouteBundle` hashed as canonical JSON -- so the
+    packaged expectation and ``run_lock.policy.guards``
+    ``exchange_route_contract_sha256`` are the same string by construction.
+    The comparator arm records no route digest.
+    """
+
+    if bundle_id == SIAM_ROUTE_NOT_APPLICABLE:
+        return None
+    bundle = EXCHANGE_ROUTE_BUNDLES.get(str(bundle_id))
+    if bundle is None:
+        raise ValueError(f"unregistered exchange route bundle {bundle_id!r}")
+    return _sha256_bytes(_canonical_json_bytes(asdict(bundle)))
+
+
+def _canonical_route_id(value: str) -> str:
+    """Validate one ladder route id against the ladder's own route table.
+
+    ``siam_nb4_ladder`` imports this module, so the table is resolved lazily.
+    ``ROUTE_TOKENS`` is authoritative for which routes exist.
+    """
+
+    from pipelines.time_dynamics.siam_nb4_ladder import ROUTE_TOKENS
+
+    route = str(value).strip()
+    if route not in ROUTE_TOKENS:
+        raise ValueError(
+            f"SIAM Nb=4 package route must be one of {sorted(ROUTE_TOKENS)!r}; "
+            f"got {value!r}"
+        )
+    return route
+
+
+def _assert_arm_on_route(canonical_arm: str, *, route_id: str) -> str:
+    """Return the arm's bundle id after binding it to the ladder route.
+
+    The comparator arm belongs to whichever ladder it is packaged for and
+    carries no bundle of its own.  An exchange-family arm must run exactly the
+    ladder's route.
+    """
+
+    bundle_id = _arm_route_bundle_id(canonical_arm)
+    if bundle_id == SIAM_ROUTE_NOT_APPLICABLE:
+        return bundle_id
+    expected = (
+        EXCHANGE_ROUTE_BUNDLE_HISTORICAL
+        if route_id == ROUTE_HISTORICAL
+        else route_id
+    )
+    if bundle_id != expected:
+        raise ValueError(
+            f"SIAM arm {canonical_arm!r} runs exchange route {bundle_id!r}, "
+            f"not the packaged ladder route {route_id!r}"
+        )
+    return bundle_id
 
 
 def _registered_segment(value: str):
@@ -550,6 +703,48 @@ def _registered_segment(value: str):
 
 def _registered_cut(value: float) -> tuple[float, int]:
     return canonical_registered_cut(value)
+
+
+def _registered_search_profile(value: Any) -> SearchProfile:
+    """Resolve one registered SIAM Nb=4 search budget by its profile id."""
+
+    profile = SIAM_NB4_SEARCH_PROFILES.get(str(value))
+    if profile is None:
+        raise ValueError(
+            "SIAM Nb=4 search profile is not registered: "
+            f"{value!r}; known: {sorted(SIAM_NB4_SEARCH_PROFILES)}"
+        )
+    return profile
+
+
+def _declared_search_profile_id(value: Any) -> str | None:
+    """Validate an optional declared profile id from a package document.
+
+    ``None`` -- the key is absent -- is the historical pilot budget, so every
+    v4/v5 document written before the exchange frontier existed keeps its exact
+    bytes and its exact meaning.
+    """
+
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("SIAM declared search profile id must be a string")
+    profile = _registered_search_profile(value)
+    if profile.profile_id == SIAM_NB4_PILOT_SEARCH.profile_id:
+        raise ValueError(
+            "SIAM default search profile must stay implicit; the key is "
+            "written only for a non-default budget"
+        )
+    return profile.profile_id
+
+
+def _document_search_profile(document: Mapping[str, Any]) -> SearchProfile:
+    """The search budget one action/receipt document declares."""
+
+    profile_id = _declared_search_profile_id(document.get("search_profile_id"))
+    if profile_id is None:
+        return SIAM_NB4_PILOT_SEARCH
+    return SIAM_NB4_SEARCH_PROFILES[profile_id]
 
 
 def _load_json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -859,7 +1054,7 @@ def _validate_resume_payload(
     policy = dict(run_lock.get("policy") or {})
     if physics.get("seed_sha256") != seed_sha256:
         raise ValueError("SIAM continuation resume does not bind this portable seed")
-    if policy.get("structural_policy") != arm:
+    if policy.get("structural_policy") != _arm_dynamics_policy(arm):
         raise ValueError("SIAM continuation resume arm differs from requested arm")
     revision = str(run_lock.get("code_revision") or "")
     if not _REVISION.fullmatch(revision):
@@ -898,6 +1093,7 @@ def _validate_source_completion_receipt(
     activation_cut: float,
     seed_sha256: str,
     resume_metadata: Mapping[str, Any],
+    search_profile_id: str | None = None,
 ) -> dict[str, Any]:
     if path.name != "action_receipt.json":
         raise ValueError(
@@ -915,13 +1111,28 @@ def _validate_source_completion_receipt(
     )
     if verified_receipt["trajectory_bytes"] != trajectory_path.stat().st_size:
         raise ValueError("SIAM screen action receipt trajectory byte-count mismatch")
+    # A continuation inherits the screen's ansatz, so the two segments must
+    # have searched under the same declared budget.  A frontier screen cannot
+    # be continued by a historical-budget continuation, or the reverse.
+    expected_profile_id = (
+        SIAM_NB4_PILOT_SEARCH.profile_id
+        if search_profile_id is None
+        else _registered_search_profile(search_profile_id).profile_id
+    )
+    if verified_receipt["search_profile_id"] != expected_profile_id:
+        raise ValueError(
+            "SIAM continuation and its screen ran different search profiles: "
+            f"{verified_receipt['search_profile_id']!r} != "
+            f"{expected_profile_id!r}"
+        )
     if receipt.get("schema") not in {
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3,
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4,
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5,
     }:
         raise ValueError(
-            "SIAM continuation requires a v3/v4 screen action receipt with the "
-            "complete ordered-grid validation contract"
+            "SIAM continuation requires a v3/v4/v5 screen action receipt with "
+            "the complete ordered-grid validation contract"
         )
     if receipt.get("status") != "COMPLETED":
         raise ValueError(
@@ -951,6 +1162,7 @@ def _validate_source_completion_receipt(
         activation_cut=activation_cut,
         output_json=receipt_output_path,
         code_revision=str(resume_metadata["source_revision"]),
+        search_profile_id=search_profile_id,
     )
     expected_run_id = expected_command.run_id
     if receipt.get("run_id") != expected_run_id:
@@ -1108,7 +1320,7 @@ def validate_siam_nb4_completion_receipt(
     expected_package_manifest_sha256: str | None = None,
     expected_source_tree_files_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Validate a positive v3/v4 worker receipt without reopening its trajectory.
+    """Validate a positive v3/v4/v5 worker receipt without reopening it.
 
     The receipt is self-describing: its exact registered command is rebuilt
     from the recorded seed, resume, arm, cut, segment, output, and source
@@ -1121,21 +1333,28 @@ def validate_siam_nb4_completion_receipt(
     if receipt_schema not in {
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3,
         SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4,
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5,
     }:
         raise ValueError(
-            "SIAM completion requires a v3 screen action receipt or v4 "
-            "screen action receipt (or the corresponding continuation receipt)"
+            "SIAM completion requires a v3, v4, or v5 screen action receipt "
+            "(or the corresponding continuation receipt)"
         )
-    action_schema = (
-        SIAM_NB4_CHTC_ACTION_SCHEMA_V4
-        if receipt_schema == SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4
-        else SIAM_NB4_CHTC_ACTION_SCHEMA_V3
-    )
-    manifest_schema = (
-        SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4
-        if receipt_schema == SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4
-        else SIAM_NB4_CHTC_MANIFEST_SCHEMA_V3
-    )
+    route_lineage = receipt_schema == SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5
+    _SCHEMA_TRIPLE = {
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3: (
+            SIAM_NB4_CHTC_ACTION_SCHEMA_V3,
+            SIAM_NB4_CHTC_MANIFEST_SCHEMA_V3,
+        ),
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4: (
+            SIAM_NB4_CHTC_ACTION_SCHEMA_V4,
+            SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4,
+        ),
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5: (
+            SIAM_NB4_CHTC_ACTION_SCHEMA_V5,
+            SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5,
+        ),
+    }
+    action_schema, manifest_schema = _SCHEMA_TRIPLE[receipt_schema]
     if document.get("status") != "COMPLETED":
         raise ValueError(
             "SIAM completion receipt requires status COMPLETED; "
@@ -1267,7 +1486,10 @@ def validate_siam_nb4_completion_receipt(
         raise ValueError(
             "SIAM completion source-tree contract does not cover both roots"
         )
-    if receipt_schema == SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4 and (
+    if receipt_schema in {
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4,
+        SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5,
+    } and (
         "source_epoch" not in action_document
         or "source_epoch" not in manifest_document
     ):
@@ -1300,6 +1522,58 @@ def validate_siam_nb4_completion_receipt(
             raise ValueError(
                 "SIAM completion source-epoch identity is inconsistent"
             )
+    if route_lineage:
+        # The v5 lineage is self-describing: the arm, its declared route and
+        # the route contract digest must agree across all three documents and
+        # must still be what the registered arm actually runs.
+        route_bundle_id = str(document.get("route_bundle_id") or "")
+        expected_bundle_id = _arm_route_bundle_id(arm)
+        if route_bundle_id != expected_bundle_id:
+            raise ValueError(
+                "SIAM completion receipt route bundle is not the one its arm "
+                "runs"
+            )
+        expected_route_digest = _route_contract_sha256(expected_bundle_id)
+        if document.get("route_contract_sha256") != expected_route_digest:
+            raise ValueError(
+                "SIAM completion receipt route contract digest is stale"
+            )
+        for field in ("route_id", "route_bundle_id", "route_contract_sha256"):
+            if (
+                action_document.get(field) != document.get(field)
+                or manifest_document.get(field) != document.get(field)
+            ):
+                raise ValueError(
+                    "SIAM completion route identity is inconsistent across its "
+                    "digest-bound documents"
+                )
+        try:
+            _canonical_route_id(str(document.get("route_id") or ""))
+        except ValueError as exc:
+            raise ValueError(
+                "SIAM completion receipt names an unregistered ladder route"
+            ) from exc
+    elif any(
+        field in document
+        for field in ("route_id", "route_bundle_id", "route_contract_sha256")
+    ):
+        raise ValueError(
+            "SIAM v3/v4 completion receipt must not declare a ladder route"
+        )
+    # The declared search budget must agree across the receipt and both
+    # digest-bound documents, and must be one this build registers.  An absent
+    # key everywhere is the historical pilot budget.
+    search_profile = _document_search_profile(action_document)
+    declared_profile_id = action_document.get("search_profile_id")
+    if (
+        manifest_document.get("search_profile_id") != declared_profile_id
+        or document.get("search_profile_id") != declared_profile_id
+    ):
+        raise ValueError(
+            "SIAM completion search-profile identity is inconsistent across "
+            "its digest-bound documents"
+        )
+    _declared_search_profile_id(declared_profile_id)
     expected_action_fields = {
         "schema": action_schema,
         "package_id": package_id,
@@ -1501,6 +1775,7 @@ def validate_siam_nb4_completion_receipt(
             activation_cut=cut,
             output_json=output_path,
             code_revision=revision,
+            search_profile_id=declared_profile_id,
         )
     else:
         if resume_path is None:
@@ -1512,6 +1787,7 @@ def validate_siam_nb4_completion_receipt(
             activation_cut=cut,
             output_json=output_path,
             code_revision=revision,
+            search_profile_id=declared_profile_id,
         )
     if tuple(runner_argv) != tuple(expected_command.argv()):
         raise ValueError(
@@ -1576,6 +1852,7 @@ def validate_siam_nb4_completion_receipt(
         ),
         "activation_cut_identity_migrated": ladder_resolution.migrated,
         "segment": segment.segment_id,
+        "search_profile_id": search_profile.profile_id,
         "runner_argv_sha256": runner_argv_sha256,
         "action_json_sha256": action_json_sha256,
         "package_manifest_sha256": package_manifest_sha256,
@@ -1622,6 +1899,8 @@ def prepare_siam_nb4_chtc_action(
     activation_cut: float,
     arm: str,
     segment: str,
+    route_id: str = ROUTE_HISTORICAL,
+    search_profile: SearchProfile = SIAM_NB4_PILOT_SEARCH,
     resume_from_run_json: str | Path | None = None,
     resume_action_receipt_json: str | Path | None = None,
     request_cpus: int = 2,
@@ -1636,6 +1915,20 @@ def prepare_siam_nb4_chtc_action(
     The package is written through a sibling temporary directory and installed
     only when every digest and command invariant has passed.  Existing package
     or output paths are never overwritten.
+
+    ``route_id`` names the ladder's exchange route.  The historical route emits
+    the frozen v4 documents byte for byte; a registered non-historical route
+    emits v5 documents that additionally carry the route bundle id and its
+    contract digest, and requires the caller's action id to be exactly the one
+    ``siam_nb4_ladder.siam_nb4_action_id`` builds for that rung.
+
+    ``search_profile`` names the registered SIAM Nb=4 work budget.  The default
+    is the pilot budget every prior package ran under, and it is written
+    nowhere, so those documents stay byte-identical.  A non-default budget --
+    currently ``siam_nb4_pilot_exchange_v1``, which makes the exchange face
+    reachable -- emits its ``--exchange-insertion-frontier`` flag and records
+    ``search_profile_id`` in the action, manifest, and receipt, so the two
+    lineages never validate against each other.
     """
 
     root = Path(repo_root).resolve()
@@ -1660,6 +1953,36 @@ def prepare_siam_nb4_chtc_action(
     canonical_arm = _canonical_arm(arm)
     registered_segment = _registered_segment(segment)
     cut, cut_index = _registered_cut(activation_cut)
+    canonical_route = _canonical_route_id(route_id)
+    if search_profile is not SIAM_NB4_SEARCH_PROFILES.get(
+        getattr(search_profile, "profile_id", None)
+    ):
+        raise ValueError(
+            "SIAM Nb=4 packages require a registered search profile: "
+            f"{sorted(SIAM_NB4_SEARCH_PROFILES)}"
+        )
+    declared_search_profile_id = (
+        None
+        if search_profile.profile_id == SIAM_NB4_PILOT_SEARCH.profile_id
+        else search_profile.profile_id
+    )
+    route_bundle_id = _assert_arm_on_route(canonical_arm, route_id=canonical_route)
+    route_contract_sha = _route_contract_sha256(route_bundle_id)
+    historical_route = canonical_route == ROUTE_HISTORICAL
+    if not historical_route:
+        from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+        expected_action_id = siam_nb4_action_id(
+            arm=_LADDER_LANES[canonical_arm],
+            segment=registered_segment.segment_id,
+            activation_cut=cut,
+            route_id=canonical_route,
+        )
+        if action_name != expected_action_id:
+            raise ValueError(
+                "SIAM Nb=4 route package action id must be the ladder identity "
+                f"{expected_action_id!r}; got {action_name!r}"
+            )
 
     source_seed = Path(seed_path).resolve()
     if not source_seed.is_file() or source_seed.stat().st_size <= 0:
@@ -1732,6 +2055,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             seed_sha256=seed_sha,
             resume_metadata=resume_metadata,
+            search_profile_id=declared_search_profile_id,
         )
         completion_receipt_content = completion_receipt_source.read_bytes()
     elif resume_from_run_json not in {None, ""} or resume_action_receipt_json not in {
@@ -1854,6 +2178,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             output_json=output_rel,
             code_revision=revision,
+            search_profile_id=declared_search_profile_id,
         )
     else:
         assert resume_rel is not None
@@ -1864,6 +2189,7 @@ def prepare_siam_nb4_chtc_action(
             activation_cut=cut,
             output_json=output_rel,
             code_revision=revision,
+            search_profile_id=declared_search_profile_id,
         )
     argv = tuple(command.argv())
     _validate_runner_argv(
@@ -1883,8 +2209,18 @@ def prepare_siam_nb4_chtc_action(
     ladder_values = list(ladder_payload(SIAM_NB4_ACTIVATION_CUT_LADDER))
     ladder_sha = SIAM_NB4_CANONICAL_LADDER_SHA256
 
+    action_schema = (
+        SIAM_NB4_CHTC_ACTION_SCHEMA_V4
+        if historical_route
+        else SIAM_NB4_CHTC_ACTION_SCHEMA_V5
+    )
+    manifest_schema = (
+        SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4
+        if historical_route
+        else SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5
+    )
     action_payload: dict[str, Any] = {
-        "schema": SIAM_NB4_CHTC_ACTION_SCHEMA_V4,
+        "schema": action_schema,
         "package_id": out.name,
         "action_id": action_name,
         "source_revision": revision,
@@ -1897,7 +2233,7 @@ def prepare_siam_nb4_chtc_action(
         },
         "intentional_source_rebaseline": rebaseline_payload,
         "arm": canonical_arm,
-        "method_label": "full_apm" if canonical_arm == "exchange" else "avqds",
+        "method_label": _arm_method_label(canonical_arm),
         "segment": registered_segment.segment_id,
         "activation_cut": cut,
         "activation_cut_ladder_index": cut_index,
@@ -1922,6 +2258,14 @@ def prepare_siam_nb4_chtc_action(
         "require_complete_candidate_pool": True,
         "output_uniqueness_scope": "package_id/action_id",
     }
+    if declared_search_profile_id is not None:
+        # Written only for a non-default budget, so the v4/v5 documents that
+        # predate the exchange frontier keep their exact frozen bytes.
+        action_payload["search_profile_id"] = declared_search_profile_id
+    if not historical_route:
+        action_payload["route_id"] = canonical_route
+        action_payload["route_bundle_id"] = route_bundle_id
+        action_payload["route_contract_sha256"] = route_contract_sha
     if (
         resume_content is not None
         and resume_metadata is not None
@@ -2024,10 +2368,19 @@ def prepare_siam_nb4_chtc_action(
         f"{quoted_worker} \"$@\"' -- \"$ACTION_ID\"\n"
     ).encode("utf-8")
 
-    batch_name = (
-        f"siam-nb4-{registered_segment.segment_id}-{canonical_arm}-"
-        f"rung{cut_index}"
-    ).replace("_", "-")
+    # Keep the fully hyphenated pre-route form for every historical batch name,
+    # byte for byte; the compiled-Q arm carries its arm id verbatim.  Both forms
+    # are exactly what ``siam_submission_intent_bridge`` accepts.
+    if canonical_arm in _VERBATIM_BATCH_ARMS:
+        batch_name = (
+            f"siam-nb4-{registered_segment.segment_id.replace('_', '-')}-"
+            f"{canonical_arm}-rung{cut_index}"
+        )
+    else:
+        batch_name = (
+            f"siam-nb4-{registered_segment.segment_id}-{canonical_arm}-"
+            f"rung{cut_index}"
+        ).replace("_", "-")
     if any(
         isinstance(value, bool) or not isinstance(value, int) or value <= 0
         for value in (
@@ -2148,7 +2501,7 @@ def prepare_siam_nb4_chtc_action(
             ]
 
         manifest_payload = {
-            "schema": SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4,
+            "schema": manifest_schema,
             "status": "PREPARED_NOT_SUBMITTED",
             "prepared_at": prepared_at
             or datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -2202,6 +2555,12 @@ def prepare_siam_nb4_chtc_action(
             "wrapper_sha256": _sha256(temp_wrapper),
             "submit_descriptor_sha256": _sha256(temp_submit),
         }
+        if declared_search_profile_id is not None:
+            manifest_payload["search_profile_id"] = declared_search_profile_id
+        if not historical_route:
+            manifest_payload["route_id"] = canonical_route
+            manifest_payload["route_bundle_id"] = route_bundle_id
+            manifest_payload["route_contract_sha256"] = route_contract_sha
         _write_bytes(temp_manifest, _pretty_json_bytes(manifest_payload))
         os.rename(temporary, out)
     except BaseException:
@@ -2454,6 +2813,7 @@ def _assert_completed_configuration(
 ) -> None:
     """Bind the emitted run lock and structural summary to the staged action."""
 
+    search_profile = _document_search_profile(action)
     expected_execution = dict(action.get("expected_execution_contract") or {})
     expected_support = expected_execution.get("support_patch_config")
     expected_solve_repair = expected_execution.get("solve_repair_config")
@@ -2588,19 +2948,43 @@ def _assert_completed_configuration(
         raise ValueError("completed SIAM trajectory changed the logical pool contract")
 
     policy = dict(run_lock.get("policy") or {})
-    if policy.get("structural_policy") != action["arm"]:
+    dynamics_policy = _arm_dynamics_policy(str(action["arm"]))
+    if policy.get("structural_policy") != dynamics_policy:
         raise ValueError("completed SIAM trajectory resolved the wrong arm")
     guards = dict(policy.get("guards") or {})
+    # A V5 action declares which exchange route it was packaged for.  Bind it
+    # to the route the run actually resolved.  A V4 action declares nothing,
+    # so the historical lineage keeps its exact prior acceptance set.
+    declared_bundle_id = action.get("route_bundle_id")
+    if declared_bundle_id is not None and dynamics_policy == "exchange":
+        route_contract = guards.get("exchange_route_contract")
+        if not isinstance(route_contract, Mapping):
+            raise ValueError(
+                "completed SIAM exchange trajectory records no exchange route "
+                "contract"
+            )
+        if str(route_contract.get("bundle_id") or "") != str(declared_bundle_id):
+            raise ValueError(
+                "completed SIAM trajectory ran a different exchange route "
+                "than the packaged action"
+            )
+        declared_digest = action.get("route_contract_sha256")
+        if declared_digest is not None and guards.get(
+            "exchange_route_contract_sha256"
+        ) != str(declared_digest):
+            raise ValueError(
+                "completed SIAM trajectory changed the exchange route contract"
+            )
     expected_guards = {
-        "max_structural_pool_size": SIAM_NB4_PILOT_SEARCH.pool_size,
+        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
-            SIAM_NB4_PILOT_SEARCH.joint_patch_evaluations
+            search_profile.joint_patch_evaluations
         ),
         "max_certification_attempts_per_level": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_level
+            search_profile.certification_attempts_per_level
         ),
         "max_certification_attempts_per_deletion_branch": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_deletion_branch
+            search_profile.certification_attempts_per_deletion_branch
         ),
         "max_insertion_batch_size": 1,
         "residual_ratio_threshold": 0.02,
@@ -2615,26 +2999,28 @@ def _assert_completed_configuration(
     if support != dict(expected_support):
         raise ValueError("completed SIAM trajectory changed the frozen support policy")
     cut = float(action["activation_cut"])
-    expected_gate = "mclachlan_l2" if action["arm"] == "exchange" else "residual_ratio"
+    expected_gate = (
+        "mclachlan_l2" if dynamics_policy == "exchange" else "residual_ratio"
+    )
     expected_support = {
-        "dynamics_policy": action["arm"],
+        "dynamics_policy": dynamics_policy,
         "insertion_l2_cut": cut,
         "avqds_l2_cut": cut,
         "insertion_gate_mode": expected_gate,
         "append_occurrence_policy": "layer_reuse",
         "allow_incomplete_candidate_pool": False,
-        "max_structural_pool_size": SIAM_NB4_PILOT_SEARCH.pool_size,
+        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
-            SIAM_NB4_PILOT_SEARCH.joint_patch_evaluations
+            search_profile.joint_patch_evaluations
         ),
         "max_certification_attempts_per_level": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_level
+            search_profile.certification_attempts_per_level
         ),
         "max_certification_attempts_per_deletion_branch": (
-            SIAM_NB4_PILOT_SEARCH.certification_attempts_per_deletion_branch
+            search_profile.certification_attempts_per_deletion_branch
         ),
         "max_insertion_rounds_per_checkpoint": (
-            SIAM_NB4_PILOT_SEARCH.rounds_per_checkpoint
+            search_profile.rounds_per_checkpoint
         ),
         "max_insertion_batch_size": 1,
         "append_schur_max_condition_number": None,
@@ -3074,7 +3460,9 @@ def _validate_completed_run(
     policy = dict(run_lock.get("policy") or {})
     if physics.get("seed_sha256") != action["seed_sha256"]:
         raise ValueError("completed SIAM trajectory resolved the wrong seed")
-    if policy.get("structural_policy") != action["arm"]:
+    if policy.get("structural_policy") != _arm_dynamics_policy(
+        str(action["arm"])
+    ):
         raise ValueError("completed SIAM trajectory resolved the wrong arm")
     resume_checks, resume_proof = _assert_completed_terminal_resume(
         payload,
@@ -3105,9 +3493,19 @@ def run_prepared_siam_action(
         raise SystemExit("SIAM action JSON fails its worker-embedded SHA-256 lock")
     action = _load_json_object(action_path, label="SIAM action")
     manifest = _load_json_object(manifest_path, label="SIAM package manifest")
-    if action.get("schema") != SIAM_NB4_CHTC_ACTION_SCHEMA_V4:
+    action_schema = action.get("schema")
+    if action_schema not in {
+        SIAM_NB4_CHTC_ACTION_SCHEMA_V4,
+        SIAM_NB4_CHTC_ACTION_SCHEMA_V5,
+    }:
         raise SystemExit("SIAM action schema mismatch")
-    if manifest.get("schema") != SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4:
+    route_lineage = action_schema == SIAM_NB4_CHTC_ACTION_SCHEMA_V5
+    expected_manifest_schema = (
+        SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5
+        if route_lineage
+        else SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4
+    )
+    if manifest.get("schema") != expected_manifest_schema:
         raise SystemExit("SIAM package manifest schema mismatch")
     if action.get("action_id") != expected_action_id:
         raise SystemExit("SIAM action identity mismatch")
@@ -3169,6 +3567,16 @@ def run_prepared_siam_action(
 
     segment = _registered_segment(str(action["segment"]))
     arm = _canonical_arm(str(action["arm"]))
+    try:
+        declared_search_profile_id = _declared_search_profile_id(
+            action.get("search_profile_id")
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    if manifest.get("search_profile_id") != action.get("search_profile_id"):
+        raise SystemExit(
+            "SIAM manifest and action declare different search profiles"
+        )
     cut = float(action["activation_cut"])
     if not math.isfinite(cut) or cut <= 0.0:
         raise SystemExit("SIAM action activation cut is invalid")
@@ -3229,6 +3637,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             seed_sha256=str(action["seed_sha256"]),
             resume_metadata=verified_resume,
+            search_profile_id=declared_search_profile_id,
         )
         for field, value in verified_completion.items():
             if resume.get(field) != value:
@@ -3246,6 +3655,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             output_json=output_path,
             code_revision=expected_source_revision,
+            search_profile_id=declared_search_profile_id,
         )
     else:
         assert resume_path is not None
@@ -3256,6 +3666,7 @@ def run_prepared_siam_action(
             activation_cut=cut,
             output_json=output_path,
             code_revision=expected_source_revision,
+            search_profile_id=declared_search_profile_id,
         )
     argv = tuple(command.argv())
     _validate_runner_argv(
@@ -3290,7 +3701,11 @@ def run_prepared_siam_action(
         raise SystemExit("refusing to overwrite a prior SIAM action output")
     trajectory.parent.mkdir(parents=True, exist_ok=True)
     base_receipt: dict[str, Any] = {
-        "schema": SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4,
+        "schema": (
+            SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5
+            if route_lineage
+            else SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4
+        ),
         "package_id": action["package_id"],
         "action_id": expected_action_id,
         "run_id": command.run_id,
@@ -3319,6 +3734,26 @@ def run_prepared_siam_action(
         "action_contract": action,
         "package_manifest_contract": manifest,
     }
+    if declared_search_profile_id is not None:
+        # Only a non-default budget writes the key, so the historical receipts
+        # stay byte-identical while the frontier lineage is self-describing.
+        base_receipt["search_profile_id"] = declared_search_profile_id
+    if route_lineage:
+        # Route identity travels with the receipt so a downstream reader never
+        # has to reopen the package to learn which exchange route ran.
+        for field in ("route_id", "route_bundle_id", "route_contract_sha256"):
+            if field not in action or action.get(field) != manifest.get(field):
+                raise SystemExit(
+                    "SIAM route package action and manifest disagree on "
+                    f"{field}"
+                )
+            base_receipt[field] = action[field]
+        if _arm_route_bundle_id(arm) != action["route_bundle_id"]:
+            raise SystemExit("SIAM action arm is not on its declared route")
+        if _route_contract_sha256(
+            str(action["route_bundle_id"])
+        ) != action["route_contract_sha256"]:
+            raise SystemExit("SIAM action route contract digest is stale")
     _write_json(receipt, {**base_receipt, "status": "RUNNING"})
     try:
         subprocess.run([sys.executable, RUNNER_PATH, *argv], check=True)
@@ -3364,10 +3799,13 @@ __all__ = [
     "SIAM_NB4_ACTIVATION_CUT_LADDER",
     "SIAM_NB4_CHTC_ACTION_SCHEMA_V3",
     "SIAM_NB4_CHTC_ACTION_SCHEMA_V4",
+    "SIAM_NB4_CHTC_ACTION_SCHEMA_V5",
     "SIAM_NB4_CHTC_MANIFEST_SCHEMA_V3",
     "SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4",
+    "SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5",
     "SIAM_NB4_CHTC_RECEIPT_SCHEMA_V3",
     "SIAM_NB4_CHTC_RECEIPT_SCHEMA_V4",
+    "SIAM_NB4_CHTC_RECEIPT_SCHEMA_V5",
     "SIAM_NB4_RESUME_TERMINAL_PROOF_V1",
     "SIAM_SOURCE_EPOCH_CLOSURE_V1",
     "SIAM_SOURCE_EPOCH_CONTRACT_V1",

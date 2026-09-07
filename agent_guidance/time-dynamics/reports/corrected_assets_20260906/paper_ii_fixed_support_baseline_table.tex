@@ -1,0 +1,20 @@
+% Generated from agent_guidance/time-dynamics/reports/fixed_support_scores_20260907.json (cluster 9721470, campaign paper_ii_fixed_support_mclachlan_v1, source af56d97e).
+\newcommand{\PaperIIFixedSupportTable}{%
+\begin{table}[t]
+\caption{Fixed-support McLachlan baseline: the 28-coordinate seed support propagated to $t=20$ with no structural edits, under the same seed, pool, numerics, and raw-coordinate step controller as the AVQDS comparators of Table~\ref{tab:t20_q_compiled_frontier} (realized by the AVQDS arm with its activation cut set to $10^{9}$, at which no append can trigger).  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$ and $\overline{|\Delta n|}$ are the mean absolute errors against the exact reference over the 501 reporting times, in units of $10^{-4}$; $N_{\rm step}$ is the internal step count in units of $10^{3}$; $r_{\rm fin}$ is the McLachlan residual ratio at $t=20$.\label{tab:fixed_support_baseline}}
+\centering\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrr}
+\toprule
+$(A,\omega)$ & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_{\rm step}$ & $r_{\rm fin}$ \\
+\midrule
+$(0.3,\,1)$ & 1.33 & 18.4 & 103 & 25.5 & 0.04 \\
+$(0.6,\,3)$ & 264 & 174 & 2141 & 264 & 0.15 \\
+$(1.2,\,2)$ & 287 & 520 & 2342 & 344 & 0.03 \\
+$(1.2,\,1)$ & 130 & 198 & 603 & 109 & 0.04 \\
+$(2.4,\,3)$ & 21658 & 3399 & 9575 & 473 & 0.36 \\
+$(0.6,\,6)$ & 302 & 191 & 2762 & 321 & 0.20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+}

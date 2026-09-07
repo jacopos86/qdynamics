@@ -237,6 +237,27 @@ def _plain_assignment(text: str, name: str, *, label: str) -> str:
     return matches[0]
 
 
+# The compiled-Q route's canonical worker arm id.  Its batch name carries the
+# arm string verbatim so the route is legible in the pool; every historical
+# batch name keeps the fully hyphenated pre-route form, byte for byte.
+_COMPILED_Q_ARM = "exchange_q_compiled"
+
+
+def _accepted_batch_names(
+    *, segment: str, arm: str, ladder_index: int
+) -> frozenset[str]:
+    historical = f"siam-nb4-{segment}-{arm}-rung{ladder_index}".replace("_", "-")
+    if arm != _COMPILED_Q_ARM:
+        return frozenset({historical})
+    segment_token = str(segment).replace("_", "-")
+    return frozenset(
+        {
+            historical,
+            f"siam-nb4-{segment_token}-{arm}-rung{ladder_index}",
+        }
+    )
+
+
 def _parse_submit_descriptor(
     path: Path,
     *,
@@ -251,8 +272,8 @@ def _parse_submit_descriptor(
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         raise BridgeError("submit descriptor is not readable UTF-8") from exc
-    expected_batch = f"siam-nb4-{segment}-{arm}-rung{ladder_index}".replace(
-        "_", "-"
+    accepted_batches = _accepted_batch_names(
+        segment=segment, arm=arm, ladder_index=ladder_index
     )
     observed_epoch = _string_assignment(
         text, "+SIAMSourceEpochId", label="SIAM source epoch"
@@ -289,7 +310,7 @@ def _parse_submit_descriptor(
         raise BridgeError("submit descriptor must contain exactly queue 1")
     if observed_epoch != source_epoch_id or observed_action != action_id:
         raise BridgeError("submit descriptor scientific identity changed")
-    if observed_batch != expected_batch:
+    if observed_batch not in accepted_batches:
         raise BridgeError("submit descriptor job batch is not the canonical batch")
     if executable != f"{package_rel}/run_action_apptainer.sh":
         raise BridgeError("submit descriptor executable changed")

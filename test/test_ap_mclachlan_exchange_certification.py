@@ -122,6 +122,19 @@ def test_exchange_finalist_certifies_and_carries_patched_route_objects() -> None
     # Ray displacement comes only from the deleted angle (insertion is zero
     # angle), so it is small but nonzero for theta_1 != 0.
     assert 0.0 < result.ray_distance < 0.1
+    work = result.estimator_work
+    assert work["schema"] == "paper_ii_exchange_certification_estimator_work_v1"
+    assert work["base_runtime_parameter_count"] == 3
+    assert work["patched_runtime_parameter_count"] == 3
+    assert work["refit_requested"] is False
+    assert work["refit_objective_evaluation_count"] == 0
+    assert work["full_geometry_evaluation_attempt_count"] == 1
+    assert work["full_geometry_evaluation_count"] == 1
+    assert work["logical_full_geometry_entry_count"] == 11
+    assert work["ray_overlap_check_count"] == 1
+    assert work["velocity_check_count"] == 1
+    assert work["logical_total_estimator_entries"] == 11
+    assert work["complete"] is True
 
 
 def test_ray_gate_rejects_large_deletions_and_preserves_atomicity() -> None:
@@ -211,6 +224,13 @@ def test_refit_hook_is_applied_before_gating() -> None:
     )
     assert calls == [True]
     assert result.certified
+    work = result.estimator_work
+    assert work["refit_requested"] is True
+    assert work["refit_counter_available"] is False
+    assert work["refit_objective_evaluation_count"] == 0
+    assert work["full_geometry_evaluation_count"] == 1
+    assert work["logical_full_geometry_entry_count"] == 16
+    assert work["complete"] is False
 
 
 def test_materialization_failure_is_a_reported_rejection() -> None:
@@ -229,6 +249,86 @@ def test_materialization_failure_is_a_reported_rejection() -> None:
     )
     assert not result.certified
     assert result.reason.startswith("materialization_failed:")
+    work = result.estimator_work
+    assert work["patched_runtime_parameter_count"] is None
+    assert work["full_geometry_evaluation_attempt_count"] == 0
+    assert work["full_geometry_evaluation_count"] == 0
+    assert work["logical_total_estimator_entries"] == 0
+    assert work["complete"] is True
+
+
+def test_candidate_geometry_failure_records_attempt_without_completion(
+    monkeypatch,
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import (
+        exchange_certification as certification_module,
+    )
+
+    state, evaluation, step = _setup()
+
+    def fail_geometry(**_kwargs):
+        raise ValueError("synthetic geometry failure")
+
+    monkeypatch.setattr(
+        certification_module, "evaluate_mclachlan_geometry", fail_geometry
+    )
+    result = certification_module.certify_finalist(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        base_evaluation=evaluation,
+        base_step=step,
+        removed_runtime_indices=(),
+        insertions=((1, CAND, "cand::r0::xe"),),
+        inverse_policy=POLICY,
+        gates=CertificationGates(),
+    )
+
+    assert not result.certified
+    assert result.reason.startswith("patched_solve_failed:")
+    work = result.estimator_work
+    assert work["patched_runtime_parameter_count"] == 4
+    assert work["full_geometry_evaluation_attempt_count"] == 1
+    assert work["full_geometry_evaluation_count"] == 0
+    assert work["logical_full_geometry_entry_count"] == 0
+    assert work["complete"] is False
+
+
+def test_solve_failure_preserves_completed_geometry_work(monkeypatch) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import (
+        exchange_certification as certification_module,
+    )
+
+    state, evaluation, step = _setup()
+
+    def fail_solve(*_args, **_kwargs):
+        raise ValueError("synthetic solve failure")
+
+    monkeypatch.setattr(
+        certification_module, "solve_fixed_mclachlan_step", fail_solve
+    )
+    result = certification_module.certify_finalist(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        base_evaluation=evaluation,
+        base_step=step,
+        removed_runtime_indices=(),
+        insertions=((1, CAND, "cand::r0::xe"),),
+        inverse_policy=POLICY,
+        gates=CertificationGates(),
+    )
+
+    assert not result.certified
+    assert result.reason.startswith("patched_solve_failed:")
+    work = result.estimator_work
+    assert work["full_geometry_evaluation_attempt_count"] == 1
+    assert work["full_geometry_evaluation_count"] == 1
+    assert work["logical_full_geometry_entry_count"] == 16
+    assert work["logical_total_estimator_entries"] == 16
+    assert work["complete"] is True
 
 
 def test_local_ray_refit_recovers_deleted_angle_via_duplicate_generator() -> None:
@@ -357,3 +457,19 @@ def test_refit_certifies_deletion_that_fails_without_it() -> None:
     assert certified.certified
     assert certified.ray_distance <= 1.0e-4
     assert certified.theta[0] == pytest.approx(0.7, abs=1.0e-5)
+    work = certified.estimator_work
+    assert work["refit_requested"] is True
+    assert work["refit_counter_available"] is True
+    assert work["refit_objective_evaluation_attempt_count"] > 0
+    assert work["refit_objective_evaluation_count"] == work[
+        "refit_objective_evaluation_attempt_count"
+    ]
+    assert work["logical_refit_entry_count"] == (
+        3 * work["refit_objective_evaluation_count"]
+    )
+    assert work["full_geometry_evaluation_count"] == 1
+    assert work["logical_full_geometry_entry_count"] == 7
+    assert work["logical_total_estimator_entries"] == (
+        work["logical_refit_entry_count"] + 7
+    )
+    assert work["complete"] is True

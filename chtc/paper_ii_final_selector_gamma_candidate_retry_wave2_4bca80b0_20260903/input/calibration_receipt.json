@@ -1,0 +1,514 @@
+{
+  "checks": [
+    {
+      "check_id": "promoted_class_settings_lock",
+      "details": {
+        "expected_path": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "failures": [],
+        "lock_policy": "manual_orchestrator_promotion_after_class_optuna_review",
+        "lock_status": "locked",
+        "require_canonical_controller_classes": true,
+        "resolved_path": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "schema": "dynamics_class_settings_lock_manifest_v1",
+        "settings_entries": [
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:fermionic:dyn_controller_full:controller:e70eb8e96ea9",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "fermionic"
+          },
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:bosonic:dyn_controller_full:controller:5ecc858c43fc",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "bosonic"
+          },
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:hybrid:dyn_controller_full:controller:25cc56877136",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "hybrid"
+          }
+        ],
+        "settings_entry_count": 3,
+        "sha256": "563e36119a690428e0659364c4d190ab698e6b147c15441db07776ac8e2724a2",
+        "smoke_variant_present": true
+      },
+      "status": "ok",
+      "summary": "promoted lock enforced (3 locked class settings, sha256 563e36119a69)"
+    },
+    {
+      "check_id": "benchmark_point_sameness",
+      "details": {
+        "axes": [
+          "compile_target",
+          "diagnostic_exact_reference",
+          "drive",
+          "observable_set",
+          "phonon_cutoff",
+          "reference_diagnostic_policy",
+          "static_seed_hash",
+          "time_grid"
+        ]
+      },
+      "status": "not_checked",
+      "summary": "no artifact carried per-benchmark-point rows"
+    },
+    {
+      "check_id": "seed_provenance",
+      "details": {
+        "distinct_seed_sha256": {
+          "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91": [
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastfast__t20__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastfast__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__midres__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__slowstrong__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__strongfast__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__fastfast__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__fastweak__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__midres__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t5__cut2p7e-05/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastfast__t5__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastweak__t5__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/ledger_after_all_6_verified_successes.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut2p7e-05/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastfast__t20__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_staged_reconstruction_20260901/extracted/cluster_9713112_procs0-2_4-5/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastfast__t5__cut9e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/pdf/paper_ii_staged_accuracy_campaign/promotion_preview.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709744_proc6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709886_procs0-1_5-6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709886_procs0-1_5-6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_5e-5__weakslow__t20__cut1p37174211248e-10/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastweak__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__midres__t20__cut3e-06/run.json",
+            "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__slowstrong__t20__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__fastfast__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__midres__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__slowstrong__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__strongfast__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__fastfast__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__fastweak__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__midres__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t5__cut3e-07/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__fastweak__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__midres__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__slowstrong__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier263_a9b32ac4_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier277_76c08fae_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1p69350878084e-12/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier313_e2c07879_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1p37174211248e-10/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier319_4774e3f3_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut4p57247370827e-11/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier319_4774e3f3_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_5e-5__slowstrong__t20__cut5p08052634253e-12/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t20__cut3e-07/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t5__cut3e-07/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__slowstrong__t5__cut3e-07/run.json",
+            "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__weakslow__t5__cut1e-07/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t5__cut1e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t5__cut1e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t5__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t5__cut1e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06/run.json",
+            "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07/run.json"
+          ]
+        },
+        "forbidden_markers": [
+          "staged",
+          "fallback",
+          "pending",
+          "recovery"
+        ],
+        "inspected_seed_field_count": 2,
+        "scope_note": "markers are matched against the seed artifact's own basename and explicit seed-status fields only. Parent directories are excluded on purpose: the canonical campaign directory is literally named paper_ii_staged_accuracy_euler_v1, so a path-token rule would misreport it. Confirming the seed source artifact by hash against its manifest stays an operator step (see SKILL.md).",
+        "violations": []
+      },
+      "status": "ok",
+      "summary": "2 seed reference(s) carry no staged/fallback/pending/recovery marker"
+    },
+    {
+      "check_id": "trajectory_freeze_invalid_rows",
+      "details": {
+        "invalid_rows": [],
+        "motion_tolerance": 1e-12,
+        "sidecar_freeze_failures": [],
+        "signature": "theta_dot_l2==0 and rho_num==0 and rho_miss==1",
+        "trajectory_payload_count": 60,
+        "trajectory_row_count": 15060
+      },
+      "status": "ok",
+      "summary": "15060 trajectory row(s) across 60 payload(s) show no freeze signature"
+    },
+    {
+      "check_id": "qpu_faithful_decision_separation",
+      "details": {
+        "decision_flag_aliases": {
+          "exact_reference_controller_inputs": [
+            "exact_reference_controller_inputs",
+            "uses_exact_reference_for_decision"
+          ],
+          "uses_future_exact_forecast_for_decision": [
+            "uses_future_exact_forecast_for_decision"
+          ],
+          "uses_reference_for_decision": [
+            "uses_reference_for_decision"
+          ]
+        },
+        "decision_flag_keys": [
+          "uses_reference_for_decision",
+          "uses_future_exact_forecast_for_decision",
+          "exact_reference_controller_inputs"
+        ],
+        "flag_containers": [
+          "decision_data_flow",
+          "runtime_contract",
+          "summary",
+          "route_config",
+          "provenance"
+        ],
+        "leaks": [],
+        "payloads_without_declared_flags": [],
+        "run_payload_count": 60
+      },
+      "status": "ok",
+      "summary": "60 run payload(s) declare every exact-decision flag as false"
+    },
+    {
+      "check_id": "matched_accuracy_policy_binding",
+      "details": {
+        "drifted": {},
+        "live_constants": {
+          "absolute_doublon_error_ceiling": 0.005,
+          "absolute_energy_error_ceiling": 0.01,
+          "absolute_site_occupation_error_ceiling": 0.005,
+          "infidelity_ceiling": 0.0001,
+          "matched_accuracy_factor": 2.0,
+          "response_relative_guard": 0.15,
+          "response_relative_target": 0.05
+        },
+        "live_source": "pipelines/time_dynamics/campaigns/paper_ii_staged_accuracy_v1.py",
+        "protocol_source": "agent_guidance/time-dynamics/paper-ii-comparison-protocol.md"
+      },
+      "status": "ok",
+      "summary": "live policy constants match the protocol (5% target, 15% guard, factor 2, infidelity ceiling 1e-4)"
+    },
+    {
+      "check_id": "response_normalized_matched_accuracy",
+      "details": {
+        "policy_provenance": {
+          "constants": {
+            "absolute_doublon_error_ceiling": 0.005,
+            "absolute_energy_error_ceiling": 0.01,
+            "absolute_site_occupation_error_ceiling": 0.005,
+            "infidelity_ceiling": 0.0001,
+            "matched_accuracy_factor": 2.0,
+            "response_relative_guard": 0.15,
+            "response_relative_target": 0.05
+          },
+          "degraded": false,
+          "source": "campaign_verified_exact_reference_store"
+        }
+      },
+      "status": "not_checked",
+      "summary": "no artifact carried benchmark rows with accuracy metrics"
+    }
+  ],
+  "counts": {
+    "error": 0,
+    "not_checked": 2,
+    "ok": 5,
+    "warn": 0
+  },
+  "fail_closed": false,
+  "generated_utc": "2026-09-03T07:18:08.486392+00:00",
+  "inputs": {
+    "artifact_count": 62,
+    "artifacts": [
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/pdf/paper_ii_staged_accuracy_campaign/promotion_preview.json",
+        "sha256": "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/ledger_after_all_6_verified_successes.json",
+        "sha256": "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709744_proc6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+        "sha256": "628a44ebf9ca0e1430e90bc896336403dd20462a1f13fa1a73690c3ca0bd1c42"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709886_procs0-1_5-6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+        "sha256": "0ab62df56d2c482ef37a0df86b574c2c0c0ab6047643bd046b05b600ebbd64f0"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_full_factorial_preflight_20260901/extracted_for_report/cluster_9709886_procs0-1_5-6/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_5e-5__weakslow__t20__cut1p37174211248e-10/run.json",
+        "sha256": "183c956f035178bb49a9598bec8b18c3f5e9ea0b8c29ed84f6c69c882104ffc9"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastweak__t20__cut3e-06/run.json",
+        "sha256": "37fe27d6a7e78bb929bb5406067a3e6d5890dbb6e88e2f7b47cfab9a4ef47ab5"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__midres__t20__cut3e-06/run.json",
+        "sha256": "7dd0d40ee65c3d32b0f9bc28c68a9ebac4e9ae298bd6b3c6998ed8c6473d593c"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-reconcile-20260901/output/paper_ii_staged/attempts/cluster_9717614/increments/procs0-3_20260901/evidence/extracted/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__slowstrong__t20__cut3e-06/run.json",
+        "sha256": "0356e137a09052b67bbdd1c5bafab1ae305b758fef7db186737118cbcef99dbd"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__fastfast__t5__cut3e-06/run.json",
+        "sha256": "c157033aaad2d342aab53ea1cd7d1dcd55b5208b89c301e5acca28ff373c6e45"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__midres__t5__cut3e-06/run.json",
+        "sha256": "51cc887167767a613aac469ba933e5b7c81a30f2cf4b62f8cffd61dd5ae595ec"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__slowstrong__t5__cut3e-06/run.json",
+        "sha256": "3ddf0c3545edf533dc8bced4702f6c3d2dffe4a6d10c3b43d164e7af1b7c3d9f"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__strongfast__t5__cut3e-06/run.json",
+        "sha256": "654818f00f2c2fae1d69ad8f7ecd1cc4ae2cda57face0a98adfb17edb4eae3ef"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t5__cut3e-06/run.json",
+        "sha256": "bbc9f8ba9e6cd00926dc1dee2d35f46b045e13b96a046613030595e3fb2e985a"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__weakslow__t5__cut3e-06/run.json",
+        "sha256": "38b2a2a333c80bdb240b21a27a539de9948593d6018b9e378c7b83966543f181"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__fastfast__t5__cut3e-06/run.json",
+        "sha256": "0460633eeebbd39b896ac222bf8dfbd4cfe4f695c97c3452eea4c7a104f8e995"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__fastweak__t5__cut3e-06/run.json",
+        "sha256": "782b635112f3247969e9407c221f29a070eb43b05ad088ec24c0d90a8487fb18"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__midres__t5__cut3e-06/run.json",
+        "sha256": "b2e78d7bcf8a79054520c84e19b34011716bbbf45bf9bfb921d346697415a13b"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t5__cut3e-07/run.json",
+        "sha256": "1e1a17382f44704232d9e44ad38b34b48ea3c2208177542d0dbc2f2261f51b79"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__fastweak__t5__cut3e-06/run.json",
+        "sha256": "2d30dfe2f5a6a9dbb6209052506f2f656e857412deb1bfab6d8ef41987056185"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__midres__t5__cut3e-06/run.json",
+        "sha256": "73be21adb71bc8dfa1f8717f42a28ca7f83b1cfafd95648e02c1be4add4e6b9c"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_20260825/raw_outputs/paper_ii_staged_accuracy_euler_v1_pre_repair_clusters9697391_9697725_20260825/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__slowstrong__t5__cut3e-06/run.json",
+        "sha256": "f348cb75b35ef6ddb80fd46fc568ac3f1a5bca8678e3ed384ea1b67f34e98334"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier263_a9b32ac4_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t20__cut1p52415790276e-11/run.json",
+        "sha256": "b0c11ad2e97c0dc920924dd8d1e0fc784f0592f060a9ea7d2383df9d7a7c0cd6"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier277_76c08fae_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1p69350878084e-12/run.json",
+        "sha256": "4d88afbe07da5e99ade23ca09f19fd1210946e55d5eccdb76acf49997c829190"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier313_e2c07879_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t20__cut1p37174211248e-10/run.json",
+        "sha256": "52a045bfa54c264b21219634f15375b6fd1108a5722e1819d3bd3e43ca48ad71"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier319_4774e3f3_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__weakslow__t20__cut4p57247370827e-11/run.json",
+        "sha256": "4d44430ae3540e6400383485926c54a638b1d68a7710156c2eebc962ea75840d"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier319_4774e3f3_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__state_motion_5e-5__slowstrong__t20__cut5p08052634253e-12/run.json",
+        "sha256": "55b3ed2626ee7c9e4041338c1156715191853bdf76e1271a10d47e914c6bf139"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_apm_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t20__cut3e-07/run.json",
+        "sha256": "bf31190cbc55dee06fdacc48037f7749b4ac0743cc263305b3affc3d95981875"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__delta_theta_5e-5__fastweak__t5__cut3e-07/run.json",
+        "sha256": "3c56ff97de63cf80b48c8c10b78b2d794f4a35c02edeb6c5894efa0d3e959f2e"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__slowstrong__t5__cut3e-07/run.json",
+        "sha256": "858b892e36959328b6fef4f7caa603ecedef8dff9c0f2f75e6c5bf59e385f547"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier73_20260826/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_apm_t5__hh_snake_nph1__exchange__state_motion_5e-5__weakslow__t5__cut1e-07/run.json",
+        "sha256": "7cecbe05e9d5539f3ae414b41e73eeb6ee6d64a09f3183676ec45581a5021693"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t5__cut1e-06/run.json",
+        "sha256": "f0440fa6cd403b70758b68a8edcbf5d53980c0b11e7ded9795231576e2bb407a"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t5__cut3e-06/run.json",
+        "sha256": "012e7ef8de0c93093cb6c50f8e8bcbea1e6151e0635e9a06f5b9612e55a5fa8e"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t5__cut3e-06/run.json",
+        "sha256": "f6f62425e4001e5c8abc62524d5c0adf5e459a24c83636efb5b9672716a34220"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t5__cut3e-06/run.json",
+        "sha256": "4d9c20b973457cc8ddf24b5498d5b280f27028aea5c35f67e62142ff567167fb"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__strongfast__t5__cut1e-06/run.json",
+        "sha256": "8945cbc3c39a7ad83821a61ffaf6c3366d39b4b3835c8e85034a15be26de1bef"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__delta_theta_5e-5__weakslow__t5__cut3e-06/run.json",
+        "sha256": "b95b938a31bc24eef91a83fd19a1268feed8cb07cc86cc78d2c509c953dad9df"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__weakslow__t5__cut3e-06/run.json",
+        "sha256": "9b48099a930839dfa13b385a2604429b80df3b0e9b3a9d2d5ec0cc32e91567a5"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t5__cut1e-06/run.json",
+        "sha256": "966d227f0712150beac7c25b8ea260abd1a670a54f027859c9ea5fdca4371a0d"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastfast__t20__cut1e-06/run.json",
+        "sha256": "62bd54858cca65afe5ff5a423762e0b9a588682bf49310065671edec8fcddcdf"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__fastweak__t20__cut3e-06/run.json",
+        "sha256": "7217714e8d64143d0f8f460324c1b9aac2d58156d97b337616c6d65d4f3a1542"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__midres__t20__cut3e-06/run.json",
+        "sha256": "dead6d393fe31d47770ea7980ebf73d6669593e8294c9a435a072d12a3c2825d"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__delta_theta_5e-5__slowstrong__t20__cut3e-06/run.json",
+        "sha256": "641e7d2d175d65cb6c84142252f62e9ed5a15e56f61db2b4b2fe283817c219e9"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/t20_9698264/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__fastfast__t20__cut3e-07/run.json",
+        "sha256": "0a0f05e71df8cee89205e98e6ff648d3b228a9df7676cee40042d4bb7c7dd68d"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastfast__t20__cut9e-06/run.json",
+        "sha256": "bd3b7141ed2bfa3ebd8998a278deb73d1da9bb7e96f74321216430f5b6e5f688"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__fastfast__t20__cut3e-06/run.json",
+        "sha256": "3ca43ee01ff80fa51c5160e678aa03cb91aca42a8c5814c1c4983286e73fb3da"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__midres__t20__cut3e-06/run.json",
+        "sha256": "1e8c5579144924c80e561a5d7ed45d323479cd53a76d40e69cf0a61a7f617d4f"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__slowstrong__t20__cut3e-06/run.json",
+        "sha256": "6a7ea99867f5320ce197256deb823108021bddb5864e4693ad078ac7a327dd78"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__delta_theta_5e-5__strongfast__t20__cut3e-06/run.json",
+        "sha256": "69f52ee8ec88a0ac61fceff1626726e7f111ffa6d92f571eb5cd648bd8517792"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__fastfast__t20__cut3e-06/run.json",
+        "sha256": "587996b257a8da56ec51931e46d53723a62dff5daf463122fe6c0d1dd4474b28"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__fastweak__t20__cut3e-06/run.json",
+        "sha256": "2ad07f9246501ab713c0a4c0fbe4d26cb87b364bdd03fa09ee787219cee77e28"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_5e-5__midres__t20__cut3e-06/run.json",
+        "sha256": "3bb2b0effd8684c1a21ad3bbabdc414783bee98fd137ddbd721b70c3da3753be"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t5__cut2p7e-05/run.json",
+        "sha256": "eb3bac24121c8fa2f6d2aa90ea3d1d83de479187146a5d7963c527416d8a7e79"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06/run.json",
+        "sha256": "32e085f0f37474f849763b197267ce8822ca42f42fc0db896ea886c8889122e3"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastfast__t5__cut9e-06/run.json",
+        "sha256": "cf926fc7e8c924ab13219e78673d125bbc8c7bcbec430592277cac0b1907cfaa"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastweak__t5__cut9e-06/run.json",
+        "sha256": "1b6ba34eca92f4cf7151f408c19f1c84aa497ec4c8c524eeaeb9491c8fafc5c2"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9717994/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_screen_t5__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__strongfast__t5__cut9e-06/run.json",
+        "sha256": "16a61ae772b1621a60b0b086a0a75b083d72783ab3e63258200bc44b45fad372"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut2p7e-05/run.json",
+        "sha256": "302d2f4f5eefef8e9f0384e4453740749c50009baa35a09710737ce82a8291d0"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06/run.json",
+        "sha256": "d132afe95778f67b3edfd9cffea8126d5b872314b11aef5530af2e786a2abe1a"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastfast__t20__cut9e-06/run.json",
+        "sha256": "9120d72930833b36b24edf986051ed35c2dfe6ace550f88f6a1f11e3474df0f1"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut9e-06/run.json",
+        "sha256": "b30685e9390bf8ed561550b17e688c16260d8f9548100c7edf9925d2bd7c10c0"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/raw_outputs/paper_ii_full_factorial_coverage_v1/coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06/run.json",
+        "sha256": "f4135052aa101bef6ed18d90d9fcc392a07f593e47c421473425300600abb825"
+      },
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-coverage-automation-20260901/output/paper_ii_staged_reconstruction_20260901/extracted/cluster_9713112_procs0-2_4-5/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastfast__t5__cut9e-06/run.json",
+        "sha256": "0e553dcb5a3c6513a09df116c4b438ed2aa6797d34b862794b05c0e43d617a8b"
+      }
+    ],
+    "run_roots": [],
+    "unreadable": []
+  },
+  "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+  ],
+  "repository_root": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-dual-selector-overnight-20260903",
+  "routed_to_documents": [
+    {
+      "document": "agent_guidance/time-dynamics/paper-ii-comparison-protocol.md",
+      "topic": "matched-accuracy admission and pair reasoning"
+    },
+    {
+      "document": "agent_guidance/skills/paper-ii-run/SKILL.md",
+      "topic": "promoting a newer class-settings lock"
+    },
+    {
+      "document": "agent_guidance/skills/paper-ii-results/SKILL.md",
+      "topic": "table/source-map transfer once calibration is clean"
+    }
+  ],
+  "schema": "paper_ii_benchmark_calibration_receipt_v1",
+  "status": "INCOMPLETE",
+  "tool": "pipelines/time_dynamics/diagnostics/paper_ii_benchmark_calibration.py"
+}

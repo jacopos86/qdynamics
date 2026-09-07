@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import math
 from typing import TYPE_CHECKING, Any, Literal, Sequence
 
 import numpy as np
@@ -216,6 +217,20 @@ class CompiledAnsatzExecutor:
                         f"Inconsistent ansatz qubit counts: saw {plan.nq} after {self.nq}."
                     )
             self._plans.append(plan)
+
+        runtime_steps: list[CompiledRotationStep] = []
+        if self.parameterization_mode == "per_pauli_term":
+            for plan in self._plans:
+                if int(plan.runtime_start) != len(runtime_steps):
+                    raise ValueError(
+                        "compiled per-Pauli runtime rotation sequence is not contiguous."
+                    )
+                runtime_steps.extend(plan.steps)
+            if len(runtime_steps) != int(self.runtime_parameter_count):
+                raise ValueError(
+                    "compiled per-Pauli runtime rotation sequence is incomplete."
+                )
+        self._runtime_steps = tuple(runtime_steps)
 
     @staticmethod
     def _normalize_invariant_basis_indices(
@@ -662,6 +677,43 @@ class CompiledAnsatzExecutor:
             )
         return np.asarray(out, dtype=complex)
 
+    def _apply_plan_to_columns(
+        self,
+        matrix: np.ndarray,
+        plan: CompiledPolynomialRotationPlan,
+        dt: float,
+    ) -> np.ndarray:
+        """Column-batched :meth:`_apply_plan`, bitwise identical per column.
+
+        Termwise plans apply each rotation step to every column at once with
+        the same ``math.cos``/``math.sin`` scalars, row gather, sign
+        broadcast, and operand order as the single-vector
+        ``apply_exp_term``, so each output column carries exactly the bits
+        the per-vector path produces.  ``grouped_exact`` plans fall back to
+        the per-column single-vector path: their dense application is a
+        matrix product whose batched (GEMM) reduction order is not provably
+        bitwise equal to the per-vector (GEMV) one.
+        """
+
+        if float(dt) == 0.0:
+            return np.asarray(matrix, dtype=complex)
+        if str(plan.execution_mode).strip().lower() == "grouped_exact":
+            out = np.asarray(matrix, dtype=complex).copy()
+            for col in range(int(out.shape[1])):
+                out[:, col] = self._apply_plan(out[:, col], plan, float(dt))
+            return out
+        out = np.asarray(matrix, dtype=complex)
+        for step in plan.steps:
+            coeff_c = complex(step.coeff_real)
+            if abs(coeff_c.imag) > float(self.coefficient_tolerance):
+                raise ValueError(
+                    f"Imaginary coefficient encountered for {step.action.label_exyz}: {coeff_c}"
+                )
+            theta = float(dt) * float(coeff_c.real)
+            pauli_values = apply_compiled_pauli_to_columns(out, step.action)
+            out = math.cos(theta) * out - 1j * math.sin(theta) * pauli_values
+        return np.asarray(out, dtype=complex)
+
     @staticmethod
     def _apply_generator_hamiltonian(
         psi: np.ndarray,
@@ -1039,6 +1091,12 @@ class CompiledAnsatzExecutor:
                     f"psi_ref length mismatch: got {psi.size}, expected {expected_dim} for nq={self.nq}."
                 )
 
+        if requested_unique == list(range(int(self.logical_parameter_count))):
+            return self._prepare_state_with_all_logical_tangents_batched(
+                theta_vec,
+                psi,
+            )
+
         requested_set = set(requested_unique)
         local_tangent_after_plan: dict[int, np.ndarray] = {}
         for logical_idx, plan in enumerate(self._plans):
@@ -1061,6 +1119,123 @@ class CompiledAnsatzExecutor:
             tangents[int(logical_idx)] = np.asarray(tangent, dtype=complex)
 
         return np.asarray(psi, dtype=complex), tangents
+
+    def _prepare_state_with_all_logical_tangents_batched(
+        self,
+        theta_vec: np.ndarray,
+        psi: np.ndarray,
+    ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
+        """All-logical-tangent pass with batched suffix propagation.
+
+        The per-tangent serial path applies every later plan to each tangent
+        one vector at a time — an O(L^2) walk of single-vector rotations that
+        dominates AP-McLachlan propagation wall time.  Here each plan is
+        applied once to the accumulated column matrix instead.  For a fixed
+        column the operation sequence, scalars, and operand order are exactly
+        the serial ones (see :meth:`_apply_plan_to_columns`), so every
+        tangent is bitwise identical to the per-tangent path.
+        """
+
+        logical_count = int(self.logical_parameter_count)
+        tangent_matrix = np.zeros((int(psi.size), logical_count), dtype=complex)
+        for logical_idx, plan in enumerate(self._plans):
+            dt = float(theta_vec[logical_idx])
+            if logical_idx > 0 and dt != 0.0:
+                tangent_matrix[:, :logical_idx] = self._apply_plan_to_columns(
+                    tangent_matrix[:, :logical_idx], plan, dt
+                )
+            psi, tangent = self._apply_plan_with_logical_tangent(psi, plan, dt)
+            tangent_matrix[:, logical_idx] = np.asarray(tangent, dtype=complex)
+
+        tangents = {
+            int(logical_idx): np.asarray(
+                tangent_matrix[:, logical_idx], dtype=complex
+            ).copy()
+            for logical_idx in range(logical_count)
+        }
+        return np.asarray(psi, dtype=complex), tangents
+
+    def energy_and_runtime_gradient(
+        self,
+        theta: np.ndarray,
+        psi_ref: np.ndarray,
+        compiled_h: Any,
+    ) -> tuple[float, np.ndarray, np.ndarray]:
+        """Return energy, exact reverse-mode gradient, and prepared state.
+
+        This narrow reverse pass is for the ``per_pauli_term`` execution mode.
+        It differentiates the same ordered compiled rotations used by
+        :meth:`prepare_state`; no parameter-shift approximation or finite
+        difference enters.  The terminal cotangent is ``H|psi>`` and is
+        propagated through the adjoint suffix one rotation at a time, so the
+        work scales linearly in the number of runtime rotations instead of
+        requiring one full state preparation per coordinate.
+        """
+
+        if self.parameterization_mode != "per_pauli_term":
+            raise ValueError(
+                "energy_and_runtime_gradient requires "
+                "parameterization_mode='per_pauli_term'."
+            )
+        theta_vec = np.asarray(theta, dtype=float).reshape(-1)
+        runtime_count = int(self.runtime_parameter_count)
+        if int(theta_vec.size) != runtime_count:
+            raise ValueError(
+                f"theta length mismatch: got {theta_vec.size}, expected "
+                f"{runtime_count}."
+            )
+
+        psi = np.asarray(psi_ref, dtype=complex).reshape(-1).copy()
+        if self.nq is not None:
+            expected_dim = 1 << int(self.nq)
+            if int(psi.size) != expected_dim:
+                raise ValueError(
+                    f"psi_ref length mismatch: got {psi.size}, expected "
+                    f"{expected_dim} for nq={self.nq}."
+                )
+
+        if len(self._runtime_steps) != runtime_count:
+            raise ValueError("compiled runtime rotation sequence is incomplete.")
+        states_after = np.empty((runtime_count, int(psi.size)), dtype=complex)
+        for runtime_index, step in enumerate(self._runtime_steps):
+            angle = float(theta_vec[runtime_index])
+            if angle != 0.0:
+                psi = apply_exp_term(
+                    psi,
+                    step.action,
+                    coeff=complex(step.coeff_real),
+                    dt=angle,
+                    tol=self.coefficient_tolerance,
+                )
+            states_after[runtime_index, :] = psi
+
+        from src.quantum.compiled_polynomial import energy_via_one_apply
+
+        energy, terminal_cotangent = energy_via_one_apply(psi, compiled_h)
+        cotangent = np.asarray(terminal_cotangent, dtype=complex)
+        gradient = np.empty(runtime_count, dtype=float)
+        for runtime_index in range(runtime_count - 1, -1, -1):
+            step = self._runtime_steps[runtime_index]
+            state_after = states_after[runtime_index]
+            local_derivative = (
+                -1.0j
+                * float(step.coeff_real)
+                * apply_compiled_pauli(state_after, step.action)
+            )
+            gradient[runtime_index] = float(
+                2.0 * np.real(np.vdot(cotangent, local_derivative))
+            )
+            angle = float(theta_vec[runtime_index])
+            if angle != 0.0:
+                cotangent = apply_exp_term(
+                    cotangent,
+                    step.action,
+                    coeff=complex(step.coeff_real),
+                    dt=-angle,
+                    tol=self.coefficient_tolerance,
+                )
+
+        return float(energy), gradient, np.asarray(psi, dtype=complex)
 
 
 __all__ = ["CompiledAnsatzExecutor"]

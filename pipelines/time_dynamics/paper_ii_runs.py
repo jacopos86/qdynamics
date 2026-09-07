@@ -291,6 +291,26 @@ STATE_MOTION_CONTROL_CALIBRATED = StepControl(
     note="Paper-facing state-motion controller calibrated at fixed accuracy.",
 )
 
+STATE_MOTION_CONTROL_CALIBRATED_SUB15 = StepControl(
+    control_id="state_motion_5e-5_sub15",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "5.0e-5",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "15",
+        "--fail-on-unsupported-steps",
+    ),
+    solve_repair_enabled=True,
+    state_motion_l2_step_max=5.0e-5,
+    max_local_subdivisions=15,
+    note=(
+        "Named experiment: the paper-facing state-motion controller with the local "
+        "subdivision budget raised from 11 to 15 for the strong--fast (2.4,3) drive, "
+        "where 11 leaves about half of the steps uncured in both arms."
+    ),
+)
+
 COMPOSED_CONTROL_CALIBRATED = StepControl(
     control_id="state_motion_1e-3_plus_parameter_5e-5",
     flags=(
@@ -319,6 +339,7 @@ STEP_CONTROLS: Mapping[str, StepControl] = {
         COMPOSED_CONTROL_PARAMETER_TIGHT_100X,
         DELTA_THETA_CONTROL_CALIBRATED,
         STATE_MOTION_CONTROL_CALIBRATED,
+        STATE_MOTION_CONTROL_CALIBRATED_SUB15,
         COMPOSED_CONTROL_CALIBRATED,
     )
 }
@@ -341,6 +362,7 @@ class SearchProfile:
     certification_attempts_per_deletion_branch: int
     rounds_per_checkpoint: int
     insertion_cardinality: int = 1
+    exchange_insertion_frontier: int | None = None
     paper_facing_allowed: bool = False
     note: str = ""
 
@@ -355,10 +377,15 @@ class SearchProfile:
         ):
             if int(getattr(self, name)) < 1:
                 raise ValueError(f"{name} must be at least 1")
+        if (
+            self.exchange_insertion_frontier is not None
+            and int(self.exchange_insertion_frontier) < 1
+        ):
+            raise ValueError("exchange_insertion_frontier must be at least 1")
 
     @property
     def flags(self) -> tuple[str, ...]:
-        return (
+        emitted: tuple[str, ...] = (
             "--max-structural-pool-size", str(int(self.pool_size)),
             "--max-joint-patch-evaluations",
             str(int(self.joint_patch_evaluations)),
@@ -369,6 +396,14 @@ class SearchProfile:
             "--max-insertion-rounds-per-checkpoint",
             str(int(self.rounds_per_checkpoint)),
             "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
+        )
+        if self.exchange_insertion_frontier is None:
+            # Byte-identical to every profile that predates the exchange-face
+            # bound, so their run ids and argv stay unchanged.
+            return emitted
+        return emitted + (
+            "--exchange-insertion-frontier",
+            str(int(self.exchange_insertion_frontier)),
         )
 
 DIAGNOSTIC_FAST_SEARCH = SearchProfile(
@@ -423,6 +458,40 @@ SIAM_NB4_PILOT_SEARCH = SearchProfile(
     ),
 )
 
+# The SIAM Nb=4 pilot budget with the exchange face reachable.  The work
+# limits are identical to ``siam_nb4_pilot_v1``; the only difference is that a
+# d >= 1 deletion set is paired with the top 8 positioned insertions sealed
+# from the d = 0 pass rather than the whole insertion face.  Before this
+# profile no SIAM production run ever enumerated a true-exchange patch: every
+# d >= 1 rung was refused whole at the joint-work cap, so the arm reduced to
+# append-only in practice.  Its own ``profile_id``, so every packaged action,
+# receipt, and campaign cell separates from the runs whose search could not
+# reach exchange at all.
+SIAM_NB4_PILOT_EXCHANGE_SEARCH = SearchProfile(
+    profile_id="siam_nb4_pilot_exchange_v1",
+    pool_size=64,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    exchange_insertion_frontier=8,
+    paper_facing_allowed=True,
+    note=(
+        "SIAM Nb=4 pilot budget with the exchange face reachable. Identical "
+        "work limits to siam_nb4_pilot_v1; the insertion face offered to a "
+        "d >= 1 deletion set is a declared width-8 frontier sealed from the "
+        "d = 0 pass, so an exchange-bearing rung fits under the same "
+        "nonbinding 50,000 joint-evaluation cap."
+    ),
+)
+
+# Every search budget a registered SIAM Nb=4 command may run under, keyed by
+# the profile id that its action, manifest, and receipt record.
+SIAM_NB4_SEARCH_PROFILES: Mapping[str, SearchProfile] = {
+    profile.profile_id: profile
+    for profile in (SIAM_NB4_PILOT_SEARCH, SIAM_NB4_PILOT_EXCHANGE_SEARCH)
+}
+
 CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
     profile_id="cap_sensitivity_2x_v1",
     pool_size=128,
@@ -437,11 +506,38 @@ CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
     ),
 )
 
+# The declared budget with the exchange face reachable.  Identical work limits
+# to paper_declared_v1: the only difference is that a d >= 1 deletion set is
+# paired with the top 8 positioned insertions of the d = 0 pass rather than all
+# of them, so the first exchange-bearing rung declares |J_del| x 9 (~378 at the
+# measured median |J_del| = 42) instead of |J_del| x 2030 (48,720-165,865
+# measured) and fits under the same 50,000 cap.  Its own profile_id, so every
+# run id and campaign cell separates from the runs whose search could not
+# reach exchange at all.
+PAPER_DECLARED_EXCHANGE_SEARCH = SearchProfile(
+    profile_id="paper_declared_exchange_v1",
+    pool_size=128,
+    joint_patch_evaluations=50_000,
+    certification_attempts_per_level=12,
+    certification_attempts_per_deletion_branch=2,
+    rounds_per_checkpoint=12,
+    exchange_insertion_frontier=8,
+    paper_facing_allowed=True,
+    note=(
+        "Declared Paper-II finite-work search budget with the exchange face "
+        "reachable. Deletion rungs stay complete; the insertion face offered "
+        "to a deletion set is a declared width-8 frontier sealed from the "
+        "d = 0 pass, so the exchange face is an approximation of the "
+        "specification's full product and the other two faces are not."
+    ),
+)
+
 SEARCH_PROFILES: Mapping[str, SearchProfile] = {
     profile.profile_id: profile
     for profile in (
         DIAGNOSTIC_FAST_SEARCH,
         PAPER_DECLARED_SEARCH,
+        PAPER_DECLARED_EXCHANGE_SEARCH,
         CAP_SENSITIVITY_2X_SEARCH,
     )
 }
@@ -472,6 +568,17 @@ class Arm:
     required_numerics_id: str | None = None
     required_step_control_id: str | None = None
     note: str = ""
+
+    @property
+    def dynamics_policy(self) -> str:
+        """The runner's ``--dynamics-policy`` value for this arm.
+
+        The runner admits exactly ``exchange`` and ``avqds``.  The arm id is a
+        finer label (route bundles share the exchange policy), so it is never a
+        policy value.
+        """
+
+        return "avqds" if self.is_comparator else "exchange"
 
 
 EXCHANGE = Arm(
@@ -539,8 +646,57 @@ AVQDS_PUBLISHED = Arm(
     ),
 )
 
+# Three closed selector bundles on the exchange route (2026-09-02).  Each arm
+# is EXCHANGE plus one --exchange-route-bundle; objective, cost model, and
+# kernel are fixed by the bundle registry in exchange_config.py, never here.
+EXCHANGE_LEGACY_PROXY_FIXED = Arm(
+    arm_id="exchange_legacy_proxy_fixed",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_legacy_proxy_fixed_v1",
+    ),
+    note=(
+        "Frozen historical control with only the cost normalization repaired: "
+        "the same asymmetric score and debt ordering, but the Paper-I proxy "
+        "is normalized over the actual competing population instead of a "
+        "singleton (which made K identically 1)."
+    ),
+)
+
+EXCHANGE_Q_COMPILED = Arm(
+    arm_id="exchange_q_compiled",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_q_compiled_v1",
+    ),
+    note=(
+        "Realized route: complete-patch captured-drift change m_Q ranked with "
+        "the shifted Paper-I kernel under population-relative compiled "
+        "FakeMarrakesh cost K."
+    ),
+)
+
+EXCHANGE_GAMMA_COMPILED = Arm(
+    arm_id="exchange_gamma_compiled",
+    flags=EXCHANGE.flags + (
+        "--exchange-route-bundle", "paper_ii_exchange_gamma_compiled_v1",
+    ),
+    note=(
+        "Ideal ablation: complete-patch ideal-projection change m_Gamma with "
+        "the identical population and K map as the Q route; realized Q/L2 "
+        "still certifies every finalist."
+    ),
+)
+
 ARMS: Mapping[str, Arm] = {
-    a.arm_id: a for a in (EXCHANGE, APPEND_ONLY, AVQDS, AVQDS_PUBLISHED)
+    a.arm_id: a
+    for a in (
+        EXCHANGE,
+        APPEND_ONLY,
+        AVQDS,
+        AVQDS_PUBLISHED,
+        EXCHANGE_LEGACY_PROXY_FIXED,
+        EXCHANGE_Q_COMPILED,
+        EXCHANGE_GAMMA_COMPILED,
+    )
 }
 
 
@@ -877,9 +1033,19 @@ class Regime:
         return _Path(self.seed_path).exists()
 
 
-# The six-cell HH regime matrix (chtc/paper_ii_regime_seeds_v1/input/regimes.tsv).
-# The nph=7 cells are the expensive ones: 10 qubits against 8, and the three
-# strong-phonon seed builds died on a 24 GB memory limit on 2026-08-22.
+# The HH regime matrix (chtc/paper_ii_regime_seeds_v1/input/regimes.tsv): the
+# 2026-08-22 six-cell grid plus the 2026-09-04 anchor row at the published
+# calibration point (U=4, g_ep=0.5, n_ph=1), the only row that nests the locked
+# hh_snake_nph1 evidence. Seeds come from the frozen three-complete-layer
+# fixed-structure VQE (chtc/paper_ii_regime_seeds_v1/run_seed.sh, the
+# prospective HH seed policy). The earlier conditioning-stress search never
+# wrote an artifact at its 1e-4 gate (clusters 9663698 and 9674800: every
+# Pareto front was empty because no driven-snapshot fit reached 1e-6), and its
+# nph=7 rows were held at the 24 GB memory limit on 2026-08-22. The nph=7 cells
+# are 10 qubits against 8, 16x the state space of the locked evidence. Every
+# regime seed is built at dv = 0; the calibration seed's dv = 0.25 is a uniform
+# site potential (a constant -dv*N_e at fixed filling), so the anchor is the
+# same dynamics with energies 0.5 above the locked convention.
 _HH_REGIME_ROWS = (
     ("weak_weak", 0.25, 0.353553390593, 3),
     ("intermediate_weak", 1.25, 0.353553390593, 3),
@@ -887,6 +1053,7 @@ _HH_REGIME_ROWS = (
     ("weak_strong", 0.25, 0.790569415042, 7),
     ("intermediate_strong", 1.25, 0.790569415042, 7),
     ("strong_strong_u8", 8.00, 0.790569415042, 7),
+    ("anchor_u4_g0p5_nph1", 4.00, 0.5, 1),
 )
 
 REGIMES: Mapping[str, Regime] = {
@@ -1084,12 +1251,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
 
 __all__ = [
     "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
+    "EXCHANGE_GAMMA_COMPILED", "EXCHANGE_LEGACY_PROXY_FIXED", "EXCHANGE_Q_COMPILED",
     "AVQDS_PUBLISHED_NUMERICS", "COMPOSED_STATE_PARAMETER_CONTROL",
     "DRIVES", "EULER_NUMERICS", "EULER_RIDGE1E6_NUMERICS", "EXCHANGE",
     "NUMERICS", "Numerics",
@@ -1114,7 +1279,7 @@ LOCKED_STRUCTURAL_POLICY: tuple[str, ...] = (
 SIAM_NB2_PROOF_HORIZON = Horizon("t1_26", 1.0, 26)
 
 SIAM_NB2_PROOF_ARMS: Mapping[str, Arm] = {
-    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS, EXCHANGE_Q_COMPILED)
 }
 
 SIAM_NB4_TIME_STEP = 1.0e-2
@@ -1130,7 +1295,7 @@ SIAM_NB4_CONTINUATION_TIMES: tuple[float, ...] = SIAM_NB4_FULL_TIMES[100:]
 SIAM_NB4_INITIAL_ACTIVATION_CUT = 1.0e-3
 
 SIAM_NB4_ARMS: Mapping[str, Arm] = {
-    arm.arm_id: arm for arm in (EXCHANGE, AVQDS)
+    arm.arm_id: arm for arm in (EXCHANGE, AVQDS, EXCHANGE_Q_COMPILED)
 }
 
 @dataclass(frozen=True)
@@ -1202,7 +1367,7 @@ class SIAMProofRunCommand:
         policy_flags = (
             ()
             if "--dynamics-policy" in self.arm.flags
-            else ("--dynamics-policy", self.arm.arm_id)
+            else ("--dynamics-policy", self.arm.dynamics_policy)
         )
         return (
             "--siam-seed-json", str(self.seed_path),
@@ -1266,12 +1431,17 @@ class SIAMNB4RunCommand:
     code_revision: str
     activation_cut: float
     resume_from_run_json: str | None = None
+    # ``None`` is the historical pilot budget, so every pre-existing command
+    # keeps its exact argv and run id.  A registered id selects another
+    # registered SIAM Nb=4 budget (currently the exchange-frontier one).
+    search_profile_id: str | None = None
 
     def __post_init__(self) -> None:
         registered_arm = SIAM_NB4_ARMS.get(self.arm.arm_id)
         if registered_arm is None or self.arm != registered_arm:
             raise ValueError(
-                "SIAM Nb=4 supports only full exchange APM and AVQDS"
+                "SIAM Nb=4 supports only registered arms: "
+                f"{sorted(SIAM_NB4_ARMS)}"
             )
         if self.segment not in (
             SIAM_NB4_SCREEN_SEGMENT,
@@ -1288,6 +1458,15 @@ class SIAMNB4RunCommand:
             raise ValueError("SIAM Nb=4 continuation requires a prior run JSON")
         if not self.segment.requires_resume and resume_path:
             raise ValueError("SIAM Nb=4 screen must start from the immutable seed")
+        if (
+            self.search_profile_id is not None
+            and str(self.search_profile_id) not in SIAM_NB4_SEARCH_PROFILES
+        ):
+            raise ValueError(
+                "SIAM Nb=4 supports only registered search profiles: "
+                f"{sorted(SIAM_NB4_SEARCH_PROFILES)}"
+            )
+
     @property
     def run_id(self) -> str:
         cut_token = format(float(self.activation_cut), ".12g").replace("-", "m")
@@ -1298,7 +1477,9 @@ class SIAMNB4RunCommand:
 
     @property
     def search_profile(self) -> SearchProfile:
-        return SIAM_NB4_PILOT_SEARCH
+        if self.search_profile_id is None:
+            return SIAM_NB4_PILOT_SEARCH
+        return SIAM_NB4_SEARCH_PROFILES[str(self.search_profile_id)]
 
     def argv(self) -> tuple[str, ...]:
         cut = repr(float(self.activation_cut))
@@ -1307,11 +1488,14 @@ class SIAMNB4RunCommand:
             if not self.segment.requires_resume
             else ("--resume-from-run-json", str(self.resume_from_run_json))
         )
-        exchange_flags = self.arm.flags if self.arm.arm_id == "exchange" else ()
+        # Gate on the structural policy, not the arm id: every non-comparator
+        # arm is an exchange route and must keep its own flags (including
+        # --exchange-route-bundle) and the mclachlan_l2 insertion gate.
+        exchange_flags = () if self.arm.is_comparator else self.arm.flags
         exchange_gate_flags = (
-            ("--insertion-gate-mode", "mclachlan_l2")
-            if self.arm.arm_id == "exchange"
-            else ()
+            ()
+            if self.arm.is_comparator
+            else ("--insertion-gate-mode", "mclachlan_l2")
         )
         return (
             *resume_flags,
@@ -1324,7 +1508,7 @@ class SIAMNB4RunCommand:
             *exchange_gate_flags,
             "--insertion-l2-cut", cut,
             "--avqds-l2-cut", cut,
-            "--dynamics-policy", self.arm.arm_id,
+            "--dynamics-policy", self.arm.dynamics_policy,
             *exchange_flags,
             "--parameterization-mode", "logical_shared",
             "--append-occurrence-policy", "layer_reuse",
@@ -1346,6 +1530,7 @@ def build_siam_nb4_screen_run(
     output_json: str,
     code_revision: str,
     activation_cut: float = SIAM_NB4_INITIAL_ACTIVATION_CUT,
+    search_profile_id: str | None = None,
 ) -> SIAMNB4RunCommand:
     """Build one ``0<=t<=1`` screen rung; the common initial cut is 1e-3."""
 
@@ -1360,6 +1545,9 @@ def build_siam_nb4_screen_run(
         output_json=str(output_json),
         code_revision=str(code_revision),
         activation_cut=float(activation_cut),
+        search_profile_id=(
+            None if search_profile_id is None else str(search_profile_id)
+        ),
     )
 
 def build_siam_nb4_continuation_run(
@@ -1370,6 +1558,7 @@ def build_siam_nb4_continuation_run(
     activation_cut: float,
     output_json: str,
     code_revision: str,
+    search_profile_id: str | None = None,
 ) -> SIAMNB4RunCommand:
     """Build one exact ``1<=t<=5`` continuation at a method-owned cut."""
 
@@ -1384,6 +1573,9 @@ def build_siam_nb4_continuation_run(
         output_json=str(output_json),
         code_revision=str(code_revision),
         activation_cut=float(activation_cut),
+        search_profile_id=(
+            None if search_profile_id is None else str(search_profile_id)
+        ),
         resume_from_run_json=str(resume_from_run_json),
     )
 
@@ -1406,7 +1598,12 @@ __all__ = [
     "SIAM_NB4_ARMS", "SIAM_NB4_CONTINUATION_SEGMENT",
     "SIAM_NB4_CONTINUATION_TIMES", "SIAM_NB4_FULL_TIMES",
     "SIAM_NB4_INITIAL_ACTIVATION_CUT", "SIAM_NB4_PILOT_SEARCH",
+    "SIAM_NB4_PILOT_EXCHANGE_SEARCH", "SIAM_NB4_SEARCH_PROFILES",
     "SIAM_NB4_SCREEN_SEGMENT", "SIAM_NB4_SCREEN_TIMES",
     "SIAM_NB4_TIME_STEP", "SIAMNB4RunCommand", "SIAMNB4Segment",
     "build_siam_nb4_continuation_run", "build_siam_nb4_screen_run",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

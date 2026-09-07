@@ -146,6 +146,16 @@ def test_l2_matches_norm_b_minus_captured_drift() -> None:
     )
 
 
+def test_avqds_decision_preserves_existing_positional_field_order() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.avqds import AVQDSDecision
+
+    state_marker = object()
+    decision = AVQDSDecision((), 0.0, 0.0, 0, "test", state_marker, None, None)
+
+    assert decision.state is state_marker
+    assert decision.candidate_geometry_rounds == ()
+
+
 def test_avqds_appends_nothing_when_threshold_is_loose() -> None:
     from pipelines.time_dynamics.ap_mclachlan.avqds import select_avqds_appends
 
@@ -158,6 +168,16 @@ def test_avqds_appends_nothing_when_threshold_is_loose() -> None:
     assert not decision.accepted
     assert decision.stop_reason == "below_threshold"
     assert decision.candidates_scored == 0
+    assert decision.candidate_geometry_rounds == ()
+    work = decision.to_json_dict()["estimator_work"]
+    assert work == {
+        "schema": "paper_ii_avqds_estimator_work_v1",
+        "selector_round_count": 0,
+        "full_geometry_evaluation_attempt_count": 0,
+        "full_geometry_evaluation_count": 0,
+        "logical_candidate_geometry_entries": 0,
+        "complete": True,
+    }
 
 
 def test_avqds_appends_until_threshold_and_picks_max_reduction() -> None:
@@ -192,6 +212,20 @@ def test_avqds_appends_until_threshold_and_picks_max_reduction() -> None:
         scores[atom_id] = mclachlan_distance_squared(cand_eval, inverse_policy=POLICY)
     assert decision.appended_atom_ids[0] == min(scores, key=scores.get)
     assert decision.l2_after == pytest.approx(min(scores.values()), rel=1e-12)
+    assert len(decision.candidate_geometry_rounds) == 1
+    round_work = decision.candidate_geometry_rounds[0]
+    assert round_work["base_runtime_parameter_count"] == 2
+    assert round_work["candidate_runtime_parameter_count"] == 3
+    assert round_work["candidate_pool_count"] == 2
+    assert round_work["geometry_evaluation_attempt_count"] == 2
+    assert round_work["geometry_evaluation_count"] == 2
+    assert round_work["logical_geometry_entry_count"] == 22
+    assert round_work["committed"] is True
+    assert round_work["complete"] is True
+    work = decision.to_json_dict()["estimator_work"]
+    assert work["full_geometry_evaluation_count"] == decision.candidates_scored == 2
+    assert work["logical_candidate_geometry_entries"] == 22
+    assert work["complete"] is True
 
 
 def test_avqds_respects_append_budget() -> None:
@@ -206,6 +240,98 @@ def test_avqds_respects_append_budget() -> None:
     assert len(decision.appended_atom_ids) <= 2
     assert decision.state is not None
     assert decision.state.runtime_parameter_count == 2 + len(decision.appended_atom_ids)
+    assert sum(
+        int(row["geometry_evaluation_count"])
+        for row in decision.candidate_geometry_rounds
+    ) == decision.candidates_scored
+    assert [
+        int(row["candidate_runtime_parameter_count"])
+        for row in decision.candidate_geometry_rounds
+    ] == [
+        3 + index for index in range(len(decision.candidate_geometry_rounds))
+    ]
+
+
+def test_avqds_records_failed_candidate_geometry_attempt(monkeypatch) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import avqds as avqds_module
+
+    state, ev, atoms, label = _avqds_setup()
+    real_evaluator = avqds_module.evaluate_mclachlan_geometry
+    calls = 0
+
+    def fail_first_candidate(**kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise ValueError("synthetic candidate failure")
+        return real_evaluator(**kwargs)
+
+    monkeypatch.setattr(
+        avqds_module, "evaluate_mclachlan_geometry", fail_first_candidate
+    )
+    decision = avqds_module.select_avqds_appends(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        evaluation=ev,
+        atoms_by_id=atoms,
+        occurrence_label=label,
+        inverse_policy=POLICY,
+        l2_cut=0.0,
+        max_appends_per_checkpoint=1,
+    )
+
+    round_work = decision.candidate_geometry_rounds[0]
+    assert round_work["geometry_evaluation_attempt_count"] == 2
+    assert round_work["geometry_evaluation_count"] == 1
+    assert round_work["logical_geometry_entry_count"] == 11
+    assert round_work["complete"] is False
+    assert decision.candidates_scored == 1
+    assert decision.to_json_dict()["estimator_work"]["complete"] is False
+
+
+def test_avqds_distinguishes_materialization_failure_from_estimator_work(
+    monkeypatch,
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import avqds as avqds_module
+
+    state, ev, atoms, label = _avqds_setup()
+    real_materializer = avqds_module.state_with_inserted_runtime_coordinates
+    calls = 0
+
+    def fail_first_materialization(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise ValueError("synthetic materialization failure")
+        return real_materializer(*args, **kwargs)
+
+    monkeypatch.setattr(
+        avqds_module,
+        "state_with_inserted_runtime_coordinates",
+        fail_first_materialization,
+    )
+    decision = avqds_module.select_avqds_appends(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        evaluation=ev,
+        atoms_by_id=atoms,
+        occurrence_label=label,
+        inverse_policy=POLICY,
+        l2_cut=0.0,
+        max_appends_per_checkpoint=1,
+    )
+
+    round_work = decision.candidate_geometry_rounds[0]
+    assert round_work["candidate_pool_count"] == 2
+    assert round_work["materialization_failure_count"] == 1
+    assert round_work["geometry_evaluation_attempt_count"] == 1
+    assert round_work["geometry_evaluation_count"] == 1
+    assert round_work["logical_geometry_entry_count"] == 11
+    assert round_work["complete"] is True
 
 
 def test_comparator_and_exchange_share_one_capped_pool() -> None:

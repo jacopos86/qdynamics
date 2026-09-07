@@ -13,9 +13,13 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     CertificationGates,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
+    RankInfo,
+    RankedLevel,
+    candidate_insertions,
     select_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    StructuralCandidate,
     StructuralScoreWeights,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import solve_fixed_mclachlan_step
@@ -24,6 +28,9 @@ from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
 )
 from pipelines.time_dynamics.ap_mclachlan.hamiltonian import TimeDependentHamiltonian
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
+    inserted_tokens,
+    quotient_insertion_plans,
+    survivor_tokens,
     tokens_commute_from_terms,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
@@ -167,6 +174,51 @@ def test_commit_is_highest_certifiable_candidate_and_atomic() -> None:
     # Route objects are carried for the trajectory loop.
     assert selection.certification.state is not None
     assert selection.certification.step is not None
+    assert selection.certification_work
+    certified_work = selection.certification_work[-1]
+    assert certified_work["reason"] == "certified"
+    assert certified_work["schema"] == (
+        "paper_ii_exchange_certification_estimator_work_v1"
+    )
+    assert certified_work["logical_full_geometry_entry_count"] > 0
+    assert certified_work["complete"] is True
+
+
+def test_batch_candidate_materializes_the_word_that_compiled_cost_priced() -> None:
+    plans = quotient_insertion_plans(
+        survivors=survivor_tokens(("s0", "s1")),
+        inserted=inserted_tokens(("ca", "cb")),
+        removed_keys=(),
+        tokens_commute=lambda _left, _right: False,
+    )
+    candidate = StructuralCandidate(
+        removed_runtime_indices=(),
+        inserted_selection=(("ca", 0), ("cb", 2)),
+        plan=plans[0],
+        family="frontier_test",
+        q=1.0,
+        insertion_gain=1.0,
+        deletion_loss=0.0,
+        delta=1.0,
+        insertion_utility=1.0,
+        deletion_utility=0.0,
+        score=1.0,
+        placement_cuts=(("ca", 2), ("cb", 0)),
+        patch_word_sha256="priced-word",
+    )
+    atoms = {
+        "ca": SimpleNamespace(atom_id="ca", term=CA),
+        "cb": SimpleNamespace(atom_id="cb", term=CB),
+    }
+    entries = candidate_insertions(
+        candidate,
+        atoms_by_id=atoms,
+        occurrence_label=lambda atom, cut, ordinal: f"{atom.atom_id}:{cut}:{ordinal}",
+    )
+    assert [(cut, label) for cut, _term, label in entries] == [
+        (2, "ca:2:0"),
+        (0, "cb:0:1"),
+    ]
 
 
 def test_all_gates_failing_returns_stay_with_full_attempt_record() -> None:
@@ -189,6 +241,11 @@ def test_all_gates_failing_returns_stay_with_full_attempt_record() -> None:
     assert {a.kind for a in selection.attempts} == {"delete"}
     assert selection.telemetry is not None
     assert selection.stop_reason == "level_exhausted"
+    assert len(selection.certification_work) == len(selection.attempts)
+    assert all(
+        row["reason"] == "ray_distance_above_max"
+        for row in selection.certification_work
+    )
 
 
 def test_failed_higher_score_advances_to_next_candidate() -> None:
@@ -215,6 +272,45 @@ def test_failed_higher_score_advances_to_next_candidate() -> None:
     assert reasons[-1] == "certified"
     failed_scores = [a.score for a in selection.attempts if a.reason != "certified"]
     assert max(failed_scores) > selection.committed.score
+
+
+def test_realized_authority_rejection_advances_without_resealing_population() -> None:
+    ranker_calls = 0
+
+    def ranker(candidates):
+        nonlocal ranker_calls
+        ranker_calls += 1
+        ordered = tuple(c for c in candidates if c.kind != "stay")[:2]
+        return RankedLevel(
+            ordered=ordered,
+            rank_info={
+                c.order_key: RankInfo(K=1.0, score=float(2 - index), merit=c.delta)
+                for index, c in enumerate(ordered)
+            },
+            telemetry={"population_sha256": "sealed-once"},
+        )
+
+    authority_calls = 0
+
+    def authority_gate(_result):
+        nonlocal authority_calls
+        authority_calls += 1
+        return authority_calls > 1
+
+    selection = select_exchange_patch(
+        gates=CertificationGates(ray_distance_max=1.0, smoothness_eta_max=1e6),
+        population_ranker=ranker,
+        realized_l2_gate=authority_gate,
+        realized_l2_gate_reason="realized_q_loss_budget_exceeded",
+        **_selection_kwargs(),
+    )
+    assert selection.committed is not None
+    assert [attempt.reason for attempt in selection.attempts[:2]] == [
+        "realized_q_loss_budget_exceeded",
+        "certified",
+    ]
+    assert ranker_calls == 1
+    assert selection.level_telemetry == ({"population_sha256": "sealed-once"},)
 
 
 def test_escalation_predicate_false_stops_after_first_level() -> None:
@@ -264,3 +360,42 @@ def test_selection_is_deterministic() -> None:
         x.to_json_dict() for x in b.attempts
     ]
     assert a.committed.order_key == b.committed.order_key
+
+
+def test_selection_parallel_matches_serial_attempts_and_commit() -> None:
+    # Bitwise contract: scoring workers must not change any attempt, score,
+    # order, or commit; floats compare with ==, never approx.
+    scenarios = (
+        dict(gates=CertificationGates(ray_distance_max=1.0, smoothness_eta_max=1e6)),
+        dict(
+            gates=CertificationGates(
+                ray_distance_max=1.0e-15, smoothness_eta_max=1.0e-15
+            ),
+            structural=dict(
+                candidate_pool_for_deletion=lambda removed: (),
+                cuts_by_atom={},
+            ),
+        ),
+    )
+    for scenario in scenarios:
+        results = []
+        for workers in (1, 4):
+            overrides = dict(scenario.get("structural", {}))
+            overrides["scoring_workers"] = workers
+            kwargs = _selection_kwargs(**overrides)
+            selection = select_exchange_patch(
+                gates=scenario["gates"], **kwargs
+            )
+            results.append(selection)
+        serial, parallel = results
+        assert [a.to_json_dict() for a in parallel.attempts] == [
+            a.to_json_dict() for a in serial.attempts
+        ]
+        assert parallel.stop_reason == serial.stop_reason
+        assert parallel.structural_scored_count == serial.structural_scored_count
+        assert parallel.certification_work == serial.certification_work
+        if serial.committed is None:
+            assert parallel.committed is None
+        else:
+            assert parallel.committed.order_key == serial.committed.order_key
+            assert parallel.committed.score == serial.committed.score

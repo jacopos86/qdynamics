@@ -1,0 +1,75 @@
+{
+  "digests": {
+    "initial_state_semantic_sha256": "0a388a9735aa4d88c6fd8ed1cc7d6d6f38adc4ced8c5a3b0757a55fad5eda1bf",
+    "ordered_logical_pool_sha256": "b0b5f0d141638f3997153012891a217c9a96ce25e67e0d7248f6b86d3906bb04",
+    "post_quench_hamiltonian_sha256": "f34c82a0109af455f744ba90071cebb2906712c15f42831f5db9a387adfe2a63",
+    "pre_quench_hamiltonian_sha256": "c6eddbeedf5b1abb6ca3ef6c0b1ea55440105e037157a7b6b97012ab6d2f74e9"
+  },
+  "layout": {
+    "electron_counts": {
+      "down": 2,
+      "up": 3
+    },
+    "mode_order": "spin_blocked_jordan_wigner",
+    "n_qubits": 10,
+    "sector_dimension": 100
+  },
+  "physical": {
+    "electron_counts": {
+      "down": 2,
+      "up": 3
+    },
+    "hopping": 1.0,
+    "mode_order": "spin_blocked_jordan_wigner",
+    "model": "siam_finite_box_screening_v1",
+    "n_bath": 4,
+    "n_qubits": 10,
+    "schema": "siam_screening_config_v1",
+    "sector_dimension": 100,
+    "u": 1.5,
+    "v_post_quench": 0.7071067811865475,
+    "v_pre_quench": 0.0
+  },
+  "pool": {
+    "block_count": 24,
+    "ordered_labels": [
+      "K_hyb_up_0_1",
+      "K_bath_up_1_2",
+      "K_bath_up_2_3",
+      "K_bath_up_3_4",
+      "K_hyb_down_5_6",
+      "K_bath_down_6_7",
+      "K_bath_down_7_8",
+      "K_bath_down_8_9",
+      "J_hyb_up_0_1",
+      "J_bath_up_1_2",
+      "J_bath_up_2_3",
+      "J_bath_up_3_4",
+      "J_hyb_down_5_6",
+      "J_bath_down_6_7",
+      "J_bath_down_7_8",
+      "J_bath_down_8_9",
+      "Qd_centered",
+      "A_hyb_up",
+      "A_hyb_down",
+      "X_d_1",
+      "X_d_2",
+      "X_d_3",
+      "X_d_4",
+      "P_d_1"
+    ],
+    "schema": "siam_screening_logical_pool_v1"
+  },
+  "preparation": {
+    "deterministic": true,
+    "rng_seed": null,
+    "schema": "siam_decoupled_closed_shell_seed_v1",
+    "state_identity": {
+      "encoding": "little_endian_int64_real_then_imag",
+      "phase_rule": "first_amplitude_above_quantum_real_nonnegative",
+      "quantum_hex": "0x1.19799812dea11p-40",
+      "schema": "phase_canonical_quantized_complex_v1"
+    }
+  },
+  "schema": "siam_screening_seed_v2"
+}

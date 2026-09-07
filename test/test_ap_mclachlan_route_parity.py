@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import replace
 from types import SimpleNamespace
 
+import functools
+
 import numpy as np
 import pytest
 
@@ -115,6 +117,10 @@ def _decisions(payload):
 
 
 def test_exchange_route_golden_trajectory() -> None:
+    from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
+        complete_estimator_work,
+    )
+
     payload = _run()
     summary = payload["summary"]
     energies = [row["energy_expectation"] for row in payload["plot_rows"]]
@@ -157,6 +163,12 @@ def test_exchange_route_golden_trajectory() -> None:
     assert summary["max_mclachlan_residual_ratio"] == pytest.approx(
         0.1780937493, abs=1e-6
     )
+    work = complete_estimator_work([payload], route="q_compiled")
+    assert work["candidate_acquisition_status"] == "exact"
+    assert work["certification_geometry_status"] == "exact"
+    assert work["refit_estimator_status"] == "exact"
+    assert work["logical_total_estimator_work_status"] == "exact"
+    assert work["selector_call_count"] == 4
 
 
 def test_prune_only_below_threshold_is_measurement_free() -> None:
@@ -172,6 +184,10 @@ def test_prune_only_below_threshold_is_measurement_free() -> None:
 
 
 def test_avqds_policy_golden_trajectory() -> None:
+    from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
+        complete_estimator_work,
+    )
+
     payload = _run(
         dynamics_policy="avqds",
         avqds_l2_cut=1.0e-6,
@@ -184,6 +200,23 @@ def test_avqds_policy_golden_trajectory() -> None:
     counts = [p["runtime_parameter_count"] for p in payload["trajectory"]["points"]]
     assert all(b >= a for a, b in zip(counts, counts[1:]))
     assert summary["runtime_parameter_count_final"] >= 2
+    for point in payload["trajectory"]["points"][:-1]:
+        metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
+        work = metadata["estimator_work"]
+        rounds = metadata["candidate_geometry_rounds"]
+        assert work["selector_round_count"] == len(rounds)
+        assert work["full_geometry_evaluation_count"] == sum(
+            int(row["geometry_evaluation_count"]) for row in rounds
+        )
+        assert work["logical_candidate_geometry_entries"] == sum(
+            int(row["logical_geometry_entry_count"]) for row in rounds
+        )
+        assert work["complete"] is True
+    estimator_work = complete_estimator_work([payload], route="avqds")
+    assert estimator_work["candidate_acquisition_status"] == "exact"
+    assert estimator_work["certification_geometry_status"] == "not_applicable"
+    assert estimator_work["refit_estimator_status"] == "not_applicable"
+    assert estimator_work["logical_total_estimator_work_status"] == "exact"
 
 
 @pytest.mark.parametrize(
@@ -250,7 +283,7 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
         ]
 
 
-def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
+def test_exchange_round_ledger_records_actual_calls_and_commits() -> None:
     payload = _run(
         deletion_enabled=False,
         insertion_gate_mode="mclachlan_l2",
@@ -259,4 +292,153 @@ def test_declared_exchange_round_cap_is_not_off_by_one() -> None:
     )
     for point in payload["trajectory"]["points"]:
         metadata = dict((point.get("patch_decision") or {}).get("metadata") or {})
-        assert int(metadata.get("checkpoint_commit_count", 0)) <= 2
+        rounds = list(metadata.get("selection_round_work") or ())
+        if not rounds:
+            continue
+        assert metadata["selection_round_work_schema"] == (
+            "paper_ii_exchange_selection_round_work_v1"
+        )
+        assert metadata["selector_call_count"] == len(rounds)
+        assert metadata["accepted_selector_count"] == sum(
+            bool(row["accepted"]) for row in rounds
+        )
+        assert [row["selector_call_index"] for row in rounds] == list(
+            range(len(rounds))
+        )
+
+
+def test_exchange_route_parallel_workers_reproduce_golden_trajectory() -> None:
+    # Scoring workers are execution-resource only: the parallel trajectory
+    # must be bitwise identical to the serial one — decisions, support
+    # evolution, energies, and permission telemetry all compare with ==.
+    serial = _run()
+    parallel = _run(support_patch_scoring_workers=4)
+
+    assert _decisions(parallel) == _decisions(serial)
+    serial_energies = [row["energy_expectation"] for row in serial["plot_rows"]]
+    parallel_energies = [
+        row["energy_expectation"] for row in parallel["plot_rows"]
+    ]
+    assert parallel_energies == serial_energies
+    serial_params = [
+        p["runtime_parameter_count"] for p in serial["trajectory"]["points"]
+    ]
+    parallel_params = [
+        p["runtime_parameter_count"] for p in parallel["trajectory"]["points"]
+    ]
+    assert parallel_params == serial_params
+    for key in (
+        "runtime_parameter_count_final",
+        "deletion_permission_evaluated_set_count",
+        "deletion_permission_permitted_set_count",
+        "deletion_permission_rejected_set_count",
+        "max_mclachlan_residual_ratio",
+    ):
+        assert parallel["summary"][key] == serial["summary"][key]
+    assert (
+        parallel["decision_data_flow"]["uses_exact_reference_for_decision"]
+        is False
+    )
+    assert (
+        parallel["trajectory"]["support_patch_config"][
+            "support_patch_scoring_workers"
+        ]
+        == 4
+    )
+    for serial_point, parallel_point in zip(
+        serial["trajectory"]["points"], parallel["trajectory"]["points"]
+    ):
+        serial_metadata = dict(
+            (serial_point.get("patch_decision") or {}).get("metadata") or {}
+        )
+        parallel_metadata = dict(
+            (parallel_point.get("patch_decision") or {}).get("metadata") or {}
+        )
+        assert parallel_metadata.get("selection_round_work") == (
+            serial_metadata.get("selection_round_work")
+        )
+
+
+def test_legacy_proxy_fixed_bundle_runs_the_full_trajectory() -> None:
+    # The repaired-normalization control must run end to end with the same
+    # physics contracts; its decisions may legitimately differ from the
+    # historical route, so only structural invariants are pinned here.
+    payload = _run(exchange_route_bundle="paper_ii_exchange_legacy_proxy_fixed_v1")
+    summary = payload["summary"]
+    assert summary["runtime_parameter_count_final"] >= 1
+    assert payload["decision_data_flow"]["uses_exact_reference_for_decision"] is False
+    assert payload["trajectory"]["support_patch_config"]["exchange_route_bundle"] == (
+        "paper_ii_exchange_legacy_proxy_fixed_v1"
+    )
+    routes = [
+        ((p.get("patch_decision") or {}).get("metadata") or {}).get("selector_route")
+        for p in payload["trajectory"]["points"]
+    ]
+    assert any(r and r["bundle"]["bundle_id"].endswith("legacy_proxy_fixed_v1") for r in routes)
+    # Historical route is unchanged by the bundle machinery.
+    historical = _run()
+    assert _decisions(historical) == ["insert", "insert", "delete", "stay"]
+
+
+_COMPILED_BUNDLES = (
+    "paper_ii_exchange_q_compiled_v1",
+    "paper_ii_exchange_gamma_compiled_v1",
+)
+# (scoring workers, compile workers): the compile pool is sized independently
+# of the scoring threads, so the 8-worker CHTC setting is exercised both with
+# a serial solve warm and with the campaign's four scoring workers.
+_WORKER_LEGS = ((4, 4), (1, 8), (4, 8))
+
+
+def _decision_digest(payload) -> str:
+    import hashlib
+    import json as json_module
+
+    record = {
+        "decisions": _decisions(payload),
+        "energies": [r["energy_expectation"] for r in payload["plot_rows"]],
+        "runtime_parameter_counts": [
+            p["runtime_parameter_count"] for p in payload["trajectory"]["points"]
+        ],
+    }
+    return hashlib.sha256(
+        json_module.dumps(record, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+@functools.lru_cache(maxsize=None)
+def _serial_compiled_run(bundle):
+    return _run(exchange_route_bundle=bundle)
+
+
+@pytest.mark.parametrize("scoring_workers,compile_workers", _WORKER_LEGS)
+@pytest.mark.parametrize("bundle", _COMPILED_BUNDLES)
+def test_compiled_bundles_run_full_trajectories_bitwise_across_workers(
+    bundle, scoring_workers, compile_workers
+) -> None:
+    serial = _serial_compiled_run(bundle)
+    parallel = _run(
+        exchange_route_bundle=bundle,
+        support_patch_scoring_workers=scoring_workers,
+        compile_workers=compile_workers,
+    )
+    assert _decision_digest(parallel) == _decision_digest(serial)
+    assert _decisions(parallel) == _decisions(serial)
+    config = parallel["trajectory"]["support_patch_config"]
+    assert config["support_patch_scoring_workers"] == scoring_workers
+    assert config["compile_workers"] == compile_workers
+    assert [r["energy_expectation"] for r in parallel["plot_rows"]] == [
+        r["energy_expectation"] for r in serial["plot_rows"]
+    ]
+    assert [p["runtime_parameter_count"] for p in parallel["trajectory"]["points"]] == [
+        p["runtime_parameter_count"] for p in serial["trajectory"]["points"]
+    ]
+    assert serial["decision_data_flow"]["uses_exact_reference_for_decision"] is False
+    assert serial["trajectory"]["support_patch_config"]["exchange_route_bundle"] == bundle
+    routes = [
+        ((p.get("patch_decision") or {}).get("metadata") or {}).get("selector_route")
+        for p in serial["trajectory"]["points"]
+    ]
+    compiled = [r for r in routes if r and r.get("compile")]
+    assert compiled, "compiled bundles must record compile telemetry"
+    assert all(r["compile"]["backend"]["backend_name"] == "FakeMarrakesh" for r in compiled)

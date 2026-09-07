@@ -37,6 +37,9 @@ from pipelines.time_dynamics.ap_mclachlan.inverse import (
     McLachlanInversePolicy,
     solve_theta_dot,
 )
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    ideal_gamma_from_geometry,
+)
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_LOGICAL_SHARED,
     APMcLachlanState,
@@ -376,13 +379,17 @@ def structural_candidate_solve(
     inverse_policy: McLachlanInversePolicy,
     epsilon_norm: float,
     memo_key: tuple | None = None,
+    gamma_rcond: float | None = None,
 ) -> tuple[float, float]:
     """Return ``(Q, q)`` for one structural candidate under the actual policy.
 
     ``Q`` is the realized captured drift of the candidate solve and
     ``q = Q / (||b||^2 + eps)`` the dimensionless score input.  Results are
     memoized on ``memo_key`` (canonical plan identity plus deletion set) when
-    provided.
+    provided.  The memo tuple is ``(Q, q, condition_number, rank, Gamma)``
+    where ``Gamma`` is the ideal projection ``f^T G^+ f`` at the named
+    ``gamma_rcond`` (``None`` when not requested); the returned pair and the
+    first four memo slots are unchanged by the request.
     """
 
     if memo_key is not None:
@@ -397,7 +404,7 @@ def structural_candidate_solve(
         inserted_selection=inserted_selection,
     )
     if int(f.size) == 0:
-        result = (0.0, 0.0, None, 0)
+        result = (0.0, 0.0, None, 0, None if gamma_rcond is None else 0.0)
     else:
         solve = solve_theta_dot(G, f, policy=inverse_policy)
         Q = float(solve.captured_drift)
@@ -411,10 +418,27 @@ def structural_candidate_solve(
                 else float(solve.inverse.condition_number)
             ),
             int(solve.inverse.rank),
+            (
+                None
+                if gamma_rcond is None
+                else float(ideal_gamma_from_geometry(G, f, rcond=float(gamma_rcond))[0])
+            ),
         )
     if memo_key is not None:
         cache.solve_memo[memo_key] = result
     return result[:2]
+
+
+def memoized_gamma(
+    cache: StructuralInsertionCache,
+    memo_key: tuple,
+) -> float | None:
+    """Ideal ``Gamma`` of a memoized candidate solve, or ``None``."""
+
+    cached = cache.solve_memo.get(memo_key)
+    if cached is None or len(cached) < 5:
+        return None
+    return cached[4]
 
 
 def memoized_solve_metadata(
@@ -436,6 +460,7 @@ def memoized_solve_metadata(
 
 __all__ = [
     "STRUCTURAL_CACHE_SCHEMA_V1",
+    "memoized_gamma",
     "memoized_solve_metadata",
     "StructuralInsertionCache",
     "assemble_candidate_geometry",

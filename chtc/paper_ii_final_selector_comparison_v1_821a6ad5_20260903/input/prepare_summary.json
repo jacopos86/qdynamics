@@ -1,0 +1,47 @@
+{
+  "action_count": 45,
+  "actions_jsonl": {
+    "path": "output/chtc_packages/paper_ii_final_selector_comparison_v1_821a6ad5_20260903/input/actions.jsonl",
+    "sha256": "f9e79c165d5b4ce2d0f33dc76e00963cb0c7bbf2a1c378c963a1ff8780f2e283"
+  },
+  "avqds_action_count": 0,
+  "blocks": [],
+  "campaign_id": "paper_ii_final_selector_comparison_v1",
+  "cell_count": 15,
+  "code_revision": "821a6ad598c86ba27986456d4e0dc4fe5d27ac61",
+  "comparator_actions": 0,
+  "comparator_note": "AVQDS comparators are reused locked comparators; no comparator trajectory is re-run by this campaign.",
+  "comparator_reuse": "locked_historical_avqds_15_cells",
+  "excluded_cell_count": 3,
+  "lock": {
+    "path": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-dual-selector-overnight-20260903/pipelines/time_dynamics/campaigns/paper_ii_final_matched_cells_v1.json",
+    "schema": "paper_ii_final_matched_cells_v1",
+    "sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030"
+  },
+  "output_root": "raw_outputs",
+  "registry_bindings": {
+    "apm_arm": "exchange",
+    "comparator_arm": "avqds",
+    "extra_flags": [
+      "--record-statevector"
+    ],
+    "gate": "mclachlan_l2_1e-3",
+    "horizon": "t20",
+    "numerics": "euler_ridge1e-6",
+    "regime": "hh_snake_nph1",
+    "search_profile": "paper_declared_v1"
+  },
+  "route_count": 3,
+  "schema": "paper_ii_final_selector_comparison_prepare_v1",
+  "seed": {
+    "path": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+    "sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91"
+  },
+  "selector_routes": {
+    "paper_ii_exchange_gamma_compiled_v1": "exchange_gamma_compiled",
+    "paper_ii_exchange_legacy_proxy_fixed_v1": "exchange_legacy_proxy_fixed",
+    "paper_ii_exchange_q_compiled_v1": "exchange_q_compiled"
+  },
+  "source_package_sha256": "bc5d5a539bd5d03717bf37165387b04e18045451d77bdf3899de256d489e2791",
+  "status": "PREPARED_NOT_SUBMITTED"
+}

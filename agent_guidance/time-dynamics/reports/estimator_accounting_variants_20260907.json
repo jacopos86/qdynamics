@@ -1,0 +1,97 @@
+{
+ "weakslow__delta_theta_5e-5|APM": [
+  2707319780,
+  235201975.0,
+  203312823.0
+ ],
+ "weakslow__state_motion_5e-5|APM": [
+  2029669595,
+  168955932.0,
+  143610619.0
+ ],
+ "fastweak__delta_theta_5e-5|APM": [
+  937119223,
+  724302115.0,
+  722341920.0
+ ],
+ "fastweak__delta_theta_5e-5|AVQDS": [
+  1508552344,
+  1504091844,
+  1503968969
+ ],
+ "fastweak__state_motion_5e-5|APM": [
+  682868732,
+  526108803.0,
+  525230023.0
+ ],
+ "fastweak__state_motion_5e-5|AVQDS": [
+  931315776,
+  927091776,
+  926968901
+ ],
+ "midres__delta_theta_5e-5|APM": [
+  1045454167,
+  948254725.0,
+  947333746.0
+ ],
+ "midres__delta_theta_5e-5|AVQDS": [
+  1714780436,
+  1710556436,
+  1710426686
+ ],
+ "midres__state_motion_5e-5|APM": [
+  592179134,
+  488158659.0,
+  487237680.0
+ ],
+ "midres__state_motion_5e-5|AVQDS": [
+  922022492,
+  917798492,
+  917668742
+ ],
+ "slowstrong__delta_theta_5e-5|APM": [
+  1172919839,
+  971467855.0,
+  971037559.0
+ ],
+ "slowstrong__delta_theta_5e-5|AVQDS": [
+  1021772065,
+  1017067315,
+  1016950190
+ ],
+ "slowstrong__state_motion_5e-5|APM": [
+  10838618783,
+  1724306050.0,
+  1548727066.0
+ ],
+ "slowstrong__state_motion_5e-5|AVQDS": [
+  521485712,
+  516268712,
+  516114212
+ ],
+ "strongfast__delta_theta_5e-5|APM": [
+  1666222930,
+  1574190937.0,
+  1573485447.0
+ ],
+ "fastfast__delta_theta_5e-5|APM": [
+  1708541964,
+  1503081821.0,
+  1501627922.0
+ ],
+ "fastfast__delta_theta_5e-5|AVQDS": [
+  1484352121,
+  1478866871,
+  1478711371
+ ],
+ "fastfast__state_motion_5e-5|APM": [
+  795281976,
+  626690767.0,
+  625396548.0
+ ],
+ "fastfast__state_motion_5e-5|AVQDS": [
+  1895687340,
+  1874723340,
+  1874203965
+ ]
+}

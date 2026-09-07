@@ -115,3 +115,42 @@ def test_decisions_are_memoized_and_summary_counts_unique_deletion_sets() -> Non
         DELETION_PERMISSION_ANGLE_RAY: 1,
         DELETION_PERMISSION_SCHUR_LOSS: 1,
     }
+
+
+def test_concurrent_assess_does_not_inflate_summary_counts() -> None:
+    # The evaluator memoizes on the canonical deletion set; concurrent
+    # duplicate assessments must produce identical decisions and must not
+    # inflate the unique-set summary counts.
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    def build():
+        return _evaluator(
+            K=np.asarray([[1.0, 1.0], [1.0, 1.0]]),
+            f=np.asarray([0.0, 1.0]),
+            theta=(1.0e-2, 0.0),
+            schur_max=0.25,
+        )
+
+    serial = build()
+    sets = ((0,), (1,), (0, 1), ())
+    serial_decisions = {s: serial.assess(s) for s in sets}
+
+    concurrent = build()
+    barrier = threading.Barrier(4)
+
+    def assess_after_barrier(deleted):
+        barrier.wait()
+        return concurrent.assess(deleted)
+
+    tasks = [s for s in sets for _repeat in range(8)]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(assess_after_barrier, tasks))
+
+    for deleted, decision in zip(tasks, results):
+        canonical = tuple(sorted(set(deleted)))
+        assert decision.to_json_dict() == serial_decisions[canonical].to_json_dict()
+    assert concurrent.summary() == serial.summary()
+    assert concurrent.summary()["evaluated_deletion_set_count"] == len(sets)
+    for s in sets:
+        assert concurrent.assess(s) is concurrent.assess(s)

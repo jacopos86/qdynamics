@@ -279,16 +279,30 @@ def _source_epoch_from_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     return epoch
 
 
+# The compiled-Q route's worker arm id.  It is the same structural arm as
+# ``exchange`` and therefore promotes into the same ``full_apm`` slot; the route
+# it ran on is carried by the score's ``exchange_route_bundle`` and the results
+# contract's ``route`` header, never by a third promotion slot.
+_COMPILED_Q_COMPLETION_ARM = "exchange_q_compiled"
+
+
+def _canonical_structural_arm(value: Any) -> str:
+    """Collapse a route-specific worker arm id onto its structural arm."""
+
+    arm = str(value or "")
+    return "exchange" if arm == _COMPILED_Q_COMPLETION_ARM else arm
+
+
 def _promotion_slot_from_completion_arm(value: Any) -> str:
     """Map the source-locked worker arm onto the reader-facing result slot."""
 
-    arm = str(value or "")
+    arm = _canonical_structural_arm(value)
     if arm == "avqds":
         return "avqds"
     if arm == "exchange":
         return "full_apm"
     raise SIAMStableBindingError(
-        f"unsupported SIAM completion arm for promotion: {arm!r}"
+        f"unsupported SIAM completion arm for promotion: {str(value or '')!r}"
     )
 
 
@@ -437,7 +451,7 @@ def _validated_result_evidence(
     if (
         score_method.get("code_revision") != epoch["source_revision"]
         or score_method.get("structural_policy")
-        != verified_raw_completion["arm"]
+        != _canonical_structural_arm(verified_raw_completion["arm"])
         or score_source.get("seed_sha256")
         != verified_raw_completion["seed_sha256"]
         or score_source.get("run_sha256")
