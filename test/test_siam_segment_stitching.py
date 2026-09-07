@@ -855,3 +855,16 @@ def test_historical_stitch_pair_is_unchanged_and_records_no_route(
     assert verified["arm"] == "exchange"
     assert verified["route_bundle_id"] is None
     assert verified["route_contract_sha256"] is None
+
+
+def test_assert_siam_resume_code_revision_rejects_mismatch_and_missing():
+    from pipelines.time_dynamics.diagnostics.siam_segment_stitching import (
+        assert_siam_resume_code_revision,
+    )
+
+    prepared = {"source_protocol": {"code_revision": "3e1691c4" + "0" * 32}}
+    assert_siam_resume_code_revision(prepared, "3e1691c4" + "0" * 32)
+    with pytest.raises(ValueError, match="differs from the source segment"):
+        assert_siam_resume_code_revision(prepared, "2ef146d6" + "0" * 32)
+    with pytest.raises(ValueError, match="requires --code-revision"):
+        assert_siam_resume_code_revision(prepared, None)

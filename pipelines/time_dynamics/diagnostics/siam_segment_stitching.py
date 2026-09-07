@@ -337,6 +337,38 @@ def prepare_siam_resume_lineage(
     return {**core, "prepared_lineage_sha256": _document_sha256(core)}
 
 
+def assert_siam_resume_code_revision(
+    prepared: Mapping[str, Any],
+    code_revision: str | None,
+) -> None:
+    """Fail at start-up when a continuation would fail the lineage guard.
+
+    ``finalize_siam_resume_lineage`` compares the whole segment contract after
+    propagation, and that contract carries the code revision.  A continuation
+    launched from a different revision than its source segment is therefore
+    certain to be rejected after the full run (2026-09-07: cluster 9721121
+    propagated 401 SIAM points for 21 hours and wrote nothing).  Check the one
+    field that is already known before the first time step.
+    """
+
+    protocol = _mapping(prepared.get("source_protocol"), name="SIAM source protocol")
+    source_revision = str(protocol.get("code_revision") or "").strip()
+    current = str(code_revision or "").strip()
+    if not current:
+        raise ValueError(
+            "SIAM continuation requires --code-revision so its segment contract "
+            f"can be checked against the source segment ({source_revision})."
+        )
+    if current != source_revision:
+        raise ValueError(
+            "SIAM continuation code revision "
+            f"{current} differs from the source segment's {source_revision}; "
+            "the post-run lineage guard would reject this segment.  Re-run the "
+            "source segment at the current revision or pin the continuation to "
+            "the source revision."
+        )
+
+
 def finalize_siam_resume_lineage(
     prepared: Mapping[str, Any],
     current_run: Mapping[str, Any],
@@ -1444,6 +1476,7 @@ __all__ = [
     "SIAM_NB4_T_FINAL",
     "SIAM_SEGMENT_LINEAGE_V1",
     "build_siam_nb4_stitch_completion_receipt",
+    "assert_siam_resume_code_revision",
     "finalize_siam_resume_lineage",
     "prepare_siam_resume_lineage",
     "stitch_siam_nb4_segments",

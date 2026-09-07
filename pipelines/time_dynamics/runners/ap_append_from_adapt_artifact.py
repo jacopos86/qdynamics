@@ -66,6 +66,7 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
 )
 from pipelines.time_dynamics.run_lock import build_run_lock
 from pipelines.time_dynamics.diagnostics.siam_segment_stitching import (
+    assert_siam_resume_code_revision,
     finalize_siam_resume_lineage,
     prepare_siam_resume_lineage,
 )
@@ -2528,6 +2529,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     args.resume_from_run_json,
                     prior,
                 )
+                try:
+                    assert_siam_resume_code_revision(
+                        prepared_siam_lineage, args.code_revision
+                    )
+                except ValueError as exc:
+                    raise SystemExit(f"error: {exc}") from exc
             resume_state = prior.get("resume_state") or {}
             if "coordinates" not in resume_state:
                 raise SystemExit(
