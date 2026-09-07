@@ -2,47 +2,48 @@
 % comparison_sha256=7f864f909977bc1b433f8457fd9b68a32504d8ab82de842e8bc612da1072967b
 \newcommand{\PaperIIFrontierTable}{%
 \begin{table*}[t]
-\caption{Completed $t=20$ AP-McLachlan (APM) trajectories and their locked AVQDS comparators.  Drives are identified by their amplitude and frequency $(A,\omega)$.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$ and $\overline{|\Delta n|}$ are mean absolute errors in total energy, doublon occupation and charge imbalance against the independent exact reference, averaged over all 501 reporting times.  $N_\theta$ is the terminal active-coordinate count, $(N_{2q},D_{2q},D_c)$ the terminal FakeMarrakesh compiled two-qubit count, two-qubit depth and total depth, $\mathcal E$ the total logical scalar-estimator count (Appendix~\ref{app:estimator_query_accounting}), and $N_{\rm step}$ the internal integration step count.  Where an AVQDS comparator predates the persisted estimator ledger, its $\mathcal E$ is the Appendix identity evaluated round by round from the recorded pool size and support at every time point; that reconstruction reproduces every persisted AVQDS ledger exactly.\label{tab:t20_q_compiled_frontier}}
+\caption{Completed $t=20$ AP-McLachlan (APM) trajectories and their locked AVQDS comparators.  Drives are identified by their amplitude and frequency $(A,\omega)$.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$ and $\overline{|\Delta n|}$ are mean absolute errors in total energy, doublon occupation and charge imbalance against the independent exact reference, averaged over all 501 reporting times.  $N_\theta$ is the terminal active-coordinate count, $(N_{2q},D_{2q},D_c)$ the terminal FakeMarrakesh compiled two-qubit count, two-qubit depth and total depth, $\mathcal E$ the total logical scalar-estimator count (Appendix~\ref{app:estimator_query_accounting}), and $N_{\rm step}$ the internal integration step count; $\tau_m$ is the activation threshold of the APM arm (AVQDS has no structural threshold).  The three errors are in units of $10^{-4}$, $\mathcal E$ in units of $10^{8}$ and $N_{\rm step}$ in units of $10^{3}$, as the second header row states.  Where an AVQDS comparator predates the persisted estimator ledger, its $\mathcal E$ is the Appendix identity evaluated round by round from the recorded pool size and support at every time point; that reconstruction reproduces every persisted AVQDS ledger exactly.\label{tab:t20_q_compiled_frontier}}
 \centering\scriptsize
 \setlength{\tabcolsep}{3.2pt}
-\begin{tabular}{lllrrrrrrrrr}
+\begin{tabular}{lllcrrrrrrrrr}
 \toprule
-$(A,\omega)$ & controller & method & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ \\
+$(A,\omega)$ & controller & method & $\tau_m$ & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ \\
+ &  &  &  & ($10^{-4}$) & ($10^{-4}$) & ($10^{-4}$) &  &  &  &  & ($10^{8}$) & ($10^{3}$) \\
 \midrule
-$(0.3,\,1)$ & $\delta\theta$ & APM & 2.17 & 1.65 & 7.45 & 59 & 185 & 139 & 502 & 27.1 & 73.9 \\
- &  & AVQDS & 1.47 & 1.36 & 7.95 & 945 & 2835 & 2710 & 9708 & 261 & 93.2 \\
+$(0.3,\,1)$ & $\delta\theta$ & APM & $4.57\times10^{-11}$ & 2.17 & 1.65 & 7.45 & 59 & 185 & 139 & 502 & 27.1 & 73.9 \\
+ &  & AVQDS &  & 1.47 & 1.36 & 7.95 & 945 & 2835 & 2710 & 9708 & 261 & 93.2 \\
 \addlinespace[1.5pt]
-$(0.3,\,1)$ & state motion & APM & 2.16 & 2.84 & 7.09 & 59 & 213 & 173 & 600 & 20.3 & 49.1 \\
- &  & AVQDS & 1.51 & 1.45 & 7.92 & 370 & 2049 & 1933 & 7209 & 30.3 & 37.1 \\
+$(0.3,\,1)$ & state motion & APM & $1.37\times10^{-10}$ & 2.16 & 2.84 & 7.09 & 59 & 213 & 173 & 600 & 20.3 & 49.1 \\
+ &  & AVQDS &  & 1.51 & 1.45 & 7.92 & 370 & 2049 & 1933 & 7209 & 30.3 & 37.1 \\
 \addlinespace[1.5pt]
-$(0.6,\,3)$ & $\delta\theta$ & APM & 16.2 & 3.03 & 8.17 & 50 & 152 & 115 & 402 & 9.37 & 524 \\
- &  & AVQDS & 4.24 & 1.18 & 3.86 & 61 & 233 & 190 & 682 & 15.1 & 796 \\
+$(0.6,\,3)$ & $\delta\theta$ & APM & $3\times10^{-7}$ & 16.2 & 3.03 & 8.17 & 50 & 152 & 115 & 402 & 9.37 & 524 \\
+ &  & AVQDS &  & 4.24 & 1.18 & 3.86 & 61 & 233 & 190 & 682 & 15.1 & 796 \\
 \addlinespace[1.5pt]
-$(0.6,\,3)$ & state motion & APM & 3.73 & 2.00 & 3.65 & 43 & 164 & 128 & 442 & 6.83 & 498 \\
- &  & AVQDS & 5.25 & 1.52 & 4.60 & 60 & 233 & 192 & 692 & 9.31 & 498 \\
+$(0.6,\,3)$ & state motion & APM & $3\times10^{-6}$ & 3.73 & 2.00 & 3.65 & 43 & 164 & 128 & 442 & 6.83 & 498 \\
+ &  & AVQDS &  & 5.25 & 1.52 & 4.60 & 60 & 233 & 192 & 692 & 9.31 & 498 \\
 \addlinespace[1.5pt]
-$(1.2,\,2)$ & $\delta\theta$ & APM & 6.52 & 2.23 & 2.51 & 42 & 170 & 131 & 437 & 10.5 & 960 \\
- &  & AVQDS & 4.77 & 1.43 & 1.76 & 60 & 216 & 185 & 666 & 17.1 & 948 \\
+$(1.2,\,2)$ & $\delta\theta$ & APM & $3\times10^{-6}$ & 6.52 & 2.23 & 2.51 & 42 & 170 & 131 & 437 & 10.5 & 960 \\
+ &  & AVQDS &  & 4.77 & 1.43 & 1.76 & 60 & 216 & 185 & 666 & 17.1 & 948 \\
 \addlinespace[1.5pt]
-$(1.2,\,2)$ & state motion & APM & 2.71 & 2.59 & 2.88 & 40 & 154 & 117 & 406 & 5.92 & 500 \\
- &  & AVQDS & 5.83 & 1.69 & 2.74 & 60 & 216 & 185 & 669 & 9.22 & 500 \\
+$(1.2,\,2)$ & state motion & APM & $3\times10^{-6}$ & 2.71 & 2.59 & 2.88 & 40 & 154 & 117 & 406 & 5.92 & 500 \\
+ &  & AVQDS &  & 5.83 & 1.69 & 2.74 & 60 & 216 & 185 & 669 & 9.22 & 500 \\
 \addlinespace[1.5pt]
-$(1.2,\,1)$ & $\delta\theta$ & APM & 2.98 & 3.52 & 7.37 & 50 & 158 & 132 & 472 & 11.7 & 749 \\
- &  & AVQDS & 1.99 & 1.16 & 1.17 & 62 & 251 & 214 & 748 & 10.2 & 519 \\
+$(1.2,\,1)$ & $\delta\theta$ & APM & $3\times10^{-6}$ & 2.98 & 3.52 & 7.37 & 50 & 158 & 132 & 472 & 11.7 & 749 \\
+ &  & AVQDS &  & 1.99 & 1.16 & 1.17 & 62 & 251 & 214 & 748 & 10.2 & 519 \\
 \addlinespace[1.5pt]
-$(1.2,\,1)$ & state motion & APM & 11.3 & 3.88 & 8.53 & 89 & 331 & 265 & 868 & 108 & 250 \\
- &  & AVQDS & 4.14 & 1.81 & 2.59 & 64 & 249 & 211 & 707 & 5.21 & 250 \\
+$(1.2,\,1)$ & state motion & APM & $5.08\times10^{-12}$ & 11.3 & 3.88 & 8.53 & 89 & 331 & 265 & 868 & 108 & 250 \\
+ &  & AVQDS &  & 4.14 & 1.81 & 2.59 & 64 & 249 & 211 & 707 & 5.21 & 250 \\
 \addlinespace[1.5pt]
-$(2.4,\,3)$ & $\delta\theta$ & APM & 4.30 & 1.45 & 4.64 & 42 & 132 & 98 & 365 & 16.7 & 1589 \\
- &  & AVQDS & 20.7 & 2.13 & 7.41 & 555 & 3123 & 2893 & 10979 & 305 & 441 \\
+$(2.4,\,3)$ & $\delta\theta$ & APM & $3\times10^{-6}$ & 4.30 & 1.45 & 4.64 & 42 & 132 & 98 & 365 & 16.7 & 1589 \\
+ &  & AVQDS &  & 20.7 & 2.13 & 7.41 & 555 & 3123 & 2893 & 10979 & 305 & 441 \\
 \addlinespace[1.5pt]
-$(0.6,\,6)$ & $\delta\theta$ & APM & 5.41 & 2.77 & 4.74 & 44 & 117 & 85 & 322 & 17.1 & 1391 \\
- &  & AVQDS & 8.18 & 1.34 & 3.14 & 65 & 271 & 242 & 838 & 14.8 & 688 \\
+$(0.6,\,6)$ & $\delta\theta$ & APM & $3\times10^{-6}$ & 5.41 & 2.77 & 4.74 & 44 & 117 & 85 & 322 & 17.1 & 1391 \\
+ &  & AVQDS &  & 8.18 & 1.34 & 3.14 & 65 & 271 & 242 & 838 & 14.8 & 688 \\
 \addlinespace[1.5pt]
-$(0.6,\,6)$ & state motion & APM & 6.17 & 1.29 & 3.68 & 51 & 169 & 112 & 407 & 7.95 & 504 \\
- &  & AVQDS & 4.50 & 0.71 & 2.28 & 100 & 424 & 339 & 1146 & 19.0 & 504 \\
+$(0.6,\,6)$ & state motion & APM & $3\times10^{-6}$ & 6.17 & 1.29 & 3.68 & 51 & 169 & 112 & 407 & 7.95 & 504 \\
+ &  & AVQDS &  & 4.50 & 0.71 & 2.28 & 100 & 424 & 339 & 1146 & 19.0 & 504 \\
 \addlinespace[1.5pt]
-$(2.4,\,3)$ & state motion & pending & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+$(2.4,\,3)$ & state motion & pending & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table*}

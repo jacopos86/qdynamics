@@ -70,12 +70,12 @@
   },
   "outputs": {
     "figure": {
-      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v3/fig.pdf",
-      "sha256": "81d5407c2a72598ac98392aa568fb92c9ddb2f8191e7e1227a989f923cf912e9"
+      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v4/fig.pdf",
+      "sha256": "d1f55c1df525e55672acf986b2b619a871e3585e307885d0cc286e337bc04102"
     },
     "table": {
-      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v3/paper_ii_t20_q_compiled_frontier_table.tex",
-      "sha256": "583219afb004980e7cf3c6aa8431bcfbe524269e80faa730507e1b67aa6678ff"
+      "path": "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83dc95d7-704e-4c63-98d8-b03bcd1e9b4e/scratchpad/assets_v4/paper_ii_t20_q_compiled_frontier_table.tex",
+      "sha256": "c3b7ecd59a3f07080331c8927969e7eff3fa513a01d95bf43d45dcc3d28178c5"
     }
   },
   "route_bundle": "paper_ii_exchange_q_compiled_v1",

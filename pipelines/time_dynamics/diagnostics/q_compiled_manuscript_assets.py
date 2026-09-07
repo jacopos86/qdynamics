@@ -226,6 +226,14 @@ STEP_UNIT = 10 ** 3
 ERROR_UNIT = 10 ** -4
 
 
+def _tau_tex(value: float) -> str:
+    """``3e-06`` -> ``$3\\times10^{-6}$`` with up to three significant digits."""
+
+    mantissa, exponent = f"{float(value):.2e}".split("e")
+    mantissa = mantissa.rstrip("0").rstrip(".")
+    return rf"${mantissa}\times10^{{{int(exponent)}}}$"
+
+
 def _scaled(value: float, unit: float) -> str:
     """Three significant figures in the table's declared unit."""
 
@@ -363,18 +371,24 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         r"FakeMarrakesh compiled two-qubit count, two-qubit depth and total "
         r"depth, $\mathcal E$ the total logical scalar-estimator count "
         r"(Appendix~\ref{app:estimator_query_accounting}), and $N_{\rm step}$ "
-        r"the internal integration step count.  Where an AVQDS comparator "
+        r"the internal integration step count; $\tau_m$ is the activation "
+        r"threshold of the APM arm (AVQDS has no structural threshold).  The "
+        r"three errors are in units of $10^{-4}$, $\mathcal E$ in units of "
+        r"$10^{8}$ and $N_{\rm step}$ in units of $10^{3}$, as the second "
+        r"header row states.  Where an AVQDS comparator "
         r"predates the persisted estimator ledger, its $\mathcal E$ is the "
         r"Appendix identity evaluated round by round from the recorded pool "
         r"size and support at every time point; that reconstruction reproduces "
         r"every persisted AVQDS ledger exactly.\label{tab:t20_q_compiled_frontier}}",
         r"\centering\scriptsize",
         r"\setlength{\tabcolsep}{3.2pt}",
-        r"\begin{tabular}{lllrrrrrrrrr}",
+        r"\begin{tabular}{lllcrrrrrrrrr}",
         r"\toprule",
-        r"$(A,\omega)$ & controller & method & $\overline{|\Delta E|}$ & "
+        r"$(A,\omega)$ & controller & method & $\tau_m$ & $\overline{|\Delta E|}$ & "
         r"$\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & "
         r"$N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ \\",
+        r" &  &  &  & ($10^{-4}$) & ($10^{-4}$) & ($10^{-4}$) &  &  &  &  & "
+        r"($10^{8}$) & ($10^{3}$) \\",
         r"\midrule",
     ]
     for index, cell in enumerate(cells):
@@ -397,6 +411,7 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
                     head
                     + [
                         label,
+                        _tau_tex(cell["apm_cut"]) if position == 0 else "",
                         _scaled(accuracy["mean_abs_energy_error"], ERROR_UNIT),
                         _scaled(accuracy["mean_abs_doublon_error"], ERROR_UNIT),
                         _scaled(accuracy["mean_abs_charge_imbalance_error"], ERROR_UNIT),
@@ -415,7 +430,7 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         lines.append(
             " & ".join(
                 [DRIVE_TEX[drive], CONTROLLER_TEX[controller], "pending"]
-                + ["--"] * 9
+                + ["--"] * 10
             )
             + r" \\"
         )
