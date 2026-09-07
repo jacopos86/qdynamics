@@ -459,7 +459,7 @@ def _table_tex(cells, comparison_sha: str, pending: Sequence[tuple[str, str]] = 
         r"base geometry (the executed count $\mathcal E_{\rm exec}$ is in "
         r"Table~\ref{tab:t20_q_compiled_support_motion}), and $N_{\rm step}$ "
         r"the internal integration step count; $\tau_m$ is the activation "
-        r"threshold of the APM arm (AVQDS has no structural threshold).  The "
+        r"threshold of the APM arm.  The "
         r"three errors are in units of $10^{-4}$, $\mathcal E$ in units of "
         r"$10^{8}$ and $N_{\rm step}$ in units of $10^{3}$, as the second "
         r"header row states.  Where an AVQDS comparator predates the persisted "
