@@ -7,6 +7,7 @@ snapshots. It contains no gain formula, compilation policy, or certification.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Iterable, Sequence
 
@@ -44,14 +45,37 @@ class SearchResult:
     permitted_deletion_count: int
     refused_deletion_count: int
     refusal: dict | None = None
+    # (deletion cardinality, permitted visits, refused visits), including D=().
+    permission_counts_by_cardinality: tuple[tuple[int, int, int], ...] = ()
 
     def receipt(self) -> dict:
+        """Report completed coverage and known permissions, never unseen eligibility.
+
+        Missing cardinality rows mean no completed patches or cached permission
+        visits at that size. They do not imply that such patches are forbidden.
+        Work reservations and compiler work remain in the existing guards.
+        """
+
+        patch_counts = Counter(
+            (len(candidate.removed_runtime_indices), len(candidate.inserted_selection))
+            for candidate in self.candidates
+        )
         return {
             "stop_reason": self.stop_reason,
             "exhaustive_complete": self.exhaustive_complete,
             "evaluated_patch_count": len(self.candidates),
             "permitted_deletion_count": self.permitted_deletion_count,
             "refused_deletion_count": self.refused_deletion_count,
+            "coverage": {
+                "evaluated_patches_by_cardinality": [
+                    {"deletion_size": d, "insertion_size": a, "count": count}
+                    for (d, a), count in sorted(patch_counts.items())
+                ],
+                "visited_deletion_sets_by_cardinality": [
+                    {"deletion_size": d, "permitted": permitted, "refused": refused}
+                    for d, permitted, refused in self.permission_counts_by_cardinality
+                ],
+            },
             "moves": list(self.moves),
             **({"refusal": dict(self.refusal)} if self.refusal is not None else {}),
         }
@@ -216,6 +240,9 @@ class SearchSession:
         })
 
     def finish(self, reason: str, exhaustive_complete: bool = False) -> SearchResult:
+        permission_counts = Counter(
+            (len(removed), allowed) for removed, allowed in self.permission_cache.items()
+        )
         return SearchResult(
             candidates=tuple(self.evidence.values()), guard=self.guard,
             compile_guard=self.compile_guard, stop_reason=reason,
@@ -224,6 +251,10 @@ class SearchSession:
             permitted_deletion_count=sum(self.permission_cache.values()),
             refused_deletion_count=sum(not allowed for allowed in self.permission_cache.values()),
             refusal=self.refusal,
+            permission_counts_by_cardinality=tuple(
+                (d, permission_counts[d, True], permission_counts[d, False])
+                for d in sorted({d for d, _allowed in permission_counts})
+            ),
         )
 
 

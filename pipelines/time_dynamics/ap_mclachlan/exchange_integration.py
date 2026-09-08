@@ -1239,6 +1239,7 @@ def build_selector_inputs(
         tokens_commute=tokens_commute_from_terms(terms_by_key),
         deletion_history_loss=deletion_history_loss,
         max_insertion_batch_size=max_batch,
+        max_deletion_batch_size=exchange_config.search.deletion_cardinality,
         interaction_frontier_widths=exchange_config.search.interaction_frontier_widths,
         max_joint_patch_evaluations=exchange_config.search.joint_patch_evaluations,
         scoring_workers=int(exchange_config.search.scoring_workers),
@@ -1308,8 +1309,9 @@ def select_generalized_exchange_patch(
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
     """Select one generalized patch from the admissible ``(D, I)`` domain.
 
-    L2, the support floor, the insertion-cardinality cap, target/protection
-    gates, and the explicit debt ablation determine the searched face here.
+    L2, the support floor, insertion and optional deletion cardinality caps,
+    target/protection gates, and the explicit debt ablation determine the
+    searched face here.
     A materialized candidate under accuracy debt must strictly reduce L2.  If
     a deletion-containing finalist does not, this operation retries its own
     insert-only boundary instead of making the trajectory caller do so.

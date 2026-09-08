@@ -119,6 +119,27 @@ def _config(**overrides):
     return SupportPatchControllerConfig(**base)
 
 
+@pytest.mark.parametrize("limit", [None, 0, 1])
+def test_deletion_cardinality_is_transported_to_selector_inputs(limit) -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import build_selector_inputs
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state, hamiltonian=HAM, theta_runtime=state.theta_runtime,
+        time=0.0, include_tangent_matrix=True,
+    )
+    config = _config(max_deletion_batch_size=limit)
+    inputs = build_selector_inputs(
+        state=state, evaluation=evaluation, support_config=config,
+        runtime_state=_PruneControllerRuntimeState(), theta_runtime=state.theta_runtime,
+        time_index=0, deletable_atoms=_active_prune_atoms(
+            state, theta_runtime=state.theta_runtime, support_config=config,
+            runtime_state=_PruneControllerRuntimeState(), time_index=0,
+        ),
+    )
+    assert inputs["structural_kwargs"]["max_deletion_batch_size"] == limit
+
+
 def test_selector_commits_from_real_route_objects_and_reports_payload() -> None:
     selection, payload = _run(_config())
     assert selection.kind in {"insert", "delete", "exchange"}

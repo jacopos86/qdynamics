@@ -31,6 +31,59 @@ PATHS = [
 ]
 
 
+@pytest.mark.parametrize("method,mode", PATHS)
+@pytest.mark.parametrize("limit, branch_count", [(0, 1), (1, 3), (None, 4)])
+def test_runtime_deletion_cardinality_reaches_all_search_paths(monkeypatch, method, mode, limit, branch_count):
+    case = _case(monkeypatch)
+
+    def permit(removed):
+        case.permission_calls.append(removed)
+        if limit is not None:
+            assert len(removed) <= limit
+        return SimpleNamespace(permitted=True)
+
+    case.kwargs.update(
+        max_deletion_batch_size=limit, max_insertion_batch_size=1,
+        deletion_permission=permit,
+    )
+    result = _run(case, method, mode)
+    assert len(result.candidates) == 3 * branch_count
+    assert len(case.permission_calls) == branch_count - 1
+    assert len({c.removed_runtime_indices for c in result.candidates}) == branch_count
+    if limit is None:
+        assert (0, 1) in case.permission_calls
+    else:
+        assert all(len(removed) <= limit for removed in case.pool_calls)
+
+
+@pytest.mark.parametrize("method,mode", PATHS)
+@pytest.mark.parametrize("limit", [-1, 0.5])
+def test_invalid_deletion_cardinality_fails_before_backend_work(monkeypatch, method, mode, limit):
+    case = _case(monkeypatch)
+    with pytest.raises(ValueError, match="max_deletion_batch_size"):
+        _run(case, method, mode, max_deletion_batch_size=limit)
+    assert case.actual_solves == []
+    assert case.permission_calls == case.pool_calls == case.prices == []
+
+
+def test_family_deletion_cardinality_stops_before_constructing_higher_sets(monkeypatch):
+    case = _case(monkeypatch)
+
+    def forbidden_rung():
+        pytest.fail("family enumeration must not construct a higher-cardinality deletion tuple")
+        yield (0, 1)
+
+    def rungs(*_args, **_kwargs):
+        yield 0, iter(((),))
+        yield 1, iter(((0,), (1,)))
+        yield 2, forbidden_rung()
+
+    monkeypatch.setattr(exchange_structural, "iter_deletion_rungs", rungs)
+    result = _run(case, "family_frontiers", "joint_batch", max_deletion_batch_size=1)
+    assert case.permission_calls == [(0,), (1,)]
+    assert all(len(c.removed_runtime_indices) <= 1 for c in result.candidates)
+
+
 def _case(monkeypatch, *, joint_refusal="angle", branch_only_pool=False):
     basis = np.eye(4)
     if joint_refusal == "angle":

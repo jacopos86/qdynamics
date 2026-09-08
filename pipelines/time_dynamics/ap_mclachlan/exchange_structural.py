@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import combinations
+from numbers import Integral
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
@@ -125,6 +126,7 @@ def iter_structural_families(
     deletion_history_loss: Callable[[tuple[int, ...]], float] | None = None,
     tokens_commute: Callable[[WordToken, WordToken], bool] | None = None,
     max_insertion_batch_size: int = 1,
+    max_deletion_batch_size: int | None = None,
     interaction_frontier_widths: Sequence[int] | None = None,
     max_joint_patch_evaluations: int | None = None,
     scoring_workers: int = 1,
@@ -160,6 +162,8 @@ def iter_structural_families(
     is built. The structural work guard counts only permitted complete
     patches; the compilation guard counts their regime-active subset.
     Permission checks consume no patch-evaluation slots.
+    ``max_deletion_batch_size`` is an optional enumeration restriction;
+    higher-cardinality sets are never constructed or sent to permission.
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
     frozen child order (occurrence policy applied by the caller; a deleted
     child may re-enter).  ``cuts_by_atom`` holds each child's retained
@@ -178,6 +182,12 @@ def iter_structural_families(
     ``max_joint_patch_evaluations``.
     """
 
+    if max_deletion_batch_size is not None and (
+        isinstance(max_deletion_batch_size, bool)
+        or not isinstance(max_deletion_batch_size, Integral)
+        or max_deletion_batch_size < 0
+    ):
+        raise ValueError("max_deletion_batch_size must be a non-negative integer or None.")
     n = int(base_f.reshape(-1).size)
     guard = JointWorkGuard(max_joint_patch_evaluations=max_joint_patch_evaluations)
     evaluator = PatchEvaluator(
@@ -351,6 +361,8 @@ def iter_structural_families(
         total_support=n,
         min_surviving_support=int(min_surviving_support),
     ):
+        if max_deletion_batch_size is not None and d > max_deletion_batch_size:
+            break
         if d == 0:
             continue
         family = f"singleton_d{d}"

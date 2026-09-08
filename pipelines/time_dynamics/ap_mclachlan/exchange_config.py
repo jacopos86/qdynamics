@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import math
+from numbers import Integral
 from types import MappingProxyType
 from typing import Any, Mapping
 
@@ -301,8 +302,15 @@ class ExchangeSearchBudget:
     exchange_insertion_frontier: int | None = None
     search_policy: str = "family_frontiers"
     gain_evaluation: str = "joint_batch"
+    deletion_cardinality: int | None = None
 
     def __post_init__(self) -> None:
+        if self.deletion_cardinality is not None and (
+            isinstance(self.deletion_cardinality, bool)
+            or not isinstance(self.deletion_cardinality, Integral)
+            or self.deletion_cardinality < 0
+        ):
+            raise ValueError("deletion_cardinality must be a non-negative integer or None.")
         validate_search_policy(
             self.search_policy,
             gain_evaluation=self.gain_evaluation,
@@ -338,6 +346,8 @@ class APGeneralizedExchangeConfig:
 
         payload = asdict(self)
         search = payload.get("search")
+        if isinstance(search, dict) and search.get("deletion_cardinality") is None:
+            search.pop("deletion_cardinality", None)
         if (
             isinstance(search, dict)
             and search.get("exchange_insertion_frontier") is None
@@ -424,6 +434,7 @@ class APGeneralizedExchangeConfig:
             ),
             search=ExchangeSearchBudget(
                 insertion_cardinality=int(insertion_cap),
+                deletion_cardinality=getattr(config, "max_deletion_batch_size", None),
                 joint_patch_evaluations=(
                     None
                     if config.max_joint_patch_evaluations is None

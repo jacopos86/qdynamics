@@ -33,9 +33,11 @@ The local campaign grid and CHTC submission remain pending.
   This changes finite-budget coverage, including on the retained family path.
 - Build new comparison commands with
   `paper_ii_runs.build_selector_comparison_run(search_policy=...,
-  gain_evaluation=..., insertion_cardinality=..., **run_settings)`.
+  gain_evaluation=..., insertion_cardinality=..., deletion_cardinality=...,
+  **run_settings)`.
   The helper pins compiled-Q and validates effective runner arguments, including
-  late overrides. All three axes are required and included in run identity.
+  late overrides. Search, gain, and both cardinalities are required and included
+  in run identity.
   Named profile budgets remain explicit; the generic builder is unchanged.
 - The legacy frontier's ordering is deferred, as requested. Existing v1
   revisions and evidence remain unchanged; current accounting corrections
@@ -75,7 +77,7 @@ short test groups can finish before the guard obtains a meaningful RSS sample.
 |---|---|---:|
 | Search policy | `greedy`, `bounded_exhaustive`, `block_exchange` | 3 |
 | Gain evaluation | `joint_batch`, `singleton_factorized` | 2 |
-| Insertion admission | Singleton only; batching allowed | 2 |
+| Patch admission | Singleton insertion/deletion; batching allowed | 2 |
 | Work budget | Low; high — numerical limits to be chosen | 2 |
 | Drive regime | D1, D2, D3 — physical drives to be chosen | 3 |
 
@@ -94,10 +96,40 @@ and nonbinding budgets, the radius-two block search already evaluates every
 allowed insertion block from its empty starting block. The block-search move
 radius remains two in both admission settings.
 
-The current interpretation of singleton-only is \(|A|\leq1\) **per patch**.
-The existing deletion-set permissions and repeated checkpoint rounds remain
-shared. Confirm before launch whether “no batching” should also restrict
-\(|D|\); that would require an explicit deletion-cardinality policy.
+The user clarified singleton-only as \(|A|\leq1\) and \(|D|\leq1\) **per patch**,
+while keeping complete candidate pools. The explicit optional deletion cap is
+`max_deletion_batch_size`; `None` preserves unrestricted deletion cardinality
+subject to complete-set permissions. The batching arm uses A4/D-unrestricted.
+This is an enumeration policy change; the ray-displacement bound and
+reverse-Schur loss permission remain separate, unchanged tests on each D.
+
+## Local diagnostic pilot
+
+Before extending the campaign, execute one budget-calibration trajectory and
+24 matched local trajectories (three searches, two gains, A1/D1 versus A4/D-all,
+two budgets). The user authorized local execution on 2026-09-08. Record the
+chosen budgets from calibration before freezing the 24-cell plan.
+
+Use the existing complete-pool Hubbard SNAKE seed, existing `fastweak` drive,
+RK4 ridge-1e-7 numerics, and state-motion safeguards. The diagnostic horizon is
+the first three intervals of the registered smoke grid: t=0..0.125, four
+reporting points. `rounds_per_checkpoint=1` is common to every cell. The current
+runtime loop permits up to two selector calls under this setting; preserve that
+behavior for this pilot and report all calls.
+The seed resolves to 22 deduplicated operators without fallback or truncation;
+the immutable plan binds its hash and all effective arguments.
+
+`diagnostics.selector_local_pilot` builds commands through the shared comparison
+helper. Its execution helper gives each case an independent 3 GB RAM guard,
+600-second wall limit, one worker and one BLAS thread. Timeouts and partial
+attempts are retained. No CHTC work is submitted by this pilot.
+
+Search receipts count evaluated circuit realizations by (|D|,|A|) and visited
+permitted/refused deletion sets by |D|. Unvisited sets are unknown, not refused.
+The round ledger retains every selector call's compact coverage, guards and
+committed patch; estimator totals include every pass and its validation/evolution
+work. Exact-reference propagation and terminal-resource reporting occur only
+after execution. These local diagnostics are not promoted scientific results.
 
 ## Gain modes and singleton parity
 

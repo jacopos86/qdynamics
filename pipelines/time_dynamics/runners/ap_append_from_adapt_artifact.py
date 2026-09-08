@@ -339,6 +339,10 @@ def run_append_ap_mclachlan_from_runtime_input(
         exchange_route_contract_sha256=route_contract_sha256,
     )
     run_guards.update(search_axes)
+    if effective_support_patch_config.max_deletion_batch_size is not None:
+        run_guards["max_deletion_batch_size"] = int(
+            effective_support_patch_config.max_deletion_batch_size
+        )
     run_lock = build_run_lock(
         seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
         or None,
@@ -2070,6 +2074,15 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--max-deletion-batch-size",
+        type=int,
+        default=None,
+        help=(
+            "Upper bound on deleted runtime coordinates in one exchange patch. "
+            "Default None is unrestricted; zero disables deletion-bearing patches."
+        ),
+    )
+    parser.add_argument(
         "--interaction-frontier-widths",
         default=None,
         help=(
@@ -2283,6 +2296,7 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
         deletion_enabled=bool(args.exchange_deletions),
         append_occurrence_policy=str(args.append_occurrence_policy),
         max_insertion_batch_size=int(args.max_insertion_batch_size),
+        max_deletion_batch_size=args.max_deletion_batch_size,
         interaction_frontier_widths=(
             None
             if args.interaction_frontier_widths in (None, "")
@@ -2667,6 +2681,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     None
                     if args.max_insertion_batch_size is None
                     else int(args.max_insertion_batch_size)
+                ),
+                **(
+                    {"max_deletion_batch_size": int(args.max_deletion_batch_size)}
+                    if args.max_deletion_batch_size is not None
+                    else {}
                 ),
                 "interaction_frontier_widths": (
                     None

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Integral
 from typing import Callable, Iterable, Iterator, Mapping, Sequence
 
 from ..deletion_family import iter_deletion_rungs
@@ -14,7 +15,8 @@ from ..patch_enumeration import Patch, iter_permitted_patches
 class PatchProblem:
     """Frozen support, full branch pools, and explicit scientific permissions.
 
-    ``max_insertion_batch_size`` declares the common admissible cardinality.
+    Insertion and optional deletion cardinality limits declare the common
+    enumerated universe. None leaves deletion cardinality unrestricted.
     There is no pool cap or pure-insertion-score frontier. The caller supplies
     one cached tangent representative per distinct singleton position class;
     joint blocks retain complete paired-word plans.
@@ -26,10 +28,17 @@ class PatchProblem:
     candidate_pool_for_deletion: Callable[[tuple[int, ...]], tuple[str, ...]]
     cuts_by_atom: Mapping[str, Sequence[int]]
     max_insertion_batch_size: int = 1
+    max_deletion_batch_size: int | None = None
     tokens_commute: TokensCommute | None = None
     deletion_permission: Callable[[tuple[int, ...]], bool] | None = None
 
     def __post_init__(self) -> None:
+        if self.max_deletion_batch_size is not None and (
+            isinstance(self.max_deletion_batch_size, bool)
+            or not isinstance(self.max_deletion_batch_size, Integral)
+            or self.max_deletion_batch_size < 0
+        ):
+            raise ValueError("max_deletion_batch_size must be a non-negative integer or None.")
         if self.max_insertion_batch_size < 0:
             raise ValueError("max_insertion_batch_size must be non-negative")
         if len(set(self.coordinate_keys)) != len(self.coordinate_keys):
@@ -42,11 +51,13 @@ class PatchProblem:
     def deletion_sets(self) -> Iterator[tuple[int, ...]]:
         """Hard-feasible deletion sets in increasing cardinality and frozen order."""
 
-        for _size, rung in iter_deletion_rungs(
+        for size, rung in iter_deletion_rungs(
             self.deletable_indices,
             total_support=len(self.coordinate_keys),
             min_surviving_support=self.min_surviving_support,
         ):
+            if self.max_deletion_batch_size is not None and size > self.max_deletion_batch_size:
+                return
             yield from rung
 
     def permitted(self, removed: tuple[int, ...]) -> bool:

@@ -1,4 +1,5 @@
 import pytest
+from dataclasses import replace
 """Typed-boundary contract for the AP generalized-exchange adapter."""
 
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
@@ -11,6 +12,37 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
     ExchangeScoreConfig,
     ExchangeSearchBudget,
 )
+
+
+@pytest.mark.parametrize("limit", [None, 0, 1, 3])
+def test_deletion_cardinality_flows_through_raw_and_nested_provenance(limit) -> None:
+    route = SupportPatchControllerConfig(max_deletion_batch_size=limit)
+    typed = APGeneralizedExchangeConfig.from_route_config(route)
+    assert typed.search.deletion_cardinality == limit
+    raw = route.to_json_dict()
+    nested = raw["generalized_exchange"]["search"]
+    if limit is None:
+        assert "max_deletion_batch_size" not in raw
+        assert "deletion_cardinality" not in nested
+        assert raw == SupportPatchControllerConfig().to_json_dict()
+    else:
+        assert raw["max_deletion_batch_size"] == limit
+        assert nested["deletion_cardinality"] == limit
+
+
+@pytest.mark.parametrize("limit", [-1, 0.5, 1.0, True, "1"])
+def test_deletion_cardinality_is_validated_at_raw_and_typed_boundaries(limit) -> None:
+    with pytest.raises(ValueError, match="max_deletion_batch_size"):
+        SupportPatchControllerConfig(max_deletion_batch_size=limit)
+    base = APGeneralizedExchangeConfig.from_route_config(SupportPatchControllerConfig())
+    with pytest.raises(ValueError, match="deletion_cardinality"):
+        replace(base.search, deletion_cardinality=limit)
+
+
+@pytest.mark.parametrize("policy", ["avqds", "fixed"])
+def test_explicit_deletion_cardinality_cannot_be_ignored_by_another_dynamics_policy(policy) -> None:
+    with pytest.raises(ValueError, match="max_deletion_batch_size requires"):
+        SupportPatchControllerConfig(dynamics_policy=policy, max_deletion_batch_size=1)
 
 
 def test_route_transport_is_partitioned_into_four_exchange_inputs() -> None:

@@ -43,6 +43,69 @@ SEARCHES = pytest.mark.parametrize(
 )
 
 
+@SEARCHES
+@pytest.mark.parametrize("limit, branch_count", [(0, 1), (1, 4), (None, 8)])
+def test_deletion_cardinality_restricts_sets_without_truncating_large_insertion_pool(
+    search, limit, branch_count,
+) -> None:
+    pool = tuple(f"a{i:02}" for i in range(64))
+    permissions = []
+
+    def permit(removed):
+        permissions.append(removed)
+        if limit is not None:
+            assert len(removed) <= limit
+        return True
+
+    problem = _problem(
+        pool, maximum_size=1, max_deletion_batch_size=limit,
+        coordinate_keys=("s0", "s1", "s2"), deletable_indices=(0, 1, 2),
+        deletion_permission=permit,
+    )
+    result = search(
+        problem, _SyntheticEvaluator(lambda patch: len(patch.inserted_selection)),
+        _rank_population, SearchLimits(),
+    )
+    assert len(result.candidates) == branch_count * 65
+    assert len(permissions) == branch_count - 1
+    assert len({c.removed_runtime_indices for c in result.candidates}) == branch_count
+    for removed in {c.removed_runtime_indices for c in result.candidates}:
+        assert {
+            c.inserted_selection[0][0]
+            for c in result.candidates
+            if c.removed_runtime_indices == removed and c.inserted_selection
+        } == set(pool)
+    assert all(len(c.inserted_selection) <= 1 for c in result.candidates)
+    if limit is None:
+        assert (0, 1, 2) in permissions
+
+
+@pytest.mark.parametrize("limit", [-1, 0.5, 1.0, True, "1"])
+def test_direct_patch_problem_rejects_invalid_deletion_cardinality(limit) -> None:
+    with pytest.raises(ValueError, match="max_deletion_batch_size"):
+        _problem((), max_deletion_batch_size=limit)
+
+
+def test_deletion_cardinality_stops_before_constructing_higher_sets(monkeypatch) -> None:
+    from pipelines.time_dynamics.ap_mclachlan.search_methods import problem as problem_module
+
+    def forbidden_rung():
+        pytest.fail("a higher-cardinality deletion tuple must not be constructed")
+        yield (0, 1)
+
+    def rungs(*_args, **_kwargs):
+        yield 0, iter(((),))
+        yield 1, iter(((0,), (1,)))
+        yield 2, forbidden_rung()
+
+    monkeypatch.setattr(problem_module, "iter_deletion_rungs", rungs)
+    problem = _problem(
+        (), coordinate_keys=("s0", "s1"), deletable_indices=(0, 1),
+        max_deletion_batch_size=1,
+    )
+    assert tuple(problem.deletion_sets()) == ((), (0,), (1,))
+
+
 def _block(candidate) -> frozenset[str]:
     return frozenset(atom for atom, _cut in candidate.inserted_selection)
 
@@ -572,3 +635,134 @@ def test_runtime_requires_gamma_tolerance_before_constructing_search(gain_mode, 
             search_policy="greedy", gain_evaluation=gain_mode,
             structural_kwargs=kwargs, population_ranker=_rank_population,
         )
+
+
+def test_coverage_receipt_counts_completed_patch_cardinalities_and_known_permissions() -> None:
+    evaluator = _SyntheticEvaluator(lambda patch: float(len(patch.inserted_selection)))
+    result = exhaustive_search(
+        _problem(
+            ("a", "b"), coordinate_keys=("s0", "s1"), deletable_indices=(0, 1),
+            deletion_permission=lambda removed: removed == (1,),
+        ),
+        evaluator, _rank_population, SearchLimits(),
+    )
+    requested_before = tuple(evaluator.requested)
+    receipt = result.receipt()
+    assert receipt["coverage"] == {
+        "evaluated_patches_by_cardinality": [
+            {"deletion_size": 0, "insertion_size": 0, "count": 1},
+            {"deletion_size": 0, "insertion_size": 1, "count": 2},
+            {"deletion_size": 0, "insertion_size": 2, "count": 1},
+            {"deletion_size": 1, "insertion_size": 0, "count": 1},
+            {"deletion_size": 1, "insertion_size": 1, "count": 2},
+            {"deletion_size": 1, "insertion_size": 2, "count": 1},
+        ],
+        "visited_deletion_sets_by_cardinality": [
+            {"deletion_size": 0, "permitted": 1, "refused": 0},
+            {"deletion_size": 1, "permitted": 1, "refused": 1},
+            {"deletion_size": 2, "permitted": 0, "refused": 1},
+        ],
+    }
+    assert receipt["evaluated_patch_count"] == 8
+    assert receipt["permitted_deletion_count"] == receipt["refused_deletion_count"] == 2
+    assert receipt["stop_reason"] == "universe_exhausted"
+    assert receipt["exhaustive_complete"] is True
+    assert result.receipt() == receipt
+    assert tuple(evaluator.requested) == requested_before
+
+
+@SEARCHES
+@pytest.mark.parametrize("limit", [0, 2])
+def test_coverage_receipt_does_not_infer_unvisited_deletion_permissions(search, limit) -> None:
+    def permission(_removed):
+        pytest.fail("the budget stops this search before any nonempty deletion visit")
+
+    evaluator = _SyntheticEvaluator(lambda _patch: 1.0)
+    result = search(
+        _problem(
+            ("a", "b"), coordinate_keys=("s0",), deletable_indices=(0,),
+            deletion_permission=permission,
+        ),
+        evaluator, _rank_population, SearchLimits(joint_patch_evaluations=limit),
+    )
+    receipt = result.receipt()
+    assert receipt["stop_reason"] == "joint_work_budget"
+    assert receipt["refused_deletion_count"] == 0
+    assert receipt["coverage"] == {
+        "evaluated_patches_by_cardinality": (
+            [] if limit == 0 else [{"deletion_size": 0, "insertion_size": 0, "count": 1}]
+        ),
+        "visited_deletion_sets_by_cardinality": (
+            [] if limit == 0 else [{"deletion_size": 0, "permitted": 1, "refused": 0}]
+        ),
+    }
+    assert receipt["evaluated_patch_count"] == (0 if limit == 0 else 1)
+
+
+@SEARCHES
+def test_coverage_receipt_distinguishes_observed_refusals_from_unvisited_sets(search) -> None:
+    result = search(
+        _problem(
+            (), coordinate_keys=("s0", "s1"), deletable_indices=(0, 1),
+            deletion_permission=lambda _removed: False,
+        ),
+        _SyntheticEvaluator(lambda _patch: 0.0), _rank_population,
+        SearchLimits(joint_patch_evaluations=2),
+    )
+    assert result.receipt()["coverage"] == {
+        "evaluated_patches_by_cardinality": [
+            {"deletion_size": 0, "insertion_size": 0, "count": 1},
+        ],
+        "visited_deletion_sets_by_cardinality": [
+            {"deletion_size": 0, "permitted": 1, "refused": 0},
+            {"deletion_size": 1, "permitted": 0, "refused": 2},
+            {"deletion_size": 2, "permitted": 0, "refused": 1},
+        ],
+    }
+
+
+def test_coverage_receipt_keeps_permitted_but_unevaluated_boundary_distinct() -> None:
+    session = SearchSession(
+        _problem((), coordinate_keys=("s0",), deletable_indices=(0,)),
+        _SyntheticEvaluator(lambda _patch: 0.0), _rank_population,
+        SearchLimits(compiled_patches_per_checkpoint=0),
+    )
+    session.check_boundary_budget((0,))
+    assert session.deletion_permitted((0,)) is True
+    with pytest.raises(SearchBudgetExhausted) as stopped:
+        session.evaluate((Patch((0,), ()),), label="boundary_d1")
+    receipt = session.finish(stopped.value.reason).receipt()
+    assert receipt["stop_reason"] == "compiled_work_budget"
+    assert receipt["coverage"] == {
+        "evaluated_patches_by_cardinality": [],
+        "visited_deletion_sets_by_cardinality": [
+            {"deletion_size": 1, "permitted": 1, "refused": 0},
+        ],
+    }
+    assert session.guard.scored_count == session.compile_guard.scored_count == 0
+
+
+def test_coverage_receipt_counts_completed_prefix_once_and_excludes_reservations() -> None:
+    def merit(patch):
+        if patch.inserted_selection == (("b", 0),):
+            raise ValueError("coverage backend failure")
+        return 1.0
+
+    evaluator = _SyntheticEvaluator(merit)
+    session = SearchSession(_problem(("a", "b")), evaluator, _rank_population, SearchLimits())
+    assert session.deletion_permitted(()) is True
+    first = Patch((), (("a", 0),))
+    with pytest.raises(ValueError, match="coverage backend failure"):
+        session.evaluate((first, Patch((), (("b", 0),))), label="failing_request")
+    session.evaluate((first, first), label="cached_request")
+    result = session.finish("backend_failure_observed")
+    assert result.guard.scored_count == result.compile_guard.scored_count == 2
+    assert len(evaluator.requested) == 2
+    assert result.receipt()["coverage"] == {
+        "evaluated_patches_by_cardinality": [
+            {"deletion_size": 0, "insertion_size": 1, "count": 1},
+        ],
+        "visited_deletion_sets_by_cardinality": [
+            {"deletion_size": 0, "permitted": 1, "refused": 0},
+        ],
+    }

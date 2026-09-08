@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 import math
+from numbers import Integral
 from typing import Any, Mapping, Sequence
 
 from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
@@ -371,6 +372,7 @@ class SearchProfile:
     note: str = ""
     search_policy: str = "family_frontiers"
     gain_evaluation: str = "joint_batch"
+    deletion_cardinality: int | None = None
 
     def __post_init__(self) -> None:
         validate_search_policy(
@@ -378,6 +380,12 @@ class SearchProfile:
             gain_evaluation=self.gain_evaluation,
             exchange_insertion_frontier=self.exchange_insertion_frontier,
         )
+        if self.deletion_cardinality is not None and (
+            isinstance(self.deletion_cardinality, bool)
+            or not isinstance(self.deletion_cardinality, Integral)
+            or self.deletion_cardinality < 0
+        ):
+            raise ValueError("deletion_cardinality must be a non-negative integer or None")
         for name in (
             "joint_patch_evaluations",
             "certification_attempts_per_level",
@@ -411,6 +419,8 @@ class SearchProfile:
                 "--exchange-insertion-frontier",
                 str(int(self.exchange_insertion_frontier)),
             )
+        if self.deletion_cardinality is not None:
+            emitted += ("--max-deletion-batch-size", str(int(self.deletion_cardinality)))
         if (self.search_policy, self.gain_evaluation) != ("family_frontiers", "joint_batch"):
             emitted += (
                 "--search-policy", self.search_policy,
@@ -821,6 +831,11 @@ class RunCommand:
     activation_cut: float | None = None
 
     def __post_init__(self) -> None:
+        if (
+            self.search_profile.deletion_cardinality is not None
+            and self.arm.dynamics_policy != "exchange"
+        ):
+            raise ValueError("deletion_cardinality requires an exchange arm")
         required_numerics = self.arm.required_numerics_id
         if required_numerics is not None and self.numerics.numerics_id != required_numerics:
             raise ValueError(
@@ -1001,12 +1016,15 @@ def build_selector_comparison_run(
     search_policy: str,
     gain_evaluation: str,
     insertion_cardinality: int,
+    deletion_cardinality: int | None,
     **run_settings: Any,
 ) -> RunCommand:
     """Build one explicit three-search campaign cell on compiled realized Q.
 
-    Search, gain mode, and per-patch insertion cardinality are required and
-    become part of the run identity. Remaining settings use ``build_run``;
+    Search, gain mode, and both per-patch cardinalities are required and
+    become part of the run identity. ``deletion_cardinality=None`` leaves
+    deletion size unrestricted; singleton comparisons explicitly pass one
+    for both cardinalities. Remaining settings use ``build_run``;
     its selected profile supplies the unchanged work limits. A profile with
     an insertion frontier is incompatible with this comparison. The live
     CLI parser verifies effective values after ``extra_flags``, including
@@ -1029,10 +1047,12 @@ def build_selector_comparison_run(
         profile_id=(
             f"{base.search_profile.profile_id}__{search_policy}"
             f"__{gain_evaluation}__a{int(insertion_cardinality)}"
+            f"__d{'all' if deletion_cardinality is None else deletion_cardinality}"
         ),
         search_policy=search_policy,
         gain_evaluation=gain_evaluation,
         insertion_cardinality=int(insertion_cardinality),
+        deletion_cardinality=deletion_cardinality,
     )
     run = replace(base, search_profile=profile)
     # Import only when this campaign-specific helper is used. Command-registry
@@ -1051,6 +1071,7 @@ def build_selector_comparison_run(
         "exchange_insertion_frontier": None,
         "interaction_frontier_widths": None,
         "max_insertion_batch_size": profile.insertion_cardinality,
+        "max_deletion_batch_size": profile.deletion_cardinality,
         "max_joint_patch_evaluations": profile.joint_patch_evaluations,
         "max_certification_attempts_per_level": profile.certification_attempts_per_level,
         "max_certification_attempts_per_deletion_branch": profile.certification_attempts_per_deletion_branch,

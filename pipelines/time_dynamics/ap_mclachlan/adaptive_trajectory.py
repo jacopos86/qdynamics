@@ -10,6 +10,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
+from numbers import Integral
 from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
@@ -185,6 +186,8 @@ class SupportPatchControllerConfig:
     search_policy: str = "family_frontiers"
     gain_evaluation: str = "joint_batch"
     max_insertion_batch_size: int = 1
+    # Explicit enumeration policy; None preserves unrestricted deletion sets.
+    max_deletion_batch_size: int | None = None
     structural_score_floor: float = 0.0
     # Canonical operating values (2026-08-20): defaults reproduce the
     # reported configuration, so a flagless call is the paper's route
@@ -252,6 +255,15 @@ class SupportPatchControllerConfig:
     uses_future_exact_forecast_for_decision: bool = False
 
     def __post_init__(self) -> None:
+        if self.max_deletion_batch_size is not None:
+            if (
+                isinstance(self.max_deletion_batch_size, bool)
+                or not isinstance(self.max_deletion_batch_size, Integral)
+                or self.max_deletion_batch_size < 0
+            ):
+                raise ValueError("max_deletion_batch_size must be a non-negative integer or None.")
+            if self.dynamics_policy != "exchange":
+                raise ValueError("max_deletion_batch_size requires dynamics_policy='exchange'.")
         for name in (
             "prune_history_window",
             "prune_cooldown_steps",
@@ -494,6 +506,8 @@ class SupportPatchControllerConfig:
             payload["exchange_insertion_frontier"] = int(
                 self.exchange_insertion_frontier
             )
+        if self.max_deletion_batch_size is not None:
+            payload["max_deletion_batch_size"] = int(self.max_deletion_batch_size)
         if self.exchange_permission_ray_distance_max is not None:
             # Same rule: undeclared leaves the provenance object byte-identical.
             payload["exchange_permission_ray_distance_max"] = float(
@@ -1188,6 +1202,7 @@ def run_append_mclachlan_trajectory(
                         round_estimator_work = dict(
                             selection_payload.get("estimator_work") or {}
                         )
+                        round_route = selection_payload.get("selector_route") or {}
                         selection_round_work.append(
                             {
                                 "schema": "paper_ii_exchange_selection_round_work_v1",
@@ -1201,6 +1216,14 @@ def run_append_mclachlan_trajectory(
                                 "accepted": bool(decision.accepted),
                                 "patch_kind": str(decision.patch_kind),
                                 "reason": str(decision.reason),
+                                "search_receipts": [
+                                    dict(level["search"])
+                                    for level in round_route.get("levels", ())
+                                    if level.get("search")
+                                ],
+                                "work_guard": selection_payload.get("work_guard"),
+                                "compile_guard": round_route.get("compile_guard"),
+                                "committed": selection_payload.get("committed"),
                                 "estimator_work": round_estimator_work,
                                 "complete": bool(
                                     round_estimator_work.get("complete", False)

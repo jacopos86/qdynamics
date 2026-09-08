@@ -1,9 +1,9 @@
 """Complete deletion-cardinality rungs and the joint-work guard.
 
-The selector enumerates deletion subsets in complete cardinality rungs
-``D_{k,d} = {D subset J_k^del : |D| = d, hard-feasible}`` with no separate
-maximum deletion-batch cardinality. The caller applies complete-set permission
-before the joint-work guard admits or rejects the permitted patch family
+This pure generator enumerates deletion subsets in complete cardinality rungs
+``D_{k,d} = {D subset J_k^del : |D| = d, hard-feasible}``. The caller may stop
+at an explicitly declared maximum deletion cardinality, and applies complete-set
+permission before the joint-work guard admits or rejects the permitted patch family
 *before* any member is scored; it never samples part of a rung. Permission
 checks consume no patch-evaluation slots.
 

@@ -419,9 +419,9 @@ def test_search_profile_rejects_unknown_or_unused_settings() -> None:
 
 @pytest.mark.parametrize("policy", ("greedy", "block_exchange", "bounded_exhaustive"))
 @pytest.mark.parametrize("gain", ("joint_batch", "singleton_factorized"))
-@pytest.mark.parametrize("cardinality", (1, 4))
+@pytest.mark.parametrize("cardinality,deletion_cardinality", ((1, 1), (4, None)))
 def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
-    policy, gain, cardinality,
+    policy, gain, cardinality, deletion_cardinality,
 ) -> None:
     from pipelines.time_dynamics.paper_ii_runs import DIAGNOSTIC_FAST_SEARCH
     from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
@@ -430,6 +430,7 @@ def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
 
     run = build_selector_comparison_run(
         search_policy=policy, gain_evaluation=gain, insertion_cardinality=cardinality,
+        deletion_cardinality=deletion_cardinality,
         seed_path="seed.json", drive="fastweak", horizon="t2", output_json="out/run.json",
         search_profile=DIAGNOSTIC_FAST_SEARCH.profile_id,
         extra_flags=("--max-compiled-patches-per-checkpoint=23", "--compile-workers", "1"),
@@ -438,6 +439,7 @@ def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
     assert config.exchange_route_bundle == "paper_ii_exchange_q_compiled_v1"
     assert (config.search_policy, config.gain_evaluation) == (policy, gain)
     assert config.max_insertion_batch_size == cardinality
+    assert config.max_deletion_batch_size == deletion_cardinality
     assert config.exchange_insertion_frontier is None
     assert config.interaction_frontier_widths is None
     assert config.max_joint_patch_evaluations == DIAGNOSTIC_FAST_SEARCH.joint_patch_evaluations
@@ -446,7 +448,8 @@ def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
     assert config.max_insertion_rounds_per_checkpoint == DIAGNOSTIC_FAST_SEARCH.rounds_per_checkpoint
     assert config.max_compiled_patches_per_checkpoint == 23
     assert config.compile_workers == 1
-    assert f"__{policy}__{gain}__a{cardinality}" in run.run_id
+    deletion_label = "all" if deletion_cardinality is None else deletion_cardinality
+    assert f"__{policy}__{gain}__a{cardinality}__d{deletion_label}" in run.run_id
     assert run.argv().count("--exchange-route-bundle") == 1
     assert run.argv().count("--search-policy") == 1
     assert run.argv().count("--gain-evaluation") == 1
@@ -461,12 +464,14 @@ def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
     ("--interaction-frontier-widths", "2,4"),
     ("--max-insertion-batch-size=1",),
     ("--max-joint-patch-evaluations=1",),
+    ("--max-deletion-batch=1",),
 ))
 def test_campaign_helper_rejects_effective_overrides(extra_flags) -> None:
     with pytest.raises(ValueError, match="override declared"):
         build_selector_comparison_run(
             search_policy="greedy", gain_evaluation="singleton_factorized",
             insertion_cardinality=4, seed_path="seed.json", drive="fastweak",
+            deletion_cardinality=None,
             horizon="t2", output_json="out/run.json", extra_flags=extra_flags,
         )
 
@@ -482,6 +487,7 @@ def test_campaign_helper_keeps_generic_defaults_and_profiles_unchanged() -> None
                 run = build_selector_comparison_run(
                     search_policy=policy, gain_evaluation=gain,
                     insertion_cardinality=cardinality, **common,
+                    deletion_cardinality=1 if cardinality == 1 else None,
                 )
                 identifiers.add(run.run_id)
                 assert (run.seed_path, run.drive, run.horizon, run.numerics, run.step_control) == (
@@ -493,13 +499,17 @@ def test_campaign_helper_keeps_generic_defaults_and_profiles_unchanged() -> None
     assert "--exchange-route-bundle" not in baseline_argv
     assert "--search-policy" not in baseline_argv
     assert "--gain-evaluation" not in baseline_argv
+    assert "--max-deletion-batch-size" not in baseline_argv
     for overrides in (
         {"search_policy": "family_frontiers"},
         {"arm": "exchange"},
         {"search_profile": "paper_declared_exchange_v1"},
         {"insertion_cardinality": 1.5},
     ):
-        settings = dict(search_policy="greedy", gain_evaluation="joint_batch", insertion_cardinality=4)
+        settings = dict(
+            search_policy="greedy", gain_evaluation="joint_batch",
+            insertion_cardinality=4, deletion_cardinality=None,
+        )
         settings.update(overrides)
         with pytest.raises(ValueError):
             build_selector_comparison_run(**settings, **common)
@@ -519,6 +529,76 @@ def test_runner_rejects_incompatible_search_before_seed_load(monkeypatch, capsys
         ])
     assert exc.value.code == 2
     assert "compiled-cost bundle" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("cap", (None, 0, 1))
+def test_deletion_cardinality_cli_reaches_config_and_provenance(tmp_path, monkeypatch, cap) -> None:
+    import json
+    from test.test_ap_mclachlan_route_parity import _runtime_input
+    from pipelines.time_dynamics.runners import ap_append_from_adapt_artifact as runner
+
+    monkeypatch.setattr(runner, "_load_runtime_input_or_raise", lambda *_a, **_k: _runtime_input())
+    output = tmp_path / "run.json"
+    argv = [
+        "--artifact-json", str(tmp_path / "seed.json"), "--output-json", str(output),
+        "--num-times", "1", "--t-final", "0", "--max-joint-patch-evaluations", "0",
+    ]
+    if cap is not None:
+        argv += ["--max-deletion-batch-size", str(cap)]
+    assert runner.main(argv) == 0
+    payload = json.loads(output.read_text())
+    for settings in (
+        payload["run_lock"]["policy"]["guards"],
+        payload["summary"]["support_patch_config"],
+        payload["trajectory"]["metadata"],
+    ):
+        if cap is None:
+            assert "max_deletion_batch_size" not in settings
+        else:
+            assert settings["max_deletion_batch_size"] == cap
+
+
+@pytest.mark.parametrize("cap", (-1, True, 1.5, "1"))
+def test_search_profile_rejects_invalid_deletion_cardinality(cap) -> None:
+    from dataclasses import replace
+    from pipelines.time_dynamics.paper_ii_runs import PAPER_DECLARED_SEARCH
+
+    with pytest.raises(ValueError, match="deletion_cardinality"):
+        replace(PAPER_DECLARED_SEARCH, deletion_cardinality=cap)
+
+
+def test_comparison_requires_deletion_cardinality_and_distinguishes_it_in_identity() -> None:
+    settings = dict(
+        search_policy="greedy", gain_evaluation="joint_batch", insertion_cardinality=1,
+        seed_path="seed.json", drive="fastweak", horizon="t2", output_json="out/run.json",
+    )
+    with pytest.raises(TypeError, match="deletion_cardinality"):
+        build_selector_comparison_run(**settings)
+    runs = [build_selector_comparison_run(deletion_cardinality=d, **settings) for d in (None, 0, 1)]
+    assert len({run.run_id for run in runs}) == 3
+    assert "--max-deletion-batch-size" not in runs[0].argv()
+    for cap, run in zip((0, 1), runs[1:]):
+        assert _parser().parse_args(list(run.argv())).max_deletion_batch_size == cap
+
+
+def test_nonexchange_deletion_cap_rejected_before_seed_load(monkeypatch, capsys) -> None:
+    from dataclasses import replace
+    from pipelines.time_dynamics.runners import ap_append_from_adapt_artifact as runner
+
+    run = build_run(
+        seed_path="seed.json", arm="avqds", drive="fastweak", horizon="t2",
+        output_json="run.json",
+    )
+    with pytest.raises(ValueError, match="exchange arm"):
+        replace(run, search_profile=replace(run.search_profile, deletion_cardinality=1))
+    monkeypatch.setattr(
+        runner, "_load_runtime_input_or_raise",
+        lambda *_a, **_k: pytest.fail("non-exchange deletion cap reached seed loading"),
+    )
+    with pytest.raises(SystemExit) as exc:
+        runner.main([*run.argv(), "--max-deletion-batch-size", "1"])
+    assert exc.value.code == 2
+    assert "requires dynamics_policy='exchange'" in capsys.readouterr().err
 
 
 def test_selector_bundle_arms_are_exchange_plus_one_closed_bundle() -> None:
