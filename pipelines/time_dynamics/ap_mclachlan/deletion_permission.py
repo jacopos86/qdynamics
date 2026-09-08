@@ -23,12 +23,15 @@ continuity certification still arbitrate the materialized finalist.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Any, Sequence
 
 import numpy as np
 
+from pipelines.time_dynamics.ap_mclachlan.deletion_geometry import (
+    deletion_ray_bound,
+    effective_deletion_angle,
+)
 from pipelines.time_dynamics.ap_mclachlan.schur_identity import (
     exact_deletion_loss,
 )
@@ -133,6 +136,8 @@ class DeletionPermissionEvaluator:
         self._epsilon_norm = float(epsilon_norm)
         self._memo: dict[tuple[int, ...], DeletionPermissionDecision] = {}
 
+    # paper-eq: eq:deletion_ray_bound role=live
+    # paper-eq: eq:deletion_prepermission role=live
     def assess(
         self, deleted_runtime_indices: Sequence[int]
     ) -> DeletionPermissionDecision:
@@ -148,10 +153,10 @@ class DeletionPermissionEvaluator:
         deleted_set = set(deleted)
         retained = tuple(i for i in range(n) if i not in deleted_set)
 
-        effective_angle_l1 = float(
-            sum(abs(float(self._theta[i] * self._coefficients[i])) for i in deleted)
+        effective_angle_l1 = effective_deletion_angle(
+            self._theta, self._coefficients, deleted
         )
-        ray_upper = float(math.sin(min(math.pi / 2.0, effective_angle_l1)))
+        ray_upper = deletion_ray_bound(effective_angle_l1)
         reasons: list[str] = []
         if ray_upper > self._ray_distance_max:
             reasons.append(DELETION_PERMISSION_ANGLE_RAY)

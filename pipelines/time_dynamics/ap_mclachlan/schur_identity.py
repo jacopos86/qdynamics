@@ -1,4 +1,9 @@
-"""Exact deletion loss as a Schur-complement quadratic form.
+"""Exact conditional capture and its reverse-Schur deletion specialization.
+
+``conditional_capture(K, f, retained, block)`` evaluates the capture of any
+coordinate block after projection over the retained support.  For deletion,
+the candidate block is ``D``; for insertion it is the new tangent block in an
+already acquired joint Gram system.  Cross terms within the block are retained.
 
 Partition the checkpoint Gram system between the coordinates a candidate
 retains, ``R``, and the coordinates it proposes to delete, ``D``::
@@ -65,6 +70,7 @@ def _blocks(
     )
 
 
+# paper-eq: eq:conditional_schur_complement role=specialized_identity
 def schur_novelty_block(
     K: np.ndarray, retained: Sequence[int], deleted: Sequence[int]
 ) -> np.ndarray:
@@ -76,6 +82,7 @@ def schur_novelty_block(
     return np.asarray(K_DD - K_RD.T @ np.linalg.pinv(K_RR) @ K_RD, dtype=float)
 
 
+# paper-eq: eq:conditional_schur_complement role=specialized_identity
 def schur_drive_residual(
     K: np.ndarray, f: np.ndarray, retained: Sequence[int], deleted: Sequence[int]
 ) -> np.ndarray:
@@ -87,30 +94,65 @@ def schur_drive_residual(
     return np.asarray(f_D - K_RD.T @ np.linalg.pinv(K_RR) @ f_R, dtype=float)
 
 
-def exact_deletion_loss(
-    K: np.ndarray, f: np.ndarray, retained: Sequence[int], deleted: Sequence[int]
+def conditional_capture(
+    K: np.ndarray, f: np.ndarray, retained: Sequence[int], block: Sequence[int]
 ) -> float:
-    """``r_{D|R}^T S_{D|R}^+ r_{D|R}`` -- the exact captured drift lost.
+    r"""Return the unnormalized exact conditional capture of block ``X``.
 
-    Non-negative by construction, which is the mathematical content of the
-    statement that exact projection cannot be improved by deleting coordinates.
+    .. math::
+
+        S_{X\mid R} &= K_{XX} - K_{RX}^{T}K_{RR}^{+}K_{RX}, \\
+        r_{X\mid R} &= f_X - K_{RX}^{T}K_{RR}^{+}f_R, \\
+        \gamma(X\mid R) &= r_{X\mid R}^{T}S_{X\mid R}^{+}r_{X\mid R}.
+
+    ``K`` has shape ``(n, n)`` and ``f`` shape ``(n,)`` on one frozen reference
+    ray. ``retained`` and ``block`` are disjoint sequences of distinct indices;
+    they need not cover the full support. The exact identity assumes a symmetric
+    positive-semidefinite Gram matrix and range-compatible forcing, as obtained
+    from ``K = T.T @ T`` and ``f = T.T @ b``. Then this equals the increase in
+    optimal capture from adding ``X`` to ``R``. It is a joint block calculation,
+    not a sum of singleton captures. An empty ``X`` returns zero; an empty ``R``
+    gives the capture of ``X`` alone.
+
+    This numerical evaluation preserves the deletion kernel's default NumPy
+    pseudoinverse and multiplication order. Near singularity, subtractive
+    roundoff and relative rank cutoffs can perturb the exact identity. The raw
+    result is not clipped: negative or nonfinite results remain visible, and
+    pseudoinverse failures propagate. This is an exact-projection reference,
+    not the safeguarded realized capture used by the ranking policy.
     """
 
-    if len(list(deleted)) == 0:
+    if len(list(block)) == 0:
         return 0.0
     # One shared pinv(K_RR) serves both the novelty block and the drive
     # residual; the expressions and operand order below are exactly those of
     # schur_novelty_block / schur_drive_residual, so the results are bitwise
     # identical to the two-call form while paying one SVD instead of two.
-    K_RR, K_RD, K_DD, f_R, f_D = _blocks(K, f, retained, deleted)
+    K_RR, K_RX, K_XX, f_R, f_X = _blocks(K, f, retained, block)
     if K_RR.size == 0:
-        S = np.asarray(K_DD, dtype=float)
-        r = np.asarray(f_D, dtype=float)
+        S = np.asarray(K_XX, dtype=float)
+        r = np.asarray(f_X, dtype=float)
     else:
         P = np.linalg.pinv(K_RR)
-        S = np.asarray(K_DD - K_RD.T @ P @ K_RD, dtype=float)
-        r = np.asarray(f_D - K_RD.T @ P @ f_R, dtype=float)
-    return float(max(0.0, r @ np.linalg.pinv(S) @ r))
+        S = np.asarray(K_XX - K_RX.T @ P @ K_RX, dtype=float)
+        r = np.asarray(f_X - K_RX.T @ P @ f_R, dtype=float)
+    return float(r @ np.linalg.pinv(S) @ r)
+
+
+# paper-eq: eq:ideal_exchange_components role=specialized_identity
+# paper-eq: eq:deletion_prepermission role=reference
+def exact_deletion_loss(
+    K: np.ndarray, f: np.ndarray, retained: Sequence[int], deleted: Sequence[int]
+) -> float:
+    r"""Return the deletion specialization :math:`\gamma(D\mid R)`.
+
+    In exact arithmetic this is the non-negative capture lost on deleting
+    ``D``. Preserve the existing permission policy's ``max(0.0, loss)`` here,
+    including its floating-point behavior. Use :func:`conditional_capture`
+    when the unclipped numerical reference is required.
+    """
+
+    return float(max(0.0, conditional_capture(K, f, retained, deleted)))
 
 
 def exact_captured_drift(K: np.ndarray, f: np.ndarray) -> float:
@@ -130,6 +172,7 @@ def exact_captured_drift(K: np.ndarray, f: np.ndarray) -> float:
 
 __all__ = [
     "SCHUR_IDENTITY_V1",
+    "conditional_capture",
     "exact_captured_drift",
     "exact_deletion_loss",
     "schur_drive_residual",

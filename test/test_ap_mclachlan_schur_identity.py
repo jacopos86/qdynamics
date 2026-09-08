@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from pipelines.time_dynamics.ap_mclachlan.schur_identity import (
+    conditional_capture,
     exact_captured_drift,
     exact_deletion_loss,
     schur_drive_residual,
@@ -144,3 +145,72 @@ def test_route_construction_guarantees_the_identity_precondition() -> None:
             # f in range(K)  <=>  K K^+ f == f
             residual = K_sub @ np.linalg.pinv(K_sub) @ f_sub - f_sub
             assert np.linalg.norm(residual) < 1e-8, (rank, subset)
+
+
+@pytest.mark.parametrize("seed", [4, 17])
+def test_conditional_capture_matches_independent_tangent_projection(seed) -> None:
+    rng = np.random.default_rng(seed)
+    T = rng.normal(size=(8, 5))
+    b = rng.normal(size=8)
+    retained, block = (2, 0), (4, 1)
+    # Coordinate 3 is deliberately outside both sets. Conditioning must use
+    # the requested support, not silently incorporate every column of K.
+    retained_tangents = T[:, retained]
+    joint_tangents = T[:, retained + block]
+    retained_fit = retained_tangents @ np.linalg.lstsq(
+        retained_tangents, b, rcond=None
+    )[0]
+    joint_fit = joint_tangents @ np.linalg.lstsq(
+        joint_tangents, b, rcond=None
+    )[0]
+    expected = np.linalg.norm(b - retained_fit) ** 2 - np.linalg.norm(b - joint_fit) ** 2
+
+    assert conditional_capture(T.T @ T, T.T @ b, retained, block) == pytest.approx(
+        expected, rel=1e-10, abs=1e-12
+    )
+
+
+def test_conditional_capture_keeps_interacting_batch_cross_terms() -> None:
+    # Retain e1; the new tangents e1+e2 and e1-e2 have opposite residuals.
+    # Either captures all of b=e2, so summing singleton gains double-counts it.
+    T = np.asarray([[1.0, 1.0, 1.0], [0.0, 1.0, -1.0]])
+    b = np.asarray([0.0, 1.0])
+    K, f = T.T @ T, T.T @ b
+
+    joint = conditional_capture(K, f, (0,), (1, 2))
+    singleton_sum = sum(conditional_capture(K, f, (0,), (i,)) for i in (1, 2))
+
+    assert joint == pytest.approx(1.0)
+    assert singleton_sum == pytest.approx(2.0)
+
+
+def test_conditional_capture_handles_singular_retained_and_added_blocks() -> None:
+    # Two copies of e1 are retained and two copies of e2 are added. Both
+    # diagonal blocks are singular, but the new captured component is 3*e2.
+    T = np.asarray([[1.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 1.0]])
+    b = np.asarray([2.0, 3.0])
+
+    assert conditional_capture(T.T @ T, T.T @ b, (0, 1), (2, 3)) == pytest.approx(9.0)
+
+
+def test_conditional_capture_of_empty_block_is_zero() -> None:
+    assert conditional_capture(np.eye(2), np.ones(2), (0, 1), ()) == 0.0
+    assert conditional_capture(np.empty((0, 0)), np.empty(0), (), ()) == 0.0
+
+
+def test_conditional_capture_without_retained_coordinates_is_full_capture() -> None:
+    # Orthogonal tangents 2*e1 and 3*e2 capture the entire b=(1, 2).
+    K = np.diag([4.0, 9.0])
+    f = np.asarray([2.0, 6.0])
+
+    assert conditional_capture(K, f, (), (0, 1)) == pytest.approx(5.0)
+
+
+@pytest.mark.parametrize("forcing", [np.nan, np.inf])
+def test_conditional_capture_does_not_hide_nonfinite_raw_result(forcing) -> None:
+    result = conditional_capture(np.eye(1), np.asarray([forcing]), (), (0,))
+
+    if np.isnan(forcing):
+        assert np.isnan(result)
+    else:
+        assert np.isposinf(result)

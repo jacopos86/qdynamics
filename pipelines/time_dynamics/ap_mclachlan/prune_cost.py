@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     AP_APPEND_COST_MODEL_PAPER_I_PROXY_V1,
     AP_APPEND_COST_NORMALIZATION_FAMILY_ROBUST_V1,
     AppendCostRawEstimate,
     AppendCostSettings,
-    append_cost_telemetry_for_family,
     estimate_append_atom_set_cost,
 )
 from pipelines.time_dynamics.ap_mclachlan.support_atoms import SupportAtom
@@ -132,55 +131,10 @@ class PruneCostSettings:
         }
 
 
-
-
 def estimate_prune_atom_set_cost(atoms: Sequence[SupportAtom]) -> AppendCostRawEstimate:
     """Estimate saved resource cost for deleting an active atom set."""
 
     return estimate_append_atom_set_cost(tuple(atoms))
-
-
-
-
-def _finite_or_none(value: Any) -> float | None:
-    try:
-        value_f = float(value)
-    except (TypeError, ValueError):
-        return None
-    if not math.isfinite(value_f):
-        return None
-    return float(value_f)
-
-
-def _component_payload(values: Mapping[str, Any]) -> dict[str, float]:
-    keys = ("2q", "d", "1q", "theta", "shot")
-    return {key: float(max(0.0, _finite_or_none(values.get(key, 0.0)) or 0.0)) for key in keys}
-
-
-def _conditioning_payload(values: Mapping[str, Any]) -> dict[str, float]:
-    keys = ("d_kappa_rel", "d_schur", "d_kappa_schur_hist", "d_kappa_dam")
-    return {
-        key: float(max(0.0, _finite_or_none(values.get(key, 0.0)) or 0.0))
-        for key in keys
-    }
-
-
-def _conditioning_lambda_payload(values: Mapping[str, Any]) -> dict[str, float]:
-    keys = ("kappa_rel", "schur", "kappa_hist", "kappa_dam")
-    return {
-        key: float(max(0.0, _finite_or_none(values.get(key, 0.0)) or 0.0))
-        for key in keys
-    }
-
-
-def _conditioning_enabled(settings: PruneCostSettings) -> bool:
-    return any(
-        float(getattr(settings, name)) > 0.0
-        for name in (
-            "prune_condition_lambda_kappa_rel",
-            "prune_condition_lambda_kappa_dam",
-        )
-    )
 
 
 __all__ = [

@@ -41,10 +41,11 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `deletion_family.py` | Complete deletion rungs and the joint-work guard (admits whole families only; the sole computational cap) |
 | `deletion_permission.py` | Measurement-free set permission: accumulated effective-angle ray upper bound plus normalized reverse-Schur deletion loss; memoized decision and run telemetry |
 | `structural_cache.py` | Checkpoint-local frozen-ray geometry: positioned tangents in one batched pass, deletion-independent cross/Gram/force blocks, memoized candidate solves |
-| `exchange_structural.py` | Family enumeration (singleton level, rungs, priorities, frontiers), the scalar score `U_ins + U_del + w·δ`, deterministic ordering |
+| `exchange_structural.py` | Family enumeration (singleton level, rungs, priorities, frontiers); historical acquisition utility `U_ins + U_del + w·δ` retained for frontier ordering on every route |
+| `compiled_patch_cost.py`, `population_scoring.py` | Complete-patch compiled resource counts/marginals; population normalization and ranking arithmetic |
 | `exchange_certification.py` | Finalist materialization (delete → remapped-cut insert), optional refit hook, hard gates (ray/smoothness are deletion-containing checks; every finalist gets finite/conditioning) |
 | `exchange_selector.py` | Selection loop: every guard-admitted deletion rung is scored with the d0 singletons before the first certification pass (deletions always compete on score); frontiers are escalation-gated; certify one at a time, commit atomically |
-| `exchange_integration.py` | AP realization adapter: ansatz/generator atoms, cuts, costs, labels, geometry, and certification oracles → pure generalized-exchange domain and selector |
+| `exchange_integration.py` | AP realization adapter: ansatz/generator atoms, cuts, costs, labels, geometry, and certification oracles → pure generalized-exchange domain and selector; route-specific population ranker, including compiled-cost ranking after acquisition |
 
 Route core:
 
@@ -54,7 +55,7 @@ Route core:
 | `state.py` | AP state build/append/delete/**insert-at-cut** materialization with parity checks |
 | `geometry_eval.py`, `geometry.py`, `inverse.py` | Frozen-ray geometry, realized metrics, supported solve. `McLachlanSolve.captured_drift = 2fᵀθ̇ − θ̇ᵀKθ̇` is the scoring authority; `gamma` is legacy telemetry |
 | `fixed_step.py`, `integrators.py` | Propagation solve with repair, integration |
-| `support_atoms.py`, `support_patch.py`, `support_frontier.py` | Atom enumeration/occurrence policy; retained score/telemetry types; frontier compatibility surface |
+| `support_atoms.py`, `support_patch.py` | Atom enumeration/occurrence policy; retained score/telemetry types and tested array-level scoring/diagnostic compatibility APIs |
 | `hamiltonian.py` | `H(t) = H_static + c(t)·D` with cached dense operators |
 | `performance.py` | Zero-cost-when-inactive phase profiler |
 | `commutation`… tests | One test file per module: `test/test_ap_mclachlan_<module>.py`; `test_ap_mclachlan_exchange_oracle.py` is the brute-force authority |

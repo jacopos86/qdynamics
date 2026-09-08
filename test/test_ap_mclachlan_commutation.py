@@ -165,3 +165,104 @@ def test_singleton_cuts_equal_full_range_representatives() -> None:
 def test_out_of_range_positions_are_rejected() -> None:
     with pytest.raises(ValueError, match=r"must lie in \[0, 2\]"):
         reduce_insertion_positions(X0, (Z0, Z1), (0, 3))
+
+
+def test_commutation_reduce_returns_complete_singleton_placement_classes() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+
+    assert commutation_reduce(Z0, (X1, Z0, X0, Z1, X0)) == (
+        (0, 1, 2),
+        (3, 4),
+        (5,),
+    )
+    assert commutation_reduce(Z1, (X0, Z0)) == ((0, 1, 2),)
+    assert commutation_reduce(X0, (Z0, Z0, Z0)) == ((0,), (1,), (2,), (3,))
+
+
+def test_commutation_reduce_empty_ansatz_has_one_placement_class() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+
+    assert commutation_reduce(X0, ()) == ((0,),)
+
+
+def test_commutation_reduce_supports_intact_multi_pauli_blocks() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+
+    # Each macro stays one block: the candidate crosses MACRO_B and itself,
+    # but either overlapping Z generator blocks a termwise commuting swap.
+    assert commutation_reduce(
+        MACRO_A, (MACRO_B, Z0, MACRO_A, Z1, MACRO_B)
+    ) == ((0, 1), (2, 3), (4, 5))
+    assert commutation_reduce(MACRO_MIXED, (MACRO_A, MACRO_B)) == (
+        (0, 1),
+        (2,),
+    )
+
+
+def test_commutation_reduce_does_not_cross_uncertified_blocks() -> None:
+    from types import SimpleNamespace
+
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+
+    unavailable = SimpleNamespace(label="unavailable")
+    assert commutation_reduce(X0, (X1, unavailable, Z0, TINY, X1)) == (
+        (0, 1),
+        (2,),
+        (3,),
+        (4, 5),
+    )
+    assert commutation_reduce(unavailable, (X0, X1)) == ((0,), (1,), (2,))
+
+
+def test_commutation_reduce_uses_the_requested_component_tolerance() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+
+    weak_obstruction = _term("weak_obstruction", ("eeze", 1.0), ("eeez", 1e-10))
+    assert commutation_reduce(X0, (weak_obstruction,)) == ((0,), (1,))
+    assert commutation_reduce(
+        X0, (weak_obstruction,), coefficient_tolerance=1e-9
+    ) == ((0, 1),)
+
+
+def test_commutation_reduce_class_members_have_identical_implemented_unitaries() -> None:
+    import numpy as np
+
+    from pipelines.time_dynamics.ap_mclachlan.commutation import commutation_reduce
+    from src.quantum.ansatz_parameterization import build_parameter_layout
+    from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
+
+    # The candidate contains internally noncommuting Pauli rotations. This
+    # checks the implemented ordered product, not exp(-i theta sum_j P_j).
+    candidate = _term("candidate", ("ex", 0.7), ("ez", -0.2), nq=2)
+    blocks = (
+        _term("left", ("xe", 0.3), ("ye", 0.4), nq=2),
+        _term("obstruction", ("zx", 0.5), nq=2),
+        _term("right", ("ze", 0.6), nq=2),
+    )
+    classes = commutation_reduce(candidate, blocks)
+    assert classes == ((0, 1), (2, 3))
+    survivor_angles = (0.31, -0.47, 0.22)
+    basis = np.eye(4, dtype=complex)
+    unitaries = []
+    for cut in range(4):
+        terms = blocks[:cut] + (candidate,) + blocks[cut:]
+        angles = np.asarray(
+            survivor_angles[:cut] + (0.29,) + survivor_angles[cut:], dtype=float
+        )
+        executor = CompiledAnsatzExecutor(
+            terms,
+            parameterization_layout=build_parameter_layout(terms),
+            parameterization_mode="logical_shared",
+        )
+        # All basis columns give the full matrix, including nonzero candidate
+        # angle; a zero-angle comparison would be identical at every cut.
+        unitaries.append(np.column_stack([
+            executor.prepare_state(angles, basis[:, column])
+            for column in range(4)
+        ]))
+    for members in classes:
+        for cut in members[1:]:
+            np.testing.assert_allclose(
+                unitaries[cut], unitaries[members[0]], atol=2e-13, rtol=0.0
+            )
+    assert np.linalg.norm(unitaries[0] - unitaries[2]) > 1e-4

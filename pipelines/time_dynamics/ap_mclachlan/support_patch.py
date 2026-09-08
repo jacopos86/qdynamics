@@ -542,40 +542,6 @@ def _cost_penalty(cost_terms: Mapping[str, Any] | None) -> float:
     return 0.0 if value is None else float(value)
 
 
-def gain_for_support(
-    *,
-    matrix: np.ndarray | Sequence[Sequence[float]],
-    f_vec: np.ndarray | Sequence[float],
-    indices: Sequence[int],
-    pinv_rcond: float | None = None,
-    inverse_policy: McLachlanInversePolicy | None = None,
-) -> float | None:
-    """Return the realized captured drift ``Q(S)`` for a runtime support.
-
-    ``Q = 2 f_S^T theta_dot - theta_dot^T K_SS theta_dot`` for the velocity the
-    policy solve actually returns.  Before 2026-08-15 this returned
-    ``Gamma = f_S^T theta_dot``, which equals ``Q`` only for the exact
-    unridged, untruncated, undamped solve and otherwise overstates the gain.
-    """
-
-    policy = inverse_policy or McLachlanInversePolicy(
-        pinv_rcond=1.0e-10 if pinv_rcond is None else float(pinv_rcond)
-    )
-    try:
-        solve = _shared_gamma_for_support(
-            matrix=matrix,
-            f_vec=f_vec,
-            indices=indices,
-            policy=policy,
-        )
-    except (ValueError, np.linalg.LinAlgError):
-        return None
-    value = float(solve.captured_drift)
-    if not np.isfinite(value):
-        return None
-    return float(value)
-
-
 def _solve_for_support(
     *,
     matrix: np.ndarray | Sequence[Sequence[float]],
@@ -1294,7 +1260,6 @@ __all__ = [
     "build_support_patch_after_cache",
     "build_support_patch_before_cache",
     "build_after_geometry",
-    "gain_for_support",
     "legacy_prune_payload_from_score",
     "prune_conditioning_diagnostics",
     "score_patch_payload",

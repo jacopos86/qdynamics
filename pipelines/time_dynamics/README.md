@@ -77,8 +77,7 @@ flowchart LR
     A["APM state at time iteration k:<br/>active support J_k"]
     A --> B["Estimate active McLachlan geometry on J_k"]
     B --> C["Generate measurement-compatible child patch opportunities"]
-    C --> Q["Optional parent/frontier scout"]
-    Q --> D["Assemble before/after child-support geometry"]
+    C --> D["Assemble before/after child-support geometry"]
     D --> E["Compute grouped support-patch score Delta_nu"]
     E --> F["Apply hard gates and cost-aware ranking"]
     F --> G{"Selected support patch nu_k = (B_k^-, R_k^+)"}
@@ -115,11 +114,14 @@ Canonical namespace boundary for new code:
 Root-level command wrappers have been removed. Imports and `python -m` commands
 should use canonical package paths.
 
-- `ap_mclachlan/support_patch.py`: pure array-level APM
-  support-patch scoring for no edit, insert, delete, and exchange.
-- `ap_mclachlan/support_frontier.py`: non-authoritative parent-indexed append
-  frontier filtering. It may reduce the child append atoms submitted to the
-  ladder, but it must not select or commit support patches.
+- `ap_mclachlan/support_patch.py`: retained support-patch payload types and
+  array-level scoring/diagnostic compatibility APIs.
+- `ap_mclachlan/exchange_structural.py`: generalized-exchange family
+  enumeration and historical acquisition utilities for singleton/frontier
+  ordering, including on compiled-cost routes.
+- `ap_mclachlan/exchange_integration.py` and `population_scoring.py`:
+  route-specific population ranking after acquisition, including complete-patch
+  compiled-cost marginals supplied by `compiled_patch_cost.py`.
 - `legacy/`: old controller, motion, measurement, prune-loss, and HH benchmark
   compatibility modules. Do not import these from new APM code.
 - `runners/hh_from_adapt_artifact.py`: legacy artifact-seeded runner retained
@@ -186,13 +188,6 @@ support objective is explicit.
 
 Hardware cost may affect rank score among gate-valid patches. It must not alter
 the raw grouped score, insertion gain, or deletion loss.
-
-Optional parent scouting is an append-side frontier construction tool. Cheap
-parent-tangent modes rank parent metadata and then expand retained parents back
-to Pauli/poly-child atoms. Full-parent child-block scoring is diagnostic and
-non-cheap. Under `per_pauli_term`, final support-patch labels must remain child
-labels; macro parent labels are final support atoms only in an explicit
-`logical_shared` route.
 
 ## APM Data-Flow Boundary
 

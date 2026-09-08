@@ -154,3 +154,40 @@ def test_concurrent_assess_does_not_inflate_summary_counts() -> None:
     assert concurrent.summary()["evaluated_deletion_set_count"] == len(sets)
     for s in sets:
         assert concurrent.assess(s) is concurrent.assess(s)
+
+
+def test_angle_rejection_does_not_call_schur_loss(monkeypatch) -> None:
+    def forbidden_loss(*args, **kwargs):
+        pytest.fail("Angle-rejected deletion must not evaluate Schur loss.")
+
+    monkeypatch.setattr(
+        "pipelines.time_dynamics.ap_mclachlan.deletion_permission.exact_deletion_loss",
+        forbidden_loss,
+    )
+    evaluator = _evaluator(K=np.eye(2), f=np.ones(2), theta=(0.1, 0.0))
+
+    decision = evaluator.assess((0,))
+
+    assert decision.reasons == (DELETION_PERMISSION_ANGLE_RAY,)
+    assert decision.exact_schur_loss is None
+    assert decision.normalized_schur_loss is None
+
+
+def test_redundant_singleton_permissions_do_not_authorize_joint_deletion() -> None:
+    # Either copy of a forced tangent can be removed for free. Removing both
+    # loses the entire captured drift, despite both singleton permissions.
+    evaluator = _evaluator(
+        K=np.ones((2, 2)),
+        f=np.ones(2),
+        theta=(0.0, 0.0),
+        schur_max=0.5,
+    )
+
+    assert evaluator.assess((0,)).permitted
+    assert evaluator.assess((1,)).permitted
+    joint = evaluator.assess((0, 1))
+
+    assert not joint.permitted
+    assert joint.reasons == (DELETION_PERMISSION_SCHUR_LOSS,)
+    assert joint.exact_schur_loss == pytest.approx(1.0)
+    assert joint.normalized_schur_loss == pytest.approx(1.0)

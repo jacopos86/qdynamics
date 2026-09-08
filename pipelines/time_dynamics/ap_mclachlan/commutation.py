@@ -102,18 +102,45 @@ def block_commutation_crossings(
     )
 
 
-def singleton_insertion_cuts(
+def _insertion_cut_classes(crossings: Sequence[bool]) -> tuple[tuple[int, ...], ...]:
+    """Partition adjacent cuts at each uncertified generator crossing."""
+
+    classes: list[list[int]] = [[0]]
+    for position, commutes in enumerate(crossings, start=1):
+        if not commutes:
+            classes.append([])
+        classes[-1].append(position)
+    return tuple(tuple(members) for members in classes)
+
+
+def commutation_reduce(
     candidate_term: Any,
     blocks: Sequence[Any],
     *,
     coefficient_tolerance: float = DEFAULT_COEFFICIENT_TOLERANCE,
-) -> tuple[int, ...]:
-    """Return the retained earliest-representative cuts ``P(a)``.
+) -> tuple[tuple[int, ...], ...]:
+    r"""Return the certified insertion-position classes of ``a`` in ``c``.
 
-    ``blocks`` is the ordered survivor sequence ``B_1..B_n``; the result is a
-    sorted tuple containing ``0`` plus every ``j`` whose block the candidate
-    does not certifiably commute with.  Cut ``len(blocks)`` appears exactly
-    when the final block is uncrossable, which is the tail-append case.
+    For ``a = candidate_term`` and ordered ``c = blocks = (B_1,...,B_n)``,
+    cuts ``0,...,n`` specify placement before the first block through tail
+    append. The equivalence certificate for ``p < q`` is
+
+    .. math::
+
+        p \sim_a q \quad\Longleftrightarrow\quad
+        [a,B_j]_{\mathrm{cert}}=0\quad\text{for every }p<j\le q.
+
+    Here the certificate is the retained-component rule implemented by
+    :func:`generator_blocks_commute`, including its coefficient tolerance.
+    Each returned tuple contains every cut in one class, in ascending order;
+    classes are ordered by their first cut. Even an empty ansatz has one class,
+    ``((0,),)``. Unknown commutation keeps cuts separate.
+
+    The result contains all placements, without selecting a compiled-cost
+    minimum. It describes one inserted generator, which may itself be a
+    multi-Pauli block. Simultaneous insertions additionally require the joint
+    word equivalence in ``insertion_words``; independent singleton classes do
+    not account for crossings between inserted generators.
     """
 
     crossings = block_commutation_crossings(
@@ -121,11 +148,23 @@ def singleton_insertion_cuts(
         blocks,
         coefficient_tolerance=coefficient_tolerance,
     )
-    cuts = [0]
-    for index, commutes in enumerate(crossings):
-        if not commutes:
-            cuts.append(index + 1)
-    return tuple(cuts)
+    return _insertion_cut_classes(crossings)
+
+
+def singleton_insertion_cuts(
+    candidate_term: Any,
+    blocks: Sequence[Any],
+    *,
+    coefficient_tolerance: float = DEFAULT_COEFFICIENT_TOLERANCE,
+) -> tuple[int, ...]:
+    """Return the earliest cut in each certified insertion-position class."""
+
+    return tuple(
+        members[0]
+        for members in commutation_reduce(
+            candidate_term, blocks, coefficient_tolerance=coefficient_tolerance
+        )
+    )
 
 
 def reduce_insertion_positions(
@@ -156,12 +195,11 @@ def reduce_insertion_positions(
         blocks,
         coefficient_tolerance=coefficient_tolerance,
     )
-    class_start_by_position: dict[int, int] = {0: 0}
-    class_start = 0
-    for index, commutes in enumerate(crossings):
-        if not commutes:
-            class_start = int(index + 1)
-        class_start_by_position[int(index + 1)] = int(class_start)
+    class_start_by_position = {
+        position: members[0]
+        for members in _insertion_cut_classes(crossings)
+        for position in members
+    }
 
     requested_by_class: dict[int, list[int]] = {}
     for position in requested:
@@ -196,6 +234,7 @@ def reduce_insertion_positions(
 __all__ = [
     "DEFAULT_COEFFICIENT_TOLERANCE",
     "block_commutation_crossings",
+    "commutation_reduce",
     "generator_blocks_commute",
     "reduce_insertion_positions",
     "singleton_insertion_cuts",

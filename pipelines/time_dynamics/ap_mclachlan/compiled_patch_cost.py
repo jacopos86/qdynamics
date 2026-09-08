@@ -75,7 +75,7 @@ import pipelines.hardcoded.adapt_circuit_execution as circuit_execution
 import pipelines.qiskit_backend_tools as backend_tools
 from pipelines.time_dynamics.ap_mclachlan.commutation import (
     DEFAULT_COEFFICIENT_TOLERANCE,
-    block_commutation_crossings,
+    commutation_reduce,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     remap_cuts_after_deletion,
@@ -648,26 +648,17 @@ def insertion_class_members(
     order; the class of representative ``p`` is ``p, p+1, ..., q-1`` where
     ``q`` is the next representative (the first cut whose preceding block the
     term does not certifiably commute with), so the classes partition
-    ``range(len(blocks) + 1)``.  The crossing certificate is
-    :func:`block_commutation_crossings`, the single relation both lanes share.
+    ``range(len(blocks) + 1)``. The partition comes from
+    :func:`commutation_reduce`; this function adapts it to the compiler's
+    representative-indexed lookup without defining another commutation rule.
     """
 
-    crossings = block_commutation_crossings(
-        term, blocks, coefficient_tolerance=coefficient_tolerance
-    )
-    classes: dict[int, tuple[int, ...]] = {}
-    representative = 0
-    members = [0]
-    for index, commutes in enumerate(crossings):
-        cut = int(index + 1)
-        if commutes:
-            members.append(cut)
-            continue
-        classes[representative] = tuple(members)
-        representative = cut
-        members = [cut]
-    classes[representative] = tuple(members)
-    return classes
+    return {
+        members[0]: members
+        for members in commutation_reduce(
+            term, blocks, coefficient_tolerance=coefficient_tolerance
+        )
+    }
 
 
 def weighted_raw_marginal(
