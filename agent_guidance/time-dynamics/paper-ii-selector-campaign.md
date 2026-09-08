@@ -1,7 +1,9 @@
 # Paper II selector campaign
 
-Updated: 2026-09-08. Status: design recorded; run settings and submission
-manifest pending. **72 full trajectories planned; 0 submitted for this campaign.**
+Updated: 2026-09-08. **Local diagnostic pilot: 24/24 completed; 6/6 singleton
+parity pairs passed.** The separate three-drive scientific campaign still has
+**72 full trajectories planned; 0 submitted**; its settings and submission
+manifest remain pending.
 
 Compare search policy, gain evaluation, insertion batching, and work budget
 across three drive regimes. Full trajectories are the primary comparison.
@@ -20,7 +22,7 @@ effects, and the distinction between the new searches and the old frontier
 path. The subsequent authorized correction removes redundant singleton proxy
 work and rejected-set evaluation charges. The user deferred the legacy
 frontier-policy change; its utility and generic defaults remain intact.
-The local campaign grid and CHTC submission remain pending.
+The local pilot below is complete. The expanded scientific grid remains pending.
 
 ## Corrected implementation and campaign entry point
 
@@ -104,6 +106,19 @@ This is an enumeration policy change; the ray-displacement bound and
 reverse-Schur loss permission remain separate, unchanged tests on each D.
 
 ## Local diagnostic pilot
+
+Completed at `7284dbd6a9d8811895611027e280cd2e8fc6ebd0`; all 24 runs have exact
+estimator accounting, no execution failures, and matching singleton parity.
+Read the [pilot findings](../../output/paper_ii_selector_local_pilot_20260908_fbebbabc/pilot_24/findings.md)
+and [frozen plan](../../output/paper_ii_selector_local_pilot_20260908_fbebbabc/pilot_24/plan.json).
+These runs are distinct from the 72 planned scientific trajectories.
+
+The primary observed restriction is low-budget block search's whole-neighborhood
+admission: it commits no insertion, while greedy/exhaustive admit singleton
+insertions. At the high budget all three admit A2. Factorized ranking reduces
+acquisition work but barely changes compilation-dominated wall time. No D>0
+passes permission, and no A3/A4 request is evaluated; those cases still require
+a suitable diagnostic before expanding the campaign.
 
 Before extending the campaign, execute one budget-calibration trajectory and
 24 matched local trajectories (three searches, two gains, A1/D1 versus A4/D-all,
