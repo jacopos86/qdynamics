@@ -98,7 +98,7 @@ def _row(time: float, index: int, *, interval_cost: int) -> dict:
 def _route_guards(route_bundle_id: str | None) -> dict:
     """Return the run-lock guards for one exchange route (or the pre-route set)."""
 
-    guards: dict = {"max_structural_pool_size": 64}
+    guards: dict = {"max_joint_patch_evaluations": 50000}
     if route_bundle_id is None:
         return guards
     contract = {

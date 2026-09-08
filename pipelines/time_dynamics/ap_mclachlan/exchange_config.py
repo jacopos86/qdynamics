@@ -254,7 +254,6 @@ class ExchangeCertificationConfig:
 class ExchangeSearchBudget:
     """Finite-work bounds on the combinatorial search approximation."""
 
-    pool_size: int | None
     insertion_cardinality: int
     joint_patch_evaluations: int | None
     certification_attempts_per_level: int | None
@@ -369,11 +368,6 @@ class APGeneralizedExchangeConfig:
                 ),
             ),
             search=ExchangeSearchBudget(
-                pool_size=(
-                    None
-                    if config.max_structural_pool_size is None
-                    else int(config.max_structural_pool_size)
-                ),
                 insertion_cardinality=int(insertion_cap),
                 joint_patch_evaluations=(
                     None

@@ -146,6 +146,17 @@ EXECUTOR_OVERLAY_PATHS = (
     "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py",
     _WORKER_PATH,
     _RUNNER_PATH,
+    # Keep the uncapped pool interface and lazy enumeration dependencies together.
+    "pipelines/time_dynamics/ap_mclachlan/adaptive_trajectory.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_config.py",
+    "pipelines/time_dynamics/ap_mclachlan/support_atoms.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_integration.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_structural.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_selector.py",
+    "pipelines/time_dynamics/ap_mclachlan/deletion_family.py",
+    "pipelines/time_dynamics/ap_mclachlan/patch_enumeration.py",
+    "pipelines/time_dynamics/ap_mclachlan/insertion_words.py",
+    "pipelines/time_dynamics/generalized_exchange.py",
 )
 
 
@@ -1114,7 +1125,6 @@ def _build_execution_contract(
         support = runner._support_patch_config_from_args(args)
         repair = runner._solve_repair_config_from_args(args)
         controller = runner.AppendControllerConfig(
-            max_append_candidates=int(args.max_append_candidates),
             append_min_time=float(args.append_min_time),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
             min_logical_parameter_count=int(args.min_logical_parameter_count),

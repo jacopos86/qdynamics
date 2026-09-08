@@ -38,7 +38,6 @@ def _patch_config() -> SupportPatchControllerConfig:
     return SupportPatchControllerConfig(
         insertion_gate_mode="mclachlan_l2",
         insertion_l2_cut=1.0e-3,
-        max_structural_pool_size=64,
         append_schur_max_condition_number=None,
         max_joint_patch_evaluations=50000,
         max_certification_attempts_per_level=12,

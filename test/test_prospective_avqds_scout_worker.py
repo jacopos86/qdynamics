@@ -21,9 +21,7 @@ import pipelines.time_dynamics.prospective_avqds_scout_chtc_package as scout_pac
 import pipelines.time_dynamics.prospective_avqds_runtime_source as runtime_source
 import pipelines.time_dynamics.prospective_avqds_scout_worker as scout_worker_module
 import pipelines.time_dynamics.prospective_avqds_trajectory_worker as trajectory_worker_module
-import pipelines.time_dynamics.runners.run_prospective_avqds_scout as scout_runner_module
 import pipelines.scaffold.runtime_loader as runtime_loader_module
-import pipelines.time_dynamics.prospective_execution_bindings as execution_bindings_module
 import pipelines.time_dynamics.fixed_vqe_conditioning as fixed_vqe_module
 import pipelines.time_dynamics.prospective_hh_seed_worker as hh_seed_worker_module
 from pipelines.time_dynamics.prospective_avqds_scout_worker import (
@@ -174,17 +172,9 @@ def _receipts_and_request(root: Path):
         check=True,
         capture_output=True,
     ).stdout
+    project_root = Path(__file__).resolve().parents[1]
     overlay_sources = {
-        "pipelines/scaffold/runtime_loader.py": Path(runtime_loader_module.__file__),
-        "pipelines/time_dynamics/prospective_execution_bindings.py": Path(
-            execution_bindings_module.__file__
-        ),
-        "pipelines/time_dynamics/prospective_avqds_scout_worker.py": Path(
-            scout_worker_module.__file__
-        ),
-        "pipelines/time_dynamics/runners/run_prospective_avqds_scout.py": Path(
-            scout_runner_module.__file__
-        ),
+        relative: project_root / relative for relative in EXECUTOR_OVERLAY_PATHS
     }
     for relative, source_file in overlay_sources.items():
         target = root / relative
@@ -539,7 +529,6 @@ def test_work_order_locks_complete_pool_and_exact_blind_runner(tmp_path: Path) -
         "max_joint_patch_evaluations": 50_000,
         "max_certification_attempts_per_level": 12,
         "max_certification_attempts_per_deletion_branch": 2,
-        "max_structural_pool_size": 128,
         "max_insertion_batch_size": 1,
         "residual_ratio_threshold": 0.02,
     }

@@ -195,6 +195,34 @@ def test_work_guard_rejects_complete_family_and_freezes() -> None:
     assert result.guard.scored_count == len(result.candidates)
 
 
+@pytest.mark.parametrize("remaining, expected_branches", [(1, []), (2, [(0,)])])
+def test_rejected_rung_stops_construction_before_permission(
+    remaining, expected_branches,
+) -> None:
+    _s, _e, _c, cuts, kwargs = _setup()
+    d0_size = 1 + len(cuts["ca"]) + len(cuts["cb"])
+    seen = []
+
+    def pool(removed):
+        if removed:
+            seen.append(removed)
+        return ("ca", "cb")
+
+    def permission(_removed):
+        pytest.fail("a rejected raw family must not reach deletion permission")
+
+    kwargs.update(
+        candidate_pool_for_deletion=pool,
+        deletion_permission=permission,
+        max_joint_patch_evaluations=d0_size + remaining,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    assert seen == expected_branches
+    assert result.guard.rejected_family == "singleton_d1"
+    assert result.guard.scored_count == d0_size
+    assert all(not c.removed_runtime_indices for c in result.candidates)
+
+
 def test_exchange_frontier_admits_the_rung_the_full_pool_refuses() -> None:
     """Fails before the repair: every d >= 1 family is refused whole.
 

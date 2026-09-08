@@ -399,3 +399,148 @@ def test_selection_parallel_matches_serial_attempts_and_commit() -> None:
         else:
             assert parallel.committed.order_key == serial.committed.order_key
             assert parallel.committed.score == serial.committed.score
+
+
+@pytest.mark.parametrize("stop_at_first_level", ["commit", "escalation_stop"])
+def test_stopping_singleton_level_does_not_evaluate_joint_patches(
+    monkeypatch, stop_at_first_level
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan import exchange_structural
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
+    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import CandidateCostInputs
+
+    solved_insertions = []
+    priced_patches = []
+    ranked_populations = []
+    original_solve = exchange_structural.structural_candidate_solve
+
+    def observe_solve(**kwargs):
+        solved_insertions.append(tuple(kwargs["inserted_selection"]))
+        return original_solve(**kwargs)
+
+    monkeypatch.setattr(exchange_structural, "structural_candidate_solve", observe_solve)
+
+    def patch_key(removed, insertions, plan):
+        return (tuple(removed), tuple(insertions), None if plan is None else plan.plan_id)
+
+    def price(removed, insertions, plan):
+        priced_patches.append(patch_key(removed, insertions, plan))
+        return CandidateCostInputs(cost_marginal=(0, 0, 0), compile_calls=1)
+
+    def rank(candidates):
+        population = {
+            patch_key(c.removed_runtime_indices, c.inserted_selection, c.plan)
+            for c in candidates
+        }
+        ranked_populations.append(population)
+        # Pricing is observable work: no evaluated family may be held back
+        # from ranking while an earlier family is allowed to commit.
+        assert set(priced_patches) <= population
+        if stop_at_first_level == "escalation_stop":
+            return RankedLevel(ordered=(), rank_info={}, telemetry={})
+        insertions = tuple(
+            c for c in candidates if c.kind == "insert" and len(c.inserted_selection) == 1
+        )
+        assert insertions
+        return RankedLevel(ordered=insertions, rank_info={}, telemetry={})
+
+    kwargs = _selection_kwargs(
+        deletable_indices=(),
+        max_insertion_batch_size=2,
+        interaction_frontier_widths=(2,),
+        route_bundle=resolve_route_bundle("paper_ii_exchange_q_compiled_v1"),
+        candidate_cost_inputs=price,
+    )
+    selection = select_exchange_patch(
+        gates=CertificationGates(
+            ray_distance_max=1.0, smoothness_eta_max=1e6, condition_number_max=None
+        ),
+        population_ranker=rank,
+        escalate=lambda: False,
+        **kwargs,
+    )
+    assert len(ranked_populations) == 1
+    assert priced_patches
+    assert all(len(insertions) <= 1 for insertions in solved_insertions)
+    assert all(len(key[1]) == 1 for key in priced_patches)
+    if stop_at_first_level == "commit":
+        assert selection.committed is not None
+        assert len(selection.committed.inserted_selection) == 1
+    else:
+        assert selection.committed is None
+        assert selection.stop_reason == "escalation_predicate_false"
+
+
+@pytest.mark.parametrize("required_deletion", [(), (0,)])
+def test_escalated_joint_patches_are_ranked_including_deletion_only_pool_members(
+    required_deletion,
+) -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
+    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import CandidateCostInputs
+
+    priced_patches = []
+    ranked_populations = []
+    consumed_prices = 0
+    escalation_calls = []
+
+    def patch_key(removed, insertions, plan):
+        return (tuple(removed), tuple(insertions), None if plan is None else plan.plan_id)
+
+    def price(removed, insertions, plan):
+        priced_patches.append(patch_key(removed, insertions, plan))
+        return CandidateCostInputs(cost_marginal=(0, 0, 0), compile_calls=1)
+
+    def rank(candidates):
+        nonlocal consumed_prices
+        population = {
+            patch_key(c.removed_runtime_indices, c.inserted_selection, c.plan)
+            for c in candidates
+        }
+        ranked_populations.append(population)
+        assert set(priced_patches[consumed_prices:]) <= population
+        consumed_prices = len(priced_patches)
+        if len(ranked_populations) == 1:
+            # A route ranker may find no acceptable singleton. Only after
+            # escalation should joint candidates consume work and compete.
+            assert all(len(c.inserted_selection) <= 1 for c in candidates)
+            return RankedLevel(ordered=(), rank_info={}, telemetry={})
+        joint = tuple(
+            c for c in candidates
+            if c.removed_runtime_indices == required_deletion
+            and {atom for atom, _cut in c.inserted_selection} == {"ca", "cb"}
+            and len(c.inserted_selection) == 2
+        )
+        assert joint, "the evaluated next level must offer its joint candidates"
+        return RankedLevel(ordered=joint, rank_info={}, telemetry={})
+
+    def escalate():
+        escalation_calls.append(True)
+        return True
+
+    kwargs = _selection_kwargs(
+        deletable_indices=required_deletion,
+        # With D=(0,), neither candidate is available on the undeleted face.
+        # Their deletion-conditioned availability must feed the joint level.
+        candidate_pool_for_deletion=lambda removed: (
+            ("ca", "cb") if tuple(removed) == required_deletion else ()
+        ),
+        max_insertion_batch_size=2,
+        interaction_frontier_widths=(2,),
+        route_bundle=resolve_route_bundle("paper_ii_exchange_q_compiled_v1"),
+        candidate_cost_inputs=price,
+    )
+    selection = select_exchange_patch(
+        gates=CertificationGates(
+            ray_distance_max=1.0, smoothness_eta_max=1e6, condition_number_max=None
+        ),
+        population_ranker=rank,
+        escalate=escalate,
+        **kwargs,
+    )
+    assert escalation_calls
+    assert len(ranked_populations) == 2
+    assert selection.committed is not None
+    assert selection.committed.removed_runtime_indices == required_deletion
+    assert len(selection.committed.inserted_selection) == 2
+    assert any(len(key[1]) == 2 for key in priced_patches)
+    assert set(priced_patches) <= set().union(*ranked_populations)

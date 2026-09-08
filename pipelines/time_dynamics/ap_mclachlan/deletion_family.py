@@ -63,20 +63,26 @@ def iter_deletion_rungs(
     *,
     total_support: int,
     min_surviving_support: int,
-) -> Iterator[tuple[int, tuple[tuple[int, ...], ...]]]:
-    """Yield ``(d, rung)`` for d = 0..|J_del|, skipping infeasible-empty rungs
-    above the surviving-support bound (which truncates all later rungs too)."""
+) -> Iterator[tuple[int, Iterator[tuple[int, ...]]]]:
+    """Yield ``(d, lazy_rung)`` in increasing feasible cardinality order.
+
+    Each rung is a one-pass iterator in frozen combination order; requesting
+    its descriptor does not construct any deletion subset. A caller can count
+    until its existing whole-family guard proves rejection, then discard the
+    remainder without materializing the rung. No partial-family admission or
+    computational bound is imposed here.
+    """
 
     deletable = tuple(int(i) for i in deletable_indices)
+    if len(set(deletable)) != len(deletable):
+        raise ValueError("deletable_indices must be unique.")
     for d in range(len(deletable) + 1):
-        rung = deletion_rung(
-            deletable,
-            cardinality=d,
-            total_support=total_support,
-            min_surviving_support=min_surviving_support,
-        )
-        if d > 0 and not rung:
+        if d > 0 and int(total_support) - d < int(min_surviving_support):
             return
+        rung = (
+            tuple(sorted(int(i) for i in subset))
+            for subset in combinations(deletable, d)
+        )
         yield d, rung
 
 

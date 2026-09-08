@@ -17,7 +17,6 @@ def test_route_transport_is_partitioned_into_four_exchange_inputs() -> None:
     route = SupportPatchControllerConfig(
         debt_policy="drift_ranked",
         prune_history_lambda=0.0,
-        max_structural_pool_size=128,
         max_insertion_batch_size=1,
     )
     config = APGeneralizedExchangeConfig.from_route_config(route)
@@ -28,7 +27,6 @@ def test_route_transport_is_partitioned_into_four_exchange_inputs() -> None:
     assert isinstance(config.search, ExchangeSearchBudget)
     assert config.score.debt_policy == "drift_ranked"
     assert config.score.history_weight == 0.0
-    assert config.search.pool_size == 128
     assert config.search.insertion_cardinality == 1
     recorded = route.to_json_dict()["generalized_exchange"]
     # Five partitions since 2026-09-02: the closed route bundle joined the

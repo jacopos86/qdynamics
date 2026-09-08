@@ -145,9 +145,8 @@ Current registry contents:
   `1e-2`, parameter motion `5e-3`, and their composition. The state/composed
   controllers use subdivision budget **10**. No realized trial-state overlap
   is prepared or measured.
-- **Structure**: candidate pool cap 128 (above the 125-word deduplicated pool,
-  so it does not bind), **conditioning gate off**, guards 50000 / 12 / 2, and
-  insertion batch 1.
+- **Structure**: complete eligible deduplicated candidate pool,
+  **conditioning gate off**, guards 50000 / 12 / 2, and insertion batch 1.
 - **Algorithmic methods in the factorial campaign**: `exchange` and `avqds`.
   `append_only` remains an ablation, not a third primary method.
 - **Insertion gates**: the primary campaign uses the McLachlan-
@@ -248,10 +247,10 @@ CHTC 2026-08-18).
 The singleton level is `|pool| × |retained cuts|` candidates, each one
 supported solve. Measured: ~2.9k candidates (87 params, nph=1 seed, ~2.5 s per
 checkpoint) versus ~188k candidates (616 params, nph=3 seed, ~85 s plus
-~770 MB of tangent columns). Because families admit whole, a small guard on a
-large pool rejects the singleton level entirely (permanent stay): bound the
-candidate pool in the run configuration, not with selector-side prefilters,
-which the specification forbids.
+~770 MB of tangent columns). Candidate enumeration preserves the complete
+eligible pool. Because families admit whole, a small joint-work guard can
+reject an entire family; inspect family-admission telemetry when diagnosing
+stays at scale. Provision execution resources for the declared search.
 
 Because every admitted deletion rung is scored before certification, running
 with `--max-joint-patch-evaluations None` at scale enumerates ALL rungs

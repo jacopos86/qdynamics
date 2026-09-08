@@ -583,7 +583,6 @@ def test_candidate_append_atoms_rejects_incomplete_pool_by_default() -> None:
 
 def test_append_controller_config_maps_to_generalized_exchange_restrictions() -> None:
     config = AppendControllerConfig(
-        max_append_candidates=5,
         max_prune_candidates=2,
         max_total_prunes=1,
         append_gain_threshold=0.25,
@@ -599,7 +598,6 @@ def test_append_controller_config_maps_to_generalized_exchange_restrictions() ->
         APPEND_OCCURRENCE_POLICY_UNIQUE_SUPPORT
     )
     assert support_config.max_insertion_batch_size == 1
-    assert support_config.max_structural_pool_size == 5
     assert support_config.allow_incomplete_candidate_pool is True
 
 

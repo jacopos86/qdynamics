@@ -21,7 +21,7 @@ def _lock(**overrides):
         inverse_policy={"pinv_rcond": 1e-10, "ridge_lambda": 1e-7, "solve_damping": 0.0},
         solve_repair={"enabled": True},
         structural_policy="exchange",
-        guards={"max_structural_pool_size": 8},
+        guards={"max_joint_patch_evaluations": 50000},
     )
     params.update(overrides)
     return build_run_lock(**params)

@@ -82,7 +82,6 @@ def _runtime_input(theta=(0.35, -0.22)):
 def _run(**support_overrides):
     support = dict(
         residual_ratio_threshold=0.02,
-        max_structural_pool_size=2,
         max_joint_patch_evaluations=5000,
         max_certification_attempts_per_level=6,
         max_certification_attempts_per_deletion_branch=2,
@@ -101,7 +100,7 @@ def _run(**support_overrides):
         integrator_method="rk4",
         pinv_rcond=1.0e-10,
         ridge_lambda=1.0e-7,
-        controller_config=AppendControllerConfig(max_append_candidates=0),
+        controller_config=AppendControllerConfig(),
         support_patch_config=SupportPatchControllerConfig(**support),
         solve_repair_config=SolveRepairConfig.minimal_profile(),
     )
@@ -244,7 +243,6 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
         insertion_l2_cut=1.0e9,
         avqds_l2_cut=1.0e9,
         avqds_delta_theta_max=parameter_displacement_max,
-        max_structural_pool_size=2,
     )
     payloads = []
     for policy in ("exchange", "avqds"):
@@ -255,7 +253,7 @@ def test_structural_policies_share_the_evolution_kernel_when_no_patch_commits(
                 integrator_method=integrator,
                 pinv_rcond=1.0e-10,
                 ridge_lambda=1.0e-7,
-                controller_config=AppendControllerConfig(max_append_candidates=0),
+                controller_config=AppendControllerConfig(),
                 support_patch_config=SupportPatchControllerConfig(
                     **common, dynamics_policy=policy
                 ),

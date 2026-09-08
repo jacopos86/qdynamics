@@ -255,7 +255,7 @@ def test_apm_runner_has_no_online_redundancy_injection() -> None:
             completeness="complete",
         ),
     )
-    controller = AppendControllerConfig(max_append_candidates=0)
+    controller = AppendControllerConfig()
 
     signature = inspect.signature(run_append_ap_mclachlan_from_runtime_input)
     assert "redundancy_stress_config" not in signature.parameters

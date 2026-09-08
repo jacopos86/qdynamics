@@ -144,6 +144,7 @@ def _receipts_and_request(root: Path):
             path
             for path in EXECUTOR_OVERLAY_PATHS
             if "prospective_apm_exchange" not in path
+            and not path.endswith("/patch_enumeration.py")
         ),
     }
     for relative in sorted(base_files):
@@ -413,7 +414,6 @@ def _runtime_contract(order) -> dict[str, object]:
                 "max_joint_patch_evaluations",
                 "max_certification_attempts_per_level",
                 "max_certification_attempts_per_deletion_branch",
-                "max_structural_pool_size",
                 "max_insertion_batch_size",
                 "residual_ratio_threshold",
             )
@@ -494,6 +494,31 @@ def _fake_raw(order, seed_receipt, runtime: dict[str, object]):
     }
 
 
+@pytest.mark.parametrize("worker_name", (
+    "prospective_apm_exchange_worker",
+    "prospective_avqds_scout_worker",
+    "prospective_avqds_trajectory_worker",
+))
+def test_executor_overlay_contains_current_pool_and_enumeration_dependencies(
+    worker_name: str,
+) -> None:
+    import importlib
+
+    worker = importlib.import_module(f"pipelines.time_dynamics.{worker_name}")
+    paths = worker.EXECUTOR_OVERLAY_PATHS
+    assert len(paths) == len(set(paths))
+    required_modules = (
+        "paper_ii_runs", "runners.ap_append_from_adapt_artifact",
+        "ap_mclachlan.adaptive_trajectory", "ap_mclachlan.exchange_config",
+        "ap_mclachlan.support_atoms", "ap_mclachlan.exchange_integration",
+        "ap_mclachlan.exchange_structural", "ap_mclachlan.exchange_selector",
+        "ap_mclachlan.deletion_family", "ap_mclachlan.patch_enumeration",
+        "ap_mclachlan.insertion_words", "generalized_exchange",
+    )
+    for module_name in required_modules:
+        assert f"pipelines/time_dynamics/{module_name.replace('.', '/')}.py" in paths
+
+
 def test_hubbard_work_order_binds_fixed_policy_and_loader_overlay(
     tmp_path: Path,
 ) -> None:
@@ -521,6 +546,10 @@ def test_hubbard_work_order_binds_fixed_policy_and_loader_overlay(
     assert order.executor_overlay.files[loader]["base_sha256"] != (
         order.executor_overlay.files[loader]["overlay_sha256"]
     )
+    enumeration = "pipelines/time_dynamics/ap_mclachlan/patch_enumeration.py"
+    assert order.executor_overlay.files[enumeration]["base_present"] is False
+    assert order.executor_overlay.files[enumeration]["base_sha256"] is None
+    assert "--max-structural-pool-size" not in argv
     assert order.executor_overlay.base_source_revision == (
         source.source_epoch.source_revision
     )
@@ -830,6 +859,7 @@ def test_hubbard_package_is_inert_and_binds_source_epoch_and_loader(
         "executor_overlay/pipelines/scaffold/runtime_loader.py"
     )
     assert loader_member in names
+    assert all(f"executor_overlay/{path}" in names for path in EXECUTOR_OVERLAY_PATHS)
     assert "input/executor_overlay_identity.json" in names
     assert "BASE_SOURCE_VERIFIED_BEFORE_OVERLAY" in worker_text
     assert "pristine base digest mismatch" in worker_text

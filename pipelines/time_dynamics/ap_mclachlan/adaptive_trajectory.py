@@ -222,7 +222,6 @@ class SupportPatchControllerConfig:
     certification_refit_trust_radius: float = 0.6
     certification_refit_max_iterations: int = 15
     max_certification_attempts_per_level: int | None = 12
-    max_structural_pool_size: int | None = 8
     max_certification_attempts_per_deletion_branch: int | None = 2
     dynamics_policy: str = "exchange"
     # Closed route bundle: objective ordinate + cost model + ranking kernel
@@ -444,11 +443,6 @@ class SupportPatchControllerConfig:
                 if self.max_certification_attempts_per_level is None
                 else int(self.max_certification_attempts_per_level)
             ),
-            "max_structural_pool_size": (
-                None
-                if self.max_structural_pool_size is None
-                else int(self.max_structural_pool_size)
-            ),
             "dynamics_policy": str(self.dynamics_policy),
             "exchange_route_bundle": str(self.exchange_route_bundle),
             "maintenance_loss_tolerance": (
@@ -505,7 +499,6 @@ class SupportPatchControllerConfig:
 class AppendControllerConfig:
     """Append controller settings for the first AP-McLachlan route."""
 
-    max_append_candidates: int = 8
     max_prune_candidates: int = 0
     max_total_prunes: int = 0
     append_gain_threshold: float = 1.0e-10
@@ -515,8 +508,6 @@ class AppendControllerConfig:
     allow_incomplete_candidate_pool: bool = True
 
     def __post_init__(self) -> None:
-        if int(self.max_append_candidates) < 0:
-            raise ValueError("max_append_candidates must be non-negative.")
         if int(self.max_prune_candidates) < 0:
             raise ValueError("max_prune_candidates must be non-negative.")
         if int(self.max_total_prunes) < 0:
@@ -533,7 +524,6 @@ class AppendControllerConfig:
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
-            "max_append_candidates": int(self.max_append_candidates),
             "max_prune_candidates": int(self.max_prune_candidates),
             "max_total_prunes": int(self.max_total_prunes),
             "append_gain_threshold": float(self.append_gain_threshold),
@@ -554,7 +544,6 @@ class AppendControllerConfig:
             ),
             append_occurrence_policy=APPEND_OCCURRENCE_POLICY_UNIQUE_SUPPORT,
             max_insertion_batch_size=1,
-            max_structural_pool_size=int(self.max_append_candidates),
             residual_ratio_threshold=float(self.residual_ratio_threshold),
             min_runtime_parameter_count=int(self.min_logical_parameter_count),
             allow_incomplete_candidate_pool=bool(self.allow_incomplete_candidate_pool),

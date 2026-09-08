@@ -27,7 +27,8 @@ import math
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping, Sequence
+from itertools import combinations
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 
@@ -44,10 +45,11 @@ from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import (
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     InsertionPlan,
     WordToken,
-    inserted_tokens,
-    quotient_insertion_plans,
-    survivor_tokens,
     word_keys,
+)
+from pipelines.time_dynamics.ap_mclachlan.patch_enumeration import (
+    Patch,
+    iter_permitted_patches,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.performance import count, phase
@@ -355,13 +357,15 @@ def iter_structural_families(
     Families follow the specification's acquisition order — the ``d = 0``
     singleton family, each deletion-cardinality rung, then each insertion
     frontier — with the joint-work guard admitting every family whole before
-    any member is scored.  The final yield is ``("__telemetry__", (), state)``
-    carrying priorities, universe, schedule, and ``q_base`` so consumers can
-    stop early without losing reproduction data.
+    any member is scored. ``candidates`` is a lazy member iterator: consume
+    it completely before requesting another family. Reading a frontier label
+    does no joint construction, solving, or compilation. The final yield is
+    ``("__telemetry__", (), state)`` with completed-search accounting.
 
     ``deletion_permission`` is the measurement-free eligibility seam for a
     complete deletion set.  A refused set is removed before its pure-deletion
-    and exchange variants are scored or counted against the work guard.
+    and exchange variants are scored. The structural work guard counts the
+    raw family; the compilation guard counts only permitted active patches.
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
     frozen child order (occurrence policy applied by the caller; a deleted
     child may re-enter).  ``cuts_by_atom`` holds each child's retained
@@ -635,51 +639,89 @@ def iter_structural_families(
             if prior is None or float(score) > prior:
                 singleton_cut_best[key] = float(score)
 
-    # ---- d = 0: stay + every pure singleton insertion ----------------------
-    pure_pool = candidate_pool_for_deletion(())
-    d0_size = 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pure_pool)
-    d0_compile_size = sum(
-        1
-        for atom_id in pure_pool
-        for cut in cuts_by_atom.get(atom_id, ())
-        if active_population_face((), ((str(atom_id), int(cut)),))
-    )
-    if admit("singleton_d0", d0_size, compiled_size=d0_compile_size):
+    def singleton_patches(members) -> Iterator[Patch]:
+        """Apply the declared positioned-singleton order to the pure kernel."""
+
+        for removed, insertions in members:
+            # Boundary patch: stay for D=(), otherwise pure deletion.
+            yield from iter_permitted_patches(
+                coordinate_keys=cache.coordinate_keys,
+                deletion_sets=(removed,),
+                insertion_blocks_for_deletion=lambda _d: ((),),
+                singleton_cuts=lambda _d, _a: (),
+            )
+            # A sealed frontier can interleave cuts of different children.
+            for atom_id, cut in insertions:
+                yield from iter_permitted_patches(
+                    coordinate_keys=cache.coordinate_keys,
+                    deletion_sets=(removed,),
+                    insertion_blocks_for_deletion=lambda _d: ((atom_id,),),
+                    singleton_cuts=lambda _d, _a: (cut,),
+                )
+
+    def evaluate_patches(
+        patches: Iterable[Patch], family: str
+    ) -> Iterator[StructuralCandidate]:
+        """Evaluate an admitted family only when its members are consumed."""
+
+        nonlocal workers_effective_max
+
+        def geometry_requests():
+            for patch in patches:
+                selection = (
+                    patch.inserted_selection
+                    if patch.plan is None
+                    else _plan_selection(patch.plan, cuts_by_atom)
+                )
+                yield patch.removed_runtime_indices, selection, patch.plan
+
+        requests = geometry_requests()
         if workers_requested > 1:
-            warm_keys = [
-                ((), ((str(atom_id), int(cut)),))
-                for atom_id in pure_pool
-                for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ()))
-            ]
+            # Parallel scheduling surrounds the same deterministic serial
+            # evaluation order; helper solves are never compiler requests.
+            requests = list(requests)
+            warm_keys = []
+            for removed, selection, _plan in requests:
+                warm_keys.append((removed, selection))
+                if removed and selection:
+                    warm_keys.extend(((removed, ()), ((), selection)))
             workers_effective_max = max(
                 workers_effective_max,
-                _warm_solve_memo(
-                    q_of, warm_keys, cache.solve_memo, workers_requested
-                ),
+                _warm_solve_memo(q_of, warm_keys, cache.solve_memo, workers_requested),
             )
             if candidate_cost_warm is not None:
-                candidate_cost_warm(
-                    [
-                        (k[0], k[1], None)
-                        for k in warm_keys
-                        if active_population_face(k[0], k[1])
-                    ]
-                )
-        family_out = [scored((), (), None, "singleton_d0")]
-        for atom_id in pure_pool:
-            for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
-                candidate = scored(
-                    (), ((str(atom_id), cut),), None, "singleton_d0"
-                )
-                family_out.append(candidate)
-                # One ranking key for both seals: the frontier is sealed on
-                # exactly the ordinate child acquisition uses, so a route that
-                # redefines priority_value moves both together.
+                candidate_cost_warm([
+                    (removed, selection, plan)
+                    for removed, selection, plan in requests
+                    if (removed or selection) and active_population_face(removed, selection)
+                ])
+        for removed, selection, plan in requests:
+            candidate = scored(removed, selection, plan, family)
+            if len(selection) == 1:
+                atom_id, cut = selection[0]
                 priority = priority_value(candidate)
-                note_priority(str(atom_id), priority)
-                note_cut_priority(str(atom_id), cut, priority)
-        candidates.extend(family_out)
-        yield "singleton_d0", tuple(family_out), None
+                note_priority(atom_id, priority)
+                if not removed:
+                    note_cut_priority(atom_id, cut, priority)
+            candidates.append(candidate)
+            yield candidate
+
+    # ---- d = 0: stay + every pure singleton insertion ----------------------
+    pure_pool = candidate_pool_for_deletion(())
+    pure_insertions = tuple(
+        (str(atom_id), int(cut))
+        for atom_id in pure_pool
+        for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ()))
+    )
+    d0_size = 1 + len(pure_insertions)
+    d0_compile_size = sum(
+        int(active_population_face((), (insertion,)))
+        for insertion in pure_insertions
+    )
+    if admit("singleton_d0", d0_size, compiled_size=d0_compile_size):
+        yield "singleton_d0", evaluate_patches(
+            singleton_patches((((), pure_insertions),)), "singleton_d0"
+        ), None
 
     # ---- sealed exchange insertion frontier --------------------------------
     # Sealed HERE, before the first rung is sized, from scores the d = 0 family
@@ -720,6 +762,14 @@ def iter_structural_families(
         if d == 0:
             continue
         family = f"singleton_d{d}"
+        # Each deletion set contributes at least its pure-deletion patch.
+        # This lower bound can reject a huge rung without enumerating it.
+        remaining = guard.remaining
+        if remaining is not None and math.comb(len(deletable_indices), d) > remaining:
+            reject_family(guard, family)
+            if compile_guard is not None:
+                reject_family(compile_guard, family)
+            break
         size = 0
         members: list[
             tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
@@ -728,6 +778,13 @@ def iter_structural_families(
             insertions = rung_insertions(candidate_pool_for_deletion(removed))
             members.append((removed, insertions))
             size += 1 + len(insertions)
+            if not guard_fits(guard, size):
+                reject_family(guard, family)
+                if compile_guard is not None:
+                    reject_family(compile_guard, family)
+                break
+        if guard.exhausted:
+            break
         # Admit the raw family before permission. Otherwise refused sets evade
         # the work accounting and the search can walk unbounded combinatorial
         # rungs while scoring nothing.
@@ -763,48 +820,15 @@ def iter_structural_families(
                 break
         elif not admit(family, size):
             break
-        if workers_requested > 1:
-            # Permission stays coordinator-only (its evaluator memoizes, so
-            # the replay below re-reads identical decisions); only the
-            # permitted members' solves are warmed.
-            warm_keys: list[tuple] = []
-            for removed, insertions in permitted_members:
-                if compile_guard is None and deletion_permission is not None:
-                    if not bool(deletion_permission(removed).permitted):
-                        continue
-                warm_keys.append((removed, ()))
-                for atom_id, cut in insertions:
-                    warm_keys.append(((), ((str(atom_id), int(cut)),)))
-                    warm_keys.append((removed, ((str(atom_id), int(cut)),)))
-            workers_effective_max = max(
-                workers_effective_max,
-                _warm_solve_memo(
-                    q_of, warm_keys, cache.solve_memo, workers_requested
-                ),
-            )
-            if candidate_cost_warm is not None:
-                candidate_cost_warm(
-                    [
-                        (k[0], k[1], None)
-                        for k in warm_keys
-                        if active_population_face(k[0], k[1])
-                    ]
-                )
-        family_out = []
-        for removed, insertions in permitted_members:
-            if compile_guard is None and deletion_permission is not None:
-                permission = deletion_permission(removed)
-                if not bool(permission.permitted):
-                    continue
-            family_out.append(scored(removed, (), None, family))
-            for atom_id, cut in insertions:
-                candidate = scored(
-                    removed, ((str(atom_id), int(cut)),), None, family
-                )
-                family_out.append(candidate)
-                note_priority(str(atom_id), priority_value(candidate))
-        candidates.extend(family_out)
-        yield family, tuple(family_out), None
+        if compile_guard is None and deletion_permission is not None:
+            permitted_members = [
+                (removed, insertions)
+                for removed, insertions in permitted_members
+                if bool(deletion_permission(removed).permitted)
+            ]
+        yield family, evaluate_patches(
+            singleton_patches(permitted_members), family
+        ), None
 
     # ---- child acquisition priorities and nested frontiers -----------------
     eligible = tuple(
@@ -824,98 +848,56 @@ def iter_structural_families(
         and tokens_commute is not None
         and not guard.exhausted
     ):
-        survivors = survivor_tokens(cache.coordinate_keys)
         scored_plans: set[tuple] = set()
-        from itertools import combinations
 
-        for level, width in enumerate(schedule):
+        def evaluate_frontier(level: int, width: int) -> Iterator[StructuralCandidate]:
+            """Construct, admit, then evaluate one explicitly requested frontier."""
+
+            nonlocal frontiers_used
             frontier = eligible[:width]
             family = f"frontier_{level}_w{width}"
-            batch: list[
-                tuple[tuple[int, ...], InsertionPlan, tuple[tuple[str, int], ...]]
-            ] = []
-            # Construction is pure Python and can vastly exceed the solve
-            # budget (plans scale with cut-position combinations), so cap it
-            # at the guard's remaining budget: crossing the line rejects the
-            # whole family with the constructed part discarded — families
-            # still admit whole or not at all.
-            construction_cap = guard.remaining
-            over_cap = False
-            for removed in admitted_removed:
-                if over_cap:
-                    break
+
+            def insertion_blocks(removed):
                 pool = set(candidate_pool_for_deletion(removed))
-                usable = [a for a in frontier if a in pool]
-                removed_keys = tuple(
-                    cache.coordinate_keys[i] for i in removed
-                )
+                usable = tuple(a for a in frontier if a in pool)
                 for size in range(2, int(max_insertion_batch_size) + 1):
-                    if over_cap:
-                        break
-                    for subset in combinations(usable, size):
-                        if over_cap:
-                            break
-                        tokens = inserted_tokens(subset)
-                        plans = quotient_insertion_plans(
-                            survivors=survivors,
-                            inserted=tokens,
-                            removed_keys=removed_keys,
-                            tokens_commute=tokens_commute,
-                        )
-                        for plan in plans:
-                            selection = _plan_selection(plan, cuts_by_atom)
-                            identity = (removed, plan.plan_id)
-                            if identity in scored_plans:
-                                continue
-                            scored_plans.add(identity)
-                            batch.append((removed, plan, selection))
-                            if (
-                                construction_cap is not None
-                                and len(batch) > int(construction_cap)
-                            ):
-                                over_cap = True
-                                break
-            if over_cap:
-                admit(family, len(batch))
-                break
-            batch_compile_size = sum(
-                1
-                for removed, _plan, selection in batch
-                if active_population_face(removed, selection)
+                    yield from combinations(usable, size)
+
+            patches = iter_permitted_patches(
+                coordinate_keys=cache.coordinate_keys,
+                deletion_sets=admitted_removed,
+                insertion_blocks_for_deletion=insertion_blocks,
+                singleton_cuts=lambda _d, a: cuts_by_atom.get(a, ()),
+                tokens_commute=tokens_commute,
             )
-            if not admit(
-                family,
-                len(batch),
-                compiled_size=batch_compile_size,
-            ):
-                break
+            batch: list[Patch] = []
+            construction_cap = guard.remaining
+            for patch in patches:
+                identity = (patch.removed_runtime_indices, patch.plan.plan_id)
+                if identity in scored_plans:
+                    continue
+                scored_plans.add(identity)
+                batch.append(patch)
+                # Stop construction at the first proof that this complete
+                # family cannot fit. No member is scored or compiled.
+                if construction_cap is not None and len(batch) > construction_cap:
+                    admit(family, len(batch))
+                    return
+            batch_compile_size = sum(
+                int(active_population_face(p.removed_runtime_indices, p.inserted_selection))
+                for p in batch
+            )
+            if not admit(family, len(batch), compiled_size=batch_compile_size):
+                return
             frontiers_used = level + 1
-            if workers_requested > 1:
-                warm_keys = []
-                for removed, _plan, selection in batch:
-                    warm_keys.append((removed, selection))
-                    warm_keys.append((removed, ()))
-                    warm_keys.append(((), selection))
-                workers_effective_max = max(
-                    workers_effective_max,
-                    _warm_solve_memo(
-                        q_of, warm_keys, cache.solve_memo, workers_requested
-                    ),
-                )
-                if candidate_cost_warm is not None:
-                    candidate_cost_warm(
-                        [
-                            (removed, selection, plan)
-                            for removed, plan, selection in batch
-                            if active_population_face(removed, selection)
-                        ]
-                    )
-            family_out = [
-                scored(removed, selection, plan, family)
-                for removed, plan, selection in batch
-            ]
-            candidates.extend(family_out)
-            yield family, tuple(family_out), None
+            yield from evaluate_patches(batch, family)
+
+        for level, width in enumerate(schedule):
+            # Looking ahead reads this label only. Construction, solves and
+            # compilation start when the selector consumes the member stream.
+            yield f"frontier_{level}_w{width}", evaluate_frontier(level, width), None
+            if guard.exhausted:
+                break
 
     yield "__telemetry__", (), StructuralEnumeration(
         candidates=tuple(candidates),
@@ -937,9 +919,12 @@ def enumerate_structural_candidates(**kwargs) -> StructuralEnumeration:
     """Collect every admitted family; the non-lazy view of the same search."""
 
     telemetry: StructuralEnumeration | None = None
-    for family, _candidates, final in iter_structural_families(**kwargs):
+    for family, members, final in iter_structural_families(**kwargs):
         if family == "__telemetry__":
             telemetry = final
+        else:
+            for _candidate in members:
+                pass
     assert telemetry is not None
     return telemetry
 

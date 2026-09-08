@@ -120,6 +120,15 @@ EXECUTOR_OVERLAY_PATHS = (
     _RUNNER_PATH,
     _RUNTIME_LOADER_PATH,
     *_EXCHANGE_FIX_PATHS,
+    # Keep the uncapped pool interface and lazy enumeration dependencies together.
+    "pipelines/time_dynamics/paper_ii_runs.py",
+    "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py",
+    "pipelines/time_dynamics/ap_mclachlan/adaptive_trajectory.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_config.py",
+    "pipelines/time_dynamics/ap_mclachlan/support_atoms.py",
+    "pipelines/time_dynamics/ap_mclachlan/deletion_family.py",
+    "pipelines/time_dynamics/ap_mclachlan/patch_enumeration.py",
+    "pipelines/time_dynamics/ap_mclachlan/insertion_words.py",
 )
 
 
@@ -1129,7 +1138,6 @@ def _expected_runtime_contract(
                 "max_joint_patch_evaluations",
                 "max_certification_attempts_per_level",
                 "max_certification_attempts_per_deletion_branch",
-                "max_structural_pool_size",
                 "max_insertion_batch_size",
                 "residual_ratio_threshold",
             )

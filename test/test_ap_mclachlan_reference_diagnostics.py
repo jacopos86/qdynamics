@@ -86,7 +86,6 @@ def test_append_reference_energy_does_not_change_decision_or_theta() -> None:
         runtime_input,
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(
-            max_append_candidates=2,
             append_gain_threshold=0.0,
         ),
     )
@@ -94,7 +93,6 @@ def test_append_reference_energy_does_not_change_decision_or_theta() -> None:
         runtime_input,
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(
-            max_append_candidates=2,
             append_gain_threshold=0.0,
         ),
         reference_energy_trajectory={

@@ -319,7 +319,6 @@ def run_append_ap_mclachlan_from_runtime_input(
             "max_joint_patch_evaluations",
             "max_certification_attempts_per_level",
             "max_certification_attempts_per_deletion_branch",
-            "max_structural_pool_size",
             "max_insertion_batch_size",
             "residual_ratio_threshold",
         )
@@ -1775,7 +1774,6 @@ def _build_parser() -> argparse.ArgumentParser:
             "term; logical_shared is per logical/macro generator."
         ),
     )
-    parser.add_argument("--max-append-candidates", type=int, default=8)
     parser.add_argument("--append-min-time", type=float, default=0.0)
     parser.add_argument(
         "--residual-ratio-threshold",
@@ -2007,16 +2005,6 @@ def _build_parser() -> argparse.ArgumentParser:
             "Deletable-atom policy: all_active considers every active atom; "
             "appended_only restricts deletions to appended-origin atoms, "
             "bounding the deletion-rung width at scale."
-        ),
-    )
-    parser.add_argument(
-        "--max-structural-pool-size",
-        type=int,
-        default=8,
-        help=(
-            "Truncate the deduplicated structural candidate pool to this many "
-            "atoms in frozen order (None = full pool). Configuration-level "
-            "bound; selector-side prefilters remain forbidden."
         ),
     )
     parser.add_argument(
@@ -2358,11 +2346,6 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             if args.max_certification_attempts_per_level is None
             else int(args.max_certification_attempts_per_level)
         ),
-        max_structural_pool_size=(
-            None
-            if args.max_structural_pool_size is None
-            else int(args.max_structural_pool_size)
-        ),
         prune_appended_origin_target_policy=str(args.prune_target_policy),
         dynamics_policy=str(args.dynamics_policy),
         avqds_l2_cut=float(args.avqds_l2_cut),
@@ -2560,7 +2543,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         drive_config = _drive_config_from_args(args, runtime_input)
         controller_config = AppendControllerConfig(
-            max_append_candidates=int(args.max_append_candidates),
             append_min_time=float(args.append_min_time),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
             min_logical_parameter_count=int(args.min_logical_parameter_count),

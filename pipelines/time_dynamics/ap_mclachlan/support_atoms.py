@@ -84,7 +84,6 @@ def active_support_atoms(
 def candidate_append_atoms(
     state: APMcLachlanState,
     *,
-    max_atoms: int | None = None,
     allow_incomplete_candidate_pool: bool = False,
     occurrence_policy: str = APPEND_OCCURRENCE_POLICY_UNIQUE_SUPPORT,
 ) -> tuple[SupportAtom, ...]:
@@ -141,8 +140,6 @@ def candidate_append_atoms(
                 },
             )
             _append_unique_atom(atoms, seen, atom)
-            if max_atoms is not None and int(len(atoms)) >= int(max_atoms):
-                return tuple(atoms)
             continue
 
         if parent_label in no_pauli_split_parents:
@@ -188,11 +185,7 @@ def candidate_append_atoms(
                 },
             )
             _append_unique_atom(atoms, seen, atom)
-            if max_atoms is not None and int(len(atoms)) >= int(max_atoms):
-                return tuple(atoms)
-    if max_atoms is None:
-        return tuple(atoms)
-    return tuple(atoms[: int(max_atoms)])
+    return tuple(atoms)
 
 
 def state_with_appended_atoms(

@@ -277,7 +277,11 @@ def select_exchange_patch(
         if family == "__telemetry__":
             telemetry = final
             continue
-        scored.extend(members)
+        before_family = len(scored)
+        with phase("patch.exchange.evaluate_family"):
+            scored.extend(members)
+        if len(scored) == before_family:
+            continue
         # Deletion-cardinality rungs are one certification level with the
         # singleton family: the specification enumerates and scores every
         # guard-admitted rung BEFORE certification ("with no work guard,
@@ -293,9 +297,12 @@ def select_exchange_patch(
                     telemetry = nxt[2]
                     continue
                 if not str(nxt[0]).startswith("singleton_d"):
+                    # The next family's members are deferred. A label peek
+                    # must not evaluate candidates outside this population.
                     pushback.append(nxt)
                     break
-                scored.extend(nxt[1])
+                with phase("patch.exchange.evaluate_family"):
+                    scored.extend(nxt[1])
         attempts_this_level = 0
         budget_hit = False
         branch_failures: dict = {}

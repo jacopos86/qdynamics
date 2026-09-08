@@ -1916,15 +1916,14 @@ def prepare_siam_nb4_chtc_action(
     only when every digest and command invariant has passed.  Existing package
     or output paths are never overwritten.
 
-    ``route_id`` names the ladder's exchange route.  The historical route emits
-    the frozen v4 documents byte for byte; a registered non-historical route
+    ``route_id`` names the ladder's exchange route.  The default route emits
+    v4 documents; a registered non-default route
     emits v5 documents that additionally carry the route bundle id and its
     contract digest, and requires the caller's action id to be exactly the one
     ``siam_nb4_ladder.siam_nb4_action_id`` builds for that rung.
 
     ``search_profile`` names the registered SIAM Nb=4 work budget.  The default
-    is the pilot budget every prior package ran under, and it is written
-    nowhere, so those documents stay byte-identical.  A non-default budget --
+    is the pilot budget, whose id is omitted from the documents. A non-default budget --
     currently ``siam_nb4_pilot_exchange_v1``, which makes the exchange face
     reachable -- emits its ``--exchange-insertion-frontier`` flag and records
     ``search_profile_id`` in the action, manifest, and receipt, so the two
@@ -2976,7 +2975,6 @@ def _assert_completed_configuration(
                 "completed SIAM trajectory changed the exchange route contract"
             )
     expected_guards = {
-        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
             search_profile.joint_patch_evaluations
         ),
@@ -3009,7 +3007,6 @@ def _assert_completed_configuration(
         "insertion_gate_mode": expected_gate,
         "append_occurrence_policy": "layer_reuse",
         "allow_incomplete_candidate_pool": False,
-        "max_structural_pool_size": search_profile.pool_size,
         "max_joint_patch_evaluations": (
             search_profile.joint_patch_evaluations
         ),

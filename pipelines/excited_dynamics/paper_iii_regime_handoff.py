@@ -118,12 +118,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--target-infidelity", type=float, default=1.0e-8)
     parser.add_argument("--refit-maxiter", type=int, default=2000)
     parser.add_argument(
-        "--max-structural-pool-size",
-        type=int,
-        default=4,
-        help="Insertion-pool guard from the validated Paper II recipe; 0 disables the cap.",
-    )
-    parser.add_argument(
         "--ap-route-mode",
         choices=("append_only", "exchange"),
         default="append_only",
@@ -348,9 +342,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             sector_indices=np.asarray(sector_indices, dtype=int),
             inverse_policy=inverse_policy,
             progress_callback=_progress,
-            max_structural_pool_size=(
-                None if int(args.max_structural_pool_size) <= 0 else int(args.max_structural_pool_size)
-            ),
             route_mode=str(args.ap_route_mode),
         )
         ap_fid = _fidelity_summary(grid["trajectory"], "ap_exact_state_fidelity")

@@ -72,15 +72,19 @@ def test_comparator_does_not_carry_this_routes_insertion_gate() -> None:
     assert "--residual-ratio-threshold" not in run.argv()
 
 
-def test_pool_cap_does_not_bind_the_deduplicated_pool() -> None:
-    """A cap below the pool size silently discards usable words."""
+def test_runner_has_no_candidate_pool_cap() -> None:
+    """Every eligible direction reaches the structural search."""
 
     run = build_run(
         seed_path="seed.json", arm="exchange", gate=MCLACHLAN_L2_GATE.gate_id,
         drive="fastweak", horizon="t2", output_json="out/run.json",
     )
     parsed = _parser().parse_args(list(run.argv()))
-    assert int(parsed.max_structural_pool_size) >= 125
+    assert not hasattr(parsed, "max_structural_pool_size")
+    assert not hasattr(parsed, "max_append_candidates")
+    for flag in ("--max-structural-pool-size", "--max-append-candidates"):
+        with pytest.raises(SystemExit):
+            _parser().parse_args([*run.argv(), flag, "8"])
 
 
 def test_subdivision_budget_is_the_repaired_value() -> None:
@@ -165,7 +169,6 @@ def test_campaign_cells_agree_with_the_registry() -> None:
             "solve_repair_max_local_subdivisions",
             "solve_repair_state_motion_l2_step_max",
             "solve_repair_kink_eta_max",
-            "max_structural_pool_size",
             "append_schur_condition_gate",
             "insertion_gate_mode",
             "insertion_l2_cut",
@@ -181,11 +184,20 @@ def test_campaign_cells_agree_with_the_registry() -> None:
             )
 
 
-def test_no_campaign_arm_reintroduces_the_pool_cap_of_eight() -> None:
+def test_search_profiles_do_not_restrict_the_candidate_pool() -> None:
     from pipelines.time_dynamics.paper_ii_runs import PRODUCTION_STRUCTURE
+    from pipelines.time_dynamics.paper_ii_runs import (
+        SEARCH_PROFILES, SIAM_NB2_PROOF_SEARCH, SIAM_NB4_SEARCH_PROFILES,
+    )
 
-    flags = list(PRODUCTION_STRUCTURE)
-    assert int(flags[flags.index("--max-structural-pool-size") + 1]) >= 125
+    profiles = (
+        *SEARCH_PROFILES.values(), SIAM_NB2_PROOF_SEARCH,
+        *SIAM_NB4_SEARCH_PROFILES.values(),
+    )
+    assert "--max-structural-pool-size" not in PRODUCTION_STRUCTURE
+    for profile in profiles:
+        assert "--max-structural-pool-size" not in profile.flags
+        assert not hasattr(profile, "pool_size")
 
 
 @pytest.mark.parametrize("regime", sorted(REGIMES))
@@ -202,7 +214,6 @@ def test_every_regime_builds_the_same_algorithm(regime: str) -> None:
     policy = (
         parsed.integrator,
         parsed.solve_repair_max_local_subdivisions,
-        parsed.max_structural_pool_size,
         parsed.insertion_gate_mode,
         parsed.insertion_l2_cut,
         parsed.prune_target_policy,
@@ -217,7 +228,6 @@ def test_every_regime_builds_the_same_algorithm(regime: str) -> None:
     reference = (
         base_parsed.integrator,
         base_parsed.solve_repair_max_local_subdivisions,
-        base_parsed.max_structural_pool_size,
         base_parsed.insertion_gate_mode,
         base_parsed.insertion_l2_cut,
         base_parsed.prune_target_policy,
@@ -429,8 +439,6 @@ FROZEN_NB2_EXCHANGE_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',
@@ -493,8 +501,6 @@ FROZEN_NB2_AVQDS_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',
@@ -545,8 +551,6 @@ FROZEN_NB4_SCREEN_EXCHANGE_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',
@@ -611,8 +615,6 @@ FROZEN_NB4_SCREEN_AVQDS_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',
@@ -669,8 +671,6 @@ FROZEN_NB4_CONTINUATION_EXCHANGE_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',
@@ -737,8 +737,6 @@ FROZEN_NB4_CONTINUATION_AVQDS_ARGV: tuple[str, ...] = (
     '--solve-repair-max-local-subdivisions',
     '11',
     '--fail-on-unsupported-steps',
-    '--max-structural-pool-size',
-    '64',
     '--max-joint-patch-evaluations',
     '50000',
     '--max-certification-attempts-per-level',

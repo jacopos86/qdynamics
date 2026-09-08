@@ -29,7 +29,6 @@ times.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import permutations
 import math
 from typing import Any, Callable, Iterator, Mapping, Sequence
 
@@ -214,37 +213,31 @@ def enumerate_raw_full_words(
     inserted occurrences (any order), in deterministic lexicographic order of
     the emitted words."""
 
-    inserted = tuple(inserted)
-    n, r = len(survivors), len(inserted)
-    if r == 0:
-        yield tuple(survivors)
-        return
-
-    seen_orders: set[tuple[str, ...]] = set()
-    for order in permutations(range(r)):
-        order_key = tuple(inserted[i].key for i in order)
-        if order_key in seen_orders:
+    survivors = tuple(survivors)
+    inserted = tuple(sorted(inserted, key=lambda token: token.lex_key))
+    # Depth-first traversal of legal next tokens gives global lexicographic
+    # order without collecting permutations or words. The explicit stack also
+    # avoids a recursion limit tied to the checkpoint support size.
+    pending = [(0, inserted, ())]
+    while pending:
+        survivor_index, remaining, prefix = pending.pop()
+        if not remaining:
+            yield prefix + survivors[survivor_index:]
             continue
-        seen_orders.add(order_key)
-        ordered = tuple(inserted[i] for i in order)
-        # Choose the r slots (with repetition over n+1 gaps, ordered) by
-        # enumerating positions of inserted tokens among n + r total slots.
-        for positions in _combinations(n + r, r):
-            word: list[WordToken] = []
-            survivor_iter = iter(survivors)
-            inserted_iter = iter(ordered)
-            position_set = set(positions)
-            for slot in range(n + r):
-                word.append(
-                    next(inserted_iter) if slot in position_set else next(survivor_iter)
+        # Inserted tokens precede survivors in the frozen token order. Push
+        # later choices first so the stack visits the earliest choice first.
+        if survivor_index < len(survivors):
+            pending.append(
+                (survivor_index + 1, remaining, prefix + (survivors[survivor_index],))
+            )
+        for index in range(len(remaining) - 1, -1, -1):
+            pending.append(
+                (
+                    survivor_index,
+                    remaining[:index] + remaining[index + 1 :],
+                    prefix + (remaining[index],),
                 )
-            yield tuple(word)
-
-
-def _combinations(total: int, choose: int) -> Iterator[tuple[int, ...]]:
-    from itertools import combinations
-
-    yield from combinations(range(total), choose)
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -278,21 +271,23 @@ class InsertionPlan:
         )
 
 
-def quotient_insertion_plans(
+def iter_quotient_insertion_plans(
     *,
     survivors: Word,
     inserted: Sequence[WordToken],
     removed_keys: Sequence[str],
     tokens_commute: TokensCommute,
-) -> tuple[InsertionPlan, ...]:
-    """Enumerate raw full words and retain one plan per paired-word class.
+) -> Iterator[InsertionPlan]:
+    """Yield the earliest raw member of each paired-word class lazily.
 
     ``removed_keys`` are erased from every full word to form its reduced word;
     two raw plans are equivalent only when *both* canonical words match, so an
     inequivalent no-deletion lift is preserved even when the reduced words
     coincide.  The retained member of each class is the lexicographically
-    earliest raw word under the frozen token order, and the output is sorted
-    by that same order for deterministic downstream scoring.
+    earliest raw word under the frozen token order. Raw words arrive in that
+    order, so a class's first appearance is final and can be yielded at once.
+    Only identities of already emitted classes are retained; no future word
+    is visited merely to return the current plan.
     """
 
     removed = tuple(str(key) for key in removed_keys)
@@ -304,33 +299,62 @@ def quotient_insertion_plans(
             f"unknown: {sorted(unknown)}."
         )
 
-    def raw_order(word: Word) -> tuple[tuple[int, int, str], ...]:
-        return tuple(token.lex_key for token in word)
-
-    retained: dict[tuple, Word] = {}
+    seen: set[tuple] = set()
     for raw in enumerate_raw_full_words(survivors, inserted):
         reduced = erase_tokens(raw, removed)
+        canonical_full = canonical_word(raw, tokens_commute)
+        canonical_reduced = canonical_word(reduced, tokens_commute)
         identity = (
-            word_keys(canonical_word(raw, tokens_commute)),
-            word_keys(canonical_word(reduced, tokens_commute)),
+            word_keys(canonical_full),
+            word_keys(canonical_reduced),
         )
-        best = retained.get(identity)
-        if best is None or raw_order(raw) < raw_order(best):
-            retained[identity] = raw
-
-    plans = tuple(
-        InsertionPlan(
+        if identity in seen:
+            continue
+        seen.add(identity)
+        yield InsertionPlan(
             full_word=raw,
-            reduced_word=erase_tokens(raw, removed),
-            canonical_full=canonical_word(raw, tokens_commute),
-            canonical_reduced=canonical_word(
-                erase_tokens(raw, removed), tokens_commute
-            ),
+            reduced_word=reduced,
+            canonical_full=canonical_full,
+            canonical_reduced=canonical_reduced,
             removed_keys=removed,
         )
-        for raw in sorted(retained.values(), key=raw_order)
+
+
+def quotient_insertion_plans(
+    *,
+    survivors: Word,
+    inserted: Sequence[WordToken],
+    removed_keys: Sequence[str],
+    tokens_commute: TokensCommute,
+) -> tuple[InsertionPlan, ...]:
+    """Return the complete paired-word quotient in frozen lexicographic order."""
+
+    return tuple(
+        iter_quotient_insertion_plans(
+            survivors=survivors,
+            inserted=inserted,
+            removed_keys=removed_keys,
+            tokens_commute=tokens_commute,
+        )
     )
-    return plans
+
+
+def full_word_insertions(word: Word) -> tuple[tuple[str, int], ...]:
+    """Inserted occurrences at their raw full-word cuts, in word order.
+
+    A cut counts preceding checkpoint tokens, including ones later deleted.
+    Mapping these positions to tangent-cache representatives belongs to the
+    geometry adapter; materialization uses the plan's reduced word.
+    """
+
+    selection: list[tuple[str, int]] = []
+    survivor_count = 0
+    for token in word:
+        if token.kind == SURVIVOR:
+            survivor_count += 1
+        else:
+            selection.append((token.key, survivor_count))
+    return tuple(selection)
 
 
 __all__ = [
@@ -342,7 +366,9 @@ __all__ = [
     "canonical_word",
     "enumerate_raw_full_words",
     "erase_tokens",
+    "full_word_insertions",
     "inserted_tokens",
+    "iter_quotient_insertion_plans",
     "quotient_insertion_plans",
     "raw_full_word_count",
     "survivor_tokens",

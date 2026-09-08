@@ -36,7 +36,8 @@ schur_identity.py     exact conditional capture and deletion-loss specialization
 deletion_geometry.py  effective-angle and finite ray-distance bounds for deletion blocks
 deletion_permission.py cached permission decisions, thresholds, and summary reporting
 support_patch.py      retained payload types and array-level scoring/diagnostic APIs
-exchange_structural.py generalized-exchange enumeration and historical acquisition utilities
+patch_enumeration.py  lazy permitted singleton and joint-word patches, without scores
+exchange_structural.py explicit search families, work guards, and patch evaluation
 compiled_patch_cost.py complete-patch compiled resource counts and marginals
 population_scoring.py population normalization and ranking arithmetic
 exchange_integration.py route-specific population ranker and AP realization adapter
@@ -110,6 +111,41 @@ cannot be assembled by summing independently optimized singleton values.
 These interfaces preserve the existing frontier, batch escalation, placement,
 and ranking policies. Their docstrings carry LaTeX equations independently of
 any paper-to-code viewer.
+
+The runtime-supplied operator pool is no longer sliced by a pool-size setting.
+Normalization, deduplication, occurrence policy, and branch eligibility still
+define which operators can be proposed. The shared builder applies the same
+rule to APM and AVQDS. Search frontiers and work guards are separate policies;
+removing the pool slice does not remove those restrictions.
+
+Patch construction is independent of evaluation:
+
+```python
+from pipelines.time_dynamics.ap_mclachlan.patch_enumeration import iter_permitted_patches
+
+patches = iter_permitted_patches(
+    coordinate_keys=coordinate_keys,
+    deletion_sets=deletion_sets,
+    deletion_permission=permitted,
+    insertion_blocks_for_deletion=insertion_blocks,
+    singleton_cuts=singleton_cuts,
+    tokens_commute=tokens_commute,
+)
+```
+
+The caller supplies lazy deletion sets and insertion blocks for each retained
+support. Empty blocks include stay/deletion boundaries; singleton blocks use
+the supplied positions; larger blocks retain complete paired-word plans.
+Joint patches carry their actual word and raw cuts. Mapping those cuts to
+cached tangent columns does not change the word sent to compilation and
+certification.
+
+`iter_structural_families` applies the current family admission rules around
+this kernel. Its member streams are consumed before requesting another family.
+Reading the next frontier label performs no joint construction, solve, or
+compilation. The selector consumes that frontier only after escalation, then
+includes its evaluated patches in the ranking population. Parallel solve and
+cost warming belong to this evaluation stage.
 
 Reference trajectories are post-run reporting inputs only. Support-patch
 scoring, action selection, integration, and online tuning must not import or

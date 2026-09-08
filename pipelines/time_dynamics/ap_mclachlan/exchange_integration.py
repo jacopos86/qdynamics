@@ -856,10 +856,7 @@ def build_candidate_pool(
     is the single place that decides pool membership and order: occurrence
     policy, single-Pauli-word identity deduplication (two candidates with the
     same word generate the same one-parameter family, since the coefficient
-    only rescales theta), and the configuration-level cap.
-
-    The cap keeps the pool's frozen order rather than sorting, because any
-    reordering here silently changes which operators a capped policy can see.
+    only rescales theta). Every eligible direction is retained in frozen order.
 
     Returns the ordered atoms, their Pauli words, and pool telemetry.
     """
@@ -896,12 +893,6 @@ def build_candidate_pool(
             seen_words.add(word)
             pauli_by_atom[str(atom.atom_id)] = word
         atoms.append(atom)
-
-    pool_cap = exchange_config.search.pool_size
-    if pool_cap is not None:
-        atoms = atoms[: max(0, int(pool_cap))]
-        kept = {str(a.atom_id) for a in atoms}
-        pauli_by_atom = {k: v for k, v in pauli_by_atom.items() if k in kept}
 
     telemetry = {
         "candidate_pool_raw": int(len(raw_atoms)),

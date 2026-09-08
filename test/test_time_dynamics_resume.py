@@ -70,19 +70,19 @@ def _runtime_input(theta=(0.35, -0.22), tmp_path=None):
     )
 
 
-def _run(runtime_input, times):
+def _run(runtime_input, times, *, controller_resume_state=None):
     return run_append_ap_mclachlan_from_runtime_input(
         runtime_input,
         times=times,
         integrator_method="rk4",
-        controller_config=AppendControllerConfig(max_append_candidates=0),
+        controller_config=AppendControllerConfig(),
         support_patch_config=SupportPatchControllerConfig(
             residual_ratio_threshold=0.02,
-            max_structural_pool_size=1,
             min_runtime_parameter_count=1,
             max_insertion_batch_size=1,
         ),
         solve_repair_config=SolveRepairConfig.minimal_profile(),
+        controller_resume_state=controller_resume_state,
     )
 
 
@@ -118,12 +118,21 @@ def test_resumed_state_reproduces_the_interrupted_state() -> None:
 
 def test_continuation_matches_an_uninterrupted_trajectory() -> None:
     """Split propagation and continuous propagation must agree."""
-    straight = _run(_runtime_input(), GRID)
-    first = _run(_runtime_input(), GRID[:4])
+    base = _runtime_input()
+    straight = _run(base, GRID)
+    first = _run(base, GRID[:4])
     resumed_input = runtime_input_from_resume_state(
-        first["resume_state"], base_runtime_input=_runtime_input()
+        first["resume_state"], base_runtime_input=base
     )
-    second = _run(resumed_input, GRID[3:])
+    assert resumed_input.candidate_pool_terms == base.candidate_pool_terms
+    assert resumed_input.candidate_pool_source == base.candidate_pool_source
+    # The CLI restores this decision state separately from physical support.
+    # Its global checkpoint index keeps insertion occurrence labels distinct.
+    second = _run(
+        resumed_input,
+        GRID[3:],
+        controller_resume_state=first["resume_state"]["controller_state"],
+    )
 
     assert second["plot_rows"][-1]["energy_expectation"] == pytest.approx(
         straight["plot_rows"][-1]["energy_expectation"], abs=1e-7
@@ -132,3 +141,9 @@ def test_continuation_matches_an_uninterrupted_trajectory() -> None:
         second["summary"]["runtime_parameter_count_final"]
         == straight["summary"]["runtime_parameter_count_final"]
     )
+    assert [row["index"] for row in second["plot_rows"]] == [
+        row["index"] for row in straight["plot_rows"][3:]
+    ]
+    assert [coordinate["label"] for coordinate in second["resume_state"]["coordinates"]] == [
+        coordinate["label"] for coordinate in straight["resume_state"]["coordinates"]
+    ]

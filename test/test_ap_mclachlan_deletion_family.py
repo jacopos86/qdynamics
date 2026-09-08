@@ -29,9 +29,12 @@ def test_rung_zero_is_the_stay_branch() -> None:
 
 def test_min_surviving_support_truncates_rungs_and_all_later_ones() -> None:
     # 4 total coordinates, 3 deletable, must keep >= 2: d can be 0,1,2 only.
-    rungs = dict(
-        iter_deletion_rungs((0, 1, 3), total_support=4, min_surviving_support=2)
-    )
+    rungs = {
+        d: tuple(rung)
+        for d, rung in iter_deletion_rungs(
+            (0, 1, 3), total_support=4, min_surviving_support=2
+        )
+    }
     assert set(rungs) == {0, 1, 2}
     assert len(rungs[1]) == 3 and len(rungs[2]) == 3
     # d=3 would leave 1 survivor -> generator stops before yielding it.
@@ -43,11 +46,67 @@ def test_no_separate_deletion_cardinality_cap_exists() -> None:
     assert not any("max_deletion_batch" in name for name in dir(mod))
     # With a permissive surviving-support bound every cardinality up to
     # |J_del| appears.
-    rungs = dict(
-        iter_deletion_rungs((0, 1, 2), total_support=9, min_surviving_support=0)
-    )
+    rungs = {
+        d: tuple(rung)
+        for d, rung in iter_deletion_rungs(
+            (0, 1, 2), total_support=9, min_surviving_support=0
+        )
+    }
     assert set(rungs) == {0, 1, 2, 3}
     assert rungs[3] == ((0, 1, 2),)
+
+
+def test_rung_descriptor_and_partial_consumption_are_lazy(monkeypatch) -> None:
+    from itertools import combinations
+    import pipelines.time_dynamics.ap_mclachlan.deletion_family as mod
+
+    generated = []
+
+    def tracked_combinations(indices, cardinality):
+        for subset in combinations(indices, cardinality):
+            generated.append((cardinality, subset))
+            yield subset
+
+    monkeypatch.setattr(mod, "combinations", tracked_combinations)
+    stream = iter_deletion_rungs(
+        (3, 1, 2), total_support=4, min_surviving_support=0
+    )
+    d0, empty_rung = next(stream)
+    d1, singleton_rung = next(stream)
+    d2, pair_rung = next(stream)
+    assert (d0, d1, d2) == (0, 1, 2)
+    assert generated == []
+
+    assert next(pair_rung) == (1, 3)
+    assert generated == [(2, (3, 1))]
+    # Previously returned rungs retain their own cardinality and frozen order.
+    assert next(singleton_rung) == (3,)
+    assert tuple(empty_rung) == ((),)
+    assert generated == [(2, (3, 1)), (1, (3,)), (0, ())]
+    stream.close()
+    pair_rung.close()
+    singleton_rung.close()
+
+
+def test_lazy_rungs_match_complete_collector_in_frozen_input_order() -> None:
+    for cardinality, rung in iter_deletion_rungs(
+        (4, 1, 3), total_support=5, min_surviving_support=2
+    ):
+        assert tuple(rung) == deletion_rung(
+            (4, 1, 3),
+            cardinality=cardinality,
+            total_support=5,
+            min_surviving_support=2,
+        )
+
+
+def test_lazy_rungs_validate_duplicate_indices_before_first_descriptor() -> None:
+    stream = iter_deletion_rungs(
+        (1, 1), total_support=2, min_surviving_support=0
+    )
+
+    with pytest.raises(ValueError, match="must be unique"):
+        next(stream)
 
 
 def test_guard_none_admits_everything() -> None:

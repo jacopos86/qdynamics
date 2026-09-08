@@ -189,7 +189,6 @@ def verify_run_receipt(
         "parameter_displacement_max": command.step_control.parameter_step_max,
         "state_motion_l2_step_max": command.step_control.state_motion_l2_step_max,
         "max_local_subdivisions": command.step_control.max_local_subdivisions,
-        "pool_size": int(command.search_profile.pool_size),
         "joint_patch_evaluations": int(
             command.search_profile.joint_patch_evaluations
         ),
@@ -241,7 +240,6 @@ def verify_run_receipt(
             if solve_repair_enabled
             else None
         ),
-        "pool_size": support.get("max_structural_pool_size"),
         "joint_patch_evaluations": support.get("max_joint_patch_evaluations"),
         "certification_attempts_per_level": support.get(
             "max_certification_attempts_per_level"

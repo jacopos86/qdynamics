@@ -356,7 +356,6 @@ class SearchProfile:
     """
 
     profile_id: str
-    pool_size: int
     joint_patch_evaluations: int
     certification_attempts_per_level: int
     certification_attempts_per_deletion_branch: int
@@ -368,7 +367,6 @@ class SearchProfile:
 
     def __post_init__(self) -> None:
         for name in (
-            "pool_size",
             "joint_patch_evaluations",
             "certification_attempts_per_level",
             "certification_attempts_per_deletion_branch",
@@ -386,7 +384,6 @@ class SearchProfile:
     @property
     def flags(self) -> tuple[str, ...]:
         emitted: tuple[str, ...] = (
-            "--max-structural-pool-size", str(int(self.pool_size)),
             "--max-joint-patch-evaluations",
             str(int(self.joint_patch_evaluations)),
             "--max-certification-attempts-per-level",
@@ -398,8 +395,7 @@ class SearchProfile:
             "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
         )
         if self.exchange_insertion_frontier is None:
-            # Byte-identical to every profile that predates the exchange-face
-            # bound, so their run ids and argv stay unchanged.
+            # An unrestricted exchange face uses the shared search settings.
             return emitted
         return emitted + (
             "--exchange-insertion-frontier",
@@ -408,20 +404,18 @@ class SearchProfile:
 
 DIAGNOSTIC_FAST_SEARCH = SearchProfile(
     profile_id="diagnostic_fast_v1",
-    pool_size=32,
     joint_patch_evaluations=2_000,
     certification_attempts_per_level=3,
     certification_attempts_per_deletion_branch=1,
     rounds_per_checkpoint=3,
     note=(
-        "Cheap execution-path diagnostic. Its capped candidate pool and work "
-        "budgets make it unsuitable for Paper-II resource comparisons."
+        "Cheap execution-path diagnostic. Its work budgets make it unsuitable "
+        "for Paper-II resource comparisons."
     ),
 )
 
 PAPER_DECLARED_SEARCH = SearchProfile(
     profile_id="paper_declared_v1",
-    pool_size=128,
     joint_patch_evaluations=50_000,
     certification_attempts_per_level=12,
     certification_attempts_per_deletion_branch=2,
@@ -432,28 +426,25 @@ PAPER_DECLARED_SEARCH = SearchProfile(
 
 SIAM_NB2_PROOF_SEARCH = SearchProfile(
     profile_id="siam_nb2_proof_v1",
-    pool_size=64,
     joint_patch_evaluations=50_000,
     certification_attempts_per_level=12,
     certification_attempts_per_deletion_branch=2,
     rounds_per_checkpoint=12,
     paper_facing_allowed=True,
     note=(
-        "SIAM Nb=2 proof budget. The cap is nonbinding for its complete "
-        "14-block candidate pool."
+        "SIAM Nb=2 proof budget over its complete 14-block candidate pool."
     ),
 )
 
 SIAM_NB4_PILOT_SEARCH = SearchProfile(
     profile_id="siam_nb4_pilot_v1",
-    pool_size=64,
     joint_patch_evaluations=50_000,
     certification_attempts_per_level=12,
     certification_attempts_per_deletion_branch=2,
     rounds_per_checkpoint=12,
     paper_facing_allowed=True,
     note=(
-        "SIAM Nb=4 pilot budget. The cap is nonbinding for its complete "
+        "SIAM Nb=4 pilot budget over its complete "
         "24-block K/J/Qd/A/X/P logical pool."
     ),
 )
@@ -469,7 +460,6 @@ SIAM_NB4_PILOT_SEARCH = SearchProfile(
 # reach exchange at all.
 SIAM_NB4_PILOT_EXCHANGE_SEARCH = SearchProfile(
     profile_id="siam_nb4_pilot_exchange_v1",
-    pool_size=64,
     joint_patch_evaluations=50_000,
     certification_attempts_per_level=12,
     certification_attempts_per_deletion_branch=2,
@@ -494,7 +484,6 @@ SIAM_NB4_SEARCH_PROFILES: Mapping[str, SearchProfile] = {
 
 CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
     profile_id="cap_sensitivity_2x_v1",
-    pool_size=128,
     joint_patch_evaluations=100_000,
     certification_attempts_per_level=24,
     certification_attempts_per_deletion_branch=4,
@@ -516,7 +505,6 @@ CAP_SENSITIVITY_2X_SEARCH = SearchProfile(
 # reach exchange at all.
 PAPER_DECLARED_EXCHANGE_SEARCH = SearchProfile(
     profile_id="paper_declared_exchange_v1",
-    pool_size=128,
     joint_patch_evaluations=50_000,
     certification_attempts_per_level=12,
     certification_attempts_per_deletion_branch=2,
@@ -542,12 +530,9 @@ SEARCH_PROFILES: Mapping[str, SearchProfile] = {
     )
 }
 
-# Structural settings shared by every arm. The pool cap sits above the 125-word
-# deduplicated pool so it does not bind: a cap of 8 discarded ~117 usable words
-# and was the largest single accuracy defect found in the 2026-08-22 audit. The
-# conditioning gate is off because no setting of it was useful.
+# Structural settings shared by every arm. Every eligible deduplicated
+# candidate direction is available to every structural policy.
 PRODUCTION_STRUCTURE: tuple[str, ...] = (
-    "--max-structural-pool-size", "128",
     "--no-append-schur-condition-gate",
     "--max-joint-patch-evaluations", "50000",
     "--max-certification-attempts-per-level", "12",

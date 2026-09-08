@@ -334,14 +334,10 @@ def test_avqds_distinguishes_materialization_failure_from_estimator_work(
     assert round_work["complete"] is True
 
 
-def test_comparator_and_exchange_share_one_capped_pool() -> None:
-    """Both policies must rank the same candidates, in the same order.
-
-    A capped pool selected differently per policy turns a rule comparison into
-    a pool comparison. This regressed once: the comparator truncated its pool
-    alphabetically while the exchange route truncated in frozen order, so the
-    two arms of a published table saw different operators.
-    """
+def test_comparator_and_exchange_share_the_complete_pool() -> None:
+    """Both structural policies retain every deduplicated candidate direction."""
+    from dataclasses import replace
+    from itertools import product
     from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
         build_candidate_pool,
         build_selector_inputs,
@@ -351,12 +347,21 @@ def test_comparator_and_exchange_share_one_capped_pool() -> None:
         _PruneControllerRuntimeState,
     )
 
-    state = _state()
+    words = tuple(
+        "".join(chars) for chars in product("exyz", repeat=2)
+        if chars != ("e", "e")
+    )
+    terms = tuple(
+        AnsatzTerm(label=f"candidate_{index}", polynomial=_poly((word, 1.0)))
+        for index, word in enumerate(words)
+    )
+    duplicate = AnsatzTerm(label="duplicate", polynomial=_poly((words[0], 2.0)))
+    state = replace(_state(), candidate_pool_terms=(*terms, duplicate))
     evaluation = evaluate_mclachlan_geometry(
         state=state, hamiltonian=HAM, theta_runtime=state.theta_runtime,
         time=0.0, include_tangent_matrix=True,
     )
-    config = _config(max_structural_pool_size=1)
+    config = _config()
 
     pool_atoms, _pauli, telemetry = build_candidate_pool(
         state, support_config=config, insertions_enabled=True
@@ -378,9 +383,7 @@ def test_comparator_and_exchange_share_one_capped_pool() -> None:
     selector_ids = list(selector_inputs["atoms_by_id"])
     assert shared_ids == selector_ids, "selector must use the shared pool order"
     assert telemetry["candidate_pool_order"] == "frozen_pool_order"
-    # The cap keeps a prefix of the frozen order, never a sorted selection.
-    full_atoms, _p2, _t2 = build_candidate_pool(
-        state, support_config=_config(max_structural_pool_size=None),
-        insertions_enabled=True,
-    )
-    assert shared_ids == [str(a.atom_id) for a in full_atoms][: len(shared_ids)]
+    assert len(shared_ids) == len(words) > 8
+    assert list(_pauli.values()) == list(words)
+    assert telemetry["candidate_pool_raw"] == len(words) + 1
+    assert telemetry["candidate_pool_deduplicated"] == len(words)

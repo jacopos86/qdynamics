@@ -81,7 +81,6 @@ def _run_payload(action, command):
             "support_patch_config": {
                 "dynamics_policy": "avqds",
                 "avqds_l2_cut": action.threshold,
-                "max_structural_pool_size": profile.pool_size,
                 "max_joint_patch_evaluations": profile.joint_patch_evaluations,
                 "max_certification_attempts_per_level": (
                     profile.certification_attempts_per_level

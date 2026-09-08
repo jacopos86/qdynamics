@@ -65,6 +65,19 @@ EXECUTOR_OVERLAY_PATHS = (
     "pipelines/time_dynamics/prospective_execution_bindings.py",
     "pipelines/time_dynamics/prospective_avqds_scout_worker.py",
     "pipelines/time_dynamics/runners/run_prospective_avqds_scout.py",
+    # Keep the uncapped pool interface and lazy enumeration dependencies together.
+    "pipelines/time_dynamics/paper_ii_runs.py",
+    "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py",
+    "pipelines/time_dynamics/ap_mclachlan/adaptive_trajectory.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_config.py",
+    "pipelines/time_dynamics/ap_mclachlan/support_atoms.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_integration.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_structural.py",
+    "pipelines/time_dynamics/ap_mclachlan/exchange_selector.py",
+    "pipelines/time_dynamics/ap_mclachlan/deletion_family.py",
+    "pipelines/time_dynamics/ap_mclachlan/patch_enumeration.py",
+    "pipelines/time_dynamics/ap_mclachlan/insertion_words.py",
+    "pipelines/time_dynamics/generalized_exchange.py",
 )
 _SUPPORTED_BINDINGS = {
     LANE_HH: EXEC_HH_AVQDS,
@@ -922,7 +935,6 @@ def _build_execution_contract(
     support = runner._support_patch_config_from_args(args)
     repair = runner._solve_repair_config_from_args(args)
     controller = runner.AppendControllerConfig(
-        max_append_candidates=int(args.max_append_candidates),
         append_min_time=float(args.append_min_time),
         residual_ratio_threshold=float(args.residual_ratio_threshold),
         min_logical_parameter_count=int(args.min_logical_parameter_count),
@@ -963,7 +975,6 @@ def _build_execution_contract(
             "max_joint_patch_evaluations",
             "max_certification_attempts_per_level",
             "max_certification_attempts_per_deletion_branch",
-            "max_structural_pool_size",
             "max_insertion_batch_size",
             "residual_ratio_threshold",
         )

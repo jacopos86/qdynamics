@@ -137,7 +137,6 @@ def test_append_trajectory_inserts_candidate_without_exact_reference() -> None:
         runtime_input,
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(
-            max_append_candidates=2,
             append_gain_threshold=0.0,
         ),
         support_patch_config=SupportPatchControllerConfig(
@@ -203,7 +202,6 @@ def test_append_min_time_skips_initial_grid_point_then_allows_append() -> None:
         runtime_input,
         times=(0.0, 0.1, 0.2),
         controller_config=AppendControllerConfig(
-            max_append_candidates=2,
             append_gain_threshold=0.0,
             append_min_time=0.1,
         ),
@@ -229,7 +227,6 @@ def test_append_runner_records_solve_repair_policy_telemetry() -> None:
         times=(0.0, 0.1),
         solve_damping=1.0e-8,
         controller_config=AppendControllerConfig(
-            max_append_candidates=0,
         ),
         solve_repair_config=SolveRepairConfig(
             enabled=True,
@@ -258,7 +255,6 @@ def test_solve_repair_subdivides_interval_for_state_motion_guard() -> None:
         runtime_input,
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(
-            max_append_candidates=0,
         ),
         solve_repair_config=SolveRepairConfig(
             enabled=True,
@@ -299,7 +295,6 @@ def test_solve_repair_subdivision_depth_scales_with_motion_severity() -> None:
         runtime_input,
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(
-            max_append_candidates=0,
         ),
         solve_repair_config=SolveRepairConfig(
             enabled=True,
@@ -362,7 +357,7 @@ def test_nonlinear_trial_overlap_is_not_an_integration_guard() -> None:
         times=(0.0, 0.05),
         pinv_rcond=1.0e-12,
         ridge_lambda=1.0e-10,
-        controller_config=AppendControllerConfig(max_append_candidates=0),
+        controller_config=AppendControllerConfig(),
         # Pin the 4-parameter scenario: prune-only search now runs below the
         # residual threshold and would delete the ray-redundant z rotation.
         support_patch_config=SupportPatchControllerConfig(
@@ -439,7 +434,7 @@ def test_append_prune_trajectory_deletes_candidate_without_exact_reference() -> 
     payload = run_append_ap_mclachlan_from_runtime_input(
         runtime_input,
         times=(0.0, 0.1),
-        controller_config=AppendControllerConfig(max_append_candidates=0),
+        controller_config=AppendControllerConfig(),
         support_patch_config=SupportPatchControllerConfig(
             residual_ratio_threshold=0.0,
             # Huge saved-cost pressure makes deletion-bearing candidates the

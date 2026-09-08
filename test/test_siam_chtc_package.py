@@ -582,7 +582,6 @@ def _screen_payload(
             "policy": {
                 "structural_policy": arm,
                 "guards": {
-                    "max_structural_pool_size": 64,
                     "max_joint_patch_evaluations": 50_000,
                     "max_certification_attempts_per_level": 12,
                     "max_certification_attempts_per_deletion_branch": 2,
@@ -1860,39 +1859,6 @@ ROUTE_Q_COMPILED = "paper_ii_exchange_q_compiled_v1"
 Q_COMPILED_CONTRACT_SHA256 = (
     "7883d93767e00523539d509abf92d126b0effd255eeefc8184a11f2636c356b1"
 )
-# Frozen from the pre-change packager on the identical fixture: a historical
-# action must keep producing these bytes forever, because the r00--r07 lineage
-# was submitted under them.
-FROZEN_HISTORICAL_AVQDS_SCREEN = {
-    "action_sha256": (
-        "cbb2aae79d9654309cf406a09be1c76464767d7bfa405ce6cddf5a4e01e5ab88"
-    ),
-    "manifest_sha256": (
-        "df6d589065f795a6e518561258bbd4f0035be6f06b9457a4e182064e33e2898e"
-    ),
-    "worker_sha256": (
-        "171b0d58fb1c585c2f78a23d1cee3e5df99179b637950e3000dbedca6f6f6053"
-    ),
-    "wrapper_sha256": (
-        "35bd15209cc37e0df8d1127343ac6b2c9e2e705b5784c2d42b7910777a480f7c"
-    ),
-    "submit_sha256": (
-        "1c26e3224016b2ca150509043b00794dd520888666ce909249b65ed979ea701f"
-    ),
-}
-FROZEN_HISTORICAL_EXCHANGE_SCREEN = {
-    "action_sha256": (
-        "04373e4c519e37fa1de73b58b7599cfa2f76aeee67e681358593f66ede947536"
-    ),
-    "manifest_sha256": (
-        "55febf7ea80b6097ffbb7d851d94177d22533e4c5337f1d9ba3bd3cea8227cf9"
-    ),
-    "submit_sha256": (
-        "36ee67db5e44586dc55d5167b6ffab2bf6550e57e8b45eab7cb97922da732f4c"
-    ),
-}
-
-
 def _pinned_source_tree_contract(root: Path, revision: str) -> dict[str, object]:
     """The fixture source tree with pinned modes, so digests are umask-free."""
 
@@ -2257,38 +2223,18 @@ def test_completed_configuration_rejects_a_mismatched_compiled_q_route(
         )
 
 
-@pytest.mark.parametrize(
-    ("arm", "action_id", "package_id", "frozen"),
-    (
-        (
-            "avqds",
-            "siam-nb4-avqds-screen-r00-cut1em03",
-            "siam_nb4_frozen_avqds",
-            FROZEN_HISTORICAL_AVQDS_SCREEN,
-        ),
-        (
-            "exchange",
-            "siam-nb4-full_apm-screen-r00-cut1em03",
-            "siam_nb4_frozen_exchange",
-            FROZEN_HISTORICAL_EXCHANGE_SCREEN,
-        ),
-    ),
-)
-def test_historical_packaging_output_is_byte_frozen(
-    package_repo,
-    arm: str,
-    action_id: str,
-    package_id: str,
-    frozen: dict[str, str],
+@pytest.mark.parametrize("arm", ("avqds", "exchange"))
+def test_current_default_route_packaging_is_deterministic(
+    package_repo, arm: str,
 ) -> None:
-    """The v4 lineage must never move: r00--r07 were submitted under it."""
+    """Current packages bind the complete pool and reproduce their own bytes."""
 
-    prepared = _prepare_pinned(
-        package_repo,
-        package_id=package_id,
-        action_id=action_id,
+    kwargs = dict(
+        package_id=f"siam_nb4_current_{arm}",
+        action_id=f"siam-current-{arm}-screen",
         arm=arm,
     )
+    prepared = _prepare_pinned(package_repo, **kwargs)
     action = json.loads(prepared.action.read_text(encoding="utf-8"))
     manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
     assert action["schema"] == SIAM_NB4_CHTC_ACTION_SCHEMA_V4
@@ -2296,12 +2242,22 @@ def test_historical_packaging_output_is_byte_frozen(
     for field in ("route_id", "route_bundle_id", "route_contract_sha256"):
         assert field not in action
         assert field not in manifest
-    assert prepared.action_sha256 == frozen["action_sha256"]
-    assert prepared.manifest_sha256 == frozen["manifest_sha256"]
-    assert _sha256(prepared.submit) == frozen["submit_sha256"]
-    if "worker_sha256" in frozen:
-        assert _sha256(prepared.worker) == frozen["worker_sha256"]
-        assert _sha256(prepared.wrapper) == frozen["wrapper_sha256"]
+    assert "max_structural_pool_size" not in action["expected_execution_contract"][
+        "support_patch_config"
+    ]
+    paths = (
+        prepared.action, prepared.manifest, prepared.submit,
+        prepared.worker, prepared.wrapper,
+    )
+    original_bytes = {path: path.read_bytes() for path in paths}
+    prepared.package_dir.rename(
+        prepared.package_dir.with_name(f"{prepared.package_dir.name}_first")
+    )
+
+    repeated = _prepare_pinned(package_repo, **kwargs)
+    assert repeated.action_sha256 == prepared.action_sha256
+    assert repeated.manifest_sha256 == prepared.manifest_sha256
+    assert {path: path.read_bytes() for path in paths} == original_bytes
 
 
 # ---------------------------------------------------------------------------
@@ -2317,7 +2273,6 @@ def test_exchange_frontier_profile_matches_the_pilot_budget_exactly() -> None:
     assert SIAM_NB4_PILOT_EXCHANGE_SEARCH.exchange_insertion_frontier == 8
     assert SIAM_NB4_PILOT_SEARCH.exchange_insertion_frontier is None
     for field in (
-        "pool_size",
         "joint_patch_evaluations",
         "certification_attempts_per_level",
         "certification_attempts_per_deletion_branch",
@@ -2451,7 +2406,6 @@ def test_compiled_q_frontier_package_carries_both_identities(
 def test_packager_refuses_an_unregistered_search_profile(package_repo) -> None:
     stranger = SearchProfile(
         profile_id="siam_nb4_unregistered_v1",
-        pool_size=64,
         joint_patch_evaluations=50_000,
         certification_attempts_per_level=12,
         certification_attempts_per_deletion_branch=2,
