@@ -356,3 +356,14 @@ Both ratios sit far inside the declared factor-of-two rule, so this is a matched
 **Missing for a resource claim.** Neither SIAM arm carries a terminal compiled cost or an estimator ledger (`terminal_qiskit_cost` absent, no estimator keys). The support counts are the only resource axis available; compiled cost for SIAM needs a terminal-cost pass over the two stored final states.
 
 Watch list: `9721468` (SIAM AVQDS continuation $t=1\to5$, ~14 h in), `9719356.0/.1/.2` (Codex comparators, cycling against the 72 h limit), `9719356.10` held.
+## 20260908T034500Z — SIAM $N_b=4$ rung-9 pair **certified** `qualified_pair`; comparability now keyed to the engine, not the commit
+
+`classify_siam_matched_pair` gains `revision_equivalence`, a record that admits two arms whose recorded revisions differ **only outside the trajectory runner's import closure**. New module `diagnostics/source_engine_surface.py`: `python_import_closure` walks the first-party imports of `runners/ap_append_from_adapt_artifact.py` from any source reader (git revision, worktree, extracted package); `declare_revision_equivalence` refuses unless the closure and the differing paths are disjoint, and returns a record carrying the entry point, the closure size and digest, and every differing path with its digest. Unequal revisions without such a record stay incomparable, and the existing test asserting that still passes (66 tests green, `test_source_engine_surface.py` added: transitivity, unreadable modules dropped, refusal inside the surface, digest tampering, distinct-revision and non-empty-surface requirements).
+
+Applied to this pair: the closure is **127 modules, identical at both revisions**; the two revisions differ in **83 paths**, none in the closure (report generators `paper_ii_corrected_campaign_report.py` and `paper_ii_full_results_report.py`, two campaign cell locks, submit packages, guidance and report artifacts, one test). Record: `reports/siam_nb4_r09_revision_equivalence.json`.
+
+**Verdict** (`reports/siam_nb4_r09_matched_pair.json`, `pair_sha256` `04067dd9`, fingerprint `0e7ba196`): `qualified_pair` — burdens matched (ratio 1.0614, ceiling 2), components matched (worst 1.1743 on $C_2$, deadband 0.1, ceiling 2), both inside the broad guard, both pass energy conservation and fidelity, `cost_comparison_admissible` true. Arms: APM burden 0.11687 ($g_E = 4.21\times10^{-5}$), AVQDS 0.11011 ($g_E = 8.38\times10^{-6}$).
+
+**Horizon: $t\in[0,1]$, 101 reporting points** — this is the screen segment. The $t=1\to5$ continuation of the AVQDS arm is `9721468` (running); the APM continuation is not yet packaged, and packaging it must use the APM screen's own revision `70c36604` or carry an equivalence record.
+
+Tunnel to `ap2001` down since 02:35Z; reopen with `ssh -MNf ap2001`.
