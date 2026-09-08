@@ -245,7 +245,7 @@ def test_budget_refuses_whole_insertion_batch_before_evaluation(search, limits, 
 
 
 @SEARCHES
-def test_refused_deletion_boundaries_consume_work_without_evaluating_candidates(search) -> None:
+def test_refused_deletion_boundaries_do_not_consume_evaluation_slots(search) -> None:
     permissions = []
 
     def refuse(removed):
@@ -260,11 +260,12 @@ def test_refused_deletion_boundaries_consume_work_without_evaluating_candidates(
         ),
         evaluator, _rank_population, SearchLimits(joint_patch_evaluations=2),
     )
-    assert result.stop_reason == "joint_work_budget"
-    assert permissions == [(0,)]
+    assert result.stop_reason != "joint_work_budget"
+    assert permissions == [(0,), (1,), (2,), (0, 1), (0, 2), (1, 2), (0, 1, 2)]
     assert len(evaluator.requested) == 1
-    assert result.guard.scored_count == 2
-    assert result.refused_deletion_count == 1
+    assert result.guard.scored_count == 1
+    assert result.guard.rejected_family is None
+    assert result.refused_deletion_count == 7
 
 
 def test_greedy_recompares_incumbent_under_the_expanded_population() -> None:
@@ -462,7 +463,7 @@ def test_completed_boundary_reuses_evidence_at_zero_remaining_budget() -> None:
     assert session.guard.scored_count == 1
 
 
-def test_repeated_refused_permission_is_charged_once_without_completed_evidence() -> None:
+def test_repeated_refused_permission_is_cached_without_evaluation_charge() -> None:
     permissions = []
 
     def refuse(removed):
@@ -477,9 +478,9 @@ def test_repeated_refused_permission_is_charged_once_without_completed_evidence(
     for _attempt in range(2):
         session.check_boundary_budget((0,))
         assert session.deletion_permitted((0,)) is False
-        session.account_permission_rejection((0,))
     assert permissions == [(0,)]
-    assert session.guard.scored_count == 1
+    assert session.guard.scored_count == session.compile_guard.scored_count == 0
+    assert session.finish("audit_complete").refused_deletion_count == 1
     assert not session.evidence
     assert not evaluator.requested
 

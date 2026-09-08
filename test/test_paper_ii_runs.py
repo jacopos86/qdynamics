@@ -30,6 +30,7 @@ from pipelines.time_dynamics.paper_ii_runs import (
     HORIZONS,
     MCLACHLAN_L2_GATE,
     build_run,
+    build_selector_comparison_run,
     paper_ii_runs,
 )
 from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
@@ -414,6 +415,94 @@ def test_search_profile_rejects_unknown_or_unused_settings() -> None:
     ):
         with pytest.raises(ValueError):
             replace(PAPER_DECLARED_SEARCH, **values)
+
+
+@pytest.mark.parametrize("policy", ("greedy", "block_exchange", "bounded_exhaustive"))
+@pytest.mark.parametrize("gain", ("joint_batch", "singleton_factorized"))
+@pytest.mark.parametrize("cardinality", (1, 4))
+def test_campaign_helper_pins_effective_axes_and_preserves_declared_budget(
+    policy, gain, cardinality,
+) -> None:
+    from pipelines.time_dynamics.paper_ii_runs import DIAGNOSTIC_FAST_SEARCH
+    from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
+        _support_patch_config_from_args,
+    )
+
+    run = build_selector_comparison_run(
+        search_policy=policy, gain_evaluation=gain, insertion_cardinality=cardinality,
+        seed_path="seed.json", drive="fastweak", horizon="t2", output_json="out/run.json",
+        search_profile=DIAGNOSTIC_FAST_SEARCH.profile_id,
+        extra_flags=("--max-compiled-patches-per-checkpoint=23", "--compile-workers", "1"),
+    )
+    config = _support_patch_config_from_args(_parser().parse_args(list(run.argv())))
+    assert config.exchange_route_bundle == "paper_ii_exchange_q_compiled_v1"
+    assert (config.search_policy, config.gain_evaluation) == (policy, gain)
+    assert config.max_insertion_batch_size == cardinality
+    assert config.exchange_insertion_frontier is None
+    assert config.interaction_frontier_widths is None
+    assert config.max_joint_patch_evaluations == DIAGNOSTIC_FAST_SEARCH.joint_patch_evaluations
+    assert config.max_certification_attempts_per_level == DIAGNOSTIC_FAST_SEARCH.certification_attempts_per_level
+    assert config.max_certification_attempts_per_deletion_branch == DIAGNOSTIC_FAST_SEARCH.certification_attempts_per_deletion_branch
+    assert config.max_insertion_rounds_per_checkpoint == DIAGNOSTIC_FAST_SEARCH.rounds_per_checkpoint
+    assert config.max_compiled_patches_per_checkpoint == 23
+    assert config.compile_workers == 1
+    assert f"__{policy}__{gain}__a{cardinality}" in run.run_id
+    assert run.argv().count("--exchange-route-bundle") == 1
+    assert run.argv().count("--search-policy") == 1
+    assert run.argv().count("--gain-evaluation") == 1
+
+
+@pytest.mark.parametrize("extra_flags", (
+    ("--search-policy", "family_frontiers"),
+    ("--gain-eval=joint_batch",),
+    ("--exchange-route-bun=paper_ii_generalized_exchange_v2",),
+    ("--dynamics-policy", "avqds"),
+    ("--exchange-insertion-frontier=8",),
+    ("--interaction-frontier-widths", "2,4"),
+    ("--max-insertion-batch-size=1",),
+    ("--max-joint-patch-evaluations=1",),
+))
+def test_campaign_helper_rejects_effective_overrides(extra_flags) -> None:
+    with pytest.raises(ValueError, match="override declared"):
+        build_selector_comparison_run(
+            search_policy="greedy", gain_evaluation="singleton_factorized",
+            insertion_cardinality=4, seed_path="seed.json", drive="fastweak",
+            horizon="t2", output_json="out/run.json", extra_flags=extra_flags,
+        )
+
+
+def test_campaign_helper_keeps_generic_defaults_and_profiles_unchanged() -> None:
+    common = dict(seed_path="seed.json", drive="fastweak", horizon="t2", output_json="out/run.json")
+    baseline = build_run(arm="exchange", **common)
+    baseline_argv = baseline.argv()
+    identifiers = set()
+    for policy in ("greedy", "block_exchange", "bounded_exhaustive"):
+        for gain in ("joint_batch", "singleton_factorized"):
+            for cardinality in (1, 4):
+                run = build_selector_comparison_run(
+                    search_policy=policy, gain_evaluation=gain,
+                    insertion_cardinality=cardinality, **common,
+                )
+                identifiers.add(run.run_id)
+                assert (run.seed_path, run.drive, run.horizon, run.numerics, run.step_control) == (
+                    baseline.seed_path, baseline.drive, baseline.horizon,
+                    baseline.numerics, baseline.step_control,
+                )
+    assert len(identifiers) == 12
+    assert build_run(arm="exchange", **common).argv() == baseline_argv
+    assert "--exchange-route-bundle" not in baseline_argv
+    assert "--search-policy" not in baseline_argv
+    assert "--gain-evaluation" not in baseline_argv
+    for overrides in (
+        {"search_policy": "family_frontiers"},
+        {"arm": "exchange"},
+        {"search_profile": "paper_declared_exchange_v1"},
+        {"insertion_cardinality": 1.5},
+    ):
+        settings = dict(search_policy="greedy", gain_evaluation="joint_batch", insertion_cardinality=4)
+        settings.update(overrides)
+        with pytest.raises(ValueError):
+            build_selector_comparison_run(**settings, **common)
 
 
 def test_runner_rejects_incompatible_search_before_seed_load(monkeypatch, capsys) -> None:

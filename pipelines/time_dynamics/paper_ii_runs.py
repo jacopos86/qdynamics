@@ -32,11 +32,14 @@ than a six-hour cluster job.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
-from pipelines.time_dynamics.ap_mclachlan.exchange_config import validate_search_policy
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+    validate_search_policy,
+)
 
 RUNNER_MODULE = "pipelines.time_dynamics.runners.ap_append_from_adapt_artifact"
 RUNNER_PATH = "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py"
@@ -991,6 +994,72 @@ def build_run(
             None if activation_cut is None else float(activation_cut)
         ),
     )
+
+
+def build_selector_comparison_run(
+    *,
+    search_policy: str,
+    gain_evaluation: str,
+    insertion_cardinality: int,
+    **run_settings: Any,
+) -> RunCommand:
+    """Build one explicit three-search campaign cell on compiled realized Q.
+
+    Search, gain mode, and per-patch insertion cardinality are required and
+    become part of the run identity. Remaining settings use ``build_run``;
+    its selected profile supplies the unchanged work limits. A profile with
+    an insertion frontier is incompatible with this comparison. The live
+    CLI parser verifies effective values after ``extra_flags``, including
+    abbreviations and ``--option=value`` forms. Compiler work/worker flags
+    remain available. This helper builds commands; it launches no trajectory
+    and adopts no campaign budget, drive, or seed on the caller's behalf.
+    """
+
+    if search_policy not in {"greedy", "block_exchange", "bounded_exhaustive"}:
+        raise ValueError("selector comparison requires one of the three explicit searches")
+    if "arm" in run_settings:
+        raise ValueError("selector comparison fixes the arm to exchange_q_compiled")
+    if int(insertion_cardinality) != insertion_cardinality or insertion_cardinality < 1:
+        raise ValueError("insertion_cardinality must be a positive integer")
+    base = build_run(arm=EXCHANGE_Q_COMPILED.arm_id, **run_settings)
+    if base.search_profile.exchange_insertion_frontier is not None:
+        raise ValueError("selector comparison requires a profile without an insertion frontier")
+    profile = replace(
+        base.search_profile,
+        profile_id=(
+            f"{base.search_profile.profile_id}__{search_policy}"
+            f"__{gain_evaluation}__a{int(insertion_cardinality)}"
+        ),
+        search_policy=search_policy,
+        gain_evaluation=gain_evaluation,
+        insertion_cardinality=int(insertion_cardinality),
+    )
+    run = replace(base, search_profile=profile)
+    # Import only when this campaign-specific helper is used. Command-registry
+    # imports and the generic builders do not load the numerical runner.
+    from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import _build_parser
+
+    try:
+        effective = _build_parser().parse_args(list(run.argv()))
+    except SystemExit as exc:
+        raise ValueError("selector comparison command does not parse") from exc
+    expected = {
+        "exchange_route_bundle": EXCHANGE_ROUTE_BUNDLE_Q_COMPILED,
+        "search_policy": search_policy,
+        "gain_evaluation": gain_evaluation,
+        "dynamics_policy": "exchange",
+        "exchange_insertion_frontier": None,
+        "interaction_frontier_widths": None,
+        "max_insertion_batch_size": profile.insertion_cardinality,
+        "max_joint_patch_evaluations": profile.joint_patch_evaluations,
+        "max_certification_attempts_per_level": profile.certification_attempts_per_level,
+        "max_certification_attempts_per_deletion_branch": profile.certification_attempts_per_deletion_branch,
+        "max_insertion_rounds_per_checkpoint": profile.rounds_per_checkpoint,
+    }
+    for name, value in expected.items():
+        if getattr(effective, name) != value:
+            raise ValueError(f"selector comparison extra_flags override declared {name}")
+    return run
 
 
 HH_SNAKE_NPH1 = "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json"

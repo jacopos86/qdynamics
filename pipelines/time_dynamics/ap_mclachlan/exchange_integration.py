@@ -48,6 +48,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from pipelines.time_dynamics.ap_mclachlan.append_cost import (
+    AP_APPEND_COST_NORMALIZATION_FAMILY_ROBUST_V1,
     AppendCostSettings,
     append_cost_telemetry_for_family,
     estimate_append_atom_set_cost,
@@ -1141,21 +1142,35 @@ def build_selector_inputs(
 
     cost_settings = AppendCostSettings.from_config(support_config)
 
-    def insertion_cost(atom_ids: tuple[str, ...]) -> float:
-        selected = tuple(atoms_by_id[str(a)] for a in atom_ids)
-        return _paper_i_proxy_denominator(
-            estimate_append_atom_set_cost(selected), settings=cost_settings
-        )
-
-    def deletion_cost(removed: tuple[int, ...]) -> float:
-        selected = tuple(
-            active_by_index[int(i)] for i in removed if int(i) in active_by_index
-        )
-        if not selected:
+    if (
+        cost_settings.cost_normalization_mode
+        == AP_APPEND_COST_NORMALIZATION_FAMILY_ROBUST_V1
+    ):
+        # A singleton family is its own median: every normalized component
+        # vanishes, so both proxy denominators are exactly one. Select the
+        # identity before estimating raw costs; population repair below still
+        # acquires its raw components over the actual competing population.
+        def unit_proxy_cost(_selection: tuple[Any, ...]) -> float:
             return 1.0
-        return _paper_i_proxy_denominator(
-            estimate_prune_atom_set_cost(selected), settings=cost_settings
-        )
+
+        insertion_cost = unit_proxy_cost
+        deletion_cost = unit_proxy_cost
+    else:
+        def insertion_cost(atom_ids: tuple[str, ...]) -> float:
+            selected = tuple(atoms_by_id[str(a)] for a in atom_ids)
+            return _paper_i_proxy_denominator(
+                estimate_append_atom_set_cost(selected), settings=cost_settings
+            )
+
+        def deletion_cost(removed: tuple[int, ...]) -> float:
+            selected = tuple(
+                active_by_index[int(i)] for i in removed if int(i) in active_by_index
+            )
+            if not selected:
+                return 1.0
+            return _paper_i_proxy_denominator(
+                estimate_prune_atom_set_cost(selected), settings=cost_settings
+            )
 
     def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
         if state.parameterization_mode == "logical_shared":

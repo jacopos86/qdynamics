@@ -8,8 +8,6 @@ ranking and finalist certification remain in the selector.
 
 from __future__ import annotations
 
-import math
-
 from dataclasses import dataclass
 from itertools import combinations
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
@@ -158,9 +156,10 @@ def iter_structural_families(
     ``("__telemetry__", (), state)`` with completed-search accounting.
 
     ``deletion_permission`` is the measurement-free eligibility seam for a
-    complete deletion set.  A refused set is removed before its pure-deletion
-    and exchange variants are scored. The structural work guard counts the
-    raw family; the compilation guard counts only permitted active patches.
+    complete deletion set. A refused set is removed before its branch pool
+    is built. The structural work guard counts only permitted complete
+    patches; the compilation guard counts their regime-active subset.
+    Permission checks consume no patch-evaluation slots.
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
     frozen child order (occurrence policy applied by the caller; a deleted
     child may re-enter).  ``cuts_by_atom`` holds each child's retained
@@ -169,14 +168,14 @@ def iter_structural_families(
 
     ``exchange_insertion_frontier`` declares how many positioned insertions a
     ``d >= 1`` deletion set is paired with.  ``None`` pairs it with the whole
-    branch pool, so a family declares ``|D_{k,d}| x |C_{k,D}|`` typed patches
-    and the joint-work guard refuses the first exchange-bearing rung at
-    production pool sizes.  A finite width ``W`` pairs it with the ``W``
-    highest-scoring ``(atom, cut)`` positions of the already-scored ``d = 0``
-    family, sealed before the first rung is built, so a family declares
-    ``|D_{k,d}| x (1 + W)`` instead.  The width is run configuration and is
-    never derived from the residual budget, so the enumerated candidate set
-    stays monotone in ``max_joint_patch_evaluations``.
+    branch pool, so a family's size sums the pure-deletion boundary and
+    positioned insertions over permitted deletion sets. A finite width ``W``
+    pairs it with the ``W`` highest-scoring ``(atom, cut)`` positions of the
+    already-scored ``d = 0`` family, sealed before the first rung is built,
+    so a family declares at most ``N_permitted x (1 + W)`` instead. The width
+    is run configuration and is never derived from the residual budget, so
+    the enumerated candidate set stays monotone in
+    ``max_joint_patch_evaluations``.
     """
 
     n = int(base_f.reshape(-1).size)
@@ -355,52 +354,27 @@ def iter_structural_families(
         if d == 0:
             continue
         family = f"singleton_d{d}"
-        # Each deletion set contributes at least its pure-deletion patch.
-        # This lower bound can reject a huge rung without enumerating it.
-        remaining = guard.remaining
-        if remaining is not None and math.comb(len(deletable_indices), d) > remaining:
+        # Do not request unseen permissions once no evaluation can fit.
+        # Raw deletion cardinality is not a lower bound on permitted work.
+        if guard.exhausted or guard.remaining == 0:
             reject_family(guard, family)
             if compile_guard is not None:
                 reject_family(compile_guard, family)
             break
         size = 0
-        members: list[
+        compiled_size = 0
+        permitted_members: list[
             tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
         ] = []
         for removed in rung:
+            if deletion_permission is not None and not bool(
+                deletion_permission(removed).permitted
+            ):
+                continue
             insertions = rung_insertions(candidate_pool_for_deletion(removed))
-            members.append((removed, insertions))
+            permitted_members.append((removed, insertions))
             size += 1 + len(insertions)
-            if not guard_fits(guard, size):
-                reject_family(guard, family)
-                if compile_guard is not None:
-                    reject_family(compile_guard, family)
-                break
-        if guard.exhausted:
-            break
-        # Admit the raw family before permission. Otherwise refused sets evade
-        # the work accounting and the search can walk unbounded combinatorial
-        # rungs while scoring nothing.
-        permitted_members = members
-        if compile_guard is not None:
-            # Check the raw structural budget before evaluating permissions,
-            # then count only the regime-active candidates that can actually
-            # reach the compiler.  This keeps the structural guard
-            # conservative without charging compiled work for stay or an
-            # inactive patch face.
-            if not guard_fits(guard, size):
-                reject_family(guard, family)
-                reject_family(compile_guard, family)
-                break
-            permitted_members = []
-            for removed, insertions in members:
-                if deletion_permission is not None and not bool(
-                    deletion_permission(removed).permitted
-                ):
-                    continue
-                permitted_members.append((removed, insertions))
-            compiled_size = 0
-            for removed, insertions in permitted_members:
+            if compile_guard is not None:
                 compiled_size += int(active_population_face(removed, ()))
                 compiled_size += sum(
                     1
@@ -409,16 +383,16 @@ def iter_structural_families(
                         removed, ((str(atom_id), int(cut)),)
                     )
                 )
-            if not admit(family, size, compiled_size=compiled_size):
+            # Stop at the first proof that the whole permitted rung cannot
+            # fit. Neither counter reserves a partial rung.
+            if not guard_fits(guard, size) or (
+                compile_guard is not None
+                and not guard_fits(compile_guard, compiled_size)
+            ):
+                admit(family, size, compiled_size=compiled_size)
                 break
-        elif not admit(family, size):
+        if guard.exhausted or not admit(family, size, compiled_size=compiled_size):
             break
-        if compile_guard is None and deletion_permission is not None:
-            permitted_members = [
-                (removed, insertions)
-                for removed, insertions in permitted_members
-                if bool(deletion_permission(removed).permitted)
-            ]
         yield family, evaluate_patches(
             singleton_patches(permitted_members), family
         ), None
@@ -465,21 +439,26 @@ def iter_structural_families(
             )
             batch: list[Patch] = []
             construction_cap = guard.remaining
+            compile_cap = None if compile_guard is None else compile_guard.remaining
+            batch_compile_size = 0
             for patch in patches:
                 identity = (patch.removed_runtime_indices, patch.plan.plan_id)
                 if identity in scored_plans:
                     continue
                 scored_plans.add(identity)
                 batch.append(patch)
+                batch_compile_size += int(
+                    active_population_face(patch.removed_runtime_indices, patch.inserted_selection)
+                )
                 # Stop construction at the first proof that this complete
                 # family cannot fit. No member is scored or compiled.
-                if construction_cap is not None and len(batch) > construction_cap:
-                    admit(family, len(batch))
+                if (
+                    construction_cap is not None and len(batch) > construction_cap
+                ) or (
+                    compile_cap is not None and batch_compile_size > compile_cap
+                ):
+                    admit(family, len(batch), compiled_size=batch_compile_size)
                     return
-            batch_compile_size = sum(
-                int(active_population_face(p.removed_runtime_indices, p.inserted_selection))
-                for p in batch
-            )
             if not admit(family, len(batch), compiled_size=batch_compile_size):
                 return
             frontiers_used = level + 1

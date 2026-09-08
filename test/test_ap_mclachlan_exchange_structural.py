@@ -197,21 +197,23 @@ def test_work_guard_rejects_complete_family_and_freezes() -> None:
     assert result.guard.scored_count == len(result.candidates)
 
 
-@pytest.mark.parametrize("remaining, expected_branches", [(1, []), (2, [(0,)])])
-def test_rejected_rung_stops_construction_before_permission(
+@pytest.mark.parametrize("remaining, expected_branches", [(0, []), (1, [(0,)]), (2, [(0,)])])
+def test_permitted_rung_stops_construction_when_evaluation_budget_is_exceeded(
     remaining, expected_branches,
 ) -> None:
     _s, _e, _c, cuts, kwargs = _setup()
     d0_size = 1 + len(cuts["ca"]) + len(cuts["cb"])
     seen = []
+    permission_calls = []
 
     def pool(removed):
         if removed:
             seen.append(removed)
         return ("ca", "cb")
 
-    def permission(_removed):
-        pytest.fail("a rejected raw family must not reach deletion permission")
+    def permission(removed):
+        permission_calls.append(removed)
+        return SimpleNamespace(permitted=True)
 
     kwargs.update(
         candidate_pool_for_deletion=pool,
@@ -220,6 +222,7 @@ def test_rejected_rung_stops_construction_before_permission(
     )
     result = enumerate_structural_candidates(**kwargs)
     assert seen == expected_branches
+    assert permission_calls == expected_branches
     assert result.guard.rejected_family == "singleton_d1"
     assert result.guard.scored_count == d0_size
     assert all(not c.removed_runtime_indices for c in result.candidates)

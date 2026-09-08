@@ -60,9 +60,9 @@ class SearchResult:
 class SearchSession:
     """One search's raw evidence ledger and common computational guards.
 
-    Each distinct requested patch consumes one structural slot. A deletion
-    boundary refused by its measurement-free permission also consumes one
-    slot, preventing an unbounded permission walk from evading work limits.
+    Each distinct permitted patch in an admitted request consumes one
+    structural slot. Refused deletion sets are recorded in the permission
+    cache and receipt without consuming patch-evaluation slots.
     Compiled slots count permitted regime-active patches, as in the current
     route. Actual transpilation calls remain recorded by the cost evaluator.
 
@@ -82,7 +82,6 @@ class SearchSession:
         self.compile_guard = JointWorkGuard(budget.compiled_patches_per_checkpoint)
         self.evidence: dict[tuple, StructuralCandidate] = {}
         self.permission_cache: dict[tuple[int, ...], bool] = {}
-        self.accounted_rejections: set[tuple[int, ...]] = set()
         self.moves: list[dict] = []
         self.stop_reason = ""
         self.refusal: dict | None = None
@@ -115,7 +114,7 @@ class SearchSession:
 
         if self.stopped:
             raise SearchBudgetExhausted(self.stop_reason)
-        if removed in self.accounted_rejections or patch_identity(Patch(removed, ())) in self.evidence:
+        if patch_identity(Patch(removed, ())) in self.evidence:
             return
         if self.guard.remaining == 0:
             self._refuse("joint_work_budget", f"boundary_d{len(removed)}")
@@ -126,18 +125,6 @@ class SearchSession:
         if removed not in self.permission_cache:
             self.permission_cache[removed] = self.problem.permitted(removed)
         return self.permission_cache[removed]
-
-    def account_permission_rejection(self, removed: tuple[int, ...]) -> None:
-        """Charge a refused boundary once, without caching a completed solve."""
-
-        if self.permission_cache.get(removed) is not False:
-            raise ValueError("only a mathematically refused boundary can be charged here")
-        self.check_boundary_budget(removed)
-        if removed in self.accounted_rejections:
-            return
-        if not self.guard.admit(f"boundary_d{len(removed)}", 1):
-            raise AssertionError("boundary admission changed after preflight")
-        self.accounted_rejections.add(removed)
 
     def evaluate(
         self, patches: Iterable[Patch], label: str,

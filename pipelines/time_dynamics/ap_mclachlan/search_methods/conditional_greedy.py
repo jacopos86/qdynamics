@@ -39,7 +39,6 @@ def search_patches(
         for removed in problem.deletion_sets():
             session.check_boundary_budget(removed)
             if not session.deletion_permitted(removed):
-                session.account_permission_rejection(removed)
                 continue
             session.evaluate((Patch(removed, ()),), label=f"boundary_d{len(removed)}")
             pool = problem.pool(removed)

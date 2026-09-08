@@ -2093,11 +2093,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=50000,
         help=(
-            "Sole computational cap on structural enumeration: a complete "
-            "deletion rung or insertion frontier is admitted only when the "
-            "cumulative unique-candidate count stays within this budget; "
-            "families are never partially sampled. None disables the guard "
-            "and is intended for small systems and oracles only."
+            "Permitted patch-evaluation budget: each complete search request "
+            "must fit the remaining unique-patch slots. Deletion permission "
+            "is checked before charging; refused sets consume no patch slots "
+            "and their permission work is counted separately. Requests are "
+            "never partially sampled. None disables the guard and is intended "
+            "for small systems and oracles only."
         ),
     )
     parser.add_argument(

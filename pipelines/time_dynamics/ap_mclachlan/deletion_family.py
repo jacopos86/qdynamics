@@ -2,9 +2,10 @@
 
 The selector enumerates deletion subsets in complete cardinality rungs
 ``D_{k,d} = {D subset J_k^del : |D| = d, hard-feasible}`` with no separate
-maximum deletion-batch cardinality: the only computational cap is the joint
-work guard, which admits or rejects each complete family *before* any member
-is scored and never samples part of a rung.
+maximum deletion-batch cardinality. The caller applies complete-set permission
+before the joint-work guard admits or rejects the permitted patch family
+*before* any member is scored; it never samples part of a rung. Permission
+checks consume no patch-evaluation slots.
 
 Hard feasibility here is minimum surviving support; atom-level feasibility
 (target policy, drive-aligned protection, cooldown, occurrence identity) is
@@ -88,20 +89,23 @@ def iter_deletion_rungs(
 
 @dataclass
 class JointWorkGuard:
-    """The sole computational cap on structural enumeration.
+    """Whole-request admission for permitted patch-evaluation work.
 
     ``max_joint_patch_evaluations = None`` disables the guard.  A finite value
     admits a complete family exactly when
-    ``N_done + N_next <= max_joint_patch_evaluations``; rejection evaluates
+    ``N_reserved + N_next <= max_joint_patch_evaluations``; rejection evaluates
     none of the family and freezes further admissions, and the caller ends
-    escalation on the same event.
+    escalation on the same event. Callers count permitted patches, or their
+    regime-active subset for compiled-work admission. Permission rejections
+    consume no slots. Reservations remain charged if an admitted backend
+    request fails; ``scored_count`` is not a count of completed results.
 
     Freezing is a declared stop, not a proof that every later family would
     also overrun: families are exposed in deterministic order, but that order
     is not size-monotone (a rung's cardinality ``C(m, d)`` is unimodal in
-    ``d``).  ``rejected_family_size`` records what the refused family would
-    have cost, so a run can be audited for a cap that bound without
-    reconstructing the family size from the pool.
+    ``d``). ``rejected_family_size`` records the refused family's size when
+    known; it remains unset when construction stops after proving a lower
+    bound exceeds the remaining budget.
     """
 
     max_joint_patch_evaluations: int | None = None

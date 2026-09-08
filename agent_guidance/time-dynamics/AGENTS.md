@@ -39,7 +39,7 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `commutation.py` | Block-swap certificates and singleton insertion cuts; algebra delegated to `pipelines.static_adapt.commutation_metadata` (single source both lanes share, parity-tested against Paper I) |
 | `deletion_geometry.py`, `schur_identity.py` | Pure effective-angle/ray bound and exact conditional capture/deletion-loss mathematics; permission thresholds and stabilized ranking stay in callers |
 | `insertion_words.py` | Immutable `(W, W_D)` plan words, deletion erasure, whole-word commutation quotient (lex-least trace normal form; inserted tokens sort before survivors — load-bearing) |
-| `deletion_family.py` | Complete deletion rungs and the joint-work guard (admits whole families only; the sole computational cap) |
+| `deletion_family.py` | Complete deletion rungs and whole-request patch-evaluation admission; rejected deletion sets consume no patch slots |
 | `deletion_permission.py` | Measurement-free set permission: accumulated effective-angle ray upper bound plus normalized reverse-Schur deletion loss; memoized decision and run telemetry |
 | `structural_cache.py` | Checkpoint-local frozen-ray geometry and memoized solves; experimental searches acquire candidate pairs lazily, with separate selection/validation receipts |
 | `gain_evaluation.py` | Pure factorized capture formula: singleton increments share one retained support; signed deletion contribution is subtracted once by the evaluator |
@@ -79,14 +79,16 @@ compatibility-named runner. Live selector settings are partitioned by
 `APGeneralizedExchangeConfig` and recorded in run provenance:
 
 - `--search-policy greedy|block_exchange|bounded_exhaustive` with `--gain-evaluation singleton_factorized|joint_batch` selects the six experimental variants; the existing default remains `family_frontiers` + `joint_batch`. Factorized experiments require the compiled-Q route. All variants permit batches up to the common cardinality; pair-local search moves have total edit radius two.
+- For the [selector comparison campaign](paper-ii-selector-campaign.md), build commands with `paper_ii_runs.build_selector_comparison_run`: required search/gain/cardinality axes, pinned compiled-Q, and effective CLI validation. The generic builder's legacy defaults remain intentional; the user deferred frontier-policy changes.
 - `--max-insertion-batch-size` (zero closes the insertion face)
 - `--no-exchange-deletions` (insert-face ablation only; deletions are on for
   the operating route)
 - `--interaction-frontier-widths` (comma ints; None → `2,4,8,…`)
 - `--structural-score-floor` — τ_score; the floor, not certification, excludes
   numerical-noise candidates
-- `--max-joint-patch-evaluations` — enumeration work cap; admits complete
-  families only; `None` is for small systems and oracles
+- `--max-joint-patch-evaluations` — permitted patch-request cap; admits complete
+  requests only. Whole-set permission is checked before charging; rejected
+  sets are counted separately. `None` is for small systems and oracles.
 - `--max-certification-attempts-per-level` — certification work cap: bounds
   finalist materializations per level (`None` = unbounded). Needed whenever
   gates can reject broadly — e.g. on a near-stationary ray `||b||^2 ~ 0` makes the
@@ -260,9 +262,11 @@ eligible pool. Because families admit whole, a small joint-work guard can
 reject an entire family; inspect family-admission telemetry when diagnosing
 stays at scale. Provision execution resources for the declared search.
 
-Because every admitted deletion rung is scored before certification, running
-with `--max-joint-patch-evaluations None` at scale enumerates ALL rungs
-(spec-mandated) — set the guard on any run with a nontrivial deletable set.
+The patch guard bounds admitted evaluation work, not the number of rejected
+deletion sets inspected. Permission scans can remain combinatorial; record
+their counts and provision classical runtime separately. Family mode scores
+its admitted deletion rungs before certification; experimental searches expose
+their own whole-request schedules and termination receipts.
 
 ## Test baseline
 

@@ -13,6 +13,62 @@ Pin the actual tested revision and executor package hash in the submission
 manifest. Existing small trajectory tests are software validation, not results
 from this campaign.
 
+Before campaign execution: the user requested many small local debug runs.
+The [current selector audit](paper-ii-selector-audit-20260908.md) precedes
+those runs and records confirmed proxy redundancy, permission-budget coverage
+effects, and the distinction between the new searches and the old frontier
+path. The subsequent authorized correction removes redundant singleton proxy
+work and rejected-set evaluation charges. The user deferred the legacy
+frontier-policy change; its utility and generic defaults remain intact.
+The local campaign grid and CHTC submission remain pending.
+
+## Corrected implementation and campaign entry point
+
+- `family_robust_v1` now uses its exact singleton identity (cost factor one)
+  before raw estimation. Real population-proxy and raw-legacy consumers retain
+  their numerical behavior. This is decision-preserving cleanup.
+- Complete-D permission precedes patch-budget charging and branch-pool
+  construction. Rejected sets consume no evaluation slots; existing receipts
+  count their permission work separately. Whole-request admission remains.
+  This changes finite-budget coverage, including on the retained family path.
+- Build new comparison commands with
+  `paper_ii_runs.build_selector_comparison_run(search_policy=...,
+  gain_evaluation=..., insertion_cardinality=..., **run_settings)`.
+  The helper pins compiled-Q and validates effective runner arguments, including
+  late overrides. All three axes are required and included in run identity.
+  Named profile budgets remain explicit; the generic builder is unchanged.
+- The legacy frontier's ordering is deferred, as requested. Existing v1
+  revisions and evidence remain unchanged; current accounting corrections
+  should not be represented as a reproduction of v1 execution.
+
+Local numerical validation now includes six tight-budget singleton trajectories
+(three searches times two gain modes) and six batched trajectory smokes. The
+tight-budget test first reproduced four evaluated patches instead of six;
+after correction both permitted exchanges are reached and joint/factorized
+singleton trajectories agree through the full evolution. These are small
+software checks, not the 72 planned scientific trajectories.
+
+Permission scans can remain combinatorial: the patch-evaluation budget does
+not cap rejected-set inspections. Record that classical work separately when
+choosing campaign runtime resources; no new arbitrary pool or permission cap
+was introduced.
+
+Validation of this correction: **332 tests passed** across four disjoint
+groups, each under a 3 GB RAM guard. Independent source review found no
+additional issue.
+
+| Test group | Passed | Wall time |
+|---|---:|---:|
+| Permission, search, family admission and selector | 154 | 0.80 s |
+| Proxy elimination and legacy numerical parity | 10 | 9.71 s |
+| Tight-budget parity plus batched evolving trajectories | 9 (12 trajectories) | 32.13 s |
+| Adapter, gain modes, frontier preservation, configuration and run commands | 159 | 23.32 s |
+
+The two targeted regressions were observed failing before their respective
+fixes: the redundant estimator call and four-versus-six evaluated patches.
+The largest sampled resident footprint in the passing groups was 906 MB;
+short test groups can finish before the guard obtains a meaningful RSS sample.
+
 ## Campaign matrix
 
 | Axis | Values | Count |
