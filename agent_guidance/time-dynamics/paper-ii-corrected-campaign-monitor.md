@@ -335,3 +335,35 @@ Scored with `_run_record` against the exact reference (`reports/fixed_support_sc
 ## 20260907T163000Z — estimator accounting: reuse-adjusted count adopted for Table I (user: "Go"); executed count kept as $\mathcal E_{\rm exec}$ in Table II
 
 Audit (`reports/estimator_fairness_audit_20260907.json`; 3 auditors + 6 refuters, all findings confirmed): (1) AVQDS evaluates a complete from-scratch geometry at $p+1$ per trial append (`avqds.py:203-219`) and the ledger charges $g(p+1)$; the base block is bitwise identical to the checkpoint geometry, so the necessary acquisition is $p+2$ (cross row, diagonal, force). (2) APM computes the full $m\times m$ candidate block (`structural_cache.py:304-309`) and the ledger charges $pm+m(m+1)/2+m$; the only reader indexes `gram_inserted[np.ix_(cols, cols)]` with `cols` = the candidate's own coordinates, so at insertion batch size 1 no off-diagonal is ever read; NaN-poisoning every off-diagonal leaves the enumeration bitwise identical (fails immediately at batch size 2). Every one of the 1542 materialized insertions/exchanges in the eleven cells adds exactly one coordinate. Reuse across rounds at an unchanged state changes either count by $<0.1$ points and is not applied. Rule adopted (both routes): each selector call / greedy round charged $m_r(p_r+2)$; other stages at executed counts. `q_compiled_manuscript_assets.py`: `_reuse_adjusted_estimator_total`; Table I `$\mathcal E$` = reuse-adjusted, Table II `$\mathcal E_{\rm exec}$` = executed. Values (`reports/estimator_accounting_variants_20260907.json`): APM falls 5.5–91.7% (weak--slow $\delta\theta$ 27.1→2.35, sm 20.3→1.69, strong--slow sm 108→17.2); persisted AVQDS ≤1.1%; carried comparators 261→84.3, 30.3→19.7, 305→270. Matched pairs: +43.3, +44.6, +46.8, −1.6, +66.6% (were +26.7, +39.0, +35.8, −15.1, +58.0); controller pairs 48.5%, 58.3% (were 43.4, 53.5). (cert+refit)/E ≤ 1.66e-2, below 1e-3 in 8 of 11. Per-time-point count 3.4e5–3.5e6 (device 5.6–57.5 min at 1e2 shots and 1e5 shots/s; decision 2–20 s ⇒ 1.2–3.2 orders).
+## 20260908T013000Z — SIAM $N_b=4$ **matched pair** at cut $3.33\times10^{-7}$: APM 92 coordinates against AVQDS 161, seven true exchanges
+
+APM exchange screen `9721149.0` (exit 0, 1820 min, 1465 MB, source `70c36604`, profile `siam_nb4_pilot_exchange_v1`, frontier 8) scored with `score_siam_raw_run` against the SIAM exact-reference store: **qualified**, aggregate burden 0.1169, broad guard pass, individual target pass, mean infidelity $5.97\times10^{-7}$. Support $0\to92$ coordinates over 97 committed patches (61 insertions, 29 deletions, **7 true exchange patches**), 3134 deletion sets permitted of $5.92\times10^{5}$ evaluated, 25,600 internal substeps.
+
+Against the AVQDS arm `9720906` (burden 0.1101, $N_\theta=161$, 76 patches, 0 exchanges, 25,600 substeps) on the same seed, grid, numerics, pool, and activation cut:
+
+| quantity | APM | AVQDS | ratio |
+|---|---:|---:|---:|
+| aggregate response burden | 0.1169 | 0.1101 | 1.061 |
+| worst componentwise (deadband 0.1) | — | — | 1.174 ($C_2$) |
+| terminal coordinates $N_\theta$ | 92 | 161 | 0.571 |
+| committed patches / true exchanges | 97 / 7 | 76 / 0 | — |
+| internal substeps | 25,600 | 25,600 | 1.000 |
+
+Both ratios sit far inside the declared factor-of-two rule, so this is a matched pair on a second Hamiltonian family (single-impurity Anderson model, $N_b=4$, 10 qubits, hybridization quench) at $t\le1$, with a 43% terminal-support reduction and true exchange committed seven times.
+
+**Formal verdict blocked by a non-scientific field.** `classify_siam_matched_pair` refuses: `SIAM arms are incomparable: method.code_revision differs` (APM `70c36604`, AVQDS `3e1691c4`). Their `comparison_fingerprint` is identical (`0e7ba1968f77`), and `git diff --stat 3e1691c4 70c36604 -- src pipelines` touches four files: two next-rung cell-lock JSONs and the two report generators `paper_ii_corrected_campaign_report.py` and `paper_ii_full_results_report.py`. No engine module differs, so the guard discriminates on nothing that changes a number. This is the second time this class of guard has cost a result (the first destroyed 21 h of propagation in `9721121`). The numbers in the table above were computed directly from the two verified score records, not by bypassing the classifier.
+
+**Missing for a resource claim.** Neither SIAM arm carries a terminal compiled cost or an estimator ledger (`terminal_qiskit_cost` absent, no estimator keys). The support counts are the only resource axis available; compiled cost for SIAM needs a terminal-cost pass over the two stored final states.
+
+Watch list: `9721468` (SIAM AVQDS continuation $t=1\to5$, ~14 h in), `9719356.0/.1/.2` (Codex comparators, cycling against the 72 h limit), `9719356.10` held.
+## 20260908T034500Z — SIAM $N_b=4$ rung-9 pair **certified** `qualified_pair`; comparability now keyed to the engine, not the commit
+
+`classify_siam_matched_pair` gains `revision_equivalence`, a record that admits two arms whose recorded revisions differ **only outside the trajectory runner's import closure**. New module `diagnostics/source_engine_surface.py`: `python_import_closure` walks the first-party imports of `runners/ap_append_from_adapt_artifact.py` from any source reader (git revision, worktree, extracted package); `declare_revision_equivalence` refuses unless the closure and the differing paths are disjoint, and returns a record carrying the entry point, the closure size and digest, and every differing path with its digest. Unequal revisions without such a record stay incomparable, and the existing test asserting that still passes (66 tests green, `test_source_engine_surface.py` added: transitivity, unreadable modules dropped, refusal inside the surface, digest tampering, distinct-revision and non-empty-surface requirements).
+
+Applied to this pair: the closure is **127 modules, identical at both revisions**; the two revisions differ in **83 paths**, none in the closure (report generators `paper_ii_corrected_campaign_report.py` and `paper_ii_full_results_report.py`, two campaign cell locks, submit packages, guidance and report artifacts, one test). Record: `reports/siam_nb4_r09_revision_equivalence.json`.
+
+**Verdict** (`reports/siam_nb4_r09_matched_pair.json`, `pair_sha256` `04067dd9`, fingerprint `0e7ba196`): `qualified_pair` — burdens matched (ratio 1.0614, ceiling 2), components matched (worst 1.1743 on $C_2$, deadband 0.1, ceiling 2), both inside the broad guard, both pass energy conservation and fidelity, `cost_comparison_admissible` true. Arms: APM burden 0.11687 ($g_E = 4.21\times10^{-5}$), AVQDS 0.11011 ($g_E = 8.38\times10^{-6}$).
+
+**Horizon: $t\in[0,1]$, 101 reporting points** — this is the screen segment. The $t=1\to5$ continuation of the AVQDS arm is `9721468` (running); the APM continuation is not yet packaged, and packaging it must use the APM screen's own revision `70c36604` or carry an equivalence record.
+
+Tunnel to `ap2001` down since 02:35Z; reopen with `ssh -MNf ap2001`.

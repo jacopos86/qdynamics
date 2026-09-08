@@ -19,6 +19,9 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from pipelines.time_dynamics.diagnostics.source_engine_surface import (
+    revision_equivalence_covers,
+)
 from pipelines.time_dynamics.diagnostics.siam_exact_reference_store import (
     SIAM_EXACT_REFERENCE_STORE_V2,
     SIAMExactReferenceArtifact,
@@ -1513,12 +1516,21 @@ def classify_siam_matched_pair(
     second: Mapping[str, Any],
     *,
     expected_apm_route: str | None = None,
+    revision_equivalence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Classify one exchange/AVQDS pair after proving comparability.
 
     ``expected_apm_route`` binds the pair to one exchange route bundle.  A
     campaign that declares its route passes it here so a compiled-Q APM arm can
     never be paired against, or reported as, the historical route.
+
+    ``revision_equivalence`` admits two arms whose recorded code revisions
+    differ, when the record proves the difference lies entirely outside the
+    trajectory runner's import closure (see
+    :mod:`pipelines.time_dynamics.diagnostics.source_engine_surface`).  The
+    record is copied into the verdict, so a certified pair always carries the
+    evidence for why the revision field was set aside.  Without it, unequal
+    revisions remain incomparable.
     """
 
     left = _verified_score(first)
@@ -1535,9 +1547,14 @@ def classify_siam_matched_pair(
     avqds_route = _score_route(avqds)
     if expected_apm_route is not None and apm_route != str(expected_apm_route):
         raise ValueError("SIAM APM arm route differs from the campaign route")
+    revision_waived = revision_equivalence_covers(
+        revision_equivalence,
+        str(apm["method"]["code_revision"]),
+        str(avqds["method"]["code_revision"]),
+    )
     comparable_fields = (
         ("method", "comparison_fingerprint"),
-        ("method", "code_revision"),
+        *((() if revision_waived else (("method", "code_revision"),))),
         ("source", "seed_sha256"),
         ("reference", "key"),
         ("reference", "manifest_sha256"),
@@ -1615,6 +1632,9 @@ def classify_siam_matched_pair(
     )
     core = {
         "schema": SIAM_MATCHED_PAIR_V3,
+        "revision_equivalence": (
+            dict(revision_equivalence) if revision_waived else None
+        ),
         "observable_contract": dict(apm["observable_contract"]),
         "accuracy_policy": dict(apm["accuracy_policy"]),
         "reference": dict(apm["reference"]),
