@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from itertools import combinations
+from itertools import chain, combinations
 from typing import TYPE_CHECKING, Callable, Iterator, Sequence
 
 from ..patch_enumeration import Patch
+from .scheduling import NEIGHBORHOOD_SETTLED, PatchRequest, schedule_rungs
 from .session import SearchBudgetExhausted, SearchSession
 
 if TYPE_CHECKING:
@@ -20,6 +21,7 @@ def insertion_neighborhood(
     *,
     maximum_size: int,
     move_size: int = 2,
+    target_size: int | None = None,
 ) -> Iterator[tuple[str, ...]]:
     r"""Yield blocks at total edit distance ``1..move_size`` from ``selected``.
 
@@ -31,12 +33,16 @@ def insertion_neighborhood(
 
     This constructs operator-occurrence blocks only. The shared problem
     supplies every complete paired-word realization of each block.
+    ``target_size`` selects one cardinality before constructing combinations,
+    so separately scheduled streams do not scan other cardinalities.
     """
 
     if int(move_size) != move_size or move_size < 1:
         raise ValueError("move_size must be a positive integer")
     if int(maximum_size) != maximum_size or maximum_size < 0:
         raise ValueError("maximum_size must be a non-negative integer")
+    if target_size is not None and (int(target_size) != target_size or target_size < 0):
+        raise ValueError("target_size must be a non-negative integer or None")
     pool = tuple(pool)
     selected_ids = set(selected)
     if len(set(pool)) != len(pool):
@@ -50,7 +56,8 @@ def insertion_neighborhood(
             add_count = distance - remove_count
             if add_count > len(unused):
                 continue
-            if len(current) - remove_count + add_count > maximum_size:
+            size = len(current) - remove_count + add_count
+            if size > maximum_size or (target_size is not None and size != target_size):
                 continue
             for removed in combinations(current, remove_count):
                 kept = selected_ids.difference(removed)
@@ -69,11 +76,10 @@ def search_patches(
 ) -> SearchResult:
     """Improve complete insertion blocks while keeping every ``D`` explicit.
 
-    Each newly admitted deletion branch is improved immediately, so acquiring
-    all deletion boundaries cannot consume the budget before insertion work.
-    After that first pass, repeat branch sweeps until neither the cumulative
-    evidence nor any incumbent changes. Later population growth may invalidate
-    an earlier stopping decision, so previously visited blocks remain legal.
+    Cardinality streams receive short turns across deletion branches. A move
+    waits for its complete neighborhood; a settled branch wakes whenever the
+    cumulative evidence grows. Earlier stopping decisions can therefore be
+    reconsidered without pruning previously visited blocks.
 
     Every move strictly improves one immutable ranking snapshot. Over the
     finite permitted universe, only finitely many population-growth events can
@@ -88,16 +94,27 @@ def search_patches(
     radius = int(move_size)
     session = SearchSession(problem, evaluate, rank, budget)
 
-    def improve(removed, pool, selected):
-        moved = False
+    def search_branch(removed):
+        pool = problem.pool(removed)
+        maximum_size = min(int(problem.max_insertion_batch_size), len(pool))
+        selected: tuple[str, ...] = ()
+        boundary = iter((Patch(removed, ()),))
         while True:
-            neighbors = session.evaluate(
-                problem.patches(removed, insertion_neighborhood(
-                    pool, selected,
-                    maximum_size=problem.max_insertion_batch_size,
-                    move_size=radius,
-                )),
-                label=f"block_r{radius}_d{len(removed)}_a{len(selected)}",
+            streams = {
+                size: problem.patches(removed, insertion_neighborhood(
+                    pool, selected, maximum_size=maximum_size,
+                    move_size=radius, target_size=size,
+                ))
+                for size in range(
+                    max(0, len(selected) - radius),
+                    min(maximum_size, len(selected) + radius) + 1,
+                )
+            }
+            if boundary is not None:
+                streams[0] = chain(boundary, streams.get(0, ()))
+                boundary = None
+            neighbors = yield PatchRequest(
+                f"block_r{radius}_d{len(removed)}_a{len(selected)}", streams,
             )
             ranking = session.rank()
             incumbent = session.anchor(removed, selected, ranking)
@@ -105,35 +122,17 @@ def search_patches(
             if challenger is None or not session.outranks(
                 challenger, incumbent, ranking
             ):
-                return selected, moved
+                yield NEIGHBORHOOD_SETTLED
+                continue
             chosen = {atom for atom, _cut in challenger.inserted_selection}
             selected = tuple(atom for atom in pool if atom in chosen)
             session.record_move(removed, selected, challenger, ranking)
             session.moves[-1]["move_size"] = radius
-            moved = True
-
-    branches = []
     try:
-        for removed in problem.deletion_sets():
-            session.check_boundary_budget(removed)
-            if not session.deletion_permitted(removed):
-                continue
-            session.evaluate((Patch(removed, ()),), label=f"boundary_d{len(removed)}")
-            pool = problem.pool(removed)
-            selected, _moved = improve(removed, pool, ())
-            branches.append((removed, pool, selected))
-
-        while True:
-            population_before = len(session.evidence)
-            moved = False
-            for index, (removed, pool, selected) in enumerate(branches):
-                selected, branch_moved = improve(removed, pool, selected)
-                branches[index] = (removed, pool, selected)
-                moved = moved or branch_moved
-            if not moved and len(session.evidence) == population_before:
-                return session.finish("block_neighborhoods_exhausted")
+        schedule_rungs(session, problem.deletion_rungs(), search_branch)
     except SearchBudgetExhausted as exc:
         return session.finish(exc.reason)
+    return session.finish("block_neighborhoods_exhausted")
 
 
 __all__ = ["insertion_neighborhood", "search_patches"]

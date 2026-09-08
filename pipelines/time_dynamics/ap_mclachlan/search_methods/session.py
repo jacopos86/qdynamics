@@ -1,7 +1,7 @@
 """Shared work admission and cumulative evidence for patch searches.
 
 Search policies choose which complete patches to request. This module admits
-whole requests, caches raw results, and supplies immutable population-ranking
+individual patches, caches raw results, and supplies immutable population-ranking
 snapshots. It contains no gain formula, compilation policy, or certification.
 """
 
@@ -90,7 +90,8 @@ class SearchSession:
     Compiled slots count permitted regime-active patches, as in the current
     route. Actual transpilation calls remain recorded by the cost evaluator.
 
-    An insertion request is admitted whole before numerical or compiler work.
+    Each patch is admitted before its numerical or compiler work. If a request
+    exceeds the remaining budget, its completed prefix remains in the ledger.
     Revisited patches reuse evidence, never a previously normalized score.
     """
 
@@ -123,8 +124,8 @@ class SearchSession:
         self.guard.rejected_family = label
         self.compile_guard.rejected_family = label
         limiting_guard = self.compile_guard if reason == "compiled_work_budget" else self.guard
-        # Construction stops early, so the full family's size is unknown.
-        # Keep the old exact-size field unset and report what was observed.
+        # Report the refused next patch's slot requirement. The unevaluated
+        # remainder of the logical request is deliberately never counted.
         self.refusal = {
             "label": label,
             "reason": reason,
@@ -153,16 +154,19 @@ class SearchSession:
     def evaluate(
         self, patches: Iterable[Patch], label: str,
     ) -> tuple[StructuralCandidate, ...]:
-        """Acquire a complete request, with finite construction under a budget."""
+        """Evaluate and save each complete patch that fits, in request order.
+
+        A budget refusal raises only after saving all completed predecessors.
+        The caller ends the search and ranks that cumulative evidence; it must
+        not interpret refusal as completion of the logical request. Cached
+        patches consume no slots. Backend failures retain completed results,
+        while the attempted patch's reservation remains charged.
+        """
 
         if self.stopped:
             raise SearchBudgetExhausted(self.stop_reason)
         keys: list[tuple] = []
-        unseen: dict[tuple, Patch] = {}
         seen_request: set[tuple] = set()
-        remaining = self.guard.remaining
-        compiled_remaining = self.compile_guard.remaining
-        compiled_size = 0
         for patch in patches:
             key = patch_identity(patch)
             if key in seen_request:
@@ -170,22 +174,20 @@ class SearchSession:
             seen_request.add(key)
             keys.append(key)
             if key not in self.evidence:
-                unseen[key] = patch
-                if remaining is not None and len(unseen) > remaining:
-                    self._refuse("joint_work_budget", label, len(unseen))
-                compiled_size += int(
+                if self.guard.remaining == 0:
+                    self._refuse("joint_work_budget", label)
+                compiled_size = int(
                     bool(patch.removed_runtime_indices or patch.inserted_selection)
                     and self.evaluator.active_population_face(
                         patch.removed_runtime_indices, patch.inserted_selection,
                     )
                 )
-                if compiled_remaining is not None and compiled_size > compiled_remaining:
-                    self._refuse("compiled_work_budget", label, compiled_size)
-        if unseen:
-            if not self.guard.admit(label, len(unseen)) or not self.compile_guard.admit(label, compiled_size):
-                raise AssertionError("request admission changed after preflight")
-            evaluated = iter(self.evaluator.evaluate(unseen.values(), label))
-            for key in unseen:
+                if compiled_size and self.compile_guard.remaining == 0:
+                    self._refuse("compiled_work_budget", label)
+                if not self.guard.admit(label, 1) or not self.compile_guard.admit(label, compiled_size):
+                    raise AssertionError("patch admission changed after preflight")
+                # Even an eager/parallel evaluator receives only admitted work.
+                evaluated = iter(self.evaluator.evaluate((patch,), label))
                 try:
                     candidate = next(evaluated)
                 except StopIteration as exc:
@@ -193,8 +195,8 @@ class SearchSession:
                 # Store only completed results, including a completed prefix
                 # if a later evaluation raises a numerical/backend error.
                 self.evidence[key] = candidate
-            if next(evaluated, None) is not None:
-                raise ValueError("the evaluator returned more records than requested")
+                if next(evaluated, None) is not None:
+                    raise ValueError("the evaluator returned more records than requested")
         return tuple(self.evidence[key] for key in keys)
 
     def rank(self) -> RankedLevel:

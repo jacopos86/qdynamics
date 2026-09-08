@@ -519,6 +519,7 @@ def test_executor_overlay_contains_current_pool_and_enumeration_dependencies(
         "ap_mclachlan.search_methods.__init__",
         "ap_mclachlan.search_methods.problem",
         "ap_mclachlan.search_methods.session",
+        "ap_mclachlan.search_methods.scheduling",
         "ap_mclachlan.search_methods.exhaustive",
         "ap_mclachlan.search_methods.conditional_greedy",
         "ap_mclachlan.search_methods.block_local_exchange",

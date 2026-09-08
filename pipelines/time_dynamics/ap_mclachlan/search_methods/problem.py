@@ -51,6 +51,12 @@ class PatchProblem:
     def deletion_sets(self) -> Iterator[tuple[int, ...]]:
         """Hard-feasible deletion sets in increasing cardinality and frozen order."""
 
+        for _size, rung in self.deletion_rungs():
+            yield from rung
+
+    def deletion_rungs(self) -> Iterator[tuple[int, Iterator[tuple[int, ...]]]]:
+        """Lazy cardinality streams, with the declared deletion cap applied."""
+
         for size, rung in iter_deletion_rungs(
             self.deletable_indices,
             total_support=len(self.coordinate_keys),
@@ -58,7 +64,7 @@ class PatchProblem:
         ):
             if self.max_deletion_batch_size is not None and size > self.max_deletion_batch_size:
                 return
-            yield from rung
+            yield size, rung
 
     def permitted(self, removed: tuple[int, ...]) -> bool:
         return not removed or self.deletion_permission is None or bool(

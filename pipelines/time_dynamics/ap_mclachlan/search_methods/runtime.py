@@ -8,6 +8,7 @@ from typing import Any, Callable, Mapping
 from ..exchange_structural import StructuralEnumeration
 from ..patch_evaluation import PatchEvaluator
 from .problem import PatchProblem
+from .scheduling import PATCHES_PER_TURN, SCHEDULE_ID
 from .session import SearchLimits, SearchResult
 
 
@@ -55,6 +56,9 @@ class PatchSearch:
         return {
             "schema": "paper_ii_patch_search_v1",
             "search_policy": self.policy,
+            "admission_policy": "incremental_complete_patch_v1",
+            "rung_schedule": SCHEDULE_ID,
+            "patches_per_rung_turn": PATCHES_PER_TURN,
             "gain_evaluation": self.evaluator.gain_evaluation,
             **self.result.receipt(),
             **({"move_size": 2} if self.policy == "block_exchange" else {}),

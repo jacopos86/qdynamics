@@ -161,6 +161,7 @@ EXECUTOR_OVERLAY_PATHS = (
     "pipelines/time_dynamics/ap_mclachlan/search_methods/__init__.py",
     "pipelines/time_dynamics/ap_mclachlan/search_methods/problem.py",
     "pipelines/time_dynamics/ap_mclachlan/search_methods/session.py",
+    "pipelines/time_dynamics/ap_mclachlan/search_methods/scheduling.py",
     "pipelines/time_dynamics/ap_mclachlan/search_methods/exhaustive.py",
     "pipelines/time_dynamics/ap_mclachlan/search_methods/conditional_greedy.py",
     "pipelines/time_dynamics/ap_mclachlan/search_methods/block_local_exchange.py",

@@ -156,7 +156,15 @@ def test_guard_termination_does_not_claim_complete_search(
     search = payload["selector_route"]["levels"][0]["search"]
     assert search["stop_reason"] == reason
     assert search["exhaustive_complete"] is False
-    assert search["evaluated_patch_count"] <= 1
+    assert 0 < search["evaluated_patch_count"] <= joint_limit
+    if reason == "compiled_work_budget":
+        # The large-miss population compiles insertion-containing patches;
+        # stay and pure-deletion boundaries can also have completed evidence.
+        assert sum(row["count"] for row in search["coverage"]["evaluated_patches_by_cardinality"]
+                   if row["insertion_size"] > 0) == compile_limit
+    assert search["admission_policy"] == "incremental_complete_patch_v1"
+    assert search["rung_schedule"] == "cardinality_rung_round_robin_v1"
+    assert search["patches_per_rung_turn"] == 1
 
 
 def test_exhaustive_gain_modes_share_complete_patch_cost_population(mode_results):

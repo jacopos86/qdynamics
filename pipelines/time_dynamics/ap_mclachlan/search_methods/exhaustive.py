@@ -6,6 +6,7 @@ from itertools import combinations
 from typing import TYPE_CHECKING, Callable
 
 from ..patch_enumeration import Patch
+from .scheduling import PatchRequest, schedule_rungs
 from .session import SearchBudgetExhausted, SearchSession
 
 if TYPE_CHECKING:
@@ -22,27 +23,30 @@ def search_patches(
 ) -> SearchResult:
     """Evaluate every permitted complete patch unless a work guard refuses.
 
-    Deletion sets follow the problem's frozen order. Within a permitted branch,
-    all insertion blocks of one cardinality form one complete admission batch;
-    the shared constructor supplies their paired-word realizations. No score
-    or provisional winner restricts the remaining search. Budget termination
-    is reported separately from exhaustive completion.
+    Cardinality streams share short turns, including both pure faces. Within
+    each stream, blocks and paired-word realizations retain frozen order. No
+    score or provisional winner restricts the remaining search. Budget
+    termination is reported separately from exhaustive completion.
     """
 
     session = SearchSession(problem, evaluate, rank, budget)
+
+    def search_branch(removed):
+        pool = problem.pool(removed)
+        maximum_size = min(int(problem.max_insertion_batch_size), len(pool))
+        yield PatchRequest(
+            f"exhaustive_d{len(removed)}",
+            {
+                0: iter((Patch(removed, ()),)),
+                **{
+                    size: problem.patches(removed, combinations(pool, size))
+                    for size in range(1, maximum_size + 1)
+                },
+            },
+        )
+
     try:
-        for removed in problem.deletion_sets():
-            session.check_boundary_budget(removed)
-            if not session.deletion_permitted(removed):
-                continue
-            session.evaluate((Patch(removed, ()),), label=f"boundary_d{len(removed)}")
-            pool = problem.pool(removed)
-            maximum_size = min(int(problem.max_insertion_batch_size), len(pool))
-            for size in range(1, maximum_size + 1):
-                session.evaluate(
-                    problem.patches(removed, combinations(pool, size)),
-                    label=f"exhaustive_d{len(removed)}_a{size}",
-                )
+        schedule_rungs(session, problem.deletion_rungs(), search_branch)
     except SearchBudgetExhausted as exc:
         return session.finish(exc.reason)
     return session.finish("universe_exhausted", exhaustive_complete=True)

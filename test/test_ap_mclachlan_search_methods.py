@@ -297,14 +297,16 @@ def test_branch_only_candidates_are_searched_and_refused_pools_are_not_read(sear
     (SearchLimits(joint_patch_evaluations=2), "joint_work_budget"),
     (SearchLimits(compiled_patches_per_checkpoint=1), "compiled_work_budget"),
 ])
-def test_budget_refuses_whole_insertion_batch_before_evaluation(search, limits, reason) -> None:
+def test_budget_keeps_completed_insertion_prefix_before_stopping(search, limits, reason) -> None:
     evaluator = _SyntheticEvaluator(lambda patch: len(patch.inserted_selection))
     result = search(_problem(("a", "b")), evaluator, _rank_population, limits)
     assert result.stop_reason == reason
     assert not result.exhaustive_complete
-    assert len(evaluator.requested) == 1
+    assert len(evaluator.requested) == 2
     assert evaluator.requested[0].inserted_selection == ()
-    assert result.guard.scored_count == 1
+    assert evaluator.requested[1].inserted_selection
+    assert len(result.candidates) == result.guard.scored_count == 2
+    assert result.compile_guard.scored_count == 1
 
 
 @SEARCHES
@@ -324,7 +326,7 @@ def test_refused_deletion_boundaries_do_not_consume_evaluation_slots(search) -> 
         evaluator, _rank_population, SearchLimits(joint_patch_evaluations=2),
     )
     assert result.stop_reason != "joint_work_budget"
-    assert permissions == [(0,), (1,), (2,), (0, 1), (0, 2), (1, 2), (0, 1, 2)]
+    assert sorted(permissions) == sorted([(0,), (1,), (2,), (0, 1), (0, 2), (1, 2), (0, 1, 2)])
     assert len(evaluator.requested) == 1
     assert result.guard.scored_count == 1
     assert result.guard.rejected_family is None
@@ -423,7 +425,7 @@ def test_block_pair_can_escape_the_greedy_ineligible_singleton_stop() -> None:
     assert block.stop_reason == "block_neighborhoods_exhausted"
 
 
-def test_block_search_improves_first_branch_before_acquiring_all_boundaries() -> None:
+def test_block_search_shares_small_budget_between_pure_batches_and_deletions() -> None:
     evaluator = _SyntheticEvaluator(lambda patch: len(patch.inserted_selection))
     result = block_search(
         _problem(("a", "b"), coordinate_keys=("s0", "s1", "s2"), deletable_indices=(0, 1, 2)),
@@ -432,7 +434,7 @@ def test_block_search_improves_first_branch_before_acquiring_all_boundaries() ->
     assert result.stop_reason == "joint_work_budget"
     assert len(evaluator.requested) == 4
     assert any(_block(candidate) == {"a", "b"} for candidate in result.candidates)
-    assert all(not candidate.removed_runtime_indices for candidate in result.candidates)
+    assert any(candidate.removed_runtime_indices for candidate in result.candidates)
 
 
 def _adversarial_rank(candidates, favorite):
@@ -470,7 +472,7 @@ def test_block_revisits_an_incumbent_after_population_growth_and_terminates() ->
     assert result.stop_reason == "block_neighborhoods_exhausted"
 
 
-def test_block_rechecks_an_earlier_branch_after_later_population_growth() -> None:
+def test_block_move_uses_already_acquired_deletion_branch_evidence() -> None:
     def rank(candidates):
         favorite = frozenset("b") if any(c.removed_runtime_indices for c in candidates) else frozenset("a")
         return _adversarial_rank(candidates, favorite)
@@ -482,7 +484,10 @@ def test_block_rechecks_an_earlier_branch_after_later_population_growth() -> Non
         ),
         _SyntheticEvaluator(lambda patch: len(patch.inserted_selection)), rank, SearchLimits(),
     )
-    assert [move["inserted_block"] for move in result.moves] == [["a"], ["b"]]
+    # Interleaving acquires D before the first neighborhood finishes; the first
+    # move must already use that enlarged population. Late growth is tested
+    # separately in test_ap_mclachlan_rung_scheduling.py.
+    assert [move["inserted_block"] for move in result.moves] == [["b"]]
     assert all(move["removed"] == [] for move in result.moves)
     assert result.stop_reason == "block_neighborhoods_exhausted"
 
@@ -605,15 +610,15 @@ def test_compile_budget_bounds_request_construction_without_a_structural_limit(c
         session.evaluate(request(), label="complete_neighborhood")
     assert stopped.value.reason == "compiled_work_budget"
     assert len(constructed) == compile_limit + 1
-    assert not evaluator.requested
-    assert not session.evidence
-    assert session.guard.scored_count == session.compile_guard.scored_count == 0
+    assert len(evaluator.requested) == len(session.evidence) == compile_limit + 1
+    assert session.guard.scored_count == compile_limit + 1
+    assert session.compile_guard.scored_count == compile_limit
     refusal = session.finish(stopped.value.reason).receipt()["refusal"]
     assert refusal == {
         "label": "complete_neighborhood",
         "reason": "compiled_work_budget",
-        "required_work_lower_bound": compile_limit + 1,
-        "remaining_work": compile_limit,
+        "required_work_lower_bound": 1,
+        "remaining_work": 0,
     }
     assert refusal["required_work_lower_bound"] > refusal["remaining_work"]
     assert session.compile_guard.rejected_family_size is None
@@ -674,13 +679,17 @@ def test_coverage_receipt_counts_completed_patch_cardinalities_and_known_permiss
 @SEARCHES
 @pytest.mark.parametrize("limit", [0, 2])
 def test_coverage_receipt_does_not_infer_unvisited_deletion_permissions(search, limit) -> None:
+    visited = []
+
     def permission(_removed):
-        pytest.fail("the budget stops this search before any nonempty deletion visit")
+        visited.append(_removed)
+        return True
 
     evaluator = _SyntheticEvaluator(lambda _patch: 1.0)
     result = search(
         _problem(
-            ("a", "b"), coordinate_keys=("s0",), deletable_indices=(0,),
+            ("a", "b"), coordinate_keys=("s0", "s1", "s2", "s3"),
+            deletable_indices=(0, 1, 2, 3),
             deletion_permission=permission,
         ),
         evaluator, _rank_population, SearchLimits(joint_patch_evaluations=limit),
@@ -688,15 +697,14 @@ def test_coverage_receipt_does_not_infer_unvisited_deletion_permissions(search, 
     receipt = result.receipt()
     assert receipt["stop_reason"] == "joint_work_budget"
     assert receipt["refused_deletion_count"] == 0
-    assert receipt["coverage"] == {
-        "evaluated_patches_by_cardinality": (
-            [] if limit == 0 else [{"deletion_size": 0, "insertion_size": 0, "count": 1}]
-        ),
-        "visited_deletion_sets_by_cardinality": (
-            [] if limit == 0 else [{"deletion_size": 0, "permitted": 1, "refused": 0}]
-        ),
-    }
-    assert receipt["evaluated_patch_count"] == (0 if limit == 0 else 1)
+    rows = receipt["coverage"]["visited_deletion_sets_by_cardinality"]
+    assert sum(row["permitted"] for row in rows) == len(visited) + int(limit > 0)
+    assert all(row["refused"] == 0 for row in rows)
+    assert len(visited) < 15  # Unseen subsets are not assigned permission outcomes.
+    assert sum(row["count"] for row in receipt["coverage"]["evaluated_patches_by_cardinality"]) == limit
+    assert receipt["evaluated_patch_count"] == limit
+    if limit == 0:
+        assert not visited and not rows
 
 
 @SEARCHES

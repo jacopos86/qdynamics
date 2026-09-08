@@ -45,7 +45,8 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `gain_evaluation.py` | Pure factorized capture formula: singleton increments share one retained support; signed deletion contribution is subtracted once by the evaluator |
 | `patch_evaluation.py` | Shared complete-patch evaluation: realized captured drift, retained acquisition utilities and conditioning/history terms, optional exact Gamma and compiled-resource inputs; candidate records contain raw evidence, with population ranking separate |
 | `search_methods/problem.py` | Complete permitted patch universe, branch pools, positions and explicit cardinality bound; no pool cap or pure-insertion frontier |
-| `search_methods/session.py` | Work guards and cumulative evidence; mathematical permission, work termination and completed evaluation are distinct operations |
+| `search_methods/session.py` | Complete-patch admission and cumulative evidence; mathematical permission, work termination and completed evaluation are distinct operations |
+| `search_methods/scheduling.py` | Progressive cardinality discovery and one complete patch per live rung turn; rotates deletion branches and preserves each selector's logical decision boundary |
 | `search_methods/exhaustive.py`, `conditional_greedy.py`, `block_local_exchange.py` | Interchangeable search sequences; shared evaluator/ranker inputs, explicit termination reasons, no certification inside search |
 | `search_methods/runtime.py` | Binds a search to one frozen checkpoint and exposes its cumulative population to existing certification |
 | `exchange_structural.py` | Current family enumeration (singleton level, rungs, priorities, frontiers); delegates evaluation to `PatchEvaluator` and retains acquisition utility `U_ins + U_del + w·δ` for frontier ordering on every route |
@@ -86,9 +87,11 @@ compatibility-named runner. Live selector settings are partitioned by
 - `--interaction-frontier-widths` (comma ints; None → `2,4,8,…`)
 - `--structural-score-floor` — τ_score; the floor, not certification, excludes
   numerical-noise candidates
-- `--max-joint-patch-evaluations` — permitted patch-request cap; admits complete
-  requests only. Whole-set permission is checked before charging; rejected
-  sets are counted separately. `None` is for small systems and oracles.
+- `--max-joint-patch-evaluations` — permitted patch-evaluation cap. Experimental
+  searches retain every completed patch when a request exceeds the budget;
+  `family_frontiers` retains whole-request admission. Whole-set permission is
+  checked before charging; rejected sets are counted separately. `None` is for
+  small systems and oracles.
 - `--max-certification-attempts-per-level` — certification work cap: bounds
   finalist materializations per level (`None` = unbounded). Needed whenever
   gates can reject broadly — e.g. on a near-stationary ray `||b||^2 ~ 0` makes the
@@ -258,15 +261,18 @@ The singleton level is `|pool| × |retained cuts|` candidates, each one
 supported solve. Measured: ~2.9k candidates (87 params, nph=1 seed, ~2.5 s per
 checkpoint) versus ~188k candidates (616 params, nph=3 seed, ~85 s plus
 ~770 MB of tangent columns). Candidate enumeration preserves the complete
-eligible pool. Because families admit whole, a small joint-work guard can
-reject an entire family; inspect family-admission telemetry when diagnosing
-stays at scale. Provision execution resources for the declared search.
+eligible pool. The legacy family route admits whole requests, so a small
+joint-work guard can reject an entire family. The three experimental searches
+admit individual complete patches and interleave cardinality rungs; inspect
+their completed-coverage and termination receipts when diagnosing stays.
 
 The patch guard bounds admitted evaluation work, not the number of rejected
 deletion sets inspected. Permission scans can remain combinatorial; record
 their counts and provision classical runtime separately. Family mode scores
 its admitted deletion rungs before certification; experimental searches expose
-their own whole-request schedules and termination receipts.
+the shared rung schedule and their distinct greedy, exhaustive or local-move
+decision rules. See [the campaign record](paper-ii-selector-campaign.md) for
+the admission-policy revision and its validation.
 
 ## Test baseline
 

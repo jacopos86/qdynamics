@@ -24,6 +24,44 @@ work and rejected-set evaluation charges. The user deferred the legacy
 frontier-policy change; its utility and generic defaults remain intact.
 The local pilot below is complete. The expanded scientific grid remains pending.
 
+## Incremental admission and rung scheduling (2026-09-08)
+
+The user authorized this revision after reviewing the pilot's low-budget block
+refusal. It changes finite-budget candidate coverage and can change trajectories;
+the recorded 24-cell pilot remains evidence for its original implementation.
+
+The three experimental searches share `incremental_complete_patch_v1` admission
+and `cardinality_rung_round_robin_v1` scheduling, recorded in every search receipt.
+The full candidate pool, cardinality bounds, whole-D ray-displacement and
+reverse-Schur permission, gain modes, compiled-Q population score, placement
+pricing and finalist certification retain their existing definitions.
+
+Interface: `PatchRequest(label, patches_by_insertion_size)` describes one
+logical extension set or neighborhood. `schedule_rungs` advances its positioned
+patch iterators without exhausting one cardinality before reaching another.
+Each complete evaluated realization is cached immediately. Budget exhaustion
+ends the search with its completed prefix available to final ranking; it does
+not establish neighborhood exhaustion or complete placement coverage.
+
+Deletion-cardinality discovery is progressive and lazy. Each active cardinality
+gets at most one new whole-D permission visit per sweep, including refused
+visits. Each live (|D|,|A|) rung gets one complete patch turn and rotates among
+its deletion branches. Unused turns pass to other work without reserving slots.
+Pure insertion/deletion faces and unbalanced exchanges remain reachable within
+the configured search domain and active scoring regime. No fixed thirds, pool
+cap, beam width or parent-score admission filter is introduced.
+
+Greedy completes its extension set before choosing a move; block completes its
+neighborhood, then revisits settled branches when cumulative evidence grows.
+Exhaustive retains every permitted block and realization in its search domain.
+All move comparisons use one current cumulative-population ranking snapshot.
+Interleaving may change those snapshots even when the work cap is nonbinding.
+Factorized gain ranking remains distinct from later joint validation.
+
+Validation of this revision is recorded below after focused regressions and
+matched low-budget local reruns. No CHTC submission or evidence promotion is
+part of this implementation.
+
 ## Corrected implementation and campaign entry point
 
 - `family_robust_v1` now uses its exact singleton identity (cost factor one)
@@ -31,7 +69,9 @@ The local pilot below is complete. The expanded scientific grid remains pending.
   their numerical behavior. This is decision-preserving cleanup.
 - Complete-D permission precedes patch-budget charging and branch-pool
   construction. Rejected sets consume no evaluation slots; existing receipts
-  count their permission work separately. Whole-request admission remains.
+  count their permission work separately. This earlier correction retained
+  whole-request admission; the revision above supersedes it for the three
+  experimental searches.
   This changes finite-budget coverage, including on the retained family path.
 - Build new comparison commands with
   `paper_ii_runs.build_selector_comparison_run(search_policy=...,
