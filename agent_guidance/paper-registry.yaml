@@ -10,6 +10,21 @@ resolution_rules:
   - Holstein_test owns implementation, tests, scientific settings, locked evidence, and result producers.
   - Read the target manuscript repository's AGENTS.md before manuscript work; Claude Code enters through CLAUDE.md.
   - Historical, upload, rescue, and in-research-repository manuscript copies are not active unless this registry names them.
+  - Every manuscript-class .tex under MATH/ carries its answer on line 1 as a
+    MANUSCRIPT-IDENTITY banner, so a tool that indexes this repository does not
+    have to consult this file to avoid linking a superseded copy.
+
+manuscript_identity_banner:
+  contract: manuscript-identity-banner-v1
+  applies_to: manuscript-class .tex under MATH/ (a document class plus an abstract or title block)
+  line: 1
+  format: "% MANUSCRIPT-IDENTITY: <active|not-active> | <paper alias|unassigned> | <active source or reason> | agent_guidance/paper-registry.yaml"
+  producer: pipelines/shell/manuscript_identity.py --apply
+  gate: test/test_manuscript_identity.py (also pipelines/shell/manuscript_identity.py --check)
+  rule: >-
+    Only a source this registry names for a paper whose manuscript repository is
+    Holstein_test may declare itself active.  Copies of Papers I--III are always
+    not-active here; they are labelled, never deleted.
 
 papers:
   paper_i:

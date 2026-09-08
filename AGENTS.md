@@ -135,6 +135,10 @@ or source-locked provenance.
   PDF; do not open, render, image, or visually inspect it unless the user
   explicitly requests that viewing action.
 - Preserve unrelated work, completed evidence, manifests, and source locks.
+- A new or copied manuscript file under `MATH/` declares its identity on line
+  one (`pipelines/shell/manuscript_identity.py --apply`); only a registry-named
+  in-repository source may say `active`. This is what keeps an indexer or agent
+  from linking a superseded copy of a paper whose manuscript lives elsewhere.
 - Git commits are at the agent's discretion, always (user policy,
   2026-08-17): commit deliberately with descriptive messages, without
   asking. This deliberately overrules earlier commit gating anywhere in
