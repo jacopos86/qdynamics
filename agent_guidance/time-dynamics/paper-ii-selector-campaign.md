@@ -1,8 +1,9 @@
 # Paper II selector campaign
 
 Updated: 2026-09-08. **Original local pilot: 24/24 completed; 6/6 singleton
-parity pairs passed. Incremental/rung revision: 12/12 low-budget reruns
-completed; 3/3 singleton pairs passed.** The separate three-drive scientific campaign still has
+parity pairs passed. Incremental/rung revision: 24/24 low/high-budget reruns
+completed; 6/6 singleton pairs passed. Natural fixed-UCCSD seed: 24/24 local
+trajectories completed; 12/12 singleton pairs passed.** The separate three-drive scientific campaign still has
 **72 full trajectories planned; 0 submitted**; its settings and submission
 manifest remain pending.
 
@@ -75,9 +76,84 @@ All fit after the stay patch under budget256. The selected batch sizes differ
 between gain modes; the factorized A4 finalist's six validation pair entries
 are charged. Every trajectory ledger remains exact. No D>0 passes permission
 in this physical window; synthetic exchange coverage and the small evolving
-trajectory tests remain distinct evidence. High-budget reruns and the
-three-drive campaign remain pending. No CHTC submission or evidence promotion
+trajectory tests remain distinct evidence. High-budget reruns are recorded below;
+the three-drive scientific campaign remains pending. No CHTC submission or evidence promotion
 is part of this implementation.
+
+## Completed local continuation and natural fixed-VQE seed
+
+All runs in this continuation used revision `970eb4800f6a4556179942f5d2127519d1dfed0d`
+and the same 802 Python-source hashes as the low-budget revision. Production
+code and scientific safeguards were unchanged. TETRIS-style candidate ordering
+remains deferred.
+
+The [high-budget continuation](../../output/paper_ii_rung_high_budget_local_20260908_970eb480/findings.md)
+completed all twelve original-pilot cells at budget 24,576. The raw-receipt audit
+passed 7,680 checks and all three singleton joint/factorized pairs passed.
+Every batch arm retained 24,576 evaluated patches at budget termination, including
+the stay patch. Committed insertion sizes, joint/factorized, were greedy 3/3,
+exhaustive 2/4 and block 3/4. Factorized selection acquired no candidate-pair
+cross terms; its finalist validation charged 3/6/6 pair entries respectively.
+These runs still permitted no nonempty deletion set.
+
+The user requested a naturally overcomplete Hubbard seed from fixed UCCSD with
+hopping. The [prepared seed](../../output/paper_ii_uccsd_hopping_seed_local_20260908_970eb480/findings.md)
+uses two complete layers of alpha singles, beta singles, doubles and Hubbard
+hopping. All eight logical angles were optimized; the lowest-energy result of
+four deterministic SLSQP restarts was selected, independently of deletability.
+Its static energy error is 9.52e-8. It has 32 prepared Pauli coordinates, versus
+16 in the original seed; the existing per-Pauli dynamics mode and four protected
+drive coordinates give 36 initial runtime coordinates. Both coordinate-mode
+reconstructions reproduce the prepared state to 1.04e-15. The Hamiltonian,
+Hartree-Fock reference and complete ordered 22-operator dynamic pool match the
+original Hubbard pilot. No dummy gates or post-optimization padding were used.
+
+Eighteen matched A1/D1 trajectories tested the three searches and two gain modes
+under the registered fastweak, strongfast and slowstrong drives, t=0..2 with 49
+points, budget 256. All completed and all nine singleton pairs passed. Each
+evaluated only 48 stay patches; no insertion gate opened and no D passed
+permission. Independent audits passed 11,461 checks for the
+[fastweak group](../../output/paper_ii_uccsd_hopping_trajectories_local_20260908_970eb480/independent_audit_final.json)
+and 22,934 for the
+[two additional drive groups](../../output/paper_ii_uccsd_drive_comparison_local_20260908_970eb480/independent_audit_final.json).
+
+The strongfast trajectory showed an actual zero crossing between checkpoints:
+one effective angle moved from -0.00332943 at t=1.58333 to +0.00200064 at t=1.625,
+missing the unchanged 0.002 permission window on the coarse grid. A separately
+frozen [97-point strongfast comparison](../../output/paper_ii_uccsd_strongfast_fine_local_20260908_970eb480/findings.md)
+halved the common checkpoint spacing to 1/48. All six trajectories completed and
+all three singleton pairs passed. Its independent audit passed 23,042 checks,
+including scalar recomputation of 12 compiled cost populations and 36 candidate
+records, with certification and commit bindings. Every variant evaluated six pure deletions
+and certified D={23} at t=1.6041667, reducing support 36→35. The compiled patch
+marginal was N2q=-8, D2q=-8, Dc=-34. The first variant's mean infidelity was
+6.69e-10 and mean absolute energy error 4.74e-5. Refinement changes numerical and
+controller sampling; these are within-grid comparisons, not a timing ablation.
+
+This establishes a natural physical pruning fixture under the original
+ray-displacement, reverse-Schur and certification safeguards. The insertion
+gate remained closed, so these UCCSD runs do not establish exchange-search
+performance. The separate existing-Hubbard-Holstein
+[diagnostic probe](../../output/paper_ii_hh_exchange_probe_local_20260908_970eb480/summary.json)
+evaluated 700 D1/A1 realizations and certified one pure deletion. Extending the
+original Hubbard seed to t=2 still produced no permitted deletion; that
+[negative probe](../../output/paper_ii_exchange_window_local_20260908_970eb480/summary.json)
+is preserved as well.
+
+The fine audit verifies the authoritative compiled `route_score` (0.00025 for
+the committed deletion). The generic `score` still records older utility;
+that field-name cleanup remains outstanding and must not be mistaken for the
+quantity that selected the patch.
+
+All reports retain exact-reference isolation and exact logical-work receipts.
+Paper calibration reports INCOMPLETE with no ERROR because these diagnostic
+artifacts lack the paper benchmark-row fields; direct audits bind actual seed,
+settings and source evidence. No paper qualification or promotion is implied.
+High-budget raw candidate arrays remain intact; bounded-memory reporting
+projections name the two omitted duplicate audit arrays and bind both files by
+hash. The fine-grid plan's inherited drive-lineage metadata is clarified by a
+[hash-bound sidecar](../../output/paper_ii_uccsd_strongfast_fine_local_20260908_970eb480/lineage_clarification.json);
+its verified effective-argument change is only `num_times`: 49→97.
 
 ## Corrected implementation and campaign entry point
 
