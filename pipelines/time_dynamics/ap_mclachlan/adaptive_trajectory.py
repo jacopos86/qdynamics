@@ -182,6 +182,8 @@ class SupportPatchControllerConfig:
     max_insertion_rounds_per_checkpoint: int = 12
     # Generalized exchange selector (paper_ii_generalized_exchange_v2).
     interaction_frontier_widths: tuple[int, ...] | None = None
+    search_policy: str = "family_frontiers"
+    gain_evaluation: str = "joint_batch"
     max_insertion_batch_size: int = 1
     structural_score_floor: float = 0.0
     # Canonical operating values (2026-08-20): defaults reproduce the
@@ -261,9 +263,17 @@ class SupportPatchControllerConfig:
             raise ValueError("support_patch_scoring_workers must be positive.")
         from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
             resolve_route_bundle,
+            validate_search_policy,
         )
 
-        resolve_route_bundle(str(self.exchange_route_bundle))
+        validate_search_policy(
+            self.search_policy,
+            gain_evaluation=self.gain_evaluation,
+            bundle=resolve_route_bundle(str(self.exchange_route_bundle)),
+            dynamics_policy=self.dynamics_policy,
+            interaction_frontier_widths=self.interaction_frontier_widths,
+            exchange_insertion_frontier=self.exchange_insertion_frontier,
+        )
         if self.maintenance_loss_tolerance is not None and (
             not math.isfinite(float(self.maintenance_loss_tolerance))
             or float(self.maintenance_loss_tolerance) < 0.0
@@ -489,6 +499,9 @@ class SupportPatchControllerConfig:
             payload["exchange_permission_ray_distance_max"] = float(
                 self.exchange_permission_ray_distance_max
             )
+        if (self.search_policy, self.gain_evaluation) != ("family_frontiers", "joint_batch"):
+            payload["search_policy"] = self.search_policy
+            payload["gain_evaluation"] = self.gain_evaluation
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
         )

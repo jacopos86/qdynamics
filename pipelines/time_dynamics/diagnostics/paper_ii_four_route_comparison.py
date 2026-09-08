@@ -609,11 +609,83 @@ def _attempt_reached_full_geometry(attempt: Mapping[str, Any]) -> bool:
         "insertion_resolution_failed:",
         "compiled_word_identity_mismatch",
         "materialization_failed:",
+        # Frozen candidate geometry is checked before materialized/refitted
+        # certification, and its acquisition belongs to the cache receipt.
+        "joint_validation_failed:",
         # Geometry and solve share this exception label, so it cannot certify
         # that the geometry evaluation completed.
         "patched_solve_failed:",
     )
     return bool(reason) and not reason.startswith(excluded_prefixes)
+
+
+def _selector_pass_acquisition(
+    row: Mapping[str, Any],
+) -> tuple[int, bool]:
+    """Validate dense or staged candidate work; return validation-stage entries.
+
+    A staged receipt belongs to one freshly built frozen-ray cache.  Its
+    selection stage pays the active/candidate entries, norms, and forces;
+    off-diagonal pairs belong to whichever stage first acquires them.
+    """
+
+    n = int(row.get("pre_runtime_parameter_count", -1))
+    m = int(row.get("positioned_candidate_column_count", -1))
+    entries = int(row.get("logical_shared_cache_entry_count", -1))
+    if "structural_acquisition" not in row:
+        return 0, n >= 0 and m >= 0 and entries == n * m + m * (m + 3) // 2
+
+    receipt = row.get("structural_acquisition") or {}
+    stages = receipt.get("stages") or {}
+    consistent = bool(
+        n >= 0
+        and m >= 0
+        and receipt.get("schema") == "paper_ii_structural_acquisition_v1"
+        and int(receipt.get("active_coordinate_count", -1)) == n
+        and int(receipt.get("positioned_candidate_column_count", -1)) == m
+        and set(stages) == {"selection", "validation"}
+        and receipt.get("complete", False)
+    )
+    total = 0
+    pair_total = 0
+    validation_entries = 0
+    for name in ("selection", "validation"):
+        stage = stages.get(name) or {}
+        counts = tuple(
+            int(stage.get(field, -1))
+            for field in (
+                "active_candidate_entry_count",
+                "candidate_norm_entry_count",
+                "candidate_force_entry_count",
+                "candidate_pair_entry_count",
+            )
+        )
+        stage_entries = int(stage.get("logical_entry_count", -1))
+        initial = (n * m, m, m) if name == "selection" else (0, 0, 0)
+        consistent = bool(
+            consistent
+            and min(counts) >= 0
+            and counts[:3] == initial
+            and counts[3] == int(stage.get("candidate_pair_attempt_count", -1))
+            and int(stage.get("candidate_pair_cache_hit_count", -1)) >= 0
+            and stage_entries == sum(counts)
+            and stage.get("complete", False)
+        )
+        total += stage_entries
+        pair_total += counts[3]
+        if name == "validation":
+            validation_entries = max(0, stage_entries)
+    consistent = bool(
+        consistent
+        and pair_total <= m * (m - 1) // 2
+        and total == entries
+        and int(receipt.get("logical_total_estimator_entries", -1)) == total
+        and (
+            receipt.get("lazy_candidate_pairs", False)
+            or (pair_total == m * (m - 1) // 2 and validation_entries == 0)
+        )
+    )
+    return validation_entries, consistent
 
 
 def complete_estimator_work(
@@ -634,6 +706,7 @@ def complete_estimator_work(
     checkpoint_work = 0
     candidate_evaluations = 0
     candidate_work = 0
+    validation_candidate_work = 0
     certification_evaluations = 0
     certification_work = 0
     refit_evaluations = 0
@@ -816,20 +889,12 @@ def complete_estimator_work(
                     cache_entries = int(
                         work.get("logical_shared_cache_entry_count", 0)
                     )
+                    pass_acquisitions = tuple(
+                        _selector_pass_acquisition(row) for row in selector_passes
+                    )
                     pass_rows_consistent = all(
                         int(row.get("pass_index", -1)) == pass_index
-                        and int(row.get("pre_runtime_parameter_count", -1)) >= 0
-                        and int(row.get("positioned_candidate_column_count", -1))
-                        >= 0
-                        and int(row.get("logical_shared_cache_entry_count", -1))
-                        == int(row.get("pre_runtime_parameter_count", -1))
-                        * int(row.get("positioned_candidate_column_count", -1))
-                        + int(row.get("positioned_candidate_column_count", -1))
-                        * (
-                            int(row.get("positioned_candidate_column_count", -1))
-                            + 3
-                        )
-                        // 2
+                        and pass_acquisitions[pass_index][1]
                         for pass_index, row in enumerate(selector_passes)
                     )
                     pass_consistent = bool(
@@ -857,6 +922,9 @@ def complete_estimator_work(
                         )
                     )
                     candidate_work += cache_entries
+                    validation_candidate_work += sum(
+                        entries for entries, _consistent in pass_acquisitions
+                    )
                     inference_counts["persisted_exact"] += len(selector_passes)
                     candidate_exact = bool(candidate_exact and pass_consistent)
 
@@ -1135,6 +1203,12 @@ def complete_estimator_work(
             "checkpoint_base_status": "exact",
             "candidate_full_geometry_evaluation_count": int(candidate_evaluations),
             "logical_candidate_acquisition_work": int(candidate_work),
+            "logical_selection_candidate_acquisition_work": int(
+                candidate_work - validation_candidate_work
+            ),
+            "logical_validation_candidate_acquisition_work": int(
+                validation_candidate_work
+            ),
             "candidate_acquisition_status": candidate_status,
             "certification_full_geometry_evaluation_count": (
                 certification_evaluation_value

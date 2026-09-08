@@ -167,3 +167,70 @@ def test_compile_execution_resources_flow_and_default() -> None:
     assert explicit.route.compile_workers == 8
     with pytest.raises(ValueError):
         SupportPatchControllerConfig(compile_workers=0)
+
+
+def test_default_search_axes_are_omitted_from_provenance() -> None:
+    route = SupportPatchControllerConfig()
+    config = APGeneralizedExchangeConfig.from_route_config(route)
+    assert config.search.search_policy == "family_frontiers"
+    assert config.search.gain_evaluation == "joint_batch"
+    for payload in (route.to_json_dict(), config.to_json_dict()["search"]):
+        assert "search_policy" not in payload
+        assert "gain_evaluation" not in payload
+
+
+@pytest.mark.parametrize("policy", ("greedy", "block_exchange", "bounded_exhaustive"))
+@pytest.mark.parametrize("gain", ("joint_batch", "singleton_factorized"))
+def test_search_axes_flow_independently_to_compiled_q_transport(policy, gain) -> None:
+    route = SupportPatchControllerConfig(
+        search_policy=policy,
+        gain_evaluation=gain,
+        exchange_route_bundle="paper_ii_exchange_q_compiled_v1",
+        max_insertion_batch_size=3,
+    )
+    config = APGeneralizedExchangeConfig.from_route_config(route)
+    assert config.search.insertion_cardinality == 3
+    for payload in (route.to_json_dict(), config.to_json_dict()["search"]):
+        assert payload["search_policy"] == policy
+        assert payload["gain_evaluation"] == gain
+
+
+@pytest.mark.parametrize("overrides, message", (
+    ({"search_policy": "exhaustive"}, "search_policy must"),
+    ({"search_policy": None}, "search_policy must"),
+    ({"gain_evaluation": "factorized"}, "gain_evaluation must"),
+    ({"gain_evaluation": None}, "gain_evaluation must"),
+    ({"search_policy": "greedy"}, "compiled-cost bundle"),
+    ({"gain_evaluation": "singleton_factorized"}, "unsupported by family_frontiers"),
+    ({"search_policy": "greedy", "gain_evaluation": "singleton_factorized",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1"}, "compiled realized-Q"),
+    ({"search_policy": "greedy", "dynamics_policy": "avqds",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1"}, "dynamics_policy='exchange'"),
+    ({"search_policy": "greedy", "exchange_insertion_frontier": 8,
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1"}, "frontier settings"),
+    ({"search_policy": "greedy", "interaction_frontier_widths": (8,),
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1"}, "frontier settings"),
+))
+def test_invalid_search_axis_combinations_fail_at_route_construction(overrides, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        SupportPatchControllerConfig(**overrides)
+
+
+def test_joint_search_allows_explicit_gamma_experiment() -> None:
+    route = SupportPatchControllerConfig(
+        search_policy="bounded_exhaustive",
+        exchange_route_bundle="paper_ii_exchange_gamma_compiled_v1",
+    )
+    assert APGeneralizedExchangeConfig.from_route_config(route).route.bundle.needs_gamma
+
+
+def test_typed_search_config_cannot_bypass_axis_validation() -> None:
+    from dataclasses import replace
+
+    config = APGeneralizedExchangeConfig.from_route_config(SupportPatchControllerConfig())
+    with pytest.raises(ValueError, match="search_policy must"):
+        replace(config.search, search_policy="made_up")
+    with pytest.raises(ValueError, match="compiled-cost bundle"):
+        replace(config, search=replace(config.search, search_policy="greedy"))
+    with pytest.raises(ValueError, match="frontier settings"):
+        replace(config.search, search_policy="greedy", exchange_insertion_frontier=2)

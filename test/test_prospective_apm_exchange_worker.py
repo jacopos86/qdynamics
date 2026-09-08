@@ -514,6 +514,15 @@ def test_executor_overlay_contains_current_pool_and_enumeration_dependencies(
         "ap_mclachlan.exchange_structural", "ap_mclachlan.exchange_selector",
         "ap_mclachlan.deletion_family", "ap_mclachlan.patch_enumeration",
         "ap_mclachlan.patch_evaluation",
+        "ap_mclachlan.gain_evaluation",
+        "ap_mclachlan.structural_cache",
+        "ap_mclachlan.search_methods.__init__",
+        "ap_mclachlan.search_methods.problem",
+        "ap_mclachlan.search_methods.session",
+        "ap_mclachlan.search_methods.exhaustive",
+        "ap_mclachlan.search_methods.conditional_greedy",
+        "ap_mclachlan.search_methods.block_local_exchange",
+        "ap_mclachlan.search_methods.runtime",
         "ap_mclachlan.insertion_words", "generalized_exchange",
     )
     for module_name in required_modules:

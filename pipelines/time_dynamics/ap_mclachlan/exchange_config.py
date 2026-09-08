@@ -29,6 +29,9 @@ EXCHANGE_ROUTE_BUNDLE_LEGACY_PROXY_FIXED = "paper_ii_exchange_legacy_proxy_fixed
 EXCHANGE_ROUTE_BUNDLE_Q_COMPILED = "paper_ii_exchange_q_compiled_v1"
 EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED = "paper_ii_exchange_gamma_compiled_v1"
 
+SEARCH_POLICIES = ("family_frontiers", "greedy", "block_exchange", "bounded_exhaustive")
+GAIN_EVALUATIONS = ("joint_batch", "singleton_factorized")
+
 OBJECTIVE_LEGACY_COMPOSITE = "legacy_composite_utility_v2"
 OBJECTIVE_REALIZED_Q = "realized_captured_drift_q_v1"
 OBJECTIVE_IDEAL_GAMMA = "ideal_projection_gamma_v1"
@@ -183,6 +186,36 @@ def resolve_route_bundle(bundle_id: str) -> ExchangeRouteBundle:
     return EXCHANGE_ROUTE_BUNDLES[key]
 
 
+def validate_search_policy(
+    policy: str,
+    *,
+    gain_evaluation: str = "joint_batch",
+    bundle: ExchangeRouteBundle | None = None,
+    dynamics_policy: str = "exchange",
+    interaction_frontier_widths: tuple[int, ...] | None = None,
+    exchange_insertion_frontier: int | None = None,
+) -> None:
+    """Validate the two search axes, including their route when supplied."""
+
+    if policy not in SEARCH_POLICIES:
+        raise ValueError(f"search_policy must be one of {SEARCH_POLICIES!r}.")
+    if gain_evaluation not in GAIN_EVALUATIONS:
+        raise ValueError(f"gain_evaluation must be one of {GAIN_EVALUATIONS!r}.")
+    if gain_evaluation == "singleton_factorized":
+        if policy == "family_frontiers":
+            raise ValueError("singleton_factorized is unsupported by family_frontiers.")
+        if bundle is not None and bundle.bundle_id != EXCHANGE_ROUTE_BUNDLE_Q_COMPILED:
+            raise ValueError("singleton_factorized requires the compiled realized-Q bundle.")
+    if policy == "family_frontiers":
+        return
+    if bundle is not None and not bundle.needs_compiled_cost:
+        raise ValueError(f"search_policy={policy!r} requires a compiled-cost bundle.")
+    if dynamics_policy != "exchange":
+        raise ValueError(f"search_policy={policy!r} requires dynamics_policy='exchange'.")
+    if interaction_frontier_widths is not None or exchange_insertion_frontier is not None:
+        raise ValueError(f"search_policy={policy!r} does not use frontier settings.")
+
+
 @dataclass(frozen=True)
 class ExchangeRouteConfig:
     """The bundle in force plus its two declared budgets/tolerances."""
@@ -252,7 +285,7 @@ class ExchangeCertificationConfig:
 
 @dataclass(frozen=True)
 class ExchangeSearchBudget:
-    """Finite-work bounds on the combinatorial search approximation."""
+    """Search method and finite-work bounds for generalized exchange."""
 
     insertion_cardinality: int
     joint_patch_evaluations: int | None
@@ -266,6 +299,16 @@ class ExchangeSearchBudget:
     # None is the unrestricted branch pool.  Serialized only when declared, so
     # every pre-existing lineage keeps a byte-identical provenance object.
     exchange_insertion_frontier: int | None = None
+    search_policy: str = "family_frontiers"
+    gain_evaluation: str = "joint_batch"
+
+    def __post_init__(self) -> None:
+        validate_search_policy(
+            self.search_policy,
+            gain_evaluation=self.gain_evaluation,
+            interaction_frontier_widths=self.interaction_frontier_widths,
+            exchange_insertion_frontier=self.exchange_insertion_frontier,
+        )
 
 
 @dataclass(frozen=True)
@@ -277,6 +320,13 @@ class APGeneralizedExchangeConfig:
     certification: ExchangeCertificationConfig
     search: ExchangeSearchBudget
     route: ExchangeRouteConfig
+
+    def __post_init__(self) -> None:
+        validate_search_policy(
+            self.search.search_policy,
+            gain_evaluation=self.search.gain_evaluation,
+            bundle=self.route.bundle,
+        )
 
     def to_json_dict(self) -> dict[str, object]:
         """Return the four-class provenance object.
@@ -293,6 +343,11 @@ class APGeneralizedExchangeConfig:
             and search.get("exchange_insertion_frontier") is None
         ):
             search.pop("exchange_insertion_frontier", None)
+        if isinstance(search, dict) and (
+            search.get("search_policy"), search.get("gain_evaluation")
+        ) == ("family_frontiers", "joint_batch"):
+            search.pop("search_policy")
+            search.pop("gain_evaluation")
         eligibility = payload.get("eligibility")
         if (
             isinstance(eligibility, dict)
@@ -399,6 +454,8 @@ class APGeneralizedExchangeConfig:
                     if getattr(config, "exchange_insertion_frontier", None) is None
                     else int(config.exchange_insertion_frontier)
                 ),
+                search_policy=getattr(config, "search_policy", "family_frontiers"),
+                gain_evaluation=getattr(config, "gain_evaluation", "joint_batch"),
             ),
             route=ExchangeRouteConfig(
                 bundle=resolve_route_bundle(
@@ -448,6 +505,9 @@ def permission_ray_distance_max(config: "APGeneralizedExchangeConfig") -> float:
 
 __all__ = [
     "APGeneralizedExchangeConfig",
+    "SEARCH_POLICIES",
+    "GAIN_EVALUATIONS",
+    "validate_search_policy",
     "permission_ray_distance_max",
     "COMPILE_BACKEND_NAME",
     "COMPILE_COORDINATE_WEIGHTS",

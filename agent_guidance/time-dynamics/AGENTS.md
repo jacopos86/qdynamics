@@ -37,15 +37,21 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `../generalized_exchange.py` | Ansatz-independent mathematics: the patch pair `(D,I)`, admissible faces, debt ordering, and realized-L2 acceptance/fallback |
 | `exchange_config.py` | AP adapter settings partitioned into score, eligibility, certification, and search-budget objects |
 | `commutation.py` | Block-swap certificates and singleton insertion cuts; algebra delegated to `pipelines.static_adapt.commutation_metadata` (single source both lanes share, parity-tested against Paper I) |
+| `deletion_geometry.py`, `schur_identity.py` | Pure effective-angle/ray bound and exact conditional capture/deletion-loss mathematics; permission thresholds and stabilized ranking stay in callers |
 | `insertion_words.py` | Immutable `(W, W_D)` plan words, deletion erasure, whole-word commutation quotient (lex-least trace normal form; inserted tokens sort before survivors — load-bearing) |
 | `deletion_family.py` | Complete deletion rungs and the joint-work guard (admits whole families only; the sole computational cap) |
 | `deletion_permission.py` | Measurement-free set permission: accumulated effective-angle ray upper bound plus normalized reverse-Schur deletion loss; memoized decision and run telemetry |
-| `structural_cache.py` | Checkpoint-local frozen-ray geometry: positioned tangents in one batched pass, deletion-independent cross/Gram/force blocks, memoized candidate solves |
+| `structural_cache.py` | Checkpoint-local frozen-ray geometry and memoized solves; experimental searches acquire candidate pairs lazily, with separate selection/validation receipts |
+| `gain_evaluation.py` | Pure factorized capture formula: singleton increments share one retained support; signed deletion contribution is subtracted once by the evaluator |
 | `patch_evaluation.py` | Shared complete-patch evaluation: realized captured drift, retained acquisition utilities and conditioning/history terms, optional exact Gamma and compiled-resource inputs; candidate records contain raw evidence, with population ranking separate |
+| `search_methods/problem.py` | Complete permitted patch universe, branch pools, positions and explicit cardinality bound; no pool cap or pure-insertion frontier |
+| `search_methods/session.py` | Work guards and cumulative evidence; mathematical permission, work termination and completed evaluation are distinct operations |
+| `search_methods/exhaustive.py`, `conditional_greedy.py`, `block_local_exchange.py` | Interchangeable search sequences; shared evaluator/ranker inputs, explicit termination reasons, no certification inside search |
+| `search_methods/runtime.py` | Binds a search to one frozen checkpoint and exposes its cumulative population to existing certification |
 | `exchange_structural.py` | Current family enumeration (singleton level, rungs, priorities, frontiers); delegates evaluation to `PatchEvaluator` and retains acquisition utility `U_ins + U_del + w·δ` for frontier ordering on every route |
 | `compiled_patch_cost.py`, `population_scoring.py` | Complete-patch compiled resource counts/marginals; population normalization and ranking arithmetic |
 | `exchange_certification.py` | Finalist materialization (delete → remapped-cut insert), optional refit hook, hard gates (ray/smoothness are deletion-containing checks; every finalist gets finite/conditioning) |
-| `exchange_selector.py` | Selection loop: every guard-admitted deletion rung is scored with the d0 singletons before the first certification pass (deletions always compete on score); frontiers are escalation-gated; certify one at a time, commit atomically |
+| `exchange_selector.py` | Current family schedule or one completed experimental search; frozen joint validation for provisional factorized gains, followed by shared materialization/certification without reranking |
 | `exchange_integration.py` | AP realization adapter: ansatz/generator atoms, cuts, costs, labels, geometry, and certification oracles → pure generalized-exchange domain and selector; route-specific population ranker, including compiled-cost ranking after acquisition |
 
 Route core:
@@ -72,6 +78,7 @@ Seeds: `pipelines/time_dynamics/fixed_vqe_conditioning.py` +
 compatibility-named runner. Live selector settings are partitioned by
 `APGeneralizedExchangeConfig` and recorded in run provenance:
 
+- `--search-policy greedy|block_exchange|bounded_exhaustive` with `--gain-evaluation singleton_factorized|joint_batch` selects the six experimental variants; the existing default remains `family_frontiers` + `joint_batch`. Factorized experiments require the compiled-Q route. All variants permit batches up to the common cardinality; pair-local search moves have total edit radius two.
 - `--max-insertion-batch-size` (zero closes the insertion face)
 - `--no-exchange-deletions` (insert-face ablation only; deletions are on for
   the operating route)

@@ -33,6 +33,8 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
     APGeneralizedExchangeConfig,
+    SEARCH_POLICIES,
+    GAIN_EVALUATIONS,
 )
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
     DriveAlignedAugmentation,
@@ -229,6 +231,17 @@ def run_append_ap_mclachlan_from_runtime_input(
         if support_patch_config is not None
         else SupportPatchControllerConfig()
     )
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(
+        effective_support_patch_config
+    )
+    search_axes = {}
+    if (exchange_config.search.search_policy, exchange_config.search.gain_evaluation) != (
+        "family_frontiers", "joint_batch"
+    ):
+        search_axes = {
+            "search_policy": exchange_config.search.search_policy,
+            "gain_evaluation": exchange_config.search.gain_evaluation,
+        }
     candidate_pool_contract = build_candidate_pool_contract(
         state,
         support_config=effective_support_patch_config,
@@ -263,6 +276,7 @@ def run_append_ap_mclachlan_from_runtime_input(
         metadata={
             "runner_schema": RUNNER_SCHEMA_V1,
             **dict(runner_metadata or {}),
+            **search_axes,
         },
         progress_callback=progress_callback,
     )
@@ -304,10 +318,7 @@ def run_append_ap_mclachlan_from_runtime_input(
     runtime_provenance = dict(
         getattr(runtime_input, "provenance", {}) or {}
     )
-    route_bundle = APGeneralizedExchangeConfig.from_route_config(
-        effective_support_patch_config
-    ).route.bundle
-    route_contract = asdict(route_bundle)
+    route_contract = asdict(exchange_config.route.bundle)
     route_contract_sha256 = hashlib.sha256(
         json.dumps(
             route_contract, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -327,6 +338,7 @@ def run_append_ap_mclachlan_from_runtime_input(
         exchange_route_contract=route_contract,
         exchange_route_contract_sha256=route_contract_sha256,
     )
+    run_guards.update(search_axes)
     run_lock = build_run_lock(
         seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
         or None,
@@ -1953,6 +1965,26 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--search-policy",
+        choices=SEARCH_POLICIES,
+        default="family_frontiers",
+        help=(
+            "Generalized-exchange search policy. Greedy, block_exchange, and "
+            "bounded_exhaustive require a compiled-cost route bundle and do not "
+            "use frontier settings."
+        ),
+    )
+    parser.add_argument(
+        "--gain-evaluation",
+        choices=GAIN_EVALUATIONS,
+        default="joint_batch",
+        help=(
+            "Insertion-gain evaluation for search ranking. Singleton_factorized "
+            "requires a new search policy and the compiled realized-Q bundle; "
+            "complete-patch compilation and acceptance safeguards remain shared."
+        ),
+    )
+    parser.add_argument(
         "--maintenance-loss-tolerance",
         type=float,
         default=None,
@@ -2302,6 +2334,8 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
         ),
         debt_policy=str(args.debt_policy),
         exchange_route_bundle=str(args.exchange_route_bundle),
+        search_policy=args.search_policy,
+        gain_evaluation=args.gain_evaluation,
         maintenance_loss_tolerance=(
             None
             if args.maintenance_loss_tolerance is None
@@ -2444,6 +2478,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.siam_seed_json if is_siam_seed else args.artifact_json
     )
     try:
+        support_patch_config = _support_patch_config_from_args(args)
         replay_candidate_pool_mode = args.replay_candidate_pool_mode
         if is_siam_seed:
             if str(args.diagnostic_append_pool_mode) != "none":
@@ -2548,7 +2583,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             min_logical_parameter_count=int(args.min_logical_parameter_count),
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
-        support_patch_config = _support_patch_config_from_args(args)
         solve_repair_config = _solve_repair_config_from_args(args)
         if is_siam_seed:
             runtime_provenance = dict(

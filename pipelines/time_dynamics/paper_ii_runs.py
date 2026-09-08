@@ -36,6 +36,8 @@ from dataclasses import dataclass, field
 import math
 from typing import Mapping, Sequence
 
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import validate_search_policy
+
 RUNNER_MODULE = "pipelines.time_dynamics.runners.ap_append_from_adapt_artifact"
 RUNNER_PATH = "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py"
 
@@ -346,7 +348,7 @@ STEP_CONTROLS: Mapping[str, StepControl] = {
 
 @dataclass(frozen=True)
 class SearchProfile:
-    """One explicit approximation budget for generalized exchange.
+    """One explicit search method and work budget for generalized exchange.
 
     These settings bound computational work; they do not change the score or
     certification mathematics.  A binding cap can nevertheless change which
@@ -364,8 +366,15 @@ class SearchProfile:
     exchange_insertion_frontier: int | None = None
     paper_facing_allowed: bool = False
     note: str = ""
+    search_policy: str = "family_frontiers"
+    gain_evaluation: str = "joint_batch"
 
     def __post_init__(self) -> None:
+        validate_search_policy(
+            self.search_policy,
+            gain_evaluation=self.gain_evaluation,
+            exchange_insertion_frontier=self.exchange_insertion_frontier,
+        )
         for name in (
             "joint_patch_evaluations",
             "certification_attempts_per_level",
@@ -394,13 +403,17 @@ class SearchProfile:
             str(int(self.rounds_per_checkpoint)),
             "--max-insertion-batch-size", str(int(self.insertion_cardinality)),
         )
-        if self.exchange_insertion_frontier is None:
-            # An unrestricted exchange face uses the shared search settings.
-            return emitted
-        return emitted + (
-            "--exchange-insertion-frontier",
-            str(int(self.exchange_insertion_frontier)),
-        )
+        if self.exchange_insertion_frontier is not None:
+            emitted += (
+                "--exchange-insertion-frontier",
+                str(int(self.exchange_insertion_frontier)),
+            )
+        if (self.search_policy, self.gain_evaluation) != ("family_frontiers", "joint_batch"):
+            emitted += (
+                "--search-policy", self.search_policy,
+                "--gain-evaluation", self.gain_evaluation,
+            )
+        return emitted
 
 DIAGNOSTIC_FAST_SEARCH = SearchProfile(
     profile_id="diagnostic_fast_v1",

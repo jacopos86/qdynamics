@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
     _base_coordinate_id,
     _pair_match,
@@ -347,6 +349,127 @@ def test_complete_estimator_work_consumes_exact_exchange_ledgers() -> None:
     assert inconsistent["certification_geometry_status"] == "lower_bound"
     assert inconsistent["refit_estimator_status"] == "lower_bound"
     assert inconsistent["logical_total_estimator_work_status"] == "lower_bound"
+
+
+def _staged_acquisition_run():
+    # Six active/candidate overlaps, three norms, three forces, and two
+    # distinct off-diagonal pairs: one selected, one acquired for a finalist.
+    stages = {}
+    for name, initial in (("selection", (6, 3, 3)), ("validation", (0, 0, 0))):
+        stages[name] = {
+            "active_candidate_entry_count": initial[0],
+            "candidate_norm_entry_count": initial[1],
+            "candidate_force_entry_count": initial[2],
+            "candidate_pair_entry_count": 1,
+            "candidate_pair_attempt_count": 1,
+            "candidate_pair_cache_hit_count": 2,
+            "logical_entry_count": sum(initial) + 1,
+            "complete": True,
+        }
+    acquisition = {
+        "schema": "paper_ii_structural_acquisition_v1",
+        "lazy_candidate_pairs": True,
+        "active_coordinate_count": 2,
+        "positioned_candidate_column_count": 3,
+        "stages": stages,
+        "logical_total_estimator_entries": 14,
+        "complete": True,
+    }
+    work = {
+        "schema": "paper_ii_generalized_exchange_estimator_work_v1",
+        "selector_pass_count": 1,
+        "selector_passes": [{
+            "pass_index": 0,
+            "pre_runtime_parameter_count": 2,
+            "positioned_candidate_column_count": 3,
+            "logical_shared_cache_entry_count": 14,
+            "structural_acquisition": acquisition,
+            "complete": True,
+        }],
+        "positioned_candidate_column_count": 3,
+        "logical_shared_cache_entry_count": 14,
+        "certification_attempt_count": 0,
+        "certification_attempts": [],
+        "attempt_record_count": 1,
+        "attempt_reason_counts": {"frozen_joint_validation_failed": 1},
+        "logical_total_selector_estimator_entries": 14,
+        "complete": True,
+    }
+    run = {
+        "initial_state": {"runtime_coordinate_labels": ["a", "b"]},
+        "plot_rows": [],
+        "summary": {"rhs_evaluation_count": 0},
+        "trajectory": {"points": [{
+            "fixed_step": {"support_labels": ["a", "b"]},
+            "patch_decision": {"metadata": {
+                "selection_round_work_schema": "paper_ii_exchange_selection_round_work_v1",
+                "selector_call_count": 1,
+                "accepted_selector_count": 0,
+                "selection_round_work": [{
+                    "selector_call_index": 0,
+                    "accepted": False,
+                    "estimator_work": work,
+                    "complete": True,
+                }],
+            }},
+        }]},
+    }
+    return run, acquisition
+
+
+def test_staged_acquisition_counts_failed_finalist_work_without_dense_inference() -> None:
+    run, _acquisition = _staged_acquisition_run()
+    result = complete_estimator_work([run], route="q_compiled")
+    assert result["logical_candidate_acquisition_work"] == 14
+    assert result["logical_selection_candidate_acquisition_work"] == 13
+    assert result["logical_validation_candidate_acquisition_work"] == 1
+    assert result["logical_certification_geometry_work"] == 0
+    assert result["logical_refit_estimator_work"] == 0
+    assert result["logical_total_estimator_work"] == 21
+    assert result["logical_total_estimator_work_status"] == "exact"
+
+
+@pytest.mark.parametrize("defect", ["schema", "initial_entries", "pair_attempt", "total"])
+def test_staged_acquisition_defects_cannot_claim_exact_work(defect) -> None:
+    run, acquisition = _staged_acquisition_run()
+    if defect == "schema":
+        acquisition["schema"] = "unknown"
+    elif defect == "initial_entries":
+        acquisition["stages"]["selection"]["active_candidate_entry_count"] = 0
+    elif defect == "pair_attempt":
+        # A failed acquisition is charged as an attempt but has no known
+        # completed logical entry, even if someone incorrectly marks complete.
+        acquisition["stages"]["validation"]["candidate_pair_attempt_count"] = 2
+    else:
+        acquisition["logical_total_estimator_entries"] = 15
+    result = complete_estimator_work([run], route="q_compiled")
+    assert result["candidate_acquisition_status"] == "lower_bound"
+    assert result["logical_total_estimator_work_status"] == "lower_bound"
+
+
+@pytest.mark.parametrize("reason,full_geometry_entries", [
+    ("joint_validation_failed:GammaMonotonicityError:test", 0),
+    ("ray_distance_above_max", 11),
+])
+def test_truncated_round_ledger_keeps_frozen_validation_out_of_full_geometry(
+    reason, full_geometry_entries,
+) -> None:
+    run, _acquisition = _staged_acquisition_run()
+    decision = run["trajectory"]["points"][0]["patch_decision"]
+    decision["metadata"] = {
+        "selection_round_work_schema": "paper_ii_exchange_selection_round_work_v1",
+        "selection_round_work": None,
+        "attempt_count": 1,
+        "attempts": [{
+            "reason": reason,
+            "removed_runtime_indices": [],
+            "inserted_selection": [["c", 2]],
+        }],
+    }
+    result = complete_estimator_work([run], route="q_compiled")
+    assert result["logical_certification_geometry_work"] == full_geometry_entries
+    assert result["certification_full_geometry_evaluation_count"] == bool(full_geometry_entries)
+    assert result["logical_total_estimator_work_status"] == "lower_bound"
 
 
 def test_incomplete_exact_avqds_receipt_remains_a_lower_bound() -> None:

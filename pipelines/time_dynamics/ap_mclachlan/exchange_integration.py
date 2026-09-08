@@ -607,8 +607,14 @@ def build_population_ranker(
                 if c.cost_marginal is not None
                 and np.isfinite(float(c.delta))
                 and c.ordinate_error is None
-                and c.m_gamma is not None
-                and np.isfinite(float(c.m_gamma))
+                and (
+                    (c.m_gamma is not None and np.isfinite(float(c.m_gamma)))
+                    or (
+                        not bundle.needs_gamma
+                        and c.gain_evaluation == "singleton_factorized"
+                        and c.joint_validation_required
+                    )
+                )
             ]
             if not evaluated:
                 return RankedLevel(
@@ -1088,6 +1094,7 @@ def build_selector_inputs(
         cuts_by_atom=cuts_by_atom,
         atoms_by_id=atoms_by_id,
         checkpoint_key=(int(time_index), state.runtime_coordinate_labels),
+        lazy_candidate_pairs=(exchange_config.search.search_policy != "family_frontiers"),
     )
 
     deletable_indices = tuple(
@@ -1497,6 +1504,8 @@ def select_generalized_exchange_patch(
                 realized_l2_gate=realized_l2_gate,
                 realized_l2_gate_reason=realized_l2_gate_reason,
                 candidate_word_validator=candidate_word_validator,
+                search_policy=exchange_config.search.search_policy,
+                gain_evaluation=exchange_config.search.gain_evaluation,
             )
         except BaseException:
             runtime = shared_cost_runtime.get("runtime")
@@ -1504,6 +1513,17 @@ def select_generalized_exchange_patch(
                 runtime.close()
                 shared_cost_runtime["runtime"] = None
             raise
+        if exchange_config.search.search_policy != "family_frontiers":
+            # Each pass owns a fresh tangent cache. Finalize after frozen-ray
+            # validation so its newly acquired pairs count even on rejection.
+            acquisition = cache.acquisition_receipt()
+            selector_passes[-1]["structural_acquisition"] = acquisition
+            selector_passes[-1]["logical_shared_cache_entry_count"] = int(
+                acquisition["logical_total_estimator_entries"]
+            )
+            selector_passes[-1]["complete"] = all(
+                bool(stage["complete"]) for stage in acquisition["stages"].values()
+            )
         return selection, inputs
 
     selection, inputs = select_once(
@@ -1701,6 +1721,14 @@ def select_generalized_exchange_patch(
         "deletion_permission": permission_evaluator.summary(),
         "selector_route": {
             "schema": "paper_ii_selector_route_v1",
+            **(
+                {
+                    "search_policy": exchange_config.search.search_policy,
+                    "gain_evaluation": exchange_config.search.gain_evaluation,
+                }
+                if exchange_config.search.search_policy != "family_frontiers"
+                else {}
+            ),
             "bundle": asdict(bundle),
             "regime": "large_miss" if bool(domain.accuracy_debt) else "maintenance",
             "gamma_rcond": (

@@ -115,6 +115,41 @@ def _decisions(payload):
     return out
 
 
+@pytest.mark.parametrize("policy,gain", (
+    ("family_frontiers", "joint_batch"),
+    ("greedy", "joint_batch"),
+    ("greedy", "singleton_factorized"),
+    ("block_exchange", "joint_batch"),
+    ("block_exchange", "singleton_factorized"),
+    ("bounded_exhaustive", "joint_batch"),
+    ("bounded_exhaustive", "singleton_factorized"),
+))
+def test_runner_records_search_axes_without_changing_compiler_contract(policy, gain) -> None:
+    from dataclasses import asdict
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
+
+    bundle_id = "paper_ii_exchange_q_compiled_v1"
+    payload = run_append_ap_mclachlan_from_runtime_input(
+        _runtime_input(),
+        times=(0.0,),  # Exercise provenance without a selection checkpoint.
+        support_patch_config=SupportPatchControllerConfig(
+            exchange_route_bundle=bundle_id,
+            search_policy=policy,
+            gain_evaluation=gain,
+        ),
+        code_revision="test_search_axes",
+    )
+    guards = payload["run_lock"]["policy"]["guards"]
+    assert guards["exchange_route_contract"] == asdict(resolve_route_bundle(bundle_id))
+    for recorded in (guards, payload["trajectory"]["metadata"]):
+        if policy == "family_frontiers":
+            assert "search_policy" not in recorded
+            assert "gain_evaluation" not in recorded
+        else:
+            assert recorded["search_policy"] == policy
+            assert recorded["gain_evaluation"] == gain
+
+
 def test_exchange_route_golden_trajectory() -> None:
     from pipelines.time_dynamics.diagnostics.paper_ii_four_route_comparison import (
         complete_estimator_work,

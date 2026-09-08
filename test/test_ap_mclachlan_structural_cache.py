@@ -567,3 +567,62 @@ def test_bad_cut_and_multi_child_atom_are_rejected() -> None:
             cuts_by_atom={"macro": (0,)},
             atoms_by_id={"macro": macro},
         )
+
+
+def test_lazy_cache_defers_pairs_and_matches_independent_column_products():
+    state, evaluation, atoms, cuts, eager = _setup()
+    lazy = build_structural_insertion_cache(
+        state=state, evaluation=evaluation, atoms_by_id=atoms, cuts_by_atom=cuts,
+        lazy_candidate_pairs=True,
+    )
+    n, m = state.runtime_parameter_count, lazy.column_count
+    assert lazy.gram_inserted is None
+    initial = lazy.acquisition_receipt()
+    assert initial["logical_total_estimator_entries"] == n * m + 2 * m
+    assert initial["stages"]["selection"]["candidate_pair_entry_count"] == 0
+    columns = (0, 2)
+    expected = np.real(lazy.tangent_matrix[:, columns].conj().T @ lazy.tangent_matrix[:, columns])
+    np.testing.assert_allclose(lazy.candidate_gram(columns), expected, atol=1e-14)
+    np.testing.assert_allclose(lazy.candidate_gram(columns), eager.gram_inserted[np.ix_(columns, columns)], atol=1e-14)
+    after_selection = lazy.acquisition_receipt()
+    assert after_selection["stages"]["selection"]["candidate_pair_entry_count"] == 1
+    lazy.candidate_gram((2, 0), acquisition_stage="validation")
+    lazy.candidate_gram((1, 2), acquisition_stage="validation")
+    final = lazy.acquisition_receipt()
+    assert final["stages"]["validation"]["candidate_pair_entry_count"] == 1
+    assert final["logical_total_estimator_entries"] == n * m + 2 * m + 2
+    # Earlier snapshots remain immutable when later stages acquire entries.
+    assert initial["stages"]["selection"]["candidate_pair_entry_count"] == 0
+
+
+def test_parallel_pair_requests_acquire_each_unordered_pair_once():
+    from concurrent.futures import ThreadPoolExecutor
+
+    state, evaluation, atoms, cuts, _ = _setup()
+    lazy = build_structural_insertion_cache(
+        state=state, evaluation=evaluation, atoms_by_id=atoms, cuts_by_atom=cuts,
+        lazy_candidate_pairs=True,
+    )
+    requests = ((0, 1, 2), (2, 1, 0), (0, 2), (1, 2)) * 4
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        blocks = list(executor.map(lazy.candidate_gram, requests))
+    assert len(blocks) == len(requests)
+    row = lazy.acquisition_receipt()["stages"]["selection"]
+    assert row["candidate_pair_entry_count"] == row["candidate_pair_attempt_count"] == 3
+
+
+def test_failed_lazy_pair_is_not_cached_or_reported_complete():
+    state, evaluation, atoms, cuts, _ = _setup()
+    lazy = build_structural_insertion_cache(
+        state=state, evaluation=evaluation, atoms_by_id=atoms, cuts_by_atom=cuts,
+        lazy_candidate_pairs=True,
+    )
+    # Fault injection after singleton acquisition: joint work must fail loudly.
+    lazy.tangent_matrix[:, 0] = np.nan
+    with pytest.raises(ValueError, match="candidate pair is non-finite"):
+        lazy.candidate_gram((0, 1), acquisition_stage="validation")
+    receipt = lazy.acquisition_receipt()
+    row = receipt["stages"]["validation"]
+    assert row["candidate_pair_attempt_count"] == 1
+    assert row["candidate_pair_entry_count"] == 0
+    assert not row["complete"] and not receipt["complete"]

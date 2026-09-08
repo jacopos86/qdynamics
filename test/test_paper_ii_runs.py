@@ -374,6 +374,64 @@ def test_runner_transport_builds_the_live_exchange_config() -> None:
     assert not hasattr(config, "append_min_time")
 
 
+@pytest.mark.parametrize("policy", ("greedy", "block_exchange", "bounded_exhaustive"))
+@pytest.mark.parametrize("gain", ("joint_batch", "singleton_factorized"))
+def test_explicit_search_axes_build_matched_compiled_commands(policy, gain) -> None:
+    from dataclasses import replace
+    from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
+        _support_patch_config_from_args,
+    )
+
+    base = build_run(
+        seed_path="seed.json", arm=EXCHANGE_Q_COMPILED.arm_id,
+        gate=MCLACHLAN_L2_GATE.gate_id, drive="fastweak", horizon="t2",
+        output_json="out/run.json",
+    )
+    profile = replace(
+        base.search_profile, profile_id=f"test_{policy}_{gain}",
+        search_policy=policy, gain_evaluation=gain,
+    )
+    run = replace(base, search_profile=profile)
+    parsed = _parser().parse_args(list(run.argv()))
+    config = _support_patch_config_from_args(parsed)
+    assert config.search_policy == policy
+    assert config.gain_evaluation == gain
+    assert config.max_insertion_batch_size == base.search_profile.insertion_cardinality
+    assert run.search_profile.joint_patch_evaluations == base.search_profile.joint_patch_evaluations
+    assert "--search-policy" not in base.argv()
+    assert "--gain-evaluation" not in base.argv()
+
+
+def test_search_profile_rejects_unknown_or_unused_settings() -> None:
+    from dataclasses import replace
+    from pipelines.time_dynamics.paper_ii_runs import PAPER_DECLARED_SEARCH
+
+    for values in (
+        {"search_policy": "exhaustive"},
+        {"gain_evaluation": "factorized"},
+        {"gain_evaluation": "singleton_factorized"},
+        {"search_policy": "greedy", "exchange_insertion_frontier": 8},
+    ):
+        with pytest.raises(ValueError):
+            replace(PAPER_DECLARED_SEARCH, **values)
+
+
+def test_runner_rejects_incompatible_search_before_seed_load(monkeypatch, capsys) -> None:
+    from pipelines.time_dynamics.runners import ap_append_from_adapt_artifact as runner
+
+    def forbidden_load(*args, **kwargs):
+        pytest.fail("invalid search configuration reached seed loading")
+
+    monkeypatch.setattr(runner, "_load_runtime_input_or_raise", forbidden_load)
+    with pytest.raises(SystemExit) as exc:
+        runner.main([
+            "--artifact-json", "seed.json", "--output-json", "run.json",
+            "--search-policy", "greedy",
+        ])
+    assert exc.value.code == 2
+    assert "compiled-cost bundle" in capsys.readouterr().err
+
+
 def test_selector_bundle_arms_are_exchange_plus_one_closed_bundle() -> None:
     from pipelines.time_dynamics.paper_ii_runs import (
         EXCHANGE,

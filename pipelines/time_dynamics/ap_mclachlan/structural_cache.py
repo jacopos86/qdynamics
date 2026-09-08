@@ -15,10 +15,11 @@ a candidate solve, never the columns themselves.  This module exploits that:
   the suffix rotations over the accumulated column matrix (the same
   suffix-propagation pattern the compiled executor uses for its all-tangents
   path), and only for the retained cuts of each candidate;
-* the active--inserted cross Gram, inserted--inserted Gram, and inserted force
-  entries are computed once per checkpoint; a candidate geometry
-  ``(G^{D,I}, f^{D,I})`` is then pure index selection plus block assembly in
-  the order induced by the typed plan word.
+* the active--inserted cross Gram, inserted norms, and inserted force entries
+  are computed once per checkpoint.  The default also acquires the full
+  inserted Gram block; opt-in lazy acquisition measures each off-diagonal
+  pair only when a joint solve needs it, recording the acquisition stage.
+  Candidate geometry is assembled in the order induced by the typed plan word.
 
 Nothing here materializes or refits an ANZATS; that remains the certification
 stage's job.  The cache is valid for exactly one checkpoint identity and must
@@ -28,6 +29,7 @@ be rebuilt after any accepted commit.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from threading import Lock
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -53,6 +55,8 @@ from src.quantum.pauli_actions import (
 
 
 STRUCTURAL_CACHE_SCHEMA_V1 = "ap_mclachlan_structural_cache_v1"
+STRUCTURAL_ACQUISITION_SCHEMA_V1 = "paper_ii_structural_acquisition_v1"
+_ACQUISITION_STAGES = ("selection", "validation")
 
 
 def _runtime_rotation_sequence(
@@ -144,6 +148,8 @@ class StructuralInsertionCache:
     Columns are indexed by ``(atom_id, cut)``; ``column_index`` maps that key
     to its column in ``tangent_matrix``, ``cross`` (active x inserted),
     ``gram_inserted`` (inserted x inserted, symmetric), and ``force_inserted``.
+    In lazy mode ``gram_inserted`` is absent: ``candidate_norms`` and acquired
+    unordered pairs supply only the requested block through ``candidate_gram``.
     ``coordinate_keys`` is the frozen ordered active coordinate identity the
     row indices of ``cross`` refer to.
     """
@@ -153,13 +159,117 @@ class StructuralInsertionCache:
     column_index: Mapping[tuple[str, int], int]
     tangent_matrix: np.ndarray
     cross: np.ndarray
-    gram_inserted: np.ndarray
+    gram_inserted: np.ndarray | None
     force_inserted: np.ndarray
     solve_memo: dict = field(default_factory=dict)
+    lazy_candidate_pairs: bool = False
+    candidate_norms: np.ndarray | None = None
+    _pair_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _pair_counts: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _pair_attempts: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _pair_hits: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _stage_complete: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _pair_values: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.lazy_candidate_pairs and (
+            self.gram_inserted is not None or self.candidate_norms is None
+        ):
+            raise ValueError("lazy candidate pairs require norms and no dense Gram block")
+        pairs = self.column_count * (self.column_count - 1) // 2
+        for stage in _ACQUISITION_STAGES:
+            initial = pairs if stage == "selection" and not self.lazy_candidate_pairs else 0
+            self._pair_counts[stage] = initial
+            self._pair_attempts[stage] = initial
+            self._pair_hits[stage] = 0
+            self._stage_complete[stage] = True
 
     @property
     def column_count(self) -> int:
         return int(self.tangent_matrix.shape[1])
+
+    def candidate_gram(
+        self, columns: Sequence[int], *, acquisition_stage: str = "selection"
+    ) -> np.ndarray:
+        """Read a block, acquiring only missing unordered candidate pairs.
+
+        Norms, active-candidate entries, and forces are paid when the cache is
+        built. Lazy off-diagonal entries live in a sparse dictionary; no full
+        candidate Gram is allocated or evaluated. A lock gives each newly acquired
+        pair exactly one stage owner even during parallel solve warming.
+        """
+
+        if acquisition_stage not in _ACQUISITION_STAGES:
+            raise ValueError(f"unknown acquisition stage: {acquisition_stage!r}")
+        cols = tuple(int(column) for column in columns)
+        if self.lazy_candidate_pairs:
+            unique = sorted(set(cols))
+            with self._pair_lock:
+                for offset, left in enumerate(unique):
+                    for right in unique[offset + 1:]:
+                        key = (left, right)
+                        if key in self._pair_values:
+                            self._pair_hits[acquisition_stage] += 1
+                            continue
+                        self._pair_attempts[acquisition_stage] += 1
+                        value = float(np.real(np.vdot(
+                            self.tangent_matrix[:, left], self.tangent_matrix[:, right]
+                        )))
+                        if not np.isfinite(value):
+                            self._stage_complete[acquisition_stage] = False
+                            raise ValueError("structural candidate pair is non-finite")
+                        self._pair_values[key] = value
+                        self._pair_counts[acquisition_stage] += 1
+                return np.asarray([
+                    [
+                        self.candidate_norms[left] if left == right
+                        else self._pair_values[(min(left, right), max(left, right))]
+                        for right in cols
+                    ]
+                    for left in cols
+                ], dtype=float).reshape(len(cols), len(cols))
+        return self.gram_inserted[np.ix_(cols, cols)]
+
+    def acquisition_receipt(self) -> dict[str, Any]:
+        """Snapshot logical scalar-entry acquisitions, not hardware shots.
+
+        Initial selection pays ``n*m`` active-candidate entries, ``m`` forces
+        and ``m`` norms. Each distinct off-diagonal candidate pair is charged
+        once, either eagerly at construction or on its first lazy request.
+        Stage snapshots may be differenced for repeated search passes sharing
+        this same frozen-ray cache. Refitted/new-ray geometry is not covered.
+        """
+
+        n, m = len(self.coordinate_keys), self.column_count
+        with self._pair_lock:
+            stages = {}
+            for stage in _ACQUISITION_STAGES:
+                initial = stage == "selection"
+                row = {
+                    "active_candidate_entry_count": n * m if initial else 0,
+                    "candidate_norm_entry_count": m if initial else 0,
+                    "candidate_force_entry_count": m if initial else 0,
+                    "candidate_pair_entry_count": int(self._pair_counts[stage]),
+                    "candidate_pair_attempt_count": int(self._pair_attempts[stage]),
+                    "candidate_pair_cache_hit_count": int(self._pair_hits[stage]),
+                    "complete": bool(self._stage_complete[stage]),
+                }
+                row["logical_entry_count"] = (
+                    row["active_candidate_entry_count"] + row["candidate_norm_entry_count"]
+                    + row["candidate_force_entry_count"] + row["candidate_pair_entry_count"]
+                )
+                stages[stage] = row
+            return {
+                "schema": STRUCTURAL_ACQUISITION_SCHEMA_V1,
+                "lazy_candidate_pairs": bool(self.lazy_candidate_pairs),
+                "active_coordinate_count": n,
+                "positioned_candidate_column_count": m,
+                "stages": stages,
+                "logical_total_estimator_entries": sum(
+                    row["logical_entry_count"] for row in stages.values()
+                ),
+                "complete": all(row["complete"] for row in stages.values()),
+            }
 
 
 def build_structural_insertion_cache(
@@ -170,8 +280,13 @@ def build_structural_insertion_cache(
     cuts_by_atom: Mapping[str, Sequence[int]],
     atoms_by_id: Mapping[str, Any],
     checkpoint_key: tuple = (),
+    lazy_candidate_pairs: bool = False,
 ) -> StructuralInsertionCache:
-    """Build every positioned tangent and its Gram/force blocks in one pass.
+    """Build positioned tangents and acquire their initial geometry entries.
+
+    ``lazy_candidate_pairs=True`` acquires norms, active/candidate overlaps,
+    and forces here; off-diagonal candidate pairs are deferred until requested.
+    The default eagerly acquires the complete candidate Gram block.
 
     ``theta_runtime`` is the current checkpoint angle vector.  Production
     callers pass it explicitly, because trajectory angles evolve between
@@ -302,8 +417,13 @@ def build_structural_insertion_cache(
     columns = columns - np.outer(psi, overlaps)
 
     cross = np.asarray(np.real(T_active.conj().T @ columns), dtype=float)
-    gram_inserted = np.asarray(np.real(columns.conj().T @ columns), dtype=float)
-    gram_inserted = 0.5 * (gram_inserted + gram_inserted.T)
+    candidate_norms = None
+    if lazy_candidate_pairs:
+        gram_inserted = None
+        candidate_norms = np.asarray(np.real(np.sum(columns.conj() * columns, axis=0)))
+    else:
+        gram_inserted = np.asarray(np.real(columns.conj().T @ columns), dtype=float)
+        gram_inserted = 0.5 * (gram_inserted + gram_inserted.T)
     force_inserted = np.asarray(
         np.real(columns.conj().T @ b_bar), dtype=float
     ).reshape(-1)
@@ -311,7 +431,9 @@ def build_structural_insertion_cache(
     if not (
         np.all(np.isfinite(columns))
         and np.all(np.isfinite(cross))
-        and np.all(np.isfinite(gram_inserted))
+        and np.all(np.isfinite(
+            candidate_norms if lazy_candidate_pairs else gram_inserted
+        ))
         and np.all(np.isfinite(force_inserted))
     ):
         raise ValueError("structural insertion cache contains non-finite values.")
@@ -324,6 +446,8 @@ def build_structural_insertion_cache(
         cross=cross,
         gram_inserted=gram_inserted,
         force_inserted=force_inserted,
+        lazy_candidate_pairs=bool(lazy_candidate_pairs),
+        candidate_norms=candidate_norms,
     )
 
 
@@ -334,6 +458,7 @@ def assemble_candidate_geometry(
     base_f: np.ndarray,
     keep_indices: Sequence[int],
     inserted_selection: Sequence[tuple[str, int]],
+    acquisition_stage: str = "selection",
 ) -> tuple[np.ndarray, np.ndarray]:
     """Assemble ``(G^{D,I}, f^{D,I})`` for one candidate from cached blocks.
 
@@ -358,7 +483,7 @@ def assemble_candidate_geometry(
         G[:k, :k] = K_base[np.ix_(keep, keep)]
         f[:k] = f_base[keep]
     if m:
-        G[k:, k:] = cache.gram_inserted[np.ix_(cols, cols)]
+        G[k:, k:] = cache.candidate_gram(cols, acquisition_stage=acquisition_stage)
         f[k:] = cache.force_inserted[cols]
         if k:
             cross = cache.cross[np.ix_(keep, cols)]
@@ -380,6 +505,7 @@ def structural_candidate_solve(
     epsilon_norm: float,
     memo_key: tuple | None = None,
     gamma_rcond: float | None = None,
+    acquisition_stage: str = "selection",
 ) -> tuple[float, float]:
     """Return ``(Q, q)`` for one structural candidate under the actual policy.
 
@@ -392,6 +518,8 @@ def structural_candidate_solve(
     first four memo slots are unchanged by the request.
     """
 
+    if acquisition_stage not in _ACQUISITION_STAGES:
+        raise ValueError(f"unknown acquisition stage: {acquisition_stage!r}")
     if memo_key is not None:
         cached = cache.solve_memo.get(memo_key)
         if cached is not None:
@@ -402,6 +530,7 @@ def structural_candidate_solve(
         base_f=base_f,
         keep_indices=keep_indices,
         inserted_selection=inserted_selection,
+        acquisition_stage=acquisition_stage,
     )
     if int(f.size) == 0:
         result = (0.0, 0.0, None, 0, None if gamma_rcond is None else 0.0)
@@ -460,6 +589,7 @@ def memoized_solve_metadata(
 
 __all__ = [
     "STRUCTURAL_CACHE_SCHEMA_V1",
+    "STRUCTURAL_ACQUISITION_SCHEMA_V1",
     "memoized_gamma",
     "memoized_solve_metadata",
     "StructuralInsertionCache",

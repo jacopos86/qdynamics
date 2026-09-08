@@ -20,13 +20,14 @@ from __future__ import annotations
 
 import math
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import cached_property
 from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 
 from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import CompiledPatchCostError
+from pipelines.time_dynamics.ap_mclachlan.gain_evaluation import factorized_capture
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import InsertionPlan
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
@@ -168,6 +169,8 @@ class StructuralCandidate:
     patch_word_sha256: str | None = None
     cost_error: str | None = None
     ordinate_error: str | None = None
+    gain_evaluation: str = "joint_batch"
+    joint_validation_required: bool = False
 
     @property
     def kind(self) -> str:
@@ -251,6 +254,8 @@ class PatchEvaluator:
     ] | None = None
     candidate_cost_warm: Callable[[Sequence[tuple]], Any] | None = None
     population_accuracy_debt: bool | None = None
+    gain_evaluation: str = "joint_batch"
+    factorized_memo: dict = field(default_factory=dict, init=False, repr=False)
     population_scoring: bool = field(init=False)
     workers_requested: int = field(init=False)
     workers_effective_max: int = field(init=False, default=1)
@@ -260,6 +265,8 @@ class PatchEvaluator:
     history_loss: Callable[[tuple[int, ...]], float] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        if self.gain_evaluation not in {"joint_batch", "singleton_factorized"}:
+            raise ValueError(f"unknown gain evaluation: {self.gain_evaluation!r}")
         self.conditioning = self.deletion_conditioning or (lambda removed: 0.0)
         self.history_loss = self.deletion_history_loss or (lambda removed: 0.0)
         self.workers_requested = int(self.scoring_workers)
@@ -290,6 +297,22 @@ class PatchEvaluator:
         return bool(removed) and not bool(selection)
 
     def q_of(self, removed: tuple[int, ...], selection: tuple[tuple[str, int], ...]) -> float:
+        """Provisional capture; factorized batches never enter the solve memo."""
+
+        if self.gain_evaluation == "singleton_factorized" and len(selection) > 1:
+            key = (removed, selection)
+            if key not in self.factorized_memo:
+                self.factorized_memo[key] = factorized_capture(
+                    self._joint_q_of(removed, ()),
+                    (self._joint_q_of(removed, (position,)) for position in selection),
+                )
+            return self.factorized_memo[key]
+        return self._joint_q_of(removed, selection)
+
+    def _joint_q_of(
+        self, removed: tuple[int, ...], selection: tuple[tuple[str, int], ...],
+        *, acquisition_stage: str = "selection",
+    ) -> float:
         all_indices = range(int(self.base_f.reshape(-1).size))
         keep = tuple(i for i in all_indices if i not in set(removed))
         _Q, q = structural_candidate_solve(
@@ -303,6 +326,7 @@ class PatchEvaluator:
             epsilon_norm=float(self.weights.epsilon_norm),
             memo_key=(removed, selection),
             gamma_rcond=self.gamma_rcond,
+            acquisition_stage=acquisition_stage,
         )
         return float(q)
 
@@ -384,8 +408,9 @@ class PatchEvaluator:
         cost_inputs = None
         cost_error = None
         ordinate_error = None
+        factorized_batch = self.gain_evaluation == "singleton_factorized" and len(selection) > 1
         if self.population_scoring and self.active_population_face(removed, selection):
-            if self.gamma_rcond is not None:
+            if self.gamma_rcond is not None and not factorized_batch:
                 gamma_joint = memoized_gamma(self.cache, (removed, selection))
                 gamma_base = memoized_gamma(self.cache, ((), ()))
                 if gamma_joint is not None and gamma_base is not None:
@@ -446,6 +471,51 @@ class PatchEvaluator:
             patch_word_sha256=None if cost_inputs is None else cost_inputs.patch_word_sha256,
             cost_error=cost_error,
             ordinate_error=ordinate_error,
+            gain_evaluation=self.gain_evaluation,
+            joint_validation_required=bool(factorized_batch),
+        )
+
+    def authoritative_joint_candidate(self, candidate: StructuralCandidate) -> StructuralCandidate:
+        """Validate real frozen geometry without repricing or reranking.
+
+        All missing candidate pairs are charged to validation. Provisional
+        score/rank/utility fields and compiled-word metadata remain untouched;
+        q, delta, gain, deletion loss and Gamma become authoritative frozen
+        values. The original gain-mode marker remains for provenance. A
+        materialized or refitted ray still needs its own certification.
+        """
+
+        removed, selection = candidate.removed_runtime_indices, candidate.inserted_selection
+
+        def actual_q(deleted, inserted):
+            return self._joint_q_of(deleted, inserted, acquisition_stage="validation")
+
+        q_joint = actual_q(removed, selection)
+        q_base = actual_q((), ())
+        gain = max(0.0, q_joint - actual_q(removed, ())) if selection else 0.0
+        loss = max(0.0, actual_q((), selection) - q_joint) if removed else 0.0
+        m_gamma = None
+        ordinate_error = None
+        if self.gamma_rcond is not None:
+            gamma_joint = memoized_gamma(self.cache, (removed, selection))
+            gamma_base = memoized_gamma(self.cache, ((), ()))
+            if gamma_joint is not None and gamma_base is not None:
+                if not removed and selection:
+                    try:
+                        check_gamma_nested_monotonicity(
+                            gamma_base=float(gamma_base),
+                            gamma_patched=float(gamma_joint),
+                            denominator=self.gamma_denominator,
+                            rcond=float(self.gamma_rcond),
+                        )
+                    except GammaMonotonicityError as exc:
+                        ordinate_error = f"{type(exc).__name__}:{exc}"
+                if ordinate_error is None:
+                    m_gamma = float((gamma_joint - gamma_base) / self.gamma_denominator)
+        return replace(
+            candidate, q=q_joint, delta=q_joint - q_base,
+            insertion_gain=gain, deletion_loss=loss, m_gamma=m_gamma,
+            ordinate_error=ordinate_error, joint_validation_required=False,
         )
 
     def evaluate(
@@ -473,6 +543,17 @@ class PatchEvaluator:
                 warm_keys.append((removed, selection))
                 if removed and selection:
                     warm_keys.extend(((removed, ()), ((), selection)))
+            if self.gain_evaluation == "singleton_factorized":
+                # Warm concrete singleton dependencies, not approximate batch
+                # keys: overlapping batches then share one solve per key.
+                warm_keys = [
+                    dependency
+                    for removed, selection in warm_keys
+                    for dependency in (
+                        [(removed, ()), *((removed, (position,)) for position in selection)]
+                        if len(selection) > 1 else [(removed, selection)]
+                    )
+                ]
             self.workers_effective_max = max(
                 self.workers_effective_max,
                 _warm_solve_memo(self.q_of, warm_keys, self.cache.solve_memo, self.workers_requested),

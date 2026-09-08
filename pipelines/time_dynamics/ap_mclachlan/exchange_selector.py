@@ -8,6 +8,10 @@ commits atomically; when a level produces no certified candidate, the next
 family is acquired only while the caller's escalation predicate holds and the
 work guard admits it.  When nothing certifies, the selector returns stay with
 the full attempt record.
+
+Experimental search policies instead finish their requested search and expose
+one cumulative population. Factorized batch gains are provisional: frozen
+joint validation precedes materialization, without changing the sealed order.
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ from typing import Any, Callable, Mapping, Sequence
 import numpy as np
 
 from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
+    CERTIFICATION_ESTIMATOR_WORK_SCHEMA_V1,
     CertificationGates,
     CertificationResult,
     certify_finalist,
@@ -219,13 +224,18 @@ def select_exchange_patch(
     candidate_word_validator: (
         Callable[[StructuralCandidate, Sequence[tuple[int, Any, str]]], bool] | None
     ) = None,
+    search_policy: str = "family_frontiers",
+    gain_evaluation: str = "joint_batch",
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
-    ``structural_kwargs`` are forwarded verbatim to
-    :func:`iter_structural_families`.  ``escalate`` gates acquisition of the
+    With ``family_frontiers``, ``structural_kwargs`` are forwarded verbatim to
+    :func:`iter_structural_families`. ``escalate`` gates acquisition of the
     *next* family after a level certifies nothing (default: always escalate;
     the trajectory integration passes the structural-repair predicate).
+
+    Other policies use the same geometry, complete-patch cost evaluator and
+    certification gates, but finish their search before one ranking pass.
 
     ``max_certification_attempts_per_level`` bounds how many finalists one
     level may materialize before the level is declared exhausted (``None`` =
@@ -262,7 +272,21 @@ def select_exchange_patch(
         if max_certification_attempts_per_deletion_branch is None
         else max(1, int(max_certification_attempts_per_deletion_branch))
     )
-    iterator = iter_structural_families(**dict(structural_kwargs))
+    search = None
+    if search_policy == "family_frontiers":
+        if gain_evaluation != "joint_batch":
+            raise ValueError("factorized evaluation requires an experimental search policy")
+        iterator = iter_structural_families(**dict(structural_kwargs))
+    else:
+        from pipelines.time_dynamics.ap_mclachlan.search_methods.runtime import (
+            prepare_patch_search,
+        )
+
+        search = prepare_patch_search(
+            search_policy=search_policy, gain_evaluation=gain_evaluation,
+            structural_kwargs=structural_kwargs, population_ranker=population_ranker,
+        )
+        iterator = search.families()
     pushback: list = []
 
     def acquire():
@@ -316,7 +340,10 @@ def select_exchange_patch(
             level = population_ranker(tuple(scored))
             ranked = list(level.ordered)
             rank_info = dict(level.rank_info)
-            level_telemetry.append(dict(level.telemetry))
+            receipt = dict(level.telemetry)
+            if search is not None:
+                receipt["search"] = search.receipt()
+            level_telemetry.append(receipt)
         else:
             ranked = sorted(
                 (
@@ -365,7 +392,7 @@ def select_exchange_patch(
                         inserted_selection=candidate.inserted_selection,
                         reason=f"insertion_resolution_failed:{exc}",
                         deletion_loss=float(candidate.deletion_loss)
-                        if candidate.removed_runtime_indices
+                        if candidate.removed_runtime_indices and not candidate.joint_validation_required
                         else None,
                     )
                 )
@@ -384,7 +411,7 @@ def select_exchange_patch(
                         reason="compiled_word_identity_mismatch",
                         deletion_loss=(
                             float(candidate.deletion_loss)
-                            if candidate.removed_runtime_indices
+                            if candidate.removed_runtime_indices and not candidate.joint_validation_required
                             else None
                         ),
                         cost_marginal=candidate.cost_marginal,
@@ -393,21 +420,45 @@ def select_exchange_patch(
                     )
                 )
                 continue
-            with phase("patch.exchange.certify"):
-                result = certify_finalist(
-                    state=state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_runtime,
-                    time=float(time),
-                    base_evaluation=base_evaluation,
-                    base_step=base_step,
-                    removed_runtime_indices=candidate.removed_runtime_indices,
-                    insertions=insertions,
-                    inverse_policy=inverse_policy,
-                    gates=gates,
-                    refit=refit,
-                    solve_repair_config=solve_repair_config,
+            frozen_validation = {}
+            if search is not None:
+                provisional_delta = float(candidate.delta)
+                candidate = search.evaluator.authoritative_joint_candidate(candidate)
+                frozen_validation = {
+                    "gain_evaluation": gain_evaluation,
+                    "provisional_delta": provisional_delta,
+                    "validated_frozen_delta": float(candidate.delta),
+                    "joint_validation_reason": candidate.ordinate_error,
+                }
+            if search is not None and candidate.ordinate_error is not None:
+                result = CertificationResult(
+                    certified=False,
+                    reason=f"joint_validation_failed:{candidate.ordinate_error}",
+                    estimator_work={
+                        "schema": CERTIFICATION_ESTIMATOR_WORK_SCHEMA_V1,
+                        "patched_runtime_parameter_count": None,
+                        "logical_full_geometry_entry_count": 0,
+                        "logical_refit_entry_count": 0,
+                        "logical_total_estimator_entries": 0,
+                        "complete": True,
+                    },
                 )
+            else:
+                with phase("patch.exchange.certify"):
+                    result = certify_finalist(
+                        state=state,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=theta_runtime,
+                        time=float(time),
+                        base_evaluation=base_evaluation,
+                        base_step=base_step,
+                        removed_runtime_indices=candidate.removed_runtime_indices,
+                        insertions=insertions,
+                        inverse_policy=inverse_policy,
+                        gates=gates,
+                        refit=refit,
+                        solve_repair_config=solve_repair_config,
+                    )
             if (
                 result.certified
                 and realized_l2_gate is not None
@@ -428,6 +479,7 @@ def select_exchange_patch(
             certification_work.append(
                 {
                     **dict(result.estimator_work),
+                    **frozen_validation,
                     "family": str(candidate.family),
                     "kind": str(candidate.kind),
                     "reason": str(result.reason),

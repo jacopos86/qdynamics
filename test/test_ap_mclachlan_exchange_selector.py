@@ -34,6 +34,7 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     tokens_commute_from_terms,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import DEFAULT_GAMMA_PINV_RCOND
 from pipelines.time_dynamics.ap_mclachlan.state import state_from_scaffold_runtime_input
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     build_structural_insertion_cache,
@@ -544,3 +545,99 @@ def test_escalated_joint_patches_are_ranked_including_deletion_only_pool_members
     assert len(selection.committed.inserted_selection) == 2
     assert any(len(key[1]) == 2 for key in priced_patches)
     assert set(priced_patches) <= set().union(*ranked_populations)
+
+
+def test_factorized_finalists_validate_joint_geometry_without_reranking(monkeypatch):
+    from dataclasses import replace
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
+        CandidateCostInputs, PatchEvaluator,
+    )
+
+    ranked_populations, validated, certified = [], [], []
+
+    def rank(candidates):
+        ordered = tuple(c for c in candidates if len(c.inserted_selection) == 2)
+        ranked_populations.append(tuple(c.order_key for c in ordered))
+        return RankedLevel(
+            ordered=ordered,
+            rank_info={c.order_key: RankInfo(K=1, score=100-i, merit=c.delta)
+                       for i, c in enumerate(ordered)},
+            telemetry={},
+        )
+
+    original = PatchEvaluator.authoritative_joint_candidate
+
+    def validate(self, candidate):
+        validated.append(candidate.order_key)
+        result = original(self, candidate)
+        # First provisional finalist fails a joint-only invariant. Its
+        # acquisition is still paid; the next keeps its original rank.
+        return replace(result, ordinate_error="joint_test_failure") if len(validated) == 1 else result
+
+    from pipelines.time_dynamics.ap_mclachlan import exchange_selector
+    original_certify = exchange_selector.certify_finalist
+
+    def certify(**kwargs):
+        certified.append(len(validated))
+        return original_certify(**kwargs)
+
+    monkeypatch.setattr(PatchEvaluator, "authoritative_joint_candidate", validate)
+    monkeypatch.setattr(exchange_selector, "certify_finalist", certify)
+    kwargs = _selection_kwargs(
+        deletable_indices=(), max_insertion_batch_size=2,
+        gamma_rcond=DEFAULT_GAMMA_PINV_RCOND,
+        route_bundle=resolve_route_bundle("paper_ii_exchange_q_compiled_v1"),
+        candidate_cost_inputs=lambda *_args: CandidateCostInputs(cost_marginal=(0, 0, 0)),
+    )
+    selection = select_exchange_patch(
+        gates=CertificationGates(ray_distance_max=1, smoothness_eta_max=1e6, condition_number_max=None),
+        population_ranker=rank, search_policy="bounded_exhaustive",
+        gain_evaluation="singleton_factorized", **kwargs,
+    )
+    assert len(ranked_populations) == 1
+    assert len(ranked_populations[0]) >= 2
+    assert validated == list(ranked_populations[0][:len(validated)])
+    assert certified and certified[0] == 2
+    assert selection.attempts[0].reason == "joint_validation_failed:joint_test_failure"
+    failed = selection.certification_work[0]
+    assert failed["complete"] is True
+    assert failed["logical_total_estimator_entries"] == 0  # frozen work belongs to cache receipt
+    assert selection.committed is not None
+    assert not selection.committed.joint_validation_required
+
+
+@pytest.mark.parametrize("failure", ["resolution", "word_identity"])
+def test_unvalidated_factorized_failure_does_not_write_deletion_history(monkeypatch, failure):
+    from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import CandidateCostInputs, PatchEvaluator
+    from pipelines.time_dynamics.ap_mclachlan import exchange_selector
+
+    def rank(candidates):
+        return RankedLevel(
+            ordered=tuple(c for c in candidates if c.removed_runtime_indices and len(c.inserted_selection) == 2),
+            rank_info={}, telemetry={},
+        )
+
+    def unexpected_validation(*_args):
+        pytest.fail("invalid word must be rejected before joint acquisition")
+
+    monkeypatch.setattr(PatchEvaluator, "authoritative_joint_candidate", unexpected_validation)
+    if failure == "resolution":
+        def fail_resolution(*_args, **_kwargs):
+            raise ValueError("missing atom")
+        monkeypatch.setattr(exchange_selector, "candidate_insertions", fail_resolution)
+    kwargs = _selection_kwargs(
+        max_insertion_batch_size=2,
+        gamma_rcond=DEFAULT_GAMMA_PINV_RCOND,
+        route_bundle=resolve_route_bundle("paper_ii_exchange_q_compiled_v1"),
+        candidate_cost_inputs=lambda *_args: CandidateCostInputs(cost_marginal=(0, 0, 0)),
+    )
+    selection = select_exchange_patch(
+        gates=CertificationGates(), population_ranker=rank,
+        search_policy="bounded_exhaustive", gain_evaluation="singleton_factorized",
+        candidate_word_validator=lambda *_args: False, **kwargs,
+    )
+    assert selection.attempts
+    assert all(attempt.deletion_loss is None for attempt in selection.attempts)
+    assert selection.certification_work == ()
