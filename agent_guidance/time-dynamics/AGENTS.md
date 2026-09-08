@@ -41,7 +41,8 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `deletion_family.py` | Complete deletion rungs and the joint-work guard (admits whole families only; the sole computational cap) |
 | `deletion_permission.py` | Measurement-free set permission: accumulated effective-angle ray upper bound plus normalized reverse-Schur deletion loss; memoized decision and run telemetry |
 | `structural_cache.py` | Checkpoint-local frozen-ray geometry: positioned tangents in one batched pass, deletion-independent cross/Gram/force blocks, memoized candidate solves |
-| `exchange_structural.py` | Family enumeration (singleton level, rungs, priorities, frontiers); historical acquisition utility `U_ins + U_del + w·δ` retained for frontier ordering on every route |
+| `patch_evaluation.py` | Shared complete-patch evaluation: realized captured drift, retained acquisition utilities and conditioning/history terms, optional exact Gamma and compiled-resource inputs; candidate records contain raw evidence, with population ranking separate |
+| `exchange_structural.py` | Current family enumeration (singleton level, rungs, priorities, frontiers); delegates evaluation to `PatchEvaluator` and retains acquisition utility `U_ins + U_del + w·δ` for frontier ordering on every route |
 | `compiled_patch_cost.py`, `population_scoring.py` | Complete-patch compiled resource counts/marginals; population normalization and ranking arithmetic |
 | `exchange_certification.py` | Finalist materialization (delete → remapped-cut insert), optional refit hook, hard gates (ray/smoothness are deletion-containing checks; every finalist gets finite/conditioning) |
 | `exchange_selector.py` | Selection loop: every guard-admitted deletion rung is scored with the d0 singletons before the first certification pass (deletions always compete on score); frontiers are escalation-gated; certify one at a time, commit atomically |

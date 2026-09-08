@@ -15,7 +15,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     build_population_ranker,
     select_generalized_exchange_patch,
 )
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     StructuralCandidate,
     StructuralScoreWeights,
 )
@@ -747,7 +747,7 @@ def test_gamma_rejection_preserves_serial_parallel_compile_parity(
         raise GammaMonotonicityError("synthetic rank transition")
 
     monkeypatch.setattr(
-        "pipelines.time_dynamics.ap_mclachlan.exchange_structural."
+        "pipelines.time_dynamics.ap_mclachlan.patch_evaluation."
         "check_gamma_nested_monotonicity",
         reject_pure_insertion,
     )

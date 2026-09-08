@@ -128,6 +128,7 @@ EXECUTOR_OVERLAY_PATHS = (
     "pipelines/time_dynamics/ap_mclachlan/support_atoms.py",
     "pipelines/time_dynamics/ap_mclachlan/deletion_family.py",
     "pipelines/time_dynamics/ap_mclachlan/patch_enumeration.py",
+    "pipelines/time_dynamics/ap_mclachlan/patch_evaluation.py",
     "pipelines/time_dynamics/ap_mclachlan/insertion_words.py",
 )
 

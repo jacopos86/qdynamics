@@ -89,7 +89,7 @@ def _candidate(delta, ins_u=0.0, del_u=0.0, *, debt, tol=1.0e-12, order=(0,)):
 
     import numpy as np
 
-    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
         StructuralCandidate,
     )
 
@@ -174,7 +174,7 @@ def test_a_non_improving_deletion_cannot_head_the_debt_ranking() -> None:
 
 
 def test_debt_ranking_weights_carry_the_declared_tolerance() -> None:
-    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
         StructuralScoreWeights,
     )
 

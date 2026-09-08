@@ -18,8 +18,10 @@ import pytest
 
 from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     StructuralScoreWeights,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
     enumerate_structural_candidates,
 )
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (

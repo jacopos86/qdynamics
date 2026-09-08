@@ -22,8 +22,10 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     CertificationResult,
     certify_finalist,
 )
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     StructuralCandidate,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
     StructuralEnumeration,
     iter_structural_families,
 )

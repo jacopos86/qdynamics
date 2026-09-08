@@ -513,6 +513,7 @@ def test_executor_overlay_contains_current_pool_and_enumeration_dependencies(
         "ap_mclachlan.support_atoms", "ap_mclachlan.exchange_integration",
         "ap_mclachlan.exchange_structural", "ap_mclachlan.exchange_selector",
         "ap_mclachlan.deletion_family", "ap_mclachlan.patch_enumeration",
+        "ap_mclachlan.patch_evaluation",
         "ap_mclachlan.insertion_words", "generalized_exchange",
     )
     for module_name in required_modules:

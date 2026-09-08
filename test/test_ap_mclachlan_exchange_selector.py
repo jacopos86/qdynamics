@@ -18,7 +18,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     candidate_insertions,
     select_exchange_patch,
 )
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     StructuralCandidate,
     StructuralScoreWeights,
 )
@@ -405,20 +405,20 @@ def test_selection_parallel_matches_serial_attempts_and_commit() -> None:
 def test_stopping_singleton_level_does_not_evaluate_joint_patches(
     monkeypatch, stop_at_first_level
 ) -> None:
-    from pipelines.time_dynamics.ap_mclachlan import exchange_structural
+    from pipelines.time_dynamics.ap_mclachlan import patch_evaluation
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
-    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import CandidateCostInputs
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import CandidateCostInputs
 
     solved_insertions = []
     priced_patches = []
     ranked_populations = []
-    original_solve = exchange_structural.structural_candidate_solve
+    original_solve = patch_evaluation.structural_candidate_solve
 
     def observe_solve(**kwargs):
         solved_insertions.append(tuple(kwargs["inserted_selection"]))
         return original_solve(**kwargs)
 
-    monkeypatch.setattr(exchange_structural, "structural_candidate_solve", observe_solve)
+    monkeypatch.setattr(patch_evaluation, "structural_candidate_solve", observe_solve)
 
     def patch_key(removed, insertions, plan):
         return (tuple(removed), tuple(insertions), None if plan is None else plan.plan_id)
@@ -476,7 +476,7 @@ def test_escalated_joint_patches_are_ranked_including_deletion_only_pool_members
     required_deletion,
 ) -> None:
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
-    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import CandidateCostInputs
+    from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import CandidateCostInputs
 
     priced_patches = []
     ranked_populations = []

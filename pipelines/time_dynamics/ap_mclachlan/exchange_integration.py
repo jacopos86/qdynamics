@@ -77,7 +77,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     RankedLevel,
     select_exchange_patch,
 )
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     CandidateCostInputs,
     StructuralCandidate,
     StructuralScoreWeights,

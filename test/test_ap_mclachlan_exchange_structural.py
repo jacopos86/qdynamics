@@ -10,10 +10,12 @@ import pytest
 
 from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
-from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import (
     CandidateCostInputs,
     StructuralScoreWeights,
     _warm_solve_memo,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
     enumerate_structural_candidates,
     iter_structural_families,
     resolve_frontier_schedule,
@@ -482,7 +484,7 @@ def test_one_gamma_monotonicity_failure_rejects_only_that_candidate(
         return CandidateCostInputs(cost_marginal=(1, 2, 3))
 
     monkeypatch.setattr(
-        "pipelines.time_dynamics.ap_mclachlan.exchange_structural."
+        "pipelines.time_dynamics.ap_mclachlan.patch_evaluation."
         "check_gamma_nested_monotonicity",
         check_once,
     )
@@ -817,7 +819,7 @@ def test_scoring_workers_zero_is_rejected() -> None:
 def test_scoring_solve_exception_propagates_at_serial_position(
     monkeypatch,
 ) -> None:
-    import pipelines.time_dynamics.ap_mclachlan.exchange_structural as module
+    import pipelines.time_dynamics.ap_mclachlan.patch_evaluation as module
 
     real_solve = module.structural_candidate_solve
     poison_selection_atom = "cb"
@@ -849,3 +851,17 @@ def test_scoring_solve_exception_propagates_at_serial_position(
         not any(f.startswith("singleton_d0") for f, _m in fams)
         for fams in outcomes
     )
+
+
+@pytest.mark.parametrize("budget_name", [
+    "max_joint_patch_evaluations", "max_compiled_patches_per_checkpoint",
+])
+def test_invalid_budget_is_rejected_before_any_candidate_solve(budget_name):
+    *_, kwargs = _setup(
+        route_bundle=SimpleNamespace(uses_population_scoring=True),
+        candidate_cost_inputs=lambda *_args: CandidateCostInputs(cost_marginal=(0, 0, 0)),
+        **{budget_name: -1},
+    )
+    with pytest.raises(ValueError):
+        enumerate_structural_candidates(**kwargs)
+    assert kwargs["cache"].solve_memo == {}
