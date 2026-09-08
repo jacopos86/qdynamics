@@ -41,6 +41,7 @@ generated PDFs, run artifacts, route registries, or historical handoffs first.
 | Repository inspection, code, tests, docs cleanup, Git, or handoff | `agent_guidance/shared/repository-work.md`, then the nearest subtree `AGENTS.md` and target files |
 | Planning work another agent will execute, or executing a handoff written by one | `agent_guidance/shared/agent-handoff-contract.md` (anchors, scope, increments, evidence standards, traps, report-back format) |
 | Paper identity or workflow routing | `agent_guidance/paper-registry.yaml`, then `agent_guidance/README.md` and the selected lane contract when present |
+| Paper–Code Review, code-to-paper workflow, viewer versions, or source-line review comments | `agent_guidance/shared/paper-code-review.md` |
 | ADAPT, Hubbard--Holstein, molecular-vibronic, time dynamics, QSE, reporting, mathematical defaults, or route identity | `MATH/AGENTS.md`, `agent_guidance/shared/scientific-invariants.md`, then the selected lane contract when present |
 | Benchmark planning, local/remote execution, CHTC, Optuna, manifests, artifact aggregation, evidence report, or canonical run settings | the scientific route above, then `agent_guidance/shared/run-guide.md` and the exact existing run workflow named by the lane |
 | Completed-evidence table, source-map, or provenance refresh | `MATH/AGENTS.md`, then an existing matching results workflow or explicit target evidence contract |
