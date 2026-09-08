@@ -111,17 +111,28 @@ two budgets). The user authorized local execution on 2026-09-08. Record the
 chosen budgets from calibration before freezing the 24-cell plan.
 
 Use the existing complete-pool Hubbard SNAKE seed, existing `fastweak` drive,
-RK4 ridge-1e-7 numerics, and state-motion safeguards. The diagnostic horizon is
-the first three intervals of the registered smoke grid: t=0..0.125, four
-reporting points. `rounds_per_checkpoint=1` is common to every cell. The current
+RK4 ridge-1e-7 numerics, and state-motion safeguards. The initial t=0..0.125
+calibration never opened the insertion gate. The full registered smoke grid,
+t=0..0.5 with 13 reporting points, did: 214 singleton placements at t=0.4583
+and one accepted insertion under budget256. Use that full smoke grid for the
+24-cell pilot. `rounds_per_checkpoint=1` is common to every cell. The current
 runtime loop permits up to two selector calls under this setting; preserve that
 behavior for this pilot and report all calls.
 The seed resolves to 22 deduplicated operators without fallback or truncation;
 the immutable plan binds its hash and all effective arguments.
 
+Pilot budgets are 256 and 24,576 for both structural evaluations and compiled
+patches. The full-smoke calibration evaluated 214 singleton realizations.
+Classical enumeration of its next A2 request found exactly 23,503 complete
+paired-word realizations; both exhaustive and block search require 23,718
+cumulative structural slots to admit that stage. These counts concern the
+observed checkpoint, not a guarantee about later stages. Validate the high
+budget locally before launching the matched matrix.
+
 `diagnostics.selector_local_pilot` builds commands through the shared comparison
 helper. Its execution helper gives each case an independent 3 GB RAM guard,
-600-second wall limit, one worker and one BLAS thread. Timeouts and partial
+600-second wall limit, four compiler workers, one scoring worker and one BLAS
+thread per process. Timeouts and partial
 attempts are retained. No CHTC work is submitted by this pilot.
 
 Search receipts count evaluated circuit realizations by (|D|,|A|) and visited

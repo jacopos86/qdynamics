@@ -167,7 +167,11 @@ def generate_reference_energy_trajectory(
             "drive_enabled": bool(hamiltonian.drive_enabled),
             "norm_drift_max": float(norm_drift_max),
             "reference_observable_support": (
-                "hh_site_doublon"
+                (
+                    "hh_site_doublon"
+                    if observable_plan.observable_kind == "hh_spinful_boson"
+                    else "spinful_lattice_site_doublon"
+                )
                 if observable_plan is not None
                 else "not_available_for_problem_family"
             ),

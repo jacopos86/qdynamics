@@ -196,3 +196,35 @@ def test_reference_generation_rejects_duplicate_times() -> None:
             hamiltonian=time_dependent_hamiltonian_from_runtime_input(runtime_input),
             times=(0.0, 0.0),
         )
+
+
+def test_hubbard_reference_and_ap_rows_emit_site_and_doublon_bundle() -> None:
+    runtime_input = _hh_runtime_input()
+    runtime_input.resolved_problem.family_key = "hubbard"
+    runtime_input.resolved_problem.capabilities.observable_kind = "spinful_lattice"
+    state = state_from_scaffold_runtime_input(runtime_input)
+    reference = generate_seed_reference_energy_trajectory(
+        state=state,
+        hamiltonian=time_dependent_hamiltonian_from_runtime_input(runtime_input),
+        times=(0.0, 0.1),
+        config=ReferenceEnergyGenerationConfig(
+            reference_kind=REFERENCE_KIND_SEED_PREPARED_STATE_V1,
+            method=REFERENCE_METHOD_STATIC_SPECTRAL,
+        ),
+    )
+    payload = run_fixed_ap_mclachlan_from_runtime_input(
+        runtime_input, times=(0.0, 0.1), reference_energy_trajectory=reference,
+    )
+
+    assert reference.metadata["reference_observable_support"] == "spinful_lattice_site_doublon"
+    for row in payload["plot_rows"]:
+        assert row["observable_family"] == "spinful_lattice_site_doublon"
+        assert row["n_up_site"] == pytest.approx([1.0, 0.0])
+        assert row["n_dn_site"] == pytest.approx([1.0, 0.0])
+        assert row["site_occupations"] == pytest.approx([2.0, 0.0])
+        assert row["doublon"] == pytest.approx(1.0)
+        assert row["site_occupations_exact"] == pytest.approx([2.0, 0.0])
+        assert row["doublon_exact"] == pytest.approx(1.0)
+        assert row["abs_doublon_error"] == pytest.approx(0.0)
+        assert row["site_occupations_abs_error_max"] == pytest.approx(0.0)
+    assert payload["summary"]["reference_observable_diagnostics_enabled"] is True

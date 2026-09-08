@@ -9,11 +9,12 @@ import numpy as np
 
 
 HH_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1 = "hh_site_doublon_observables_v1"
+SPINFUL_LATTICE_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1 = "spinful_lattice_site_doublon_observables_v1"
 
 
 @dataclass(frozen=True)
 class SiteDoublonObservableSnapshot:
-    """HH site occupations and doublon evaluated from one state vector."""
+    """Spinful site occupations and total doublon from one state vector."""
 
     n_up_site: np.ndarray
     n_dn_site: np.ndarray
@@ -21,15 +22,22 @@ class SiteDoublonObservableSnapshot:
     doublon: float
     staggered: float
     primary_density: float
+    observable_kind: str = "hh_spinful_boson"
 
     def to_json_dict(self) -> dict[str, Any]:
         n_up = np.asarray(self.n_up_site, dtype=float).reshape(-1)
         n_dn = np.asarray(self.n_dn_site, dtype=float).reshape(-1)
         n_site = np.asarray(self.site_occupations, dtype=float).reshape(-1)
+        is_hh = self.observable_kind == "hh_spinful_boson"
         return {
-            "observable_schema": HH_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1,
+            "observable_schema": (
+                HH_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1 if is_hh
+                else SPINFUL_LATTICE_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1
+            ),
             "observable_telemetry_supported": True,
-            "observable_family": "hh_spinful_site_doublon",
+            "observable_family": (
+                "hh_spinful_site_doublon" if is_hh else "spinful_lattice_site_doublon"
+            ),
             "n_up_site": [float(x) for x in n_up.tolist()],
             "n_dn_site": [float(x) for x in n_dn.tolist()],
             "site_occupations": [float(x) for x in n_site.tolist()],
@@ -48,13 +56,14 @@ class SiteDoublonObservableSnapshot:
 
 @dataclass(frozen=True)
 class SiteDoublonObservablePlan:
-    """Precomputed diagonal masks for HH site/doublon observables."""
+    """Precomputed diagonal masks for spinful site/doublon observables."""
 
     num_sites: int
     ordering: str
     dimension: int
     up_masks: np.ndarray
     dn_masks: np.ndarray
+    observable_kind: str = "hh_spinful_boson"
 
     def evaluate(self, psi: np.ndarray) -> SiteDoublonObservableSnapshot:
         psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
@@ -81,6 +90,7 @@ class SiteDoublonObservablePlan:
             doublon=float(doublon),
             staggered=float(staggered),
             primary_density=float(primary_density),
+            observable_kind=self.observable_kind,
         )
 
 
@@ -89,13 +99,21 @@ def build_site_doublon_observable_plan(
     *,
     dimension: int,
 ) -> SiteDoublonObservablePlan | None:
-    """Build an HH observable plan, or return ``None`` when unsupported."""
+    """Build a spinful-lattice/HH plan, or return ``None`` when unsupported.
+
+    Both families use the same occupation-bit masks on their fermion block;
+    any HH boson register is marginalized by the state-vector probabilities.
+    """
 
     family_key = str(getattr(resolved_problem, "family_key", "")).strip().lower()
     capabilities = getattr(resolved_problem, "capabilities", None)
     observable_kind = str(getattr(capabilities, "observable_kind", "")).strip().lower()
-    if family_key != "hh" and observable_kind != "hh_spinful_boson":
+    is_hh = family_key == "hh" or observable_kind == "hh_spinful_boson"
+    is_spinful_lattice = family_key == "hubbard" or observable_kind == "spinful_lattice"
+    if not is_hh and not is_spinful_lattice:
         return None
+    observable_kind = "hh_spinful_boson" if is_hh else "spinful_lattice"
+    family_label = "HH" if is_hh else "Spinful lattice"
 
     request = getattr(resolved_problem, "request", None)
     layout = getattr(resolved_problem, "layout", None)
@@ -104,12 +122,12 @@ def build_site_doublon_observable_plan(
     num_sites = int(getattr(request, "num_sites"))
     ordering = str(getattr(request, "ordering", getattr(layout, "ordering", "blocked")))
     if num_sites <= 0:
-        raise ValueError("HH observable num_sites must be positive.")
+        raise ValueError(f"{family_label} observable num_sites must be positive.")
     total_qubits = int(getattr(layout, "total_qubits"))
     expected_dimension = 1 << total_qubits
     if int(dimension) != expected_dimension:
         raise ValueError(
-            "HH observable dimension does not match resolved register layout: "
+            f"{family_label} observable dimension does not match resolved register layout: "
             f"{dimension} vs 2**{total_qubits}={expected_dimension}."
         )
     fermion_start = _fermion_start_qubit(layout)
@@ -121,7 +139,7 @@ def build_site_doublon_observable_plan(
         dn_bit = int(fermion_start + _spin_orbital_bit_index(site, 1, num_sites, ordering))
         if max(up_bit, dn_bit) >= total_qubits:
             raise ValueError(
-                "HH observable spin-orbital bit exceeds register layout: "
+                f"{family_label} observable spin-orbital bit exceeds register layout: "
                 f"site={site}, up_bit={up_bit}, dn_bit={dn_bit}, total_qubits={total_qubits}."
             )
         up_masks.append(((indices >> np.uint64(up_bit)) & np.uint64(1)).astype(float))
@@ -132,6 +150,7 @@ def build_site_doublon_observable_plan(
         dimension=int(dimension),
         up_masks=np.asarray(up_masks, dtype=float),
         dn_masks=np.asarray(dn_masks, dtype=float),
+        observable_kind=observable_kind,
     )
 
 
@@ -195,6 +214,7 @@ def _primary_density(site_occupations: np.ndarray) -> float:
 
 __all__ = [
     "HH_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1",
+    "SPINFUL_LATTICE_SITE_DOUBLON_OBSERVABLE_SCHEMA_V1",
     "SiteDoublonObservablePlan",
     "SiteDoublonObservableSnapshot",
     "build_site_doublon_observable_plan",

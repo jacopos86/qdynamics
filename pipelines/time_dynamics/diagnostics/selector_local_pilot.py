@@ -43,8 +43,8 @@ def source_hashes(repo: Path) -> dict[str, str]:
 
 
 def pilot_case(repo: Path, root: Path, *, policy: str, gain: str,
-               admission: str, budget: int, t_final: float = 0.125,
-               num_times: int = 4) -> dict:
+               admission: str, budget: int, t_final: float = 0.5,
+               num_times: int = 13) -> dict:
     from pipelines.time_dynamics.paper_ii_runs import Horizon, build_selector_comparison_run
     from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import _build_parser
 
@@ -63,11 +63,11 @@ def pilot_case(repo: Path, root: Path, *, policy: str, gain: str,
             "--replay-candidate-pool-mode", "diagnostic_replay_family_pool",
             "--require-complete-candidate-pool", "--record-statevector",
             "--max-compiled-patches-per-checkpoint", str(budget),
-            "--compile-workers", "1", "--support-patch-scoring-workers", "1",
+            "--compile-workers", "4", "--support-patch-scoring-workers", "1",
         ),
     )
     run = replace(
-        run, horizon=Horizon("selector_local_prefix", t_final, num_times),
+        run, horizon=Horizon("selector_local_smoke", t_final, num_times),
         search_profile=replace(
             run.search_profile, profile_id=case_id,
             joint_patch_evaluations=budget, rounds_per_checkpoint=1,
@@ -123,7 +123,7 @@ def make_plan(repo: Path, root: Path, *, budgets: tuple[int, ...],
         "source_hashes": source_hashes(repo), "seed_sha256": SEED_SHA256,
         "pool": {"complete": True, "deduplicated_operator_count_at_load": 22,
                  "fallback_used": False, "truncated": False},
-        "scope": "Hubbard dimer, existing fastweak drive; t=0..0.125, 4 reporting points.",
+        "scope": "Hubbard dimer, existing fastweak drive; t=0..0.5, 13 reporting points.",
         "budget_fields": ["max_joint_patch_evaluations", "max_compiled_patches_per_checkpoint"],
         "coverage_scope": "All recorded selector calls and passes at every checkpoint.",
         "round_limit": "Existing rounds_per_checkpoint=1 permits up to two selector calls; held fixed across cells.",

@@ -42,7 +42,8 @@ def test_plan_has_24_matched_cells_and_does_not_grant_execution(monkeypatch, tmp
         assert args["require_complete_candidate_pool"] is True
         assert args["record_statevector"] is True
         assert args["artifact_json"] == str(REPO / pilot.SEED)
-        assert args["t_final"] == 0.125 and args["num_times"] == 4
+        assert args["t_final"] == 0.5 and args["num_times"] == 13
+        assert args["compile_workers"] == 4 and args["support_patch_scoring_workers"] == 1
         assert args["max_insertion_rounds_per_checkpoint"] == 1
         assert args["exchange_insertion_frontier"] is None
         assert args["interaction_frontier_widths"] is None
