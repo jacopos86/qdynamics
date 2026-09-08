@@ -1,7 +1,8 @@
 # Paper II selector campaign
 
-Updated: 2026-09-08. **Local diagnostic pilot: 24/24 completed; 6/6 singleton
-parity pairs passed.** The separate three-drive scientific campaign still has
+Updated: 2026-09-08. **Original local pilot: 24/24 completed; 6/6 singleton
+parity pairs passed. Incremental/rung revision: 12/12 low-budget reruns
+completed; 3/3 singleton pairs passed.** The separate three-drive scientific campaign still has
 **72 full trajectories planned; 0 submitted**; its settings and submission
 manifest remain pending.
 
@@ -58,9 +59,25 @@ All move comparisons use one current cumulative-population ranking snapshot.
 Interleaving may change those snapshots even when the work cap is nonbinding.
 Factorized gain ranking remains distinct from later joint validation.
 
-Validation of this revision is recorded below after focused regressions and
-matched low-budget local reruns. No CHTC submission or evidence promotion is
-part of this implementation.
+Implemented at `a2a43a83fbccbc34ec56d43d9e12f62ad9953f77`. **310 focused tests
+pass; 12/12 matched low-budget full trajectories complete; 3/3 singleton
+joint/factorized parity pairs pass.** Read the
+[revision findings](../../output/paper_ii_rung_schedule_local_20260908_a2a43a83/findings.md)
+and [frozen plan](../../output/paper_ii_rung_schedule_local_20260908_a2a43a83/plan.json).
+The [independent audit](../../output/paper_ii_rung_schedule_local_20260908_a2a43a83/audit.json)
+passes 7,466 checks across all twelve runs with zero failures, including all
+802 source hashes and the selection/validation work accounting.
+
+At the active insertion checkpoint, block evaluates 128 A1 and 127 A2
+realizations, instead of refusing the entire neighborhood. Exhaustive reaches
+A1/A2/A3/A4 with counts 64/64/64/63; greedy evaluates 214 A1 and 41 A2.
+All fit after the stay patch under budget256. The selected batch sizes differ
+between gain modes; the factorized A4 finalist's six validation pair entries
+are charged. Every trajectory ledger remains exact. No D>0 passes permission
+in this physical window; synthetic exchange coverage and the small evolving
+trajectory tests remain distinct evidence. High-budget reruns and the
+three-drive campaign remain pending. No CHTC submission or evidence promotion
+is part of this implementation.
 
 ## Corrected implementation and campaign entry point
 
