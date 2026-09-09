@@ -70,7 +70,7 @@ collection; it stays quiet when nothing meaningful changes.
 
 The six recovery jobs do not complete the 72-cell selector campaign. Follow
 `paper-ii-selector-campaign.md` → Current campaign scope for the resolved axes
-and the remaining budget choice. Retain the six A1/D15% results separately from
+and the submitted 10,000/50,000 matrix. Retain the six A1/D15% results separately from
 strict A1/D1 and batched A4/D15% matrix cells. Keep the existing heartbeat active
 until the full authorized campaign is accounted for, or the author changes that
 scope. Advance ready matrix preparation and submission using the standing CHTC

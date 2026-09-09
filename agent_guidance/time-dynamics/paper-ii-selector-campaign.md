@@ -4,7 +4,7 @@ Updated: 2026-09-09. **Original local pilot: 24/24 completed; 6/6 singleton
 parity pairs passed. Incremental/rung revision: 24/24 low/high-budget reruns
 completed; 6/6 singleton pairs passed. Natural fixed-UCCSD seed: 24/24 local
 trajectories completed; 12/12 singleton pairs passed.** The separate three-drive scientific campaign still has
-**72 full trajectories planned; 0 submitted**. The six currently running
+**72 full trajectories submitted** (`10024165`–`10024176`, six jobs each). The six currently running
 recovery jobs are separate from that matrix; the full campaign remains active
 work, not a completed or cancelled objective.
 
@@ -32,8 +32,8 @@ The local pilot below is complete. The expanded scientific grid remains pending.
 The full comparison remains **3 searches × 2 gain modes × 2 admission settings
 × 2 work budgets × 3 drives = 72 trajectories**. Use t=20 on 501 points,
 ascending tiers, and the already selected Paper II state-motion settings for
-fastweak, slowstrong and strongfast. The budget pair proposed for the matrix is
-10,000 and 50,000; the author's numerical choice is pending. Earlier 256/24,576
+fastweak, slowstrong and strongfast. The matrix uses work budgets **10,000 and 50,000**, following the author's
+direction to proceed with submission on 9 September. Earlier 256/24,576
 values describe local pilots, not a new adopted matrix configuration.
 
 The six running recovery jobs `10024096.0–5` use fastweak, W10000, A1 and the
@@ -58,18 +58,22 @@ proceeds alongside the running jobs and is not an automatic submission hold.
 The strict singleton arm remains A1/D1. The batched arm is A4 with deletion size
 bounded by the existing 15% rule and complete-set permissions. Lower sections
 saying drives, horizon or singleton interpretation are pending are historical;
-these choices are resolved above. Next: resolve the budget pair, bind all 72
-variant-aware action identities and effective configurations, reuse the qualified
-worker/package lifecycle, and submit as soon as its applicable checks pass.
+these choices are resolved above. All 72 variant-aware action identities and effective configurations are now
+committed at source `7eeb05193dd8529616747a57cadd0e25bcec142c` and submitted.
+Runner/worker bytes equal the qualified `339a1d05` source; only locks differ.
 No further general permission to use CHTC is required.
 
-A validated draft now enumerates all **72 unique actions in 12 six-action
-package plans** under `output/paper_ii_full_matrix_preparation_20260909/`.
-`preparation_receipt.json` records CLI parsing, unchanged non-axis settings
-within every drive, the seed hash and the source basis. This is prepared input,
-not a submission or a frozen execution lock; the 10,000/50,000 pair remains
-proposed until the author replies. Reuse the existing qualified six-action
-package builder for each plan after committing the final locks.
+The full matrix is **submitted and queue-verified, with no holds at submission**.
+Twelve six-action packages passed local validation, all 72 commands passed the
+exact worker-container source/argument checks, and all Condor dry runs passed.
+The initial queue snapshot had 72 queued jobs; later states belong in receipts.
+
+Submission and source receipts:
+`/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-full-matrix-20260909/output/paper_ii_full_matrix_build_20260909/submission_receipt.json`
+and `remote_qualification_receipt.json` beside it. The source/argument proof
+covers 855 distinct archived files. Pre-execution calibration reports zero
+errors; new trajectory accuracy and continuity are still post-execution checks.
+Keep all 72 matrix jobs and the six separate recovery jobs in the monitor.
 
 ## Corrected regression diagnosis and current work (2026-09-09 UTC)
 
@@ -777,7 +781,7 @@ short test groups can finish before the guard obtains a meaningful RSS sample.
 | Search policy | `greedy`, `bounded_exhaustive`, `block_exchange` | 3 |
 | Gain evaluation | `joint_batch`, `singleton_factorized` | 2 |
 | Patch admission | Singleton insertion/deletion; batching allowed | 2 |
-| Work budget | Proposed 10,000; 50,000 — numerical choice pending | 2 |
+| Work budget | 10,000; 50,000 | 2 |
 | Drive regime | fastweak, slowstrong, strongfast | 3 |
 
 \[
