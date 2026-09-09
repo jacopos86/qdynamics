@@ -280,6 +280,8 @@ report merely that
 ``CHTC authentication remains unavailable``, claim that no action is needed, or
 silently defer the remote frontier.
 
+Proceed through the password and Duo prompts promptly, before unrelated tool work can let the login expire. Verify the successful login and shared master, then continue the due operation in the same turn. A new user message asking to connect is not required; the campaign authorization persists.
+
 Keep the authenticated SSH PTY open and reuse it across heartbeats, with a
 roughly 12-hour reuse target; never reconnect once per heartbeat. Verify the
 session before reconnecting because its actual server lifetime is not

@@ -41,10 +41,12 @@ routes and pins the operational rules.
 
 ## Hard rules
 
-- **One Duo push per login.** Initiate exactly one SSH connection and
-  one push; a denied or timed-out push is never auto-retried — report
-  and wait for the user. Keep the authenticated PTY open and reuse it
-  (~12 h target); continue safe local work while a login is pending.
+- **Standing authorization.** When authorized CHTC work is due, check the
+  shared master and, if needed, initiate one SSH login and one Duo push
+  immediately. The author approves the notification; no fresh connection
+  request or readiness question is needed. Follow the connection sequence in
+  `paper-ii-overnight-campaign.md`, including prompt handling, master reuse
+  (~12 h target), and reporting an actually denied or timed-out push.
 - **Status reads are one-shot and read-only:** single `condor_q` /
   `condor_history` invocations against exact recorded cluster IDs
   (JobBatchName is unreliable). Bounded `condor_ssh_to_job` extraction

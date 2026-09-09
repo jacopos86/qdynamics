@@ -26,6 +26,80 @@ work and rejected-set evaluation charges. The user deferred the legacy
 frontier-policy change; its utility and generic defaults remain intact.
 The local pilot below is complete. The expanded scientific grid remains pending.
 
+## Corrected regression diagnosis and current work (2026-09-09 UTC)
+
+This section supersedes the older next-step and pending-approval statements below. **Zero new-selector t20 trajectories completed among the seven timeout attempts. Historical Paper II t20 results did complete.** The user has explicitly authorized the implementation/execution correction and subsequent CHTC work; the older W64-package approval request is historical and is not the current blocker.
+
+The actual a43 fast-weak state-motion run reached t=20 on the 501-point grid. Its archived `run_lock.numerics` equals the preserved 07bc W256-prefix numerical contract, including Euler, ridge `1e-6`, rcond `1e-10`, zero damping, state-motion bound `5e-5`, insertion cut `3e-6`, and the repair settings. Parent-observed `condor_history` reports cluster `9720203.3`, exit0, and **6,610 seconds** (1h50m10s), with9 CPUs and12,288 MB requested. Search and execution settings differ:
+
+| Setting/evidence | Successful a43 fast-weak state-motion | Failed new-selector runs / preserved prefix |
+|---|---|---|
+| Search work budget | 50,000 | 256 remotely;64 locally |
+| Maximum insertion block | 1 | 4 |
+| Scoring / compile workers | 4 / 8 | 1 / 4 |
+| First accepted historical word | `yyeexx` | Absent from the observed W256 evaluated prefix |
+| Search route | Historical `family_frontiers` | New ascending searches |
+
+These are concrete discrepancies to diagnose; they do not assign the entire runtime regression to one cause. The independently verified adjacent-duplicate ridge gain remains a separate observation. **It is not a demonstrated introduced regression, and resolving it is not a prerequisite for this correction or subsequent CHTC work.** Ridge and scientific acceptance settings remain unchanged.
+
+Current diagnostic status, bound to the receipts below:
+
+- The current-source `family_frontiers` case was stopped as an **invalid historical control**. Its rejected-deletion scan is unbounded in a way the actual a43 route was not. The stop receipt preserves this failure; parent observed guard session74839 exit241. This finding is scoped to the current family path, separate from the new searches' bounded discovery.
+- The actual a43 source control is **prepared, not run** (809 source files verified).
+- The current greedy/joint case started at12:48:52 UTC with W50,000, maximum insertion block1, scoring4/compile8, ascending scheduling, and t=0..0.08 on three points. Its 12GB-guard launch verifies842 frozen source files. Completion is not asserted here. Maximum deletion block remains unset under the new route's existing permission/cardinality policy; this is not a claim of identical search semantics.
+
+The next work is the bounded differential, the smallest justified coverage/execution fix, and focused validation, followed by the **existing Paper II operational workflow**: lock, source-bound package, validate, qualify, submit, collect by receipt, and score. The protocol was located at commit `7c9394a7`; this record does not create a second packager. Preserve all seven timeout archives, source locks and historical successes. The 72-action matrix remains unlaunched; paper adoption remains separate. The unimplemented checkpoint proposal is not a new blocking prerequisite.
+
+[Historical comparison and exact settings](../../output/paper_ii_protocol_regression_audit_20260909_671b4963/independent_comparison_01.md) · [Current-family regression](../../output/paper_ii_successful_protocol_differential_20260909_671b4963/family_rejection_regression_01/finding.md) · [Stopped control receipt](../../output/paper_ii_successful_protocol_differential_20260909_671b4963/family_frontiers_joint_batch_a1_w50000_compile8_score4_t008/debug_stop_receipt.json) · [Actual a43 preparation](../../output/paper_ii_successful_protocol_historical_a43_20260909/preparation_receipt.json) · [Greedy launch receipt](../../output/paper_ii_successful_protocol_differential_20260909_671b4963/greedy_joint_batch_a1_w50000_compile8_score4_t008/launch_receipt.json) · [Preserved operational protocol](../../output/paper_ii_protocol_regression_audit_20260909_671b4963/state_update_01/operational_run_protocol_7c9394a7.md)
+
+## Final local overnight attempt: timeout (2026-09-09 UTC)
+
+The separate macOS greedy/joint W64 attempt also timed out after21,600.632 seconds, at10:42:27 UTC. Last completed progress was checkpoint59, t=2.36, with663 parameters; checkpoint60 at t=2.40 had started. The case receipt is `failed`, exit124, reason `case_deadline_21600s`. Outer driver exit0 only records successful preservation of that failure.
+
+The inner guard sampled4,952 MB and the outer guard4,980 MB, below their12,000/13,000 MB limits. No owned trajectory/driver processes remained at reconciliation; its13GB reservation is released. Independent verification passed all842 frozen source hashes and exact membership, plan/case/authorization bindings and the four recorded artifact hashes. There is no `run.json`, `measurement.json` or resumable checkpoint, so no success reporter or post-run physics/resource calculation was invoked.
+
+**All seven new-selector t20 attempts are now terminal timeouts; zero new-selector t20 results completed.** The remote W256 and local W64 attempts differ in platform and budget; timeout progress does not establish a controlled speed ratio or a winning selector. No further scientific attempt, threshold change, acceptance-floor change or remote upload occurred.
+
+The next-step and approval assessment recorded at this timeout was superseded by the corrected regression section above. Its original text is preserved in the [pre-update campaign snapshot](../../output/paper_ii_protocol_regression_audit_20260909_671b4963/state_update_01/paper-ii-selector-campaign.before.md). Compiler worker reuse is qualified locally, and the future output-remap correction passed19 checks. The [checkpoint callback proposal](../../output/paper_ii_t20_exploratory_20260909_07bc223e/returned_w256_attempt01/checkpoint_persistence_proposal_01.md) remains unimplemented; interruption/resume parity is required only before relying on that proposed recovery capability.
+
+[Verified local timeout receipt](../../output/paper_ii_t20_local_w64_20260909_07bc223e/terminal_timeout_reconciliation_01.json) · [Current overnight status](../../output/paper_ii_t20_exploratory_20260909_07bc223e/status.md)
+
+## First overnight t20 tranche: six trajectory timeouts (2026-09-09 UTC)
+
+All six weak-fast W256 attempts in cluster `9887737.0–5` ended normally with exit code1 at the worker deadline, about21,540 seconds. Verified `failure.json` records classify every attempt as `TIMED_OUT` in `trajectory`; this was neither a completed t20 result nor a reporting-stage failure.
+
+| Search | Gain | Last completed log time | Parameters | Outcome |
+|---|---|---:|---:|---|
+| greedy | joint_batch | 0.84 | 272 | trajectory timeout |
+| greedy | singleton_factorized | 0.96 | 310 | trajectory timeout |
+| block_exchange | joint_batch | 0.96 | 310 | trajectory timeout |
+| block_exchange | singleton_factorized | 0.92 | 298 | trajectory timeout |
+| bounded_exhaustive | joint_batch | 1.04 | 336 | trajectory timeout |
+| bounded_exhaustive | singleton_factorized | 0.96 | 310 | trajectory timeout |
+
+The six archives and receipts plus18 scheduler files were recovered and downloaded. Archive hashes, manifest/attempt identities, inventories and settings passed ingestion; the independent audit passed342 checks. Scheduler sampled memory was1,169–1,390 MB against12,000 MB requested, with no memory-kill, hold or eviction evidence. Only progress and failure records survived: there is no trajectory JSON, resumable checkpoint, complete work ledger, physical-error report or terminal compiled cost. Progress is not a substitute for those artifacts.
+
+An output-path defect returned the archive/receipt basenames into the submit directory instead of the configured staging directory. The files were recovered intact. The descriptor uses `archives/...` on the left of `transfer_output_remaps`, although explicitly transferred output paths are flattened to basenames by default. This location defect did not cause the trajectory timeouts. A separate, local-only future-helper correction passed19 checks and independent review; all112 protected files and the pending W64 upload archive are unchanged. Actual endpoint transport verification is still pending. [Transport correction and validation](../../output/paper_ii_t20_exploratory_20260909_07bc223e/preparation_worker_transport_fix_01/README.md).
+
+At 10:27 UTC, the separate macOS W64 attempt remained active at last completed log time t=2.32, 650 parameters, entering t=2.36; its deadline is approximately10:42 UTC. Across the seven actual attempts, zero t20 results have completed. There are no additional remote submissions.
+
+The short-prefix compiler-dominance and narrow generator-coverage findings remain separate evidence. These timeouts do not provide complete phase timing or establish how much ansatz growth the single verified duplicate-ridge mechanism caused. Do not rank the search methods using their timeout progress or silently change scientific acceptance to obtain a completion.
+
+[Verified aggregate](../../output/paper_ii_t20_exploratory_20260909_07bc223e/returned_w256_attempt01/comparison_01.json) · [Independent findings](../../output/paper_ii_t20_exploratory_20260909_07bc223e/returned_w256_attempt01/independent_audit_01/findings.md)
+
+
+### Recovery implementation and launch update (2026-09-09)
+
+Deletion discovery is bounded in commit `2c00f5a4` (99 focused tests). Independent execution windows are committed in `2f5d8271` (174 focused cases; exact HH prefix science/work parity). The observed 260.12-to-245.18-second prefix comparison is a single timing observation, not a broad speedup claim. Ridge, thresholds, conditioning and certification were preserved.
+
+A full local t20/501 greedy joint A1/D15% baseline remains active at immutable source `2c00f5a4`, W50000, scoring4/compile8. At this update it completed t=0.2 with38coordinates and started t=0.24. The budget bound is active at some decisions. No t20 completion is yet available.
+
+The separate W10000 t=.16 diagnostic completed successfully in752.85seconds. All74 saved checks passed: first four committed patches, compiled word hashes and marginal costs, gains/scores, and early theta/integration agree with the W50000 reference. Later trajectory choices can differ when the budget binds. Evidence: `output/paper_ii_execution_window_w10000_t016_20260909_8a76ccac/comparison_01.json`.
+
+The user explicitly approved W10000 for the first CHTC tranche. The clean packaging branch `codex/paper-ii-t20-package-20260909` now binds fresh locks at source `339a1d05`; runner files remain byte-identical to reviewed `2f5d8271`. Both the worker-smoke and six-actiont20 packages pass local manifest/source/all-action/lifecycle/shell checks. Their receipts and next commands are in that checkout's `output/paper_ii_w10000_package_build_20260909/READY.md`. W50000 packages are preserved. Both W10000 packages are uploaded and verified. Single worker smoke `10024094.0` is submitted. The six science actions remain unsubmitted pending the user-requested performance audit.
+
+All subagent work has stopped at the user's request. The existing15-minute monitor was updated for direct execution by this task, the approved W10000 settings, single-worker smoke, six-action submission, receipt-addressed collection and exact-reference scoring. Its authority is the linked recovery continuation state.
+
 ## Staged CHTC comparison and longer horizons (2026-09-08)
 
 The user selected a two-stage campaign: run the complete CHTC matrix first,
@@ -270,6 +344,43 @@ improvement margin. No tolerance was proposed or adopted by this audit.
 The last adaptation L2 remains149.2607,149.2194 and148.8915 times the common
 3e-6 cut. Numerical attribution and the cause of long-run support growth
 remain unresolved; no high-precision or direct-Schur recomputation was done.
+
+### Actual duplicate insertion arithmetic (2026-09-09 UTC)
+
+A later [reconstruction and 80-digit calculation](../../output/paper_ii_t20_budget16_prefix_local_20260909_07bc223e/ridge_duplicate_diagnostic_01/findings.md),
+with [independent review](../../output/paper_ii_t20_budget16_prefix_local_20260909_07bc223e/ridge_duplicate_diagnostic_01/independent_review.json),
+resolves the arithmetic attribution for **one** earlier W16 pure insertion.
+At checkpoint 1, t=0.04, selector call 3, the accepted coefficient -0.5
+`eeeexy` insertion at cut 28 duplicates the existing coordinate 28.
+The identical rotations are adjacent; their projected tangents coincide
+algebraically and are bit-identical in the reconstruction. The **exact tangent
+span gain is zero**.
+
+Nevertheless, the actual double Gram/force lifted exactly into Decimal80 gives
+positive normalized realized gain **2.1433523850240010e-13**. Consistent Decimal80
+dot products from the stored double vectors give **2.1433523849943650e-13**;
+an independent mapped-velocity gain identity agrees at high precision.
+Splitting one physical coefficient across two identical coordinates reduces
+its coordinate-based ridge penalty, permitting a positive raw-Q improvement
+without adding span. Floating-point subtraction alone does not explain this case.
+
+The reconstructed actual double solve differs from the archived gain by
+**one q ULP (1.1102230246251565e-16)**; original unsaved Gram bytes were not
+recovered. The exact-duplicate lift reproduces the archived gain exactly.
+All source ridge modes survive: **31/31 before and 32/32 after**, with minimum
+ridge eigenvalue approximately 1e-6 above the respective 2.74e-10 and 2.99e-10
+cutoffs. Thus the Decimal ridge solve respects the full source mode selection
+for this case. Stored state/tangent vectors remain double precision; this is
+not arbitrary-precision state preparation or evidence of general lambda-squared
+scaling.
+
+This result supersedes the earlier unresolved arithmetic attribution **only
+for this insertion**. It does not explain all tiny gains or long-run support
+growth, and redundancy against current support cannot justify excluding an
+exchange conditioned on retained support. No policy, threshold, regularization
+or production source was changed. As of 07:23 UTC, all seven existing t20
+attempts remained unchanged and none had completed; the remote W64 upload and
+operator-interleaving questions still awaited replies.
 
 ## Production compiler-session validation (2026-09-09 UTC)
 
