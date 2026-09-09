@@ -108,6 +108,23 @@ def test_six_modes_use_real_complete_patch_pricing_and_account_acquisition(
     assert selection.certification is not None and selection.certification.certified
     assert payload["committed"]["compiled_cost_marginal"] is not None
     assert len(payload["committed"]["compiled_patch_word_sha256"]) == 64
+    successful = selection.attempts[-1]
+    committed = payload["committed"]
+    assert committed["score"] == successful.route_score
+    assert committed["cost_factor_k"] == successful.cost_factor_k
+    assert committed["route_merit"] == successful.route_merit
+    for reported, attempt in zip(payload["attempts"], selection.attempts[-16:]):
+        assert reported["score"] == attempt.route_score
+        assert "route_score" not in reported
+        assert "legacy_utility" not in reported
+    # The successful attempt's merit is the sealed selection merit, which may
+    # differ from the jointly validated delta recorded on the committed patch.
+    assert any(
+        row["score"] == committed["score"]
+        and row["K"] == committed["cost_factor_k"]
+        and row["merit"] == committed["route_merit"]
+        for level in route["levels"] for row in level["ranked"]
+    )
 
     work = payload["estimator_work"]
     selection_pairs = validation_pairs = 0

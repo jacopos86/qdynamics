@@ -13,6 +13,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     CertificationGates,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
+    AttemptRecord,
     RankInfo,
     RankedLevel,
     candidate_insertions,
@@ -605,6 +606,11 @@ def test_factorized_finalists_validate_joint_geometry_without_reranking(monkeypa
     assert failed["logical_total_estimator_entries"] == 0  # frozen work belongs to cache receipt
     assert selection.committed is not None
     assert not selection.committed.joint_validation_required
+    for index, attempt in enumerate(selection.attempts):
+        reported = attempt.to_json_dict(compiled_score=True)
+        assert reported["score"] == 100 - index
+        assert reported["score"] != attempt.score
+        assert "route_score" not in reported
 
 
 @pytest.mark.parametrize("failure", ["resolution", "word_identity"])
@@ -612,11 +618,22 @@ def test_unvalidated_factorized_failure_does_not_write_deletion_history(monkeypa
     from pipelines.time_dynamics.ap_mclachlan.exchange_config import resolve_route_bundle
     from pipelines.time_dynamics.ap_mclachlan.patch_evaluation import CandidateCostInputs, PatchEvaluator
     from pipelines.time_dynamics.ap_mclachlan import exchange_selector
+    from pipelines.time_dynamics.ap_mclachlan.search_methods import runtime as search_runtime
+
+    # This three-coordinate fixture isolates failure reporting. The live 15%
+    # bound would close its deletion face before the failure under test.
+    original_problem = search_runtime.PatchProblem
+    monkeypatch.setattr(
+        search_runtime, "PatchProblem",
+        lambda **fields: original_problem(**{**fields, "max_deletion_batch_fraction": None}),
+    )
 
     def rank(candidates):
+        ordered = tuple(c for c in candidates if c.removed_runtime_indices and len(c.inserted_selection) == 2)
         return RankedLevel(
-            ordered=tuple(c for c in candidates if c.removed_runtime_indices and len(c.inserted_selection) == 2),
-            rank_info={}, telemetry={},
+            ordered=ordered,
+            rank_info={c.order_key: RankInfo(K=0.8, score=0.25, merit=0.2) for c in ordered},
+            telemetry={},
         )
 
     def unexpected_validation(*_args):
@@ -641,3 +658,28 @@ def test_unvalidated_factorized_failure_does_not_write_deletion_history(monkeypa
     assert selection.attempts
     assert all(attempt.deletion_loss is None for attempt in selection.attempts)
     assert selection.certification_work == ()
+    for attempt in selection.attempts:
+        reported = attempt.to_json_dict(compiled_score=True)
+        assert reported["score"] == 0.25
+        assert reported["cost_factor_k"] == 0.8
+        assert reported["route_merit"] == 0.2
+        assert "route_score" not in reported
+
+
+@pytest.mark.parametrize("sealed_score", [None, 0.0, 0.00025])
+def test_compiled_attempt_serialization_never_substitutes_legacy_utility(sealed_score):
+    attempt = AttemptRecord(
+        family="bounded_exhaustive", kind="delete", score=3.1486e13,
+        removed_runtime_indices=(23,), inserted_selection=(), reason="recorded",
+        route_score=sealed_score,
+    )
+    historical = attempt.to_json_dict()
+    assert historical["score"] == 3.1486e13
+    assert historical["route_score"] == sealed_score
+    compiled = attempt.to_json_dict(compiled_score=True)
+    assert compiled["score"] == sealed_score
+    assert "route_score" not in compiled
+    assert "legacy_utility" not in compiled
+    assert {k: v for k, v in historical.items() if k not in {"score", "route_score"}} == {
+        k: v for k, v in compiled.items() if k != "score"
+    }

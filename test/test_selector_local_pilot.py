@@ -158,10 +158,16 @@ def test_round_coverage_ledger_matches_actual_small_trajectory_calls(monkeypatch
         assert call["work_guard"] == actual["work_guard"]
         assert call["compile_guard"] == route["compile_guard"]
         assert call["committed"] == actual.get("committed")
+        if actual.get("committed"):
+            assert call["committed"]["score"] == actual["attempts"][-1]["score"]
+            assert call["committed"]["cost_factor_k"] == actual["attempts"][-1]["cost_factor_k"]
+            assert "route_score" not in actual["attempts"][-1]
         for receipt in call["search_receipts"]:
             assert sum(row["count"] for row in receipt["coverage"]["evaluated_patches_by_cardinality"]) == receipt["evaluated_patch_count"]
     summary = pilot.search_coverage(payload)
     assert len(summary["decisions"]) == len(rows)
+    for reported, (_time, actual) in zip(summary["decisions"], captured):
+        assert reported["committed"] == actual.get("committed")
 
 
 def test_exact_reference_and_terminal_cost_are_acquired_only_by_successful_run_reporting(monkeypatch, tmp_path):

@@ -185,6 +185,7 @@ class SupportPatchControllerConfig:
     interaction_frontier_widths: tuple[int, ...] | None = None
     search_policy: str = "family_frontiers"
     gain_evaluation: str = "joint_batch"
+    patch_rung_schedule: str = "interleaved"
     max_insertion_batch_size: int = 1
     # Explicit enumeration policy; None preserves unrestricted deletion sets.
     max_deletion_batch_size: int | None = None
@@ -281,6 +282,7 @@ class SupportPatchControllerConfig:
         validate_search_policy(
             self.search_policy,
             gain_evaluation=self.gain_evaluation,
+            patch_rung_schedule=self.patch_rung_schedule,
             bundle=resolve_route_bundle(str(self.exchange_route_bundle)),
             dynamics_policy=self.dynamics_policy,
             interaction_frontier_widths=self.interaction_frontier_widths,
@@ -516,6 +518,8 @@ class SupportPatchControllerConfig:
         if (self.search_policy, self.gain_evaluation) != ("family_frontiers", "joint_batch"):
             payload["search_policy"] = self.search_policy
             payload["gain_evaluation"] = self.gain_evaluation
+        if self.patch_rung_schedule != "interleaved":
+            payload["patch_rung_schedule"] = self.patch_rung_schedule
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
         )

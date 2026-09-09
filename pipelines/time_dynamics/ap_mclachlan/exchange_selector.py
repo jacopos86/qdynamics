@@ -67,11 +67,17 @@ class AttemptRecord:
     placement_cuts: tuple[tuple[str, int], ...] | None = None
     patch_word_sha256: str | None = None
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self, *, compiled_score: bool = False) -> dict[str, Any]:
+        """Serialize the score that ordered certification on the active route.
+
+        A missing compiled score remains null; legacy utility is never its
+        substitute. The historical serialization is unchanged by default.
+        """
+
         return {
             "family": self.family,
             "kind": self.kind,
-            "score": float(self.score),
+            "score": self.route_score if compiled_score else float(self.score),
             "removed_runtime_indices": [int(i) for i in self.removed_runtime_indices],
             "inserted_selection": [
                 [str(a), int(p)] for a, p in self.inserted_selection
@@ -81,7 +87,7 @@ class AttemptRecord:
             "smoothness_eta": self.smoothness_eta,
             "deletion_loss": self.deletion_loss,
             "cost_factor_k": self.cost_factor_k,
-            "route_score": self.route_score,
+            **({} if compiled_score else {"route_score": self.route_score}),
             "route_merit": self.route_merit,
             "cost_marginal": (
                 None if self.cost_marginal is None else list(self.cost_marginal)
@@ -394,6 +400,9 @@ def select_exchange_patch(
                         deletion_loss=float(candidate.deletion_loss)
                         if candidate.removed_runtime_indices and not candidate.joint_validation_required
                         else None,
+                        cost_factor_k=None if info is None else float(info.K),
+                        route_score=None if info is None else float(info.score),
+                        route_merit=None if info is None else float(info.merit),
                     )
                 )
                 continue
@@ -414,6 +423,9 @@ def select_exchange_patch(
                             if candidate.removed_runtime_indices and not candidate.joint_validation_required
                             else None
                         ),
+                        cost_factor_k=None if info is None else float(info.K),
+                        route_score=None if info is None else float(info.score),
+                        route_merit=None if info is None else float(info.merit),
                         cost_marginal=candidate.cost_marginal,
                         placement_cuts=candidate.placement_cuts,
                         patch_word_sha256=candidate.patch_word_sha256,

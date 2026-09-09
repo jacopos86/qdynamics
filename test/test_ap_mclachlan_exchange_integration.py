@@ -626,7 +626,12 @@ def test_q_and_gamma_compiled_bundles_share_population_and_cost_map() -> None:
         assert payload["cost_normalization"] == "compiled_marrakesh_population_v1"
         for attempt in payload["attempts"]:
             assert attempt["cost_factor_k"] is not None and attempt["cost_factor_k"] > 0.0
-            assert attempt["route_score"] is not None
+            assert attempt["score"] is not None
+            assert "route_score" not in attempt
+        successful = payload["attempts"][-1]
+        assert payload["committed"]["score"] == successful["score"]
+        assert payload["committed"]["cost_factor_k"] == successful["cost_factor_k"]
+        assert payload["committed"]["route_merit"] == successful["route_merit"]
     # Identical prefilter population and K map: only the ordinate differs.
     q_level, g_level = q_payload["selector_route"]["levels"][0], g_payload["selector_route"]["levels"][0]
     assert q_level["population_sha256"] == g_level["population_sha256"]
@@ -1036,3 +1041,23 @@ def test_gamma_rejection_is_shared_by_q_and_gamma_compiled_populations() -> None
     ]
     assert q_level.telemetry["ordinate_rejections"] == expected_rejection
     assert gamma_level.telemetry["ordinate_rejections"] == expected_rejection
+
+
+@pytest.mark.parametrize("missing_field", ["route_score", "cost_factor_k", "route_merit"])
+def test_compiled_commit_cannot_report_utility_when_sealed_record_is_missing(monkeypatch, missing_field):
+    from dataclasses import replace
+    from pipelines.time_dynamics.ap_mclachlan import exchange_integration as integration
+
+    original = integration.select_exchange_patch
+
+    def omit_sealed_value(**kwargs):
+        selection = original(**kwargs)
+        assert selection.committed is not None
+        selection.attempts = (
+            *selection.attempts[:-1], replace(selection.attempts[-1], **{missing_field: None}),
+        )
+        return selection
+
+    monkeypatch.setattr(integration, "select_exchange_patch", omit_sealed_value)
+    with pytest.raises(AssertionError, match="compiled commit is missing its sealed ranking record"):
+        _route_payload("paper_ii_exchange_q_compiled_v1")

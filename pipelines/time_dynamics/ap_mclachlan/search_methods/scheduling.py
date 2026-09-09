@@ -14,6 +14,10 @@ if TYPE_CHECKING:
 
 
 SCHEDULE_ID = "cardinality_rung_round_robin_v1"
+SCHEDULE_IDS = {
+    "interleaved": SCHEDULE_ID,
+    "ascending": "ascending_max_cardinality_tiers_v1",
+}
 PATCHES_PER_TURN = 1
 # A settled block neighborhood is waiting for new evidence, not rejected.
 NEIGHBORHOOD_SETTLED = "neighborhood_settled"
@@ -51,9 +55,17 @@ def schedule_rungs(
     deletion_rungs: Iterable[tuple[int, Iterator[tuple[int, ...]]]],
     search_branch: Callable[[tuple[int, ...]], Generator],
 ) -> None:
-    """Give each live ``(deletion size, insertion size)`` one patch turn.
+    r"""Give each live ``(deletion size, insertion size)`` one patch turn.
 
-    Rungs use increasing total cardinality, then increasing imbalance, then
+    Ascending mode selects the smallest runnable tier
+    :math:`t(D,A)=\max(1,|D|,|A|)`, including deletion discovery at tier
+    :math:`\max(1,|D|)`. Tier one therefore contains pure singleton edits and
+    one-delete/one-add exchanges. A logical request stays pending across tiers;
+    only its complete result resumes the search branch. Later moves or newly
+    awakened branches can expose lower-tier work, which regains priority before
+    another higher-tier turn. Tiers are priorities, not irreversible phases.
+
+    In the default interleaved mode, rungs use increasing total cardinality, then increasing imbalance, then
     deletion size. Branch cursors rotate FIFO within a rung. Each sweep opens
     at most one new deletion-cardinality iterator and inspects at most one
     deletion set from each open iterator; a refused set yields control without
@@ -70,6 +82,7 @@ def schedule_rungs(
     with the session's completed prefix intact.
     """
 
+    ascending = session.patch_rung_schedule == "ascending"
     rung_source = iter(deletion_rungs)
     discovery: dict[int, Iterator[tuple[int, ...]]] = {}
     discovery_finished = False
@@ -118,7 +131,15 @@ def schedule_rungs(
             else:
                 settled.append((branch, version))
 
-        live = set(queues) | {(size, 0) for size in discovery}
+        # Discovery cannot advance without a structural slot. In ascending
+        # mode its dormant lower tiers must not mask queued cached work or the
+        # next complete patch's budget refusal in a higher tier.
+        live = set(queues)
+        if session.guard.remaining != 0:
+            live.update((size, 0) for size in discovery)
+        active_tier = min((max(1, *key) for key in live), default=1)
+        if ascending:
+            live = {key for key in live if max(1, *key) == active_tier}
         for key in sorted(live, key=lambda pair: (sum(pair), abs(pair[0] - pair[1]), pair[0])):
             size, insertion_size = key
             if size > 0 and size in discovery and session.deletion_discovery_remaining == 0:
@@ -150,6 +171,13 @@ def schedule_rungs(
                 queue.append(cursor)
             if not queue:
                 queues.pop(key, None)
+            if ascending and (
+                any(max(1, *ready) < active_tier for ready in queues)
+                or any(version < len(session.evidence) for _branch, version in settled)
+            ):
+                # Recompute priorities after a move or evidence growth. A
+                # waiting block can reveal smaller patches on its next wake.
+                break
 
         if queues or any(version < len(session.evidence) for _branch, version in settled):
             continue
@@ -162,5 +190,5 @@ def schedule_rungs(
 
 __all__ = [
     "PatchRequest", "schedule_rungs", "NEIGHBORHOOD_SETTLED",
-    "SCHEDULE_ID", "PATCHES_PER_TURN",
+    "SCHEDULE_ID", "SCHEDULE_IDS", "PATCHES_PER_TURN",
 ]

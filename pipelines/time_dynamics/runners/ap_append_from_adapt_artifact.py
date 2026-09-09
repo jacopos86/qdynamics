@@ -35,6 +35,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
     APGeneralizedExchangeConfig,
     SEARCH_POLICIES,
     GAIN_EVALUATIONS,
+    PATCH_RUNG_SCHEDULES,
 )
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
     DriveAlignedAugmentation,
@@ -242,6 +243,8 @@ def run_append_ap_mclachlan_from_runtime_input(
             "search_policy": exchange_config.search.search_policy,
             "gain_evaluation": exchange_config.search.gain_evaluation,
         }
+    if exchange_config.search.patch_rung_schedule != "interleaved":
+        search_axes["patch_rung_schedule"] = exchange_config.search.patch_rung_schedule
     candidate_pool_contract = build_candidate_pool_contract(
         state,
         support_config=effective_support_patch_config,
@@ -1979,6 +1982,16 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--patch-rung-schedule",
+        choices=PATCH_RUNG_SCHEDULES,
+        default="interleaved",
+        help=(
+            "Experimental-search scheduling: interleaved rotates all cardinalities; "
+            "ascending exhausts runnable max(deletions, insertions) tiers in order, "
+            "returning to smaller tiers when a later search move exposes them."
+        ),
+    )
+    parser.add_argument(
         "--gain-evaluation",
         choices=GAIN_EVALUATIONS,
         default="joint_batch",
@@ -2351,6 +2364,7 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
         exchange_route_bundle=str(args.exchange_route_bundle),
         search_policy=args.search_policy,
         gain_evaluation=args.gain_evaluation,
+        patch_rung_schedule=args.patch_rung_schedule,
         maintenance_loss_tolerance=(
             None
             if args.maintenance_loss_tolerance is None
@@ -2672,6 +2686,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
                 "patch_utility_delta_weight": float(args.patch_utility_delta_weight),
                 "structural_score_floor": float(args.structural_score_floor),
+                **(
+                    {"patch_rung_schedule": args.patch_rung_schedule}
+                    if args.patch_rung_schedule != "interleaved" else {}
+                ),
                 "max_joint_patch_evaluations": (
                     None
                     if args.max_joint_patch_evaluations is None

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Iterable, Sequence
 
 from ..deletion_family import JointWorkGuard
+from ..exchange_config import PATCH_RUNG_SCHEDULES
 from ..patch_enumeration import Patch
 from ..patch_evaluation import PatchEvaluator, StructuralCandidate
 from .problem import PatchProblem, patch_identity
@@ -26,6 +27,11 @@ class SearchLimits:
 
     joint_patch_evaluations: int | None = None
     compiled_patches_per_checkpoint: int | None = None
+    patch_rung_schedule: str = "interleaved"
+
+    def __post_init__(self) -> None:
+        if self.patch_rung_schedule not in PATCH_RUNG_SCHEDULES:
+            raise ValueError(f"patch_rung_schedule must be one of {PATCH_RUNG_SCHEDULES!r}")
 
 
 class SearchBudgetExhausted(RuntimeError):
@@ -110,6 +116,7 @@ class SearchSession:
         self.problem = problem
         self.evaluator = evaluate
         self.ranker = rank
+        self.patch_rung_schedule = budget.patch_rung_schedule
         self.guard = JointWorkGuard(budget.joint_patch_evaluations)
         self.compile_guard = JointWorkGuard(budget.compiled_patches_per_checkpoint)
         self.evidence: dict[tuple, StructuralCandidate] = {}

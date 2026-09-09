@@ -58,6 +58,80 @@ stability persist. Preserve the full first-stage results and record the
 shortlist rationale before launching its follow-up. This staging does not
 change scientific defaults or adopt results into Paper II.
 
+## Ascending trial and state-motion campaign settings (2026-09-08)
+
+The user approved an **optional ascending scheduler trial**. Define the tier
+of a complete patch by
+
+\[
+t(D,A)=\max\{1,|D|,|A|\}.
+\]
+
+Tier one contains stay, pure singleton insertions/deletions, and D1/A1
+exchanges. Finish all currently runnable tier-one work before tier two,
+which contains patches with up to two deletions and two additions. Continue
+in ascending tiers subject to the existing domain and work limits. Within
+the active tier, retain interleaving between patch types and deletion
+branches. Newly exposed lower-tier work after a greedy/block move or a
+settled-branch wake regains priority. Logical requests remain complete before
+the search takes its next move; tier order is a priority, not a claim that
+no lower-tier candidate can ever be exposed later.
+
+Declare `--patch-rung-schedule ascending` for this trial; preserve explicit
+`interleaved` controls and the existing default. Ascending affects discovery
+and evaluation ordering, so it can change candidate coverage, population
+normalization snapshots, and trajectories. It does not change the score,
+conditioning, joint/factorized definitions, permission, compilation, or
+certification. Every completed evaluation remains available when a budget
+ends partway through a tier. Report tiers never reached; batched permission
+does not imply batched evaluation at a small budget.
+
+Next local validation: 24 ascending HH trajectories (three searches, two
+gain modes, A1/D1 versus A4 with the 15% deletion bound, budgets 256/1024),
+plus six interleaved batch controls at budget 256. Reuse the previous HH
+probe's seed, physical/compiler/safeguard settings, weak-fast drive and
+t=0..0.5, 13 points. Use a fresh source/plan lock. These are **30 diagnostic
+runs**, separate from the 72 scientific cells. Run sequentially with a
+12,000 MB per-case guard rather than inheriting the old 3,000 MB limit.
+
+For the later scientific matrix, the user selected Paper II's **state-motion
+controller**. Use the existing reported controller settings and insertion
+activation thresholds as starting values, fixed across all selector variants
+within each drive:
+
+| Drive | (amplitude, frequency) | Insertion L2 threshold | Controller |
+|---|---|---:|---|
+| weak-fast / `fastweak` | (0.6, 3) | 3e-6 | `state_motion_5e-5` |
+| strong-slow / `slowstrong` | (1.2, 1) | 5.080526342527e-12 | `state_motion_5e-5` |
+| strong-fast / `strongfast` | (2.4, 3) | 3e-6 | `state_motion_5e-5_sub15` |
+
+Numerics: Euler, ridge 1e-6, pseudoinverse cutoff 1e-10, zero damping;
+state-motion cap 5e-5, parameter kink guard 5e-3, subdivision limit 11
+except strong-fast's 15. Retain pre-permission ray bound 2e-3, normalized
+reverse-Schur loss threshold 1e-3, post-refit ray bound 2e-3, velocity
+continuity threshold 1e-3 and maintenance allowance 1e-3. Retain the HH seed
+`chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json` (SHA256
+`7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91`),
+complete 125-word pool, FakeMarrakesh opt1/seed7/structural-angle1 and compiled
+resource weights (0.30, 0.30, 0.25). Do not infer faster execution from the
+controller choice; measure it, especially at the tight strong-slow cut.
+
+Threshold provenance: `pipelines/time_dynamics/campaigns/`
+`paper_ii_corrected_exchange_cells_v1.json`, SHA256
+`4705aaf2c36e9e0c8176f7b6c6688a04420898eb22933a71c44b350ff5c892b1`,
+and `paper_ii_corrected_exchange_strongfast_state_motion_sub15_cells_v1.json`,
+SHA256 `fbafd400623d776813c49b28f469416a3757960e2d889fc6fc4312248136cad9`.
+These agree with the active manuscript's reported settings. They are distinct
+from the local RK4 diagnostic settings and its 1e-3 insertion cut.
+
+Reuse existing execution, receipt, calibration and reporting components with
+a variant-aware manifest. The older staged campaign's `CellKey` omits the
+search/gain/batching/budget axes and its automatic per-cell threshold tuning
+would violate this comparison. Do not inherit that identity, tuning or the
+legacy frontier route. Scientific horizon, two workload-calibrated budgets,
+final scheduler choice, exact worker envelope and source-bound submission
+manifest still require completion of the local and worker validation gates.
+
 ## Ansatz-relative deletion discovery (2026-09-08)
 
 The next local validation and campaign use the user-approved maximum deletion
@@ -87,7 +161,8 @@ Budget and permission caches reset for each new frozen search. Every complete
 D still receives its own permission: singleton Schur failures do not filter
 the batch universe.
 
-Keep the existing interleaved cardinality schedule. Discovery exhaustion stops
+The original deletion-discovery revision kept the interleaved schedule; the
+optional ascending trial above changes ordering explicitly. Discovery exhaustion stops
 only new deletion batches, including partway through any rung. Existing pure
 insertion and approved deletion/exchange branches retain their queues and
 completed evidence, subject to the remaining evaluation and compilation

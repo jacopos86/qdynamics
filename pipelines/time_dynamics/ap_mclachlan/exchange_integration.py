@@ -1248,6 +1248,8 @@ def build_selector_inputs(
         ),
     )
 
+    if exchange_config.search.search_policy != "family_frontiers":
+        structural_kwargs["patch_rung_schedule"] = exchange_config.search.patch_rung_schedule
     route = exchange_config.route
     bundle = route.bundle
     cost_runtime = compiled_cost_runtime
@@ -1730,7 +1732,10 @@ def select_generalized_exchange_patch(
         "stop_reason": selection.stop_reason,
         "attempt_count": len(selection.attempts),
         "structural_scored_count": int(selection.structural_scored_count),
-        "attempts": [a.to_json_dict() for a in selection.attempts[-16:]],
+        "attempts": [
+            a.to_json_dict(compiled_score=bundle.needs_compiled_cost)
+            for a in selection.attempts[-16:]
+        ],
         "estimator_work": estimator_work,
         "cost_normalization": (
             "per_candidate_raw_v1" if bundle.is_historical else bundle.cost_model_id
@@ -1799,6 +1804,25 @@ def select_generalized_exchange_patch(
                 for a, c in selection.telemetry.exchange_frontier
             ]
     if selection.committed is not None:
+        committed_rank = {"score": float(selection.committed.score)}
+        if bundle.needs_compiled_cost:
+            # The successful attempt retains the score that ordered this
+            # finalist, including when joint validation changed its geometry.
+            attempt = selection.attempts[-1] if selection.attempts else None
+            if (
+                attempt is None
+                or attempt.removed_runtime_indices != selection.committed.removed_runtime_indices
+                or attempt.inserted_selection != selection.committed.inserted_selection
+                or attempt.route_score is None
+                or attempt.cost_factor_k is None
+                or attempt.route_merit is None
+            ):
+                raise AssertionError("compiled commit is missing its sealed ranking record")
+            committed_rank = {
+                "score": float(attempt.route_score),
+                "cost_factor_k": float(attempt.cost_factor_k),
+                "route_merit": float(attempt.route_merit),
+            }
         payload["committed"] = {
             "removed_runtime_indices": [
                 int(i) for i in selection.committed.removed_runtime_indices
@@ -1808,7 +1832,7 @@ def select_generalized_exchange_patch(
                 for a, p in selection.committed.inserted_selection
             ],
             "family": selection.committed.family,
-            "score": float(selection.committed.score),
+            **committed_rank,
             "q": float(selection.committed.q),
             "insertion_gain": float(selection.committed.insertion_gain),
             "deletion_loss": float(selection.committed.deletion_loss),

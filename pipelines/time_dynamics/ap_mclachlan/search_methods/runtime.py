@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping
 from ..exchange_structural import StructuralEnumeration
 from ..patch_evaluation import PatchEvaluator
 from .problem import PatchProblem
-from .scheduling import PATCHES_PER_TURN, SCHEDULE_ID
+from .scheduling import PATCHES_PER_TURN, SCHEDULE_IDS
 from .session import SearchLimits, SearchResult
 
 
@@ -57,7 +57,8 @@ class PatchSearch:
             "schema": "paper_ii_patch_search_v1",
             "search_policy": self.policy,
             "admission_policy": "incremental_complete_patch_v1",
-            "rung_schedule": SCHEDULE_ID,
+            "rung_schedule": SCHEDULE_IDS[self.limits.patch_rung_schedule],
+            "patch_rung_schedule": self.limits.patch_rung_schedule,
             "patches_per_rung_turn": PATCHES_PER_TURN,
             "gain_evaluation": self.evaluator.gain_evaluation,
             **self.result.receipt(),
@@ -116,6 +117,7 @@ def prepare_patch_search(
         limits=SearchLimits(
             joint_patch_evaluations=structural_kwargs.get("max_joint_patch_evaluations"),
             compiled_patches_per_checkpoint=structural_kwargs.get("max_compiled_patches_per_checkpoint"),
+            patch_rung_schedule=structural_kwargs.get("patch_rung_schedule", "interleaved"),
         ),
     )
 

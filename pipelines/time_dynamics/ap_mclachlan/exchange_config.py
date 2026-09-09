@@ -32,6 +32,7 @@ EXCHANGE_ROUTE_BUNDLE_GAMMA_COMPILED = "paper_ii_exchange_gamma_compiled_v1"
 
 SEARCH_POLICIES = ("family_frontiers", "greedy", "block_exchange", "bounded_exhaustive")
 GAIN_EVALUATIONS = ("joint_batch", "singleton_factorized")
+PATCH_RUNG_SCHEDULES = ("interleaved", "ascending")
 
 OBJECTIVE_LEGACY_COMPOSITE = "legacy_composite_utility_v2"
 OBJECTIVE_REALIZED_Q = "realized_captured_drift_q_v1"
@@ -191,6 +192,7 @@ def validate_search_policy(
     policy: str,
     *,
     gain_evaluation: str = "joint_batch",
+    patch_rung_schedule: str = "interleaved",
     bundle: ExchangeRouteBundle | None = None,
     dynamics_policy: str = "exchange",
     interaction_frontier_widths: tuple[int, ...] | None = None,
@@ -202,6 +204,10 @@ def validate_search_policy(
         raise ValueError(f"search_policy must be one of {SEARCH_POLICIES!r}.")
     if gain_evaluation not in GAIN_EVALUATIONS:
         raise ValueError(f"gain_evaluation must be one of {GAIN_EVALUATIONS!r}.")
+    if patch_rung_schedule not in PATCH_RUNG_SCHEDULES:
+        raise ValueError(f"patch_rung_schedule must be one of {PATCH_RUNG_SCHEDULES!r}.")
+    if policy == "family_frontiers" and patch_rung_schedule != "interleaved":
+        raise ValueError("ascending patch_rung_schedule requires an experimental search policy.")
     if gain_evaluation == "singleton_factorized":
         if policy == "family_frontiers":
             raise ValueError("singleton_factorized is unsupported by family_frontiers.")
@@ -303,6 +309,7 @@ class ExchangeSearchBudget:
     search_policy: str = "family_frontiers"
     gain_evaluation: str = "joint_batch"
     deletion_cardinality: int | None = None
+    patch_rung_schedule: str = "interleaved"
 
     def __post_init__(self) -> None:
         if self.deletion_cardinality is not None and (
@@ -314,6 +321,7 @@ class ExchangeSearchBudget:
         validate_search_policy(
             self.search_policy,
             gain_evaluation=self.gain_evaluation,
+            patch_rung_schedule=self.patch_rung_schedule,
             interaction_frontier_widths=self.interaction_frontier_widths,
             exchange_insertion_frontier=self.exchange_insertion_frontier,
         )
@@ -333,6 +341,7 @@ class APGeneralizedExchangeConfig:
         validate_search_policy(
             self.search.search_policy,
             gain_evaluation=self.search.gain_evaluation,
+            patch_rung_schedule=self.search.patch_rung_schedule,
             bundle=self.route.bundle,
         )
 
@@ -346,6 +355,8 @@ class APGeneralizedExchangeConfig:
 
         payload = asdict(self)
         search = payload.get("search")
+        if isinstance(search, dict) and search.get("patch_rung_schedule") == "interleaved":
+            search.pop("patch_rung_schedule")
         if isinstance(search, dict) and search.get("deletion_cardinality") is None:
             search.pop("deletion_cardinality", None)
         if (
@@ -467,6 +478,7 @@ class APGeneralizedExchangeConfig:
                 ),
                 search_policy=getattr(config, "search_policy", "family_frontiers"),
                 gain_evaluation=getattr(config, "gain_evaluation", "joint_batch"),
+                patch_rung_schedule=getattr(config, "patch_rung_schedule", "interleaved"),
             ),
             route=ExchangeRouteConfig(
                 bundle=resolve_route_bundle(
