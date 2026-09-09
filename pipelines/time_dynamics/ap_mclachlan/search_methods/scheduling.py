@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
+from itertools import chain, islice
 from typing import TYPE_CHECKING, Callable, Generator, Iterable, Iterator, Mapping
 
 from ..patch_enumeration import Patch
@@ -79,7 +80,10 @@ def schedule_rungs(
     candidates. Block search may yield ``NEIGHBORHOOD_SETTLED`` to sleep at the
     current evidence version; any subsequent growth wakes it. Exhaustive and
     greedy branches simply return when finished. Budget exceptions propagate
-    with the session's completed prefix intact.
+    with the session's completed prefix intact. When only one cursor can run
+    and neither discovery nor a settled branch can interleave, consecutive
+    turns may share a worker-bounded execution window. Their patch order and
+    logical-request completion boundary remain unchanged.
     """
 
     ascending = session.patch_rung_schedule == "ascending"
@@ -166,8 +170,31 @@ def schedule_rungs(
                 if cursor.branch.pending == 0:
                     resume(cursor.branch)
             else:
-                (candidate,) = session.evaluate((patch,), cursor.label)
-                cursor.branch.completed[candidate.order_key] = candidate
+                # Only this cursor can run until its next completion. No
+                # discovery or settled-branch wake may interleave with it.
+                independent = (
+                    discovery_finished and not settled
+                    and not any(
+                        not ascending or max(1, size) <= active_tier
+                        for size in discovery
+                    )
+                    and not any(
+                        ready and (not ascending or max(1, *rung) <= active_tier)
+                        for rung, ready in queues.items()
+                    )
+                )
+                window = (
+                    max(1, int(getattr(session.evaluator, "workers_requested", 1)))
+                    if independent else 1
+                )
+                # Keep the iterator lazy so a budget refusal never consumes
+                # candidates past the refused next patch. Cursor exhaustion
+                # still resumes its branch only after these records exist.
+                patches = chain((patch,), islice(cursor.patches, window - 1))
+                for candidate in session.evaluate(
+                    patches, cursor.label, execution_window=window,
+                ):
+                    cursor.branch.completed[candidate.order_key] = candidate
                 queue.append(cursor)
             if not queue:
                 queues.pop(key, None)
