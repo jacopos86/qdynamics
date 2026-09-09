@@ -4,8 +4,9 @@ Updated: 2026-09-09. **Original local pilot: 24/24 completed; 6/6 singleton
 parity pairs passed. Incremental/rung revision: 24/24 low/high-budget reruns
 completed; 6/6 singleton pairs passed. Natural fixed-UCCSD seed: 24/24 local
 trajectories completed; 12/12 singleton pairs passed.** The separate three-drive scientific campaign still has
-**72 full trajectories planned; 0 submitted**; its settings and submission
-manifest remain pending.
+**72 full trajectories planned; 0 submitted**. The six currently running
+recovery jobs are separate from that matrix; the full campaign remains active
+work, not a completed or cancelled objective.
 
 Compare search policy, gain evaluation, insertion batching, and work budget
 across three drive regimes. Full trajectories are the primary comparison.
@@ -25,6 +26,50 @@ path. The subsequent authorized correction removes redundant singleton proxy
 work and rejected-set evaluation charges. The user deferred the legacy
 frontier-policy change; its utility and generic defaults remain intact.
 The local pilot below is complete. The expanded scientific grid remains pending.
+
+## Current campaign scope (2026-09-09, author clarification)
+
+The full comparison remains **3 searches × 2 gain modes × 2 admission settings
+× 2 work budgets × 3 drives = 72 trajectories**. Use t=20 on 501 points,
+ascending tiers, and the already selected Paper II state-motion settings for
+fastweak, slowstrong and strongfast. The budget pair proposed for the matrix is
+10,000 and 50,000; the author's numerical choice is pending. Earlier 256/24,576
+values describe local pilots, not a new adopted matrix configuration.
+
+The six running recovery jobs `10024096.0–5` use fastweak, W10000, A1 and the
+15% ansatz-relative deletion bound. They vary only search and gain. They are
+neither the strict A1/D1 arm nor the A4/D15% batching arm, so they do not fill six
+of the 72 cells. Preserve and report these useful recovery results separately.
+The completed local W50000 A1/D15% run is likewise separate.
+
+The earlier overnight 18-attempt limit describes that bounded execution phase;
+it is not a continuing restriction on the author's already requested matrix.
+The heartbeat must track the larger campaign through preparation, qualification,
+submission, collection and validation. Completion of the six recovery jobs alone
+does not complete the campaign. Preserve existing running jobs and source locks.
+
+Routine automation runs directly in the root task. Subagents are authorized for
+bounded performance investigations, implementation and independent review.
+The Fable second pass is completed in
+`output/paper_ii_selector_performance_audit_20260909/CODEX_SECOND_PASS.md`;
+use its disposition ledger rather than repeating the audit. Performance work
+proceeds alongside the running jobs and is not an automatic submission hold.
+
+The strict singleton arm remains A1/D1. The batched arm is A4 with deletion size
+bounded by the existing 15% rule and complete-set permissions. Lower sections
+saying drives, horizon or singleton interpretation are pending are historical;
+these choices are resolved above. Next: resolve the budget pair, bind all 72
+variant-aware action identities and effective configurations, reuse the qualified
+worker/package lifecycle, and submit as soon as its applicable checks pass.
+No further general permission to use CHTC is required.
+
+A validated draft now enumerates all **72 unique actions in 12 six-action
+package plans** under `output/paper_ii_full_matrix_preparation_20260909/`.
+`preparation_receipt.json` records CLI parsing, unchanged non-axis settings
+within every drive, the seed hash and the source basis. This is prepared input,
+not a submission or a frozen execution lock; the 10,000/50,000 pair remains
+proposed until the author replies. Reuse the existing qualified six-action
+package builder for each plan after committing the final locks.
 
 ## Corrected regression diagnosis and current work (2026-09-09 UTC)
 
@@ -96,9 +141,10 @@ A full local t20/501 greedy joint A1/D15% baseline remains active at immutable s
 
 The separate W10000 t=.16 diagnostic completed successfully in752.85seconds. All74 saved checks passed: first four committed patches, compiled word hashes and marginal costs, gains/scores, and early theta/integration agree with the W50000 reference. Later trajectory choices can differ when the budget binds. Evidence: `output/paper_ii_execution_window_w10000_t016_20260909_8a76ccac/comparison_01.json`.
 
-The user explicitly approved W10000 for the first CHTC tranche. The clean packaging branch `codex/paper-ii-t20-package-20260909` now binds fresh locks at source `339a1d05`; runner files remain byte-identical to reviewed `2f5d8271`. Both the worker-smoke and six-actiont20 packages pass local manifest/source/all-action/lifecycle/shell checks. Their receipts and next commands are in that checkout's `output/paper_ii_w10000_package_build_20260909/READY.md`. W50000 packages are preserved. Both W10000 packages are uploaded and verified. Single worker smoke `10024094.0` is submitted. The six science actions remain unsubmitted pending the user-requested performance audit.
+The user explicitly approved W10000 for the first CHTC tranche. The clean packaging branch `codex/paper-ii-t20-package-20260909` now binds fresh locks at source `339a1d05`; runner files remain byte-identical to reviewed `2f5d8271`. Both the worker-smoke and six-actiont20 packages pass local manifest/source/all-action/lifecycle/shell checks. Their receipts and next commands are in that checkout's `output/paper_ii_w10000_package_build_20260909/READY.md`. W50000 packages are preserved. Both W10000 packages are uploaded and verified. Single worker smoke `10024094.0` is submitted. The author subsequently directed concurrent execution: all six science jobs `10024096.0–5` are submitted while the performance audit proceeds.
 
-All subagent work has stopped at the user's request. The existing15-minute monitor was updated for direct execution by this task, the approved W10000 settings, single-worker smoke, six-action submission, receipt-addressed collection and exact-reference scoring. Its authority is the linked recovery continuation state.
+Ordinary automation subagent work stopped; the author subsequently permitted
+subagents for performance improvement only. The existing15-minute monitor was updated for direct execution by this task, the approved W10000 settings, single-worker smoke, six-action submission, receipt-addressed collection and exact-reference scoring. Its authority is the linked recovery continuation state.
 
 ## Staged CHTC comparison and longer horizons (2026-09-08)
 
@@ -138,9 +184,8 @@ The user explicitly requested completed t=20 APM results overnight. After the
 remaining local and exact-worker gates, prioritize a small matched t=20
 tranche on the new route: three searches x two gain modes at one shared
 batched setting and modest work budget on weak-fast. Extend the same tranche
-to the other two drives only after its execution envelope is sound. The
-authorized heartbeat covers at most18science actions; it does not silently
-expand to the full72-cell campaign. The earlier t2 prototype remains an
+to the other two drives only after its execution envelope is sound. That overnight phase originally covered at most18science actions. The current
+campaign-scope clarification above governs the continued 72-cell objective. The earlier t2 prototype remains an
 execution-disabled example, not the adopted overnight horizon.
 
 Use the chosen Paper II state-motion settings below. If measured selection or
@@ -732,8 +777,8 @@ short test groups can finish before the guard obtains a meaningful RSS sample.
 | Search policy | `greedy`, `bounded_exhaustive`, `block_exchange` | 3 |
 | Gain evaluation | `joint_batch`, `singleton_factorized` | 2 |
 | Patch admission | Singleton insertion/deletion; batching allowed | 2 |
-| Work budget | Low; high — numerical limits to be chosen | 2 |
-| Drive regime | D1, D2, D3 — physical drives to be chosen | 3 |
+| Work budget | Proposed 10,000; 50,000 — numerical choice pending | 2 |
+| Drive regime | fastweak, slowstrong, strongfast | 3 |
 
 \[
 N_{\mathrm{runs}}=3\times2\times2\times2\times3=72.
@@ -753,7 +798,7 @@ radius remains two in both admission settings.
 The user clarified singleton-only as \(|A|\leq1\) and \(|D|\leq1\) **per patch**,
 while keeping complete candidate pools. The explicit optional deletion cap is
 `max_deletion_batch_size`; `None` preserves unrestricted deletion cardinality
-subject to complete-set permissions. The batching arm uses A4/D-unrestricted.
+subject to complete-set permissions. The batching arm uses A4 with the existing 15% deletion bound.
 This is an enumeration policy change; the ray-displacement bound and
 reverse-Schur loss permission remain separate, unchanged tests on each D.
 

@@ -25,7 +25,9 @@ Author-directed order (9 September 2026):
 Read the current stage and receipts from
 `output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/continuation_state.json`.
 A scientific or algorithmic ambiguity permits discussion with the author; elapsed
-waiting time is not a scientific decision. Work directly in the root task.
+waiting time is not a scientific decision. Routine automation runs directly in
+the root task. The author permits subagents for performance improvement,
+including bounded investigation, implementation and independent review.
 
 ## Collection and automatic page refresh
 
@@ -63,3 +65,13 @@ Outputs live under `output/pdf/paper_ii_new_route_results/`: the stable PDF,
 `refresh_receipt.json`, `provenance_notes.md`, persistent `data/`, and preserved
 `builds/`. The existing 15-minute heartbeat invokes this workflow after due
 collection; it stays quiet when nothing meaningful changes.
+
+## Campaign continuation after the recovery tranche
+
+The six recovery jobs do not complete the 72-cell selector campaign. Follow
+`paper-ii-selector-campaign.md` → Current campaign scope for the resolved axes
+and the remaining budget choice. Retain the six A1/D15% results separately from
+strict A1/D1 and batched A4/D15% matrix cells. Keep the existing heartbeat active
+until the full authorized campaign is accounted for, or the author changes that
+scope. Advance ready matrix preparation and submission using the standing CHTC
+authorization; no blanket hold is imposed by ongoing performance investigation.
