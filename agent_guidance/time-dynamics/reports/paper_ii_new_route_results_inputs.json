@@ -1,0 +1,97 @@
+{
+  "repository": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907",
+  "seed": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+  "seed_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+  "exact_reference_store": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_staged/exact_references",
+  "exact_reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
+  "exact_reference_sha256": "734373d93cda6c10717407708f23e610a7ea470365e34d54c6d718a5d5410bdb",
+  "old_comparison": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/agent_guidance/time-dynamics/reports/comparison_corrected_20260907.json",
+  "old_comparison_sha256": "7f864f909977bc1b433f8457fd9b68a32504d8ab82de842e8bc612da1072967b",
+  "manuscript_table": "/Users/lordskyler/AP-McLachlan---Paper-II/versions/v1/Paper_II_overleaf_20260901/generated/paper_ii_t20_q_compiled_frontier_table.tex",
+  "receipt_auditor": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-t20-package-20260909/chtc/paper_ii_selector_recovery_smoke_w10000_339a1d05_20260909/receipt_contracts.py",
+  "arms": [
+    {
+      "id": "paper_ii_apm",
+      "label": "APM - Paper II v1",
+      "route": "q_compiled",
+      "raw": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/fastweak__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/fastweak__state_motion_5e-5__exchange_q_compiled/run.json",
+      "raw_sha256": "be24448d57eea2ff34c554bcc947a1104f9a3e8895889d36573b1f93dec0896d",
+      "completion": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/fastweak__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/fastweak__state_motion_5e-5__exchange_q_compiled/completion_receipt.json",
+      "stored_cost": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/fastweak__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/fastweak__state_motion_5e-5__exchange_q_compiled/terminal_qiskit_cost.json",
+      "color": "#777777",
+      "linestyle": "--",
+      "work_budget": 50000
+    },
+    {
+      "id": "avqds",
+      "label": "AVQDS",
+      "route": "avqds",
+      "raw": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/pdf/paper_ii_new_route_results/sources/avqds/run.json",
+      "raw_sha256": "8121979370214486480172b4328feacc29a8879777638a87aa9a30da66c449c9",
+      "completion": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/pdf/paper_ii_new_route_results/sources/avqds/completion_receipt.json",
+      "stored_cost": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/pdf/paper_ii_new_route_results/sources/avqds/terminal_qiskit_cost.json",
+      "color": "#0072B2",
+      "linestyle": "-.",
+      "work_budget": null,
+      "original_collection_path": "/private/tmp/report/avqds_root/fastweak__state_motion_5e-5__avqds/run.json"
+    },
+    {
+      "id": "new_greedy_joint_w50000",
+      "label": "APM - new greedy, joint",
+      "route": "q_compiled",
+      "raw": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/fastweak_greedy_joint_a1_dfrac015_w50000_t20/run.json",
+      "raw_sha256": "8eb2e61c362bd959133f42ac71e6a07067e296e5a6c6b87738ed2277f875bf94",
+      "completion": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/fastweak_greedy_joint_a1_dfrac015_w50000_t20/completion_observation.json",
+      "case": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/fastweak_greedy_joint_a1_dfrac015_w50000_t20/case.json",
+      "measurement": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/fastweak_greedy_joint_a1_dfrac015_w50000_t20/measurement.json",
+      "color": "#D55E00",
+      "linestyle": "-",
+      "work_budget": 50000
+    }
+  ],
+  "pending": [
+    {
+      "search": "greedy",
+      "gain": "joint",
+      "budget": 10000,
+      "cluster_id": "10024096.0",
+      "status": "running at 2026-09-09 15:23 UTC"
+    },
+    {
+      "search": "greedy",
+      "gain": "factorized",
+      "budget": 10000,
+      "cluster_id": "10024096.1",
+      "status": "running at 2026-09-09 15:23 UTC"
+    },
+    {
+      "search": "block exchange",
+      "gain": "joint",
+      "budget": 10000,
+      "cluster_id": "10024096.2",
+      "status": "running at 2026-09-09 15:23 UTC"
+    },
+    {
+      "search": "block exchange",
+      "gain": "factorized",
+      "budget": 10000,
+      "cluster_id": "10024096.3",
+      "status": "running at 2026-09-09 15:23 UTC"
+    },
+    {
+      "search": "bounded exhaustive",
+      "gain": "joint",
+      "budget": 10000,
+      "cluster_id": "10024096.4",
+      "status": "running at 2026-09-09 15:23 UTC"
+    },
+    {
+      "search": "bounded exhaustive",
+      "gain": "factorized",
+      "budget": 10000,
+      "cluster_id": "10024096.5",
+      "status": "running at 2026-09-09 15:23 UTC"
+    }
+  ],
+  "manuscript_table_sha256": "29d6953afd676ef24483d87948b1c46e591ceebe984b0bd9278c5a391634e56f"
+}
