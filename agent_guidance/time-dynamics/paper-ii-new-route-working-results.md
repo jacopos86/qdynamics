@@ -13,53 +13,38 @@ separate working comparison; the Paper II manuscript and frozen v1 remain intact
   Table I row. The canonical exact-reference artifact supplies every error and
   reference curve.
 - Main PDF: `output/pdf/paper_ii_new_route_results/paper_ii_new_route_results.pdf`.
-  Page 1 contains all three observable overlays and both Paper II comparison
-  tables. Page 2 contains provenance and the W10000 CHTC tranche awaiting results.
+  One results page contains all three observable overlays and both Paper II
+  comparison tables. Keep provenance, pending jobs and agent orientation in
+  `provenance_notes.md` beside the PDF; the builder regenerates that companion
+  file. Do not restore an administrative appendix to the PDF.
 - Inputs: `agent_guidance/time-dynamics/reports/paper_ii_new_route_results_inputs.json`.
 - Data and validation: `results.json`, `calibration_receipt.json`,
   `comparability.json`, `verification_receipt.json`, and per-arm `data/` beneath
   the PDF output directory. The AVQDS source bytes are copied out of temporary
   storage to `sources/avqds/` with unchanged hashes.
 
-## Refresh
+## Automated refresh
 
-From the scoring-curation worktree, after checking the existing memory contract:
+Follow [the ordered local workflow](paper-ii-local-execution-workflow.md).
+`update_paper_ii_working_results` handles archive validation, deduplicated page
+admission, preparation, compilation, verification and publication. Each new run
+gets its own page with the same matched baselines. Never append administrative
+pages. The updater preserves previous builds and leaves the stable PDF intact
+if validation fails.
 
-```sh
-/Users/lordskyler/Holstein_test/.venv/bin/python -B pipelines/shell/ram_guard.py --limit-mb 12000 -- /Users/lordskyler/Holstein_test/.venv/bin/python -B -m pipelines.reporting.prepare_paper_ii_working_results --inputs agent_guidance/time-dynamics/reports/paper_ii_new_route_results_inputs.json --output output/pdf/paper_ii_new_route_results
-/Users/lordskyler/Holstein_test/.venv/bin/python -B pipelines/shell/ram_guard.py --limit-mb 4000 -- /Users/lordskyler/Holstein_test/.venv/bin/python -B -m pipelines.reporting.build_paper_ii_new_route_results --results output/pdf/paper_ii_new_route_results/results.json
-```
-
-The prepare step hashes raw sources and completion records, streams the two
-large unused ranking arrays out of a reporting-only projection, verifies the
-shared run-lock fingerprint, scores all 501 states against the existing exact
-reference, checks all-call work accounting and new-route search receipts, and
-reconstructs the new terminal circuit. Cached terminal costs remain bound to
-the projection hash and seed hash. It never runs a new trajectory.
-
-Add a newly completed arm to the input manifest with its own immutable ID,
-raw/completion paths and hashes, case settings, label, style, budget, and stored
-terminal cost where available. Use IDs beginning `new_` for the new selectors so
-their all-call search receipts are audited. The current receipt adapter expects
-the local benchmark's completion-observation/case schema; cluster arrivals must
-be adapted from their verified worker completion and effective-action records,
-without relabeling a worker receipt as a local benchmark. Remove its pending row
-only after validated data are available. Keep labels explicit about search,
-joint/factorized evaluation and budget when more than one variant is shown.
-
-This first report template covers the declared A1 / 15%-deletion experiment.
-For other drives, horizons or batching arms, derive the page manifest from those
-run records and keep their comparisons on separate pages. Do not silently mix
-their grids or reuse the weak--fast reference. Preserve all completed arms,
-including unmatched results; assess equal-accuracy claims separately.
+The receipt adapter consumes the original CHTC completion and effective action
+records directly. It verifies terminal-cost provenance against the worker's
+raw-bound reporting projection. It never fabricates a local benchmark receipt.
+New settings or physical regimes require matching baselines and references.
 
 ## Metric and validation conventions
 
 - Energy, mean doublon and charge-imbalance errors average all reporting times.
   Charge imbalance is computed directly; the dimer identity with twice the
   maximum site error is checked numerically.
-- Table I uses accepted internal substeps and the paper's reuse-adjusted scalar
-  estimator count. Table II keeps executed estimator work separate.
+- Table I uses accepted internal substeps. Both estimator columns use the same
+  authoritative reuse-adjusted total for APM and AVQDS. Raw acquisition
+  ledgers remain source evidence; they are not a second reported cost basis.
 - Generator histories follow the original Paper II reported-support convention.
   Exchange commits use all selector calls. Incomplete finalist history retains
   its lower-bound mark. Exact-reference circuit/search entries are inapplicable.
@@ -67,9 +52,9 @@ including unmatched results; assess equal-accuracy claims separately.
   floating-point roundoff. The report verifies agreement to `1e-12` and reuses
   the original reference; it does not replace raw time grids.
 - Validate PDF/source/result hashes, numerical means, original Table I values,
-  first-page co-location of both tables with the figure, text coordinates and
-  TeX overflow. The initial build passed 48 checks in `verify_report.py` beside
-  the PDF. Extend its arm-specific assertions when adding cases.
+  co-location of both tables with the figure on every results page, equality
+  of both estimator columns, text coordinates and TeX overflow. The reusable
+  verifier is `pipelines.reporting.verify_paper_ii_working_results`.
 - Respect the repository's PDF-viewing boundary. The initial report was checked
   using text, coordinates and build logs; it was not opened or raster-rendered.
 

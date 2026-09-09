@@ -81,7 +81,7 @@ def prepare(config_path, output):
     for arm in cfg['arms']:
         print('Preparing ' + arm['id'], flush=True)
         raw = Path(arm['raw'])
-        directory = output / 'data' / arm['id']
+        directory = Path(cfg.get('data_directory', output / 'data')) / arm['id']
         projected = directory / 'run.json'
         run, receipt = project(raw, projected)
         assert receipt['raw_sha256'] == arm['raw_sha256'], 'source digest mismatch'
@@ -133,6 +133,12 @@ def prepare(config_path, output):
         assert cost['compile_defaults']['seed_transpiler'] == 7
         assert cost['rows'][0]['terminal_reconstruction_parity']['passed']
         cost_source_hash = arm['raw_sha256'] if arm.get('stored_cost') else sha(projected)
+        if arm.get('worker_projection_receipt'):
+            worker_receipt = json.loads(Path(arm['worker_projection_receipt']).read_text())
+            assert worker_receipt['source_sha256'] == arm['raw_sha256']
+            worker_projection = Path(arm['worker_projection_receipt']).with_name('reporting_projection.json')
+            assert sha(worker_projection) == worker_receipt['projection_sha256']
+            cost_source_hash = worker_receipt['projection_sha256']
         assert cost['rows'][0]['trajectory_json_sha256'] == cost_source_hash, 'stale terminal-cost cache'
         assert cost['rows'][0]['source_artifact_json_sha256'] == cfg['seed_sha256']
         route_record = dict(route=route, estimator_work=work, run_sources=[dict(path=str(projected))])
@@ -152,9 +158,18 @@ def prepare(config_path, output):
             import importlib.util
             spec = importlib.util.spec_from_file_location('working_report_receipt_contracts', cfg['receipt_auditor'])
             module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-            case = json.loads(Path(arm['case']).read_text())
-            from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import _build_parser
-            effective = vars(_build_parser().parse_args(case['runner_argv']))
+            if arm.get('effective_arguments'):
+                effective = arm['effective_arguments']
+            else:
+                case = json.loads(Path(arm['case']).read_text())
+                from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import _build_parser
+                effective = vars(_build_parser().parse_args(case['runner_argv']))
+            for key in ('search_policy', 'gain_evaluation', 'max_insertion_batch_size',
+                        'max_joint_patch_evaluations', 'patch_rung_schedule'):
+                assert lock['policy']['guards'][key] == effective[key], 'effective setting drift: '+key
+            assert effective['max_insertion_batch_size'] == 1, 'Batch reuse accounting requires separate review'
+            if arm.get('code_revision'):
+                assert lock['code_revision'] == arm['code_revision'], 'worker source identity drift'
             searches, commits = module.audit_search_receipts(run, {'effective_arguments':effective})
             write(directory/'search_validation.json', dict(searches=searches, commits=commits))
             validation.update(search_passes_verified=len(searches), committed_patches_verified=len(commits))

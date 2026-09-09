@@ -93,5 +93,14 @@
       "status": "running at 2026-09-09 15:23 UTC"
     }
   ],
-  "manuscript_table_sha256": "29d6953afd676ef24483d87948b1c46e591ceebe984b0bd9278c5a391634e56f"
+  "manuscript_table_sha256": "29d6953afd676ef24483d87948b1c46e591ceebe984b0bd9278c5a391634e56f",
+  "arrival_sources": [
+    {
+      "package": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-t20-package-20260909/chtc/paper_ii_selector_recovery_t20_w10000_339a1d05_20260909",
+      "manifest_sha256": "4db3a8c00b7ef6972467e52ce3ab97900f1166052eea9056a0886058d319a641",
+      "arrivals": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/chtc_t20_arrivals"
+    }
+  ],
+  "estimator_accounting": "paper_ii_reuse_adjusted",
+  "data_directory": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/pdf/paper_ii_new_route_results/data"
 }
