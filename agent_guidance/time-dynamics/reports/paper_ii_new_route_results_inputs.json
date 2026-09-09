@@ -46,7 +46,8 @@
       "measurement": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-scoring-curation-20260907/output/paper_ii_t20_successful_settings_local_20260909_2c00f5a4/fastweak_greedy_joint_a1_dfrac015_w50000_t20/measurement.json",
       "color": "#D55E00",
       "linestyle": "-",
-      "work_budget": 50000
+      "work_budget": 50000,
+      "code_revision": "2c00f5a446763bbdbb448ffd2176f49c4fa2798a"
     }
   ],
   "pending": [

@@ -179,7 +179,7 @@ def prepare(config_path, output):
             reference_policy='independent_exact_post_run', observable_set=['energy','doublon','charge_imbalance'],
             reference_key=ref.key, compile_target='FakeMarrakesh-opt1-seed7', **metrics)
         calibration_paths.append(str(projected))
-        record = dict(**arm, raw_receipt=receipt, metrics=metrics, work=work,
+        record = dict(arm, raw_receipt=receipt, metrics=metrics, work=work,
             reuse_adjusted_work=adjusted, motion=motion, coordinate_motion=support_motion([run]),
             deletion_gates=gates, terminal_cost=cost['rows'][0], cost_path=str(cost_path),
             cost_sha256=sha(cost_path), steps=summary['accepted_internal_substep_count'],
