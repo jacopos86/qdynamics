@@ -1804,6 +1804,10 @@ def select_generalized_exchange_patch(
     }
     if selection.telemetry is not None:
         payload["work_guard"] = selection.telemetry.guard.to_json_dict()
+        if selection.telemetry.deletion_discovery is not None:
+            payload["selector_route"]["deletion_discovery"] = dict(
+                selection.telemetry.deletion_discovery
+            )
         payload["frontier_schedule"] = [
             int(w) for w in selection.telemetry.frontier_schedule
         ]

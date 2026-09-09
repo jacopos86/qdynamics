@@ -18,6 +18,7 @@ import numpy as np
 from pipelines.time_dynamics.ap_mclachlan.deletion_family import (
     JointWorkGuard,
     iter_deletion_rungs,
+    rung_size,
 )
 from pipelines.time_dynamics.ap_mclachlan.deletion_permission import (
     DeletionPermissionDecision,
@@ -58,6 +59,7 @@ class StructuralEnumeration:
     compile_guard: JointWorkGuard | None = None
     compile_calls: int = 0
     exchange_frontier: tuple[tuple[str, int], ...] | None = None
+    deletion_discovery: dict[str, Any] | None = None
 
     def ranked(self, *, score_floor: float = 0.0) -> tuple[StructuralCandidate, ...]:
         """Non-stay candidates above the floor, score-descending, frozen ties."""
@@ -161,7 +163,10 @@ def iter_structural_families(
     complete deletion set. A refused set is removed before its branch pool
     is built. The structural work guard counts only permitted complete
     patches; the compilation guard counts their regime-active subset.
-    Permission checks consume no patch-evaluation slots.
+    Permission checks consume no patch-evaluation slots. Independently, the
+    same declared work ceiling bounds first inspections of nonempty deletion
+    sets, including refusals. Discovery exhaustion keeps its permitted rung
+    prefix and stops new deletion sets, without closing insertion frontiers.
     ``max_deletion_batch_size`` is an optional enumeration restriction;
     higher-cardinality sets are never constructed or sent to permission.
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
@@ -190,6 +195,19 @@ def iter_structural_families(
         raise ValueError("max_deletion_batch_size must be a non-negative integer or None.")
     n = int(base_f.reshape(-1).size)
     guard = JointWorkGuard(max_joint_patch_evaluations=max_joint_patch_evaluations)
+    # Reuse the new searches' declared W as an independent discovery allowance.
+    # Permission rejection is classical work, never a completed patch charge.
+    deletion_maximum = min(len(deletable_indices), max(0, n - int(min_surviving_support)))
+    if max_deletion_batch_size is not None:
+        deletion_maximum = min(deletion_maximum, max_deletion_batch_size)
+    deletion_population = sum(
+        rung_size(len(deletable_indices), d) for d in range(1, deletion_maximum + 1)
+    )
+    discovery_limit = deletion_population
+    if max_joint_patch_evaluations is not None:
+        discovery_limit = min(discovery_limit, int(max_joint_patch_evaluations))
+    discovery_guard = JointWorkGuard(discovery_limit)
+    inspected_deletions: set[tuple[int, ...]] = set()
     evaluator = PatchEvaluator(
         cache=cache, base_K=base_K, base_f=base_f, norm_b_sq=norm_b_sq,
         inverse_policy=inverse_policy, weights=weights, cuts_by_atom=cuts_by_atom,
@@ -379,6 +397,10 @@ def iter_structural_families(
             tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
         ] = []
         for removed in rung:
+            if removed not in inspected_deletions:
+                if not discovery_guard.admit(family, 1):
+                    break
+                inspected_deletions.add(removed)
             if deletion_permission is not None and not bool(
                 deletion_permission(removed).permitted
             ):
@@ -408,6 +430,10 @@ def iter_structural_families(
         yield family, evaluate_patches(
             singleton_patches(permitted_members), family
         ), None
+        if discovery_guard.exhausted:
+            # The collected permitted prefix was evaluated above. Only new D
+            # discovery stops: existing patches and insertion frontiers survive.
+            break
 
     # ---- child acquisition priorities and nested frontiers -----------------
     eligible = tuple(
@@ -496,6 +522,21 @@ def iter_structural_families(
         compile_guard=compile_guard,
         compile_calls=int(evaluator.compile_calls_total),
         exchange_frontier=exchange_frontier,
+        deletion_discovery={
+            "max_batch_fraction": None,
+            "ansatz_size": n,
+            "eligible_coordinate_count": len(deletable_indices),
+            "max_batch_size": deletion_maximum,
+            "subset_population": deletion_population,
+            "work_cap": max_joint_patch_evaluations,
+            "inspection_limit": discovery_limit,
+            "inspected_count": discovery_guard.scored_count,
+            "remaining": discovery_guard.remaining,
+            "truncated": (
+                discovery_guard.remaining == 0
+                and discovery_guard.scored_count < deletion_population
+            ),
+        },
     )
 
 
