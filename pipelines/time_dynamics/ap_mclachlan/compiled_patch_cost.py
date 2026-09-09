@@ -65,6 +65,7 @@ import json
 import math
 from multiprocessing import TimeoutError as MultiprocessingTimeoutError
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
 from typing import Any, Callable, Mapping, Sequence
@@ -526,53 +527,125 @@ def compile_word_resource_triple(
 WordCompiler = Callable[..., tuple[CompiledResourceTriple, dict[str, Any]]]
 
 
-class CompiledPatchCostCache:
-    """Memoizes ``x(W)`` by :func:`word_identity`.
+# Execution-only bound: evicted words can be compiled again; no patch is excluded.
+# 65,536 distinct compact key/triple entries measured 20.9 MiB on Python 3.12.
+DEFAULT_MAX_CACHED_WORDS = 65_536
 
-    The base word of a checkpoint and every trial word are looked up by the
-    identity of their rotations, so a word reached by two different patches
-    (or by two placements that swap commuting blocks into the same order) is
-    compiled once.  ``compile_calls`` counts real compilations,
-    ``cache_hits`` counts served lookups.  Dictionary and counter access is
-    guarded by a lock so the cache can sit behind a worker pool; a duplicate
-    compile raced by two workers is benign because compilation is
-    deterministic.
+
+class _CompiledResultStore:
+    """Bounded successful absolute triples for one sealed compiler session."""
+
+    def __init__(self, max_words: int) -> None:
+        if int(max_words) != max_words or int(max_words) < 0:
+            raise ValueError("max_cached_words must be a nonnegative integer")
+        self.max_words = int(max_words)
+        self.entries: OrderedDict[str, CompiledResourceTriple] = OrderedDict()
+        self.evictions = 0
+        self.lock = threading.Lock()
+
+    def lookup(self, key: str) -> CompiledResourceTriple | None:
+        with self.lock:
+            value = self.entries.get(key)
+            if value is not None:
+                self.entries.move_to_end(key)
+            return value
+
+    def put(self, key: str, value: CompiledResourceTriple) -> None:
+        with self.lock:
+            previous = self.entries.get(key)
+            if previous is not None and previous != value:
+                raise CompiledPatchCostError("compiler returned different resources for one sealed word")
+            if self.max_words == 0:
+                return
+            self.entries[key] = value
+            self.entries.move_to_end(key)
+            if len(self.entries) > self.max_words:
+                self.entries.popitem(last=False)
+                self.evictions += 1
+
+    def receipt(self) -> dict[str, int]:
+        with self.lock:
+            return {"max_words": self.max_words, "resident_words": len(self.entries),
+                    "evictions": self.evictions}
+
+    def clear(self) -> None:
+        with self.lock:
+            self.entries.clear()
+
+
+class CompiledPatchCostCache:
+    """Decision-local memo, optionally backed by a sealed trajectory store.
+
+    ``compile_calls`` counts successful compilation results delivered to this
+    cache (including duplicate priming). Pool work receipts separately count
+    submissions, observed successes/errors and unresolved work after failures.
+    ``cache_hits`` counts served word lookups; ``shared_cache_hits`` counts
+    distinct words imported from an earlier decision, including warming peeks.
+    The session never retains this cache's decision-bound compiler callback.
     """
 
-    def __init__(self, *, word_compiler: WordCompiler = compile_word_resource_triple) -> None:
+    def __init__(
+        self, *, word_compiler: WordCompiler = compile_word_resource_triple,
+        _shared_results: _CompiledResultStore | None = None,
+        _validate_context: Callable[..., None] | None = None,
+    ) -> None:
         self._entries: dict[str, CompiledResourceTriple] = {}
         self._lock = threading.Lock()
         self._word_compiler = word_compiler
+        self._shared_results = _shared_results
+        self._validate_context = _validate_context
+        self._closed = False
         self.compile_calls = 0
         self.cache_hits = 0
+        self.shared_cache_hits = 0
+
+    def _check(self, **context: Any) -> None:
+        if self._closed:
+            raise CompiledPatchCostError("compiled-cost decision cache is closed.")
+        if self._validate_context is not None:
+            self._validate_context(**context)
+
+    def close(self) -> None:
+        self._closed = True
 
     def __len__(self) -> int:
         with self._lock:
             return int(len(self._entries))
 
     def prime(self, word_sha256: str, triple: CompiledResourceTriple) -> bool:
-        """Insert a triple compiled elsewhere; returns True when new.
-
-        Used by the process-pool warm: a worker compiled the word under the
-        same sealed contract, so the entry is exactly what
-        :meth:`compile_word_record` would have produced.  Counted as a
-        compile call because a real transpile happened (in the worker).
-        """
-
+        """Publish a successful worker result, counting work even if duplicate."""
+        self._check()
         if not isinstance(triple, CompiledResourceTriple):
             raise CompiledPatchCostError("prime() requires a CompiledResourceTriple.")
+        key = str(word_sha256)
+        if self._shared_results is not None:
+            self._shared_results.put(key, triple)
         with self._lock:
-            if str(word_sha256) in self._entries:
-                return False
-            self._entries[str(word_sha256)] = triple
             self.compile_calls += 1
+            previous = self._entries.get(key)
+            if previous is not None:
+                if previous != triple:
+                    raise CompiledPatchCostError("compiler returned different resources for one sealed word")
+                return False
+            self._entries[key] = triple
             return True
 
     def lookup(self, word_sha256: str) -> CompiledResourceTriple | None:
-        """Peek without touching the counters."""
+        """Peek, importing a shared result without charging a compilation."""
+        self._check()
+        return self._lookup(str(word_sha256))
 
+    def _lookup(self, key: str) -> CompiledResourceTriple | None:
         with self._lock:
-            return self._entries.get(str(word_sha256))
+            value = self._entries.get(key)
+            if value is not None:
+                return value
+            if self._shared_results is not None:
+                value = self._shared_results.lookup(key)
+                if value is not None:
+                    self._entries[key] = value
+                    self.shared_cache_hits += 1
+            return value
 
     def compile_word_record(
         self,
@@ -583,24 +656,19 @@ class CompiledPatchCostCache:
         contract: CompileContract,
         backend_obj: Any,
     ) -> tuple[str, CompiledResourceTriple, bool]:
-        """Return ``(word_sha256, triple, from_cache)`` for ``terms``."""
-
+        """Return ``(word_sha256, triple, from_cache)`` for the current content."""
+        self._check(nq=nq, ref_state=ref_state, contract=contract)
         key = word_identity(
-            terms,
-            int(nq),
-            reference_state_sha256(ref_state),
+            terms, int(nq), reference_state_sha256(ref_state),
             float(contract.structural_angle),
         )
-        with self._lock:
-            hit = self._entries.get(key)
-            if hit is not None:
+        hit = self._lookup(key)
+        if hit is not None:
+            with self._lock:
                 self.cache_hits += 1
-                return key, hit, True
+            return key, hit, True
         triple, _provenance = self._word_compiler(
-            terms,
-            nq=int(nq),
-            ref_state=ref_state,
-            contract=contract,
+            terms, nq=int(nq), ref_state=ref_state, contract=contract,
             backend_obj=backend_obj,
         )
         if not isinstance(triple, CompiledResourceTriple):
@@ -608,10 +676,9 @@ class CompiledPatchCostCache:
                 "word compiler returned "
                 f"{type(triple).__name__}, expected CompiledResourceTriple."
             )
-        with self._lock:
-            self.compile_calls += 1
-            stored = self._entries.setdefault(key, triple)
-            return key, stored, False
+        self.prime(key, triple)
+        return key, triple, False
+
 
     def compile_word(
         self,
@@ -1149,6 +1216,30 @@ class CompileWarmPool:
             self._restore_parent_env()
             raise
         self.jobs_run = 0
+        self._work_lock = threading.Lock()
+        self._work = dict.fromkeys(("jobs_submitted", "jobs_succeeded", "jobs_failed", "jobs_timed_out"), 0)
+
+    def _work_success(self, _result: Any) -> None:
+        with self._work_lock:
+            self._work["jobs_succeeded"] += 1
+
+    def _work_failure(self, _error: Any) -> None:
+        with self._work_lock:
+            self._work["jobs_failed"] += 1
+
+    def work_receipt(self) -> dict[str, int]:
+        """Observed worker outcomes, including work not published to a cache.
+
+        Unresolved jobs may have run before pool termination: they are never
+        represented as free or as known cancellations. These are compiler-job
+        counters, not a claim that every submission reached Qiskit transpile.
+        """
+        with self._work_lock:
+            result = dict(self._work)
+        result["jobs_unresolved"] = max(
+            0, result["jobs_submitted"] - result["jobs_succeeded"] - result["jobs_failed"]
+        )
+        return result
 
     def _restore_parent_env(self) -> None:
         import os
@@ -1172,13 +1263,21 @@ class CompileWarmPool:
             )
         out: list[tuple[str, CompiledResourceTriple]] = []
         try:
-            pending = [
-                self._pool.apply_async(_pool_compile_job, (job,)) for job in jobs
-            ]
+            pending = []
+            for job in jobs:
+                result = self._pool.apply_async(
+                    _pool_compile_job, (job,), callback=self._work_success,
+                    error_callback=self._work_failure,
+                )
+                with self._work_lock:
+                    self._work["jobs_submitted"] += 1
+                pending.append(result)
             for expected, result in zip(expected_keys, pending):
                 try:
                     key, triple = result.get(timeout=self.timeout_seconds)
                 except MultiprocessingTimeoutError as exc:
+                    with self._work_lock:
+                        self._work["jobs_timed_out"] += 1
                     self.terminate()
                     raise CompileTimeoutError(
                         "compiled-cost word exceeded the sealed timeout of "
@@ -1190,6 +1289,7 @@ class CompileWarmPool:
                         "the pool context is stale."
                     )
                 out.append((str(key), CompiledResourceTriple(*triple)))
+                self.jobs_run += 1
         except BaseException:
             # A failed result may have later jobs still running.  Terminate
             # the whole pool so neither a compiler exception nor a timeout can
@@ -1197,7 +1297,6 @@ class CompileWarmPool:
             # recreate a fresh pool for the next canonical word.
             self.terminate()
             raise
-        self.jobs_run += len(out)
         return out
 
     def compile_word(
@@ -1243,7 +1342,7 @@ class CompileWarmPool:
 
 
 class CompilerSession:
-    """Own compiler workers for one trajectory, without retaining cost caches.
+    """Own workers and bounded successful word resources for one trajectory.
 
     The first lease seals the compiler contract, qubit count, reference state,
     and worker count. Every lease submits complete words, so changes to the
@@ -1252,7 +1351,10 @@ class CompilerSession:
     the failed job is never retried here.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_cached_words: int = DEFAULT_MAX_CACHED_WORDS) -> None:
+        self._results = _CompiledResultStore(max_cached_words)
+        self._backend_identity: str | None = None
+        self._retired_work: dict[str, int] = {}
         self._pool: CompileWarmPool | None = None
         self._contract: CompileContract | None = None
         self._reference: Any = None
@@ -1293,6 +1395,55 @@ class CompilerSession:
                 "compiler session context changed: contract, qubits, reference, or workers."
             )
 
+    def cache_for_decision(
+        self, *, contract: CompileContract, nq: int, ref_state: Any, workers: int,
+        backend_identity: Mapping[str, Any], word_compiler: WordCompiler,
+    ) -> CompiledPatchCostCache:
+        """Fresh decision cache over this session's fixed-backend result store.
+
+        Reuse never crosses a trajectory/session. The backend is the sealed
+        local resolver used by private worker processes; this identity is not
+        a portable fingerprint for arbitrary mutable targets or disk caches.
+        """
+        def validate(**overrides: Any) -> None:
+            self._verify_context(
+                contract=overrides.get("contract", contract),
+                nq=overrides.get("nq", nq),
+                ref_state=overrides.get("ref_state", ref_state), workers=workers,
+            )
+            identity = json.dumps(backend_identity, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            if self._backend_identity is None:
+                self._backend_identity = identity
+            elif identity != self._backend_identity:
+                raise CompiledPatchCostError("compiler session backend identity changed.")
+            if self._pool is not None:
+                import os
+                # A failed warm restores the prior environment before serial
+                # replay. Cached successes remain usable; a miss requests the
+                # next lease. Neither state permits an unrelated env change.
+                expected_env = (
+                    self._pool.prior_env if self._pool._terminated else self._pool.pinned_env
+                )
+                if any(os.environ.get(k) != v for k, v in expected_env.items()):
+                    raise CompiledPatchCostError("compiler worker thread environment changed.")
+
+        validate()
+        return CompiledPatchCostCache(
+            word_compiler=word_compiler, _shared_results=self._results,
+            _validate_context=validate,
+        )
+
+    def work_receipt(self) -> dict[str, int]:
+        keys = ("jobs_submitted", "jobs_succeeded", "jobs_failed", "jobs_timed_out", "jobs_unresolved")
+        result = {key: self._retired_work.get(key, 0) for key in keys}
+        if self._pool is not None:
+            for key, value in self._pool.work_receipt().items():
+                result[key] += value
+        return result
+
+    def cache_receipt(self) -> dict[str, int]:
+        return self._results.receipt()
+
     def lease(
         self, *, contract: CompileContract, nq: int, ref_state: Any, workers: int
     ) -> _CompilerLease:
@@ -1302,6 +1453,10 @@ class CompilerSession:
             contract=contract, nq=nq, ref_state=ref_state, workers=workers
         )
         if self._pool is None or self._pool._terminated:
+            if self._pool is not None:
+                for key, value in self._pool.work_receipt().items():
+                    self._retired_work[key] = self._retired_work.get(key, 0) + value
+            self._pool = None
             self._pool = CompileWarmPool(
                 contract=self._contract,
                 base_terms=(),
@@ -1318,6 +1473,7 @@ class CompilerSession:
         if self._closed:
             return
         self._closed = True
+        self._results.clear()
         if self._pool is not None:
             self._pool.close()
 
@@ -1325,6 +1481,7 @@ class CompilerSession:
         if self._closed:
             return
         self._closed = True
+        self._results.clear()
         if self._pool is not None:
             self._pool.terminate()
 

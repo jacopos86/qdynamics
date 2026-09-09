@@ -270,8 +270,11 @@ class CompiledCostRuntime:
         self.warm_primed = 0
         self.warm_seconds = 0.0
         self.seconds = 0.0
-        self.cache = cpc.CompiledPatchCostCache(
-            word_compiler=self._compile_word_isolated
+        self._compiler_work_start = self.compiler_session.work_receipt()
+        self.cache = self.compiler_session.cache_for_decision(
+            contract=contract, nq=self.nq, ref_state=self.ref_state,
+            workers=self.workers, backend_identity=self.backend_provenance,
+            word_compiler=self._compile_word_isolated,
         )
         start = time.perf_counter()
         try:
@@ -482,6 +485,7 @@ class CompiledCostRuntime:
         if self._closed:
             return
         self._closed = True
+        self.cache.close()
         if self.pool is not None:
             self.pool.close()
             self.pool = None
@@ -489,6 +493,16 @@ class CompiledCostRuntime:
             self.compiler_session.close()
 
     def telemetry(self) -> dict[str, Any]:
+        work_total = self.compiler_session.work_receipt()
+        work = {
+            key: value - self._compiler_work_start[key]
+            for key, value in work_total.items() if key != "jobs_unresolved"
+        }
+        # Queue occupancy is derived, not monotonic: do not subtract two
+        # unresolved counts as though they were cumulative work counters.
+        work["jobs_unresolved"] = max(
+            0, work["jobs_submitted"] - work["jobs_succeeded"] - work["jobs_failed"]
+        )
         return {
             "placement_rule": PLACEMENT_RULE_ID,
             "compile_workers": int(self.workers),
@@ -513,8 +527,15 @@ class CompiledCostRuntime:
                 "dc": int(self.base_triple.dc),
             },
             "base_word_sha256": str(self.base_word_sha256),
-            "compile_calls": int(self.cache.compile_calls),
+            # Successful worker outcomes, including a failed warm's completed
+            # work; cache publication and logical patch slots are distinct.
+            "compile_calls": int(work["jobs_succeeded"]),
+            "compiler_work": work,
+            "compiler_work_total": work_total,
+            "cache_compilations_published": int(self.cache.compile_calls),
             "cache_hits": int(self.cache.cache_hits),
+            "shared_cache_hits": int(self.cache.shared_cache_hits),
+            "session_result_cache": self.compiler_session.cache_receipt(),
             "placements_chosen": int(len(self._placements)),
             "compile_seconds": float(self.seconds),
         }
