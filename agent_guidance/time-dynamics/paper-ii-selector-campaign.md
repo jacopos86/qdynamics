@@ -1,6 +1,6 @@
 # Paper II selector campaign
 
-Updated: 2026-09-08. **Original local pilot: 24/24 completed; 6/6 singleton
+Updated: 2026-09-09. **Original local pilot: 24/24 completed; 6/6 singleton
 parity pairs passed. Incremental/rung revision: 24/24 low/high-budget reruns
 completed; 6/6 singleton pairs passed. Natural fixed-UCCSD seed: 24/24 local
 trajectories completed; 12/12 singleton pairs passed.** The separate three-drive scientific campaign still has
@@ -57,6 +57,264 @@ is provisional: the longer runs test whether accuracy, resource savings and
 stability persist. Preserve the full first-stage results and record the
 shortlist rationale before launching its follow-up. This staging does not
 change scientific defaults or adopt results into Paper II.
+
+## Overnight t=20 priority (2026-09-08 evening)
+
+The user explicitly requested completed t=20 APM results overnight. After the
+remaining local and exact-worker gates, prioritize a small matched t=20
+tranche on the new route: three searches x two gain modes at one shared
+batched setting and modest work budget on weak-fast. Extend the same tranche
+to the other two drives only after its execution envelope is sound. The
+authorized heartbeat covers at most18science actions; it does not silently
+expand to the full72-cell campaign. The earlier t2 prototype remains an
+execution-disabled example, not the adopted overnight horizon.
+
+Use the chosen Paper II state-motion settings below. If measured selection or
+compilation work causes abnormal runtime, the user authorizes a lower common
+work budget for fresh, clearly labeled matched attempts. Preserve the
+original attempts and distinguish search cost from queue delay and numerical
+integration. Physical parameters, thresholds, controller tolerances, compiler
+settings, conditioning and certification remain fixed.
+
+Continuation is recorded in
+`output/paper_ii_hh_ascending_local_20260908_07bc223e/continuation_state.json`.
+The active heartbeat is `overnight-paper-ii-t20-apm-validation`. Source-frozen
+local diagnostics completed at `07bc223e`. Worker preparation continues without
+modifying the frozen scientific source.
+
+## Overnight local gate and worker transport (2026-09-09 UTC)
+
+All 30 frozen HH diagnostics completed at source `07bc223e`: 24 ascending
+cases and six interleaved controls. The final independent raw audit
+`audit_all30_03.json` passed 625,323 checks with no failures; the report
+`report_all30_02/comparison.json` passed all six singleton joint/factorized
+parity comparisons. Both are under the continuation root above. The earlier
+failed audit is retained: its 23 batch-identity flags were false positives in
+the scratch checker, corrected with five focused regression tests and 25
+existing contract checks. Scientific source and raw trajectories did not change.
+
+Ascending stayed in tier one at both 256 and 1024. Interleaved exhaustive and
+block controls evaluated and accepted insertion batches; exhaustive controls
+also accepted complete delete/add exchanges. Report this coverage explicitly:
+permission to batch does not establish that a particular budget reached batching.
+
+The calibration receipt `calibration_all30_01.json` reports INCOMPLETE with zero
+ERRORs. Benchmark-point sameness and response-normalized matched accuracy are
+not checked by that receipt; the independent diagnostic audit separately checks
+shared configuration and source/seed binding. These are software validation
+results, without an equal-accuracy resource claim.
+
+The first exact-container transport smoke, CHTC `9887726.0`, failed before any
+trajectory because the descriptor was hash-checked but not transferred. Its
+archive was retrieved and verified. Corrected transport smoke `9887730.0`
+completed successfully in 252 scheduler wall seconds. The full streaming reporter
+then passed its exact-SIF test against this returned13-point trajectory.
+
+The smoke exposed a strict-zero score sensitivity across platforms: D22 scored
+zero on the Mac and4.44e-16 on Linux at checkpoint1, changing its deletion time
+and subsequent integration subdivisions. Final parameter/energy differences were
+5.59e-5/3.31e-6, so1e-10 trajectory parity fails. Source, seed, settings, compiled
+marginals and population normalization match. The evidence is preserved under
+`worker_smoke_9887730_parity/`; no scoring policy was changed. This limits numerical
+reproducibility claims, while the exploratory comparison uses one frozen worker
+container.
+
+The six initial weak-fast t=20 actions are now **submitted as9887737.0–5**:
+greedy, block exchange and bounded exhaustive, each joint/factorized, ascending,
+A4/DNone intersected with the15% deletion bound, shared W256/compile256. They use
+501points(dt0.04), Euler/ridge1e-6, PaperII state-motion5e-5, and the registered
+12-round/12-finalist/2-per-deletion-branch search profile. The12-round setting
+currently permits up to13 selector calls per checkpoint. Each envelope is5CPU,
+12GBRAM,12GBdisk and6hours including reporting. These six count toward the bounded
+18-attempt overnight scope; they are exploratory, not a promoted72-cell campaign.
+
+Source-package digest and per-action identities are frozen in
+`output/paper_ii_t20_exploratory_20260909_07bc223e/package_fastweak_w256_attempt01/`.
+Retrieve archive/receipt pairs from the owned staging root named in that package,
+verify them before ingestion, and retain every failure/timeout. The worker writes
+raw run/resume JSON only at trajectory completion; ON_EXIT archives do not supply
+eviction recovery or preserve an unfinished in-memory trajectory.
+
+## Measured budget reduction and local t20 run (2026-09-09 UTC)
+
+The matched local timing diagnostic used the scientific state-motion settings,
+three intervals at dt0.04, and W256 versus W64. Both completed: wall113.36s versus
+57.66s; compilation101.52s versus47.72s; integration0.670s versus0.675s. This
+supports a classical-work reduction. It does not establish equal accuracy or a
+measurement saving: logical selector estimator work increased about4.4%. Both
+runs exhausted their budgets on tier one and used27 selector calls. Evidence:
+`output/paper_ii_t20_budget_prefix_local_20260909_07bc223e/comparison.json` and its
+human-readable companion.
+
+Six fresh remote W64 actions were prepared with all non-budget scientific
+settings fixed, but **were not uploaded or submitted**. Automatic approval
+review twice rejected the archive transfer to the existing ap2001 campaign
+directory as unauthorized export. A specific user approval question is pending;
+do not bypass this restriction through another transport or remote reconstruction.
+The original six W256 jobs continue.
+
+One independent **local W64 t20/501 greedy-joint trajectory** started at
+04:42:26UTC, using an extracted immutable842-file source snapshot and the existing
+runtime profiler. Its platform differs from the frozenLinux workers and must be
+reported separately. Root:
+`output/paper_ii_t20_local_w64_20260909_07bc223e/`. It reserves13GB aggregate,
+12GB per case and a21600s deadline; do not start another heavy local run outside
+the18GB aggregate ceiling. This brings actual overnight t20 attempts to **seven**
+(six remote plus one local), not twelve. If the pending six remote attempts are
+later approved, refresh their authorization ledger to include the local attempt;
+the total would become thirteen, within the eighteen-attempt ceiling.
+
+For returned remote artifacts, use the tested ingestion helper at
+`output/paper_ii_t20_exploratory_20260909_07bc223e/preparation_ingestion/launcher_failure_v2/`.
+Its19 tests include the actual minimal launcher-failure format. It verifies
+archive/inventory/manifest and scientific fields; its all-call score consistency
+check is count/minimum/maximum, not individual-commit arithmetic.
+
+## Within-rung generator coverage diagnostic (2026-09-09 UTC)
+
+The seven existing t20 attempts continue; none is complete at this update. See
+[the current overnight status](../../output/paper_ii_t20_exploratory_20260909_07bc223e/status.md).
+No additional long trajectory was launched after the W16 diagnostic.
+
+A source-bound audit of the saved greedy prefixes confirms that each generator's
+placement classes are exhausted before the next generator. The retained last-call
+populations reach4/3/3 words at W64 and8/7/6 at W256, out of125. All27 calls in each
+prefix acquire full-pool positioned geometry first. This is a finite-budget
+traversal limitation, distinct from a pool cap or pure-insertion-score frontier.
+The full candidate identities survive only for the last call per checkpoint;
+do not extrapolate these exact word counts to every call or the live long run.
+
+The fresh W16/compile16 prefix completed t0.12/4points in25.14s, with19.26s
+compilation and0.60s integration. Its retained populations cover2/2/1 words;
+the last adaptation L2 remains149times the threshold. It overlapped the local
+W64 run, so no controlled speed-ratio claim is made. All842 source files remained
+unchanged, and the whole process tree peaked at1.04GB under its4GB guard.
+Do not turn this into an automatic full W16 trajectory or continue lowering
+budgets without considering coverage.
+
+The smallest proposed policy change is discussion-only: interleave singleton
+placement classes across words within each existing branch/tier, preserving
+complete patches and the compiled ranker. Budgets below125 still cannot ensure
+all words are reached; larger insertion tuples need an explicit ordering decision.
+No enumeration, mathematical permission, threshold, or production source changed.
+
+Evidence: [coverage and current source references](../../output/paper_ii_t20_budget_prefix_local_20260909_07bc223e/generator_coverage_audit_01/findings.md)
+and [the W16 diagnostic](../../output/paper_ii_t20_budget16_prefix_local_20260909_07bc223e/report.md).
+
+## Compiler-pool reuse and accepted tiny gains (2026-09-09 UTC)
+
+At the 06:01 UTC status observation, the six existing CHTC W256 jobs were
+running (JobStatus=2), with no holds. The separate local W64 trajectory had
+completed t1.32 and started t1.36 with372 parameters. **No full t20 trajectory
+was complete.** Session20597 finished its compiler reuse diagnostic and released
+its4GB reservation; the local t20 run still reserves13GB. The prepared remote
+W64 transfer remains blocked pending explicit approval; no transfer or new
+submission was made.
+
+The two sequential W64 prefixes compared ordinary compiler-pool lifetime with
+reuse of the worker processes. Total time including final cleanup was
+**65.494s ordinary versus40.913s reuse** (runner time65.255s versus40.503s).
+Real pool creations fell from27 to1. All3242 completed compiled word/resource
+results match byte-for-byte, as do scientific values,176 retained population
+rows across three populations, candidate membership/order/K/score,26 commits,
+logical work and trajectory parameters. All842 frozen source files are unchanged.
+
+This is qualified scientific parity, not raw-JSON identity: three compile-duration
+values differ, and six backend `operation_names` audit lists have different
+order. Each list has the same eleven names and multiplicities; only these
+unordered capability lists were canonicalized. No candidate ordering was
+normalized. The original strict `comparison.json` remains preserved beside
+[the qualified comparison](../../output/paper_ii_compiler_pool_reuse_diagnostic_20260909_07bc223e/comparison_02.md)
+and its JSON receipt. Eight bounded coordinator checks and source review passed.
+Both arms ran while the longer W64 trajectory was active, so these preliminary
+timings do not establish a controlled repeatable speed ratio. That diagnostic
+introduced no production implementation, cost-cache reuse, placement warming
+or new full trajectory. Parallel placement compilation remains a separate proposal with
+unresolved failure/timeout-accounting details.
+
+The [read-only tiny-gain audit](../../output/paper_ii_t20_budget_prefix_local_20260909_07bc223e/tiny_gain_audit_01/findings.md)
+examines every recorded commit in the completed t0..0.12 prefixes:
+
+| Budget | Commits | Realized normalized delta-q range | delta-q <=1e-10 | delta-q <=1e-12 |
+|---|---:|---|---:|---:|
+| W16 | 15 | 2.55e-14 to2.38e-8 | 14 | 12 |
+| W64 | 26 | 1.50e-13 to6.45e-10 | 13 | 6 |
+| W256 | 26 | 5.93e-13 to4.34e-6 | 13 | 2 |
+
+Every commit has positive delta-q and score. Authoritative route merit equals
+delta-q exactly; the large-miss score S=delta-q/K agrees numerically, with tau=0.
+W16 has fifteen pure insertions; W64 and W256 each have24 pure insertions and
+two exchanges. Among W16's twelve sub-1e-12 gains, four increase a compiled
+resource and eight have zero resource marginal; none saves a resource. Their
+normalized increments sum descriptively to2.10e-12 and positive resource
+marginals to(8,5,18). These sums are neither fixed-state telescoping gains nor
+final resource changes. W64's corresponding six commits comprise four
+resource-increasing and two zero-marginal edits; both W256 commits increase
+resources. Their summed marginals are(44,34,57) and(19,15,20), respectively.
+
+The realized gain uses a ridge1e-6 safeguarded solve with cutoff1e-10.
+`delta_gamma_normalized` instead subtracts two full-geometry ideal captures
+with cutoff1e-12; it is not an independent direct-Schur or high-precision
+reference. Gamma differences are negative on6/15,9/26 and9/26 commits for
+W16/W64/W256. The pure-insertion monotonicity tolerance is1e-9; exchanges do
+not receive that pure-insertion test. These different ordinates should not
+be equated.
+
+The smallest W16 realized gain spans230 representable spacings at q~0.933,
+and its median spans1660. Calling every gain a one-ULP subtraction accident
+would overstate the evidence; these counts also do not bound propagated
+geometry/inverse error. Existing records cannot distinguish genuine tiny
+regularized improvements from solve/cancellation error. Strict positive
+ranking and strict lower post-certification L2 currently have no minimum
+improvement margin. No tolerance was proposed or adopted by this audit.
+The last adaptation L2 remains149.2607,149.2194 and148.8915 times the common
+3e-6 cut. Numerical attribution and the cause of long-run support growth
+remain unresolved; no high-precision or direct-Schur recomputation was done.
+
+## Production compiler-session validation (2026-09-09 UTC)
+
+The production implementation now passes the identical W64 t0..0.12 prefix
+against the preserved ordinary arm. This validation uses production lifecycle
+code directly; its observer only journals `CompileWarmPool.__init__` and
+`compile_jobs`, without supplying a lifecycle monkeypatch or facade.
+
+All **3,242 ordered compiled-word/resource journal rows**, **176 retained
+population rows**, **26 all-call commits**, logical-work ledgers and raw
+scientific values match exactly. One real pool is created. All **842 source
+hashes** pass, including the three approved source edits; the new snapshot
+identity is separately verified. Comparison exceptions remain limited to actual
+compile-duration fields and narrowly proven unordered backend `operation_names`
+lists with identical membership and multiplicity. Scientific ordering, scores,
+compiled costs and safeguards are not excluded or normalized.
+
+Total production time was **40.581 seconds**, versus **65.494 seconds** for the
+saved ordinary arm. This remains preliminary timing under possible changing
+CPU contention, not a controlled speed ratio. Session 92540 exited successfully;
+its whole process tree peaked at **1,066 MB** under the 4 GB guard, and that
+reservation is released. The 14 comparison-helper checks pass. The source test
+logs preserve the initial failed check, the subsequent 103 passing checks, and
+five passing targeted cleanup checks including the final regression.
+
+Evidence: [production comparison](../../output/paper_ii_compiler_session_production_validation_20260909_07bc223e/comparison.md),
+[full comparison receipt](../../output/paper_ii_compiler_session_production_validation_20260909_07bc223e/comparison.json),
+and [copied test-log and ownership manifest](../../output/paper_ii_compiler_session_production_validation_20260909_07bc223e/evidence/evidence_manifest.json).
+The original logs and earlier diagnostic evidence remain preserved. The
+receipt records the exact source snapshot and patch for the validated compiler
+session. It introduces no cost-cache sharing, placement warming or new
+scientific control.
+
+The seven existing t20 attempts remain unchanged. The latest local observation
+at 06:21 UTC completed t1.44 with 411 parameters; **no full t20 trajectory is
+complete**. The local run still reserves 13 GB. The asynchronous question about
+rotating operator placement classes within each ascending tier is pending:
+**do not implement that selection-policy change without the reply**. Remote W64
+egress approval also remains pending; no transfer or new submission was made.
+
+GitNexus index session 19258 was deliberately interrupted with exit 130 because
+the initial command omitted the existing PDG mode. Its 4 GB reservation is
+released. Subsequent indexing must retain PDG; the interrupted indexing
+attempt changed no scientific source. Its receipt is retained in the
+continuation record.
 
 ## Ascending trial and state-motion campaign settings (2026-09-08)
 

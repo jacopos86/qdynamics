@@ -56,6 +56,7 @@ from pipelines.time_dynamics.ap_mclachlan.append_cost import (
 from pipelines.time_dynamics.ap_mclachlan.avqds import (
     mclachlan_distance_squared,
 )
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import CompilerSession
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
 from pipelines.time_dynamics.ap_mclachlan.deletion_permission import (
     DeletionPermissionEvaluator,
@@ -213,7 +214,7 @@ PLACEMENT_RULE_ID = "paper_ii_min_weighted_raw_marginal_placement_v1"
 
 
 class CompiledCostRuntime:
-    """Per-checkpoint compiled-cost adapter for the compiled bundles.
+    """Per-decision compiled-cost adapter for the compiled bundles.
 
     Resolves the sealed backend once per process, compiles the base word
     once per checkpoint, chooses one materialization cut per (atom, retained
@@ -231,6 +232,7 @@ class CompiledCostRuntime:
         blocks: Sequence[Any],
         contract: Any,
         workers: int = 1,
+        compiler_session: CompilerSession | None = None,
     ) -> None:
         from pipelines.time_dynamics.ap_mclachlan import compiled_patch_cost as cpc
 
@@ -255,6 +257,11 @@ class CompiledCostRuntime:
             contract=contract,
         )
         self.workers = max(1, int(workers))
+        self.compiler_session = (
+            compiler_session if compiler_session is not None else CompilerSession()
+        )
+        self._owns_compiler_session = compiler_session is None
+        self._closed = False
         self.pool = None
         self.pool_restarts = 0
         self.pool_failures: list[str] = []
@@ -284,11 +291,11 @@ class CompiledCostRuntime:
         self._class_members: dict[str, dict[int, tuple[int, ...]]] = {}
 
     def _ensure_pool(self) -> Any:
+        if self._closed:
+            raise self._cpc.CompiledPatchCostError("compiled-cost runtime is closed.")
         if self.pool is None:
-            self.pool = self._cpc.CompileWarmPool(
+            self.pool = self.compiler_session.lease(
                 contract=self.contract,
-                base_terms=self.base_terms,
-                atom_terms={key: atom.term for key, atom in self.atoms_by_id.items()},
                 nq=self.nq,
                 ref_state=self.ref_state,
                 workers=self.workers,
@@ -425,7 +432,7 @@ class CompiledCostRuntime:
                         self._cpc.word_key(
                             word, nq=self.nq, ref_state=self.ref_state, contract=self.contract
                         ),
-                        ("trial", atom_id, int(position)),
+                        ("word", word),
                     )
                 )
         try:
@@ -457,7 +464,7 @@ class CompiledCostRuntime:
                     self._cpc.word_key(
                         word, nq=self.nq, ref_state=self.ref_state, contract=self.contract
                     ),
-                    ("patch", tuple(int(i) for i in removed), tuple(entries)),
+                    ("word", word),
                 )
             )
         try:
@@ -472,9 +479,14 @@ class CompiledCostRuntime:
         return int(primed)
 
     def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
         if self.pool is not None:
             self.pool.close()
             self.pool = None
+        if self._owns_compiler_session:
+            self.compiler_session.close()
 
     def telemetry(self) -> dict[str, Any]:
         return {
@@ -1050,6 +1062,7 @@ def build_selector_inputs(
     accuracy_debt: bool = False,
     deletion_permission_evaluator: DeletionPermissionEvaluator | None = None,
     compiled_cost_runtime: CompiledCostRuntime | None = None,
+    compiler_session: CompilerSession | None = None,
 ) -> dict[str, Any]:
     """Assemble every selector input from route objects.
 
@@ -1268,6 +1281,7 @@ def build_selector_inputs(
                     blocks=blocks,
                     contract=bundle.compiler,
                     workers=int(route.compile_workers),
+                    compiler_session=compiler_session,
                 )
             cost_inputs = cost_runtime.cost_inputs
             if cost_runtime.workers > 1:
@@ -1308,6 +1322,7 @@ def select_generalized_exchange_patch(
     runtime_state: Any,
     time_index: int,
     solve_repair_config: Any | None = None,
+    compiler_session: CompilerSession | None = None,
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
     """Select one generalized patch from the admissible ``(D, I)`` domain.
 
@@ -1397,7 +1412,9 @@ def select_generalized_exchange_patch(
             accuracy_debt=bool(domain.accuracy_debt),
             deletion_permission_evaluator=permission_evaluator,
             compiled_cost_runtime=shared_cost_runtime["runtime"],
+            compiler_session=compiler_session,
         )
+        shared_cost_runtime["runtime"] = inputs.get("compiled_cost_runtime")
         cache = inputs["structural_kwargs"]["cache"]
         pre_support = int(state.runtime_parameter_count)
         positioned_columns = int(cache.column_count)
@@ -1416,7 +1433,6 @@ def select_generalized_exchange_patch(
                 "complete": True,
             }
         )
-        shared_cost_runtime["runtime"] = inputs.get("compiled_cost_runtime")
         inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
         population_ranker = None
         realized_l2_gate = None
@@ -1496,42 +1512,35 @@ def select_generalized_exchange_patch(
             if runtime is not None:
                 candidate_word_validator = runtime.validates_materialized_word
 
-        try:
-            selection = select_exchange_patch(
-                state=state,
-                hamiltonian=hamiltonian,
-                theta_runtime=theta_runtime,
-                time=float(time),
-                base_evaluation=base_evaluation,
-                base_step=base_step,
-                inverse_policy=inverse_policy,
-                gates=gates,
-                atoms_by_id=inputs["atoms_by_id"],
-                occurrence_label=inputs["occurrence_label"],
-                structural_kwargs=inputs["structural_kwargs"],
-                score_floor=float(exchange_config.search.structural_score_floor),
-                escalate=escalate,
-                refit=refit,
-                solve_repair_config=solve_repair_config,
-                max_certification_attempts_per_level=(
-                    exchange_config.search.certification_attempts_per_level
-                ),
-                max_certification_attempts_per_deletion_branch=(
-                    exchange_config.search.certification_attempts_per_deletion_branch
-                ),
-                population_ranker=population_ranker,
-                realized_l2_gate=realized_l2_gate,
-                realized_l2_gate_reason=realized_l2_gate_reason,
-                candidate_word_validator=candidate_word_validator,
-                search_policy=exchange_config.search.search_policy,
-                gain_evaluation=exchange_config.search.gain_evaluation,
-            )
-        except BaseException:
-            runtime = shared_cost_runtime.get("runtime")
-            if runtime is not None:
-                runtime.close()
-                shared_cost_runtime["runtime"] = None
-            raise
+        selection = select_exchange_patch(
+            state=state,
+            hamiltonian=hamiltonian,
+            theta_runtime=theta_runtime,
+            time=float(time),
+            base_evaluation=base_evaluation,
+            base_step=base_step,
+            inverse_policy=inverse_policy,
+            gates=gates,
+            atoms_by_id=inputs["atoms_by_id"],
+            occurrence_label=inputs["occurrence_label"],
+            structural_kwargs=inputs["structural_kwargs"],
+            score_floor=float(exchange_config.search.structural_score_floor),
+            escalate=escalate,
+            refit=refit,
+            solve_repair_config=solve_repair_config,
+            max_certification_attempts_per_level=(
+                exchange_config.search.certification_attempts_per_level
+            ),
+            max_certification_attempts_per_deletion_branch=(
+                exchange_config.search.certification_attempts_per_deletion_branch
+            ),
+            population_ranker=population_ranker,
+            realized_l2_gate=realized_l2_gate,
+            realized_l2_gate_reason=realized_l2_gate_reason,
+            candidate_word_validator=candidate_word_validator,
+            search_policy=exchange_config.search.search_policy,
+            gain_evaluation=exchange_config.search.gain_evaluation,
+        )
         if exchange_config.search.search_policy != "family_frontiers":
             # Each pass owns a fresh tangent cache. Finalize after frozen-ray
             # validation so its newly acquired pairs count even on rejection.
@@ -1545,95 +1554,97 @@ def select_generalized_exchange_patch(
             )
         return selection, inputs
 
-    selection, inputs = select_once(
-        deletable_atoms if domain.deletion_face_open else (),
-        insertions_enabled=bool(
-            domain.insertion_face_open
-            and (not bundle.uses_population_scoring or domain.accuracy_debt)
-        ),
-    )
-    deletion_fallback_used = False
-
-    def realized_l2(result: ExchangeSelection) -> float | None:
-        if result.certification is None or result.certification.evaluation is None:
-            return None
-        return mclachlan_distance_squared(
-            result.certification.evaluation, inverse_policy=inverse_policy
-        )
-
-    def realized_disposition(result: ExchangeSelection, value: float | None) -> str:
-        if result.committed is None or value is None:
-            return REALIZED_REFUSE
-        return GeneralizedExchange.assess_realized_candidate(
-            domain=domain,
-            patch=GeneralizedPatch(
-                deletions=tuple(result.committed.removed_runtime_indices),
-                insertions=tuple(result.committed.inserted_selection),
-            ),
-            candidate_l2=float(value),
-        )
-
-    candidate_l2 = realized_l2(selection)
-    disposition = realized_disposition(selection, candidate_l2)
-    if disposition == REALIZED_RETRY_INSERT_FACE:
-        deletion_fallback_used = True
-        first_attempts = selection.attempts
-        first_structural_scored_count = int(selection.structural_scored_count)
-        first_levels = tuple(selection.level_telemetry)
-        first_certification_work = tuple(selection.certification_work)
-        selection, inputs = select_once((), insertions_enabled=True)
-        selection = ExchangeSelection(
-            committed=selection.committed,
-            certification=selection.certification,
-            attempts=tuple(first_attempts) + tuple(selection.attempts),
-            telemetry=selection.telemetry,
-            stop_reason=selection.stop_reason,
-            structural_scored_count=int(
-                first_structural_scored_count + selection.structural_scored_count
-            ),
-            level_telemetry=first_levels + tuple(selection.level_telemetry),
-            certification_work=(
-                first_certification_work + tuple(selection.certification_work)
+    try:
+        selection, inputs = select_once(
+            deletable_atoms if domain.deletion_face_open else (),
+            insertions_enabled=bool(
+                domain.insertion_face_open
+                and (not bundle.uses_population_scoring or domain.accuracy_debt)
             ),
         )
+        deletion_fallback_used = False
+
+        def realized_l2(result: ExchangeSelection) -> float | None:
+            if result.certification is None or result.certification.evaluation is None:
+                return None
+            return mclachlan_distance_squared(
+                result.certification.evaluation, inverse_policy=inverse_policy
+            )
+
+        def realized_disposition(result: ExchangeSelection, value: float | None) -> str:
+            if result.committed is None or value is None:
+                return REALIZED_REFUSE
+            return GeneralizedExchange.assess_realized_candidate(
+                domain=domain,
+                patch=GeneralizedPatch(
+                    deletions=tuple(result.committed.removed_runtime_indices),
+                    insertions=tuple(result.committed.inserted_selection),
+                ),
+                candidate_l2=float(value),
+            )
+
         candidate_l2 = realized_l2(selection)
         disposition = realized_disposition(selection, candidate_l2)
+        if disposition == REALIZED_RETRY_INSERT_FACE:
+            deletion_fallback_used = True
+            first_attempts = selection.attempts
+            first_structural_scored_count = int(selection.structural_scored_count)
+            first_levels = tuple(selection.level_telemetry)
+            first_certification_work = tuple(selection.certification_work)
+            selection, inputs = select_once((), insertions_enabled=True)
+            selection = ExchangeSelection(
+                committed=selection.committed,
+                certification=selection.certification,
+                attempts=tuple(first_attempts) + tuple(selection.attempts),
+                telemetry=selection.telemetry,
+                stop_reason=selection.stop_reason,
+                structural_scored_count=int(
+                    first_structural_scored_count + selection.structural_scored_count
+                ),
+                level_telemetry=first_levels + tuple(selection.level_telemetry),
+                certification_work=(
+                    first_certification_work + tuple(selection.certification_work)
+                ),
+            )
+            candidate_l2 = realized_l2(selection)
+            disposition = realized_disposition(selection, candidate_l2)
 
-    if selection.committed is not None and disposition == REALIZED_REFUSE:
-        selection = ExchangeSelection(
-            committed=None,
-            certification=None,
-            attempts=selection.attempts,
-            telemetry=selection.telemetry,
-            stop_reason="refused_non_improving_patch_under_l2_debt",
-            structural_scored_count=int(selection.structural_scored_count),
-            level_telemetry=tuple(selection.level_telemetry),
-            certification_work=tuple(selection.certification_work),
+        if selection.committed is not None and disposition == REALIZED_REFUSE:
+            selection = ExchangeSelection(
+                committed=None,
+                certification=None,
+                attempts=selection.attempts,
+                telemetry=selection.telemetry,
+                stop_reason="refused_non_improving_patch_under_l2_debt",
+                structural_scored_count=int(selection.structural_scored_count),
+                level_telemetry=tuple(selection.level_telemetry),
+                certification_work=tuple(selection.certification_work),
+            )
+
+        # Record realized deletion losses so hook #2's prior sees this attempt at
+        # future checkpoints.  Loss is attributed equally across the deleted
+        # coordinates; keys are stable runtime coordinate labels, so survivors
+        # keep their record across later structural edits.
+        if runtime_state is not None and getattr(runtime_state, "loss_history", None) is not None:
+            window = max(1, int(exchange_config.score.history_window))
+            labels = tuple(state.runtime_coordinate_labels)
+            for attempt in selection.attempts:
+                if not attempt.removed_runtime_indices or attempt.deletion_loss is None:
+                    continue
+                share = float(attempt.deletion_loss) / len(attempt.removed_runtime_indices)
+                for index in attempt.removed_runtime_indices:
+                    records = runtime_state.loss_history.setdefault(labels[int(index)], [])
+                    records.append((int(time_index), share))
+                    del records[:-window]
+
+        compile_telemetry = (
+            None
+            if shared_cost_runtime["runtime"] is None
+            else shared_cost_runtime["runtime"].telemetry()
         )
-
-    # Record realized deletion losses so hook #2's prior sees this attempt at
-    # future checkpoints.  Loss is attributed equally across the deleted
-    # coordinates; keys are stable runtime coordinate labels, so survivors
-    # keep their record across later structural edits.
-    if runtime_state is not None and getattr(runtime_state, "loss_history", None) is not None:
-        window = max(1, int(exchange_config.score.history_window))
-        labels = tuple(state.runtime_coordinate_labels)
-        for attempt in selection.attempts:
-            if not attempt.removed_runtime_indices or attempt.deletion_loss is None:
-                continue
-            share = float(attempt.deletion_loss) / len(attempt.removed_runtime_indices)
-            for index in attempt.removed_runtime_indices:
-                records = runtime_state.loss_history.setdefault(labels[int(index)], [])
-                records.append((int(time_index), share))
-                del records[:-window]
-
-    compile_telemetry = (
-        None
-        if shared_cost_runtime["runtime"] is None
-        else shared_cost_runtime["runtime"].telemetry()
-    )
-    if shared_cost_runtime["runtime"] is not None:
-        shared_cost_runtime["runtime"].close()
+    finally:
+        if shared_cost_runtime["runtime"] is not None:
+            shared_cost_runtime["runtime"].close()
 
     certification_work = [dict(row) for row in selection.certification_work]
     attempt_reason_counts = Counter(str(attempt.reason) for attempt in selection.attempts)

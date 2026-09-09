@@ -1084,11 +1084,10 @@ def _pool_compile_job(job: tuple) -> tuple[str, tuple[int, int, int]]:
 
 
 class CompileWarmPool:
-    """One checkpoint's process pool for compile warming.
+    """Killable compiler workers, closed by their session or standalone owner.
 
-    Created lazily on the first warm with more than one missing word and
-    closed by the owner at the end of the checkpoint.  Pinning the five BLAS
-    thread variables and ``RAYON_NUM_THREADS`` to 1 in the parent environment before spawning keeps
+    Pinning the five BLAS thread variables and ``RAYON_NUM_THREADS`` to 1
+    in the parent environment before spawning keeps
     the workers single-threaded (the parent's own numpy is already loaded,
     so the parent's numerics are unaffected).
     """
@@ -1243,9 +1242,158 @@ class CompileWarmPool:
             self._restore_parent_env()
 
 
+class CompilerSession:
+    """Own compiler workers for one trajectory, without retaining cost caches.
+
+    The first lease seals the compiler contract, qubit count, reference state,
+    and worker count. Every lease submits complete words, so changes to the
+    ansatz and candidate pool cannot leave stale mathematical state in workers.
+    A failed pool is replaced only when a later lease is explicitly requested;
+    the failed job is never retried here.
+    """
+
+    def __init__(self) -> None:
+        self._pool: CompileWarmPool | None = None
+        self._contract: CompileContract | None = None
+        self._reference: Any = None
+        self._reference_key: Any = None
+        self._nq = 0
+        self._workers = 0
+        self._closed = False
+
+    @staticmethod
+    def _reference_identity(ref_state: Any) -> Any:
+        if ref_state is None:
+            return None
+        array = np.asarray(ref_state)
+        return array.shape, array.dtype.str, array.tobytes(order="C")
+
+    def _verify_context(
+        self, *, contract: CompileContract, nq: int, ref_state: Any, workers: int
+    ) -> None:
+        if self._closed:
+            raise CompiledPatchCostError("compiler session is closed.")
+        reference_key = self._reference_identity(ref_state)
+        if self._contract is None:
+            self._contract = contract
+            self._nq = int(nq)
+            self._workers = max(1, int(workers))
+            self._reference_key = reference_key
+            if ref_state is not None:
+                self._reference = np.array(ref_state, copy=True)
+                self._reference.flags.writeable = False
+        if (
+            contract != self._contract
+            or int(nq) != self._nq
+            or max(1, int(workers)) != self._workers
+            or reference_key != self._reference_key
+        ):
+            # word_key alone does not identify backend, optimization or seed.
+            raise CompiledPatchCostError(
+                "compiler session context changed: contract, qubits, reference, or workers."
+            )
+
+    def lease(
+        self, *, contract: CompileContract, nq: int, ref_state: Any, workers: int
+    ) -> _CompilerLease:
+        """Return a decision-local handle to the session's fixed-context pool."""
+
+        self._verify_context(
+            contract=contract, nq=nq, ref_state=ref_state, workers=workers
+        )
+        if self._pool is None or self._pool._terminated:
+            self._pool = CompileWarmPool(
+                contract=self._contract,
+                base_terms=(),
+                atom_terms={},
+                nq=self._nq,
+                ref_state=self._reference,
+                workers=self._workers,
+            )
+        lease = _CompilerLease(self, self._pool)
+        lease._require_live()
+        return lease
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._pool is not None:
+            self._pool.close()
+
+    def terminate(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._pool is not None:
+            self._pool.terminate()
+
+    def __enter__(self) -> CompilerSession:
+        if self._closed:
+            raise CompiledPatchCostError("compiler session is closed.")
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        if exc_type is None:
+            self.close()
+        else:
+            self.terminate()
+
+
+class _CompilerLease:
+    """A closed or failed decision handle cannot revive with a later pool."""
+
+    def __init__(self, session: CompilerSession, pool: CompileWarmPool) -> None:
+        self._session = session
+        self._pool = pool
+        self._closed = False
+        self.pinned_env = dict(pool.pinned_env)
+        self.prior_env = dict(pool.prior_env)
+
+    @property
+    def _terminated(self) -> bool:
+        return self._closed or self._session._closed or self._pool._terminated
+
+    def _require_live(self) -> None:
+        import os
+
+        if self._terminated:
+            raise CompiledPatchCostError("compiler lease is no longer available.")
+        if any(os.environ.get(name) != value for name, value in self.pinned_env.items()):
+            raise CompiledPatchCostError("compiler worker thread environment changed.")
+
+    def compile_jobs(
+        self, jobs: Sequence[tuple], expected_keys: Sequence[str]
+    ) -> list[tuple[str, CompiledResourceTriple]]:
+        self._require_live()
+        if any(len(job) != 2 or job[0] != "word" for job in jobs):
+            raise CompiledPatchCostError("compiler sessions accept complete-word jobs only.")
+        return self._pool.compile_jobs(jobs, expected_keys)
+
+    def compile_word(
+        self,
+        terms: Sequence[Any],
+        *,
+        nq: int,
+        ref_state: Any | None,
+        contract: CompileContract,
+        backend_obj: Any,
+    ) -> tuple[CompiledResourceTriple, dict[str, Any]]:
+        self._require_live()
+        self._session._verify_context(
+            contract=contract, nq=nq, ref_state=ref_state, workers=self._session._workers
+        )
+        return self._pool.compile_word(
+            terms, nq=nq, ref_state=ref_state, contract=contract, backend_obj=backend_obj
+        )
+
+    def close(self) -> None:
+        self._closed = True
+
+
 def warm_word_cache(
     cache: CompiledPatchCostCache,
-    pool: CompileWarmPool,
+    pool: CompileWarmPool | _CompilerLease,
     jobs: Sequence[tuple[str, tuple]],
 ) -> int:
     """Compile every not-yet-cached ``(key, job)`` in the pool; prime the cache.
@@ -1276,6 +1424,7 @@ __all__ = [
     "CompileTimeoutError",
     "WORKER_THREAD_ENV_VARS",
     "CompileWarmPool",
+    "CompilerSession",
     "edit_word",
     "warm_word_cache",
     "word_key",

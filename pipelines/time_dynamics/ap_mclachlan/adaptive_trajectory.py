@@ -20,6 +20,7 @@ from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     AP_APPEND_COST_MODEL_PAPER_I_PROXY_V1,
     AppendCostSettings,
 )
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import CompilerSession
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import (
     FixedMcLachlanStep,
     SolveRepairConfig,
@@ -981,6 +982,40 @@ def run_append_mclachlan_trajectory(
     metadata: Mapping[str, Any] | None = None,
     progress_callback: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> AppendMclachlanTrajectory:
+    """Propagate with one trajectory-owned compiler worker session."""
+
+    with CompilerSession() as compiler_session:
+        return _run_append_mclachlan_trajectory(
+            compiler_session=compiler_session,
+            state=state,
+            hamiltonian=hamiltonian,
+            times=times,
+            inverse_policy=inverse_policy,
+            integrator_method=integrator_method,
+            controller_config=controller_config,
+            support_patch_config=support_patch_config,
+            solve_repair_config=solve_repair_config,
+            controller_resume_state=controller_resume_state,
+            metadata=metadata,
+            progress_callback=progress_callback,
+        )
+
+
+def _run_append_mclachlan_trajectory(
+    *,
+    compiler_session: CompilerSession,
+    state: APMcLachlanState,
+    hamiltonian: TimeDependentHamiltonian,
+    times: Sequence[float],
+    inverse_policy: McLachlanInversePolicy = McLachlanInversePolicy(),
+    integrator_method: str = INTEGRATOR_EULER,
+    controller_config: AppendControllerConfig = AppendControllerConfig(),
+    support_patch_config: SupportPatchControllerConfig | None = None,
+    solve_repair_config: SolveRepairConfig = SolveRepairConfig(),
+    controller_resume_state: Mapping[str, Any] | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    progress_callback: Callable[[Mapping[str, Any]], None] | None = None,
+) -> AppendMclachlanTrajectory:
     """Propagate with the generalized-exchange support controller."""
 
     time_grid = _time_grid(times)
@@ -1177,6 +1212,7 @@ def run_append_mclachlan_trajectory(
                         )
                         with phase(PHASE_UNIFIED_SELECT):
                             selection, selection_payload = select_generalized_exchange_patch(
+                                compiler_session=compiler_session,
                                 state=current_state,
                                 hamiltonian=hamiltonian,
                                 theta_runtime=theta_current,
