@@ -26,6 +26,81 @@ work and rejected-set evaluation charges. The user deferred the legacy
 frontier-policy change; its utility and generic defaults remain intact.
 The local pilot below is complete. The expanded scientific grid remains pending.
 
+## Staged CHTC comparison and longer horizons (2026-09-08)
+
+The user selected a two-stage campaign: run the complete CHTC matrix first,
+then rerun the most promising variants over longer time horizons. Complete the
+remaining local exchange validation and worker-package smoke before the matrix.
+
+1. **Initial CHTC matrix:** execute all 72 cells below at a common initial
+   horizon and time grid within each drive. Retain all searches, gain modes,
+   singleton/batched settings and low/high budgets, including singleton parity
+   pairs. Choose a horizon that exercises adaptation; its value remains pending.
+2. **Shortlist:** compare validated trajectory accuracy, compiled resources,
+   total estimator acquisition (selection, validation and evolution), classical
+   selection/compilation work, and reliability across all three drives. Define
+   the comparison criteria before inspecting matrix results. Keep close
+   contenders and distinct accuracy/resource tradeoffs; a favorable result on
+   one drive alone does not establish the strongest overall variant. The
+   checkpoint patch score is not an end-to-end trajectory performance metric.
+3. **Longer horizons:** rerun the selected configurations from the same initial
+   seeds across the same three drives at shared longer horizons. Preserve the
+   timestep/checkpoint spacing and adaptive integration policy, increasing the
+   number of points with the horizon. Preserve each selected configuration's
+   per-decision budgets, thresholds, compiler and safeguards; total work can
+   grow as more decisions occur. Record any additional change as a separate
+   experimental change rather than attributing it to horizon alone.
+
+The shortlist and longer-horizon run count depend on the initial matrix;
+these extra trajectories are outside the 72-cell count. Short-horizon ordering
+is provisional: the longer runs test whether accuracy, resource savings and
+stability persist. Preserve the full first-stage results and record the
+shortlist rationale before launching its follow-up. This staging does not
+change scientific defaults or adopt results into Paper II.
+
+## Ansatz-relative deletion discovery (2026-09-08)
+
+The next local validation and campaign use the user-approved maximum deletion
+batch fraction **0.15** in all three experimental searches. At each new frozen
+search, n is the current runtime coordinate count, including protected
+coordinates; m counts structurally deletable coordinates before whole-set
+ray-displacement and reverse-Schur permission. Resolve
+
+\[
+k_{\max}=\min\{m,\lfloor0.15n\rfloor,n-n_{\min},
+k_{\mathrm{explicit}}\text{ when set}\},\qquad
+W_D=\min\left\{W_{\max},\sum_{k=1}^{k_{\max}}\binom{m}{k}\right\}.
+\]
+
+Existing support feasibility still applies. The singleton arm retains its
+explicit D1/A1 limits; the batch arm intersects its deletion domain with the
+fraction bound. Rounding is down, with no minimum-one adjustment: n<7 permits
+no nonempty deletion batch. Wmax is the existing configured
+`max_joint_patch_evaluations` value, used as an **independent discovery
+allowance**; patch evaluation has its own counter with that same ceiling.
+With Wmax=None, discovery is bounded only by the finite declared population.
+
+Count each distinct nonempty D at first inspection, including permission
+failures. Cached reuse on the same frozen search is free; D=() has no discovery
+charge. Permission failures consume no patch-evaluation or compilation slots.
+Budget and permission caches reset for each new frozen search. Every complete
+D still receives its own permission: singleton Schur failures do not filter
+the batch universe.
+
+Keep the existing interleaved cardinality schedule. Discovery exhaustion stops
+only new deletion batches, including partway through any rung. Existing pure
+insertion and approved deletion/exchange branches retain their queues and
+completed evidence, subject to the remaining evaluation and compilation
+allowances. Final population ranking includes all completed evaluated patches.
+Receipts expose the fraction, resolved sizes/population, discovery allowance,
+inspection count, and truncation. Truncated discovery cannot claim exhaustive
+completion. The binary insertion gate and all permission/certification
+mathematics remain unchanged.
+
+This changes candidate coverage and may change trajectories; the prior local
+results above retain their original source locks. Revalidate the local HH
+exchange matrix before CHTC. The deferred `family_frontiers` route is unchanged.
+
 ## Incremental admission and rung scheduling (2026-09-08)
 
 The user authorized this revision after reviewing the pilot's low-budget block
@@ -337,7 +412,7 @@ all remaining settings explicitly in one machine-readable manifest.
 |---|---|
 | Three drives, including amplitudes and frequencies | Pending selection; fill D1–D3 below |
 | Hamiltonian, physical cutoff, initial seed and seed hash | Pending binding; shared across all variants of each drive |
-| Full horizon and reporting grid | Pending; shared across variants |
+| Initial matrix horizon and time grid | Pending; shared across variants within each drive; longer horizons follow the shortlist with spacing preserved |
 | Integrator, inverse policy, controller and activation thresholds | Pending binding to one common configuration per drive |
 | Candidate pool | Complete eligible pool; no operator-pool truncation or pure-insertion frontier |
 | Compiled-resource route | `paper_ii_exchange_q_compiled_v1`; same compiler settings, placement policy and compiler seed |

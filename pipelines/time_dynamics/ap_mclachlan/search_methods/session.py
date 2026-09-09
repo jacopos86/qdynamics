@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class SearchLimits:
+    """The work ceiling supplies independent patch and deletion-discovery allowances."""
+
     joint_patch_evaluations: int | None = None
     compiled_patches_per_checkpoint: int | None = None
 
@@ -44,6 +46,7 @@ class SearchResult:
     moves: tuple[dict, ...]
     permitted_deletion_count: int
     refused_deletion_count: int
+    deletion_discovery: dict
     refusal: dict | None = None
     # (deletion cardinality, permitted visits, refused visits), including D=().
     permission_counts_by_cardinality: tuple[tuple[int, int, int], ...] = ()
@@ -66,6 +69,7 @@ class SearchResult:
             "evaluated_patch_count": len(self.candidates),
             "permitted_deletion_count": self.permitted_deletion_count,
             "refused_deletion_count": self.refused_deletion_count,
+            "deletion_discovery": dict(self.deletion_discovery),
             "coverage": {
                 "evaluated_patches_by_cardinality": [
                     {"deletion_size": d, "insertion_size": a, "count": count}
@@ -86,7 +90,10 @@ class SearchSession:
 
     Each distinct permitted patch in an admitted request consumes one
     structural slot. Refused deletion sets are recorded in the permission
-    cache and receipt without consuming patch-evaluation slots.
+    cache and receipt without consuming patch-evaluation slots. Independently,
+    each first inspection of a nonempty deletion set consumes one discovery
+    slot, before permission. The same configured work ceiling supplies both
+    allowances; exhausting discovery does not stop existing patch branches.
     Compiled slots count permitted regime-active patches, as in the current
     route. Actual transpilation calls remain recorded by the cost evaluator.
 
@@ -107,6 +114,13 @@ class SearchSession:
         self.compile_guard = JointWorkGuard(budget.compiled_patches_per_checkpoint)
         self.evidence: dict[tuple, StructuralCandidate] = {}
         self.permission_cache: dict[tuple[int, ...], bool] = {}
+        self.inspected_deletions: set[tuple[int, ...]] = set()
+        self.deletion_subset_population = problem.deletion_subset_count
+        self.deletion_discovery_limit = self.deletion_subset_population
+        if budget.joint_patch_evaluations is not None:
+            self.deletion_discovery_limit = min(
+                self.deletion_discovery_limit, int(budget.joint_patch_evaluations),
+            )
         self.moves: list[dict] = []
         self.stop_reason = ""
         self.refusal: dict | None = None
@@ -114,6 +128,23 @@ class SearchSession:
         self._ranked_size = -1
         # Guard validation precedes the baseline solve.
         self.q_base = evaluate.q_base
+
+    @property
+    def deletion_discovery_remaining(self) -> int:
+        return self.deletion_discovery_limit - len(self.inspected_deletions)
+
+    def record_deletion_inspection(self, removed: tuple[int, ...]) -> None:
+        """Charge a first nonempty-D inspection, independently of permission.
+
+        The scheduler checks remaining discovery work before pulling a new
+        subset. Reuse at the same frozen geometry is free, including refusals.
+        """
+
+        if not removed or removed in self.inspected_deletions:
+            return
+        if self.deletion_discovery_remaining == 0:
+            raise RuntimeError("deletion discovery admission exceeded its limit")
+        self.inspected_deletions.add(removed)
 
     @property
     def stopped(self) -> bool:
@@ -242,16 +273,35 @@ class SearchSession:
         })
 
     def finish(self, reason: str, exhaustive_complete: bool = False) -> SearchResult:
+        inspected_count = len(self.inspected_deletions)
+        discovery_truncated = (
+            self.deletion_discovery_remaining == 0
+            and inspected_count < self.deletion_subset_population
+        )
+        if discovery_truncated and not self.stopped:
+            reason = "deletion_discovery_budget"
         permission_counts = Counter(
             (len(removed), allowed) for removed, allowed in self.permission_cache.items()
         )
         return SearchResult(
             candidates=tuple(self.evidence.values()), guard=self.guard,
             compile_guard=self.compile_guard, stop_reason=reason,
-            exhaustive_complete=bool(exhaustive_complete and not self.stopped),
+            exhaustive_complete=bool(exhaustive_complete and not self.stopped and not discovery_truncated),
             moves=tuple(self.moves),
             permitted_deletion_count=sum(self.permission_cache.values()),
             refused_deletion_count=sum(not allowed for allowed in self.permission_cache.values()),
+            deletion_discovery={
+                "max_batch_fraction": self.problem.max_deletion_batch_fraction,
+                "ansatz_size": len(self.problem.coordinate_keys),
+                "eligible_coordinate_count": len(self.problem.deletable_indices),
+                "max_batch_size": self.problem.deletion_cardinality_limit,
+                "subset_population": self.deletion_subset_population,
+                "work_cap": self.guard.max_joint_patch_evaluations,
+                "inspection_limit": self.deletion_discovery_limit,
+                "inspected_count": inspected_count,
+                "remaining": self.deletion_discovery_remaining,
+                "truncated": discovery_truncated,
+            },
             refusal=self.refusal,
             permission_counts_by_cardinality=tuple(
                 (d, permission_counts[d, True], permission_counts[d, False])

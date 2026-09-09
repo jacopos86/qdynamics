@@ -91,6 +91,12 @@ def test_six_modes_use_real_complete_patch_pricing_and_account_acquisition(
     assert search["stop_reason"] == SEARCH_END[policy]
     assert search["exhaustive_complete"] is (policy == "bounded_exhaustive")
     assert 0 < search["evaluated_patch_count"] <= 256
+    discovery = search["deletion_discovery"]
+    assert discovery["max_batch_fraction"] == 0.15
+    assert discovery["ansatz_size"] == len(_state().theta_runtime)
+    assert discovery["max_batch_size"] <= 15 * discovery["ansatz_size"] // 100
+    assert discovery["work_cap"] == 256
+    assert discovery["inspection_limit"] == min(256, discovery["subset_population"])
     if policy == "block_exchange":
         assert search["move_size"] == 2
 

@@ -86,6 +86,7 @@ def prepare_patch_search(
         cuts_by_atom=structural_kwargs["cuts_by_atom"],
         max_insertion_batch_size=int(structural_kwargs.get("max_insertion_batch_size", 1)),
         max_deletion_batch_size=structural_kwargs.get("max_deletion_batch_size"),
+        max_deletion_batch_fraction=0.15,
         tokens_commute=structural_kwargs.get("tokens_commute"),
         deletion_permission=(
             None if permission is None else lambda removed: bool(permission(removed).permitted)

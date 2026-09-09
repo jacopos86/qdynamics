@@ -323,7 +323,7 @@ def test_refused_deletion_boundaries_do_not_consume_evaluation_slots(search) -> 
             (), coordinate_keys=("s0", "s1", "s2"), deletable_indices=(0, 1, 2),
             deletion_permission=refuse,
         ),
-        evaluator, _rank_population, SearchLimits(joint_patch_evaluations=2),
+        evaluator, _rank_population, SearchLimits(joint_patch_evaluations=7),
     )
     assert result.stop_reason != "joint_work_budget"
     assert sorted(permissions) == sorted([(0,), (1,), (2,), (0, 1), (0, 2), (1, 2), (0, 1, 2)])
@@ -724,9 +724,11 @@ def test_coverage_receipt_distinguishes_observed_refusals_from_unvisited_sets(se
         "visited_deletion_sets_by_cardinality": [
             {"deletion_size": 0, "permitted": 1, "refused": 0},
             {"deletion_size": 1, "permitted": 0, "refused": 2},
-            {"deletion_size": 2, "permitted": 0, "refused": 1},
         ],
     }
+
+    assert result.stop_reason == "deletion_discovery_budget"
+    assert result.receipt()["deletion_discovery"]["truncated"] is True
 
 
 def test_coverage_receipt_keeps_permitted_but_unevaluated_boundary_distinct() -> None:

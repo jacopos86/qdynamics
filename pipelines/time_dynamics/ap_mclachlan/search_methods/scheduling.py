@@ -59,6 +59,9 @@ def schedule_rungs(
     deletion set from each open iterator; a refused set yields control without
     acquiring a pool or consuming an evaluation slot. Neither a lower rung nor
     a long word stream must finish before higher rungs receive turns.
+    The independent discovery allowance limits first nonempty-D inspections,
+    including refusals. Its exhaustion closes only discovery streams; live
+    patch cursors, settled branches and all completed evidence are retained.
 
     Branch generators yield :class:`PatchRequest` and receive all its completed
     candidates. Block search may yield ``NEIGHBORHOOD_SETTLED`` to sleep at the
@@ -101,7 +104,10 @@ def schedule_rungs(
         if not discovery_finished and session.guard.remaining != 0:
             try:
                 size, subsets = next(rung_source)
-                discovery[size] = iter(subsets)
+                if size > 0 and session.deletion_discovery_remaining == 0:
+                    discovery_finished = True
+                else:
+                    discovery[size] = iter(subsets)
             except StopIteration:
                 discovery_finished = True
 
@@ -115,6 +121,8 @@ def schedule_rungs(
         live = set(queues) | {(size, 0) for size in discovery}
         for key in sorted(live, key=lambda pair: (sum(pair), abs(pair[0] - pair[1]), pair[0])):
             size, insertion_size = key
+            if size > 0 and size in discovery and session.deletion_discovery_remaining == 0:
+                del discovery[size]
             if insertion_size == 0 and size in discovery and session.guard.remaining != 0:
                 try:
                     removed = next(discovery[size])
@@ -122,6 +130,7 @@ def schedule_rungs(
                     del discovery[size]
                 else:
                     session.check_boundary_budget(removed)
+                    session.record_deletion_inspection(removed)
                     if session.deletion_permitted(removed):
                         resume(_Branch(removed, search_branch(removed)), start=True)
 
