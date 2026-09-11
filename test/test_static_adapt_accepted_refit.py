@@ -381,3 +381,62 @@ def test_nonuniform_runtime_alias_cannot_define_fixed_logical_origin() -> None:
 
 
 
+
+
+def _digest_like_accepted_refit(array: np.ndarray) -> str:
+    """The construction-hash convention: shape, dtype, then raw bytes."""
+
+    import hashlib
+
+    contiguous = np.ascontiguousarray(np.asarray(array))
+    digest = hashlib.sha256()
+    digest.update(str(contiguous.shape).encode("ascii"))
+    digest.update(b"\0")
+    digest.update(str(contiguous.dtype).encode("ascii"))
+    digest.update(b"\0")
+    digest.update(contiguous.tobytes())
+    return digest.hexdigest()
+
+
+@pytest.mark.parametrize(
+    "base_chart_policy",
+    [
+        SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
+        SR_POWELL_COORDINATE_CHART_LOGICAL_SHARED_REDUCED_V1,
+    ],
+)
+def test_chart_telemetry_omits_dense_base_metric_but_it_stays_reconstructible(
+    base_chart_policy: str,
+) -> None:
+    """The base Gram is n x n in the runtime term count n.
+
+    One 6600-term coupled generator made it 6680 x 6680 and the serialized
+    accepted-refit record about 1 GB per copy (Paper IV H2O macro seg01,
+    held over its cgroup memory limit on 2026-09-07). The matrix is
+    sym(B^T G B) of two fields the record already carries, so the record
+    keeps those factors and the matrix digest instead of the matrix.
+    """
+
+    chart, *_ = _chart(base_chart_policy)
+    telemetry = chart.base_telemetry
+
+    assert "raw_base_metric" not in telemetry
+    assert telemetry["raw_base_metric_serialization"] == (
+        "omitted_reconstructible_from_base_to_logical_map_and_"
+        "raw_logical_fs_metric_v1"
+    )
+    base_to_logical = np.asarray(telemetry["base_to_logical_map"], dtype=float)
+    logical_gram = np.asarray(telemetry["raw_logical_fs_metric"], dtype=float)
+    assert base_to_logical.shape == (
+        telemetry["logical_parameter_count"],
+        telemetry["base_parameter_count"],
+    )
+    reconstructed = base_to_logical.T @ logical_gram @ base_to_logical
+    reconstructed = 0.5 * (reconstructed + reconstructed.T)
+    construction_hashes = telemetry["accepted_refit_fixed_chart_receipt"][
+        "construction_hashes"
+    ]
+    assert _digest_like_accepted_refit(reconstructed) == (
+        construction_hashes["raw_base_metric_sha256"]
+    )
+    json.dumps(telemetry)

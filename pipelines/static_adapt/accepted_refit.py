@@ -1160,7 +1160,13 @@ def build_supported_fs_powell_chart(
         "raw_logical_energy_gradient": [
             float(value) for value in origin_gradient
         ],
-        "raw_base_metric": base_gram.tolist(),
+        # The base Gram is n x n in the runtime term count and is exactly
+        # sym(base_to_logical_map^T @ raw_logical_fs_metric @ base_to_logical_map);
+        # its digest stays in construction_hashes.
+        "raw_base_metric_serialization": (
+            "omitted_reconstructible_from_base_to_logical_map_and_"
+            "raw_logical_fs_metric_v1"
+        ),
         "raw_metric_in_powell_chart": raw_metric_in_chart.tolist(),
         "raw_metric_identity_residual": identity_residual,
         "metric_element_count": int(logical_count * (logical_count + 1) // 2),
