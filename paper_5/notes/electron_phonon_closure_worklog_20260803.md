@@ -5164,3 +5164,107 @@ run over 20 minutes, walls measured at load average 4.3 to 4.7 and therefore
 upper bounds.  Next: the completion retry ladder or a nonzero
 `energy_tolerance` at `N=4`, which is what stands between this route and a
 completed `t=20` run at that cadence.
+
+## 2026-09-15: projective route, task 3: is the `t=4` error a dictionary floor?
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`, third
+heading.  Task 2 concluded that the `2.503676e-1` coordinate error at `t=4` is
+the fixed 15-key entrance dictionary's closure floor, because halving the step
+raises it.  This round enlarged the dictionary and measured what moves.
+Configuration common to every rollout: strong coupling, cutoff 16,
+exact-correlated preparation, SSPRK(3,3) at `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence, the
+declared proximal log-det completion re-selected every `N` steps warm-started
+on the carried frontier -- the cheap route's hybrid, imported at its committed
+API from the tree at `d31a0a9e`, because another agent was editing that module.
+No module was edited and no default changed.
+
+Four declared dictionaries exist, all as the `active_keys` of a
+`SymmetryReducedPositiveExtension`, whose Gram rows are nine base half-words
+plus one per active key: 15 entrance keys (44 state coordinates, 24 extension
+rows, 62 frontier keys, 29 lower keys), 19 (48/28/111/33), 27 (56/36/70/41) and
+31 (60/40/129/45).  `INITIAL_PROMOTION_CANDIDATE_KEYS` is the entire declared
+enlargement -- the four relative-mode moments of the identity and three boson
+coordinates and the twelve of two spin operators and one boson coordinate, all
+degree three -- so `15 -> 31` is the only declared step and those two blocks its
+only sub-steps.  The 27-key dictionary is the one that does not construct
+through `prepare_projected_apcm_initial_state`: the declared completion refuses
+at the contracted preparation (40 Newton iterations, relative face support
+35/36, directions 19/70) and that function fails closed without consulting a
+retry; the first rung of the declared completion retry ladder
+(`logdet_shift 1e-8`) certifies there in 12 iterations, and the 27-key rollouts
+use it.  The record's 60-coordinate positive-`M4` route (cell A, `0.012580` over
+`t=0` to `4`) declared the same 31-key set, hard-wired at eight places in
+`adaptive_positive_moment_propagation.py`, but closes its frontier with
+`PositiveFourthMomentCompletion` (`phonon_envelope 16.0`, `logdet_shift 1e-5`),
+so its score is not a line these rows can sit beside.
+
+Result, first: the error does fall with dictionary size, but only on 27 of the
+31 closed scalar coordinates.  At `N=16` over `t=0` to `4` the 27-key
+dictionary scores `1.630660e-2` against the 15-key's `2.684227e-2` -- 1.65
+times smaller, and below the recorded projective event guard's `0.026049` on
+the same horizon, at `749.1 s` against `3,229.8 s`.  On the 27 coordinates
+outside the phonon-occupation block the scalar RMS falls monotonically with
+every key added (`2.810405e-2`, `2.491478e-2`, `1.319865e-2` at 15, 19, 27
+keys); on the four phonon-occupation coordinates it rises monotonically
+(`1.589107e-2`, `1.716470e-2`, `2.974702e-2`).  At `N=32`, the one cadence
+where all four dictionaries complete `t=4`, the outside-block figure goes
+`3.275830e-2`, `2.632542e-2`, `1.769154e-2`, `1.719508e-2` at 15, 19, 27, 31
+keys (a factor `1.905`) while the phonon-occupation figure goes `3.086475e-2`,
+`3.916403e-2`, `5.574190e-2`, `8.644553e-2` (a factor `2.80` the other way).
+The two added blocks do not compose: the twelve two-spin-and-one-boson moments
+carry 46.0 of the 47.5 percent reduction alone, and the four
+identity-and-three-boson moments add `1.5` further points on top of them while
+costing the phonon-occupation coordinates another factor `1.55`.  At the
+loosest cadence the rising block wins outright: at `N=64` over `t=0` to `4` the
+31-key dictionary scores `6.232531e-2` against the 15-key's `4.126006e-2`.
+
+On the `t=4` claim itself: at the same propagation and cadence the Euclidean
+norm of the closed scalar coordinate difference at `t=4` falls from
+`3.025108e-1` at 15 keys to `2.350741e-1` at 27, and from `2.946822e-1` to
+`1.829419e-1` on the coordinates outside the phonon-occupation block.  So the
+floor is a dictionary floor and the dictionary moves it, by `1.29` on the whole
+chart and `1.61` on the part that improves; the one declared enlargement does
+not halve it, and everything here is measured at the cheap hybrid's
+propagation, whose 15-key `t=4` value is `3.025108e-1` and not the projective
+route's `2.503676e-1`.
+
+Cost: the enlargement is paid entirely in the completion solve, `0.71`, `1.57`,
+`7.10`, `16.28 s` mean per solve at 15, 19, 27, 31 keys, against `8.7` to
+`14.2 s` of velocity for a whole 1,600-step rollout.  It does not track the
+frontier dimension -- 27 keys has 70 frontier keys against 19 keys' 111 and
+costs `4.5` times as much per solve.  The 31-key rollout at `N=16` therefore
+does not reach `t=4` in twenty minutes: `t=2.52`, 1,008 of 1,600 steps,
+`1,053.1 s` of which `1,025.9 s` is 63 solves.  Physicality holds throughout:
+minimum scaled positive-extension eigenvalue `-1.969e-7`, `-5.824e-7`,
+`-6.347e-6` at 15, 19, 27 keys, retained joint Gram at `1e-8`, standardized
+frontier inside the frozen box at `0.4366`, `0.4433`, `0.3646`.
+
+The residual-driven dictionary enlargement layer runs and admits nothing.  One
+checkpoint of `APCMClosureGraphAnalyzer.analyze` at the 15-key dictionary, at
+the preparation and at the `t=1` state, conditions 15 candidates -- nine
+relative-mode moments of two spin operators and one boson coordinate and six
+degree-four moments of one spin operator and three boson coordinates, taken
+from `rhs_frontier_keys`, not from the promotion candidates -- builds a nested
+30-active-key, 223-frontier-key diagnostic extension, and returns
+`nested_completion_failure: moment_extension_degeneracy: reference completion:
+PrimalInfeasible` at both times, so zero candidates are scored, `50.8` to
+`53.7 s` at peak `3.29 GB`.  It also has no caller anywhere under `paper_5`, is
+absent from `stability/__init__.py`, and nothing rebuilds a model from an
+admitted key, so declaring the dictionary by hand is the only way a larger one
+reaches a rollout today.
+
+Artifacts under `output/local_runs/`:
+`paper_v_dictionary_entrance15_n{16,32,64}_t4_20260915d`,
+`paper_v_dictionary_entrance15_plus_boson_cubic_n{16,32,64}_t4_20260915d`,
+`paper_v_dictionary_entrance15_plus_two_spin_boson_n{16,32}_t4_20260915d`,
+`paper_v_dictionary_hidden31_n{16,32,64}_t4_20260915d`,
+`paper_v_dictionary_adaptation_20260915d`, and
+`paper_v_projective_dictionary_20260915d` (nine scripts and the logs).  Every
+run under `ram_guard --limit-mb 4500`, one at a time, peak `3,293 MB`, none over
+twenty minutes.  The 15-key rows reproduce the record in every printed digit
+(`0.026842268` at `N=16`, `0.0412600573` at `N=64`).  Next, if the route is
+continued: the phonon-occupation block is the only part of the chart the
+enlargement hurts, and whether that is the cutoff-16 truncation or the
+enlarged extension failing to constrain those four coordinates is a build-time
+question about the affine map, not a run.
