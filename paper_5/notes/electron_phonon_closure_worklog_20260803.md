@@ -3898,3 +3898,27 @@ The rerun reproduces the recorded accuracy and physicality numbers to every
 printed digit on the replacement machine; the wall time halves.  This is the
 parity anchor for every no-guard-path acceleration.  The strict always-on
 prefix anchor over `t=0` to `0.05` is running separately.
+
+### Strict always-on CWRMF anchor, t=0 to 0.05
+
+Rerun of the strict spectrum-adaptive profile (always-on guard, adaptive
+bundle tier, `enable_full_cone_fallback=False`) from the same preparation,
+`h=0.0025`, 20 SSPRK2 steps.  Artifact:
+`output/local_runs/paper_v_cwrmf_strict_t005_h0025_cutoff16_20260914_v1/`.
+
+| quantity | 2026-08-18 record (strict always-on, t=0 to 0.05) | 2026-09-14 rerun |
+|---|---:|---:|
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference | `3.24e-6` | `3.23592e-6` |
+| minimum carried unshifted 62-row Gram eigenvalue | not printed | `-3.89e-12` |
+| minimum carried shifted lower bound | not printed | `5.11e-12` |
+| maximum completion correction norm | not printed | `1.0989e-4` |
+| maximum active critical modes | not printed | 49 |
+| autonomous wall time | `43,692 s` for 200 steps, i.e. about `4,370 s` per 20 steps | `1,471 s` |
+| peak resident | `3.27 GB` (200-step run) | `3.17 GB` |
+
+The strict prefix reproduces the recorded accuracy figure and is the parity
+anchor for every guarded-path acceleration: a change on the guarded path is
+kept only if it reproduces `autonomous_trajectory.npz` of this run bitwise,
+or to a stated tolerance with the difference reported.  Per-step cost on this
+machine is about 74 s under the strict always-on guard against about 0.047 s
+without it.
