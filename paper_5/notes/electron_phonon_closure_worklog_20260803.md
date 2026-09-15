@@ -4522,3 +4522,72 @@ controller, and puts the matched-horizon table behind the named
 `--final-time 2`.  The step-size collapse and the horizon (`t=0.30` in
 150 minutes) stand; the lane is retired as a long-horizon route on this
 machine.
+
+## 2026-09-15: corrections from the conventions audit
+
+Source: `agent_guidance/paper-v/overnight/conventions-audit-20260915.md`
+(two tables: every accuracy convention with its defining function, and every
+route's `t=0` to `4` and `t=0` to `0.05` numbers recomputed in one
+convention from the saved arrays; recomputation scripts under
+`output/local_runs/paper_v_review_conventions_20260915/`).  The blocks above
+are left as written; the corrections below supersede them where they differ.
+
+1. Every carried-witness accuracy figure above is the offset-subtracted
+   ("dynamic") all-coordinate scalar RMS: the carried-witness 31-coordinate
+   readout of the canonical cutoff-16 preparation sits `3.2442e-4` from
+   exact at `t=0` (A block `3.2025e-4`), so its `t=0` to `0.05` figure is
+   `3.235917e-6` offset-subtracted and `5.836875e-5` raw.  The projective
+   route's offset is `8.08e-16`, so its figures are the same either way.  The
+   factors quoted above (24.5, 3.98, 30) hold in the offset-subtracted
+   convention.  The constant `_RECORDED_CWRMF_STRICT_ALL_COORDINATE_SCALAR_RMS
+   = 3.24e-6` in `apcm_projective_event_guard_analysis.py` is stored under a
+   raw key name and copied into every projective `summary.json`; to be
+   renamed.
+2. The plan file's overnight row that paired `1.2277e-5` (N block
+   `3.1027e-8`) with `14 s` mixed two configurations: `1.227728e-5` is the
+   completion retry ladder alone (`carried_completion: false`, `face_policy:
+   refuse`, `112.46 s`); the carried lift plus face continuation gives
+   `1.287512e-5` (N block `1.8296e-5`) at `14.18 s`.  No run combines the
+   two over `t=0` to `0.05`, and their internal-energy RMS differ by six
+   orders of magnitude (`5.4153e-11` against `2.1479e-5`).  Corrected in the
+   plan file.
+3. `max_threads_8` `1.51x` was measured on the strict `t=0` to `0.01`
+   rollout; "balanced" describes the acceptance test it satisfies, not the
+   speedup.  Carrying the accepted working set is `1.46x` faster in strict
+   `t=0` to `0.01` (`2.04x` with threads) and `3.42x` slower in balanced
+   `t=0` to `0.05`.  Corrected in the plan file.
+4. The "roughly `2.9x`" claim for the bounded-depth event guard against the
+   strict always-on run is withdrawn: `43,692 / 14,722` compares two
+   horizons on two machines.  Per step on this machine the strict anchor is
+   `73.6 s` and the balanced event-triggered resume `96.2 s`; the factor is
+   unmeasured.
+5. At the `t=4` restart, the carried lift plus face continuation scores
+   `4.337435e-2` over the matched window `t=4` to `5.085`, more accurate than
+   the committed path's `4.384520e-2` on the same window; the `4.9241e-2`
+   quoted above is over its longer horizon to `5.235`.
+6. The driver's "static energy" is the record's internal-energy column
+   (Eq. (22) internal energy, one key).  Over `t=0` to `4`: projective
+   `3.6201e-2`, plain archive EOM `2.7587e-2`, carried witness without the
+   Gram guard `1.3879e-2`.  The projective route is the worst of the three
+   on this quantity; the withholding above is reversed.
+7. Over `t=0` to `0.05` the strict, balanced and no-guard carried-witness
+   flows agree to seven figures (`3.235917e-6` / `3.235916e-6` /
+   `3.235917e-6`) at `1,471 s` / `260 s` / under `1 s`, so the plan's step-1
+   accuracy gate does not discriminate the guard on that horizon.  On the
+   same horizon the Eq. (112) archive EOM alone scores `5.456228e-7`, better
+   than every moment route, at no cost.
+8. The record's "matched raw 31-coordinate archive EOM" is `closed_scalar_rhs`
+   with no initial-residual subtraction (it reproduces `0.11090` /
+   `0.07660` / `0.02961` / `0.02759` over `t=0` to `4` and `2.13e-2` over
+   `t=0` to `0.5`).  Eq. (112) on the same scheme gives `6.082336e-2` over
+   `t=0` to `4` and is absent from the record at that horizon.
+9. Smaller: the three unstated horizons (`2.1281e-3`, `5.1100e-5`, the
+   step-refinement triple) are all `t=0` to `0.05`; the step-refinement
+   triple mixed 21/41/81-sample grids (common-grid values `3.513696e-5` /
+   `1.300620e-5` / `1.488741e-5`); "N-block error" named both an
+   instantaneous l2 and a horizon RMS in one paragraph; `all31_scaled_rms` is
+   not comparable to the packet line's `0.063649` because the scales are
+   frozen per run; `coordinate_scalar_rms` is a script-local alias of
+   `all_coordinate_scalar_rms_error`; "site-0 occupation" is `rho[0,0]` in
+   one driver family and `2*rho[0,0]` in the other; stage retractions at
+   `t=4` are 1,068 by the guard log and 1,041 by the summary counter.
