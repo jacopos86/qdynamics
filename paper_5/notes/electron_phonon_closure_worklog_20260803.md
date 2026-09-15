@@ -4679,3 +4679,67 @@ is missing.  Bundle
 SHA-256 `3110777f8dd1debe73b771c243d2bc3d60eafda4d3576c70b6ba67186261e947`,
 `500713` bytes.  Upload and submission need the user's Duo login and are not
 done here.
+
+## 2026-09-15: cheap projection route, first pass (no conic solve)
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`.
+New modules `cheap_projection_route.py`, `cheap_projection_route_analysis.py`
+and 16 tests; no existing file edited; full `paper_5` suite 458 passed.
+
+Enabling fact, verified against the public builders: the retained joint
+Gram (8 rows, 29 raw coordinates), the 24-row positive extension (44 state
+plus 62 frontier coordinates) and the 62-row unified Gram (all 384 carried
+coordinates) are exactly affine in the propagated coordinates
+(reconstruction errors `1.1e-16`, `1.1e-16`, `2.8e-17`), so a physicality
+repair is eigendecompose, clip, and one least-squares map back through a
+pseudo-inverse factored once per rollout.  Named policies `eigenvalue_clip`,
+`higham_nearest_psd`, `dykstra N`; targets `extension`, `retained`, `both`;
+cadence `stage` or `step`.  Strong coupling, cutoff 16, exact-correlated
+preparation, `h=0.0025` throughout.
+
+Fixed-dictionary state (44 coordinates, frozen lift, no containment, no
+stage retraction), `t=0` to `4`:
+
+| policy | all-coordinate scalar RMS against exact (31 closed coordinates) | minimum scaled 24-row extension eigenvalue | minimum unshifted retained joint-Gram eigenvalue | wall |
+|---|---:|---:|---:|---:|
+| none | `0.13304` | `-1.5159` | `-1.5578` | `11.03 s` |
+| Higham nearest PSD, both targets | `0.13460` | `-2.28e-3` | `-2.32e-4` | `13.06 s` |
+| Dykstra 30, both targets | `0.13134` | `-1.04e-5` | `-7.92e-7` | `39.44 s` |
+| record: projective event guard with stage retraction | `0.026049` | `-9.3e-16` | `2.89e-5` | `3,229.8 s` |
+| record: raw archive EOM | `0.11090` | --- | `-0.5173` | --- |
+
+The repair buys five to six decades of physicality and 1.3 percent of
+accuracy.  Why `0.131` and not `0.026`: at six sampled times the frozen
+lift's entrance-moment commutator velocity differs from the declared
+proximal log-det completion's by 37 to 101 percent while the retained
+velocity is unaffected exactly; the limiter is the frozen lift, not the
+cone, and re-selecting the completion costs `0.83` to `1.34 s` per solve.
+Over `t=0` to `0.05` every policy including the control scores `1.272e-5`
+(the state leaves neither cone by more than `1.6e-11`) in `0.14 s`, against
+the recorded retry-ladder `1.2277e-5` at `112.5 s`; over `t=0` to `0.015`
+the route scores `1.7231e-6` in `0.057 s` where the recorded no-retraction
+ablation scored `1.9408e-6` and then refused.  Negatives: the declared
+motion scales are inert (the 15-dimensional null space of the affine map is
+entirely propagated-state directions); frontier-only repair is harmful
+(24-row Gram `-0.921`, retained Gram `-2.407`, frontier at 4.87 times its
+frozen envelope).
+
+Carried-witness state (384 coordinates, no-guard flow, repair on the 62-row
+unified Gram after each step), `t=0` to `4`:
+
+| quantity | no repair | Dykstra 30 per step | Dykstra 200 per step |
+|---|---:|---:|---:|
+| all-coordinate scalar RMS against exact | `0.48048` | `0.18430` | `0.18409` |
+| minimum scaled 62-row unified Gram eigenvalue | `-26.4455` | `-3.66e-5` | `-4.25e-7` |
+| minimum unshifted retained joint-Gram eigenvalue | `-17.6151` | `-2.5e-16` | `-2.5e-16` |
+| wall (propagation / repair) | `26.01 s` | `69.32 s` (`26.21` / `43.06`) | `300.76 s` |
+
+The control reproduces the record's no-guard line in every printed digit.
+This is the first moment closure that reaches `t=4` with its 62-row Gram at
+the cone: `69 s`, against `43,692 s` for the strict always-on guard over
+`t=0` to `0.5` and `14,722 s` for the balanced event guard over 0.38 time
+units, neither of which reached `t=4`.  It is still 1.66 times worse than
+the raw archive EOM on the 31-coordinate RMS, so plan step 6 is not closed.
+Next: the same repair to `t=20` (the record's both-cones horizon,
+`0.128607`), and a hybrid that re-selects the completion every N steps with
+the cheap repair between.
