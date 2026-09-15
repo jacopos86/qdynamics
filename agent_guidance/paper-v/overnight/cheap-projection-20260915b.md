@@ -520,3 +520,273 @@ phonon-occupation error, not a representability failure and not a refusal.
 | what fails after the drive | the phonon-occupation block: `N=16`'s N-block scalar RMS is `0.0159` over `t=0` to `4` and `0.107` over `t=0` to `8` |
 | gates | `paper_5` suite 466 passed in `251.53 s`; 21 tests in `test_cheap_projection_route.py` |
 | files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report.  Nothing committed |
+
+# Task 3: the hybrid at `t=20`, the internal-energy column, and what the repair is for (2026-09-15, same day)
+
+Same branch, worktree and modules as the two sections above; no module was
+edited in this pass and no file this route does not own was touched.  The
+`t=20` hybrid runs at `N=16` and `N=4` were launched by the previous instance
+of this key and both completed (8,000 of 8,000 steps, `message: completed`);
+this pass scores them, adds the Eq. (22) internal energy to every hybrid row by
+rescoring saved artifacts, and runs the one ablation that separates the two
+things the hybrid does.
+
+Conventions, as in task 2: the score is the all-coordinate scalar RMS of the
+31 closed scalar coordinates against the exact cutoff-16 driven reference
+(`all_coordinate_scalar_rms_error`) on the stated horizon; the internal energy
+is the sample RMS of the time-independent energy of Eq. (22)
+(`static_energy_rms_error`) on that same horizon; physicality numbers are
+measured minimum eigenvalues along the trajectory and there is no certificate
+anywhere on this route.  The fixed-dictionary runs carry a `t=0` coordinate
+offset of `8.08e-16`, so the raw and the offset-subtracted convention agree to
+every digit printed here; the record's `0.128607`, `0.193205`, `0.000939628`
+and `0.0182361` are the raw convention.  Configuration for every row: strong
+coupling (`lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude 1), phonon cutoff
+16, exact-correlated preparation, 15 entrance keys, SSPRK(3,3) at
+`h = 0.0025`, the unguarded fixed-dictionary predictor, Dykstra 30 on both
+targets at stage cadence between re-selections, and the declared proximal
+log-det completion re-solved every `N` steps warm-started on the carried
+frontier.
+
+## Negative result first
+
+Neither hybrid cadence reaches the record's both-cones line over `t=0` to
+`20`.  `N=4` scores `0.259573` and `N=16` scores `0.579332`, against the
+record's both-cones `0.128607` and the record's plain archive EOM `0.193205`
+on that horizon; their Eq. (22) internal-energy sample RMS is `0.804515` and
+`2.59371` against the record's `0.000939628` and `0.0182361`.  `N=4` is
+therefore 2.02 times the both-cones score and 1.34 times the plain archive
+EOM, and the configuration that matched the projective event guard over `t=0`
+to `4` matches nothing over `t=0` to `20`.
+
+What is new and positive is that the hybrid holds both cones for the whole 20
+time units while doing it, which no other cheap-repair configuration in this
+report does, and that the internal-energy penalty the reviewer measured on the
+Dykstra-only repair is a repair artifact which the re-selection almost
+entirely removes.
+
+## (a) `t=0` to `20` at `h=0.0025`, both cadences
+
+| quantity, `t=0` to `20`, 8,000 steps | `N=16` | `N=4` | record, both cones | record, plain archive EOM |
+|---|---:|---:|---:|---:|
+| all-coordinate scalar RMS, 31 closed coordinates | `0.579332` | `0.259573` | `0.128607` | `0.193205` |
+| internal-energy sample RMS, Eq. (22) | `2.59371` | `0.804515` | `0.000939628` | `0.0182361` |
+| site-0 occupation RMS | `0.199933` | `0.203657` | `0.204690` | `0.286170` |
+| C-block scalar RMS | `0.132404` | `0.0917819` | --- | --- |
+| N-block scalar RMS | `1.36235` | `0.532930` | --- | --- |
+| minimum scaled 24-row extension eigenvalue | `-2.401e-5` | `-5.553e-6` | --- | --- |
+| minimum unshifted retained joint Gram | `-8.296e-7` | `-8.975e-8` | `1.36819e-5` | --- |
+| maximum standardized frontier envelope ratio | `0.9105` | `0.6356` | --- | --- |
+| completions solved / refused | 500 / 22 | 2,000 / 154 | --- | --- |
+| completion wall (mean per solve) | `353.3 s` (`0.707 s`) | `791.6 s` (`0.396 s`) | --- | --- |
+| repairs applied / skipped of 24,000 stage opportunities | 13,024 / 10,976 | 5,643 / 18,357 | --- | --- |
+| repair wall (mean per repair) | `76.7 s` (`3.20 ms`) | `36.7 s` (`1.53 ms`) | --- | --- |
+| autonomous wall | `486.2 s` | `884.2 s` | `5,832.34 s` | --- |
+| peak resident | `773 MiB` | `776 MiB` | --- | --- |
+
+Four readings.
+
+- **Both cones are held for the whole horizon.**  This is the first
+  configuration on this route where neither matrix is lost.  The minimum
+  24-row extension eigenvalue over `t=0` to `T` is `-5.74e-8` at `T=1`,
+  `-1.97e-7` at `4`, `-9.12e-6` at `6`, `-1.35e-5` at `12` and `-2.40e-5` at
+  `20` for `N=16`, and `-8.91e-9`, `-5.07e-7`, `-1.15e-6`, `-4.52e-6` and
+  `-5.55e-6` at those same times for `N=4`; the standardized frontier stays
+  inside its frozen box throughout (`0.911` and `0.636`, both under 1).  Both
+  cheap routes of task 2 lose their cone on this horizon: the carried-witness
+  Dykstra-30 flow reaches `-3.36e-2` on the 62-row unified Gram, and the fixed
+  dictionary with a frozen lift reaches `-1.51e-4` on the extension with its
+  frontier at `1.940` times the frozen box.  Re-selecting the lift, not the
+  repair, is what keeps the frontier in the box.
+- **Denser re-selection is now monotone, and the `t=0` to `4` ordering has
+  reversed.**  Over `t=0` to `4` the two cadences were within 2 percent of each
+  other (`N=16` `0.0268423`, `N=4` `0.0262899`); over `t=0` to `20` `N=4` is
+  2.23 times more accurate than `N=16` (`0.259573` against `0.579332`) and
+  3.22 times more accurate on the internal energy.  The running score of the
+  `N=16` run reproduces the earlier `t=4` and `t=8` artifacts in every printed
+  digit (`0.0268423`, `0.05773`) and then departs: `0.0875` at `T=10`, `0.136`
+  at `12`, `0.324` at `16`, `0.579` at `20`, against `N=4`'s `0.101`, `0.146`,
+  `0.202` and `0.260`.
+- **The error is the phonon-occupation block, as it was at `t=8`.**  The N
+  block carries `1.36235` of `N=16`'s `0.579332` and `0.532930` of `N=4`'s
+  `0.259573`; the instantaneous 31-coordinate Euclidean error at `t=20` is
+  `6.427` for `N=16`, of which the N block is `5.709`, and `3.008` for `N=4`,
+  of which the N block is `2.319`.  The electronic density does not follow:
+  the site-0 occupation RMS is `0.199933` and `0.203657` against the record's
+  both-cones `0.204690`, that is at the record's own scale and better than the
+  plain archive EOM's `0.286170`, on a horizon where the coordinate score is
+  2.0 to 4.5 times the record's.
+- **Refusals stay ordinary and never stop the rollout.**  22 of 500 at `N=16`
+  and 154 of 2,000 at `N=4`, spread over the whole interval (`N=16` at
+  `t=0.120` to `13.360`, `N=4` at `t=0.020` to `14.19`), with the messages the
+  record's completion emits -- at `N=16`, 9 direct Clarabel proximal log-det
+  failures, 8 `moment_extension_degeneracy: conic Newton step failed descent`
+  on a full-support relative face and 5 on the full cone interior.  The
+  carried lift is kept and repaired at a refusal, so the route reaches `t=20`
+  either way.
+
+## (b) The Eq. (22) internal energy of every hybrid row, by rescoring saved artifacts
+
+Answering the reviewer's correction (1a), which measured a 51-fold
+internal-energy regression from the Dykstra-only repair on the carried-witness
+lane (`0.0138792` unrepaired to `0.7092441` repaired over `t=0` to `4`) and
+asked for the column on these lanes.  Nothing was propagated for this table: it
+is `score_internal_energy.py` reading `trajectory.npz` and `summary.json` of
+runs that already existed, recomputing `matrix_total_energy` on the propagated
+and the exact coordinates and taking the sample RMS of the difference on the
+requested sub-horizon.  On the full horizon of each run the recomputed value is
+that run's own `static_energy_rms_error` to every digit printed.
+
+| fixed-dictionary row | score, `t=0` to `4` | internal energy, `t=0` to `4` | score, `t=0` to `8` | internal energy, `t=0` to `8` |
+|---|---:|---:|---:|---:|
+| no repair, frozen lift (control) | `0.133036` | `0.0292046` | --- | --- |
+| Dykstra 30, frozen lift | `0.131335` | `0.780101` | `0.283900` | `1.90816` |
+| `N=64` | `0.0412601` | `0.110171` | `0.121366` | `0.870186` |
+| `N=16` | `0.0268423` | `0.0420873` | `0.0577300` | `0.226943` |
+| `N=4` | `0.0262899` | `0.0376080` | `0.0495752` | `0.0915587` |
+| `N=1` | `0.0273992` | `0.0474351` | --- | --- |
+| `N=16`, no repair between re-selections (section (c)) | `0.0394447` | `0.0305130` | --- | --- |
+| record, projective event guard | `0.026049` | `0.036201` | --- | --- |
+| record, plain archive EOM | `0.11090` | `0.027587` | --- | --- |
+
+**The hybrid does not inherit the 51-fold penalty.**  On the fixed dictionary
+the Dykstra-only repair costs a factor 26.7 on the internal energy
+(`0.0292046` unrepaired to `0.780101` repaired over `t=0` to `4`), which is the
+same defect the reviewer measured at 51.1 on the carried witness.  Re-selecting
+the lift removes 95 percent of it: `N=16` is `0.0420873` and `N=4` is
+`0.0376080`, that is 18.5 and 20.7 times better than the Dykstra-only
+`0.780101`, and 1.16 and 1.04 times the projective event-guard route's
+`0.036201` on the same horizon.  At `N=4` the hybrid matches the projective
+route on the internal energy as well as on the coordinate score.
+
+What is left of the penalty is a factor **1.38**, and section (c) is the
+measurement of it: `N=16` with the repair is `0.0420873` and the identical run
+without the repair is `0.0305130`.  The repair still moves the energy the wrong
+way, by 38 percent rather than by 2,600 percent, and that residual is the price
+of the physicality in the row above it.
+
+The penalty grows with the horizon at every cadence -- `N=16` goes `0.0420873`
+to `0.226943` to `2.59371` over `t=0` to 4, 8 and 20, and `N=4` goes
+`0.0376080` to `0.0915587` to `0.804515` -- and it grows faster than the
+coordinate score does (a factor 62 against a factor 22 for `N=16` between
+`T=4` and `T=20`).  Eq. (22) is the sharper diagnostic on this route.
+
+## (c) One ablation: `N=16` with no repair between re-selections, `t=0` to `4`
+
+Identical to the `N=16` row of task 2 (b) in every setting except
+`--projection-policy none`, so the declared completion is re-solved every 16
+steps and nothing is repaired at any of the 4,800 stage opportunities; the
+carried lift then moves only where the completion is re-solved.  1,600 steps,
+completed.
+
+| quantity, `t=0` to `4` | `N=16`, Dykstra 30 between | `N=16`, no repair between |
+|---|---:|---:|
+| all-coordinate scalar RMS | `0.0268423` | `0.0394447` |
+| internal-energy sample RMS, Eq. (22) | `0.0420873` | `0.0305130` |
+| site-0 occupation RMS | `0.0461563` | `0.0199981` |
+| C-block scalar RMS | `0.0226584` | `0.0485123` |
+| N-block scalar RMS | `0.0158911` | `0.0106550` |
+| minimum scaled 24-row extension eigenvalue | `-1.969e-7` | `-0.323490` |
+| minimum unshifted retained joint Gram | `-6.219e-8` | `-0.759345` |
+| maximum standardized frontier envelope ratio | `0.4370` | `0.8174` |
+| completions solved / refused | 100 / 9 | 100 / 52 |
+| mean completion wall per solve | `0.683 s` | `1.082 s` |
+| repairs applied / skipped of 4,800 stage opportunities | 1,911 / 2,889 | 0 / 4,800 |
+| autonomous wall | `89.6 s` | `119.7 s` |
+| peak resident | `281 MiB` | `351 MiB` |
+
+Three readings, and together they separate the hybrid's two ingredients.
+
+- **The re-selection carries the accuracy; the repair carries the
+  physicality.**  With no repair anywhere, re-selection alone takes the score
+  from the frozen lift's `0.133036` to `0.0394447`, which is 88 percent of the
+  hybrid's total reduction in the score, while the 24-row extension sits
+  at `-0.323490` and the retained joint Gram at `-0.759345`.  Adding the
+  repair moves the score a further 1.47 times, to `0.0268423`, and the two
+  minima by six and seven decades, to `-1.969e-7` and `-6.219e-8`.
+- **The repair pays for that physicality with the internal energy and the
+  electronic density.**  Without it the internal energy is `0.0305130` and the
+  site-0 occupation RMS is `0.0199981`; with it they are `0.0420873` and
+  `0.0461563`, worse by 1.38 and 2.31.  The C block moves the other way, from
+  `0.0485123` to `0.0226584`, and the N block from `0.0106550` to `0.0158911`.
+  The repair is therefore not uniformly good on accuracy even at this cadence:
+  it trades the energy, the density and the phonon occupation for the
+  correlation block and for the cone.
+- **The repair makes the conic solve easier.**  52 of the 100 completions
+  refuse when nothing is repaired, against 9 of 100 when Dykstra 30 runs
+  between re-selections, and the mean solve is `1.082 s` against `0.683 s`.
+  Keeping the state near the cone is what makes the declared completion cheap
+  and reliable at its warm start, so the unrepaired route is both less
+  accurate and 34 percent slower in wall time despite doing strictly less work
+  per step.
+
+## Provenance and gates
+
+- `paper_5` suite on the tree these runs were made on: 467 passed in
+  `250.29 s` (`cd paper_5 && PYTHONPATH=src python -m pytest -q`), the 466 of
+  task 2 plus the one new test below.
+- `paper_5/tests/test_cheap_projection_route.py` now holds 22 tests, the 21 of
+  task 2 plus
+  `test_lift_reselection_without_a_repair_moves_the_lift_only_on_cadence`,
+  which is the section (c) configuration at `policy="none"`: it asserts that no
+  repair is applied at any of the 12 stage opportunities of a four-step
+  rollout, that the state and frontier displacements are exactly zero, and
+  that the carried lift changes only at the two re-selection steps.  That test
+  was left uncommitted by the previous instance of this key and is kept.
+- No module was edited in this pass.  `cheap_projection_route.py` and
+  `cheap_projection_route_analysis.py` are unchanged from commit `b04ec23b`.
+  Nothing is committed.
+- The internal-energy table is produced by
+  `output/local_runs/paper_v_cheap_projection_rescore_20260915_v1/score_internal_energy.py`,
+  and the sub-horizon, physicality and refusal tables by `score_subhorizons.py`
+  and `summarize_reselections.py` under
+  `output/local_runs/paper_v_cheap_projection_hybrid_n16_t8_20260915_v1/`.
+  This answers the reviewer's correction (1d): each reads only
+  `trajectory.npz`, `summary.json` and `repairs.jsonl` of the run directories
+  named on its command line, and propagates nothing.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_hybrid_n16_t20_20260915_v1` and
+  `paper_v_cheap_projection_hybrid_n4_t20_20260915_v1`, both launched by the
+  previous instance and both `completed`; and
+  `paper_v_cheap_projection_hybrid_n16_norepair_t4_20260915_v1` from this pass.
+  The ablation was wrapped in `pipelines/shell/ram_guard.py --limit-mb 3000`,
+  one at a time.  Naming the clock, which the reviewer's correction (1e)
+  asked for: every peak-resident figure in this section is the run's own
+  `peak_resident_bytes` (`ru_maxrss` of the propagating process), so `773 MiB`
+  and `776 MiB` for the two `t=20` runs and `351 MiB` for the ablation; the
+  `ram_guard` reported `231 MB` for the same ablation.  No run in this pass
+  exceeded `120 s`.
+
+## What to try next, in order
+
+1. `N=4` is the long-horizon cadence and `N=1` was never run past `t=4`.  The
+   `t=0` to `4` ordering (`N=1` 4 percent worse than `N=4`) is the reverse of
+   what happened between `N=16` and `N=4` at `T=20`, so whether it reverses
+   again at `N=1` is one run of the `900 s` class and decides whether to
+   tighten the cadence further or to fix the refusal policy instead.
+2. The repair's 1.38-fold internal-energy cost is now isolated, and it is a
+   property of the Dykstra projection, which minimizes a Euclidean distance in
+   coordinates that Eq. (22) does not weight equally.  A repair that projects
+   in the Eq. (22) metric, or that holds the energy fixed while clipping, is
+   the same linear algebra and would say whether the cost is removable.
+3. The phonon-occupation block carries the whole long-horizon error at every
+   cadence while the site-0 occupation stays at the record's scale.  Whether
+   the 24-row extension constrains the N block at all at cutoff 16 is a
+   build-time question about the affine map, not a run.
+
+## Structured summary of task 3
+
+| item | value |
+|---|---|
+| `t=0` to `20`, `N=16` | `0.579332`, internal energy `2.59371`, site-0 occupation `0.199933`, C block `0.132404`, extension `-2.401e-5`, retained joint Gram `-8.296e-7`, envelope `0.9105`, 500 solved / 22 refused, `486.2 s`, `773 MiB` |
+| `t=0` to `20`, `N=4` | `0.259573`, internal energy `0.804515`, site-0 occupation `0.203657`, C block `0.0917819`, extension `-5.553e-6`, retained joint Gram `-8.975e-8`, envelope `0.6356`, 2,000 solved / 154 refused, `884.2 s`, `776 MiB` |
+| against the record on that horizon | both cones `0.128607` / `0.000939628` / site-0 `0.204690` at `5,832.34 s`; plain archive EOM `0.193205` / `0.0182361` / site-0 `0.286170`.  `N=4` is 2.02 times the both-cones score and 1.34 times the archive EOM |
+| what is new | both cones held for the whole 20 time units (extension `-2.4e-5` and `-5.6e-6`, frontier inside its frozen box at `0.911` and `0.636`), which neither task-2 cheap route manages |
+| where the error is | the phonon-occupation block: N block `1.36235` of `N=16`'s `0.579332` and `0.532930` of `N=4`'s `0.259573`, while the site-0 occupation stays at the record's scale |
+| (b) internal energy, `t=0` to `4` | control `0.0292046`; Dykstra-only `0.780101`; `N=64` `0.110171`; `N=16` `0.0420873`; `N=4` `0.0376080`; `N=1` `0.0474351`; projective event guard `0.036201`; plain archive EOM `0.027587` |
+| (b) internal energy, `t=0` to `8` | Dykstra-only `1.90816`; `N=64` `0.870186`; `N=16` `0.226943`; `N=4` `0.0915587` |
+| does the hybrid inherit the 51-fold penalty | **No.**  The Dykstra-only repair costs 26.7 on the fixed dictionary (51.1 on the carried witness); re-selection removes 95 percent of it, leaving a factor `1.38` measured directly by section (c) |
+| (c) ablation, `N=16` no repair, `t=0` to `4` | `0.0394447` at internal energy `0.0305130` and site-0 occupation `0.0199981`, but extension `-0.323490` and retained joint Gram `-0.759345`, 52 of 100 completions refused, `119.7 s` |
+| (c) attribution | re-selection alone gives 88 percent of the hybrid's total reduction in the score (`0.133036` to `0.0394447` of `0.133036` to `0.0268423`); the repair adds 1.47 times more accuracy and six to seven decades of physicality, and costs 1.38 on the internal energy and 2.31 on the site-0 occupation |
+| gates | `paper_5` suite 467 passed in `250.29 s`; 22 tests in `test_cheap_projection_route.py` (21 of task 2 plus the no-repair re-selection test) |
+| files changed | `paper_5/tests/test_cheap_projection_route.py` (kept from the previous instance), this report, and the worklog block in `paper_5/notes/electron_phonon_closure_worklog_20260803.md`.  No module edited, nothing committed |

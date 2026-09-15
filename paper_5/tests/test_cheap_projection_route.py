@@ -16,6 +16,7 @@ from paper5.stability.apcm_positive_extension import (
 from paper5.stability.cheap_projection_route import (
     AffineGramCoordinates,
     CarriedWitnessAffineGram,
+    CheapProjectionRoute,
     CheapProjectionSettings,
     _clip_to_floor,
     _hermitian_features,
@@ -351,6 +352,45 @@ def test_lift_reselection_at_a_cadence_solves_on_that_cadence(
     assert trajectory.success
     assert trajectory.completed_steps == 4
     assert trajectory.lift_reselections == 1
+
+
+def test_lift_reselection_without_a_repair_moves_the_lift_only_on_cadence(
+    prepared,
+) -> None:
+    """The attribution ablation: re-selection only, no repair in between.
+
+    With ``policy="none"`` nothing is repaired at any stage, so the carried
+    lift can change only where the declared proximal log-det completion is
+    re-solved, and every repair opportunity is counted as skipped.
+    """
+
+    route, state, frontier, _ = prepared
+    ablation = CheapProjectionRoute(
+        route.model,
+        CheapProjectionSettings(policy="none", target="both"),
+        coordinates=route.coordinates,
+    )
+    trajectory = integrate_cheap_projection_ssprk3(
+        ablation,
+        state,
+        frontier,
+        final_time=0.01,
+        time_step=0.0025,
+        lift_reselection_interval=2,
+    )
+    assert trajectory.success
+    assert trajectory.completed_steps == 4
+    assert trajectory.repairs_applied == 0
+    assert trajectory.repairs_skipped == 12
+    assert trajectory.maximum_state_displacement == 0.0
+    assert trajectory.maximum_frontier_displacement == 0.0
+    assert trajectory.lift_reselections == 2
+    assert trajectory.lift_reselection_failures == 0
+    lifts = trajectory.frontier_standardized
+    assert np.array_equal(lifts[1], lifts[0])
+    assert not np.array_equal(lifts[2], lifts[1])
+    assert np.array_equal(lifts[3], lifts[2])
+    assert not np.array_equal(lifts[4], lifts[3])
 
 
 def test_reselect_lift_returns_the_declared_completion_frontier(

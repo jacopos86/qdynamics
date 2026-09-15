@@ -4925,3 +4925,78 @@ Physical protocol: balanced profile, event-triggered guard with hard floor
 local reference for this segment is the `t=0.1175` to `0.5` resume above
 (`14,722 s` on one thread).  Segment 2 is submitted only from segment 1's
 returned receipt through `make_resume_submit.py`.
+
+## 2026-09-15: cheap projection route, third pass: the hybrid at `t=20` and what the repair is for
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(third heading).  Same configuration as the second pass: strong coupling,
+cutoff 16, exact-correlated preparation, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence
+between re-selections, the declared proximal log-det completion re-solved
+every N steps warm-started on the carried frontier.  Scores are the
+all-coordinate scalar RMS on the 31 closed coordinates against the exact
+cutoff-16 driven reference on the stated horizon; internal energy is the
+sample RMS of the time-independent energy of Eq. (22) on that horizon; the
+fixed-dictionary `t=0` offset is `8.08e-16`, so raw and offset-subtracted
+agree to every digit printed.  No module was edited; nothing committed.
+
+Negative result first: neither hybrid cadence is a `t=20` closure.  Over
+`t=0` to `20`, `N=4` scores `0.259573` (internal energy `0.804515`,
+`884.2 s`) and `N=16` scores `0.579332` (`2.59371`, `486.2 s`), against the
+record's both-cones `0.128607` (`0.000939628`, `5,832.34 s`) and plain
+archive EOM `0.193205` (`0.0182361`).  `N=4` is 2.02 times the both-cones
+score and 1.34 times the archive EOM.  The `t=0` to `4` ordering reverses on
+the long horizon: the two cadences were within 2 percent of each other at
+`T=4`, and at `T=20` `N=4` is 2.23 times more accurate than `N=16`.
+
+New and positive: both cones are held for the whole 20 time units, which
+neither task-2 cheap route manages.  Minimum scaled 24-row extension
+eigenvalue `-2.401e-5` (`N=16`) and `-5.553e-6` (`N=4`), retained joint Gram
+`-8.296e-7` and `-8.975e-8`, standardized frontier inside its frozen box
+throughout (`0.9105` and `0.6356`), against the frozen lift's `-1.51e-4` at
+envelope `1.940` and the carried witness's `-3.36e-2`.  Re-selecting the lift
+is what keeps the frontier in the box.  The whole long-horizon error is the
+phonon-occupation block (N-block scalar RMS `1.36235` of `N=16`'s
+`0.579332`); the site-0 occupation stays at the record's scale (`0.199933`
+and `0.203657` against the both-cones `0.204690`).  Refusals stay ordinary
+and never stop a rollout: 22 of 500 and 154 of 2,000, spread over the whole
+interval.
+
+The Eq. (22) internal-energy column, added to every hybrid row by rescoring
+saved artifacts (nothing propagated), over `t=0` to `4`: no-repair frozen-lift
+control `0.0292046`, Dykstra-only frozen lift `0.780101`, `N=64` `0.110171`,
+`N=16` `0.0420873`, `N=4` `0.0376080`, `N=1` `0.0474351`, against the record's
+projective event guard `0.036201` and plain archive EOM `0.027587`; over
+`t=0` to `8`: `1.90816`, `0.870186`, `0.226943`, `0.0915587`.  **The hybrid
+does not inherit the Dykstra-only repair's internal-energy penalty.**  That
+penalty is 26.7-fold on the fixed dictionary (`0.0292046` to `0.780101`),
+the same defect the reviewer measured at 51.1-fold on the carried witness;
+re-selection removes 95 percent of it, and at `N=4` the hybrid matches the
+projective route on the internal energy (`0.0376080` against `0.036201`) as
+well as on the coordinate score.
+
+The ablation that separates the hybrid's two ingredients -- `N=16` over `t=0`
+to `4` with `policy="none"`, so the lift is re-selected every 16 steps and
+nothing is repaired at any of the 4,800 stage opportunities -- scores
+`0.0394447` at internal energy `0.0305130` and site-0 occupation `0.0199981`,
+with the 24-row extension at `-0.323490` and the retained joint Gram at
+`-0.759345`, 52 of 100 completions refused, `119.7 s`.  So re-selection alone
+delivers 88 percent of the hybrid's reduction in the score, and the repair
+supplies the physicality (six and seven decades), a further 1.47 times of
+accuracy, and the drop in refusals from 52 to 9 per 100 solves; its price is
+1.38 on the internal energy and 2.31 on the site-0 occupation, with the C
+block moving the other way (`0.0485123` to `0.0226584`).
+
+Code: no module edited, `cheap_projection_route.py` and
+`cheap_projection_route_analysis.py` unchanged from `b04ec23b`; one new test
+in `paper_5/tests/test_cheap_projection_route.py` (22 in the file),
+`test_lift_reselection_without_a_repair_moves_the_lift_only_on_cadence`;
+`paper_5` suite 467 passed in `250.29 s`.  Artifacts under
+`output/local_runs/paper_v_cheap_projection_hybrid_{n16,n4}_t20_20260915_v1`
+(both launched by the previous instance of this key, both completed, peak
+`773` and `776 MiB` of their own `peak_resident_bytes`) and
+`paper_v_cheap_projection_hybrid_n16_norepair_t4_20260915_v1` (this pass,
+`351 MiB`, `ram_guard --limit-mb 3000`, `119.7 s`).  Next: `N=1` past `t=4`
+to see whether its `t=0` to `4` ordering also reverses, and a repair that
+projects in the Eq. (22) metric to see whether the residual 1.38-fold energy
+cost is removable.
