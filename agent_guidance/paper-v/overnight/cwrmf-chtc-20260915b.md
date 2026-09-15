@@ -503,3 +503,232 @@ committed.
   lifecycle-clean, five inner-runner rehearsals.
 - For the user, only the digest changed; the receipt now says whether the next
   submission is the next segment or the same one again.
+
+# The lane's resume is executable, and the bundle names a commit, 2026-09-15 (task 3)
+
+Same worktree and branch, from HEAD `e908c78a`.  Repairs the two defects the
+reviewer recorded against this lane in
+`agent_guidance/paper-v/overnight/review-routes-20260915b.md` section 3
+(corrections 14, 15, 16 and 17).  Nothing is committed, nothing is uploaded or
+submitted, and no default of the model or of the driver changed.  No file
+under `paper_5/` was touched in this increment.
+
+## Negative result first
+
+**The bundle digest changes again, and the two earlier ones must not be
+uploaded.**  Upload
+`eed32f13d55ca8a5c036da3e238d826cdaebde9a0e1fd65f57edda391b7a59ff`,
+`502619` bytes, 105 entries.  `edffe887...`/`520921` and `3110777f...`/`500713`
+are both superseded: the first pinned a working tree carrying three other
+keys' uncommitted edits, and neither corresponds to a commit.
+
+**And the reviewer's reading of the shipped submit files was right.**  A
+`wall_budget` return could not be continued without hand edits, and the README
+said the opposite.  Four fields had to change, not none: the run id in
+`arguments`, the fifth argument `initial_state_file`, `transfer_input_files`,
+and the `output`/`error`/`+JobBatchName` names that embed the run id.
+
+## (1) The continuation is generated, not hand-edited
+
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py` reads a
+returned segment's `receipt.json` (or the run's own `summary.json`, from which
+it takes the run id and campaign off the path) and writes the one submit file
+that continues from it.
+
+| `stop_reason` read | what it writes | run id | `final_time` | checkpoint named |
+|---|---|---|---|---|
+| `wall_budget` | a resume of the same segment | `<segment>_r01`, then `_r02`, ... | the stopped segment's own | that segment's own |
+| `final_time` | the next segment | `accel_s<k+1>_t<start>_t<end>` | the previous plus `0.5` | that segment's own |
+| `step_failure`, `unrecorded` | nothing, exit 2 with the reason | --- | --- | --- |
+
+Naming the returned segment's **own** checkpoint in both cases is what repairs
+the second half of the defect: once any segment has been resumed, the run id
+holding the checkpoint is no longer the one the shipped `s0(k+1).sub` names.
+
+### A run id cannot be reused
+
+Two refusals, at the two places a reuse can be introduced.
+
+| where | what it refuses | status |
+|---|---|---|
+| `make_resume_submit.py` | a run id that any `raw_outputs/<campaign>/` directory or any `arguments` line of a `.sub` in the lane already names | exit 2, nothing written |
+| `run_cwrmf_event_guard_accel.sh` | a run id that already owns `raw_outputs/<campaign>/<run_id>` in the sandbox, checked before the conic bootstrap and before the driver | exit 3 |
+
+The runner's check is the one that matters at the execute node: a resume
+submitted into the run id that wrote the checkpoint receives that checkpoint
+into its own output directory under `preserve_relative_paths`, and the
+stage-out would then replace the access point's copy with a shorter one.
+`archives_by_receipt/<sha>/` is content addressed and was never at risk;
+`raw_outputs/<campaign>/<run_id>/`, which holds `checkpoint.npz`, is named and
+was.  The README now says so in those terms rather than claiming two
+stage-outs can never overwrite one another "even when a run id is reused".
+
+### A stale checkpoint path is refused rather than silently obeyed
+
+The argument contract gains a sixth field, `expected_initial_time`, which the
+runner passes to the driver as `--initial-time`.  The driver already compares
+that against the checkpoint's own recorded `time` and raises `initial time
+disagrees with checkpoint`; no driver change was needed.  The comparison is
+`np.isclose` at its default `rtol = 1e-5`, so it separates a segment-scale
+mismatch and not roundoff.  The shipped `s02` ... `s08` now declare `0.50`,
+`1.00`, ..., `3.50`; `s01` declares `none`.  Declaring a nonzero start with
+`initial_state_file = none` is refused by the runner, because that would start
+the prepared ground state at that time, which is a different physical run.
+
+### Rehearsed end to end at `h = 1e-8`
+
+Outside Apptainer, in a scratch root with `paper_5` linked in and the lane
+copied in; one bounded segment is two steps of `1e-8`, the campaign final time
+is `6e-8`, and run-id time labels are at scale `1e11`, so `t = 2e-8` reads
+`t2000` exactly as `t = 0.5` reads `t0500` at the lane's own scale of `1000`.
+The harness and its log are
+`output/local_runs/paper_v_cwrmf_accel_resume_rehearsal_20260915/rehearse_chain.sh`
+and `rehearsal.log`.
+
+| step | what was run | result |
+|---|---|---|
+| segment 01 | `run_id rehearsal_s01_t0000_t2000`, `final_time 2e-8`, no checkpoint, `CWRMF_MAXIMUM_WALL_SECONDS=1e-9` | exit 0, `stop_reason wall_budget`, `last_time 1e-08`, archive `13097` bytes |
+| generate | that receipt, defaults | `kind=resume`, `run_id rehearsal_s01_t0000_t2000_r01`, `final_time 2e-08`, checkpoint `.../rehearsal_s01_t0000_t2000/checkpoint.npz`, `expected_initial_time 1e-08` |
+| the resume | the generated file's own `arguments`, lane default budget | exit 0, `stop_reason final_time`, `initial_time 1e-08`, `last_time 2e-08` |
+| generate | the resume's receipt | `kind=next`, `run_id rehearsal_s02_t2000_t4000`, `final_time 4e-08`, checkpoint `.../rehearsal_s01_t0000_t2000_r01/checkpoint.npz`, `expected_initial_time 2e-08` |
+| segment 02 | the generated file's own `arguments` | exit 0, `stop_reason final_time`, `initial_time 2e-08`, `last_time 4e-08` |
+
+The three `autonomous_trajectory.npz` files tile the interval with no gap and
+no overlap: `[0, 1e-8]`, `[1e-8, 2e-8]`, `[2e-8, 3e-8, 4e-8]`.  Segment 02's
+recorded start is the resume's end, which is the point of the chain: it
+started from segment 01's final checkpoint, not from the stopped one.
+
+Five refusals were rehearsed in the same pass:
+
+| refusal | status |
+|---|---|
+| the runner, on a run id that already owns a `raw_outputs` directory | 3 |
+| the generator, asked for a next segment whose run id is already used | 2 |
+| the driver, given segment 01's stopped checkpoint under `expected_initial_time 2e-8` | `ValueError: initial time disagrees with checkpoint`, driver exit 1, receipt still written with `stop_reason unrecorded` |
+| the runner, given a nonzero `expected_initial_time` with no checkpoint | 2 |
+| the generator, given a `step_failure` receipt with no explicit `--kind` | 2 |
+
+`chtc/validate_condor_submit_lifecycle.py` passes on all ten submit files in
+the rehearsal lane -- the eight shipped and the two generated -- exit status 0,
+and again on the eight in the worktree and the eight inside the rebuilt
+bundle.  Narrowing the earlier ledger row, as the reviewer asked: that
+validator checks bounded factories and the reserved ordinary-held release
+mode.  It does not read `transfer_input_files`, `transfer_output_files`,
+`when_to_transfer_output` or the argument contract, so passing it says nothing
+about whether a continuation names the right checkpoint; the two run-id
+refusals and `expected_initial_time` are what cover that.
+
+## (2) The bundle is built from a commit, and the build is reproducible
+
+Checked with `git status --short` before building, as instructed.  At build
+time `paper_5/src`, `paper_5/pyproject.toml` and
+`chtc/validate_condor_submit_lifecycle.py` were all clean against HEAD
+`e908c78a`: the three keys whose uncommitted edits the reviewer found inside
+`edffe887...` have since committed them (`c526c949`, `b04ec23b`, `e908c78a`).
+The bundle is nevertheless built the safe way rather than from the working
+tree, because this worktree is shared and was in fact edited again during this
+increment (`paper_5/tests/test_cheap_projection_route.py`, another key, not a
+bundle member).
+
+**Method used: `git archive HEAD` for everything except this lane, plus the
+lane directory from the working tree.**  The lane is taken from the working
+tree because it is this key's own uncommitted work and is the thing being
+shipped.  `chtc/paper_v_cwrmf_event_guard_accel_20260915/build_bundle.py`
+prints `git status --short` for both halves on every build, so the report can
+name them:
+
+| half | source | state at build |
+|---|---|---|
+| `paper_5/src` (84 files), `paper_5/pyproject.toml`, `chtc/validate_condor_submit_lifecycle.py` | `git archive e908c78a` | clean against HEAD, verified with `git diff --quiet HEAD` on each of the three |
+| `chtc/paper_v_cwrmf_event_guard_accel_20260915/` (13 files) | working tree | 10 modified, 2 untracked (`make_resume_submit.py`, `build_bundle.py`), 1 unchanged |
+
+Archive metadata is normalized -- names sorted, every mtime the HEAD commit's
+author time, uid/gid 0 with no owner names, modes `0644` or `0755` by shebang,
+gzip written with no timestamp -- so the same commit and the same lane bytes
+reproduce the digest.  Rebuilt three times here; identical each time.  The
+earlier `tar`-based build was not: two consecutive builds of identical inputs
+differed by one byte.
+
+| quantity | value |
+|---|---|
+| SHA-256 | `eed32f13d55ca8a5c036da3e238d826cdaebde9a0e1fd65f57edda391b7a59ff` |
+| bytes | `502619` |
+| entries | 105 |
+| built from | `git archive e908c78a` plus the lane working tree |
+
+Extracted and diffed against the sources: the lane, `paper_5/src`,
+`paper_5/pyproject.toml` and the validator are each byte-identical, and the
+lane's submit files pass the lifecycle validator from inside the bundle.
+
+## What changes for the user
+
+The digest, and one new step in the per-segment loop.  Step 3 of "Commands for
+the user" now expects:
+
+```bash
+ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
+  && sha256sum paper_v_cwrmf_event_guard_accel_20260915.tgz \
+  && tar -xzf paper_v_cwrmf_event_guard_accel_20260915.tgz \
+  && chmod +x chtc/paper_v_cwrmf_event_guard_accel_20260915/*.sh \
+  && mkdir -p logs raw_outputs archives_by_receipt'
+# expect eed32f13d55ca8a5c036da3e238d826cdaebde9a0e1fd65f57edda391b7a59ff
+```
+
+Every segment after the first is now generated from the previous segment's
+receipt rather than submitted from a shipped file, and this one command
+replaces step 6:
+
+```bash
+ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
+  && NEXT=$(python3 chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py \
+              archives_by_receipt/<sha>/receipt.json | tail -1) \
+  && python3 chtc/validate_condor_submit_lifecycle.py "$NEXT" \
+  && condor_submit -dry-run /tmp/paper_v_accel_next.ad "$NEXT" \
+  && condor_submit "$NEXT"'
+```
+
+It prints `kind=<resume|next> run_id=<fresh id> final_time=<t>` and the path it
+wrote.  Submitting `submit_cwrmf_accel_s01.sub` by hand is still how the
+campaign starts.  The `stop_reason` table's third column is now that command in
+both continuing rows, instead of a description of edits to make.
+
+## Verification ledger
+
+| gate | result |
+|---|---|
+| `paper_5/tests/test_apcm_carried_witness.py` under `ram_guard.py --limit-mb 3000` | `48 passed in 65.52 s`, peak `1671 MB` |
+| rehearsal of the full chain, five runs and five refusals, under the same guard | the two tables above; `exit=0`, peak `658 MB` on the first pass and `112 MB` on the repeat (the guard samples at 2 s and each run is sub-second) |
+| `chtc/validate_condor_submit_lifecycle.py` | exit 0 on the ten rehearsal submit files, the eight in the worktree, and the eight inside the bundle |
+| bundle rebuilt three times from the same inputs | `eed32f13...`, `502619` bytes, 105 entries, identical each time |
+| bundle extracted and diffed against its sources | lane, `paper_5/src`, `paper_5/pyproject.toml`, validator all byte-identical |
+| `git diff --quiet HEAD` on `paper_5/src`, `paper_5/pyproject.toml`, `chtc/validate_condor_submit_lifecycle.py` | clean, so the committed half of the bundle is HEAD `e908c78a` |
+| impact | no `paper_5` symbol was touched; the files changed are the lane's shell, submit and Python files, which no repository symbol imports |
+
+Files touched in this increment, all inside
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/`: `make_resume_submit.py`
+(new), `build_bundle.py` (new), `run_cwrmf_event_guard_accel.sh`, `README.md`,
+`submit_cwrmf_accel_s01.sub` ... `s08.sub`; plus this report and the
+git-ignored artifacts under
+`output/local_runs/paper_v_cwrmf_accel_resume_rehearsal_20260915/` and
+`output/local_runs/paper_v_cwrmf_event_guard_accel_20260915/`.  Nothing is
+committed.
+
+## Summary
+
+- A `wall_budget` return is continued by `make_resume_submit.py <receipt>`,
+  which writes the resume submit file with a fresh run id, the stopped
+  segment's own `final_time`, its own checkpoint as the transfer input, and the
+  time that checkpoint holds; the same command writes the next segment from a
+  `final_time` receipt, naming that segment's own checkpoint.
+- A run id cannot be reused: the generator refuses one already named by a
+  `raw_outputs` directory or a lane `.sub`, and the runner refuses at the
+  execute node with exit 3 before any work.
+- The sixth contract argument `expected_initial_time` makes the driver refuse a
+  stale checkpoint instead of silently starting at the wrong time.
+- The chain was rehearsed at `h = 1e-8`: stopped segment 01, generated resume,
+  resume to segment 01's own `final_time`, generated segment 02 from the
+  resume's checkpoint; the trajectories tile `t = 0` to `4e-8` with no gap or
+  overlap.  Five refusals rehearsed; ten submit files lifecycle-clean.
+- Bundle `eed32f13d55ca8a5c036da3e238d826cdaebde9a0e1fd65f57edda391b7a59ff`,
+  `502619` bytes, 105 entries, built from `git archive e908c78a` plus the lane
+  working tree, reproducible on rebuild, superseding `edffe887...`/`520921`.

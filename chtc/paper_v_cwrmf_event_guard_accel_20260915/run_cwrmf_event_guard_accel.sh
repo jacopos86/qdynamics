@@ -6,10 +6,24 @@
 #
 # Usage:
 #   run_cwrmf_event_guard_accel.sh <run_id> <final_time> <time_step> \
-#       <event_gram_hard_floor> <initial_state_file>
+#       <event_gram_hard_floor> <initial_state_file> [<expected_initial_time>]
 #
-# <initial_state_file> is the previous segment's checkpoint.npz, relative to
-# the job working directory; pass "none" for the first segment.
+# <initial_state_file> is the checkpoint.npz the segment resumes from,
+# relative to the job working directory; pass "none" for the first segment.
+# For the next segment it is the previous segment's; for a resume of a
+# segment stopped at its wall budget it is that segment's own.
+#
+# <expected_initial_time> is the time the declared checkpoint is supposed to
+# hold, or "none" to declare nothing.  It is passed to the driver as
+# --initial-time, which refuses a checkpoint whose recorded time disagrees.
+# That is what turns a stale checkpoint path -- the previous segment's
+# stopped checkpoint instead of its resumed one -- from a silent start at
+# the wrong time into a refusal.
+#
+# <run_id> is used once.  The runner refuses a run id that already owns a
+# directory under raw_outputs/<batch>/ (exit 3), and
+# make_resume_submit.py in this directory writes every continuation with a
+# fresh one, so no submit file has to be hand-edited to resume.
 #
 # Named options, all off unless the environment sets them.  The defaults are
 # the recorded rule for the seed policy and this lane's declared solver
@@ -42,10 +56,28 @@ FINAL_TIME="${2:?final_time required}"
 TIME_STEP="${3:?time_step required}"
 HARD_FLOOR="${4:?event_gram_hard_floor required}"
 INITIAL_STATE_FILE="${5:-none}"
+EXPECTED_INITIAL_TIME="${6:-none}"
 
 BATCH="paper_v_cwrmf_event_guard_accel_20260915_v1"
 MAXIMUM_WALL_SECONDS="${CWRMF_MAXIMUM_WALL_SECONDS:-138240}"
 OUT_DIR="raw_outputs/${BATCH}/${RUN_ID}"
+
+# A run id is used once.  The destructive case this refuses is a submission
+# that resumes a segment into the run id that wrote the checkpoint: the
+# checkpoint arrives in the sandbox at raw_outputs/<batch>/<run_id>/, this
+# job's own output directory, and the stage-out would then replace on the
+# access point the very checkpoint the segment was resumed from with a
+# shorter one.  Refusing here costs nothing -- it is before the conic
+# bootstrap and before the driver -- and the exit status is its own.
+# chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py names
+# every continuation with a fresh run id, so a generated submit file cannot
+# reach this branch.
+if [[ -e "${OUT_DIR}" ]]; then
+  echo "run id ${RUN_ID} already owns ${OUT_DIR} in this sandbox;" >&2
+  echo "a run id is used once -- generate the continuation with" >&2
+  echo "  chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py" >&2
+  exit 3
+fi
 mkdir -p "raw_outputs/${BATCH}" "logs/${BATCH}" archives_by_receipt
 
 export PYTHONPATH="paper_5/src${PYTHONPATH:+:${PYTHONPATH}}"
@@ -84,6 +116,20 @@ if [[ "${INITIAL_STATE_FILE}" != "none" && -n "${INITIAL_STATE_FILE}" ]]; then
     exit 2
   fi
   ARGUMENTS+=(--initial-state-file "${INITIAL_STATE_FILE}")
+  if [[ "${EXPECTED_INITIAL_TIME}" != "none" && -n "${EXPECTED_INITIAL_TIME}" ]]; then
+    # The driver compares this against the checkpoint's own recorded time and
+    # refuses the pair when they disagree, so a checkpoint path left over
+    # from a superseded run cannot start this segment at the wrong time.
+    ARGUMENTS+=(--initial-time "${EXPECTED_INITIAL_TIME}")
+  fi
+elif [[ "${EXPECTED_INITIAL_TIME}" != "none" && -n "${EXPECTED_INITIAL_TIME}" \
+        && "${EXPECTED_INITIAL_TIME}" != "0" && "${EXPECTED_INITIAL_TIME}" != "0.0" ]]; then
+  # Declaring a nonzero start with no checkpoint would start the prepared
+  # ground state at that time, which is a different physical run, not a
+  # continuation.
+  echo "expected_initial_time ${EXPECTED_INITIAL_TIME} was declared with no" >&2
+  echo "initial_state_file; a nonzero start needs the checkpoint that holds it" >&2
+  exit 2
 fi
 
 if [[ -n "${CWRMF_BUNDLE_SEED_POLICY:-}" ]]; then
@@ -108,13 +154,14 @@ set -e
 SUMMARY_PATH="${OUT_DIR}/summary.json"
 SEGMENT_STATE="$(python3 -c 'import json, sys
 block = json.load(open(sys.argv[1], encoding="utf-8"))["integration"]
-print(block.get("stop_reason", "unrecorded"), block.get("last_time", "unrecorded"))' \
+print(block.get("stop_reason", "unrecorded"),
+      block.get("last_time", "unrecorded"),
+      block.get("initial_time", "unrecorded"))' \
   "${SUMMARY_PATH}" 2>/dev/null || true)"
 if [[ -z "${SEGMENT_STATE}" ]]; then
-  SEGMENT_STATE="unrecorded unrecorded"
+  SEGMENT_STATE="unrecorded unrecorded unrecorded"
 fi
-STOP_REASON="${SEGMENT_STATE%% *}"
-LAST_TIME="${SEGMENT_STATE##* }"
+read -r STOP_REASON LAST_TIME INITIAL_TIME <<< "${SEGMENT_STATE}"
 
 # Stage the segment by receipt, never by name: the archive carries the
 # campaign and the run in its file name, and it is placed in a directory
@@ -137,11 +184,14 @@ cat > "archives_by_receipt/${ARCHIVE_SHA}/receipt.json" <<JSON
   "time_step": "${TIME_STEP}",
   "event_gram_hard_floor": "${HARD_FLOOR}",
   "initial_state_file": "${INITIAL_STATE_FILE}",
+  "expected_initial_time": "${EXPECTED_INITIAL_TIME}",
   "maximum_wall_seconds": "${MAXIMUM_WALL_SECONDS}",
   "stop_reason": "${STOP_REASON}",
   "last_time": "${LAST_TIME}",
+  "initial_time": "${INITIAL_TIME}",
   "solver_setting_profile": "${CWRMF_SOLVER_SETTING_PROFILE:-max_threads_8}",
   "bundle_seed_policy": "${CWRMF_BUNDLE_SEED_POLICY:-monotone_hint}",
+  "bundle_seed_rank_margin": "${CWRMF_BUNDLE_SEED_RANK_MARGIN:-none}",
   "archive_name": "${ARCHIVE_NAME}",
   "archive_sha256": "${ARCHIVE_SHA}",
   "archive_bytes": ${ARCHIVE_BYTES},

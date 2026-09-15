@@ -2,10 +2,18 @@
 # Segment 02 of 8: t = 0.50 to 1.00 at h = 0.0025,
 # event Gram hard floor 2e-4, bounded step halving at depth 2.
 # Argument contract: run_id final_time time_step event_gram_hard_floor \
-#   initial_state_file  ("none" for the first segment).
+#   initial_state_file expected_initial_time  ("none none" for the first
+#   segment).  expected_initial_time is the time the declared checkpoint must
+#   hold; the driver refuses the pair when they disagree.
+# This file is the planned grid.  It is submitted once, under the run id it
+# carries.  If the segment before it returned stop_reason wall_budget, or was
+# itself a resume, the checkpoint named below is not the one to continue
+# from: write the continuation with
+#   python3 chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py archives_by_receipt/<sha>/receipt.json
+# and submit what that writes instead of this file.
 universe = vanilla
 executable = chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel_apptainer.sh
-arguments = accel_s02_t0500_t1000 1.00 0.0025 2e-4 raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s01_t0000_t0500/checkpoint.npz
+arguments = accel_s02_t0500_t1000 1.00 0.0025 2e-4 raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s01_t0000_t0500/checkpoint.npz 0.50
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 transfer_executable = True
