@@ -5065,3 +5065,102 @@ compute.  Artifacts:
 guard has now evaluated 7,882 stages across this round without one trigger,
 so whether the declared event floors should be tightened is still the open
 scientific-acceptance question, and it is the user's.
+
+## 2026-09-15: cheap projection route, fourth pass: the energy-neutral repair
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(fourth heading).  Same configuration as the second and third passes: strong
+coupling, cutoff 16, exact-correlated preparation, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence
+between re-selections, the declared proximal log-det completion re-solved
+every N steps warm-started on the carried frontier.  Scores are the
+all-coordinate scalar RMS on the 31 closed coordinates against the exact
+cutoff-16 driven reference on the stated horizon; internal energy is the
+sample RMS of the time-independent energy of Eq. (22) on that horizon.  No
+default changed; nothing committed.
+
+Enabling fact, verified against the public chain the driver scores: Eq. (22)
+is an exactly linear functional of the 29 raw moment coordinates (offset
+zero, reconstruction `2.2e-16`), carried by seven of the 106 parameters --
+`-2 t_hop` on the electronic Bloch x coordinate, `2 g` on each
+coherent-phonon real part and on two raw cross coordinates, `omega_ph` on
+each diagonal raw normal coordinate -- and vanishing on the anomalous, the
+entrance and all 62 frontier coordinates.  The map back is one linear solve,
+so the energy is also a linear functional of the realified Gram features,
+and the hyperplane on which it equals a declared reference joins the cones
+and the affine Gram set as a third declared set of the same Dykstra
+alternation.  Two declared reference modes: `post_pulse` (off until a
+declared drive-end time, then the energy that trajectory itself carried
+there) and `drive_power` (on from the start, the reference advanced with the
+SSPRK(3,3) weights by `gradient . (velocity at t - velocity at 0)`, which is
+the exact drive power because the Hamiltonian's only time dependence is
+`drive_difference` and that vanishes at `t=0`).  This is not the record's
+`energy_neutral` control restriction, which confines the correction to the
+null space of the energy-gradient row and so leaves the velocity's own
+energy drift; holding the state on a reference removes both.
+
+Which post-pulse quantity is a law, measured on the exact cutoff-16
+reference over `t=4` to `20`: the Eq. (22) energy moves by `3.07e-6` (value
+`-3.571397982` at `t=4`) and the phonon number, the trace of the uncentered
+phonon normal moment, moves by `0.716` (value `4.017037038`), against an
+energy swing of `0.286911` over the driven interval.  So task (c)'s
+phonon-number-neutral variant is not admissible and was not run: `g n (b +
+b^dagger)` does not commute with `b^dagger b`.
+
+Negative result first: the constraint buys the phonon-occupation block by
+giving back the cone and by making the declared completion refuse.  At
+`N=16` over `t=0` to `20` the minimum scaled 24-row extension eigenvalue
+moves from `-2.401e-5` to `-3.311e-4` and the retained joint Gram from
+`-8.296e-7` to `-8.776e-3`, with 107 of 500 completions refusing against 22
+of 500; at `N=4` refusals reach 503 of 1,163 at `0.917 s` a solve against
+`0.396 s`, and that run stopped at `t=11.63` after 4,652 of 8,000 steps on
+its `1,150 s` budget.  The constrained `N=16` score `0.239172` is still 1.86
+times the record's both-cones `0.128607` and 1.24 times the plain archive
+EOM `0.193205`.
+
+What it delivers, `N=16` over `t=0` to `20`, post-pulse reference against
+task 3: score `0.239172` against `0.579332`, internal energy `0.069384`
+against `2.59371`, N-block scalar RMS `0.267235` against `1.36235`, site-0
+occupation `0.247970` against `0.199933`, `669.8 s` against `486.2 s`.  The
+instantaneous 31-coordinate error at `t=20` falls from `6.4271` to `2.0538`,
+of which the N block falls from `5.7088` to `0.8312`, and the post-pulse
+excursion of the propagated phonon number falls from `7.042` to `0.813`
+against the exact `0.716` -- without ever constraining that number.  At
+`N=4` over `t=0` to `11.63`: `0.079973` against `0.138634`, internal energy
+`0.051374` against `0.382336`, N block `0.101002` against `0.256683`, site-0
+occupation `0.068658` against `0.097051`.  The energy is held on its
+reference to `1.78e-15` over 18,939 constrained repairs and `2.22e-15` over
+9,156, and the hyperplane was representable at every one.
+
+The drive-power reference, `N=16` to `t=20` in `719.6 s`: internal energy
+`0.026000`, which is the best on this route and within 1.43 of the plain
+archive EOM's `0.0182361`; site-0 occupation `0.186909`, better than the
+record's both-cones `0.204690`; score `0.328674`, worse than the post-pulse
+`0.239172`; extension `-2.331e-3` and retained joint Gram `-5.284e-2` with
+276 of 500 completions refusing.  Over `t=0` to `4` it is the best row this
+route has produced, `0.023744` at internal energy `0.020406`, against the
+record's projective event guard's `0.026049` and `0.036201` at `3,229.8 s`.
+
+Build-time fact, which answers task 3's third next step: the 24-row
+extension does not constrain the phonon normal block -- one of the four raw
+normal coordinates lies entirely in the 15-dimensional null space of its
+affine map and two more lie 83 percent in it -- while the two targets
+together, which every run here repairs, have full column rank 106 of 106
+with the Eq. (22) gradient direction fully visible.
+
+Code: `InternalEnergyFunctional`, the `energy_reference_mode` and
+`energy_tolerance` settings, `energy_feature_functional`, the
+`energy_reference` argument of `AffineGramCoordinates.repair`, the
+`hyperplane` argument of the Dykstra alternation, the integrator's
+`energy_reference_time` and seven trajectory fields; driver flags
+`--energy-reference-mode`, `--energy-reference-time`, `--energy-tolerance`
+and an `internal_energy` summary block; 28 tests in the file (6 new);
+`paper_5` suite 473 passed in `239.12 s`.  The default path is unchanged:
+with the mode at `"none"` the post-pulse `N=16` rollout is bitwise the
+task-3 rollout over the whole driven interval `t=0` to `4`.  Four artifacts
+under `output/local_runs/paper_v_cheap_projection_energy_*`, each wrapped in
+`ram_guard --limit-mb 3000`, one at a time, largest own peak `782 MiB`, no
+run over 20 minutes, walls measured at load average 4.3 to 4.7 and therefore
+upper bounds.  Next: the completion retry ladder or a nonzero
+`energy_tolerance` at `N=4`, which is what stands between this route and a
+completed `t=20` run at that cadence.

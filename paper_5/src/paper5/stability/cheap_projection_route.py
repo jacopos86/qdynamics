@@ -61,12 +61,19 @@ from numpy.typing import NDArray
 
 from .adaptive_positive_moment import (
     ENTRANCE_RELATIVE_MOMENT_KEYS,
+    raw_moment_coordinates_to_matrix_state,
     uncentered_joint_moment_matrix,
 )
 from .apcm_moment_projection import state_lower_moments
 from .apcm_positive_extension import (
     APCMExtensionResult,
     SymmetryReducedPositiveExtension,
+)
+from .hubbard_dimer import DimerParameters
+from .matrix_reference import (
+    closed_scalar_to_matrix_state,
+    matrix_state_to_closed_scalar_coordinates,
+    matrix_total_energy,
 )
 from .moment_hierarchy import MomentKey
 from .projected_apcm import (
@@ -89,6 +96,7 @@ CHEAP_PROJECTION_POLICIES = (
 CHEAP_PROJECTION_TARGETS = ("extension", "retained", "both")
 CHEAP_PROJECTION_CADENCES = ("stage", "step")
 CHEAP_PROJECTION_COORDINATES = ("state_and_frontier", "frontier_only")
+CHEAP_PROJECTION_ENERGY_REFERENCES = ("none", "post_pulse", "drive_power")
 
 
 @dataclass(frozen=True)
@@ -129,6 +137,23 @@ class CheapProjectionSettings:
         ``"state_and_frontier"`` moves both; ``"frontier_only"`` holds the
         44 propagated coordinates fixed and repairs the lift alone, which is
         the cheapest surrogate for re-selecting the completion.
+    ``energy_reference_mode``
+        Whether the ``dykstra`` repair also holds the Eq. (22) internal
+        energy, evaluated from the same coordinates the scorer uses, on a
+        declared reference.  ``"none"`` is the repair of the earlier passes.
+        ``"post_pulse"`` turns the constraint on at a declared time and holds
+        the energy at the value the trajectory itself had there, which is the
+        exact conservation law of this model after the drive ends;
+        ``"drive_power"`` turns it on from the start and advances the
+        reference by the power the drive delivers, which the model supplies
+        without the exact state because the Hamiltonian's only time
+        dependence is ``DimerParameters.drive_difference`` and that function
+        vanishes at ``t = 0``.
+    ``energy_tolerance``
+        With an active energy reference, a repair is applied whenever the
+        internal energy is further than this from the reference, even when
+        both cones are already satisfied.  Zero constrains the energy at
+        every repair opportunity.
     ``state_motion_scale`` and ``frontier_motion_scale``
         Relative freedom of the 44 state coordinates and the 62 standardized
         frontier coordinates in the least-squares map back.  The repair takes
@@ -150,6 +175,8 @@ class CheapProjectionSettings:
     repair_tolerance: float = 0.0
     state_motion_scale: float = 1.0
     frontier_motion_scale: float = 1.0
+    energy_reference_mode: str = "none"
+    energy_tolerance: float = 0.0
 
     def __post_init__(self) -> None:
         if self.policy not in CHEAP_PROJECTION_POLICIES:
@@ -194,6 +221,32 @@ class CheapProjectionSettings:
             raise ValueError("state_motion_scale must be positive")
         if self.frontier_motion_scale <= 0.0:
             raise ValueError("frontier_motion_scale must be positive")
+        if self.energy_reference_mode not in CHEAP_PROJECTION_ENERGY_REFERENCES:
+            raise ValueError(
+                "energy_reference_mode must be one of "
+                + ", ".join(CHEAP_PROJECTION_ENERGY_REFERENCES)
+            )
+        if self.energy_reference_mode != "none":
+            if self.policy != "dykstra":
+                raise ValueError(
+                    "energy_reference_mode is an option of the dykstra "
+                    "repair, which alternates between the cones and the "
+                    "affine sets; no single clip can meet a hyperplane"
+                )
+            if self.repair_coordinates != "state_and_frontier":
+                raise ValueError(
+                    "energy_reference_mode needs the propagated coordinates: "
+                    "Eq. (22) does not read the frontier, so frontier_only "
+                    "cannot move the internal energy"
+                )
+        if self.energy_tolerance < 0.0:
+            raise ValueError("energy_tolerance must be nonnegative")
+
+    @property
+    def holds_internal_energy(self) -> bool:
+        """Whether the repair carries the Eq. (22) energy hyperplane."""
+
+        return self.energy_reference_mode != "none"
 
     @property
     def applied_floor(self) -> float:
@@ -240,6 +293,10 @@ class CheapProjectionRepair:
     frontier_displacement: float
     target_residual: float
     seconds: float
+    internal_energy_before: float = float("nan")
+    internal_energy_after: float = float("nan")
+    internal_energy_reference: float = float("nan")
+    energy_hyperplane_applied: bool = False
 
 
 def _hermitian_features(matrix: ComplexArray) -> FloatArray:
@@ -283,6 +340,74 @@ def _clip_to_floor(matrix: ComplexArray, floor: float) -> ComplexArray:
     return (eigenvectors * clipped) @ eigenvectors.conjugate().T
 
 
+class InternalEnergyFunctional:
+    """The Eq. (22) internal energy as an affine functional of the state.
+
+    The value is ``matrix_total_energy`` evaluated on exactly the chain the
+    driver scores: the 29 raw moment coordinates to a matrix state, that
+    state to the 31 closed scalar coordinates, and those back to a matrix
+    state.  That chain is affine in the 29 raw coordinates, which this class
+    rebuilds by evaluating it at the coordinate basis and verifies at a
+    random probe, or construction fails.
+
+    Neither the 15 entrance coordinates nor the 62 frontier coordinates
+    appear in Eq. (22), so the gradient vanishes on them.  Within the raw
+    coordinates the gradient vanishes on the six anomalous ones and equals
+    ``omega_ph`` on each diagonal raw normal coordinate, which is the
+    statement that a correction confined to the phonon normal and anomalous
+    moments changes the energy by ``omega_ph`` times the trace of the normal
+    correction.
+    """
+
+    def __init__(
+        self, parameters: DimerParameters, *, state_count: int
+    ) -> None:
+        if state_count < _RAW_DIMENSION:
+            raise ValueError(
+                "state_count must cover the 29 raw moment coordinates"
+            )
+        self.parameters = parameters
+        self.state_count = int(state_count)
+        zero = np.zeros(_RAW_DIMENSION, dtype=float)
+        offset = self._raw_energy(zero)
+        gradient = np.zeros(self.state_count, dtype=float)
+        for column in range(_RAW_DIMENSION):
+            basis = zero.copy()
+            basis[column] = 1.0
+            gradient[column] = self._raw_energy(basis) - offset
+        self.offset = float(offset)
+        self.gradient = gradient
+        generator = np.random.default_rng(20260915)
+        for _ in range(4):
+            probe = generator.normal(scale=0.3, size=self.state_count)
+            predicted = self.value(probe)
+            direct = self._raw_energy(probe[:_RAW_DIMENSION])
+            if not np.isclose(predicted, direct, atol=1e-12, rtol=0.0):
+                raise RuntimeError(
+                    "the Eq. (22) internal energy is not affine in the "
+                    "propagated coordinates"
+                )
+
+    def _raw_energy(self, raw: FloatArray) -> float:
+        state = raw_moment_coordinates_to_matrix_state(
+            np.asarray(raw, dtype=float)
+        )
+        closed = matrix_state_to_closed_scalar_coordinates(state)
+        return float(
+            matrix_total_energy(
+                closed_scalar_to_matrix_state(closed), self.parameters
+            )
+        )
+
+    def value(self, state: FloatArray) -> float:
+        """The Eq. (22) internal energy at these propagated coordinates."""
+
+        return float(
+            self.offset
+            + self.gradient @ np.asarray(state, dtype=float)[: self.state_count]
+        )
+
+
 class AffineGramCoordinates:
     """Affine maps of both moment matrices in the propagated coordinates.
 
@@ -304,6 +429,8 @@ class AffineGramCoordinates:
     def __init__(
         self,
         extension: SymmetryReducedPositiveExtension,
+        *,
+        parameters: DimerParameters | None = None,
     ) -> None:
         self.extension = extension
         self.active_keys = tuple(extension.active_keys)
@@ -420,6 +547,14 @@ class AffineGramCoordinates:
         self._factorizations: dict[
             tuple[str, float, float], tuple[FloatArray, FloatArray, FloatArray]
         ] = {}
+        self.energy = (
+            None
+            if parameters is None
+            else InternalEnergyFunctional(
+                parameters, state_count=self.state_count
+            )
+        )
+        self._energy_functionals: dict[tuple[Any, ...], FloatArray] = {}
 
     # -- affine evaluation -------------------------------------------------
 
@@ -664,6 +799,45 @@ class AffineGramCoordinates:
             offset += width
         return tuple(minima)
 
+    # -- the energy hyperplane ---------------------------------------------
+
+    def energy_feature_functional(
+        self, settings: CheapProjectionSettings
+    ) -> FloatArray:
+        """Eq. (22) as a linear functional of the realified target features.
+
+        The map back adds ``scales * (pseudo_inverse @ residual)`` to the
+        movable coordinates, so the internal energy the repaired coordinates
+        carry is the energy before the repair plus ``w . residual`` with
+        ``w = pseudo_inverse^T (scales * gradient)``.  That ``w`` is the
+        normal of the hyperplane on which the internal energy equals a
+        declared reference, expressed in the same realified feature space as
+        the positive semidefinite cones and the affine Gram set, so all three
+        sets live in one space and one Dykstra alternation can meet them.
+        """
+
+        if self.energy is None:
+            raise ValueError(
+                "the internal-energy hyperplane needs the model parameters: "
+                "build AffineGramCoordinates with parameters="
+            )
+        signature = (
+            settings.target,
+            settings.repair_coordinates,
+            float(settings.state_motion_scale),
+            float(settings.frontier_motion_scale),
+        )
+        cached = self._energy_functionals.get(signature)
+        if cached is not None:
+            return cached
+        pseudo_inverse, _, scales, movable = self.factorization(settings)
+        gradient = np.concatenate(
+            (self.energy.gradient, np.zeros(self.frontier_count, dtype=float))
+        )
+        value = pseudo_inverse.T @ (scales * gradient[movable])
+        self._energy_functionals[signature] = value
+        return value
+
     # -- the repair itself -------------------------------------------------
 
     def repair(
@@ -671,8 +845,17 @@ class AffineGramCoordinates:
         state: FloatArray,
         frontier_standardized: FloatArray,
         settings: CheapProjectionSettings,
+        *,
+        energy_reference: float | None = None,
     ) -> CheapProjectionRepair:
-        """Apply the declared cheap repair to one pair of coordinates."""
+        """Apply the declared cheap repair to one pair of coordinates.
+
+        ``energy_reference`` is the declared value of the Eq. (22) internal
+        energy the repair must land on; it is honoured only when the settings
+        name an energy reference mode, and ``None`` means the constraint is
+        off at this opportunity, which is what the post-pulse mode does while
+        the drive is still on.
+        """
 
         started = perf_counter()
         current_state = np.asarray(state, dtype=float)
@@ -685,9 +868,21 @@ class AffineGramCoordinates:
         retained_before = float(
             np.linalg.eigvalsh(self.scaled_retained_matrix(current_state))[0]
         )
+        energy_before = (
+            float("nan")
+            if self.energy is None
+            else self.energy.value(current_state)
+        )
+        holds_energy = (
+            settings.holds_internal_energy and energy_reference is not None
+        )
+        reference = (
+            float(energy_reference) if holds_energy else float("nan")
+        )
         names = self.block_names(settings.target)
         floors = settings.block_floors(names)
-        if settings.policy == "none":
+
+        def unchanged(applied_hyperplane: bool = False) -> CheapProjectionRepair:
             return CheapProjectionRepair(
                 state=current_state.copy(),
                 frontier_standardized=current_frontier.copy(),
@@ -701,32 +896,36 @@ class AffineGramCoordinates:
                 frontier_displacement=0.0,
                 target_residual=0.0,
                 seconds=perf_counter() - started,
+                internal_energy_before=energy_before,
+                internal_energy_after=energy_before,
+                internal_energy_reference=reference,
+                energy_hyperplane_applied=applied_hyperplane,
             )
+
+        if settings.policy == "none":
+            return unchanged()
         features = self._target_features(
             settings.target, current_state, current_frontier
         )
         minima = self._block_minima(features, settings.target)
-        if all(
+        cones_met = all(
             value >= floor - settings.repair_tolerance
             for value, floor in zip(minima, floors, strict=True)
-        ):
-            return CheapProjectionRepair(
-                state=current_state.copy(),
-                frontier_standardized=current_frontier.copy(),
-                applied=False,
-                iterations=0,
-                extension_minimum_before=extension_before,
-                extension_minimum_after=extension_before,
-                retained_minimum_before=retained_before,
-                retained_minimum_after=retained_before,
-                state_displacement=0.0,
-                frontier_displacement=0.0,
-                target_residual=0.0,
-                seconds=perf_counter() - started,
-            )
+        )
+        energy_met = not holds_energy or (
+            abs(energy_before - reference) <= settings.energy_tolerance
+        )
+        if cones_met and energy_met:
+            return unchanged()
         pseudo_inverse, range_basis, scales, movable = self.factorization(
             settings
         )
+        hyperplane: tuple[FloatArray, float] | None = None
+        if holds_energy:
+            normal = self.energy_feature_functional(settings)
+            projected_normal = range_basis.T @ normal
+            if float(projected_normal @ projected_normal) > 1e-24:
+                hyperplane = (normal, reference - energy_before)
         if settings.policy == "dykstra":
             corrected, iterations = self._dykstra(
                 features,
@@ -734,6 +933,7 @@ class AffineGramCoordinates:
                 settings.target,
                 floors,
                 settings.dykstra_iterations,
+                hyperplane=hyperplane,
             )
         else:
             corrected = self._cone_projection(
@@ -773,6 +973,14 @@ class AffineGramCoordinates:
             ),
             target_residual=float(np.linalg.norm(achieved - corrected)),
             seconds=perf_counter() - started,
+            internal_energy_before=energy_before,
+            internal_energy_after=(
+                float("nan")
+                if self.energy is None
+                else self.energy.value(new_state)
+            ),
+            internal_energy_reference=reference,
+            energy_hyperplane_applied=hyperplane is not None,
         )
 
     def _dykstra(
@@ -782,6 +990,8 @@ class AffineGramCoordinates:
         target: str,
         floors: tuple[float, ...],
         iterations: int,
+        *,
+        hyperplane: tuple[FloatArray, float] | None = None,
     ) -> tuple[FloatArray, int]:
         """Alternate between the affine Gram set and the cone, with memory.
 
@@ -789,8 +999,21 @@ class AffineGramCoordinates:
         orthogonal projection in the realified metric is the projection of
         the displacement from the current point onto the range basis, which
         is the same subspace for every declared motion scale.
+
+        ``hyperplane`` adds the third set of the energy-neutral option: the
+        points whose mapped-back coordinates carry a declared Eq. (22)
+        internal energy, as ``(normal, offset)`` with the constraint
+        ``normal . (point - features) = offset``.  Because that normal lies
+        in the span of the range basis, the affine Gram set and the
+        hyperplane are projected onto together in closed form, which is the
+        limit the alternation between those two affine sets converges to and
+        leaves the cone as the only set the iteration has to chase.
         """
 
+        projected_normal = None
+        if hyperplane is not None:
+            projected_normal = range_basis.T @ hyperplane[0]
+            normal_square = float(projected_normal @ projected_normal)
         point = features.copy()
         cone_correction = np.zeros_like(features)
         affine_correction = np.zeros_like(features)
@@ -800,9 +1023,13 @@ class AffineGramCoordinates:
             cone_correction = shifted - projected
             shifted = projected + affine_correction
             displacement = shifted - features
-            affine_point = features + range_basis @ (
-                range_basis.T @ displacement
-            )
+            reduced = range_basis.T @ displacement
+            if projected_normal is not None:
+                reduced = reduced + projected_normal * (
+                    (hyperplane[1] - float(projected_normal @ reduced))
+                    / normal_square
+                )
+            affine_point = features + range_basis @ reduced
             affine_correction = shifted - affine_point
             point = affine_point
             if all(
@@ -842,6 +1069,17 @@ class CheapProjectionTrajectory:
     lift_reselection_seconds: float = 0.0
     maximum_lift_reselection_displacement: float = 0.0
     minimum_reselected_scaled_extension_eigenvalue: float = float("nan")
+    internal_energy: FloatArray = field(
+        default_factory=lambda: np.zeros(0, dtype=float)
+    )
+    internal_energy_reference: FloatArray = field(
+        default_factory=lambda: np.zeros(0, dtype=float)
+    )
+    energy_reference_value: float = float("nan")
+    energy_reference_time: float = float("nan")
+    energy_constrained_repairs: int = 0
+    energy_hyperplane_refusals: int = 0
+    maximum_absolute_energy_deviation: float = 0.0
 
 
 class CheapProjectionRoute:
@@ -870,13 +1108,23 @@ class CheapProjectionRoute:
             CheapProjectionSettings() if settings is None else settings
         )
         self.coordinates = (
-            AffineGramCoordinates(model.extension)
+            AffineGramCoordinates(
+                model.extension, parameters=model.parameters
+            )
             if coordinates is None
             else coordinates
         )
         if self.coordinates.extension is not model.extension:
             raise ValueError(
                 "affine coordinates must be built on the model's extension"
+            )
+        if (
+            self.settings.holds_internal_energy
+            and self.coordinates.energy is None
+        ):
+            raise ValueError(
+                "an energy reference mode needs affine coordinates built "
+                "with the model parameters"
             )
 
     def carried_completion(
@@ -994,6 +1242,7 @@ def integrate_cheap_projection_ssprk3(
     record_stages: bool = False,
     lift_reselection_interval: int = 0,
     lift_reselection_warm_start: bool = True,
+    energy_reference_time: float = 4.0,
 ) -> CheapProjectionTrajectory:
     """SSPRK(3,3) on the unguarded velocity with the declared cheap repair.
 
@@ -1011,6 +1260,17 @@ def integrate_cheap_projection_ssprk3(
     carries the solved lift until the next re-selection.  A completion that
     refuses is counted and the carried lift is kept, so the rollout still
     cannot stop on a conic refusal.
+
+    ``energy_reference_time`` is the declared time the drive ends, which the
+    settings' ``"post_pulse"`` energy reference mode uses: the constraint is
+    off before it, and from the first accepted state at or after it the
+    repair holds the Eq. (22) internal energy at the value that state
+    carried.  The ``"drive_power"`` mode ignores this time and instead
+    advances the reference from the start of the rollout with the same
+    SSPRK(3,3) weights, using the power the drive delivers,
+    ``gradient . (velocity at this time - velocity at t=0)``, which is exact
+    because the Hamiltonian's only time dependence is the drive difference
+    and that difference vanishes at ``t = 0``.
     """
 
     if final_time <= 0.0 or time_step <= 0.0:
@@ -1033,19 +1293,32 @@ def integrate_cheap_projection_ssprk3(
     if frontier.shape != (coordinates.frontier_count,):
         raise ValueError("initial frontier has the wrong dimension")
 
+    energy = coordinates.energy
+    mode = settings.energy_reference_mode
+    if mode != "none" and energy is None:
+        raise ValueError(
+            "an energy reference mode needs affine coordinates built with "
+            "the model parameters"
+        )
+
     times = float(initial_time) + np.linspace(0.0, span, intervals + 1)
     states = np.empty((intervals + 1, state.size), dtype=float)
     frontiers = np.empty((intervals + 1, frontier.size), dtype=float)
     retained_minima = np.empty(intervals + 1, dtype=float)
     extension_minima = np.empty(intervals + 1, dtype=float)
     envelope = np.empty(intervals + 1, dtype=float)
+    energies = np.full(intervals + 1, float("nan"), dtype=float)
+    references = np.full(intervals + 1, float("nan"), dtype=float)
     records: list[dict[str, Any]] = []
+    reference: float | None = None
 
     counters = {
         "applied": 0,
         "skipped": 0,
         "reselections": 0,
         "reselection_failures": 0,
+        "energy_constrained": 0,
+        "energy_refusals": 0,
     }
     totals = {
         "repair_seconds": 0.0,
@@ -1056,6 +1329,7 @@ def integrate_cheap_projection_ssprk3(
         "reselection_seconds": 0.0,
         "reselection_displacement": 0.0,
         "reselected_minimum": float("inf"),
+        "energy_deviation": 0.0,
     }
 
     def sample(index: int, current: FloatArray, lift: FloatArray) -> None:
@@ -1072,11 +1346,36 @@ def integrate_cheap_projection_ssprk3(
             )[0]
         )
         envelope[index] = float(np.max(np.abs(lift)))
+        if energy is not None:
+            energies[index] = energy.value(current)
+
+    def capture(index: int) -> None:
+        """Declare the post-pulse reference at the first accepted state."""
+
+        nonlocal reference
+        if (
+            mode == "post_pulse"
+            and reference is None
+            and times[index] >= energy_reference_time - 1e-9
+        ):
+            reference = float(energies[index])
+        if reference is not None:
+            references[index] = reference
+            totals["energy_deviation"] = max(
+                totals["energy_deviation"],
+                abs(float(energies[index]) - reference),
+            )
 
     def repair(
-        current: FloatArray, lift: FloatArray, stage: str, when: float
+        current: FloatArray,
+        lift: FloatArray,
+        stage: str,
+        when: float,
+        stage_reference: float | None,
     ) -> tuple[FloatArray, FloatArray]:
-        result = coordinates.repair(current, lift, settings)
+        result = coordinates.repair(
+            current, lift, settings, energy_reference=stage_reference
+        )
         totals["repair_seconds"] += result.seconds
         if result.applied:
             counters["applied"] += 1
@@ -1089,6 +1388,11 @@ def integrate_cheap_projection_ssprk3(
             totals["dykstra_iterations"] = max(
                 totals["dykstra_iterations"], result.iterations
             )
+            if stage_reference is not None:
+                if result.energy_hyperplane_applied:
+                    counters["energy_constrained"] += 1
+                else:
+                    counters["energy_refusals"] += 1
         else:
             counters["skipped"] += 1
         if record_stages:
@@ -1108,17 +1412,34 @@ def integrate_cheap_projection_ssprk3(
                     "frontier_displacement": result.frontier_displacement,
                     "target_residual": result.target_residual,
                     "seconds": result.seconds,
+                    "internal_energy_before": result.internal_energy_before,
+                    "internal_energy_after": result.internal_energy_after,
+                    "internal_energy_reference": (
+                        result.internal_energy_reference
+                    ),
+                    "energy_hyperplane_applied": bool(
+                        result.energy_hyperplane_applied
+                    ),
                 }
             )
         return result.state, result.frontier_standardized
 
-    def velocity(when: float, current: FloatArray, lift: FloatArray) -> FloatArray:
+    def velocity(
+        when: float, current: FloatArray, lift: FloatArray
+    ) -> tuple[FloatArray, float]:
         started = perf_counter()
         value, _ = route.unguarded_velocity(when, current, lift)
+        power = 0.0
+        if mode == "drive_power":
+            drive_free, _ = route.unguarded_velocity(0.0, current, lift)
+            power = float(energy.gradient @ (value - drive_free))
         totals["velocity_seconds"] += perf_counter() - started
-        return value
+        return value, power
 
     sample(0, state, frontier)
+    if mode == "drive_power":
+        reference = float(energies[0])
+    capture(0)
     completed = intervals
     success = True
     message = "completed"
@@ -1136,16 +1457,29 @@ def integrate_cheap_projection_ssprk3(
             break
         when = float(times[step])
         try:
-            first_velocity = velocity(when, state, frontier)
+            first_velocity, first_power = velocity(when, state, frontier)
             evaluations += 1
             first_state = state + time_step * first_velocity
             first_frontier = frontier
+            first_reference = (
+                None
+                if reference is None
+                else (
+                    reference + time_step * first_power
+                    if mode == "drive_power"
+                    else reference
+                )
+            )
             if stage_cadence:
                 first_state, first_frontier = repair(
-                    first_state, first_frontier, "stage_1", when + time_step
+                    first_state,
+                    first_frontier,
+                    "stage_1",
+                    when + time_step,
+                    first_reference,
                 )
 
-            second_velocity = velocity(
+            second_velocity, second_power = velocity(
                 when + time_step, first_state, first_frontier
             )
             evaluations += 1
@@ -1153,15 +1487,26 @@ def integrate_cheap_projection_ssprk3(
                 first_state + time_step * second_velocity
             )
             second_frontier = first_frontier
+            second_reference = (
+                None
+                if reference is None
+                else (
+                    0.75 * reference
+                    + 0.25 * (first_reference + time_step * second_power)
+                    if mode == "drive_power"
+                    else reference
+                )
+            )
             if stage_cadence:
                 second_state, second_frontier = repair(
                     second_state,
                     second_frontier,
                     "stage_2",
                     when + 0.5 * time_step,
+                    second_reference,
                 )
 
-            third_velocity = velocity(
+            third_velocity, third_power = velocity(
                 when + 0.5 * time_step, second_state, second_frontier
             )
             evaluations += 1
@@ -1169,11 +1514,23 @@ def integrate_cheap_projection_ssprk3(
                 second_state + time_step * third_velocity
             )
             final_frontier = second_frontier
+            final_reference = (
+                None
+                if reference is None
+                else (
+                    (1.0 / 3.0) * reference
+                    + (2.0 / 3.0)
+                    * (second_reference + time_step * third_power)
+                    if mode == "drive_power"
+                    else reference
+                )
+            )
             final_state, final_frontier = repair(
                 final_state,
                 final_frontier,
                 "stage_3" if stage_cadence else "step",
                 when + time_step,
+                final_reference,
             )
             if (
                 lift_reselection_interval > 0
@@ -1234,7 +1591,10 @@ def integrate_cheap_projection_ssprk3(
             break
         state = final_state
         frontier = final_frontier
+        if mode == "drive_power" and final_reference is not None:
+            reference = float(final_reference)
         sample(step + 1, state, frontier)
+        capture(step + 1)
         if progress is not None and (
             step == 0
             or step + 1 == intervals
@@ -1245,6 +1605,7 @@ def integrate_cheap_projection_ssprk3(
                 f"lambda_retained={retained_minima[step + 1]:.3e} "
                 f"lambda_extension={extension_minima[step + 1]:.3e} "
                 f"envelope={envelope[step + 1]:.3e} "
+                f"energy={energies[step + 1]:.6f} "
                 f"repairs={counters['applied']} "
                 f"reselections={counters['reselections']}"
             )
@@ -1278,6 +1639,17 @@ def integrate_cheap_projection_ssprk3(
         minimum_reselected_scaled_extension_eigenvalue=float(
             totals["reselected_minimum"]
         ),
+        internal_energy=energies[:kept],
+        internal_energy_reference=references[:kept],
+        energy_reference_value=(
+            float("nan") if reference is None else float(reference)
+        ),
+        energy_reference_time=(
+            float("nan") if mode == "none" else float(energy_reference_time)
+        ),
+        energy_constrained_repairs=int(counters["energy_constrained"]),
+        energy_hyperplane_refusals=int(counters["energy_refusals"]),
+        maximum_absolute_energy_deviation=float(totals["energy_deviation"]),
     )
 
 
@@ -1710,12 +2082,14 @@ __all__ = [
     "CarriedWitnessAffineGram",
     "CHEAP_PROJECTION_CADENCES",
     "CHEAP_PROJECTION_COORDINATES",
+    "CHEAP_PROJECTION_ENERGY_REFERENCES",
     "CHEAP_PROJECTION_POLICIES",
     "CHEAP_PROJECTION_TARGETS",
     "CheapProjectionRepair",
     "CheapProjectionRoute",
     "CheapProjectionSettings",
     "CheapProjectionTrajectory",
+    "InternalEnergyFunctional",
     "integrate_cheap_projection_ssprk3",
     "prepare_cheap_projection_route",
 ]

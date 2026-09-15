@@ -790,3 +790,373 @@ Three readings, and together they separate the hybrid's two ingredients.
 | (c) attribution | re-selection alone gives 88 percent of the hybrid's total reduction in the score (`0.133036` to `0.0394447` of `0.133036` to `0.0268423`); the repair adds 1.47 times more accuracy and six to seven decades of physicality, and costs 1.38 on the internal energy and 2.31 on the site-0 occupation |
 | gates | `paper_5` suite 467 passed in `250.29 s`; 22 tests in `test_cheap_projection_route.py` (21 of task 2 plus the no-repair re-selection test) |
 | files changed | `paper_5/tests/test_cheap_projection_route.py` (kept from the previous instance), this report, and the worklog block in `paper_5/notes/electron_phonon_closure_worklog_20260803.md`.  No module edited, nothing committed |
+
+# Task 4: the energy-neutral repair, and what the cone costs (2026-09-15, same day)
+
+Same branch, worktree and modules as the three sections above; the two
+modules this route owns gained a named energy-neutral option of the Dykstra
+repair and the tests that cover it, and no file this route does not own was
+edited.  Conventions are those of tasks 2 and 3: the score is the
+all-coordinate scalar RMS of the 31 closed scalar coordinates against the
+exact cutoff-16 driven reference (`all_coordinate_scalar_rms_error`) on the
+stated horizon; the internal energy is the sample RMS of the
+time-independent energy of Eq. (22) (`static_energy_rms_error`) on that same
+horizon; physicality numbers are measured minimum eigenvalues along the
+trajectory and there is no certificate anywhere on this route.
+Configuration for every row: strong coupling (`lambda_ep = 1.5`,
+`gamma = 0.5`, drive amplitude 1), phonon cutoff 16, exact-correlated
+preparation, 15 entrance keys, SSPRK(3,3) at `h = 0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence
+between re-selections, and the declared proximal log-det completion
+re-solved every `N` steps warm-started on the carried frontier.
+
+## Negative result first
+
+The energy-neutral repair buys the phonon-occupation block by giving back
+the cone and by making the declared completion refuse.  Over `t=0` to `20`
+at `N=16` the minimum scaled 24-row extension eigenvalue moves from
+`-2.401e-5` to `-3.311e-4` and the minimum unshifted retained joint Gram
+from `-8.296e-7` to `-8.776e-3`, that is one and four decades the wrong way,
+while the completion refuses 107 of 500 solves instead of 22 of 500.  At
+`N=4` the refusals reach 503 of 1,163 and the mean solve `0.917 s` against
+the unconstrained cadence's `0.396 s`, so that run did not reach `t=20`
+inside its `1,150 s` budget: it stopped at `t=11.63` after 4,652 of 8,000
+steps.  And the constrained `N=16` score over `t=0` to `20`, `0.239172`, is
+still 1.86 times the record's both-cones `0.128607` and 1.24 times the
+record's plain archive EOM `0.193205`.
+
+What the option does deliver is the phonon-occupation block and Eq. (22)
+itself.  At `N=16` over `t=0` to `20` the internal-energy sample RMS falls
+from `2.59371` to `0.069384`, the N-block scalar RMS from `1.36235` to
+`0.267235` and the score from `0.579332` to `0.239172`; the energy is held
+on its declared reference to `1.8e-15` at every one of 18,939 constrained
+repairs.  The second reference mode, which follows the power the drive
+delivers from `t=0` instead of waiting for the drive to end, gives the best
+internal energy this route has produced, `0.026000` over `t=0` to `20`
+against the plain archive EOM's `0.0182361`, and over `t=0` to `4` it scores
+`0.023744` at internal energy `0.020406` against the record's projective
+event guard's `0.026049` and `0.036201`.
+
+## 0. The conservation law, and what is not one
+
+Eq. (22) evaluated on the coordinates the scorer uses -- the 29 raw moment
+coordinates to a matrix state, that state to the 31 closed scalar
+coordinates, and those back to a matrix state, which is exactly the chain
+`cheap_projection_route_analysis` scores -- is an exactly linear functional
+of those 29 coordinates.  The module rebuilds it by evaluating that public
+chain at the coordinate basis and verifies it at random probes: offset zero,
+reconstruction error `2.2e-16`.  Seven of the 106 parameters carry the whole
+functional: `-2 t_hop` on the electronic Bloch `x` coordinate, `2 g` on each
+coherent-phonon real part and on two of the twelve raw cross coordinates,
+and `omega_ph` on each of the two diagonal raw normal coordinates.  It
+vanishes on the six anomalous coordinates, on the 15 entrance coordinates
+and on all 62 frontier coordinates.  That is the working notes' statement
+with its numbers attached: a correction confined to the phonon normal and
+anomalous moments changes the energy by `omega_ph` times the trace of the
+normal correction, and re-selecting the lift cannot change the internal
+energy at all.
+
+Two post-pulse quantities, measured on the exact cutoff-16 driven reference
+stored in the run artifacts, over `t=4` to `20`:
+
+| quantity | value at `t=4` | spread over `t=4` to `20` |
+|---|---:|---:|
+| Eq. (22) internal energy | `-3.571397982` | `3.0734e-06` |
+| phonon number, the trace of the uncentered phonon normal moment | `4.017037038` | `7.1580e-01` |
+
+against an Eq. (22) spread of `0.286911` over the driven interval `t=0` to
+`4`.  So the energy is the conservation law available after the drive ends,
+to five decades below the swing the drive itself produces, and the phonon
+number is not one.  This settles task (c) before it is run, and section (c)
+below carries the rest of that argument.
+
+One build-time fact, which answers the third item of task 3's list: the
+24-row positive extension does not constrain the phonon normal block.  Of
+the four raw normal coordinates, one lies entirely in the 15-dimensional
+null space of the extension's affine map and two more lie 83 percent in it;
+the retained joint Gram sees all 29 raw coordinates and none of the 15
+entrance or 62 frontier ones; and the two targets together, which is what
+every run in this report repairs, have full column rank 106 of 106, with the
+Eq. (22) gradient direction fully visible to them.  The extension alone
+cannot see 32 percent of that direction, which is why the hyperplane is an
+option of the `both` target.
+
+## (a) The named option
+
+`CheapProjectionSettings.energy_reference_mode` is the option, and it is an
+option of the `dykstra` policy alone: a single clip cannot meet a
+hyperplane, and the settings refuse the combination.  The alternation now
+runs over three declared sets in the one realified feature space the repair
+already used:
+
+1. the positive semidefinite cone of each target block, at its declared
+   floor;
+2. the affine Gram set, the image of the affine coordinate map through the
+   current point;
+3. the hyperplane on which the Eq. (22) internal energy of the mapped-back
+   coordinates equals a declared reference.
+
+The third set is expressible there because the map back is one linear solve:
+the repaired coordinates are the current ones plus
+`scales * (pseudo_inverse @ residual)`, so their internal energy is the
+current energy plus `w . residual` with
+`w = pseudo_inverse^T (scales * gradient)`, and `w` lies in the span of the
+range basis by construction.  Sets 2 and 3 are therefore projected onto
+together in closed form, which is the limit an alternation between those two
+affine sets converges to, and the cone is left as the only set the iteration
+has to chase.  A repair is applied whenever a cone is below its floor *or*
+the internal energy is further from the reference than the declared
+`energy_tolerance`; when neither holds the repair is skipped and counted as
+skipped exactly as before.  When a cone is already met and the energy is
+already on its reference the alternation is the identity, so the extra
+repair opportunities the option opens cost the state nothing by themselves:
+of the `N=16` run's 20,850 applied repairs, 18,939 fall after `t=4` and
+carried the hyperplane, and the remaining 1,911 fall in the driven interval,
+which is exactly the count the task-3 `N=16` run applied there.
+
+Two declared reference modes:
+
+`post_pulse`
+    The constraint is off until a declared drive-end time and from the first
+    accepted state at or after it the reference is the internal energy that
+    state itself carried.  No exact information enters: the reference is the
+    trajectory's own value, `-3.4967309497207015` at `N=16` and
+    `-3.5141117233509993` at `N=4`, which are `0.074667` and `0.057286`
+    above the exact reference's `-3.571397982`.
+
+`drive_power`
+    The constraint is on from the start of the rollout and the reference is
+    advanced with the same SSPRK(3,3) weights as the state, by the power the
+    drive delivers, `gradient . (velocity at this time - velocity at t=0)`.
+    That quantity is available from the model without the exact state,
+    because the Hamiltonian's only time dependence is
+    `DimerParameters.drive_difference` and that difference is exactly zero at
+    `t = 0`, so the velocity evaluated at `t = 0` is the drive-free velocity
+    of the same coordinates.  It costs a second velocity evaluation per
+    stage.  Its reference reaches `-3.544171128` at `t=4`, `0.027219` above
+    the exact value, and then moves by `7.8e-6` over the rest of the
+    interval, which is the residual drive tail and is the same size as the
+    exact reference's own `3.1e-6`.
+
+This is not the record's `energy_neutral` control restriction.  The record's
+ten-coordinate and 31-coordinate barriers restrict the correction to the
+null space of the exact Eq. (22) energy-gradient row, so the correction
+contributes zero instantaneous energy flux and the propagated velocity's own
+energy drift is left where it is.  The option here holds the *state* on a
+declared reference, so it removes the velocity's drift as well as the
+repair's; those are the same statement only if the closure conserves the
+energy, and over `t=4` to `20` it does not -- the unconstrained `N=16`
+trajectory's own internal energy moves by `5.006` on that interval and the
+`N=4` one by `1.558`.
+
+## (b) `t=0` to `20` with the post-pulse reference, both cadences
+
+Identical to the two `t=20` rows of task 3 in every setting except
+`--energy-reference-mode post_pulse --energy-reference-time 4.0`.  The
+`N=16` run completed all 8,000 steps; the `N=4` run stopped at `t=11.63`
+after 4,652 of 8,000 steps on its `1,150 s` wall budget, so its column is
+its own horizon and the task-3 `N=4` column next to it is rescored on that
+same horizon.
+
+| quantity, `t=0` to `20`, 8,000 steps | `N=16` task 3 | `N=16` energy-neutral | record, both cones | record, plain archive EOM |
+|---|---:|---:|---:|---:|
+| all-coordinate scalar RMS | `0.579332` | `0.239172` | `0.128607` | `0.193205` |
+| internal-energy sample RMS, Eq. (22) | `2.59371` | `0.069384` | `0.000939628` | `0.0182361` |
+| site-0 occupation RMS | `0.199933` | `0.247970` | `0.204690` | `0.286170` |
+| N-block scalar RMS | `1.36235` | `0.267235` | --- | --- |
+| C-block scalar RMS | `0.132404` | `0.104318` | --- | --- |
+| minimum scaled 24-row extension eigenvalue | `-2.401e-5` | `-3.311e-4` | --- | --- |
+| minimum unshifted retained joint Gram | `-8.296e-7` | `-8.776e-3` | `1.36819e-5` | --- |
+| maximum standardized frontier envelope ratio | `0.9105` | `0.9555` | --- | --- |
+| completions solved / refused | 500 / 22 | 500 / 107 | --- | --- |
+| repairs applied / skipped of 24,000 | 13,024 / 10,976 | 20,850 / 3,150 | --- | --- |
+| constrained repairs / hyperplane not representable | --- | 18,939 / 0 | --- | --- |
+| maximum deviation of the energy from its reference | --- | `1.78e-15` | --- | --- |
+| repair wall / completion wall | `76.7 s` / `353.3 s` | `117.7 s` / `496.8 s` | --- | --- |
+| autonomous wall | `486.2 s` | `669.8 s` | `5,832.34 s` | --- |
+| peak resident | `773 MiB` | `782 MiB` | --- | --- |
+
+| quantity, `t=0` to `11.63` | `N=4` task 3 | `N=4` energy-neutral |
+|---|---:|---:|
+| all-coordinate scalar RMS | `0.138634` | `0.079973` |
+| internal-energy sample RMS, Eq. (22) | `0.382336` | `0.051374` |
+| site-0 occupation RMS | `0.097051` | `0.068658` |
+| N-block scalar RMS | `0.256683` | `0.101002` |
+| C-block scalar RMS | `0.064744` | `0.055830` |
+| minimum scaled 24-row extension eigenvalue | `-4.518e-6` | `-5.048e-4` |
+| minimum unshifted retained joint Gram | `-4.020e-8` | `-1.183e-2` |
+| maximum standardized frontier envelope ratio | `0.636` | `0.811` |
+| completions solved / refused | 154 refused of 2,000 over the full `t=20` | 503 refused of 1,163 by `t=11.63` |
+| repairs applied / skipped | --- | 10,109 / 3,847 |
+| constrained repairs / hyperplane not representable | --- | 9,156 / 0 |
+| maximum deviation of the energy from its reference | --- | `2.22e-15` |
+| repair wall / completion wall | --- | `51.7 s` / `1,066.0 s` |
+| autonomous wall | `884.2 s` for the full `t=20` | `1,150.8 s` for `t=11.63` |
+| peak resident | `776 MiB` | `520 MiB` |
+
+Sub-horizon scores of the three `N=16` runs, by rescoring the saved
+artifacts: task 3 / post-pulse / drive-power.
+
+| `T` | all-coordinate scalar RMS | internal energy | site-0 occupation | N block |
+|---:|---|---|---|---|
+| 4 | `0.026842` / `0.026842` / `0.023744` | `0.042087` / `0.042087` / `0.020406` | `0.046156` / `0.046156` / `0.042353` | `0.015891` / `0.015891` / `0.011499` |
+| 6 | `0.039263` / `0.038367` / `0.036163` | `0.064181` / `0.055125` / `0.022903` | `0.063397` / `0.063171` / `0.064630` | `0.038838` / `0.033087` / `0.021020` |
+| 8 | `0.057730` / `0.042542` / `0.045571` | `0.226943` / `0.060603` / `0.024055` | `0.065823` / `0.064505` / `0.074156` | `0.107091` / `0.042990` / `0.035484` |
+| 12 | `0.136016` / `0.138493` / `0.125139` | `1.027849` / `0.065626` / `0.025154` | `0.074194` / `0.118314` / `0.100527` | `0.320295` / `0.191237` / `0.177614` |
+| 16 | `0.323536` / `0.195096` / `0.258499` | `1.846763` / `0.067999` / `0.025686` | `0.145593` / `0.200532` / `0.165076` | `0.769278` / `0.220164` / `0.397754` |
+| 20 | `0.579332` / `0.239172` / `0.328674` | `2.593707` / `0.069384` / `0.026000` | `0.199933` / `0.247970` / `0.186909` | `1.362353` / `0.267235` / `0.519769` |
+
+Four readings.
+
+- **The constraint does nothing until it is switched on.**  The post-pulse
+  `N=16` rollout is bitwise equal to the task-3 `N=16` rollout over the whole
+  driven interval `t=0` to `4` -- the propagated states, the carried frontier
+  and the scored coordinates -- which is why the `T=4` row above repeats to
+  every digit.  The default of the option is `"none"` and no default changed
+  anywhere.
+- **The energy is held exactly, and what it buys is the phonon
+  occupation.**  Maximum deviation from the declared reference `1.78e-15`
+  over 18,939 constrained repairs at `N=16` and `2.22e-15` over 9,156 at
+  `N=4`.  The instantaneous 31-coordinate Euclidean error at `t=20` falls
+  from `6.4271` to `2.0538`, of which the N block falls from `5.7088` to
+  `0.8312`; the post-pulse excursion of the propagated phonon number falls
+  from `7.042` to `0.813`, against the exact reference's own `0.716`.
+- **The price is the cone and the conic solve.**  Both minima are worse at
+  both cadences, and the declared completion refuses at 4.9 times its
+  unconstrained rate at `N=16` (107 of 500 against 22 of 500) and at 5.6
+  times it at `N=4` (503 of 1,163 against 154 of 2,000), at 2.3 times the
+  mean solve.  That last effect is the reverse of task 3's
+  section (c), where keeping the state near the cone was what made the
+  warm-started completion cheap and reliable; pulling it onto a hyperplane
+  undoes exactly that.  It is also why the `N=4` run did not finish: its
+  completion wall alone was `1,066 s` of its `1,150 s` budget.
+- **Following the drive power is the better internal-energy repair and the
+  worse cone.**  Over `t=0` to `20` the drive-power reference gives internal
+  energy `0.026000`, which is 2.7 times the post-pulse `0.069384` the other
+  way and within 1.43 of the plain archive EOM's `0.0182361`, and a site-0
+  occupation RMS of `0.186909`, better than the record's both-cones
+  `0.204690`; its score is `0.328674`, worse than the post-pulse
+  `0.239172`, and its minima are `-2.331e-3` on the extension and
+  `-5.284e-2` on the retained joint Gram with 276 of 500 completions
+  refusing.  Over `t=0` to `4` it is the best row this route has produced:
+  `0.023744` at internal energy `0.020406`, against the record's projective
+  event guard's `0.026049` and `0.036201` at `3,229.8 s`, inside a 20-unit
+  run that cost `719.6 s` in total.
+
+## (c) The phonon-number-neutral variant is not admissible, and was not run
+
+Task (c) asked for a variant holding the trace of the phonon covariance at
+its drive-end value *when the model implies it is conserved after the
+drive*, and to check the equations of motion first.  It does not.  The
+Hamiltonian's electron-phonon term is `g n_q (b_q + b_q^dagger)`, which does
+not commute with `b^dagger b`; nothing in the equations of motion holds the
+phonon number fixed once the drive has ended, because the coupling keeps
+exchanging quanta between the electronic and the phonon sector at every
+time.  Section 0 is that statement's number: over `t=4` to `20` the exact
+cutoff-16 reference moves its phonon number by `0.716`, which is 233,000
+times the `3.07e-6` by which it moves its Eq. (22) energy on the same
+interval, in a quantity whose value at `t=4` is `4.017`.  A repair holding
+that number would impose a law this model does not have and would be wrong
+by about 18 percent of the quantity by `t=20`.  No such run was made.
+
+What the admissible constraint already does to that number is the part worth
+recording.  Over `t=4` to `20` the post-pulse excursion of the propagated
+phonon number is `7.042` without the constraint, `0.813` with the post-pulse
+reference and `1.354` with the drive-power reference, against the exact
+reference's `0.716`.  Holding the one linear combination Eq. (22) does
+constrain brings the phonon number's post-pulse excursion to within 14
+percent of the exact one without ever constraining it.
+
+## Provenance and gates
+
+- `paper_5` suite on the tree these runs were made on: 473 passed in
+  `239.12 s` (`cd paper_5 && PYTHONPATH=src python -m pytest -q`), the 467 of
+  task 3 plus the six new tests below.
+- `paper_5/tests/test_cheap_projection_route.py` now holds 28 tests, the 22
+  of task 3 plus six covering the energy-neutral option: that Eq. (22) is
+  affine in the propagated coordinates with a gradient that vanishes on the
+  entrance and the anomalous coordinates and equals `omega_ph` on each
+  diagonal raw normal coordinate; that an energy-neutral repair lands on the
+  declared reference to better than `1e-10` while the same repair without the
+  option does not, and while the extension minimum still rises; that the
+  option changes nothing when it is off even if a reference is supplied;
+  that the settings refuse it outside the `dykstra` policy, refuse it with
+  `frontier_only`, and refuse an unknown mode; that `post_pulse` leaves the
+  reference undeclared before the declared time and holds the energy to
+  better than `1e-12` after it; and that `drive_power` moves its reference
+  while holding the state's energy on it, with `drive_difference(0.0)`
+  exactly zero, which is what makes the drive-free velocity available.
+- Modules changed, both owned by this route and neither imported by any
+  other.  `cheap_projection_route.py` gained `InternalEnergyFunctional`, the
+  `energy_reference_mode` and `energy_tolerance` settings with their
+  `holds_internal_energy` predicate, the `energy_feature_functional`
+  accessor, the `energy_reference` argument of
+  `AffineGramCoordinates.repair`, the `hyperplane` argument of the Dykstra
+  alternation, the `energy_reference_time` argument of the integrator, four
+  fields on the repair record and seven on the trajectory.
+  `cheap_projection_route_analysis.py` gained `--energy-reference-mode`,
+  `--energy-reference-time`, `--energy-tolerance`, an `internal_energy`
+  block in the summary and the two energy series in `trajectory.npz`.
+  Nothing is committed and no default changed; the bitwise reading in
+  section (b) is the demonstration on a 1,600-step rollout, and the tests
+  are the demonstration on the repair itself.
+- The tables are produced by two scripts kept with the runs, each reading
+  only `trajectory.npz` and `summary.json` of the run directories named on
+  its command line and propagating nothing: `score_energy_rows.py`
+  (sub-horizon scores, blockwise RMS, physicality minima) and
+  `check_post_pulse_invariants.py` (the post-pulse spread of the Eq. (22)
+  energy and of the phonon number, on the exact reference and on the
+  propagated trajectory), both under
+  `output/local_runs/paper_v_cheap_projection_energy_pilot_n16_t6_20260915_v1/`.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_energy_pilot_n16_t6_20260915_v1` (the `t=6`
+  pilot, `124.2 s`, `420 MiB`),
+  `paper_v_cheap_projection_energy_n16_t20_20260915_v1`,
+  `paper_v_cheap_projection_energy_n4_t20_20260915_v1` (stopped at `t=11.63`
+  on its wall budget) and
+  `paper_v_cheap_projection_energy_power_n16_t20_20260915_v1`.  Every run was
+  wrapped in `pipelines/shell/ram_guard.py --limit-mb 3000`, one at a time;
+  every peak-resident figure quoted is the run's own
+  `peak_resident_bytes` (`ru_maxrss` of the propagating process).  No run
+  exceeded 20 minutes.  Wall times were measured with other agents' jobs on
+  the machine (load average 4.3 to 4.7), so they are upper bounds.
+
+## What to try next, in order
+
+1. The constraint and the conic solve now fight each other, and that is the
+   one thing standing between this route and a completed `N=4` run to
+   `t=20`: 503 of 1,163 completions refused and the completion wall was
+   `1,066 s` of the `1,150 s` budget.  The record's completion retry ladder
+   exists for exactly this and costs nothing when no solve refuses.  Running
+   `N=4` with the ladder, or with a declared `energy_tolerance` above zero so
+   the hyperplane is met only where the drift has accumulated, is one run and
+   decides whether the `t=0` to `11.63` numbers hold to `t=20`.
+2. A third reference mode whose reference at each repair is the energy the
+   state carried *before* that repair is the record's `energy_neutral`
+   control restriction in projection form: it removes the repair's own
+   contribution to the energy and leaves the closure's drift untouched.  It
+   would split the 37-fold improvement measured here into the part that was
+   the repair's fault and the part that was the velocity's, which is the
+   split task 3 measured at `t=4` and found to be `1.38`.
+3. The retained block is where the constraint does its damage
+   (`-8.776e-3` at `N=16`, `-1.183e-2` at `N=4`).
+   `retained_eigenvalue_floor` is declared on this route and has never been
+   used; raising it would push that block interior before the hyperplane
+   pulls it out, at no extra cost per repair.
+
+## Structured summary of task 4
+
+| item | value |
+|---|---|
+| what was added | a named energy-neutral option of the Dykstra repair: the alternation gains a third declared set, the hyperplane on which the Eq. (22) internal energy of the mapped-back coordinates equals a declared reference, with two reference modes (`post_pulse`, `drive_power`); default `"none"`, no default changed |
+| why it is exact | Eq. (22) on the coordinates the scorer uses is a linear functional of the 29 raw coordinates (offset zero, reconstruction `2.2e-16`), carried by seven of the 106 parameters, `omega_ph` on each diagonal raw normal coordinate and zero on the anomalous, entrance and frontier ones |
+| `t=0` to `20`, `N=16`, post-pulse reference | `0.239172` against task 3's `0.579332`; internal energy `0.069384` against `2.59371`; N block `0.267235` against `1.36235`; site-0 occupation `0.247970` against `0.199933`; extension `-3.311e-4` against `-2.401e-5`; retained joint Gram `-8.776e-3` against `-8.296e-7`; 500 solved / 107 refused against 500 / 22; `669.8 s` against `486.2 s`; `782 MiB` |
+| `t=0` to `11.63`, `N=4`, post-pulse reference | `0.079973` against task 3's `0.138634` on that horizon; internal energy `0.051374` against `0.382336`; N block `0.101002` against `0.256683`; site-0 occupation `0.068658` against `0.097051`; extension `-5.048e-4` against `-4.518e-6`; retained joint Gram `-1.183e-2` against `-4.020e-8`; 1,163 solved / 503 refused; stopped on its `1,150 s` wall budget after 4,652 of 8,000 steps |
+| `t=0` to `20`, `N=16`, drive-power reference | `0.328674`, internal energy `0.026000`, site-0 occupation `0.186909`, N block `0.519769`, extension `-2.331e-3`, retained joint Gram `-5.284e-2`, 500 solved / 276 refused, `719.6 s`, `768 MiB`; over `t=0` to `4` it scores `0.023744` at internal energy `0.020406` against the record's projective event guard's `0.026049` and `0.036201` at `3,229.8 s` |
+| how exactly the energy is held | maximum deviation from the declared reference `1.78e-15` over 18,939 constrained repairs (`N=16`), `2.22e-15` over 9,156 (`N=4`); the hyperplane was representable at every one of them |
+| against the record over `t=0` to `20` | both cones `0.128607` / `0.000939628` / site-0 `0.204690` at `5,832.34 s`; plain archive EOM `0.193205` / `0.0182361` / site-0 `0.286170`.  The best constrained score here is 1.86 times the both-cones score and 1.24 times the archive EOM; the best constrained internal energy is 27.7 times the both-cones value and 1.43 times the archive EOM's |
+| what it costs | the cone and the conic solve: one to four decades on the two minima at both cadences, a completion refusal rate 4.9 times its unconstrained value at `N=16` and 5.6 times it at `N=4`, and 2.3 times the mean solve at `N=4`, which is the reverse of task 3's finding that keeping the state near the cone is what makes the warm-started completion cheap |
+| (c) phonon-number-neutral variant | **not admissible and not run.**  `g n (b + b^dagger)` does not commute with `b^dagger b`; the exact reference's phonon number moves by `0.716` over `t=4` to `20` against `3.07e-6` for its energy.  The admissible constraint already brings the propagated phonon number's post-pulse excursion from `7.042` to `0.813`, against the exact `0.716` |
+| build-time fact answering task 3's next step 3 | the 24-row extension does not constrain the phonon normal block -- one of the four raw normal coordinates lies entirely in the 15-dimensional null space of its affine map and two more lie 83 percent in it -- while the two targets together have full column rank 106 of 106 |
+| gates | `paper_5` suite 473 passed in `239.12 s`; 28 tests in `test_cheap_projection_route.py` (22 of task 3 plus six) |
+| files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, and the worklog block in `paper_5/notes/electron_phonon_closure_worklog_20260803.md`.  Nothing committed |

@@ -18,11 +18,20 @@ from paper5.stability.cheap_projection_route import (
     CarriedWitnessAffineGram,
     CheapProjectionRoute,
     CheapProjectionSettings,
+    InternalEnergyFunctional,
     _clip_to_floor,
     _hermitian_features,
     _hermitian_from_features,
     integrate_cheap_projection_ssprk3,
     prepare_cheap_projection_route,
+)
+from paper5.stability.matrix_reference import (
+    closed_scalar_to_matrix_state,
+    matrix_state_to_closed_scalar_coordinates,
+    matrix_total_energy,
+)
+from paper5.stability.adaptive_positive_moment import (
+    raw_moment_coordinates_to_matrix_state,
 )
 from paper5.stability.hubbard_dimer import DimerParameters
 from paper5.stability.projected_apcm import unpack_projected_apcm_state
@@ -424,3 +433,187 @@ def test_negative_lift_reselection_interval_is_rejected(prepared) -> None:
             time_step=0.0025,
             lift_reselection_interval=-1,
         )
+
+
+def test_internal_energy_is_affine_in_the_propagated_coordinates() -> None:
+    """Eq. (22) on the coordinates the scorer uses is one linear functional.
+
+    The gradient vanishes on the 15 entrance coordinates and on the six
+    anomalous raw coordinates, and equals ``omega_ph`` on each diagonal raw
+    normal coordinate, which is the statement that a correction confined to
+    the phonon normal and anomalous moments changes the energy by
+    ``omega_ph`` times the trace of the normal correction.
+    """
+
+    parameters = DimerParameters(gamma=0.5, lambda_ep=1.5, drive_amplitude=1.0)
+    functional = InternalEnergyFunctional(parameters, state_count=44)
+    generator = np.random.default_rng(23)
+    for _ in range(3):
+        probe = generator.normal(scale=0.3, size=44)
+        state = raw_moment_coordinates_to_matrix_state(probe[:29])
+        closed = matrix_state_to_closed_scalar_coordinates(state)
+        direct = matrix_total_energy(
+            closed_scalar_to_matrix_state(closed), parameters
+        )
+        assert np.isclose(functional.value(probe), direct, atol=1e-12, rtol=0.0)
+    assert np.all(functional.gradient[29:] == 0.0)
+    assert np.all(functional.gradient[11:17] == 0.0)
+    assert functional.gradient[7] == pytest.approx(parameters.omega_ph)
+    assert functional.gradient[8] == pytest.approx(parameters.omega_ph)
+
+
+def test_energy_neutral_repair_lands_on_the_declared_reference(
+    prepared,
+) -> None:
+    """The third set of the alternation is met exactly, the cone is not lost."""
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    assert coordinates.energy is not None
+    reference = coordinates.energy.value(state)
+    generator = np.random.default_rng(31)
+    perturbed = state + 1e-3 * generator.normal(size=state.size)
+    free = coordinates.repair(
+        perturbed,
+        frontier,
+        CheapProjectionSettings(
+            policy="dykstra", target="both", dykstra_iterations=30
+        ),
+    )
+    held = coordinates.repair(
+        perturbed,
+        frontier,
+        CheapProjectionSettings(
+            policy="dykstra",
+            target="both",
+            dykstra_iterations=30,
+            energy_reference_mode="post_pulse",
+        ),
+        energy_reference=reference,
+    )
+    assert free.applied and held.applied
+    assert held.energy_hyperplane_applied
+    assert not free.energy_hyperplane_applied
+    assert abs(held.internal_energy_after - reference) < 1e-10
+    assert abs(free.internal_energy_after - reference) > 1e-6
+    assert held.extension_minimum_after > held.extension_minimum_before
+    assert held.state_displacement > free.state_displacement
+
+
+def test_energy_reference_none_leaves_the_repair_unchanged(prepared) -> None:
+    """The named option is off by default and changes nothing when it is."""
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    generator = np.random.default_rng(37)
+    perturbed = state + 1e-3 * generator.normal(size=state.size)
+    settings = CheapProjectionSettings(
+        policy="dykstra", target="both", dykstra_iterations=30
+    )
+    assert not settings.holds_internal_energy
+    without = coordinates.repair(perturbed, frontier, settings)
+    ignored = coordinates.repair(
+        perturbed,
+        frontier,
+        settings,
+        energy_reference=coordinates.energy.value(state),
+    )
+    assert np.array_equal(without.state, ignored.state)
+    assert np.array_equal(
+        without.frontier_standardized, ignored.frontier_standardized
+    )
+    assert not ignored.energy_hyperplane_applied
+
+
+def test_energy_reference_mode_needs_dykstra_and_the_state_coordinates(
+) -> None:
+    with pytest.raises(ValueError, match="dykstra"):
+        CheapProjectionSettings(
+            policy="higham_nearest_psd", energy_reference_mode="post_pulse"
+        )
+    with pytest.raises(ValueError, match="frontier_only"):
+        CheapProjectionSettings(
+            policy="dykstra",
+            repair_coordinates="frontier_only",
+            energy_reference_mode="drive_power",
+        )
+    with pytest.raises(ValueError, match="energy_reference_mode"):
+        CheapProjectionSettings(
+            policy="dykstra", energy_reference_mode="conserved"
+        )
+
+
+def test_post_pulse_reference_is_off_before_the_declared_time(
+    prepared,
+) -> None:
+    """The constraint is off while the drive runs and holds after it ends."""
+
+    route, state, frontier, _ = prepared
+    held = CheapProjectionRoute(
+        route.model,
+        CheapProjectionSettings(
+            policy="dykstra",
+            target="both",
+            dykstra_iterations=30,
+            energy_reference_mode="post_pulse",
+        ),
+        coordinates=route.coordinates,
+    )
+    trajectory = integrate_cheap_projection_ssprk3(
+        held,
+        state,
+        frontier,
+        final_time=0.01,
+        time_step=0.0025,
+        energy_reference_time=0.005,
+    )
+    assert trajectory.success
+    references = trajectory.internal_energy_reference
+    assert np.all(np.isnan(references[:2]))
+    assert not np.any(np.isnan(references[2:]))
+    assert trajectory.energy_reference_value == pytest.approx(
+        float(trajectory.internal_energy[2]), abs=1e-12
+    )
+    assert trajectory.maximum_absolute_energy_deviation < 1e-12
+    assert trajectory.energy_constrained_repairs > 0
+    assert trajectory.energy_hyperplane_refusals == 0
+
+
+def test_drive_power_reference_follows_the_drive(prepared) -> None:
+    """The power is available without the exact state: f(0) is exactly zero.
+
+    The Hamiltonian's only time dependence is the drive difference, and that
+    difference vanishes at ``t = 0``, so the velocity evaluated at ``t = 0``
+    is the drive-free velocity of the same coordinates and the difference of
+    the two contracted with the energy gradient is the power the drive
+    delivers.
+    """
+
+    route, state, frontier, _ = prepared
+    parameters = route.model.parameters
+    assert parameters.drive_difference(0.0) == 0.0
+    assert abs(parameters.drive_difference(1.0)) > 0.5
+    tracked = CheapProjectionRoute(
+        route.model,
+        CheapProjectionSettings(
+            policy="dykstra",
+            target="both",
+            dykstra_iterations=30,
+            energy_reference_mode="drive_power",
+        ),
+        coordinates=route.coordinates,
+    )
+    trajectory = integrate_cheap_projection_ssprk3(
+        tracked,
+        state,
+        frontier,
+        initial_time=1.0,
+        final_time=1.01,
+        time_step=0.0025,
+    )
+    assert trajectory.success
+    references = trajectory.internal_energy_reference
+    assert not np.any(np.isnan(references))
+    assert abs(references[-1] - references[0]) > 1e-6
+    assert trajectory.maximum_absolute_energy_deviation < 1e-10
+    assert trajectory.energy_constrained_repairs > 0

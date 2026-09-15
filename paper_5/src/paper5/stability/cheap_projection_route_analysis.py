@@ -46,6 +46,7 @@ from .apcm_positive_extension import APCMExtensionSettings
 from .cheap_projection_route import (
     CHEAP_PROJECTION_CADENCES,
     CHEAP_PROJECTION_COORDINATES,
+    CHEAP_PROJECTION_ENERGY_REFERENCES,
     CHEAP_PROJECTION_POLICIES,
     CHEAP_PROJECTION_TARGETS,
     CarriedWitnessAffineGram,
@@ -168,6 +169,40 @@ def _parser() -> argparse.ArgumentParser:
             "completion as its warm frontier."
         ),
     )
+    parser.add_argument(
+        "--energy-reference-mode",
+        choices=CHEAP_PROJECTION_ENERGY_REFERENCES,
+        default="none",
+        help=(
+            "Whether the dykstra repair also holds the Eq. (22) internal "
+            "energy on a declared reference.  post_pulse turns the "
+            "constraint on at --energy-reference-time and holds the energy "
+            "at the value this trajectory itself had there, which is the "
+            "model's exact conservation law once the drive has ended; "
+            "drive_power turns it on at the start of the rollout and "
+            "advances the reference by the power the drive delivers.  "
+            "Fixed-dictionary state only."
+        ),
+    )
+    parser.add_argument(
+        "--energy-reference-time",
+        type=float,
+        default=4.0,
+        help=(
+            "The declared time the drive ends, used by the post_pulse "
+            "energy reference mode."
+        ),
+    )
+    parser.add_argument(
+        "--energy-tolerance",
+        type=float,
+        default=0.0,
+        help=(
+            "With an active energy reference, a repair is applied whenever "
+            "the internal energy is further than this from the reference, "
+            "even when both cones are already satisfied."
+        ),
+    )
     parser.add_argument("--wall-budget-seconds", type=float, default=1200.0)
     parser.add_argument(
         "--record-stages",
@@ -222,6 +257,12 @@ def _carried_witness_main(args: argparse.Namespace) -> int:
 
     from .apcm_carried_witness import CWRMFSettings, CarriedWitnessModel
 
+    if args.energy_reference_mode != "none":
+        raise ValueError(
+            "the internal-energy hyperplane is implemented for the "
+            "fixed-dictionary state; the carried-witness lane repairs the "
+            "62-row unified Gram only"
+        )
     output_directory = args.output_directory.resolve()
     output_directory.mkdir(parents=True, exist_ok=False)
 
@@ -426,6 +467,8 @@ def main() -> int:
         repair_tolerance=args.repair_tolerance,
         state_motion_scale=args.state_motion_scale,
         frontier_motion_scale=args.frontier_motion_scale,
+        energy_reference_mode=args.energy_reference_mode,
+        energy_tolerance=args.energy_tolerance,
     )
     extension_settings = APCMExtensionSettings()
     projection_settings = APCMProjectionSettings()
@@ -464,6 +507,7 @@ def main() -> int:
         record_stages=bool(args.record_stages),
         lift_reselection_interval=int(args.lift_reselection_interval),
         lift_reselection_warm_start=args.lift_reselection_start == "warm",
+        energy_reference_time=float(args.energy_reference_time),
     )
     autonomous_elapsed = perf_counter() - started
 
@@ -579,6 +623,29 @@ def main() -> int:
                 trajectory.minimum_reselected_scaled_extension_eigenvalue
             ),
         },
+        "internal_energy": {
+            "reference_mode": args.energy_reference_mode,
+            "declared_reference_time": float(args.energy_reference_time),
+            "energy_tolerance": float(args.energy_tolerance),
+            "declared_reference_value": (
+                trajectory.energy_reference_value
+            ),
+            "constrained_repairs": trajectory.energy_constrained_repairs,
+            "hyperplane_refusals": trajectory.energy_hyperplane_refusals,
+            "maximum_absolute_deviation_from_reference": (
+                trajectory.maximum_absolute_energy_deviation
+            ),
+            "value_at_first_sample": (
+                float(trajectory.internal_energy[0])
+                if trajectory.internal_energy.size
+                else float("nan")
+            ),
+            "value_at_last_sample": (
+                float(trajectory.internal_energy[-1])
+                if trajectory.internal_energy.size
+                else float("nan")
+            ),
+        },
         "feasibility": {
             "minimum_unshifted_retained_joint_gram_eigenvalue": joint_minimum,
             "minimum_unshifted_affine_retained_gram_eigenvalue": float(
@@ -609,6 +676,8 @@ def main() -> int:
         maximum_frontier_envelope_ratio=(
             trajectory.maximum_frontier_envelope_ratio
         ),
+        internal_energy=trajectory.internal_energy,
+        internal_energy_reference=trajectory.internal_energy_reference,
     )
     if trajectory.records:
         (output_directory / "repairs.jsonl").write_text(
