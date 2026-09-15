@@ -4905,3 +4905,23 @@ driver flags `--lift-reselection-interval` and `--lift-reselection-start`;
 under `output/local_runs/paper_v_cheap_projection_*`, peak `861 MB`, longest
 run 12 minutes.  Next: N=16 and N=4 to `t=20` against the record's
 `0.128607`, with the internal-energy column.
+
+### First Paper V CHTC submission: accelerated event-guard lane, segment 1
+
+Cluster `10554184`, submitted 2026-09-15T15:45:55Z from `ap2001`, batch
+`paper_v_cwrmf_event_guard_accel_20260915_v1-accel_s01_t0000_t0500`,
+arguments `accel_s01_t0000_t0500 0.50 0.0025 2e-4 none none`
+(`run_id final_time time_step event_gram_hard_floor initial_state_file
+expected_initial_time`); 8 CPUs, 12 GB, 30 GB, 48 h `MaxRuntime` with the
+driver's `--maximum-wall-seconds 138240`; bundle `eed32f13` (`502,619`
+bytes) built from `git archive` of `0f9d5f35` plus the lane; the remote
+image is a symlink to the Paper II campaign's `image.sif` (digest prefix
+`fa5c4ea89a19ad2f`, identical to the local copy).  Lifecycle validator exit 0
+on the eight submit files remotely; dry run 1 job.  Receipt:
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/submission_receipt_10554184.json`.
+Physical protocol: balanced profile, event-triggered guard with hard floor
+`2e-4`, step subdivisions 2, `max_threads_8`, default bundle seed policy,
+`h=0.0025`, strong coupling, cutoff 16, exact-correlated preparation; the
+local reference for this segment is the `t=0.1175` to `0.5` resume above
+(`14,722 s` on one thread).  Segment 2 is submitted only from segment 1's
+returned receipt through `make_resume_submit.py`.
