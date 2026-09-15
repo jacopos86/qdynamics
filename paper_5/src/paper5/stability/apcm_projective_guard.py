@@ -1150,8 +1150,25 @@ def _solve_explicit_target_qp(
     boxed: bool,
     retry_profile: int = 0,
     accept_first_provisional: bool = False,
+    frontier_weight: float = 0.0,
 ) -> GuardConicResult:
-    """Solve the target stage with ``q`` as an explicit decision variable."""
+    """Solve the target stage with ``q`` as an explicit decision variable.
+
+    ``frontier_weight`` is a named, declared model parameter and is ``0.0`` by
+    default, which reproduces the recorded lexicographic target stage bitwise:
+    the objective is then the invariant target image quadratic
+    ``0.5 q^T M q`` alone, it is constant on the exact 47-dimensional lift
+    nullspace, and the declared canonical tie-break is the separate
+    minimum-norm lift under ``R_D y = q*``.  A positive ``frontier_weight``
+    ``w`` adds the fixed positive-definite frontier term ``0.5 w ||z||^2`` in
+    the standardized frontier coordinates, making the combined quadratic
+    ``0.5 q^T M q + 0.5 w ||z||^2`` strictly convex in every variable, so the
+    solve has a unique minimizer and needs no tie-break.  The reported
+    ``objective`` stays the invariant target image quadratic in both cases so
+    the two selectors are compared on the same quantity.  The relative-face
+    retry below is a tie-break repair for the lexicographic objective, so it
+    is skipped while ``frontier_weight`` is positive.
+    """
 
     count = len(extension.frontier_keys)
     target_count = scaled_readout.shape[0]
@@ -1205,8 +1222,17 @@ def _solve_explicit_target_qp(
     cones.append(clarabel.ZeroConeT(target_count))
 
     variable_count = count + target_count
+    if frontier_weight < 0.0:
+        raise ValueError("frontier_weight must be nonnegative")
+    frontier_block = (
+        sparse.csc_matrix((count, count))
+        if frontier_weight == 0.0
+        else sparse.csc_matrix(
+            float(frontier_weight) * np.eye(count, dtype=float)
+        )
+    )
     quadratic = sparse.block_diag(
-        (sparse.csc_matrix((count, count)), sparse.csc_matrix(target_metric)),
+        (frontier_block, sparse.csc_matrix(target_metric)),
         format="csc",
     )
     settings = clarabel.DefaultSettings()
@@ -1336,11 +1362,13 @@ def _solve_explicit_target_qp(
             boxed=boxed,
             retry_profile=2,
             accept_first_provisional=accept_first_provisional,
+            frontier_weight=frontier_weight,
         )
     if (
         retry_profile == 2
         and status == "AlmostSolved"
         and boxed
+        and frontier_weight == 0.0
         and not (accept_first_provisional and result.provisional)
     ):
         reduced = _solve_explicit_target_on_relative_face(
@@ -2420,6 +2448,7 @@ def select_outer_feasible_projective_guard(
     boxed: bool = True,
     canonicalize: bool = True,
     accept_first_provisional: bool = False,
+    frontier_weight: float = 0.0,
 ) -> OuterFeasibleProjectiveGuardSelection:
     """Select the invariant image only from witnesses feasible on one shell.
 
@@ -2428,6 +2457,17 @@ def select_outer_feasible_projective_guard(
     that failure mode: both image selection and the minimum-norm lift occur on
     the same outer cone, and the current values are a literal restriction of
     the resulting feasible witness.
+
+    Two keywords are named options with the recorded path as their default.
+    ``accept_first_provisional=True`` is the kept gate reorder: a first-pass
+    ``AlmostSolved`` point is used as soon as the independent KKT audit
+    accepts it, ahead of the tighter retry ladder.  ``frontier_weight`` ``w``
+    positive replaces the two-solve selector (target image, then the unique
+    minimum-norm lift under ``R_D y = q*``) by the single strictly convex
+    solve of ``0.5 q^T M q + 0.5 w ||z||^2`` on the same outer cone; the lift
+    equality is then never formed, the witness is the target stage's own
+    unique minimizer, and ``witness_source`` records
+    ``strictly_convex_outer_target_stage``.
     """
 
     target_readout = (
@@ -2454,6 +2494,7 @@ def select_outer_feasible_projective_guard(
         target_metric,
         boxed=boxed,
         accept_first_provisional=accept_first_provisional,
+        frontier_weight=frontier_weight,
     )
     current_count = len(current.frontier_keys)
     empty_values = np.full(current_count, np.nan)
@@ -2475,8 +2516,12 @@ def select_outer_feasible_projective_guard(
     outer_count = len(outer.frontier_keys)
     lift_stage = target_stage
     witness_stage = target_stage
-    witness_source = "outer_target_stage"
-    if canonicalize:
+    witness_source = (
+        "strictly_convex_outer_target_stage"
+        if frontier_weight > 0.0
+        else "outer_target_stage"
+    )
+    if canonicalize and frontier_weight == 0.0:
         lift_stage = _solve_guard_qp(
             outer,
             lower_moments,

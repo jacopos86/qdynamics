@@ -91,6 +91,41 @@ def _parser() -> argparse.ArgumentParser:
             "problem can become."
         ),
     )
+    parser.add_argument(
+        "--maximum-step-subdivisions",
+        type=int,
+        default=0,
+        help=(
+            "Declared bound on local step halving.  At the default zero a "
+            "failed radial atom or an unresolved convex node ends the "
+            "trajectory.  At depth d the failed interval is retried from the "
+            "last accepted state as 2**k steps of time_step / 2**k for "
+            "k = 1 .. d; the reported time grid and the guard policy are "
+            "unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--batched-mode-gradients",
+        action="store_true",
+        help=(
+            "Named experiment, off by default: form the eigenvalue gradients "
+            "of all working modes in one contraction instead of one per "
+            "mode, in the completion retraction and the negative-mode "
+            "coupling measure.  Different BLAS blocking, so it agrees with "
+            "the default to roundoff only."
+        ),
+    )
+    parser.add_argument(
+        "--tier-timing",
+        action="store_true",
+        help=(
+            "Accumulate wall time below the radial atom by named tier (the "
+            "62-row eigendecomposition, coefficient assembly and svec "
+            "packing, the Clarabel solve, the completion retraction, and the "
+            "unguarded velocity evaluation) and report it next to "
+            "maximum_atom_seconds.  Off by default and free when off."
+        ),
+    )
     parser.add_argument("--compact-output", action="store_true")
     return parser
 
@@ -237,6 +272,8 @@ def main() -> int:
         raise ValueError(
             "--event-gram-hard-floor requires --event-triggered-guard"
         )
+    if args.batched_mode_gradients:
+        settings = replace(settings, batched_mode_gradients=True)
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)
     preparation = model.prepare(phonon_cutoff=args.phonon_cutoff)
@@ -293,16 +330,29 @@ def main() -> int:
             )
         os.replace(temporary, checkpoint_path)
 
+    if args.tier_timing:
+        # Enabled after the preparation so the accumulators account only for
+        # the rollout, next to maximum_atom_seconds.
+        model.enable_tier_timing()
+    rollout_started = time.perf_counter()
     trajectory = integrate_cwrmf_ssprk2(
         model,
         initial_state,
         initial_time=initial_time,
         final_time=args.final_time,
         time_step=args.time_step,
+        maximum_step_subdivisions=args.maximum_step_subdivisions,
         progress=progress,
         checkpoint=checkpoint,
     )
+    rollout_elapsed = time.perf_counter() - rollout_started
     autonomous_elapsed = time.perf_counter() - started
+    tier_timing = model.tier_timing
+    if tier_timing is not None:
+        tier_timing["rollout_wall_seconds"] = float(rollout_elapsed)
+        tier_timing["unaccounted_seconds"] = float(
+            rollout_elapsed - sum(tier_timing["seconds"].values())
+        )
     approximate_coordinates = _archive_coordinates(model, trajectory.states)
 
     # Freeze the autonomous output before constructing the offline reference.
@@ -412,6 +462,7 @@ def main() -> int:
             "time_step": args.time_step,
             "completed_steps": trajectory.completed_steps,
             "atom_evaluations": trajectory.atom_evaluations,
+            "maximum_step_subdivisions": args.maximum_step_subdivisions,
             "success": trajectory.success,
             "message": trajectory.message,
             "maximum_critical_modes": args.maximum_critical_modes,
@@ -427,6 +478,10 @@ def main() -> int:
                 np.mean(trajectory.critical_modes)
             ),
             "autonomous_wall_seconds": autonomous_elapsed,
+            "maximum_atom_seconds": float(
+                np.max(trajectory.maximum_atom_seconds)
+            ),
+            "tier_seconds": tier_timing,
             "exact_reference_wall_seconds": exact_elapsed,
             "peak_resident_bytes": int(
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss

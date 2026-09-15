@@ -16,7 +16,9 @@ the core that that layer must preserve.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Mapping
+from time import perf_counter
+from types import MappingProxyType
+from typing import Any, Callable, Mapping
 
 import numpy as np
 
@@ -37,9 +39,15 @@ from .apcm_moment_projection import (
     SymmetryReducedAPCMGeometry,
     state_lower_moments,
 )
+from .apcm_carried_witness import negative_mode_coupling
 from .apcm_positive_extension import (
     APCMExtensionResult,
     SymmetryReducedPositiveExtension,
+)
+from .apcm_projective_guard import (
+    InvariantTargetReadout,
+    compile_invariant_target_readout,
+    select_outer_feasible_projective_guard,
 )
 from .exact_reference import exact_holstein_joint_moment_initial_state
 from .hubbard_dimer import DimerParameters, FloatArray
@@ -142,6 +150,7 @@ class ProjectedAPCMTrajectory:
     completed_steps: int
     success: bool
     message: str
+    outer_guard_triggered_stages: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -527,18 +536,35 @@ class FixedDictionaryProjectedAPCM:
         warm_frontier: Mapping[MomentKey, float],
         retained_metric: FloatArray,
         auxiliary_metric: FloatArray,
+        completion: APCMExtensionResult | None = None,
     ) -> APCMStageRetraction:
-        """Select a lift for a trial stage and retract only if infeasible."""
+        """Select a lift for a trial stage and retract only if infeasible.
+
+        ``completion`` is a named option used by the event-triggered outer
+        guard: it supplies an already-selected lift for exactly these lower
+        moments instead of the declared proximal log-det completion.  Its
+        default ``None`` is the recorded path.
+        """
 
         raw, hidden = unpack_projected_apcm_state(
             trial_state,
             active_keys=self.active_keys,
         )
         lower = state_lower_moments(raw, hidden, self.active_keys)
-        completion = self.extension.complete(
-            lower,
-            warm_frontier=warm_frontier,
-        )
+        if completion is None:
+            completion = self.extension.complete(
+                lower,
+                warm_frontier=warm_frontier,
+            )
+        else:
+            supplied = np.asarray(
+                [completion.lower_moments[key] for key in self.extension.lower_keys]
+            )
+            current = np.asarray(
+                [lower[key] for key in self.extension.lower_keys]
+            )
+            if not np.array_equal(supplied, current):
+                raise ValueError("supplied completion belongs to another state")
         return self.geometry.retract_stage(
             raw,
             hidden,
@@ -546,6 +572,407 @@ class FixedDictionaryProjectedAPCM:
             retained_metric=retained_metric,
             auxiliary_metric=auxiliary_metric,
         )
+
+
+@dataclass(frozen=True)
+class ProjectiveOuterEventGuardSettings:
+    """Declared thresholds for the event-triggered one-shell outer guard.
+
+    The three floors mirror the carried-witness flow's ``CWRMFSettings``
+    fields of the same names (``apcm_carried_witness.py:81-83``) so that the
+    projective route and the carried-witness route fire on the same declared
+    quantities: the endpoint unshifted Gram minimum against
+    ``event_gram_floor`` and ``event_gram_hard_floor``, and the shared
+    negative-mode coupling measure against ``event_coupling_threshold`` in
+    between.  The selector keywords are the two named options of
+    ``select_outer_feasible_projective_guard``; their defaults are the
+    recorded lexicographic two-solve selector without the gate reorder.
+    """
+
+    event_gram_floor: float = 1e-8
+    event_gram_hard_floor: float = 1e-3
+    event_coupling_threshold: float = 1e-2
+    event_coupling_horizon: float = 0.05
+    boxed: bool = True
+    canonicalize: bool = False
+    accept_first_provisional: bool = False
+    frontier_weight: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not 0.0 < self.event_gram_floor < self.event_gram_hard_floor:
+            raise ValueError("event Gram floors must be positive and ordered")
+        if self.event_coupling_threshold <= 0.0:
+            raise ValueError("event_coupling_threshold must be positive")
+        if self.event_coupling_horizon <= 0.0:
+            raise ValueError("event_coupling_horizon must be positive")
+        if self.frontier_weight < 0.0:
+            raise ValueError("frontier_weight must be nonnegative")
+
+
+class _CouplingGeometryAdapter:
+    """Carried-witness geometry surface over the fixed-dictionary state."""
+
+    def __init__(self, model: FixedDictionaryProjectedAPCM) -> None:
+        self._model = model
+        self._extension = model.extension
+        self.retained_count = _RAW_DIMENSION + len(model.active_keys)
+        self.completion_count = len(self._extension.frontier_keys)
+        self.state_count = self.retained_count + self.completion_count
+
+    def unpack_state(
+        self, state: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        values = np.asarray(state, dtype=float)
+        if values.shape != (self.state_count,):
+            raise ValueError("coupling state has the wrong dimension")
+        return (
+            values[: self.retained_count],
+            values[self.retained_count :],
+        )
+
+    def pack_state(
+        self, retained: FloatArray, completion: FloatArray
+    ) -> FloatArray:
+        return np.concatenate(
+            (
+                np.asarray(retained, dtype=float),
+                np.asarray(completion, dtype=float),
+            )
+        )
+
+    def split_retained(
+        self, retained: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        values = np.asarray(retained, dtype=float)
+        return values[:_RAW_DIMENSION], values[_RAW_DIMENSION:]
+
+    def frontier_mapping(
+        self, completion: FloatArray
+    ) -> Mapping[MomentKey, float]:
+        values = (
+            np.asarray(completion, dtype=float)
+            * self._extension.frontier_scales
+        )
+        return MappingProxyType(
+            {
+                key: float(value)
+                for key, value in zip(
+                    self._extension.frontier_keys, values, strict=True
+                )
+            }
+        )
+
+    def scaled_unified_matrix(
+        self, retained: FloatArray, completion: FloatArray
+    ) -> np.ndarray:
+        raw, hidden = self.split_retained(retained)
+        lower = state_lower_moments(raw, hidden, self._model.active_keys)
+        matrix = self._extension.matrix(
+            lower, self.frontier_mapping(completion)
+        )
+        return self._extension.scaled_matrix(matrix)
+
+    def scaled_completion_coefficients(self) -> np.ndarray:
+        return (
+            self._extension.scaled_frontier_coefficients
+            * self._extension.frontier_scales[:, None, None]
+        )
+
+
+class _CouplingModelAdapter:
+    """Duck-typed model the shared negative-mode measure is defined on.
+
+    ``negative_mode_coupling`` needs only an unpacking geometry, the scaled
+    Gram and its frontier coefficients, and the retained velocity as a
+    function of the frontier lift.  The fixed-dictionary APCM supplies the
+    last one exactly, through ``unprojected_velocity_with_frontier``, which
+    evaluates the archive equations and the exact active commutators while
+    holding the lift fixed and without differentiating the conic selector.
+    The fixed dictionary carries no propagated completion velocity, so
+    ``desired_completion_velocity`` is zero here; that value enters only the
+    reported ``weakest_eigenvalue_velocity`` diagnostic and never the trigger.
+    """
+
+    def __init__(self, model: FixedDictionaryProjectedAPCM) -> None:
+        self._model = model
+        self.geometry = _CouplingGeometryAdapter(model)
+
+    def retained_velocity(
+        self,
+        time: float,
+        retained: FloatArray,
+        completion: FloatArray,
+    ) -> FloatArray:
+        return self._model.unprojected_velocity_with_frontier(
+            float(time),
+            np.asarray(retained, dtype=float),
+            self.geometry.frontier_mapping(completion),
+        )
+
+    def desired_completion_velocity(
+        self,
+        time: float,
+        retained: FloatArray,
+        completion: FloatArray,
+    ) -> FloatArray:
+        return np.zeros(self.geometry.completion_count, dtype=float)
+
+
+class ProjectiveOuterEventGuard:
+    """Event-triggered one-shell outer guard for fixed-dictionary APCM.
+
+    At every stage the unconstrained fixed-dictionary predictor is formed
+    from the archive-plus-entrance target velocity and the exact active
+    commutator velocity, before the retained-first tangent-cone projection.
+    Its endpoint carries the stage's own frontier witness forward unchanged,
+    and the endpoint Gram is eigendecomposed.  Above ``-event_gram_floor``
+    the stage takes the declared proximal log-det completion.  Below it the
+    shared negative-mode coupling measure decides, and below
+    ``-event_gram_hard_floor`` the stage fires unconditionally.  A fired
+    stage selects its lift with
+    ``select_outer_feasible_projective_guard`` at the contained trial state's
+    own lower moments, so that the propagated lift is a literal restriction
+    of one witness feasible on the one-shell outer cone.
+    """
+
+    def __init__(
+        self,
+        model: FixedDictionaryProjectedAPCM,
+        *,
+        settings: ProjectiveOuterEventGuardSettings | None = None,
+        readout: InvariantTargetReadout | None = None,
+        selector: Callable[..., Any] | None = None,
+    ) -> None:
+        self.model = model
+        self.settings = (
+            ProjectiveOuterEventGuardSettings() if settings is None else settings
+        )
+        self.readout = (
+            compile_invariant_target_readout(model.extension)
+            if readout is None
+            else readout
+        )
+        self.selector = (
+            select_outer_feasible_projective_guard
+            if selector is None
+            else selector
+        )
+        self._coupling = _CouplingModelAdapter(model)
+        self._records: list[dict[str, Any]] = []
+
+    @property
+    def records(self) -> tuple[dict[str, Any], ...]:
+        return tuple(self._records)
+
+    def reset(self) -> None:
+        self._records.clear()
+
+    def _endpoint_gram_minimum(
+        self,
+        stage_state: FloatArray,
+        unconstrained_velocity: FloatArray,
+        step: float,
+        carried: Mapping[MomentKey, float],
+    ) -> tuple[float, FloatArray]:
+        endpoint = np.asarray(stage_state, dtype=float) + step * np.asarray(
+            unconstrained_velocity, dtype=float
+        )
+        raw, hidden = unpack_projected_apcm_state(
+            endpoint, active_keys=self.model.active_keys
+        )
+        lower = state_lower_moments(raw, hidden, self.model.active_keys)
+        matrix = self.model.extension.matrix(lower, carried)
+        scaled = self.model.extension.scaled_matrix(matrix)
+        return float(np.linalg.eigvalsh(scaled)[0]), endpoint
+
+    def _coupling_measure(
+        self,
+        time: float,
+        endpoint: FloatArray,
+        carried: Mapping[MomentKey, float],
+    ) -> tuple[float, dict[str, float | int]]:
+        standardized = np.asarray(
+            [
+                float(carried[key]) / scale
+                for key, scale in zip(
+                    self.model.extension.frontier_keys,
+                    self.model.extension.frontier_scales,
+                    strict=True,
+                )
+            ],
+            dtype=float,
+        )
+        diagnostics = negative_mode_coupling(
+            self._coupling,
+            float(time),
+            self._coupling.geometry.pack_state(endpoint, standardized),
+            negative_threshold=self.settings.event_gram_floor,
+            coupling_horizon=self.settings.event_coupling_horizon,
+        )
+        measure = max(
+            float(
+                diagnostics[
+                    "maximum_negative_mode_predicted_retained_velocity_relative_change"
+                ]
+            ),
+            float(
+                diagnostics[
+                    "maximum_negative_mode_two_stage_c_velocity_relative_change"
+                ]
+            ),
+        )
+        return measure, diagnostics
+
+    def _guarded_completion(
+        self,
+        lower: Mapping[MomentKey, float],
+    ) -> tuple[APCMExtensionResult | None, dict[str, Any]]:
+        started = perf_counter()
+        try:
+            selection = self.selector(
+                self.model.extension,
+                lower,
+                self.readout,
+                boxed=self.settings.boxed,
+                canonicalize=self.settings.canonicalize,
+                accept_first_provisional=(
+                    self.settings.accept_first_provisional
+                ),
+                frontier_weight=self.settings.frontier_weight,
+            )
+        except (RuntimeError, ValueError) as error:
+            return None, {
+                "selector_wall_seconds": perf_counter() - started,
+                "selector_outcome": f"selector_error:{error}",
+            }
+        elapsed = perf_counter() - started
+        if not selection.success:
+            return None, {
+                "selector_wall_seconds": elapsed,
+                "selector_outcome": (
+                    f"selector_rejected:{selection.outer_target_stage.status}"
+                ),
+            }
+        frontier_values = np.asarray(
+            [
+                selection.current_frontier_moments[key]
+                for key in self.model.extension.frontier_keys
+            ],
+            dtype=float,
+        )
+        envelope = float(
+            np.max(
+                np.abs(frontier_values) / self.model.extension.frontier_scales
+            )
+        )
+        tolerance = 10.0 * self.model.extension.settings.conic_tolerance
+        if envelope >= 1.0 - tolerance:
+            return None, {
+                "selector_wall_seconds": elapsed,
+                "selector_outcome": "envelope_fallback",
+                "selector_envelope_ratio": envelope,
+            }
+        completion = APCMExtensionResult(
+            lower_moments=MappingProxyType(
+                {
+                    key: float(lower[key])
+                    for key in self.model.extension.lower_keys
+                }
+            ),
+            frontier_moments=selection.current_frontier_moments,
+            moment_matrix=selection.current_moment_matrix,
+            scaled_minimum_eigenvalue=(
+                selection.current_minimum_scaled_eigenvalue
+            ),
+            minimum_eigenvalue=float(
+                np.linalg.eigvalsh(selection.current_moment_matrix)[0]
+            ),
+            objective=float(selection.outer_target_stage.objective),
+            kkt_backward_error=float(
+                selection.outer_target_stage.independent_feasibility_residual
+            ),
+            iterations=int(selection.outer_target_stage.iterations),
+            success=True,
+            message=(
+                "projective_outer_event_guard:" + selection.witness_source
+            ),
+        )
+        return completion, {
+            "selector_wall_seconds": elapsed,
+            "selector_outcome": "outer_feasible_witness",
+            "selector_witness_source": selection.witness_source,
+            "selector_envelope_ratio": envelope,
+            "selector_objective_invariant_target_image_quadratic": float(
+                selection.outer_target_stage.objective
+            ),
+            "selector_current_minimum_scaled_eigenvalue": float(
+                selection.current_minimum_scaled_eigenvalue
+            ),
+            "selector_iterations": int(
+                selection.outer_target_stage.iterations
+            ),
+        }
+
+    def contain_stage(
+        self,
+        time: float,
+        stage_state: FloatArray,
+        evaluation: ProjectedAPCMEvaluation,
+        trial_state: FloatArray,
+        step: float,
+    ) -> APCMStageRetraction:
+        """Run the event test, then contain the trial stage."""
+
+        started = perf_counter()
+        carried = evaluation.targets.completion.frontier_moments
+        unconstrained = np.concatenate(
+            (
+                evaluation.targets.augmented_retained_velocity,
+                evaluation.targets.auxiliary_velocity,
+            )
+        )
+        endpoint_minimum, endpoint = self._endpoint_gram_minimum(
+            stage_state, unconstrained, step, carried
+        )
+        settings = self.settings
+        triggered = endpoint_minimum < -settings.event_gram_hard_floor
+        reason = "hard_floor" if triggered else "quiet"
+        measure = 0.0
+        if not triggered and endpoint_minimum < -settings.event_gram_floor:
+            measure, _ = self._coupling_measure(
+                float(time) + step, endpoint, carried
+            )
+            triggered = measure > settings.event_coupling_threshold
+            reason = "coupling" if triggered else "tolerated"
+        record: dict[str, Any] = {
+            "time": float(time),
+            "step": float(step),
+            "endpoint_unshifted_minimum": endpoint_minimum,
+            "coupling_measure": measure,
+            "triggered": bool(triggered),
+            "reason": reason,
+            "trigger_wall_seconds": perf_counter() - started,
+        }
+        completion: APCMExtensionResult | None = None
+        if triggered:
+            raw, hidden = unpack_projected_apcm_state(
+                trial_state, active_keys=self.model.active_keys
+            )
+            lower = state_lower_moments(raw, hidden, self.model.active_keys)
+            completion, selector_record = self._guarded_completion(lower)
+            record.update(selector_record)
+        retraction = self.model.contain_stage(
+            trial_state,
+            warm_frontier=carried,
+            retained_metric=evaluation.projection.retained_metric,
+            auxiliary_metric=evaluation.projection.auxiliary_metric,
+            completion=completion,
+        )
+        record["stage_retraction_applied"] = bool(retraction.applied)
+        record["stage_retraction_status"] = retraction.status
+        record["wall_seconds"] = perf_counter() - started
+        self._records.append(record)
+        return retraction
 
 
 def prepare_projected_apcm_initial_state(
@@ -621,20 +1048,37 @@ def _advance_projected_apcm_interval(
     *,
     subdivision_depth: int,
     maximum_subdivisions: int,
+    outer_guard: "ProjectiveOuterEventGuard | None" = None,
 ) -> _AcceptedInterval:
     """Advance one interval, halving only after a declared stage failure."""
+
+    def contain(
+        stage_time: float,
+        stage_state: FloatArray,
+        evaluation: ProjectedAPCMEvaluation,
+        trial: FloatArray,
+    ) -> APCMStageRetraction:
+        if outer_guard is None:
+            return model.contain_stage(
+                trial,
+                warm_frontier=evaluation.targets.completion.frontier_moments,
+                retained_metric=evaluation.projection.retained_metric,
+                auxiliary_metric=evaluation.projection.auxiliary_metric,
+            )
+        return outer_guard.contain_stage(
+            stage_time,
+            stage_state,
+            evaluation,
+            trial,
+            step,
+        )
 
     attempted_rhs_evaluations = 0
     try:
         attempted_rhs_evaluations += 1
         first = model.evaluate(time, state, completion=completion)
         first_trial = state + step * first.derivative
-        first_stage = model.contain_stage(
-            first_trial,
-            warm_frontier=first.targets.completion.frontier_moments,
-            retained_metric=first.projection.retained_metric,
-            auxiliary_metric=first.projection.auxiliary_metric,
-        )
+        first_stage = contain(time, state, first, first_trial)
         first_state = _stage_state(first_stage)
 
         attempted_rhs_evaluations += 1
@@ -646,12 +1090,7 @@ def _advance_projected_apcm_interval(
         second_trial = 0.75 * state + 0.25 * (
             first_state + step * second.derivative
         )
-        second_stage = model.contain_stage(
-            second_trial,
-            warm_frontier=second.targets.completion.frontier_moments,
-            retained_metric=second.projection.retained_metric,
-            auxiliary_metric=second.projection.auxiliary_metric,
-        )
+        second_stage = contain(time + step, first_state, second, second_trial)
         second_state = _stage_state(second_stage)
 
         attempted_rhs_evaluations += 1
@@ -663,11 +1102,8 @@ def _advance_projected_apcm_interval(
         final_trial = (1.0 / 3.0) * state + (2.0 / 3.0) * (
             second_state + step * third.derivative
         )
-        final_stage = model.contain_stage(
-            final_trial,
-            warm_frontier=third.targets.completion.frontier_moments,
-            retained_metric=third.projection.retained_metric,
-            auxiliary_metric=third.projection.auxiliary_metric,
+        final_stage = contain(
+            time + 0.5 * step, second_state, third, final_trial
         )
         final_state = _stage_state(final_stage)
         if not np.all(np.isfinite(final_state)):
@@ -707,6 +1143,7 @@ def _advance_projected_apcm_interval(
             half,
             subdivision_depth=subdivision_depth + 1,
             maximum_subdivisions=maximum_subdivisions,
+            outer_guard=outer_guard,
         )
         right = _advance_projected_apcm_interval(
             model,
@@ -716,6 +1153,7 @@ def _advance_projected_apcm_interval(
             half,
             subdivision_depth=subdivision_depth + 1,
             maximum_subdivisions=maximum_subdivisions,
+            outer_guard=outer_guard,
         )
         return _AcceptedInterval(
             state=right.state,
@@ -751,8 +1189,18 @@ def integrate_projected_apcm_ssprk3(
     time_step: float,
     maximum_subdivisions: int = 8,
     progress: Callable[[str], None] | None = None,
+    outer_guard: "ProjectiveOuterEventGuard | None" = None,
+    deadline: float | None = None,
 ) -> ProjectedAPCMTrajectory:
-    """Advance fixed-dictionary APCM with containment before every RHS call."""
+    """Advance fixed-dictionary APCM with containment before every RHS call.
+
+    ``outer_guard`` is the named event-triggered one-shell outer guard
+    policy; ``None``, the default, is the recorded per-stage policy in which
+    every stage takes the declared proximal log-det completion.  ``deadline``
+    is a ``perf_counter`` instant after which the rollout stops and returns
+    the steps it completed, so that an exploratory run reports how far it
+    reached instead of being killed.
+    """
 
     if final_time <= 0.0 or time_step <= 0.0:
         raise ValueError("final_time and time_step must be positive")
@@ -789,9 +1237,22 @@ def integrate_projected_apcm_ssprk3(
     extension_minima[0] = completion.scaled_minimum_eigenvalue
     accepted_substeps[0] = 0
     rhs_evaluations = 0
+    guard_triggered = np.zeros(intervals + 1, dtype=np.int64)
+    completed = intervals
+    message = "completed"
+    success = True
 
     for step in range(intervals):
+        if deadline is not None and perf_counter() >= deadline:
+            completed = step
+            success = False
+            message = (
+                "wall_budget_exceeded after "
+                f"{step} of {intervals} completed steps"
+            )
+            break
         time = float(times[step])
+        guard_before = 0 if outer_guard is None else len(outer_guard.records)
         accepted = _advance_projected_apcm_interval(
             model,
             time,
@@ -800,7 +1261,13 @@ def integrate_projected_apcm_ssprk3(
             time_step,
             subdivision_depth=0,
             maximum_subdivisions=maximum_subdivisions,
+            outer_guard=outer_guard,
         )
+        if outer_guard is not None:
+            guard_triggered[step + 1] = sum(
+                int(bool(record["triggered"]))
+                for record in outer_guard.records[guard_before:]
+            )
         state = accepted.state
         completion = accepted.completion
         rhs_evaluations += accepted.rhs_evaluations
@@ -835,20 +1302,24 @@ def integrate_projected_apcm_ssprk3(
                 f"substeps={accepted_substeps[step + 1]}"
             )
 
+    kept = completed + 1
     return ProjectedAPCMTrajectory(
-        times=times,
-        states=states,
+        times=times[:kept],
+        states=states[:kept],
         active_keys=model.active_keys,
-        base_minimum_eigenvalues=base_minima,
-        extension_minimum_eigenvalues=extension_minima,
-        retained_correction_norms=retained_norms,
-        auxiliary_correction_norms=auxiliary_norms,
-        stage_retractions=stage_retractions,
-        accepted_substeps=accepted_substeps,
+        base_minimum_eigenvalues=base_minima[:kept],
+        extension_minimum_eigenvalues=extension_minima[:kept],
+        retained_correction_norms=retained_norms[:kept],
+        auxiliary_correction_norms=auxiliary_norms[:kept],
+        stage_retractions=stage_retractions[:kept],
+        accepted_substeps=accepted_substeps[:kept],
         rhs_evaluations=rhs_evaluations,
-        completed_steps=intervals,
-        success=True,
-        message="completed",
+        completed_steps=completed,
+        success=success,
+        message=message,
+        outer_guard_triggered_stages=(
+            None if outer_guard is None else guard_triggered[:kept]
+        ),
     )
 
 
@@ -862,6 +1333,8 @@ __all__ = [
     "ProjectedAPCMSettings",
     "ProjectedAPCMTargets",
     "ProjectedAPCMTrajectory",
+    "ProjectiveOuterEventGuard",
+    "ProjectiveOuterEventGuardSettings",
     "integrate_projected_apcm_ssprk3",
     "pack_projected_apcm_state",
     "prepare_projected_apcm_initial_state",

@@ -3922,3 +3922,122 @@ kept only if it reproduces `autonomous_trajectory.npz` of this run bitwise,
 or to a stated tolerance with the difference reported.  Per-step cost on this
 machine is about 74 s under the strict always-on guard against about 0.047 s
 without it.
+
+## 2026-09-14: overnight loop, round 1 (three implementers, each independently reviewed)
+
+Full reports with line references:
+`agent_guidance/paper-v/overnight/{cwrmf-cone-speedup,cone-correction-speedup,projective-event-guard}-20260914.md`
+and the matching `review-*` files.  All three reviews passed; every kept
+change is a named option or a bitwise-neutral rewrite, and the strict and
+balanced defaults are unchanged.  Numbers below are from this machine.
+
+### Carried-witness guard: where the time goes
+
+With per-tier accumulators below the radial atom (`--tier-timing`, off by
+default), the strict always-on guard over `t=0` to `0.01` at `h=0.0025`
+(4 SSPRK2 steps, 8 radial atoms, strong coupling, cutoff 16) spends
+`142.350 s` of a `145.172 s` rollout in the Clarabel solve (36 calls,
+98.1 percent), `2.345 s` in coefficient assembly and svec packing, `0.049 s`
+in the 62-row eigendecomposition, and `0.149 s` in the unguarded velocity
+evaluation; the completion retraction ran zero times.  Artifact:
+`output/local_runs/paper_v_cwrmf_instr_strict_t001_h0025_20260914_v1/`.
+
+Consequence: the plan's Python-level accelerations cannot make the strict
+guarded atom fast.  Four were landed anyway because they are bitwise-neutral
+and pay on the unguarded atom, which is the event-triggered guard's steady
+state: vectorized `_clarabel_svec_upper` (same packed order and sqrt(2)
+factor), the step-scaled `(340, 62, 62)` completion coefficient tensor cached
+once per rollout instead of rebuilt per solver-tier entry, the
+time-independent commutator structure precompiled with the same accumulation
+order, and the center-cross reads hoisted.  Gate: every array of
+`autonomous_trajectory.npz` and `trajectory.npz` equal under `np.array_equal`
+to the pre-change run for each change separately, on both the no-guard
+`t=0` to `0.05` and the strict `t=0` to `0.01` anchors.
+
+| quantity | before | after |
+|---|---:|---:|
+| no-guard autonomous solver wall time, `t=0` to `0.05`, `h=0.0025` | `1.2864 s` | `0.6314 s` |
+| no-guard unguarded velocity evaluation tier, same run | `0.7386 s` | `0.1139 s` |
+| strict autonomous solver wall time, `t=0` to `0.01`, `h=0.0025` | `143.511 s` | `139.883 s` |
+| all-coordinate scalar RMS against the exact reference, same runs | `5.836875e-5` / `5.827262e-5` | identical |
+| ram_guard peak, strict `t=0.01` | `1980 MB` | `1609 MB` |
+
+Two named options were added off by default: `batched_mode_gradients`
+(`--batched-mode-gradients`; one contraction over all working modes in the
+completion retraction and the coupling measure, 31.5x at 61 modes, but not
+bitwise: maximum departure `2.220e-16` absolute, one ulp of the largest
+gradient entry) and bounded local step halving in `integrate_cwrmf_ssprk2`
+(`--maximum-step-subdivisions`, default 0 reproduces the current terminate-
+on-failure behaviour; a forced-failure test shows depth 1 completing the step
+with one failed full step and two accepted half steps).  Carried-witness
+tests 30/30 (22 before).
+
+### 31-coordinate structured cone correction: 24 percent, and where the rest is
+
+Bitwise-neutral hoists on the default path (the 31-fold joint-Gram basis
+built from the already-available matrix state and a module-constant velocity
+basis; the identity- and Frobenius-metric Cholesky factors as module
+constants; the assembled corrected barrier matrices cached on the exact
+reduced point and shared by the constraint, the Jacobian and the exit test;
+slice-copy assembly in place of `np.block`) reduce the energy-neutral
+joint-Gram barrier from `145.62 s` to `110.74 s` over `t=0` to `0.2` at
+strong coupling (16,700 right-hand-side evaluations, 318,122 half-space
+projections), with the sampled states, times, eigenvalue series and energies
+byte-identical.  The ten-coordinate energy-neutral matrix barrier reproduces
+the working notes' pinned minimum bosonic eigenvalue `2.893142825017192e-5`
+over `t=0` to `2` in `0.226 s`.  Harness:
+`output/local_runs/paper_v_cone_ref_t2_20260914_v1/run_pinned_energy_neutral_barrier.py`
+(the fixed-step `run_high_coupling_controller_comparison.py` cannot run the
+DOP853 pinned protocol).
+
+Three negative results.  Memoizing the correction on the exact (state,
+derivative) pair never hits (0 of 749 and 0 of 218 evaluations), because
+DOP853 reuses the previous step's final stage and retries rejected steps at
+different stage points; kept as an off-by-default option with the zero rate
+recorded.  The warm-started dual active-set minimum-norm-point backend
+(`halfspace_backend='active_set'`, closed form for one half-space, SLSQP as
+declared fallback) avoids 287,941 of 317,277 SLSQP calls on an identical-
+operand replay of 16,646 recorded corrections (`109.91 s` to `92.55 s`,
+correction norms agreeing to `3.08e-10` relative), but integrated it moves
+the joint-Gram trajectory by `6.286e-9` relative to trajectory scale over
+`t=0` to `0.2` and takes 636 more right-hand-side evaluations, so it is not
+the default (`DEFAULT_HALFSPACE_BACKEND='slsqp'`); SLSQP's own `ftol=1e-12`
+means no exact-minimum backend can match it to `1e-12`.  Fusing the
+`eigvalsh`/`eigh` pair was dropped as not bitwise-neutral.  After the change
+47 percent of the joint-Gram route's profiled time is in
+`matrix_reference.py` (`electron_phonon_moment_derivative`, 142,552
+`ndarray.trace` calls over 206 evaluations), which this round did not own.
+Cone-correction tests 29/29 (22 before).
+
+### Projective route: executable, quiet, and 24.5 times less accurate than the carried witness
+
+The event-triggered one-shell outer guard is a named policy on the
+fixed-dictionary APCM integrator (`ProjectiveOuterEventGuardSettings`,
+`projected_apcm.py`), sharing `negative_mode_coupling` with the carried-
+witness route through an adapter; `frontier_weight` (default 0) turns the
+two-solve selector into the single strictly convex solve
+`0.5 q^T M q + 0.5 w ||z||^2` with no lift equality; driver
+`paper5.stability.apcm_projective_event_guard_analysis`.  Rollout over `t=0`
+to `0.05` at `h=0.0025`, 15 entrance keys, cutoff 16, strong coupling:
+`50.58 s`, peak `300 MB`, 65 stages evaluated, none triggered (endpoint
+unshifted 24-row Gram minimum of the unconstrained predictor never below
+`-1.38e-13` against the declared floor `-1e-8`), 7 stage retractions
+applied; all-coordinate scalar RMS against the exact cutoff-16 reference
+`7.9318e-5` (blockwise rho `5.02e-7`, B `1.60e-6`, N `2.17e-4`, A
+`9.10e-6`, C `2.02e-5`) against the carried-witness strict `3.236e-6` on the
+same horizon.  Artifact:
+`output/local_runs/paper_v_apcm_projective_event_guard_t005_h0025_cutoff16_20260914_v1/`.
+
+Negative results at the cutoff-16 correlated preparation, `t=0`: the
+outer-aware invariant target solve now ends in `explicit_target:NumericalError`
+after about `46 s` under both gate settings (the record's `500 s` then
+`171 s` were measured on a first-pass `AlmostSolved` that does not reproduce
+here), so `accept_first_provisional` does not discriminate; the strictly
+convex selector reaches `AlmostSolved` for every frontier weight from `1e-5`
+to `1e-1` but its relative duality gap at `w=1e-5` is `1.119e-6` against the
+exploratory acceptance `1e-6`, so no witness is accepted; a forced trigger
+(floors lowered to roundoff) costs `45` to `365 s` and about `5.3 GB` per
+triggered stage.  Objective values of the strictly convex selector are within
+0.35 percent of the recorded `0.01126712315` over the weights tried.
+Projective tests 30/30 (20 before).  Full `paper_5` suite at the end of the
+round: 326 passed.

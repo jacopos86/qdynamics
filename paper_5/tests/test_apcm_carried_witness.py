@@ -497,3 +497,274 @@ def test_accuracy_metrics_separate_fixed_offset_from_dynamic_error() -> None:
     )
     for block in metrics["blockwise"].values():
         assert block["dynamic_scalar_rms_error"] == 0.0
+
+
+def test_tier_timing_is_off_by_default_and_names_every_tier(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    assert model.tier_timing is None
+
+    timed = CarriedWitnessModel(model.parameters, geometry=model.geometry)
+    timed.prepare(phonon_cutoff=16)
+    timed.enable_tier_timing()
+    atom = timed.radial_atom(0.0, preparation.state, 1e-8)
+    report = timed.tier_timing
+
+    assert atom.success
+    assert report is not None
+    assert set(report["seconds"]) == {
+        "gram_eigendecomposition",
+        "coefficient_assembly_and_svec",
+        "clarabel_solve",
+        "retraction",
+        "unguarded_velocity",
+    }
+    assert report["calls"]["unguarded_velocity"] == 1
+    assert report["calls"]["gram_eigendecomposition"] >= 1
+    assert report["seconds"]["unguarded_velocity"] > 0.0
+    # The model the other tests share must stay uninstrumented.
+    assert model.tier_timing is None
+
+
+def test_compiled_commutator_rows_reproduce_the_literal_moment_rate(
+    prepared_model,
+) -> None:
+    from paper5.stability.apcm_carried_witness import _moment_derivative
+    from paper5.stability.moment_hierarchy import (
+        _commutator,
+        _hamiltonian_terms,
+    )
+
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    moments = model.geometry.moment_mapping(retained, completion)
+    time = 0.037
+
+    def literal(key) -> float:
+        derivative = 0.0j
+        for coefficient, word in _hamiltonian_terms(time, model.parameters):
+            for generated, commutator_coefficient in _commutator(
+                word, key
+            ).items():
+                value = 1.0 if generated.degree == 0 else moments[generated]
+                derivative += (
+                    1j * coefficient * commutator_coefficient * float(value)
+                )
+        return float(derivative.real)
+
+    checked = 0
+    for key in model.geometry.outer_extension.frontier_keys:
+        if any(
+            generated not in moments
+            for _, word in _hamiltonian_terms(time, model.parameters)
+            for generated in _commutator(word, key)
+            if generated.degree > 0
+        ):
+            continue
+        assert _moment_derivative(
+            key, time, model.parameters, moments
+        ) == literal(key)
+        checked += 1
+    assert checked > 0
+
+
+def test_default_integration_takes_no_subdivision_and_still_terminates(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    calls: list[float] = []
+    original = model.radial_atom
+
+    def failing_atom(time, state, step_size, **keywords):
+        calls.append(step_size)
+        return replace(
+            original(time, state, step_size, **keywords),
+            success=False,
+            message="forced_failure",
+        )
+
+    model.radial_atom = failing_atom  # type: ignore[method-assign]
+    try:
+        trajectory = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=2e-8,
+            time_step=1e-8,
+        )
+    finally:
+        del model.radial_atom
+
+    assert not trajectory.success
+    assert trajectory.completed_steps == 0
+    assert trajectory.message.startswith("first atom at t=0.000000")
+    assert "subdivision" not in trajectory.message
+    assert calls == [1e-8]
+
+    with pytest.raises(ValueError):
+        integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=2e-8,
+            time_step=1e-8,
+            maximum_step_subdivisions=-1,
+        )
+
+
+def test_bounded_step_halving_recovers_from_a_failed_atom(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    original = model.radial_atom
+    sizes: list[float] = []
+
+    def halving_atom(time, state, step_size, **keywords):
+        sizes.append(step_size)
+        result = original(time, state, step_size, **keywords)
+        if step_size > 0.75e-8:
+            return replace(
+                result, success=False, message="forced_failure_at_full_step"
+            )
+        return result
+
+    model.radial_atom = halving_atom  # type: ignore[method-assign]
+    try:
+        stopped = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=1e-8,
+            time_step=1e-8,
+        )
+        recovered = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=1e-8,
+            time_step=1e-8,
+            maximum_step_subdivisions=1,
+        )
+    finally:
+        del model.radial_atom
+
+    assert not stopped.success
+    assert stopped.completed_steps == 0
+
+    assert recovered.success
+    assert recovered.completed_steps == 1
+    assert recovered.times.size == 2
+    # One failed full step, then two accepted SSPRK2 steps of half the size.
+    assert 0.5e-8 in sizes
+    assert recovered.atom_evaluations == 5
+    assert np.all(np.isfinite(recovered.states))
+
+
+def test_batched_mode_gradients_are_off_by_default_and_agree_to_roundoff(
+    prepared_model,
+) -> None:
+    from paper5.stability.apcm_carried_witness import (
+        _mode_eigenvalue_gradients,
+    )
+
+    model, preparation = prepared_model
+    assert CWRMFSettings().batched_mode_gradients is False
+    assert cwrmf_settings_for_profile("strict").batched_mode_gradients is False
+    assert (
+        cwrmf_settings_for_profile("balanced").batched_mode_gradients is False
+    )
+
+    geometry = model.geometry
+    coefficients = geometry.scaled_completion_coefficients()
+    retained, completion = geometry.unpack_state(preparation.state)
+    _, vectors = np.linalg.eigh(
+        geometry.scaled_unified_matrix(retained, completion)
+    )
+    working = vectors[:, :12]
+
+    per_mode = _mode_eigenvalue_gradients(
+        coefficients, working, batched=False
+    )
+    batched = _mode_eigenvalue_gradients(coefficients, working, batched=True)
+
+    assert per_mode.shape == (12, geometry.completion_count)
+    for row in range(12):
+        vector = working[:, row]
+        assert np.array_equal(
+            per_mode[row],
+            np.einsum(
+                "a,jab,b->j",
+                vector.conjugate(),
+                coefficients,
+                vector,
+                optimize=True,
+            ).real,
+        )
+    # One contraction instead of twelve is a different BLAS blocking, so the
+    # agreement is to roundoff, not bitwise.
+    assert np.max(np.abs(per_mode - batched)) <= 1e-13 * max(
+        float(np.max(np.abs(per_mode))), 1e-300
+    )
+
+
+def test_step_scaled_coefficient_cache_returns_the_literal_product(
+    prepared_model,
+) -> None:
+    model, _ = prepared_model
+    compiled = model.geometry.scaled_completion_coefficients()
+
+    first = model._step_scaled_completion_coefficients(0.0025)
+    second = model._step_scaled_completion_coefficients(0.0025)
+    assert first is second
+    assert np.array_equal(first, 0.0025 * compiled)
+    assert first.shape == (model.geometry.completion_count, 62, 62)
+
+    halved = model._step_scaled_completion_coefficients(0.00125)
+    assert halved is not first
+    assert np.array_equal(halved, 0.00125 * compiled)
+    # The compiled tensor itself is untouched by the scaling.
+    assert np.array_equal(
+        compiled, model.geometry.scaled_completion_coefficients()
+    )
+
+
+def test_vectorized_svec_packs_the_literal_upper_triangle_order() -> None:
+    from paper5.stability.apcm_positive_extension import _clarabel_svec_upper
+
+    def literal(matrix: np.ndarray) -> np.ndarray:
+        value = np.asarray(matrix, dtype=float)
+        packed: list[float] = []
+        root_two = np.sqrt(2.0)
+        for column in range(value.shape[1]):
+            for row in range(column + 1):
+                scale = 1.0 if row == column else root_two
+                packed.append(scale * float(value[row, column]))
+        return np.asarray(packed, dtype=float)
+
+    generator = np.random.default_rng(20260914)
+    for size in (1, 2, 5, 62, 80, 124):
+        sample = generator.standard_normal((size, size))
+        symmetric = 0.5 * (sample + sample.T)
+        assert np.array_equal(
+            literal(symmetric), _clarabel_svec_upper(symmetric)
+        )
+        assert np.array_equal(literal(sample), _clarabel_svec_upper(sample))
+
+    with pytest.raises(ValueError):
+        _clarabel_svec_upper(np.zeros((3, 4)))
+
+
+def test_center_cross_evaluator_matches_the_one_shot_reader(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    geometry = model.geometry
+    retained, completion = geometry.unpack_state(preparation.state)
+    reader = geometry.center_cross_evaluator(retained, completion)
+
+    checked = 0
+    for row in range(9 + geometry.extra_count):
+        key = geometry._relative_row_key(row)
+        for center_index in range(2):
+            assert reader(center_index, key) == geometry.center_cross_value(
+                center_index, key, retained, completion
+            )
+            checked += 1
+    assert checked == 2 * (9 + geometry.extra_count)

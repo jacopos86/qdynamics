@@ -33,7 +33,11 @@ from paper5.stability.matrix_reference import (
     closed_scalar_to_matrix_state,
     matrix_total_energy,
 )
-from paper5.stability.cone_correction import _project_origin_onto_halfspaces
+from paper5.stability.cone_correction import (
+    HalfspaceWarmState,
+    SOLVER_COUNTERS,
+    _project_origin_onto_halfspaces,
+)
 
 
 def test_halfspace_projection_returns_minimum_norm_intersection() -> None:
@@ -878,3 +882,345 @@ def test_cone_projected_strong_trajectory_stays_inside_boson_cone() -> None:
     )
     assert minimum_moment_eigenvalue > -1e-8
     assert float(np.max(np.abs(solution.y))) < 5.0
+
+
+def _pinned_joint_gram_problem() -> tuple[
+    DimerParameters,
+    np.ndarray,
+    np.ndarray,
+]:
+    """Return the pinned strong-coupling state and its uncorrected velocity.
+
+    Strong coupling means ``lambda_ep = 1.5``, ``gamma = 0.5``, drive
+    amplitude 1, and the exact ground-state contraction at phonon cutoff 16;
+    the velocity is the archive closure evaluated at ``t = 0.31``.
+    """
+
+    parameters = DimerParameters(
+        lambda_ep=1.5,
+        gamma=0.5,
+        drive_amplitude=1.0,
+    )
+    state = exact_ground_closed_scalar_coordinates(
+        parameters,
+        phonon_cutoff=16,
+    )
+    derivative = closed_scalar_rhs(0.31, state, parameters)
+    return parameters, state, derivative
+
+
+def test_boson_velocity_lift_matches_the_block_assembly() -> None:
+    coordinates = np.arange(1.0, 11.0) * 0.37 - 1.5
+    lifted = structured_boson_velocity_lift(coordinates)
+
+    normal_01 = coordinates[2] + 1j * coordinates[3]
+    normal = np.array(
+        [
+            [coordinates[0], normal_01],
+            [normal_01.conjugate(), coordinates[1]],
+        ],
+        dtype=complex,
+    )
+    anomalous = np.array(
+        [
+            [
+                coordinates[4] + 1j * coordinates[5],
+                coordinates[8] + 1j * coordinates[9],
+            ],
+            [
+                coordinates[8] + 1j * coordinates[9],
+                coordinates[6] + 1j * coordinates[7],
+            ],
+        ],
+        dtype=complex,
+    )
+    expected = np.block(
+        [
+            [normal.T, anomalous.conjugate()],
+            [anomalous, normal],
+        ]
+    )
+
+    assert lifted.tobytes() == expected.tobytes()
+
+
+def test_halfspace_backends_agree_on_the_minimum_norm_point() -> None:
+    """The minimum-norm point of a fixed polytope is unique.
+
+    The objective ``1/2 ||y||^2`` is strictly convex and the feasible set is
+    convex, so the two backends are two ways of finding the same point.
+    """
+
+    generator = np.random.default_rng(20260914)
+    checked = 0
+    for _ in range(120):
+        rows = int(generator.integers(1, 10))
+        dimension = int(generator.integers(2, 12))
+        normals = [generator.normal(size=dimension) for _ in range(rows)]
+        offsets = list(generator.normal(size=rows) * 0.5)
+        reference, reference_converged = _project_origin_onto_halfspaces(
+            normals,
+            offsets,
+            tolerance=1e-12,
+            maximum_cycles=10_000,
+            backend="slsqp",
+        )
+        candidate, candidate_converged = _project_origin_onto_halfspaces(
+            normals,
+            offsets,
+            tolerance=1e-12,
+            maximum_cycles=10_000,
+            backend="active_set",
+        )
+        if not (reference_converged and candidate_converged):
+            continue
+        checked += 1
+        np.testing.assert_allclose(
+            float(np.linalg.norm(candidate)),
+            float(np.linalg.norm(reference)),
+            rtol=1e-8,
+            atol=1e-10,
+        )
+    assert checked > 80
+
+
+def test_single_halfspace_uses_the_closed_form_solution() -> None:
+    normal = np.array([2.0, -1.0, 0.5])
+    offset = 1.25
+    point, converged = _project_origin_onto_halfspaces(
+        [normal],
+        [offset],
+        tolerance=1e-12,
+        maximum_cycles=10_000,
+        backend="active_set",
+    )
+
+    assert converged
+    np.testing.assert_allclose(
+        point,
+        (offset / float(normal @ normal)) * normal,
+        rtol=0.0,
+        atol=0.0,
+    )
+
+    inactive, inactive_converged = _project_origin_onto_halfspaces(
+        [normal],
+        [-3.0],
+        tolerance=1e-12,
+        maximum_cycles=10_000,
+        backend="active_set",
+    )
+    assert inactive_converged
+    np.testing.assert_array_equal(inactive, np.zeros(3))
+
+
+def test_warm_started_active_set_matches_slsqp_as_the_cut_set_grows() -> None:
+    generator = np.random.default_rng(31415)
+    dimension = 9
+    normals: list[np.ndarray] = []
+    offsets: list[float] = []
+    warm_state = HalfspaceWarmState()
+    for _ in range(14):
+        normals.append(generator.normal(size=dimension))
+        offsets.append(float(abs(generator.normal()) * 0.4))
+        reference, reference_converged = _project_origin_onto_halfspaces(
+            normals,
+            offsets,
+            tolerance=1e-12,
+            maximum_cycles=10_000,
+            backend="slsqp",
+        )
+        candidate, candidate_converged = _project_origin_onto_halfspaces(
+            normals,
+            offsets,
+            tolerance=1e-12,
+            maximum_cycles=10_000,
+            backend="active_set",
+            warm_state=warm_state,
+        )
+        assert reference_converged and candidate_converged
+        np.testing.assert_allclose(
+            float(np.linalg.norm(candidate)),
+            float(np.linalg.norm(reference)),
+            rtol=1e-8,
+            atol=1e-10,
+        )
+
+
+def test_named_halfspace_backend_leaves_the_declared_correction_unchanged(
+) -> None:
+    parameters, state, derivative = _pinned_joint_gram_problem()
+    settings = dict(
+        activation_margin=1e-5,
+        target_flux=0.0,
+        barrier_rate=5.0,
+        energy_neutral=True,
+        preserve_correlation_trace=True,
+        cone_tolerance=1e-8,
+        projection_tolerance=1e-12,
+        correction_metric="euclidean",
+    )
+    recorded = structured_electron_phonon_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        **settings,
+    )
+    explicit = structured_electron_phonon_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        halfspace_backend="slsqp",
+        **settings,
+    )
+    warm = structured_electron_phonon_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        halfspace_backend="active_set",
+        **settings,
+    )
+
+    assert recorded.converged and explicit.converged and warm.converged
+    # The default path must not move when a backend is named explicitly.
+    assert (
+        recorded.correction_coordinates.tobytes()
+        == explicit.correction_coordinates.tobytes()
+    )
+    np.testing.assert_allclose(
+        warm.correction_norm,
+        recorded.correction_norm,
+        rtol=1e-8,
+        atol=1e-10,
+    )
+    assert warm.corrected_joint_barrier_minimum_eigenvalue > -1e-8
+
+
+def test_all_violated_cut_harvest_agrees_with_the_single_mode_default() -> None:
+    parameters = DimerParameters(
+        lambda_ep=1.5,
+        gamma=0.5,
+        drive_amplitude=1.0,
+    )
+    state = np.array(
+        [
+            0.7662599441693244,
+            0.3185411422473864,
+            -0.01115079189201803,
+            -2.1897012390333686,
+            -0.02713696803672531,
+            -0.2598300166699305,
+            0.0268320966681872,
+            0.05157980514704288,
+            0.05387980537542401,
+            0.02531057209827398,
+            0.00570431464057819,
+            -0.12319079966143419,
+            -0.07357498667227906,
+            -0.1442595496867259,
+            -0.0811783137101723,
+            -0.12226194551989604,
+            0.0533402299477054,
+            0.03189753541252562,
+            -0.04477272034802068,
+            -0.01545782611023151,
+            0.12373661961246038,
+            0.02264060891823499,
+            0.07741487256292515,
+            0.01349794769920067,
+            -0.10126786256467246,
+            0.00532681760879519,
+            -0.04326461452515489,
+            0.04372270503908616,
+            0.00452225409655276,
+            -0.08020506745800526,
+            -0.0733309237050589,
+        ]
+    )
+    derivative = closed_scalar_rhs(28.545, state, parameters)
+    settings = dict(
+        activation_margin=1e-5,
+        target_flux=0.0,
+        barrier_rate=5.0,
+        energy_neutral=True,
+    )
+    recorded = structured_joint_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        **settings,
+    )
+    default_named = structured_joint_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        cut_harvest="single_mode",
+        **settings,
+    )
+    harvested = structured_joint_barrier_correction(
+        state,
+        derivative,
+        parameters,
+        cut_harvest="all_violated",
+        **settings,
+    )
+
+    assert recorded.converged and harvested.converged
+    assert (
+        recorded.correction_coordinates.tobytes()
+        == default_named.correction_coordinates.tobytes()
+    )
+    # Harvesting every violated eigenmode per pass accumulates a larger
+    # half-space set and reaches feasibility in fewer passes; both sets
+    # have the same minimum-norm point to the cross-backend tolerance.
+    assert harvested.constraint_count > 0
+    assert recorded.constraint_count > 0
+    assert harvested.corrected_boson_barrier_minimum_eigenvalue > -1e-11
+    np.testing.assert_allclose(
+        harvested.correction_norm,
+        recorded.correction_norm,
+        rtol=1e-6,
+        atol=1e-10,
+    )
+
+
+def test_memoized_rhs_reuses_the_solved_correction_exactly() -> None:
+    parameters = DimerParameters(
+        lambda_ep=1.5,
+        gamma=0.5,
+        drive_amplitude=1.0,
+    )
+    initial_state = exact_ground_closed_scalar_coordinates(
+        parameters,
+        phonon_cutoff=12,
+    )
+    plain = closed_cone_projected_rhs(
+        parameters,
+        initial_state,
+        activation_margin=1e-5,
+        target_flux=0.0,
+        barrier_rate=5.0,
+        energy_neutral=True,
+    )
+    memoized = closed_cone_projected_rhs(
+        parameters,
+        initial_state,
+        activation_margin=1e-5,
+        target_flux=0.0,
+        barrier_rate=5.0,
+        energy_neutral=True,
+        memoize_corrections=True,
+    )
+    state = initial_state.copy()
+    state[7] += 0.05
+    state[8] -= 0.04
+
+    reference = plain(0.7, state)
+    SOLVER_COUNTERS.reset()
+    first = memoized(0.7, state)
+    second = memoized(0.7, state)
+
+    assert reference.tobytes() == first.tobytes()
+    assert first.tobytes() == second.tobytes()
+    assert SOLVER_COUNTERS.correction_memo_hits == 1
+    assert SOLVER_COUNTERS.correction_memo_misses == 1
