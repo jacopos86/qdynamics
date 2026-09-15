@@ -5000,3 +5000,68 @@ in `paper_5/tests/test_cheap_projection_route.py` (22 in the file),
 to see whether its `t=0` to `4` ordering also reverses, and a repair that
 projects in the Eq. (22) metric to see whether the residual 1.38-fold energy
 cost is removable.
+
+## 2026-09-15: projective route, task 2: the full rollout from `t=0`
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`,
+second heading.  Fixed dictionary APCM, 15 entrance keys, cutoff 16, strong
+coupling, `h=0.0025`, carried lift (margin multiple 10) with face continuation
+and the declared completion retry ladder (`--completion-retry-shifts 1e-8
+1e-7 --completion-retry-weights 1e-1`); every count is the run's own total
+from `summary.json`.  No module was edited and no default changed.
+
+Negative result first: a single projective rollout does not pass `t=6` and
+does not reach `t=4`.  Three chained 20-minute segments from `t=0` reached
+`t=3.115` (1,246 of the 3,200 steps `t=8` needs) in `3,182.0 s` with 117 stage
+retractions (7, 35, 75 by segment), all-coordinate scalar RMS `1.936806e-2`
+against the exact cutoff-16 driven reference on the 31 closed scalar
+coordinates over `t=0` to `3.115` (rho `3.60e-2`, B `2.07e-2`, N `1.62e-2`, A
+`9.53e-3`, C `1.78e-2`); the declared ladder was certified 189 times and
+exhausted 132 at the stage lift, 56 and 12 inside a retraction.  Over that same
+interval the recorded default policy scores `2.030594e-2`, so the named policy
+buys 4.6 percent.  There is no `t=4` coordinate error to set beside the
+default policy's `2.503676e-1`.
+
+The cost wall is the trajectory's, not the policy's.  The rolling 20-step
+median per-step wall sits at about `1 s` to `t=3.0`, exceeds `5 s` at
+`t=3.0419` and `10 s` at `t=3.0913`, and the last 21 steps cost `52.54 s`
+each.  In `t=3.00` to `3.45` the endpoint unshifted 24-row Gram minimum is
+negative (chain minimum `-1.240e-4`, against the declared hard floor `1e-3`, so
+0 of 3,780 stages triggered the outer guard), the carried lift stops being
+accepted (0 of 93 past `t=3.0625`, against 1,804 of 2,508 over `t=0` to
+`2.085`), the declared ladder is exhausted 84 of 85 times, and a stage with a
+retraction applied costs `10.25 s` mean against `0.459 s` for one without.
+The recorded default policy pays the same episode in the same window ---
+`1,589.0 s` of its `3,229.8 s`, 322 retracted stages of 749 --- and then
+leaves it at `t=3.45` and finishes `t=4`; inside the episode the carried lift
+costs `8.034 s` per stage against the default's `2.121 s`.  The episode opens
+as the pulse switches off: the field difference `2 sin(pi t/4) exp(-t^2/2)` is
+`2.707e-1` at `t=2`, `1.571e-2` at `t=3`, `1.674e-3` at `t=3.5`.
+
+Halving the step from `t=0` makes the error worse, not better.  One 20-minute
+segment at `h=0.00125` reached `t=1.7075` in `1,052.1 s` with 6 stage
+retractions and scored `8.818433e-3` over `t=0` to `1.7075` against the
+`h=0.0025` chain's `8.361075e-3` on the same coordinates, and it carries 1.04
+to 1.16 times the coordinate error at every shared sample time from `t=0.25`
+to `1.5`.  So the driven-interval error is the fixed 15-key dictionary's
+closure defect, not the time discretization, and `2.503676e-1` at `t=4` is
+within a few percent of the floor for this dictionary; halving it is a
+dictionary question, not a projection one.
+
+Against the cheap projection route's hybrid (`t=8` at `5.773e-2` in `195.7 s`,
+no post-pulse wall), the projective route costs 42 times the wall per unit
+time for comparable accuracy and less horizon.  What it still produces is a
+per-step certificate: the chain's accepted steps carry a declared proximal
+log-det completion certified inside the frozen box (minimum scaled
+positive-extension eigenvalue `-4.246e-13` to `3.006e-7` by segment, minimum
+retained joint moment eigenvalue `7.228e-6` to `3.401e-4`), where the hybrid's
+`t=8` state carries `-9.124e-6` and `-8.296e-7`; and it measures the distance
+to the outer cone's face at every stage, which the cheap route does not
+compute.  Artifacts:
+`output/local_runs/paper_v_apcm_projective_t0_carried_ladder_facecont_t8_20260915c_seg{1,2,3}`,
+`..._h000125_20260915c_v1`, and `paper_v_projective_t0_chain_20260915c`
+(scoring scripts and logs), peak `360 MB`, every run under
+`ram_guard --limit-mb 4500`.  Next, if the route is continued: the outer
+guard has now evaluated 7,882 stages across this round without one trigger,
+so whether the declared event floors should be tightened is still the open
+scientific-acceptance question, and it is the user's.
