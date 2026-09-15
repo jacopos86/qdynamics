@@ -15,10 +15,13 @@ import numpy as np
 
 from .adaptive_positive_moment import raw_moment_coordinates_to_matrix_state
 from .apcm_carried_witness import (
+    CWRMF_SOLVER_SETTING_PROFILES,
+    DEFAULT_SOLVER_SETTING_PROFILE,
     CarriedWitnessModel,
     cwrmf_settings_for_profile,
     integrate_cwrmf_ssprk2,
 )
+from .cwrmf_solver_instances import ConicInstanceRecorder
 from .exact_reference import exact_holstein_driven_trajectory
 from .hubbard_dimer import DimerParameters
 from .matrix_reference import (
@@ -124,6 +127,31 @@ def _parser() -> argparse.ArgumentParser:
             "packing, the Clarabel solve, the completion retraction, and the "
             "unguarded velocity evaluation) and report it next to "
             "maximum_atom_seconds.  Off by default and free when off."
+        ),
+    )
+    parser.add_argument(
+        "--solver-setting-profile",
+        choices=tuple(CWRMF_SOLVER_SETTING_PROFILES),
+        default=DEFAULT_SOLVER_SETTING_PROFILE,
+        help=(
+            "Named Clarabel setting set applied to the four guarded conic "
+            "solves.  The default applies no override, so the guarded path "
+            "is the pinned single-threaded contract the parity anchors were "
+            "measured under; every other entry is a declared experiment "
+            "measured on the recorded instances by cwrmf_solver_replay."
+        ),
+    )
+    parser.add_argument(
+        "--record-conic-instances",
+        action="store_true",
+        help=(
+            "Named experiment, off by default: save every conic problem the "
+            "guard hands Clarabel -- the objective matrix and vector, the "
+            "cone matrix and right-hand side, the cone specification, the "
+            "solver settings, the tier name and the radial atom index -- "
+            "with the solution Clarabel returned, under "
+            "conic_instances/ in the run directory.  The rollout is "
+            "unchanged; the recorder only reads finished operands."
         ),
     )
     parser.add_argument("--compact-output", action="store_true")
@@ -274,6 +302,10 @@ def main() -> int:
         )
     if args.batched_mode_gradients:
         settings = replace(settings, batched_mode_gradients=True)
+    if args.solver_setting_profile != DEFAULT_SOLVER_SETTING_PROFILE:
+        settings = replace(
+            settings, solver_setting_profile=args.solver_setting_profile
+        )
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)
     preparation = model.prepare(phonon_cutoff=args.phonon_cutoff)
@@ -334,6 +366,26 @@ def main() -> int:
         # Enabled after the preparation so the accumulators account only for
         # the rollout, next to maximum_atom_seconds.
         model.enable_tier_timing()
+    instance_recorder = None
+    if args.record_conic_instances:
+        instance_recorder = ConicInstanceRecorder(
+            output_directory / "conic_instances"
+        )
+        instance_recorder.write_context(
+            step_scaled_completion_coefficients=(
+                args.time_step
+                * model.geometry.scaled_completion_coefficients()
+            ),
+            readable_completion_indices=(
+                model.geometry.readable_completion_indices
+            ),
+            completion_count=model.geometry.completion_count,
+            numerical_profile=args.numerical_profile,
+            schur_safety_margin=settings.schur_safety_margin,
+            solver_tolerance=settings.solver_tolerance,
+            psd_inflation=settings.psd_inflation,
+        )
+        model.enable_instance_recording(instance_recorder)
     rollout_started = time.perf_counter()
     trajectory = integrate_cwrmf_ssprk2(
         model,
@@ -482,6 +534,11 @@ def main() -> int:
                 np.max(trajectory.maximum_atom_seconds)
             ),
             "tier_seconds": tier_timing,
+            "recorded_conic_instances": (
+                None
+                if instance_recorder is None
+                else int(instance_recorder.instance_count)
+            ),
             "exact_reference_wall_seconds": exact_elapsed,
             "peak_resident_bytes": int(
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss

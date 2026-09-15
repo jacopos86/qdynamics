@@ -768,3 +768,90 @@ def test_center_cross_evaluator_matches_the_one_shot_reader(
             )
             checked += 1
     assert checked == 2 * (9 + geometry.extra_count)
+
+
+def test_solver_setting_profile_defaults_to_the_pinned_single_thread_set(
+) -> None:
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+        DEFAULT_SOLVER_SETTING_PROFILE,
+    )
+
+    assert DEFAULT_SOLVER_SETTING_PROFILE == "pinned_single_thread"
+    assert CWRMF_SOLVER_SETTING_PROFILES[DEFAULT_SOLVER_SETTING_PROFILE] == {}
+    for profile in ("strict", "balanced"):
+        assert (
+            cwrmf_settings_for_profile(profile).solver_setting_profile
+            == DEFAULT_SOLVER_SETTING_PROFILE
+        )
+    assert (
+        CWRMFSettings().solver_setting_profile
+        == DEFAULT_SOLVER_SETTING_PROFILE
+    )
+    with pytest.raises(ValueError, match="unknown CWRMF solver setting"):
+        replace(CWRMFSettings(), solver_setting_profile="faster_please")
+
+
+def test_default_solver_setting_profile_touches_no_clarabel_field() -> None:
+    import clarabel
+
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+    )
+    from paper5.stability.cwrmf_solver_instances import (
+        RECORDED_SETTING_FIELDS,
+    )
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    model = CarriedWitnessModel(DimerParameters())
+    settings = clarabel.DefaultSettings()
+    settings.max_threads = 1
+    before = {
+        name: getattr(settings, name) for name in RECORDED_SETTING_FIELDS
+    }
+
+    model._apply_solver_setting_profile(settings)
+
+    after = {
+        name: getattr(settings, name) for name in RECORDED_SETTING_FIELDS
+    }
+    assert before == after
+    # Every declared profile names only fields Clarabel carries.
+    for overrides in CWRMF_SOLVER_SETTING_PROFILES.values():
+        for field_name in overrides:
+            assert hasattr(settings, field_name), field_name
+
+
+def test_named_solver_setting_profiles_overlay_only_their_own_fields() -> None:
+    import clarabel
+
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+    )
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    assert set(CWRMF_SOLVER_SETTING_PROFILES) == {
+        "pinned_single_thread",
+        "presolve_off",
+        "max_threads_8",
+    }
+    assert CWRMF_SOLVER_SETTING_PROFILES["presolve_off"] == {
+        "presolve_enable": False
+    }
+    assert CWRMF_SOLVER_SETTING_PROFILES["max_threads_8"] == {
+        "max_threads": 8
+    }
+
+    for name, overrides in CWRMF_SOLVER_SETTING_PROFILES.items():
+        model = CarriedWitnessModel(
+            DimerParameters(),
+            settings=replace(CWRMFSettings(), solver_setting_profile=name),
+        )
+        settings = clarabel.DefaultSettings()
+        settings.max_threads = 1
+        settings.presolve_enable = True
+        model._apply_solver_setting_profile(settings)
+        assert settings.max_threads == overrides.get("max_threads", 1)
+        assert settings.presolve_enable == overrides.get(
+            "presolve_enable", True
+        )

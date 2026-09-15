@@ -36,6 +36,7 @@ from paper5.stability.hubbard_dimer import DimerParameters
 from paper5.stability.moment_hierarchy import THIRD_ORDER_HIERARCHY
 from paper5.stability.projected_apcm import (
     FixedDictionaryProjectedAPCM,
+    ProjectedAPCMStagePolicy,
     ProjectiveOuterEventGuard,
     ProjectiveOuterEventGuardSettings,
     integrate_projected_apcm_ssprk3,
@@ -367,3 +368,292 @@ def test_driver_selector_audit_writes_a_named_option_summary(tmp_path) -> None: 
         == "strictly_convex_outer_target_stage"
     )
     assert (output / "selector_audit.npz").exists()
+
+
+def test_stage_policy_default_reproduces_the_recorded_rollout_bitwise() -> None:
+    """The default stage policy is the recorded path, array for array."""
+
+    model, initialization = _entrance_model()
+    recorded = integrate_projected_apcm_ssprk3(
+        model,
+        initialization.state,
+        initial_completion=initialization.completion,
+        final_time=0.005,
+        time_step=0.0025,
+    )
+    explicit = FixedDictionaryProjectedAPCM(
+        _PARAMETERS, stage_policy=ProjectedAPCMStagePolicy()
+    )
+    spelled = integrate_projected_apcm_ssprk3(
+        explicit,
+        initialization.state,
+        initial_completion=initialization.completion,
+        final_time=0.005,
+        time_step=0.0025,
+    )
+    np.testing.assert_array_equal(recorded.states, spelled.states)
+    np.testing.assert_array_equal(
+        recorded.extension_minimum_eigenvalues,
+        spelled.extension_minimum_eigenvalues,
+    )
+    np.testing.assert_array_equal(
+        recorded.stage_retractions, spelled.stage_retractions
+    )
+    assert explicit.stage_policy_counters == {
+        "carried_completion_accepted": 0,
+        "carried_completion_rejected": 0,
+        "retraction_suppressed": 0,
+        "quiet_containment_skipped": 0,
+    }
+
+
+def test_disabled_stage_retraction_keeps_the_trial_stage() -> None:
+    model = FixedDictionaryProjectedAPCM(
+        _PARAMETERS,
+        stage_policy=ProjectedAPCMStagePolicy(stage_retraction=False),
+    )
+    initialization = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6
+    )
+    evaluation = model.evaluate(
+        0.0, initialization.state, completion=initialization.completion
+    )
+    trial = initialization.state + 0.0025 * evaluation.derivative
+    retraction = model.contain_stage(
+        trial,
+        warm_frontier=evaluation.targets.completion.frontier_moments,
+        retained_metric=evaluation.projection.retained_metric,
+        auxiliary_metric=evaluation.projection.auxiliary_metric,
+    )
+    assert not retraction.applied
+    assert retraction.status == "stage_retraction_disabled"
+    assert model.stage_policy_counters["retraction_suppressed"] == 1
+    np.testing.assert_array_equal(
+        np.concatenate(
+            (retraction.raw_coordinates, retraction.hidden_values)
+        ),
+        trial,
+    )
+
+
+def test_disabled_quiet_containment_skips_the_feasibility_test() -> None:
+    model = FixedDictionaryProjectedAPCM(
+        _PARAMETERS,
+        stage_policy=ProjectedAPCMStagePolicy(quiet_containment=False),
+    )
+    initialization = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6
+    )
+    evaluation = model.evaluate(
+        0.0, initialization.state, completion=initialization.completion
+    )
+    trial = initialization.state + 0.0025 * evaluation.derivative
+    quiet = model.contain_stage(
+        trial,
+        warm_frontier=evaluation.targets.completion.frontier_moments,
+        retained_metric=evaluation.projection.retained_metric,
+        auxiliary_metric=evaluation.projection.auxiliary_metric,
+    )
+    assert quiet.status == "quiet_containment_disabled"
+    assert model.stage_policy_counters["quiet_containment_skipped"] == 1
+    triggered = model.contain_stage(
+        trial,
+        warm_frontier=evaluation.targets.completion.frontier_moments,
+        retained_metric=evaluation.projection.retained_metric,
+        auxiliary_metric=evaluation.projection.auxiliary_metric,
+        stage_triggered=True,
+    )
+    assert triggered.status == "already_feasible"
+    assert model.stage_policy_counters["quiet_containment_skipped"] == 1
+
+
+def test_carried_completion_reuses_the_previous_frontier_when_feasible() -> None:
+    model = FixedDictionaryProjectedAPCM(
+        _PARAMETERS,
+        stage_policy=ProjectedAPCMStagePolicy(carried_completion=True),
+    )
+    initialization = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6
+    )
+    evaluation = model.evaluate(
+        0.0, initialization.state, completion=initialization.completion
+    )
+    trial = initialization.state + 0.0025 * evaluation.derivative
+    carried = evaluation.targets.completion.frontier_moments
+    retraction = model.contain_stage(
+        trial,
+        warm_frontier=carried,
+        retained_metric=evaluation.projection.retained_metric,
+        auxiliary_metric=evaluation.projection.auxiliary_metric,
+    )
+    counters = model.stage_policy_counters
+    assert (
+        counters["carried_completion_accepted"]
+        + counters["carried_completion_rejected"]
+        == 1
+    )
+    if counters["carried_completion_accepted"]:
+        assert retraction.completion.message == "carried_completion"
+        assert retraction.completion.iterations == 0
+        for key, value in carried.items():
+            assert retraction.completion.frontier_moments[key] == value
+    else:
+        assert retraction.completion.message != "carried_completion"
+
+
+def test_stage_policy_rejects_an_unknown_completion_start() -> None:
+    with pytest.raises(ValueError):
+        ProjectedAPCMStagePolicy(completion_start="hot")
+
+
+def test_cold_completion_reaches_the_same_lift_as_the_warm_start() -> None:
+    """The declared completion is determined by its lower moments.
+
+    The recorded path warm starts every stage completion from the previous
+    stage's frontier moments.  Solving the same lower moments from the origin
+    must reach the same selected frontier to the declared conic tolerance, or
+    the warm start is doing scientific work rather than saving iterations.
+    """
+
+    warm_model = FixedDictionaryProjectedAPCM(_PARAMETERS)
+    cold_model = FixedDictionaryProjectedAPCM(
+        _PARAMETERS,
+        stage_policy=ProjectedAPCMStagePolicy(completion_start="cold"),
+    )
+    initialization = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6
+    )
+    evaluation = warm_model.evaluate(
+        0.0, initialization.state, completion=initialization.completion
+    )
+    trial = initialization.state + 0.0025 * evaluation.derivative
+    arguments = dict(
+        warm_frontier=evaluation.targets.completion.frontier_moments,
+        retained_metric=evaluation.projection.retained_metric,
+        auxiliary_metric=evaluation.projection.auxiliary_metric,
+    )
+    warm = warm_model.contain_stage(trial, **arguments)
+    cold = cold_model.contain_stage(trial, **arguments)
+    keys = tuple(warm_model.extension.frontier_keys)
+    warm_values = np.asarray(
+        [warm.completion.frontier_moments[key] for key in keys], dtype=float
+    )
+    cold_values = np.asarray(
+        [cold.completion.frontier_moments[key] for key in keys], dtype=float
+    )
+    np.testing.assert_allclose(cold_values, warm_values, rtol=0.0, atol=1e-7)
+
+
+def test_frontier_metric_default_reproduces_the_identity_term_bitwise() -> None:
+    extension, lower, readout = _small_selector_fixture()
+    declared = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        frontier_weight=1.0,
+    )
+    spelled = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        frontier_weight=1.0,
+        frontier_metric="identity",
+        warm_refinement_passes=0,
+        exploratory_acceptance_tolerance=None,
+    )
+    np.testing.assert_array_equal(declared.target_image, spelled.target_image)
+    np.testing.assert_array_equal(
+        declared.current_standardized_values,
+        spelled.current_standardized_values,
+    )
+    assert (
+        declared.outer_target_stage.objective
+        == spelled.outer_target_stage.objective
+    )
+
+
+def test_readout_diagonal_frontier_metric_stays_on_the_outer_cone() -> None:
+    extension, lower, readout = _small_selector_fixture()
+    scaled = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        frontier_weight=1.0,
+        frontier_metric="readout_diagonal",
+    )
+    assert scaled.witness_source in {
+        "strictly_convex_outer_target_stage",
+        "none",
+    }
+    if scaled.success:
+        assert scaled.current_minimum_scaled_eigenvalue >= -1e-7
+
+
+def test_warm_refinement_pass_reports_the_accumulated_point() -> None:
+    extension, lower, readout = _small_selector_fixture()
+    single = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        frontier_weight=1.0,
+    )
+    refined = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        frontier_weight=1.0,
+        warm_refinement_passes=1,
+    )
+    assert "+warm" in refined.outer_target_stage.status
+    assert np.isfinite(refined.outer_target_stage.relative_duality_gap)
+    assert isinstance(refined.outer_target_stage.dual_residual, float)
+    assert isinstance(refined.outer_target_stage.primal_residual, float)
+    assert np.isfinite(refined.outer_target_stage.dual_residual)
+    np.testing.assert_allclose(
+        refined.outer_target_stage.standardized_values,
+        single.outer_target_stage.standardized_values,
+        rtol=0.0,
+        atol=1e-6,
+    )
+
+
+def test_exploratory_acceptance_tolerance_only_widens_acceptance() -> None:
+    from paper5.stability.apcm_projective_guard import (
+        _IndependentKKTDiagnostics,
+        _guard_acceptance,
+    )
+
+    diagnostics = _IndependentKKTDiagnostics(
+        feasibility=1e-10,
+        stationarity=1e-10,
+        complementarity=1e-10,
+        relative_gap=1.119e-6,
+    )
+    default = _guard_acceptance(
+        "AlmostSolved", strict_success=False, diagnostics=diagnostics
+    )
+    assert default == (False, False, False, "rejected")
+    widened = _guard_acceptance(
+        "AlmostSolved",
+        strict_success=False,
+        diagnostics=diagnostics,
+        exploratory_acceptance_tolerance=2e-6,
+    )
+    assert widened == (True, False, True, "provisional_independent_kkt")
+    with pytest.raises(ValueError):
+        _guard_acceptance(
+            "AlmostSolved",
+            strict_success=False,
+            diagnostics=diagnostics,
+            exploratory_acceptance_tolerance=0.0,
+        )

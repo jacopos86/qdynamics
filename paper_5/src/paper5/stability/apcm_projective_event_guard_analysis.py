@@ -66,6 +66,8 @@ from .matrix_reference import (
 from .moment_hierarchy import THIRD_ORDER_HIERARCHY
 from .projected_apcm import (
     FixedDictionaryProjectedAPCM,
+    ProjectedAPCMSettings,
+    ProjectedAPCMStagePolicy,
     ProjectiveOuterEventGuard,
     ProjectiveOuterEventGuardSettings,
     integrate_projected_apcm_ssprk3,
@@ -160,6 +162,92 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--maximum-subdivisions", type=int, default=8)
+    parser.add_argument(
+        "--frontier-metric",
+        choices=("identity", "readout_diagonal"),
+        default="identity",
+        help=(
+            "Named scaling of the frontier term in the strictly convex "
+            "selector; 'identity' is the recorded w I."
+        ),
+    )
+    parser.add_argument(
+        "--warm-refinement-passes",
+        type=int,
+        default=0,
+        help=(
+            "Further Clarabel passes on the displacement variable, warm "
+            "started from the accumulated solution; 0 is the recorded path."
+        ),
+    )
+    parser.add_argument(
+        "--exploratory-acceptance-tolerance",
+        type=float,
+        default=None,
+        help=(
+            "Named exploratory acceptance threshold for the outer target "
+            "solve only; the default None keeps the recorded 1e-6."
+        ),
+    )
+    parser.add_argument(
+        "--disable-stage-retraction",
+        action="store_true",
+        help=(
+            "Named ablation: keep the declared completion and the envelope "
+            "validation but never apply the conic stage retraction."
+        ),
+    )
+    parser.add_argument(
+        "--disable-quiet-containment",
+        action="store_true",
+        help=(
+            "Named ablation: skip containment entirely on a stage the outer "
+            "guard did not trigger."
+        ),
+    )
+    parser.add_argument(
+        "--carried-completion",
+        action="store_true",
+        help=(
+            "Named hybrid: carry the previous stage's completion "
+            "coordinates as the lift whenever they stay feasible at the "
+            "trial point, instead of re-solving the declared completion."
+        ),
+    )
+    parser.add_argument(
+        "--carried-completion-margin-multiple",
+        type=float,
+        default=10.0,
+        help=(
+            "Interior the carried lift must keep before it is accepted, in "
+            "units of the declared conic tolerance; 0.0 accepts any "
+            "positive semidefinite carried lift inside the envelope."
+        ),
+    )
+    parser.add_argument(
+        "--cold-completion",
+        action="store_true",
+        help=(
+            "Named control: solve the declared completion from the origin "
+            "instead of from the carried frontier moments."
+        ),
+    )
+    parser.add_argument(
+        "--tolerate-stage-failure",
+        action="store_true",
+        help=(
+            "Named option for an ablation expected to fail: stop at the last "
+            "accepted step and report how far it reached instead of raising."
+        ),
+    )
+    parser.add_argument(
+        "--disable-kpd-correction",
+        action="store_true",
+        help=(
+            "Named ablation: switch off the exact K/P/D entrance correction "
+            "of the electron-phonon correlation velocity."
+        ),
+    )
     return parser
 
 
@@ -228,11 +316,17 @@ def _run_outer_selector(
     *,
     accept_first_provisional: bool,
     frontier_weight: float,
+    frontier_metric: str = "identity",
+    warm_refinement_passes: int = 0,
+    exploratory_acceptance_tolerance: float | None = None,
     progress: Any,
 ) -> tuple[dict[str, Any], np.ndarray | None, np.ndarray | None]:
     label = (
         f"accept_first_provisional={accept_first_provisional}"
         f" frontier_weight={frontier_weight}"
+        f" frontier_metric={frontier_metric}"
+        f" warm_refinement_passes={warm_refinement_passes}"
+        f" exploratory_acceptance={exploratory_acceptance_tolerance}"
     )
     progress(f"outer target solve start {label}")
     started = perf_counter()
@@ -246,6 +340,11 @@ def _run_outer_selector(
             canonicalize=False,
             accept_first_provisional=accept_first_provisional,
             frontier_weight=frontier_weight,
+            frontier_metric=frontier_metric,
+            warm_refinement_passes=warm_refinement_passes,
+            exploratory_acceptance_tolerance=(
+                exploratory_acceptance_tolerance
+            ),
         )
     except RuntimeError as error:  # declared restriction disagreement
         elapsed = perf_counter() - started
@@ -254,6 +353,11 @@ def _run_outer_selector(
             {
                 "accept_first_provisional": accept_first_provisional,
                 "frontier_weight": frontier_weight,
+                "frontier_metric": frontier_metric,
+                "warm_refinement_passes": warm_refinement_passes,
+                "exploratory_acceptance_tolerance": (
+                    exploratory_acceptance_tolerance
+                ),
                 "wall_seconds": elapsed,
                 "failure": str(error),
             },
@@ -279,6 +383,11 @@ def _run_outer_selector(
     record = {
         "accept_first_provisional": accept_first_provisional,
         "frontier_weight": frontier_weight,
+        "frontier_metric": frontier_metric,
+        "warm_refinement_passes": warm_refinement_passes,
+        "exploratory_acceptance_tolerance": (
+            exploratory_acceptance_tolerance
+        ),
         "wall_seconds": elapsed,
         "failure": failure,
         "success": bool(selection.success),
@@ -403,6 +512,11 @@ def main() -> int:
                 readout,
                 accept_first_provisional=accept,
                 frontier_weight=0.0,
+                frontier_metric=args.frontier_metric,
+                warm_refinement_passes=args.warm_refinement_passes,
+                exploratory_acceptance_tolerance=(
+                    args.exploratory_acceptance_tolerance
+                ),
                 progress=progress,
             )
             records.append(record)
@@ -457,6 +571,11 @@ def main() -> int:
                 readout,
                 accept_first_provisional=args.accept_first_provisional,
                 frontier_weight=float(weight),
+                frontier_metric=args.frontier_metric,
+                warm_refinement_passes=args.warm_refinement_passes,
+                exploratory_acceptance_tolerance=(
+                    args.exploratory_acceptance_tolerance
+                ),
                 progress=progress,
             )
             records.append(record)
@@ -525,6 +644,25 @@ def main() -> int:
         event_coupling_threshold=args.event_coupling_threshold,
         accept_first_provisional=args.accept_first_provisional,
         frontier_weight=args.rollout_frontier_weight,
+        frontier_metric=args.frontier_metric,
+        warm_refinement_passes=args.warm_refinement_passes,
+        exploratory_acceptance_tolerance=(
+            args.exploratory_acceptance_tolerance
+        ),
+    )
+    stage_policy = ProjectedAPCMStagePolicy(
+        stage_retraction=not args.disable_stage_retraction,
+        quiet_containment=not args.disable_quiet_containment,
+        completion_start="cold" if args.cold_completion else "warm",
+        carried_completion=bool(args.carried_completion),
+        carried_completion_margin_multiple=(
+            args.carried_completion_margin_multiple
+        ),
+    )
+    model_settings = ProjectedAPCMSettings(
+        include_k=not args.disable_kpd_correction,
+        include_pauli=not args.disable_kpd_correction,
+        include_opposite_spin=not args.disable_kpd_correction,
     )
     started = perf_counter()
     extension = SymmetryReducedPositiveExtension(active_keys=active_keys)
@@ -533,7 +671,12 @@ def main() -> int:
         phonon_cutoff=args.phonon_cutoff,
         extension=extension,
     )
-    model = FixedDictionaryProjectedAPCM(parameters, extension=extension)
+    model = FixedDictionaryProjectedAPCM(
+        parameters,
+        extension=extension,
+        settings=model_settings,
+        stage_policy=stage_policy,
+    )
     guard = ProjectiveOuterEventGuard(model, settings=guard_settings)
     progress(
         f"prepared state_dim={len(model.state_names)} "
@@ -552,6 +695,7 @@ def main() -> int:
         progress=progress,
         outer_guard=guard,
         deadline=deadline,
+        tolerate_stage_failure=bool(args.tolerate_stage_failure),
     )
     autonomous_elapsed = perf_counter() - started
     approximate_coordinates = _archive_coordinates(
@@ -624,6 +768,9 @@ def main() -> int:
         "fixed_dictionary_projected_apcm_event_triggered_outer_guard"
     )
     summary["guard_settings"] = asdict(guard_settings)
+    summary["stage_policy"] = asdict(stage_policy)
+    summary["stage_policy_counters"] = dict(model.stage_policy_counters)
+    summary["model_settings"] = asdict(model_settings)
     summary["integration"] = {
         "method": (
             "SSPRK(3,3) with containment before every RHS call and the "

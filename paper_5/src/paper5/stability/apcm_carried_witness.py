@@ -51,6 +51,7 @@ from .apcm_projective_guard import (
     unified_glued_moment_matrix,
     unified_to_relative_restriction,
 )
+from .cwrmf_solver_instances import ConicInstanceRecorder
 from .exact_reference import exact_holstein_joint_moment_initial_state
 from .hubbard_dimer import DimerParameters, FloatArray
 from .matrix_reference import MatrixDimerState, matrix_dimer_rhs
@@ -109,6 +110,35 @@ class _TierClock:
         }
 
 
+#: Named Clarabel setting sets for the four guarded conic solves.  The
+#: default applies no override at all, so the guarded path is exactly the
+#: pinned single-threaded contract the anchors were measured under.  Every
+#: other entry is a declared experiment whose effect on the recorded
+#: instances is measured by ``cwrmf_solver_replay``: the setting set is
+#: applied on top of the tier's own settings, immediately before the solve.
+DEFAULT_SOLVER_SETTING_PROFILE = "pinned_single_thread"
+
+CWRMF_SOLVER_SETTING_PROFILES: dict[str, dict[str, object]] = {
+    "pinned_single_thread": {},
+    # Best candidate that passes the strict full-Gram acceptance test on all
+    # 36 recorded instances of the t=0 to 0.01, h=0.0025 strict rollout: the
+    # returned solution is bitwise identical to the pinned one on all 36.
+    # It buys no time -- 135.711 s against a 135.669 s and 135.746 s
+    # bracketing pair in the same bench pass -- and is declared because it is
+    # the strict-passing candidate of record, not because it is faster.
+    "presolve_off": {"presolve_enable": False},
+    # Best candidate that passes the balanced full-Gram acceptance test on
+    # all 36 (29 of 29 accepts, 36/36 verdict agreement): 82.623 s against
+    # 135.669 s on the same instances.  Multithreaded factorization is not
+    # bitwise: 6 of 36 solutions agree exactly with the pinned ones and the
+    # worst completion-velocity difference is 2.255e-04.  The strict
+    # acceptance test fails on one of the seven instances the pinned run
+    # accepts, which is why this is the balanced entry and not the strict
+    # one.
+    "max_threads_8": {"max_threads": 8},
+}
+
+
 @dataclass(frozen=True)
 class CWRMFSettings:
     """Frozen settings for the short carried-witness pilot."""
@@ -137,8 +167,14 @@ class CWRMFSettings:
     schur_maximum_iterations: int = 600
     maximum_cutting_plane_iterations: int = 256
     batched_mode_gradients: bool = False
+    solver_setting_profile: str = DEFAULT_SOLVER_SETTING_PROFILE
 
     def __post_init__(self) -> None:
+        if self.solver_setting_profile not in CWRMF_SOLVER_SETTING_PROFILES:
+            raise ValueError(
+                "unknown CWRMF solver setting profile: "
+                f"{self.solver_setting_profile}"
+            )
         if self.guard_policy not in {"always", "event_triggered"}:
             raise ValueError(
                 f"unknown CWRMF guard policy: {self.guard_policy}"
@@ -857,6 +893,7 @@ class CarriedWitnessModel:
         self._bundle_rank_hint = 0
         self._tier_clock: _TierClock | None = None
         self._step_scaled_coefficients: tuple[float, ComplexArray] | None = None
+        self._instance_recorder: ConicInstanceRecorder | None = None
 
     def enable_tier_timing(self) -> None:
         """Begin accumulating the named per-tier wall times (off by default)."""
@@ -870,6 +907,43 @@ class CarriedWitnessModel:
         if self._tier_clock is None:
             return None
         return self._tier_clock.report()
+
+    def enable_instance_recording(
+        self, recorder: ConicInstanceRecorder
+    ) -> None:
+        """Save every guarded conic problem and its solution (off by default).
+
+        The recorder stores the exact operands of each Clarabel call -- the
+        objective matrix and vector, the cone matrix and right-hand side, the
+        cone specification, the solver settings, the tier name and the radial
+        atom index -- together with the returned solution.  An uninstrumented
+        rollout pays one attribute read per solver-tier iteration and writes
+        nothing.
+        """
+
+        self._instance_recorder = recorder
+
+    @property
+    def instance_recorder(self) -> ConicInstanceRecorder | None:
+        """Return the installed conic instance recorder, or ``None``."""
+
+        return self._instance_recorder
+
+    def _apply_solver_setting_profile(
+        self, solver_settings: clarabel.DefaultSettings
+    ) -> None:
+        """Overlay the named Clarabel setting set, if one is declared.
+
+        At the default ``pinned_single_thread`` nothing is touched, so the
+        guarded path is bit for bit the one the parity anchors were measured
+        under.
+        """
+
+        name = self.settings.solver_setting_profile
+        if name == DEFAULT_SOLVER_SETTING_PROFILE:
+            return
+        for field_name, value in CWRMF_SOLVER_SETTING_PROFILES[name].items():
+            setattr(solver_settings, field_name, value)
 
     def _step_scaled_completion_coefficients(
         self, step_size: float
@@ -1504,17 +1578,45 @@ class CarriedWitnessModel:
             solver_settings.iterative_refinement_max_iter = 10
             solver_settings.iterative_refinement_abstol = 1e-12
             solver_settings.iterative_refinement_reltol = 1e-12
+            objective_matrix = sparse.eye(free.size, format="csc")
+            objective_vector = np.zeros(free.size)
+            assembled_cone_matrix = sparse.vstack(cone_blocks, format="csc")
+            assembled_cone_rhs = np.concatenate(cone_rhs)
+            self._apply_solver_setting_profile(solver_settings)
             solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.eye(free.size, format="csc"),
-                np.zeros(free.size),
-                sparse.vstack(cone_blocks, format="csc"),
-                np.concatenate(cone_rhs),
+                objective_matrix,
+                objective_vector,
+                assembled_cone_matrix,
+                assembled_cone_rhs,
                 cones,
                 solver_settings,
             ).solve()
             if clock is not None:
                 clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="critical_schur",
+                    iteration=sqp_iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=assembled_cone_matrix,
+                    cone_rhs=assembled_cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=desired,
+                    correction_indices=free,
+                    gram_predictor=shifted_predictor,
+                    desired_velocity=desired,
+                    completion_radius_squared=(
+                        ceiling**2 - retained_norm**2
+                    ),
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = f"SQP{1 + sqp_iteration}:{solution.status}"
             if solution.x is None or str(solution.status) not in {
                 "Solved",
@@ -2268,10 +2370,13 @@ class CarriedWitnessModel:
             solver_settings.iterative_refinement_max_iter = 10
             solver_settings.iterative_refinement_abstol = 1e-13
             solver_settings.iterative_refinement_reltol = 1e-13
+            objective_matrix = sparse.diags(weights, format="csc")
+            objective_vector = regularization * desired
+            self._apply_solver_setting_profile(solver_settings)
             solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.diags(weights, format="csc"),
-                regularization * desired,
+                objective_matrix,
+                objective_vector,
                 cone_matrix,
                 cone_rhs,
                 cones,
@@ -2279,6 +2384,29 @@ class CarriedWitnessModel:
             ).solve()
             if clock is not None:
                 clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="bundle_cone",
+                    iteration=iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=cone_matrix,
+                    cone_rhs=cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=desired,
+                    correction_indices=np.arange(
+                        geometry.completion_count, dtype=np.int64
+                    ),
+                    gram_predictor=shifted_predictor,
+                    desired_velocity=desired,
+                    completion_radius_squared=completion_radius_squared,
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = (
                 f"bundle_cone:{solution.status}:iteration={iteration + 1}:"
                 f"rank={basis.shape[1]}"
@@ -2558,10 +2686,13 @@ class CarriedWitnessModel:
             solver_settings.tol_feas = 1e-12
             polish_weights = np.full(geometry.completion_count, 1e-6)
             polish_weights[readable] = 1.0
+            objective_matrix = sparse.diags(polish_weights, format="csc")
+            objective_vector = np.zeros(geometry.completion_count)
+            self._apply_solver_setting_profile(solver_settings)
             solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.diags(polish_weights, format="csc"),
-                np.zeros(geometry.completion_count),
+                objective_matrix,
+                objective_vector,
                 cone_matrix,
                 cone_rhs,
                 cones,
@@ -2569,6 +2700,36 @@ class CarriedWitnessModel:
             ).solve()
             if clock is not None:
                 clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="terminal_polish",
+                    iteration=iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=cone_matrix,
+                    cone_rhs=cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=candidate,
+                    correction_indices=np.arange(
+                        geometry.completion_count, dtype=np.int64
+                    ),
+                    gram_predictor=(
+                        geometry.scaled_unified_matrix(
+                            endpoint_retained,
+                            completion + step_size * desired,
+                        )
+                        + self.settings.psd_inflation
+                        * np.eye(62, dtype=complex)
+                    ),
+                    desired_velocity=desired,
+                    completion_radius_squared=completion_radius_squared,
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = (
                 f"terminal_polish:{solution.status}:iteration={iteration + 1}"
             )
@@ -2678,10 +2839,13 @@ class CarriedWitnessModel:
         solver_settings.iterative_refinement_max_iter = 10
         solver_settings.iterative_refinement_abstol = 1e-12
         solver_settings.iterative_refinement_reltol = 1e-12
+        objective_matrix = sparse.diags(weights, format="csc")
+        objective_vector = regularization * desired
+        self._apply_solver_setting_profile(solver_settings)
         solve_started = perf_counter() if clock is not None else 0.0
         solution = clarabel.DefaultSolver(
-            sparse.diags(weights, format="csc"),
-            regularization * desired,
+            objective_matrix,
+            objective_vector,
             cone_matrix,
             cone_rhs,
             cones,
@@ -2689,6 +2853,35 @@ class CarriedWitnessModel:
         ).solve()
         if clock is not None:
             clock.add("clarabel_solve", solve_started)
+        if self._instance_recorder is not None:
+            self._instance_recorder.record(
+                tier="full_cone",
+                iteration=1,
+                step_size=step_size,
+                objective_matrix=objective_matrix,
+                objective_vector=objective_vector,
+                cone_matrix=cone_matrix,
+                cone_rhs=cone_rhs,
+                cones=cones,
+                solver_settings=solver_settings,
+                base_velocity=desired,
+                correction_indices=np.arange(
+                    geometry.completion_count, dtype=np.int64
+                ),
+                gram_predictor=(
+                    geometry.scaled_unified_matrix(
+                        endpoint_retained,
+                        completion + step_size * desired,
+                    )
+                    + self.settings.psd_inflation * np.eye(62, dtype=complex)
+                ),
+                desired_velocity=desired,
+                completion_radius_squared=completion_radius_squared,
+                retained_scaled_norm=retained_norm,
+                velocity_ceiling=ceiling,
+                solution=solution,
+                clarabel_solve_time=solution.solve_time,
+            )
         status = f"full_cone:{solution.status}:iterations={solution.iterations}"
         if solution.x is None:
             return False, desired.copy(), status, np.inf, -np.inf, 62
@@ -2988,6 +3181,8 @@ class CarriedWitnessModel:
         started = perf_counter()
         geometry = self.geometry
         clock = self._tier_clock
+        if self._instance_recorder is not None:
+            self._instance_recorder.begin_atom(time)
         tier_started = perf_counter() if clock is not None else 0.0
         retained, completion = geometry.unpack_state(state)
         retained_velocity = self.retained_velocity(time, retained, completion)

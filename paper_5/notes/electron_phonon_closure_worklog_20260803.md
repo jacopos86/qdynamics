@@ -4124,3 +4124,162 @@ trajectory and the failing stage's lower moments on every failure path, and
 the post-pulse degeneracy of the proximal log-det completion needs its own
 diagnosis (the fixed dictionary's positive extension approaches a face of
 the cone once the drive is off).
+
+## 2026-09-15: overnight loop, round 2 (four implementers, each independently reviewed)
+
+Full reports: `agent_guidance/paper-v/overnight/{cone-solve-instances,projective-gap,boson-barrier-t100,matrix-reference-speedup}-20260915.md`
+and the matching `review-*` files.  Three reviews passed; the cone-solve
+review failed on one material reporting error (a balanced-acceptance count
+produced by a degenerate gate) and was repaired and re-measured.  Defaults
+unchanged throughout.
+
+### Carried-witness conic solve: 36 recorded instances, no faster strict-passing solver, and the untried lever
+
+A named, off-by-default instance recorder (`--record-conic-instances`) saves
+every Clarabel problem the guard solves (P, q, A, b, cone specification,
+settings, tier, atom, the returned solution, and the operands to rebuild the
+62-row Gram of any candidate).  The strict `t=0` to `0.01` rollout with
+recording on reproduces the round-1 anchor bitwise and yields 36 instances:
+33 adaptive-bundle-tier iterations and 3 critical-Schur SQP iterations; the
+positive-semidefinite cone side dimension grows from 12 to 80 (twice the
+spectral bundle rank) and Clarabel's own `solve_time` from `0.006 s` to
+`14.462 s` at 14 to 28 interior-point iterations per call, so the cost is the
+per-iteration factorization of a growing block.  26 of the 33 bundle calls
+are enlargement iterations whose solution is discarded, and the strict
+acceptance test passes on exactly 7 of the 36 recorded solutions, one per
+bundle atom; `_bundle_rank_hint` starts at 0, so the first atom spent
+`11.24 s` walking the side dimension from 12 to 52 before the atom that used
+it started at 52.  Artifact:
+`output/local_runs/paper_v_cwrmf_record_strict_t001_h0025_20260915_v1/`.
+
+Offline replay over the 36 instances (`cwrmf_solver_replay_bench`; recorded
+baseline `148.407 s`, machine spread `0.077 s` on a `135.7 s` repeat):
+
+| candidate | wall over 36 instances | strict acceptance / verdict agreement | disposition |
+|---|---:|---|---|
+| Clarabel tolerances loosened one / two decades | `139.4 s` / `133.9 s` | 35/36, 33/36 agreement | dropped, inside the spread and loses agreement |
+| `direct_solve_method='qdldl'` | `760.6 s` | --- | dropped (auto already picks faer) |
+| `equilibrate_enable=False` / `static_regularization_enable=False` | `107.9 s` / `103.7 s` | move a returned completion velocity by `1.561` / `1.005` absolute; Gram minimum `-4.08e-3` / `-2.58e-3` | dropped |
+| `chordal_decomposition_enable=False` | neutral, 36/36 bitwise | --- | dropped (one dense PSD block) |
+| warm-started SCS at `1e-9` | `768.4 s`; `720.5 s` with a balanced-gated Clarabel polish firing on 19 of 36 | strict 6/36; substituted-inflation balanced 15/36 | dropped |
+| reduced bundle (drop directions above `1e-1` ... `1e-6` of the largest base eigenvalue) | `2.4x` to `46.6x` faster | strict 0/36 at every threshold; maximum cone violation `6.1e-3` to `1.5e-2` | dropped |
+| `presolve_enable=False` | `135.7 s`, 36/36 bitwise | 7/7 | kept as named profile `presolve_off`; no speedup |
+| `max_threads=8` | `82.6 s` (`1.64x`) | not bitwise (6 of 36 exact; worst completion-velocity difference `2.255e-4`); balanced 29/29; fails strict on 1 of 7 | kept as named profile `max_threads_8`, off by default |
+
+Rollout reruns of the strict `t=0` to `0.01` anchor: `presolve_off`
+`135.880 s`, bitwise equal to the anchor; `max_threads_8` `92.418 s` against
+`139.883 s` (`1.51x`), all-coordinate scalar RMS `5.827261740618476e-5`
+against `5.827261740618364e-5`, the 31 reported archive coordinates agreeing
+to `2.1e-15` and the 384 carried coordinates differing by at most `3.8e-6`.
+Reading: under the strict acceptance test no candidate solves one instance
+faster; the strict guard gets faster only by solving fewer instances.  The
+enlargement iterations are the untried lever (round 3).  The balanced
+acceptance test on strict-profile operands accepts nothing without
+substituting the balanced `psd_inflation` (`1e-8` for `1e-11`); every
+balanced number above uses that substitution, stated.
+
+### Projective route: the gap is the conic stage retraction, and carrying the completion closes most of it
+
+Attribution over `t=0` to `0.05` at `h=0.0025` (recorded path rerun:
+`7.9318e-5`, 7 stage retractions, `54.0 s`; blockwise rho/B/N/A/C
+`5.02e-7` / `1.60e-6` / `2.17e-4` / `9.10e-6` / `2.02e-5`): the N-block error
+against the exact reference is `2.250e-8` at `t=0.0175` with no retraction
+applied, steps to `2.282e-4` at `t=0.02` where one is applied, is identical
+to every printed digit on every later step that applies none, and steps up
+on each that does; halving the step raises the retraction count from 7 to 46
+and the N block from `2.17e-4` to `4.39e-4` (all-coordinate `1.5805e-4`), the
+opposite of a truncation error.  With the retraction disabled, or
+containment disabled on non-triggered stages (named options), the error is
+`1.9408e-6` over `t=0` to `0.015` (N `4.26e-9`) and the rollout stops after 6
+of 20 steps with `moment_extension_failure`.  With the exact K/P/D entrance
+correction off the error is `2.1281e-3` (C `3.17e-3`).  Prefixes of 5, 10
+and 12 entrance keys are inadmissible at this preparation; 13 and 14 change
+the score only through how often the retraction fires.
+
+Carrying the previous stage's completion coordinates as the lift when they
+stay positive semidefinite inside the frozen box envelope, with the proximal
+log-det completion as the counted fallback (`--carried-completion`, off by
+default): all-coordinate scalar RMS `3.5137e-5` at `h=0.0025` (N `8.98e-5`,
+1 retraction, `42.0 s`, 36 of 66 stage lifts carried), `1.2875e-5` at
+`h=0.00125` (N `1.83e-5`, 1 retraction, `14.2 s`, 113 of 120 carried),
+`1.4635e-5` at `h=0.000625`; against the carried-witness strict `3.2359e-6`
+the factor falls from 24.5 to 3.98.  A control that solves the declared
+completion from the origin instead of warm-starting it gives `5.1100e-5`
+with 4 retractions.  The carried-lift rollout toward `t=0.5` at `h=0.00125`
+stops at `t=0.11375` with "extended operator moment matrix numerical face is
+unstable under null-tolerance refinement" (`5.8243e-5` over the horizon
+reached, 293 of 300 lifts carried).  Reading: carrying the lift removes the
+retraction but not the eventual degeneracy of the per-stage completion
+problem; a long-horizon projective rollout needs the completion coordinates
+propagated by their own velocity and repaired conically, which is the
+carried-witness construction.  Artifacts under
+`output/local_runs/paper_v_apcm_projective_{ablation_*,hybrid_*,control_*}_20260915_v1/`.
+
+Selector: with a named exploratory acceptance tolerance of `2e-6` (default
+`1e-6` unchanged) the strictly convex outer target at the cutoff-16
+preparation, `w=1e-5`, is accepted as `provisional_independent_kkt` (gap
+`1.1194e-6`, objective `0.01127104613`, reconstructed outer Gram minimum
+scaled eigenvalue `-4.2e-14`); at a forced-trigger stage's own lower moments
+all three SSPRK stages return `explicit_target:NumericalError` (`46.4`,
+`43.1`, `58.8 s`; peak resident `3.90 GB`), which no acceptance tolerance
+admits.  A Jacobi-scaled frontier term makes it worse (gap `6.6e-4`,
+`NumericalError`); a second Clarabel pass warm-started from the first gives
+gap `3.48e-6` at twice the wall time.  Projective tests 44 (34 before).
+
+### Ten-coordinate energy-neutral matrix barrier through t=79.95: containment, not accuracy
+
+Plan step 9, new driver
+`pipelines/open_dynamics/run_paper_v_energy_neutral_barrier_long_horizon.py`
+over `paper5.stability.cone_long_horizon` (a DOP853 stepping loop with a
+wall budget that reproduces `solve_ivp` byte for byte when unbudgeted).
+Strong coupling, cutoff-16 exact ground-state contractions, DOP853 rtol
+`1e-9` atol `1e-11` maximum step `0.05`, single pulse, scored against exact
+driven-dimer propagation at cutoff 16.  The corrected lane was stopped by the
+25-minute rule at `t=79.95` (`1,500 s`, 328,358 right-hand-side evaluations,
+`4.57 ms` each); both uncorrected lanes reached `t=100` in about `4.4 s`.
+Artifact: `output/local_runs/paper_v_boson_barrier_t100_20260915_v1/`.
+
+| quantity, `t=0` to `79.95` unless stated | energy-neutral barrier | uncorrected Eq. (112) archive EOM | archive EOM without the initial-residual subtraction |
+|---|---:|---:|---:|
+| complete 31-coordinate l2 time-RMS distance from exact | `1.016703` | `1.549827` | `2.050020` |
+| all-31 scaled RMS (adaptive-packet convention; the packet route's `t=0` to `98` line is `0.063649`) | `0.700816` | `0.713667` | `1.585195` |
+| site-0 occupation / electronic / phonon / electron--phonon / total internal energy RMS (packet line: `0.013600` / `0.023320` / `0.028350` / `0.033785` / `0.000579`) | `0.330411` / `0.230908` / `0.302944` / `0.422100` / `0.043971` | --- | --- |
+| minimum bosonic eigenvalue / minimum electronic density eigenvalue | `2.8931e-5` / `8.51e-3` | `-4.708e-1` / `2.30e-2` | `-2.481` / `-9.26e-2` |
+| polarization spectrum `10 <= t <= 79.8`: Hellinger / electronic-band weight (exact `0` / `0.0729`) | `0.2610` / `0.1186` | `0.2813` / `0.0381` | `0.5008` / `0.3973` |
+
+The working notes' pinned `t=0` to `20` table is reproduced in every printed
+column (barrier active on exactly 221 of 401 samples, 55.11 percent).  The
+step-9 question is answered: the record's electronic-band suppression
+(`0.0026` against exact `0.0569`) is a property of the 31-coordinate
+joint-Gram controller, not of the closure, since this ten-coordinate
+controller puts 1.63 times the exact weight in the band.  Definitional
+finding: the record's polarization "raw" lane is the archive EOM without
+the initial-residual subtraction (Hellinger `0.63807`, band weight
+`0.52250`, exact `0.05691`, reproducing the record's `0.6381` / `0.5225` /
+`0.0569`).  The joint-Gram lane over `10 <= t <= 100` remains out of reach
+on this machine (`16,700` evaluations for `t=0` to `0.2`).
+
+### matrix_reference.py: bitwise-neutral assembly, 35 percent off the joint-Gram barrier
+
+Pauli monomial trace tables built once at import replace
+`trace(M @ sigma_a)` and `trace(M @ sigma_a @ sigma_b)`; the correlation
+Pauli block contracts both correlation matrices in one expression; the
+electronic means are cached on the exact bytes of their operand (31 of 32
+recomputations per structured correction are repeats); every `np.block` is
+replaced by slice assignment into a preallocated array.  Proved an identity
+by `np.array_equal` (200,000 random draws per identity, now 2,000 in
+`test_matrix_reference_moment_assembly.py`) and by the three gates: the
+joint-Gram energy-neutral barrier over `t=0` to `0.05` (`0.92371 s` to
+`0.59877 s` integration wall time, states byte-identical), the ten-coordinate
+barrier over `t=0` to `2` (byte-identical, `2.893142825017192e-5`), and the
+no-guard carried-witness anchor (every array equal).  Profile of the
+joint-Gram route: `electron_phonon_moment_derivative` `0.714 s` of `1.559 s`
+to `0.145 s` of `0.975 s`; `ndarray.trace` calls 155,008 to 448.  Impact
+analysis on the main index returned HIGH for five of the eight edited symbols
+(`_validate_matrix_state` 155 impacted, `boson_moment_matrix` 70,
+`electron_phonon_moment_matrix` 62, `_correlation_pauli_block` 48,
+`_electron_fluctuation_moment_matrix` 44); the gates answer it.  Two facts
+for later readers: `_boson_moment_derivative_from_blocks` now returns
+complex128 for every input (every in-repository caller already passes
+complex), and `_PAULI_MEAN_CACHE` is module-global, bounded at 8, returning
+read-only arrays.

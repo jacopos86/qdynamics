@@ -100,6 +100,72 @@ class ProjectedAPCMSettings:
 
 
 @dataclass(frozen=True)
+class ProjectedAPCMStagePolicy:
+    """Named, default-off ablations of the fixed-dictionary stage policy.
+
+    Every field's default is the committed path, so the default instance
+    reproduces it bitwise.  The fields name the three stage operations the
+    accuracy attribution separates:
+
+    ``stage_retraction``
+        ``False`` keeps the declared proximal log-det completion at the trial
+        point and the frozen moment-envelope validation, but never applies
+        the conic retraction: the stage state is the trial state and the
+        retraction is recorded as not applied.
+    ``quiet_containment``
+        ``False`` removes containment from a stage the outer guard did not
+        trigger: neither the feasibility test, nor the envelope validation,
+        nor the retraction runs, and the stage state is the trial state.
+        The declared completion is still selected at the trial point,
+        because the next right-hand-side evaluation needs a lift there.  A
+        triggered stage is contained as declared.
+    ``completion_start``
+        ``"warm"`` is the committed path, in which the previous stage's
+        frontier moments start the completion solve; ``"cold"`` starts it
+        from the origin, which measures how much of the selected lift is
+        determined by the start rather than by the lower moments.
+    ``carried_completion``
+        ``True`` carries the previous stage's completion coordinates to the
+        trial point as the lift itself, without re-solving, whenever they
+        remain feasible there; otherwise the declared completion runs and
+        the fallback is counted.  This is the cheapest hybrid between the
+        fixed dictionary's per-stage completion and the carried-witness
+        flow's propagated completion coordinates.
+    ``carried_completion_margin_multiple``
+        How much interior the carried lift must keep before it is accepted,
+        in units of the declared conic tolerance: the scaled extension
+        minimum eigenvalue must be at or above ``multiple`` tolerances and
+        every standardized coordinate must stay ``10 * multiple`` tolerances
+        inside the frozen box envelope.  ``10.0`` is the declared margin;
+        ``0.0`` accepts any carried lift that is positive semidefinite and
+        inside the envelope.
+    """
+
+    stage_retraction: bool = True
+    quiet_containment: bool = True
+    completion_start: str = "warm"
+    carried_completion: bool = False
+    carried_completion_margin_multiple: float = 10.0
+
+    def __post_init__(self) -> None:
+        if self.completion_start not in {"warm", "cold"}:
+            raise ValueError("completion_start must be 'warm' or 'cold'")
+        if self.carried_completion_margin_multiple < 0.0:
+            raise ValueError(
+                "carried_completion_margin_multiple must be nonnegative"
+            )
+
+    @property
+    def is_default(self) -> bool:
+        return (
+            self.stage_retraction
+            and self.quiet_containment
+            and self.completion_start == "warm"
+            and not self.carried_completion
+        )
+
+
+@dataclass(frozen=True)
 class ProjectedAPCMInitialization:
     """Preparation-conditioned reduced state and selected positive lift."""
 
@@ -309,6 +375,7 @@ class FixedDictionaryProjectedAPCM:
         extension: SymmetryReducedPositiveExtension | None = None,
         geometry: SymmetryReducedAPCMGeometry | None = None,
         settings: ProjectedAPCMSettings | None = None,
+        stage_policy: ProjectedAPCMStagePolicy | None = None,
     ) -> None:
         self.parameters = parameters
         self.extension = (
@@ -329,6 +396,104 @@ class FixedDictionaryProjectedAPCM:
         self.state_names = projected_apcm_state_names(self.active_keys)
         self.settings = (
             ProjectedAPCMSettings() if settings is None else settings
+        )
+        self.stage_policy = (
+            ProjectedAPCMStagePolicy()
+            if stage_policy is None
+            else stage_policy
+        )
+        self.stage_policy_counters: dict[str, int] = {
+            "carried_completion_accepted": 0,
+            "carried_completion_rejected": 0,
+            "retraction_suppressed": 0,
+            "quiet_containment_skipped": 0,
+        }
+
+    def _carried_completion(
+        self,
+        lower: Mapping[MomentKey, float],
+        warm_frontier: Mapping[MomentKey, float],
+    ) -> APCMExtensionResult | None:
+        """Accept the carried frontier at these lower moments, or decline.
+
+        No conic solve is run.  The carried coordinates are accepted only if
+        the scaled extension matrix they build at these lower moments is
+        positive semidefinite to the declared conic tolerance and every
+        standardized coordinate stays inside the frozen box envelope.
+        """
+
+        extension = self.extension
+        tolerance = extension.settings.conic_tolerance
+        multiple = float(self.stage_policy.carried_completion_margin_multiple)
+        values = np.asarray(
+            [float(warm_frontier[key]) for key in extension.frontier_keys],
+            dtype=float,
+        )
+        standardized = values / extension.frontier_scales
+        if (
+            float(np.max(np.abs(standardized)))
+            > 1.0 - 10.0 * multiple * tolerance
+        ):
+            return None
+        frontier = MappingProxyType(
+            {
+                key: float(value)
+                for key, value in zip(
+                    extension.frontier_keys, values, strict=True
+                )
+            }
+        )
+        matrix = extension.matrix(lower, frontier)
+        scaled = extension.scaled_matrix(matrix)
+        scaled_minimum = float(np.linalg.eigvalsh(scaled)[0])
+        if scaled_minimum < multiple * tolerance:
+            return None
+        shifted = scaled + extension.settings.logdet_shift * np.eye(
+            scaled.shape[0], dtype=complex
+        )
+        sign, logdet = np.linalg.slogdet(shifted)
+        objective = (
+            0.5 * float(standardized @ standardized)
+            - extension.settings.logdet_weight
+            / extension.dimension
+            * float(logdet)
+            if sign > 0.0
+            else float("inf")
+        )
+        return APCMExtensionResult(
+            lower_moments=MappingProxyType(
+                {key: float(lower[key]) for key in extension.lower_keys}
+            ),
+            frontier_moments=frontier,
+            moment_matrix=matrix,
+            scaled_minimum_eigenvalue=scaled_minimum,
+            minimum_eigenvalue=float(np.linalg.eigvalsh(matrix)[0]),
+            objective=objective,
+            kkt_backward_error=float("nan"),
+            iterations=0,
+            success=True,
+            message="carried_completion",
+        )
+
+    def _select_stage_completion(
+        self,
+        lower: Mapping[MomentKey, float],
+        warm_frontier: Mapping[MomentKey, float],
+    ) -> APCMExtensionResult:
+        """Select the stage lift under the named stage policy."""
+
+        policy = self.stage_policy
+        if policy.carried_completion:
+            carried = self._carried_completion(lower, warm_frontier)
+            if carried is not None:
+                self.stage_policy_counters["carried_completion_accepted"] += 1
+                return carried
+            self.stage_policy_counters["carried_completion_rejected"] += 1
+        return self.extension.complete(
+            lower,
+            warm_frontier=(
+                None if policy.completion_start == "cold" else warm_frontier
+            ),
         )
 
     def select_completion(
@@ -537,13 +702,16 @@ class FixedDictionaryProjectedAPCM:
         retained_metric: FloatArray,
         auxiliary_metric: FloatArray,
         completion: APCMExtensionResult | None = None,
+        stage_triggered: bool = False,
     ) -> APCMStageRetraction:
         """Select a lift for a trial stage and retract only if infeasible.
 
         ``completion`` is a named option used by the event-triggered outer
         guard: it supplies an already-selected lift for exactly these lower
         moments instead of the declared proximal log-det completion.  Its
-        default ``None`` is the recorded path.
+        default ``None`` is the recorded path.  ``stage_triggered`` tells the
+        named ``quiet_containment`` ablation whether this stage fired; its
+        default ``False`` matters only when that ablation is enabled.
         """
 
         raw, hidden = unpack_projected_apcm_state(
@@ -552,9 +720,13 @@ class FixedDictionaryProjectedAPCM:
         )
         lower = state_lower_moments(raw, hidden, self.active_keys)
         if completion is None:
-            completion = self.extension.complete(
-                lower,
-                warm_frontier=warm_frontier,
+            completion = (
+                self.extension.complete(
+                    lower,
+                    warm_frontier=warm_frontier,
+                )
+                if self.stage_policy.is_default
+                else self._select_stage_completion(lower, warm_frontier)
             )
         else:
             supplied = np.asarray(
@@ -565,6 +737,32 @@ class FixedDictionaryProjectedAPCM:
             )
             if not np.array_equal(supplied, current):
                 raise ValueError("supplied completion belongs to another state")
+        policy = self.stage_policy
+        if not policy.quiet_containment and not stage_triggered:
+            self.stage_policy_counters["quiet_containment_skipped"] += 1
+            return APCMStageRetraction(
+                raw_coordinates=raw.copy(),
+                hidden_values=hidden.copy(),
+                completion=completion,
+                retained_correction_norm=0.0,
+                auxiliary_correction_norm=0.0,
+                iterations=0,
+                applied=False,
+                status="quiet_containment_disabled",
+            )
+        if not policy.stage_retraction:
+            self.stage_policy_counters["retraction_suppressed"] += 1
+            self.geometry.validate_envelopes(hidden, completion)
+            return APCMStageRetraction(
+                raw_coordinates=raw.copy(),
+                hidden_values=hidden.copy(),
+                completion=completion,
+                retained_correction_norm=0.0,
+                auxiliary_correction_norm=0.0,
+                iterations=0,
+                applied=False,
+                status="stage_retraction_disabled",
+            )
         return self.geometry.retract_stage(
             raw,
             hidden,
@@ -597,6 +795,9 @@ class ProjectiveOuterEventGuardSettings:
     canonicalize: bool = False
     accept_first_provisional: bool = False
     frontier_weight: float = 0.0
+    frontier_metric: str = "identity"
+    warm_refinement_passes: int = 0
+    exploratory_acceptance_tolerance: float | None = None
 
     def __post_init__(self) -> None:
         if not 0.0 < self.event_gram_floor < self.event_gram_hard_floor:
@@ -607,6 +808,19 @@ class ProjectiveOuterEventGuardSettings:
             raise ValueError("event_coupling_horizon must be positive")
         if self.frontier_weight < 0.0:
             raise ValueError("frontier_weight must be nonnegative")
+        if self.frontier_metric not in {"identity", "readout_diagonal"}:
+            raise ValueError(
+                "frontier_metric must be 'identity' or 'readout_diagonal'"
+            )
+        if self.warm_refinement_passes < 0:
+            raise ValueError("warm_refinement_passes must be nonnegative")
+        if (
+            self.exploratory_acceptance_tolerance is not None
+            and not self.exploratory_acceptance_tolerance > 0.0
+        ):
+            raise ValueError(
+                "exploratory_acceptance_tolerance must be positive"
+            )
 
 
 class _CouplingGeometryAdapter:
@@ -839,6 +1053,13 @@ class ProjectiveOuterEventGuard:
                     self.settings.accept_first_provisional
                 ),
                 frontier_weight=self.settings.frontier_weight,
+                frontier_metric=self.settings.frontier_metric,
+                warm_refinement_passes=(
+                    self.settings.warm_refinement_passes
+                ),
+                exploratory_acceptance_tolerance=(
+                    self.settings.exploratory_acceptance_tolerance
+                ),
             )
         except (RuntimeError, ValueError) as error:
             return None, {
@@ -967,6 +1188,7 @@ class ProjectiveOuterEventGuard:
             retained_metric=evaluation.projection.retained_metric,
             auxiliary_metric=evaluation.projection.auxiliary_metric,
             completion=completion,
+            stage_triggered=bool(triggered),
         )
         record["stage_retraction_applied"] = bool(retraction.applied)
         record["stage_retraction_status"] = retraction.status
@@ -1191,6 +1413,7 @@ def integrate_projected_apcm_ssprk3(
     progress: Callable[[str], None] | None = None,
     outer_guard: "ProjectiveOuterEventGuard | None" = None,
     deadline: float | None = None,
+    tolerate_stage_failure: bool = False,
 ) -> ProjectedAPCMTrajectory:
     """Advance fixed-dictionary APCM with containment before every RHS call.
 
@@ -1199,7 +1422,12 @@ def integrate_projected_apcm_ssprk3(
     every stage takes the declared proximal log-det completion.  ``deadline``
     is a ``perf_counter`` instant after which the rollout stops and returns
     the steps it completed, so that an exploratory run reports how far it
-    reached instead of being killed.
+    reached instead of being killed.  ``tolerate_stage_failure`` is a named
+    option for an ablation that is expected to fail: at its default
+    ``False`` a declared stage failure propagates as it always has, and at
+    ``True`` the rollout stops at the last accepted step and reports the
+    failure in ``message`` with ``success`` false, exactly as the deadline
+    path does.
     """
 
     if final_time <= 0.0 or time_step <= 0.0:
@@ -1253,16 +1481,27 @@ def integrate_projected_apcm_ssprk3(
             break
         time = float(times[step])
         guard_before = 0 if outer_guard is None else len(outer_guard.records)
-        accepted = _advance_projected_apcm_interval(
-            model,
-            time,
-            state,
-            completion,
-            time_step,
-            subdivision_depth=0,
-            maximum_subdivisions=maximum_subdivisions,
-            outer_guard=outer_guard,
-        )
+        try:
+            accepted = _advance_projected_apcm_interval(
+                model,
+                time,
+                state,
+                completion,
+                time_step,
+                subdivision_depth=0,
+                maximum_subdivisions=maximum_subdivisions,
+                outer_guard=outer_guard,
+            )
+        except (ProjectedAPCMFailure, APCMProjectionError) as error:
+            if not tolerate_stage_failure:
+                raise
+            completed = step
+            success = False
+            message = (
+                f"stage_failure after {step} of {intervals} completed "
+                f"steps: {error}"
+            )
+            break
         if outer_guard is not None:
             guard_triggered[step + 1] = sum(
                 int(bool(record["triggered"]))
@@ -1328,6 +1567,7 @@ __all__ = [
     "PROJECTED_APCM_STATE_NAMES",
     "FixedDictionaryProjectedAPCM",
     "ProjectedAPCMEvaluation",
+    "ProjectedAPCMStagePolicy",
     "ProjectedAPCMFailure",
     "ProjectedAPCMInitialization",
     "ProjectedAPCMSettings",
