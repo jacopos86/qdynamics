@@ -23,7 +23,7 @@ to `t=4` in `0.7 s`, which is the scale every moment route is measured against.
 | 31-coordinate structured cone correction (section 3.2, plan steps 8 and 9) | ten-coordinate energy-neutral barrier to `t=79.95`: containment only (all-31 scaled RMS `0.7008` against `0.7137` uncorrected; packet route `0.0636`); the record's electronic-band suppression is the joint-Gram controller's, not the closure's; the joint-Gram barrier reaches `t=0.30` in `150 min` even after the 24 and 35 percent speedups | `4.6 ms` per right-hand side (ten-coordinate); joint-Gram out of reach | diagnostic, not a route |
 | bitwise-neutral speedups | unguarded CWRMF atom `2x`; `cone_correction.py` `24 percent`; `matrix_reference.py` `35 percent`; all default-path, byte-identical | --- | kept |
 
-Recommendation put to the user on 2026-09-15 morning: make the projective
+Approved by the user on 2026-09-15 morning ("sure do that, i told you multiple routes should be attempted"), with the instruction that several routes stay in play at once and that work proceeds through persistent agents with short tasks (no run over 20 minutes) rather than multi-hour one-shot batches. Recommendation as put: make the projective
 route with carried lift and carried face the working route and push it past
 the post-pulse degeneracy using the repaired selector; treat the guarded
 carried-witness flow as a CHTC job, not a local one; retire the joint-Gram
