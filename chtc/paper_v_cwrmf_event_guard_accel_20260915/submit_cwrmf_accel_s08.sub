@@ -1,0 +1,26 @@
+# Paper V CWRMF bounded-depth event-triggered guard, balanced profile.
+# Segment 08 of 8: t = 3.50 to 4.00 at h = 0.0025,
+# event Gram hard floor 2e-4, bounded step halving at depth 2.
+# Argument contract: run_id final_time time_step event_gram_hard_floor \
+#   initial_state_file  ("none" for the first segment).
+universe = vanilla
+executable = chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel_apptainer.sh
+arguments = accel_s08_t3500_t4000 4.00 0.0025 2e-4 raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s07_t3000_t3500/checkpoint.npz
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = paper_5/src, chtc/paper_v_cwrmf_event_guard_accel_20260915, chtc/time_dynamics_optuna/image.sif, raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s07_t3000_t3500/checkpoint.npz
+transfer_output_files = raw_outputs, logs, archives_by_receipt
+stream_output = False
+stream_error = False
+log = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.$(Cluster).$(Process).log
+output = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.accel_s08_t3500_t4000.$(Cluster).$(Process).out
+error = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.accel_s08_t3500_t4000.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 12GB
+request_disk = 30GB
++MaxRuntime = 172800
++JobBatchName = "paper_v_cwrmf_event_guard_accel_20260915_v1-accel_s08_t3500_t4000"
+queue 1

@@ -215,6 +215,22 @@ coupling measure stream that tensor once per working mode (`2559-2568`,
 failed atom instead of halving the step (`3180-3196`), although the record's
 operating rule is local step halving (worklog:3539-3541).
 
+State change, 2026-09-15 (worklog entry "CWRMF checkpoint resume completed",
+report `agent_guidance/paper-v/overnight/cwrmf-chtc-20260915b.md`): a
+checkpoint resume is now exact under the carried seed policies.
+`checkpoint.npz` carries `bundle_accepted_rank` always and the accepted 62-row
+working set whenever the active seed policy reads it, and a resumed rollout
+under `carried_accepted_basis` with rank margin 2 reproduces the unbroken
+strict `t = 0` to `0.005` rollout at `h = 0.0025` exactly, where the previous
+rank-only fallback left `2.026859e-08` on the 384 carried coordinates.  The
+bounded-segment CHTC lane for step 6 is built and packaged as
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/` (eight segments of `0.5` time
+units to `t = 4`, balanced, hard floor `2e-4`, subdivision depth 2, 8 CPUs,
+12 GB); it is not uploaded and not submitted.  The round-3 pair
+`carried_accepted_basis` with rank margin 2 is **not** in that lane's submit
+files: it is a strict-profile acceleration and a measured `3.42x` regression
+on the balanced profile the lane runs.
+
 ### 3.6 Context: multi-coherent adaptive packet route
 
 The only representation that propagates stably to long horizon: all-31

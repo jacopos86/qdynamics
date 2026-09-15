@@ -15,6 +15,7 @@ import numpy as np
 
 from .adaptive_positive_moment import raw_moment_coordinates_to_matrix_state
 from .apcm_carried_witness import (
+    CWRMF_BASIS_CARRYING_SEED_POLICIES,
     CWRMF_BUNDLE_SEED_POLICIES,
     CWRMF_SOLVER_SETTING_PROFILES,
     DEFAULT_BUNDLE_SEED_POLICY,
@@ -436,6 +437,21 @@ def main() -> int:
             model.restore_bundle_rank_hint(
                 int(np.asarray(initial_arrays["bundle_rank_hint"]))
             )
+        if "bundle_accepted_rank" in initial_arrays:
+            model.restore_bundle_accepted_rank(
+                int(np.asarray(initial_arrays["bundle_accepted_rank"]))
+            )
+        if "bundle_accepted_basis" in initial_arrays:
+            model.restore_bundle_accepted_basis(
+                np.asarray(
+                    initial_arrays["bundle_accepted_basis"], dtype=complex
+                ),
+                rank=(
+                    int(np.asarray(initial_arrays["bundle_accepted_rank"]))
+                    if "bundle_accepted_rank" in initial_arrays
+                    else None
+                ),
+            )
         model.geometry.unpack_state(initial_state)
         initialization_source = str(args.initial_state_file.resolve())
     progress(
@@ -447,7 +463,23 @@ def main() -> int:
     )
     checkpoint_path = output_directory / "checkpoint.npz"
 
+    carries_basis = (
+        settings.bundle_seed_policy in CWRMF_BASIS_CARRYING_SEED_POLICIES
+    )
+
     def checkpoint(step: int, current_time: float, state: np.ndarray) -> None:
+        # Continuation metadata beside the physical state: the monotone rank
+        # hint and the accepted rank are scalars and always recorded; the
+        # accepted working set is a 62-row complex block and is recorded only
+        # when the active seed policy is one that reads it, so a default-path
+        # checkpoint gains no array.
+        continuation: dict[str, np.ndarray] = {
+            "bundle_rank_hint": np.asarray(model.bundle_rank_hint),
+            "bundle_accepted_rank": np.asarray(model.bundle_accepted_rank),
+        }
+        accepted_basis = model.bundle_accepted_basis
+        if carries_basis and accepted_basis is not None:
+            continuation["bundle_accepted_basis"] = accepted_basis
         temporary = checkpoint_path.with_suffix(".npz.tmp")
         with temporary.open("wb") as stream:
             np.savez_compressed(
@@ -455,7 +487,7 @@ def main() -> int:
                 step=np.asarray(step),
                 time=np.asarray(current_time),
                 state=state,
-                bundle_rank_hint=np.asarray(model.bundle_rank_hint),
+                **continuation,
             )
         os.replace(temporary, checkpoint_path)
 
@@ -523,7 +555,11 @@ def main() -> int:
     )
 
     exact_started = time.perf_counter()
-    if np.isclose(trajectory.times[0], 0.0):
+    # The same zero test the exact reference itself applies to its sample
+    # times.  ``np.isclose`` defaults to an absolute tolerance of 1e-8, which
+    # calls a resume that starts at or below 1e-8 a rollout from zero and then
+    # hands the reference a first sample time it rejects at its own 1e-15.
+    if abs(float(trajectory.times[0])) <= 1e-15:
         exact_sample_times = trajectory.times
         exact_offset = 0
     else:

@@ -180,6 +180,17 @@ CWRMF_BUNDLE_SEED_POLICIES = (
     "carried_accepted_basis_exit",
 )
 
+#: The seed policies whose starting working set is the previous accepted
+#: working set itself rather than a rank.  A checkpoint written by a rollout
+#: under one of these carries the accepted 62-row block, so that a resumed
+#: rollout continues from the directions the enlargement discovered instead
+#: of rebuilding them at its first atom.  Every other policy reads only the
+#: rank hint and the accepted rank, both of which are scalars.
+CWRMF_BASIS_CARRYING_SEED_POLICIES = (
+    "carried_accepted_basis",
+    "carried_accepted_basis_exit",
+)
+
 
 def _bundle_growth_target(factor: float, rank: int, limit: int) -> int:
     """Return the working-set rank a declared growth factor asks for.
@@ -1062,6 +1073,66 @@ class CarriedWitnessModel:
         """Return the rank of the last accepted bundle solve, or zero."""
 
         return self._bundle_accepted_rank
+
+    @property
+    def bundle_accepted_basis(self) -> ComplexArray | None:
+        """Return the working set of the last accepted bundle solve.
+
+        This is the orthonormal 62-row block the adaptive bundle tier
+        accepted on, the continuation quantity the carried seed policies
+        read.  It is ``None`` until a bundle solve has been accepted.
+        """
+
+        return self._bundle_accepted_basis
+
+    def restore_bundle_accepted_rank(self, value: int) -> None:
+        """Restore the previous accepted bundle rank for a continuation.
+
+        The scalar the ``previous_accepted_rank`` and
+        ``previous_accepted_rank_margin`` seed policies read.  It carries no
+        directions; :meth:`restore_bundle_accepted_basis` carries those.
+        """
+
+        if value < 0 or value > 61:
+            raise ValueError(
+                "bundle accepted rank must lie between zero and 61"
+            )
+        self._bundle_accepted_rank = int(value)
+
+    def restore_bundle_accepted_basis(
+        self,
+        basis: ComplexArray,
+        rank: int | None = None,
+    ) -> None:
+        """Restore the accepted working set without changing the state.
+
+        The companion of :meth:`restore_bundle_rank_hint`: the rank hint
+        alone tells a resumed rollout how wide its first working set must
+        be, not which directions it contained, so a resume under a carried
+        seed policy that restores only the hint starts its first atom from
+        the recorded rule.  ``basis`` is the 62-row orthonormal block; the
+        optional ``rank`` is the accepted rank the trimming cap
+        ``bundle_seed_rank_margin`` is measured against, and defaults to
+        the block's own column count.
+        """
+
+        array = np.asarray(basis, dtype=complex)
+        if array.ndim != 2 or array.shape[0] != 62:
+            raise ValueError(
+                "bundle accepted basis must be a 62-row complex block"
+            )
+        columns = int(array.shape[1])
+        if columns < 1 or columns > 61:
+            raise ValueError(
+                "bundle accepted basis must carry between one and 61 columns"
+            )
+        accepted = columns if rank is None else int(rank)
+        if accepted < 0 or accepted > 61:
+            raise ValueError(
+                "bundle accepted rank must lie between zero and 61"
+            )
+        self._bundle_accepted_basis = array
+        self._bundle_accepted_rank = accepted
 
     def _bundle_seed_working_set(
         self,

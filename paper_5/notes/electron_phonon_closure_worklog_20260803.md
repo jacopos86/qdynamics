@@ -4591,3 +4591,91 @@ are left as written; the corrections below supersede them where they differ.
    `all_coordinate_scalar_rms_error`; "site-0 occupation" is `rho[0,0]` in
    one driver family and `2*rho[0,0]` in the other; stage retractions at
    `t=4` are 1,068 by the guard log and 1,041 by the summary counter.
+
+## 2026-09-15: CWRMF checkpoint resume completed, and the CHTC acceleration lane
+
+Branch `claude/paper-v-routes-20260914`, from HEAD `d1f4eb83`.  Full report,
+with every command and every artifact path:
+`agent_guidance/paper-v/overnight/cwrmf-chtc-20260915b.md`.  Nothing is
+committed, nothing is uploaded or submitted, and no default changed.
+
+### The accepted working set now survives a checkpoint resume
+
+Round 3's continuation note was that `restore_bundle_rank_hint` restores the
+monotone rank hint across a resume but the accepted working set is not saved,
+so a resumed rollout under `carried_accepted_basis` rebuilds its first atom's
+working set from the recorded rule.  `checkpoint.npz` now carries
+`bundle_accepted_rank` always and the 62-row `bundle_accepted_basis` whenever
+the active seed policy is one that reads it, and `--initial-state-file`
+restores both.  Older checkpoints without the keys still load.
+
+Strict profile, always-on guard, strong coupling `lambda = 1.5`,
+`gamma = 0.5`, drive amplitude 1, phonon cutoff 16, exact-correlated
+preparation, `--bundle-seed-policy carried_accepted_basis
+--bundle-seed-rank-margin 2`, `t = 0` to `0.005` at `h = 0.0025` run as one
+rollout and again as two driver invocations joined by the checkpoint: with the
+accepted working set carried the resumed segment reproduces the unbroken
+rollout's `t = 0.005` row of `autonomous_trajectory.npz` exactly, every array,
+maximum absolute difference `0.0`, in `30.4 s`.  From the same checkpoint with
+the `bundle_accepted_basis` key removed -- the behaviour before this change --
+the 384 carried coordinates differ by `2.026859e-08`, the completion
+correction norm by `1.361523e-07` and the velocity margin by `1.735998e-07`,
+the atom accepts at 36 active critical modes against the unbroken 35, and the
+segment takes `44.4 s`.  Artifacts
+`output/local_runs/paper_v_cwrmf_resume_20260915_v1/`.
+
+A second, unrelated defect on the resume path was found while rehearsing the
+lane and fixed: the driver decided whether a rollout starts at zero with
+`np.isclose(times[0], 0.0)`, whose default absolute tolerance is `1e-8`, while
+`exact_holstein_driven_trajectory` rejects a first sample time above `1e-15`,
+so a resume starting at or below `1e-8` completed its rollout and then crashed
+in scoring.  The branch now applies the reference's own `1e-15` test.
+
+`paper_5/tests/test_apcm_carried_witness.py` goes 41 -> 45 tests.
+
+### Balanced event-triggered guard, t = 0 to 0.05, with the round-3 flags
+
+Balanced profile, `--event-triggered-guard --event-gram-hard-floor 2e-4
+--maximum-step-subdivisions 2 --bundle-seed-policy carried_accepted_basis
+--bundle-seed-rank-margin 2 --solver-setting-profile max_threads_8`,
+`h = 0.0025`, 20 SSPRK2 steps: `2.646 s`, dynamic all-coordinate scalar RMS
+against the exact cutoff-16 reference `3.235917e-06`, maximum readable-rate
+residual `0.0`, peak resident `651 MiB`, zero Clarabel solve-tier calls.
+Resuming from its checkpoint for one more step reaches `t = 0.0525` in
+`0.497 s`.  Artifacts
+`output/local_runs/paper_v_cwrmf_event_guard_accel_smoke_20260915_v1/`.
+
+Both accelerations are inert over this interval and the run says so: the
+adaptive bundle tier is never entered before the guard's first trigger, so
+there is no working set to carry and no factorisation to thread.  The run
+proves the flag set reaches the settings and that the resume runs with it; it
+is not evidence of speed.
+
+### The lane
+
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/`: apptainer wrapper, inner
+runner, README, and eight bounded-segment submit files covering `t = 0` to `4`
+at `0.5` per segment, `h = 0.0025`, hard floor `2e-4`.  Argument contract
+`run_id final_time time_step event_gram_hard_floor initial_state_file`.  8
+CPUs, 12 GB, 30 GB disk, `+MaxRuntime = 172800`.  Segment length follows the
+recorded local rate: `14,722 s` for `0.38` time units of guarded propagation
+is `10.8 h` per unit, so `0.5` per segment is `5.4 h` locally and `21.5 h` at
+a 4x execute-node derate, inside the `48 h` bound and far inside the `72 h`
+pool hold that transfers nothing.
+
+The submit files do **not** carry `carried_accepted_basis`.  Round 3 measured
+that pair on the balanced profile at `879.775 s` of Clarabel tier against the
+balanced default's `257.439 s` over `t = 0` to `0.05`; the `2.04x` it earns is
+a strict-profile result.  `max_threads_8` alone is this lane's acceleration,
+and the two carried options are named environment overrides that no submit
+file sets.
+
+All eight submit files pass `chtc/validate_condor_submit_lifecycle.py`.  The
+inner runner was rehearsed end to end outside Apptainer at `h = 1e-8`: a first
+segment, a second segment resuming from the first's checkpoint, a receipt-named
+archive for each, and a refusal with exit status 2 when the declared checkpoint
+is missing.  Bundle
+`output/local_runs/paper_v_cwrmf_event_guard_accel_20260915/paper_v_cwrmf_event_guard_accel_20260915.tgz`,
+SHA-256 `3110777f8dd1debe73b771c243d2bc3d60eafda4d3576c70b6ba67186261e947`,
+`500713` bytes.  Upload and submission need the user's Duo login and are not
+done here.

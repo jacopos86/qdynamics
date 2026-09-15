@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import numpy as np
@@ -1099,3 +1100,188 @@ def test_analysis_parser_defaults_leave_the_bundle_rule_untouched() -> None:
         _parser().parse_args(
             ["--output-directory", "run", "--bundle-seed-policy", "hopeful"]
         )
+
+
+def test_accepted_working_set_can_be_restored_for_continuation() -> None:
+    model = CarriedWitnessModel(DimerParameters())
+
+    assert model.bundle_accepted_basis is None
+    assert model.bundle_accepted_rank == 0
+
+    model.restore_bundle_accepted_rank(31)
+    assert model.bundle_accepted_rank == 31
+    with pytest.raises(ValueError, match="between zero and 61"):
+        model.restore_bundle_accepted_rank(62)
+
+    generator = np.random.default_rng(20260915)
+    block = np.linalg.qr(
+        generator.normal(size=(62, 12))
+        + 1j * generator.normal(size=(62, 12))
+    )[0]
+
+    model.restore_bundle_accepted_basis(block)
+    assert model.bundle_accepted_rank == 12
+    assert np.array_equal(model.bundle_accepted_basis, block)
+
+    model.restore_bundle_accepted_basis(block, rank=10)
+    assert model.bundle_accepted_rank == 10
+
+    with pytest.raises(ValueError, match="62-row complex block"):
+        model.restore_bundle_accepted_basis(block[:60])
+    with pytest.raises(ValueError, match="one and 61 columns"):
+        model.restore_bundle_accepted_basis(np.zeros((62, 0), dtype=complex))
+    with pytest.raises(ValueError, match="one and 61 columns"):
+        model.restore_bundle_accepted_basis(np.zeros((62, 62), dtype=complex))
+
+
+def _run_driver(argv: list[str]) -> None:
+    import sys
+
+    from paper5.stability import apcm_carried_witness_analysis as driver
+
+    saved = sys.argv
+    sys.argv = ["apcm_carried_witness_analysis", *argv]
+    try:
+        assert driver.main() == 0
+    finally:
+        sys.argv = saved
+
+
+def test_default_checkpoint_carries_the_scalars_and_no_working_set(
+    tmp_path,
+) -> None:
+    output = tmp_path / "default_policy"
+    _run_driver(
+        [
+            "--output-directory",
+            str(output),
+            "--final-time",
+            "1e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    stored = np.load(output / "checkpoint.npz")
+    assert "bundle_rank_hint" in stored.files
+    assert "bundle_accepted_rank" in stored.files
+    # The 62-row accepted working set is recorded only for the seed policies
+    # that read it, so a default-path checkpoint gains no array.
+    assert "bundle_accepted_basis" not in stored.files
+
+
+def test_resumed_rollout_under_carried_basis_reproduces_the_unbroken_one(
+    tmp_path,
+) -> None:
+    """A resume carries the accepted working set, not only its rank.
+
+    Strict numerical profile, always-on guard, strong coupling
+    ``lambda_ep = 1.5``, ``gamma = 0.5``, drive amplitude 1, phonon cutoff
+    16, seed policy ``carried_accepted_basis`` with rank margin 2, over
+    ``t = 0`` to ``0.003`` at ``h = 0.0015`` -- two SSPRK2 steps, four
+    radial atoms, the first step already accepting an adaptive bundle
+    solve.  The resumed second step must reproduce the unbroken rollout's
+    endpoint exactly; with the rank hint alone it does not, because the
+    first atom after the resume rebuilds its working set from the recorded
+    rule instead of the directions the enlargement discovered.
+    """
+
+    common = [
+        "--final-time",
+        "0.003",
+        "--time-step",
+        "0.0015",
+        "--numerical-profile",
+        "strict",
+        "--bundle-seed-policy",
+        "carried_accepted_basis",
+        "--bundle-seed-rank-margin",
+        "2",
+    ]
+
+    unbroken = tmp_path / "unbroken"
+    _run_driver(["--output-directory", str(unbroken), *common])
+
+    first = tmp_path / "segment_a"
+    _run_driver(
+        [
+            "--output-directory",
+            str(first),
+            *common[2:],
+            "--final-time",
+            "0.0015",
+        ]
+    )
+
+    checkpoint = np.load(first / "checkpoint.npz")
+    assert "bundle_accepted_basis" in checkpoint.files
+    carried = np.asarray(checkpoint["bundle_accepted_basis"])
+    assert carried.shape[0] == 62
+    assert carried.shape[1] == int(np.asarray(checkpoint["bundle_accepted_rank"]))
+    assert float(np.asarray(checkpoint["time"])) == pytest.approx(0.0015)
+
+    second = tmp_path / "segment_b"
+    _run_driver(
+        [
+            "--output-directory",
+            str(second),
+            "--initial-state-file",
+            str(first / "checkpoint.npz"),
+            *common,
+        ]
+    )
+
+    whole = np.load(unbroken / "autonomous_trajectory.npz")
+    resumed = np.load(second / "autonomous_trajectory.npz")
+    assert float(resumed["times"][-1]) == pytest.approx(0.003)
+    for name in sorted(whole.files):
+        if name == "maximum_atom_seconds":
+            # Wall time, not a propagated quantity.
+            continue
+        assert np.array_equal(
+            np.asarray(whole[name])[-1], np.asarray(resumed[name])[-1]
+        ), name
+
+
+def test_resume_below_the_exact_reference_zero_tolerance_still_scores(
+    tmp_path,
+) -> None:
+    """A resume whose start time is tiny is still a resume.
+
+    The exact cutoff-16 reference requires its first sample time to be zero
+    to within ``1e-15``; the driver prepends a zero sample for a resumed
+    rollout.  A resume that starts at or below ``1e-8`` -- the default
+    absolute tolerance of ``np.isclose`` -- must take the prepending branch
+    like any other resume, not be mistaken for a rollout from zero.
+    """
+
+    first = tmp_path / "prefix"
+    _run_driver(
+        [
+            "--output-directory",
+            str(first),
+            "--final-time",
+            "1e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    second = tmp_path / "resumed"
+    _run_driver(
+        [
+            "--output-directory",
+            str(second),
+            "--initial-state-file",
+            str(first / "checkpoint.npz"),
+            "--final-time",
+            "2e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    summary = json.loads((second / "summary.json").read_text(encoding="utf-8"))
+    assert summary["integration"]["initial_time"] == pytest.approx(1e-8)
+    assert summary["integration"]["last_time"] == pytest.approx(2e-8)
+    assert summary["integration"]["success"]
