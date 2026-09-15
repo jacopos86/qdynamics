@@ -1285,3 +1285,222 @@ def test_resume_below_the_exact_reference_zero_tolerance_still_scores(
     assert summary["integration"]["initial_time"] == pytest.approx(1e-8)
     assert summary["integration"]["last_time"] == pytest.approx(2e-8)
     assert summary["integration"]["success"]
+
+
+def test_declared_stop_request_halts_the_rollout_at_an_accepted_step(
+    prepared_model,
+) -> None:
+    """The caller's stop is off by default and never moves a step.
+
+    ``stop_requested`` is consulted after every accepted step other than the
+    last, after the checkpoint callback has recorded it.  A rollout it stops
+    reports the steps it took, and every one of them was accepted, so the
+    trajectory is a success; the state it stops at is the state the
+    uninterrupted rollout reached at that same step, bitwise.
+    """
+
+    model, preparation = prepared_model
+    observed: list[tuple[int, float]] = []
+
+    def never(completed_steps: int, current_time: float) -> bool:
+        observed.append((completed_steps, current_time))
+        return False
+
+    whole = integrate_cwrmf_ssprk2(
+        model,
+        preparation.state,
+        final_time=3e-8,
+        time_step=1e-8,
+        stop_requested=never,
+    )
+
+    assert whole.success
+    assert whole.completed_steps == 3
+    # Not consulted on the last step: that one ends the rollout at
+    # final_time on the ordinary path.  The times are the grid's own, from
+    # linspace, so they are compared at the grid's precision.
+    assert [entry[0] for entry in observed] == [1, 2]
+    assert observed[0][1] == pytest.approx(1e-8)
+    assert observed[1][1] == pytest.approx(2e-8)
+
+    stops: list[tuple[int, float]] = []
+
+    def at_once(completed_steps: int, current_time: float) -> bool:
+        stops.append((completed_steps, current_time))
+        return True
+
+    halted = integrate_cwrmf_ssprk2(
+        model,
+        preparation.state,
+        final_time=3e-8,
+        time_step=1e-8,
+        stop_requested=at_once,
+    )
+
+    assert len(stops) == 1
+    assert stops[0][0] == 1
+    assert stops[0][1] == pytest.approx(1e-8)
+    assert halted.success
+    assert halted.completed_steps == 1
+    assert halted.times.size == 2
+    assert float(halted.times[-1]) == pytest.approx(1e-8)
+    assert "stopped on the caller's declared stop request" in halted.message
+    assert np.array_equal(halted.states[-1], whole.states[1])
+    assert np.array_equal(
+        halted.minimum_shifted_lower_bounds,
+        whole.minimum_shifted_lower_bounds[:2],
+    )
+
+
+def test_wall_budget_is_off_by_default_and_a_budget_not_reached_is_inert(
+    tmp_path,
+) -> None:
+    """``--maximum-wall-seconds`` is default off and changes no number.
+
+    A run without it writes exactly the summary it wrote before: neither
+    ``maximum_wall_seconds`` nor ``stop_reason`` appears.  A run with a
+    budget the rollout never reaches is bitwise identical on every recorded
+    array and records that it ended at ``final_time``.
+    """
+
+    import sys
+
+    from paper5.stability import apcm_carried_witness_analysis as driver
+    from paper5.stability.apcm_carried_witness_analysis import _parser
+
+    assert (
+        _parser().parse_args(
+            ["--output-directory", "run"]
+        ).maximum_wall_seconds
+        is None
+    )
+
+    rejected = tmp_path / "rejected"
+    saved = sys.argv
+    sys.argv = [
+        "apcm_carried_witness_analysis",
+        "--output-directory",
+        str(rejected),
+        "--maximum-wall-seconds",
+        "0",
+    ]
+    try:
+        with pytest.raises(ValueError, match="must be positive"):
+            driver.main()
+    finally:
+        sys.argv = saved
+    # Refused before the output directory is created.
+    assert not rejected.exists()
+
+    common = ["--final-time", "2e-8", "--time-step", "1e-8"]
+
+    unbudgeted = tmp_path / "unbudgeted"
+    _run_driver(["--output-directory", str(unbudgeted), *common])
+
+    budgeted = tmp_path / "budgeted"
+    _run_driver(
+        [
+            "--output-directory",
+            str(budgeted),
+            *common,
+            "--maximum-wall-seconds",
+            "600",
+        ]
+    )
+
+    plain = json.loads(
+        (unbudgeted / "summary.json").read_text(encoding="utf-8")
+    )
+    assert "maximum_wall_seconds" not in plain["integration"]
+    assert "stop_reason" not in plain["integration"]
+
+    bounded = json.loads(
+        (budgeted / "summary.json").read_text(encoding="utf-8")
+    )
+    assert bounded["integration"]["maximum_wall_seconds"] == 600.0
+    assert bounded["integration"]["stop_reason"] == "final_time"
+    assert bounded["integration"]["success"]
+    assert bounded["integration"]["completed_steps"] == 2
+
+    reference = np.load(unbudgeted / "autonomous_trajectory.npz")
+    under_budget = np.load(budgeted / "autonomous_trajectory.npz")
+    assert sorted(reference.files) == sorted(under_budget.files)
+    for name in sorted(reference.files):
+        if name == "maximum_atom_seconds":
+            # Wall time, not a propagated quantity.
+            continue
+        assert np.array_equal(
+            np.asarray(reference[name]), np.asarray(under_budget[name])
+        ), name
+
+
+def test_a_reached_wall_budget_stops_cleanly_and_leaves_a_resume_point(
+    tmp_path,
+) -> None:
+    """A budget of ``1e-9`` s is already past when the first step ends.
+
+    The rollout must stop at that first accepted step rather than run to
+    ``--final-time``: exit status 0, ``stop_reason`` ``wall_budget``,
+    trajectory arrays and ``summary.json`` for the steps taken, and a
+    ``checkpoint.npz`` at the accepted step that a second invocation
+    resumes from.
+    """
+
+    stopped = tmp_path / "stopped"
+    _run_driver(
+        [
+            "--output-directory",
+            str(stopped),
+            "--final-time",
+            "3e-8",
+            "--time-step",
+            "1e-8",
+            "--maximum-wall-seconds",
+            "1e-9",
+        ]
+    )
+
+    summary = json.loads(
+        (stopped / "summary.json").read_text(encoding="utf-8")
+    )
+    integration = summary["integration"]
+    assert integration["stop_reason"] == "wall_budget"
+    assert integration["maximum_wall_seconds"] == pytest.approx(1e-9)
+    assert integration["success"]
+    assert integration["completed_steps"] == 1
+    assert integration["final_time_requested"] == pytest.approx(3e-8)
+    assert integration["last_time"] == pytest.approx(1e-8)
+
+    recorded = np.load(stopped / "autonomous_trajectory.npz")
+    assert recorded["times"].size == 2
+    assert float(recorded["times"][-1]) == pytest.approx(1e-8)
+
+    checkpoint = np.load(stopped / "checkpoint.npz")
+    assert int(np.asarray(checkpoint["step"])) == 1
+    assert float(np.asarray(checkpoint["time"])) == pytest.approx(1e-8)
+    assert (
+        np.asarray(checkpoint["state"]).size
+        == summary["state"]["total_dimension"]
+    )
+
+    resumed = tmp_path / "resumed"
+    _run_driver(
+        [
+            "--output-directory",
+            str(resumed),
+            "--initial-state-file",
+            str(stopped / "checkpoint.npz"),
+            "--final-time",
+            "2e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    continuation = json.loads(
+        (resumed / "summary.json").read_text(encoding="utf-8")
+    )["integration"]
+    assert continuation["initial_time"] == pytest.approx(1e-8)
+    assert continuation["last_time"] == pytest.approx(2e-8)
+    assert continuation["success"]
+    assert "stop_reason" not in continuation

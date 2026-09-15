@@ -24,6 +24,17 @@
 #                                  the README section "Lane acceleration
 #                                  decision" before using it
 #   CWRMF_BUNDLE_SEED_RANK_MARGIN  read only when the policy is set
+#   CWRMF_MAXIMUM_WALL_SECONDS     default 138240, which is 0.8 x the
+#                                  +MaxRuntime = 172800 s the submit files
+#                                  declare.  The rollout stops at the first
+#                                  accepted step past it, writes its
+#                                  checkpoint and exits 0, so the segment
+#                                  ends normally and stages out instead of
+#                                  being held at the pool's 72 h wall with
+#                                  nothing transferred.  The remaining fifth
+#                                  of the runtime is the headroom the
+#                                  offline exact-reference scoring, the
+#                                  artifact writing and the archiving need.
 set -euo pipefail
 
 RUN_ID="${1:?run_id required}"
@@ -33,6 +44,7 @@ HARD_FLOOR="${4:?event_gram_hard_floor required}"
 INITIAL_STATE_FILE="${5:-none}"
 
 BATCH="paper_v_cwrmf_event_guard_accel_20260915_v1"
+MAXIMUM_WALL_SECONDS="${CWRMF_MAXIMUM_WALL_SECONDS:-138240}"
 OUT_DIR="raw_outputs/${BATCH}/${RUN_ID}"
 mkdir -p "raw_outputs/${BATCH}" "logs/${BATCH}" archives_by_receipt
 
@@ -61,6 +73,7 @@ ARGUMENTS=(
   --event-gram-hard-floor "${HARD_FLOOR}"
   --maximum-step-subdivisions 2
   --solver-setting-profile "${CWRMF_SOLVER_SETTING_PROFILE:-max_threads_8}"
+  --maximum-wall-seconds "${MAXIMUM_WALL_SECONDS}"
   --tier-timing
   --compact-output
 )
@@ -86,6 +99,23 @@ python3 -m paper5.stability.apcm_carried_witness_analysis "${ARGUMENTS[@]}"
 DRIVER_STATUS=$?
 set -e
 
+# What the segment reached, read from the run's own summary.json.  A segment
+# stopped at the declared wall budget exits 0 exactly like one that reached
+# final_time, so stop_reason and last_time are the only things that separate
+# them; both go in the receipt, because the next submission is chosen from
+# the receipt.  stop_reason wall_budget means this segment's own final_time
+# must be submitted again from the checkpoint it left.
+SUMMARY_PATH="${OUT_DIR}/summary.json"
+SEGMENT_STATE="$(python3 -c 'import json, sys
+block = json.load(open(sys.argv[1], encoding="utf-8"))["integration"]
+print(block.get("stop_reason", "unrecorded"), block.get("last_time", "unrecorded"))' \
+  "${SUMMARY_PATH}" 2>/dev/null || true)"
+if [[ -z "${SEGMENT_STATE}" ]]; then
+  SEGMENT_STATE="unrecorded unrecorded"
+fi
+STOP_REASON="${SEGMENT_STATE%% *}"
+LAST_TIME="${SEGMENT_STATE##* }"
+
 # Stage the segment by receipt, never by name: the archive carries the
 # campaign and the run in its file name, and it is placed in a directory
 # named for its own SHA-256, so two stage-outs cannot overwrite each other.
@@ -107,6 +137,9 @@ cat > "archives_by_receipt/${ARCHIVE_SHA}/receipt.json" <<JSON
   "time_step": "${TIME_STEP}",
   "event_gram_hard_floor": "${HARD_FLOOR}",
   "initial_state_file": "${INITIAL_STATE_FILE}",
+  "maximum_wall_seconds": "${MAXIMUM_WALL_SECONDS}",
+  "stop_reason": "${STOP_REASON}",
+  "last_time": "${LAST_TIME}",
   "solver_setting_profile": "${CWRMF_SOLVER_SETTING_PROFILE:-max_threads_8}",
   "bundle_seed_policy": "${CWRMF_BUNDLE_SEED_POLICY:-monotone_hint}",
   "archive_name": "${ARCHIVE_NAME}",
@@ -116,5 +149,6 @@ cat > "archives_by_receipt/${ARCHIVE_SHA}/receipt.json" <<JSON
 }
 JSON
 echo "archive_sha256=${ARCHIVE_SHA} archive_bytes=${ARCHIVE_BYTES}" >&2
+echo "stop_reason=${STOP_REASON} last_time=${LAST_TIME}" >&2
 
 exit "${DRIVER_STATUS}"

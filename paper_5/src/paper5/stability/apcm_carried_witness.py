@@ -4011,6 +4011,7 @@ def integrate_cwrmf_ssprk2(
     maximum_step_subdivisions: int = 0,
     progress: Callable[[str], None] | None = None,
     checkpoint: Callable[[int, float, FloatArray], None] | None = None,
+    stop_requested: Callable[[int, float], bool] | None = None,
 ) -> CWRMFTrajectory:
     """Integrate the direct fixed-archive CWRMF branch with SSPRK2.
 
@@ -4021,6 +4022,17 @@ def integrate_cwrmf_ssprk2(
     as ``2**k`` steps of ``time_step / 2**k`` for ``k = 1 .. d``, and the
     reported grid, the guard policy, and the acceptance contract are
     unchanged: only the local step size is.
+
+    ``stop_requested`` is the caller's own early stop, off at the default
+    ``None`` and never consulted then.  When it is given it is called after
+    every accepted step other than the last, with the number of completed
+    steps and the time that step reached, and after the checkpoint callback
+    has already recorded that state; returning ``True`` ends the rollout at
+    that accepted step.  The returned trajectory carries the steps taken,
+    ``success`` is ``True`` because every step it reports was accepted, and
+    ``message`` says the rollout stopped on the caller's request.  Nothing
+    about the grid, the step size or the acceptance contract changes: the
+    caller is choosing where to stop, not how to integrate.
     """
 
     if initial_time < 0.0 or final_time <= initial_time or time_step <= 0.0:
@@ -4052,7 +4064,9 @@ def integrate_cwrmf_ssprk2(
     lower_bounds[0] = initial_enclosure.minimum_lower_bound
     atom_evaluations = 0
 
-    def _truncated(step: int, message: str) -> CWRMFTrajectory:
+    def _truncated(
+        step: int, message: str, *, success: bool = False
+    ) -> CWRMFTrajectory:
         return CWRMFTrajectory(
             times=times[: step + 1],
             states=states[: step + 1],
@@ -4066,7 +4080,7 @@ def integrate_cwrmf_ssprk2(
             critical_modes=critical_modes[: step + 1],
             completed_steps=step,
             atom_evaluations=atom_evaluations,
-            success=False,
+            success=success,
             message=message,
         )
 
@@ -4164,6 +4178,20 @@ def integrate_cwrmf_ssprk2(
                 f"solver_1={attempt.first_message} "
                 f"solver_2={attempt.second_message}"
                 f"{subdivided}"
+            )
+        # The caller's own stop, after the checkpoint has recorded this
+        # accepted step.  It is not consulted on the last step, which ends
+        # the rollout at final_time on the ordinary path.
+        if (
+            stop_requested is not None
+            and step + 1 < intervals
+            and stop_requested(step + 1, float(times[step + 1]))
+        ):
+            return _truncated(
+                step + 1,
+                "stopped on the caller's declared stop request after "
+                f"{step + 1} accepted steps",
+                success=True,
             )
 
     return CWRMFTrajectory(

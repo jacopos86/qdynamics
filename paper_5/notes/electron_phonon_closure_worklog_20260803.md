@@ -4676,9 +4676,39 @@ segment, a second segment resuming from the first's checkpoint, a receipt-named
 archive for each, and a refusal with exit status 2 when the declared checkpoint
 is missing.  Bundle
 `output/local_runs/paper_v_cwrmf_event_guard_accel_20260915/paper_v_cwrmf_event_guard_accel_20260915.tgz`,
-SHA-256 `3110777f8dd1debe73b771c243d2bc3d60eafda4d3576c70b6ba67186261e947`,
-`500713` bytes.  Upload and submission need the user's Duo login and are not
-done here.
+SHA-256 `edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f`,
+`520921` bytes (rebuilt with the wall budget below; the pre-wall-budget
+bundle was `3110777f...`, `500713` bytes and must not be uploaded).  Upload
+and submission need the user's Duo login and are not done here.
+
+### The segment is now bounded in wall time as well as in horizon
+
+Segment length bounds the propagated interval, not the wall clock, and the
+cost per unit of propagated time beyond `t = 0.5` has never been measured, so
+segment length alone could not keep a job inside `+MaxRuntime`.
+`apcm_carried_witness_analysis` gains `--maximum-wall-seconds`, off by
+default: when it is set the rollout stops at the first accepted SSPRK2 step
+that ends past the budget, `checkpoint.npz` holds that step, the trajectory
+arrays and `summary.json` are written for the steps taken with
+`stop_reason = wall_budget` beside `maximum_wall_seconds`, and the process
+exits 0, so a CHTC segment ends normally and stages out instead of being held
+at the pool's 72 h wall with nothing transferred.  The integrator takes the
+stop as a caller-supplied `stop_requested` predicate, consulted after every
+accepted step except the last and after the checkpoint has recorded it; at
+its default `None` nothing is consulted and no number moves.  The lane's
+inner runner passes `138240 s`, which is `0.8 x 172800`, overridable per
+segment through `CWRMF_MAXIMUM_WALL_SECONDS`, and `receipt.json` now carries
+`maximum_wall_seconds`, `stop_reason` and `last_time` so a returned segment
+says whether the next submission is the next segment or the same one again.
+
+`paper_5/tests/test_apcm_carried_witness.py` goes 45 -> 48 tests: the stop
+predicate stops at an accepted step whose state is bitwise the uninterrupted
+rollout's state at that step; a budget of `600 s` over `t = 0` to `2e-8` at
+`h = 1e-8` leaves every recorded array bitwise equal to the unbudgeted run
+and records `stop_reason = final_time`, while a run without the option writes
+neither key; a budget of `1e-9 s` over `t = 0` to `3e-8` stops after one
+accepted step, exits 0, and leaves a `checkpoint.npz` a second invocation
+resumes from.
 
 ## 2026-09-15: cheap projection route, first pass (no conic solve)
 

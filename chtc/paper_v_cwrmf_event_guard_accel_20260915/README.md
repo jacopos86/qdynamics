@@ -13,7 +13,9 @@ Supersedes nothing.  The 2026-08-18 lane
 unbounded `t = 0.5` job at 1 CPU and 8 GB and was never uploaded.  This lane
 differs in four ways: bounded segments that exit normally and resume from
 `checkpoint.npz`, 8 CPUs for the named `max_threads_8` solver setting set,
-12 GB for the recorded `6.05 GB` peak, and receipt-named stage-out.
+12 GB for the recorded `6.05 GB` peak, and receipt-named stage-out.  A
+segment is bounded twice: by its `0.5` unit of propagated time and by the
+driver's declared wall budget of `138240 s`.
 
 ## Why segments, and why `0.5` time units each
 
@@ -36,6 +38,30 @@ passed `t = 0.5`, and the guard fires more often deeper into the pulse.  Treat
 `0.5` as an upper bound on segment length: if segment 02 returns a wall time
 above about `12 h`, split the remaining segments before submitting them.
 
+## The second bound: wall time
+
+Segment length bounds the propagated interval, not the wall clock, and the
+rate beyond `t = 0.5` is unmeasured, so segment length alone cannot keep a
+job inside `+MaxRuntime`.  The inner runner therefore passes
+`--maximum-wall-seconds 138240` to the driver, which is `0.8 x 172800`.  At
+the first accepted SSPRK2 step that ends past that budget the rollout stops,
+`checkpoint.npz` holds that step, the trajectory arrays and `summary.json` are
+written for the steps taken with `stop_reason = wall_budget`, and the process
+exits 0, so the job ends normally and stages out.  The remaining fifth of the
+runtime is the headroom the offline exact-reference scoring, the artifact
+writing and the archiving need after the rollout ends.
+
+A segment that stops this way has **not** reached its declared `final_time`.
+Submit that same segment's `final_time` again, from the checkpoint it left,
+with a new `run_id`; the driver reads the resume time from the checkpoint, so
+nothing else in the submit file changes.  `stop_reason` and `last_time` in
+`receipt.json` are what say which case a returned segment is.
+
+`CWRMF_MAXIMUM_WALL_SECONDS` overrides the budget for one segment.  A shorter
+budget is the right response to a segment that returns `wall_budget` with very
+little propagated: it makes the next attempt's stop-and-stage cycle shorter,
+not slower.
+
 ## Argument contract
 
 ```
@@ -53,7 +79,8 @@ a segment's profile, cutoff, coupling, drive, hard floor or step.
 Single vanilla job per segment.  8 CPUs (the named `max_threads_8` Clarabel
 setting set, which is why this lane is not the 2026-08-18 lane's 1 CPU),
 12 GB memory against the recorded `6.05 GB` peak, 30 GB disk (image, scratch
-venv, trajectory and checkpoint), `+MaxRuntime = 172800`.
+venv, trajectory and checkpoint), `+MaxRuntime = 172800`, against which the
+inner runner passes the driver a `138240 s` wall budget.
 
 The import chain is self-contained: `paper_5/src` plus numpy, scipy, cvxpy and
 clarabel.  The inner runner bootstraps a scratch venv with pinned versions
@@ -69,6 +96,7 @@ sets it; nothing in this lane changes a default of the model.
 | `CWRMF_SOLVER_SETTING_PROFILE` | `max_threads_8` | the named Clarabel setting set; it is qualified against the balanced full-Gram acceptance test, not the strict one, and it is not bitwise |
 | `CWRMF_BUNDLE_SEED_POLICY` | unset, i.e. `monotone_hint` | the starting working set of the adaptive bundle tier |
 | `CWRMF_BUNDLE_SEED_RANK_MARGIN` | unset | read only when the policy is set |
+| `CWRMF_MAXIMUM_WALL_SECONDS` | `138240`, i.e. `0.8 x +MaxRuntime` | the driver's declared wall-clock budget; the rollout stops at the first accepted step past it, exits 0 and records `stop_reason = wall_budget` |
 
 ### Lane acceleration decision
 
@@ -159,7 +187,7 @@ archives_by_receipt/<archive_sha256>/receipt.json
 ```bash
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
   && for d in archives_by_receipt/*/; do \
-       echo "$d $(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r[\"run_id\"], r[\"archive_bytes\"], r[\"driver_exit_status\"])" "$d/receipt.json")"; \
+       echo "$d $(python3 -c "import json,sys;r=json.load(open(sys.argv[1]));print(r[\"run_id\"], r.get(\"stop_reason\"), r.get(\"last_time\"), r[\"archive_bytes\"], r[\"driver_exit_status\"])" "$d/receipt.json")"; \
      done'
 
 mkdir -p /tmp/paper_v_accel_arrivals/<sha>
@@ -168,11 +196,18 @@ scp -q "ap2001:~/Holstein_paper_v_cwrmf_accel_20260915/archives_by_receipt/<sha>
 tar -xzf /tmp/paper_v_accel_arrivals/<sha>/*.tar.gz -C /tmp/paper_v_accel_arrivals/<sha>/
 ```
 
-`receipt.json` records the run id, the four contract arguments, the resolved
-solver setting profile and seed policy, the archive SHA-256 and byte count,
-and the driver's exit status.  A nonzero `driver_exit_status` means the
-trajectory stopped short of `final_time`; `summary.json` in the archive gives
-`last_time`, and `checkpoint.npz` in `raw_outputs/` is still the resume point.
+`receipt.json` records the run id, the four contract arguments, the declared
+wall budget, the resolved solver setting profile and seed policy, the archive
+SHA-256 and byte count, the driver's exit status, and the two fields that say
+what the segment reached: `stop_reason` and `last_time`, copied from the run's
+own `summary.json`.
+
+| `stop_reason` | `driver_exit_status` | what to submit next |
+|---|---|---|
+| `final_time` | 0 | the next segment, from this segment's `checkpoint.npz` |
+| `wall_budget` | 0 | **this** segment's `final_time` again, from this segment's `checkpoint.npz`, with a new run id |
+| `step_failure` | 1 | nothing until the failure is read: `summary.json` gives the atom's message, and `checkpoint.npz` is still the last accepted step |
+| `unrecorded` | nonzero | the driver died before writing `summary.json`; read the job's `.err` |
 
 ## Traps
 
@@ -180,7 +215,14 @@ trajectory stopped short of `final_time`; `summary.json` in the archive gives
   and a held job transfers nothing: stdout, stderr and outputs are lost, and
   `condor_transfer_data` does not apply unless the job was submitted with
   `-spool`. Every segment here must exit normally. Never `condor_rm` a held
-  job that was submitted with spool.
+  job that was submitted with spool. This is what `--maximum-wall-seconds
+  138240` is for: it makes the segment end itself at `0.8 x +MaxRuntime`
+  rather than run into the wall.
+- **A `wall_budget` segment did not reach its `final_time`.** Reading the
+  receipt's `driver_exit_status` alone will say a stopped segment succeeded,
+  because it did: every step it took was accepted. `stop_reason` is the field
+  that separates a finished segment from a stopped one, and a stopped one is
+  resubmitted at its **own** `final_time`, not the next segment's.
 - **The driver refuses an existing output directory.** It creates
   `--output-directory` with `exist_ok=False`, so a job that restarts after
   eviction into a sandbox that already holds its own partial output would

@@ -224,6 +224,24 @@ def _parser() -> argparse.ArgumentParser:
             "unchanged."
         ),
     )
+    parser.add_argument(
+        "--maximum-wall-seconds",
+        type=float,
+        default=None,
+        help=(
+            "Declared wall-clock budget for the rollout, off by default.  "
+            "When it is set the rollout stops at the first accepted step "
+            "that ends past the budget, measured on the same clock as "
+            "autonomous_wall_seconds, which starts before the preparation.  "
+            "The stop is clean: checkpoint.npz holds that accepted step, "
+            "the trajectory arrays and summary.json are written for the "
+            "steps taken, summary.json records stop_reason wall_budget "
+            "beside maximum_wall_seconds, and the process exits 0.  The "
+            "budget never changes a step, so a run that reaches "
+            "--final-time before it is unaffected; a run that does not "
+            "resumes from checkpoint.npz with the same --final-time."
+        ),
+    )
     parser.add_argument("--compact-output", action="store_true")
     return parser
 
@@ -339,6 +357,11 @@ def _accuracy_metrics(
 
 def main() -> int:
     args = _parser().parse_args()
+    if (
+        args.maximum_wall_seconds is not None
+        and args.maximum_wall_seconds <= 0.0
+    ):
+        raise ValueError("--maximum-wall-seconds must be positive")
     output_directory = args.output_directory.resolve()
     output_directory.mkdir(parents=True, exist_ok=False)
     progress_path = output_directory / "progress.jsonl"
@@ -515,6 +538,33 @@ def main() -> int:
             psd_inflation=settings.psd_inflation,
         )
         model.enable_instance_recording(instance_recorder)
+    # The declared wall-clock budget, off unless --maximum-wall-seconds is
+    # given.  The deadline is measured from ``started``, the same clock
+    # autonomous_wall_seconds reports, so the budget covers the preparation
+    # as well as the rollout; the scoring against the exact reference and
+    # the writing of the artifacts happen after it and are the caller's
+    # headroom.  The times at which the budget stopped the rollout are
+    # collected so the summary can say why the rollout ended.
+    wall_deadline = (
+        None
+        if args.maximum_wall_seconds is None
+        else started + args.maximum_wall_seconds
+    )
+    wall_budget_stop_times: list[float] = []
+
+    def wall_budget_reached(completed_steps: int, current_time: float) -> bool:
+        assert wall_deadline is not None
+        if time.perf_counter() < wall_deadline:
+            return False
+        wall_budget_stop_times.append(current_time)
+        progress(
+            "declared wall budget of "
+            f"{args.maximum_wall_seconds:g} s reached after "
+            f"{completed_steps} accepted steps at t={current_time:.6f}; "
+            "stopping at that step, checkpoint.npz is the resume point"
+        )
+        return True
+
     rollout_started = time.perf_counter()
     trajectory = integrate_cwrmf_ssprk2(
         model,
@@ -525,7 +575,11 @@ def main() -> int:
         maximum_step_subdivisions=args.maximum_step_subdivisions,
         progress=progress,
         checkpoint=checkpoint,
+        stop_requested=(
+            None if wall_deadline is None else wall_budget_reached
+        ),
     )
+    stopped_on_wall_budget = bool(wall_budget_stop_times)
     rollout_elapsed = time.perf_counter() - rollout_started
     autonomous_elapsed = time.perf_counter() - started
     tier_timing = model.tier_timing
@@ -648,6 +702,28 @@ def main() -> int:
             "completed_steps": trajectory.completed_steps,
             "atom_evaluations": trajectory.atom_evaluations,
             "maximum_step_subdivisions": args.maximum_step_subdivisions,
+            # Recorded only when a wall budget was declared, so a run
+            # without --maximum-wall-seconds writes exactly the summary it
+            # wrote before.  wall_budget says the rollout stopped at an
+            # accepted step short of --final-time and checkpoint.npz is the
+            # resume point; final_time says it reached --final-time;
+            # step_failure says an atom or a convex node ended it.
+            **(
+                {}
+                if args.maximum_wall_seconds is None
+                else {
+                    "maximum_wall_seconds": args.maximum_wall_seconds,
+                    "stop_reason": (
+                        "wall_budget"
+                        if stopped_on_wall_budget
+                        else (
+                            "final_time"
+                            if trajectory.success
+                            else "step_failure"
+                        )
+                    ),
+                }
+            ),
             "success": trajectory.success,
             "message": trajectory.message,
             "maximum_critical_modes": args.maximum_critical_modes,
@@ -752,6 +828,15 @@ def main() -> int:
                         np.max(trajectory.readable_rate_residuals)
                     ),
                     "autonomous_wall_seconds": autonomous_elapsed,
+                    **(
+                        {}
+                        if args.maximum_wall_seconds is None
+                        else {
+                            "stop_reason": summary["integration"][
+                                "stop_reason"
+                            ]
+                        }
+                    ),
                 },
                 sort_keys=True,
             ),

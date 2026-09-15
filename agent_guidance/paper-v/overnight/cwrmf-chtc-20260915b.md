@@ -275,7 +275,9 @@ scp /Users/lordskyler/Holstein_test/chtc/time_dynamics_optuna/image.sif \
   ap2001:~/Holstein_paper_v_cwrmf_accel_20260915/chtc/time_dynamics_optuna/image.sif
 
 # 3. extract, and check the bundle digest against
-#    3110777f8dd1debe73b771c243d2bc3d60eafda4d3576c70b6ba67186261e947
+#    edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f
+#    (the rebuilt bundle; 3110777f... below is the pre-wall-budget one and
+#    must not be uploaded -- see the later section of this report)
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
   && sha256sum paper_v_cwrmf_event_guard_accel_20260915.tgz \
   && tar -xzf paper_v_cwrmf_event_guard_accel_20260915.tgz \
@@ -350,3 +352,154 @@ Files this key touched: `paper_5/src/paper5/stability/apcm_carried_witness.py`,
 `agent_guidance/paper-v/paper-v-state-and-plan-20260914.md`, this report, the
 new lane directory, and git-ignored artifacts under
 `output/local_runs/paper_v_*`.  Nothing is committed.
+
+# The segment's wall-time bound, 2026-09-15 (later the same day)
+
+Same worktree and branch, from HEAD `5f976077`, the commit carrying everything
+above.  The decision the section above asked for was taken: yes.  Nothing is
+committed, nothing is uploaded or submitted, and no default of the model or of
+the driver changed.
+
+**The bundle digest in "Commands for the user" above is superseded.**  The
+bundle was rebuilt with the wall budget in it: upload
+`edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f`, `520921`
+bytes, and not `3110777f...`, `500713` bytes.  Every other command in that
+list is unchanged.
+
+## What changed
+
+| file | change |
+|---|---|
+| `paper_5/src/paper5/stability/apcm_carried_witness.py` | `integrate_cwrmf_ssprk2` gains the keyword-only `stop_requested`, default `None`; `_truncated` gains a keyword-only `success`, default `False` |
+| `paper_5/src/paper5/stability/apcm_carried_witness_analysis.py` | `--maximum-wall-seconds`, default `None`; the deadline predicate; `maximum_wall_seconds` and `stop_reason` in `summary.json` and in the compact line, written only when the option is set |
+| `paper_5/tests/test_apcm_carried_witness.py` | 45 -> 48 tests |
+| `chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel.sh` | passes `--maximum-wall-seconds ${CWRMF_MAXIMUM_WALL_SECONDS:-138240}`; copies `stop_reason` and `last_time` out of the run's own `summary.json` into `receipt.json` |
+| `chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel_apptainer.sh` | passes `CWRMF_MAXIMUM_WALL_SECONDS` through `--cleanenv` |
+| `chtc/paper_v_cwrmf_event_guard_accel_20260915/README.md` | the second bound, the named-option row, the receipt table, two traps |
+
+## The contract
+
+`--maximum-wall-seconds` declares a wall-clock budget for the rollout.  It is
+off unless given, and when it is not given the driver consults nothing and
+writes exactly the `summary.json` it wrote before.
+
+When it is given, the deadline is the driver's own start plus the budget --
+the same clock `autonomous_wall_seconds` reports, so the budget covers the
+preparation as well as the rollout.  After every accepted SSPRK2 step except
+the last, and after `checkpoint.npz` has already recorded that step, the
+driver asks whether the deadline has passed.  At the first accepted step that
+ends past it the rollout stops there: `autonomous_trajectory.npz`,
+`trajectory.npz` and `summary.json` are written for the steps taken,
+`summary.json` records `stop_reason = wall_budget` beside
+`maximum_wall_seconds`, `success` is `true` because every step it reports was
+accepted, and the process exits 0.  A run that reaches `--final-time` first
+records `stop_reason = final_time`; one ended by a failed radial atom or an
+unresolved convex node records `step_failure` and exits 1.
+
+The last step is deliberately exempt: it is the step that ends the rollout at
+`--final-time` on the ordinary path, and stopping before it would turn a
+finished segment into a stopped one.  The offline scoring against the exact
+cutoff-16 reference, the artifact writing and the archiving all happen after
+the rollout ends, which is why the lane declares `0.8` of `+MaxRuntime` and
+not all of it.
+
+At least one step is always taken before the budget is consulted, so a
+resubmission always advances the trajectory; a budget shorter than a single
+accepted step degenerates to one step per submission, not to no progress.
+
+## Measured
+
+Rehearsal of the lane's inner runner outside Apptainer, in a scratch directory
+with `paper_5` linked in, balanced profile, event-triggered guard,
+`--event-gram-hard-floor 2e-4`, `--maximum-step-subdivisions 2`,
+`--solver-setting-profile max_threads_8`, `h = 1e-8`, the lane's own flag
+assembly:
+
+| rehearsal | budget reaching the driver | result |
+|---|---|---|
+| segment to `t = 2e-8`, no previous checkpoint | `138240 s`, the lane default | `success`, `last_time 2e-08`, `stop_reason final_time`, archive `14466` bytes, exit 0 |
+| segment to `t = 3e-8` under `CWRMF_MAXIMUM_WALL_SECONDS=1e-9` | `1e-9 s` | stopped after 1 accepted step at `t = 9.999999999999999e-09`, `stop_reason wall_budget`, archive `13103` bytes, exit 0 |
+| that same segment's `t = 3e-8` again, resumed from the checkpoint it left | `138240 s` | `success`, `last_time 3e-08`, `stop_reason final_time`, archive `14706` bytes, exit 0 |
+| segment with a missing declared checkpoint | not reached | refused before the driver ran, exit 2 |
+| segment whose driver dies before `summary.json` (interval not an integer multiple of the step) | `138240 s` | receipt still written, `stop_reason unrecorded`, `last_time unrecorded`, `driver_exit_status 1` |
+
+The stopped segment's `receipt.json`, abridged:
+
+```json
+{
+  "run_id": "rehearsal_s02_budget",
+  "final_time": "3e-8",
+  "maximum_wall_seconds": "1e-9",
+  "stop_reason": "wall_budget",
+  "last_time": "9.999999999999999e-09",
+  "driver_exit_status": 0
+}
+```
+
+## Tests
+
+| test | what it pins |
+|---|---|
+| `test_declared_stop_request_halts_the_rollout_at_an_accepted_step` | the predicate is consulted after accepted steps 1 and 2 of a 3-step rollout and never on the last; a rollout it stops reports `success`, one completed step, two recorded times, the caller-stop message, and a final state bitwise equal to the uninterrupted rollout's state at that same step |
+| `test_wall_budget_is_off_by_default_and_a_budget_not_reached_is_inert` | the parser default is `None`; a non-positive budget is refused before the output directory is created; over `t = 0` to `2e-8` at `h = 1e-8` a `600 s` budget leaves every recorded array of `autonomous_trajectory.npz` bitwise equal to the unbudgeted run and records `stop_reason final_time`, while the unbudgeted run's summary carries neither new key |
+| `test_a_reached_wall_budget_stops_cleanly_and_leaves_a_resume_point` | a `1e-9 s` budget over `t = 0` to `3e-8` at `h = 1e-8` exits 0 with `stop_reason wall_budget`, one completed step, `last_time 1e-8` against `final_time_requested 3e-8`, two recorded times, a `checkpoint.npz` at step 1 carrying the 384 carried coordinates, and a second invocation that resumes from it to `t = 2e-8` |
+
+The three run in `2.3 s`.
+
+## What changes for the user
+
+Only the digest and what to read off a returned segment.
+
+```bash
+# step 3 above, with the rebuilt bundle's digest
+ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
+  && sha256sum paper_v_cwrmf_event_guard_accel_20260915.tgz \
+  && tar -xzf paper_v_cwrmf_event_guard_accel_20260915.tgz \
+  && chmod +x chtc/paper_v_cwrmf_event_guard_accel_20260915/*.sh \
+  && mkdir -p logs raw_outputs archives_by_receipt'
+# expect edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f
+```
+
+| `stop_reason` | `driver_exit_status` | submit next |
+|---|---|---|
+| `final_time` | 0 | the next segment, from this segment's `checkpoint.npz` |
+| `wall_budget` | 0 | **this** segment's `final_time` again, from this segment's `checkpoint.npz`, with a new run id |
+| `step_failure` | 1 | nothing until the atom's message in `summary.json` is read |
+| `unrecorded` | nonzero | nothing; the driver died before `summary.json`, read the job's `.err` |
+
+`driver_exit_status` alone no longer separates a finished segment from a
+stopped one: both are 0, and that is the point of the change.
+
+## Verification ledger
+
+| gate | result |
+|---|---|
+| `paper_5/tests/test_apcm_carried_witness.py` under `ram_guard.py --limit-mb 4000` | `48 passed in 68.85 s`, peak `1753 MB` |
+| full `paper_5` suite under the same guard | `466 passed, 9 warnings in 263.21 s`, peak `1680 MB`; the count includes the concurrent projective and cheap-projection keys' tests |
+| `chtc/validate_condor_submit_lifecycle.py` on all eight submit files, in the worktree and again on the copies inside the rebuilt bundle | exit status 0 both times |
+| inner-runner rehearsal, five cases | the table above |
+| bundle | `520921` bytes, SHA-256 `edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f`, 101 entries, the same four contents as before |
+| impact, read-only from the main checkout's index | `integrate_cwrmf_ssprk2` LOW, exact, 4 impacted, sole upstream process `apcm_carried_witness_analysis.main`; a text search over the worktree finds its other caller in `cheap_projection_route.py`, which passes no `stop_requested` and is unaffected by a keyword-only parameter defaulting to `None`; `apcm_carried_witness_campaign.py` and `apcm_carried_witness_stitch.py` read only `numerical_settings` and `parameters` out of a chunk `summary.json` and never pass the option |
+
+Files touched in this increment:
+`paper_5/src/paper5/stability/apcm_carried_witness.py`,
+`paper_5/src/paper5/stability/apcm_carried_witness_analysis.py`,
+`paper_5/tests/test_apcm_carried_witness.py`, the lane's inner runner,
+Apptainer wrapper and README,
+`paper_5/notes/electron_phonon_closure_worklog_20260803.md`, this report, and
+the git-ignored bundle under
+`output/local_runs/paper_v_cwrmf_event_guard_accel_20260915/`.  Nothing is
+committed.
+
+## Summary
+
+- `--maximum-wall-seconds` exists, is off by default, and is the lane's second
+  bound at `138240 s`, which is `0.8 x +MaxRuntime = 172800 s`.
+- A stopped segment exits 0 with `stop_reason = wall_budget` and a resume
+  point; a finished one exits 0 with `stop_reason = final_time`.
+- Bundle `edffe887de74267dd557973df4532383524e559d9dba13d098bfea5844d5110f`,
+  `520921` bytes, supersedes `3110777f...`, `500713` bytes.
+- 48 carried-witness tests, 466 in the `paper_5` suite, eight submit files
+  lifecycle-clean, five inner-runner rehearsals.
+- For the user, only the digest changed; the receipt now says whether the next
+  submission is the next segment or the same one again.

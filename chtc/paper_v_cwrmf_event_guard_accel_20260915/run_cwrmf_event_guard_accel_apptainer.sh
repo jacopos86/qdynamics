@@ -20,6 +20,7 @@ ROOT="$PWD"
   --env "CWRMF_SOLVER_SETTING_PROFILE=${CWRMF_SOLVER_SETTING_PROFILE:-max_threads_8}" \
   --env "CWRMF_BUNDLE_SEED_POLICY=${CWRMF_BUNDLE_SEED_POLICY:-}" \
   --env "CWRMF_BUNDLE_SEED_RANK_MARGIN=${CWRMF_BUNDLE_SEED_RANK_MARGIN:-}" \
+  --env "CWRMF_MAXIMUM_WALL_SECONDS=${CWRMF_MAXIMUM_WALL_SECONDS:-}" \
   --env "OMP_NUM_THREADS=${OMP_NUM_THREADS:-8}" \
   --bind "$ROOT:/work" "$IMAGE" \
   bash -lc 'cd /work && bash chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel.sh "$@"' -- "$@"
