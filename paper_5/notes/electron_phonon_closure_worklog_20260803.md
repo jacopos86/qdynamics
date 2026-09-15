@@ -3869,3 +3869,32 @@ passes on the final submit file.  The upload bundle
 `a1edccf60392c3468ad9675d644593c6a90b47f3ac4209a4fa2e249eee3ae8d8`)
 contains `paper_5/src`, `paper_5/pyproject.toml`, and the lane.  Nothing
 has been uploaded or submitted; login requires the user's Duo approval.
+
+## 2026-09-14: overnight loop, parity anchors after the machine loss
+
+Every `output/local_runs/paper_v_*` artifact cited above was lost with the
+previous machine (2026-08-31).  The plan of record is
+`agent_guidance/paper-v/paper-v-state-and-plan-20260914.md`; this block and
+the ones that follow are its execution log on branch
+`claude/paper-v-routes-20260914`.
+
+### No-guard CWRMF anchor, t=0 to 0.5
+
+Rerun of the matched 384-coordinate no-Gram-guard mode from the canonical
+cutoff-16 correlated preparation (prepared in-process), strong coupling,
+`h=0.0025`, 200 SSPRK2 steps, exact reference regenerated in-process.
+Artifact: `output/local_runs/paper_v_cwrmf_no_gram_guard_t05_h0025_cutoff16_20260914_v1/`.
+
+| quantity | 2026-08-07 record | 2026-09-14 rerun |
+|---|---:|---:|
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference, t=0 to 0.5 | `3.19169e-5` | `3.19169e-5` |
+| dynamic C-block scalar RMS | `8.13262e-6` | `8.13262e-6` |
+| dynamic site-0 occupation RMS | `2.07468e-7` | `2.07468e-7` |
+| minimum extended 62-row Gram eigenvalue (carried, unshifted) | `-1.27089e-2` | `-1.27089e-2` |
+| autonomous wall time | `18.93 s` | `9.40 s` |
+| peak resident | not recorded | `701 MB` |
+
+The rerun reproduces the recorded accuracy and physicality numbers to every
+printed digit on the replacement machine; the wall time halves.  This is the
+parity anchor for every no-guard-path acceleration.  The strict always-on
+prefix anchor over `t=0` to `0.05` is running separately.
