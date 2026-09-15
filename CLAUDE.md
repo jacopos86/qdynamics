@@ -94,23 +94,27 @@ one means.
 - **Never hand the user text to paste into their own configuration.** If a
   repository instruction file needs changing, change it.
 
-## Subagent model invariant (user-directed 2026-09-03)
+## Subagent model (user-directed 2026-09-03, revised 2026-09-15)
 
-The failure being corrected: a 13-agent workflow fan-out that inherited the
-Fable session model for one-shot tracer and refuter agents. Initializing a
-Fable subagent re-pays the full context cost with no prompt-cache benefit;
-caching only pays off when the same agent is continued.
+The 2026-09-03 failure was a 13-agent one-shot workflow fan-out that
+inherited Fable for disposable tracer and refuter agents: each fresh Fable
+subagent re-pays the full context cost with no prompt-cache benefit.  The
+2026-09-15 revision keeps the reasoning and changes the rule: Fable
+subagents are allowed and preferred when they are kept alive and reused.
 
-- **One-shot subagents and workflow agents never inherit Fable.** Pass
-  `model: "opus"` explicitly on every Agent call and on every workflow
-  `agent()` call. Not sonnet (user-rejected, same session).
-- **Inherit Fable only for an agent that will be reused.** That means an
-  agent you will continue with SendMessage on the same loaded context for
-  follow-up questions. Say so when launching it.
-- **This is not a memory-only rule.** It was written here because the memory
-  entry alone was judged insufficient; keep both in sync.
+- **Launch one agent per area of work and keep it.** Continue it with
+  SendMessage for every later task in that area; do not spawn a fresh agent
+  for each round.  Persistent Agent-tool agents are preferred over one-shot
+  workflow fan-outs for multi-round work.
+- **Fable for persistent agents; Opus for disposable ones.** An agent that
+  will answer one question and be discarded (a single verification vote, a
+  mechanical edit) runs on Opus with `model: "opus"`; an agent that will be
+  continued may inherit Fable.  Not sonnet (user-rejected 2026-09-03).
+- **Say which at launch.** State whether an agent is persistent (and its
+  area) or disposable.
+- **Keep the memory entry in sync** (`no-fable-subagents.md` was rewritten
+  to this rule on 2026-09-15).
 
-<!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **Holstein_test** (106623 symbols, 219229 relationships, 722 execution flows).
