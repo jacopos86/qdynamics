@@ -4041,3 +4041,67 @@ triggered stage.  Objective values of the strictly convex selector are within
 0.35 percent of the recorded `0.01126712315` over the weights tried.
 Projective tests 30/30 (20 before).  Full `paper_5` suite at the end of the
 round: 326 passed.
+
+### Bounded-depth event-triggered guard, balanced profile, first attempt (killed by the memory guard)
+
+Plan step 5: `--numerical-profile balanced --event-triggered-guard
+--event-gram-hard-floor 2e-4 --maximum-step-subdivisions 2 --tier-timing`,
+`t=0` to `0.5` at `h=0.0025`, from the canonical cutoff-16 correlated
+preparation, under `ram_guard --limit-mb 5000`.  The unguarded flow ran under
+tolerated negativity through `t=0.1175` (step 47; unshifted minimum
+`-1.54e-4` and coupling measure `5.3e-3` at `t=0.10`, bundle rank hint 60),
+then the first triggered conic repair pushed resident memory past the guard
+(`5288 MB > 5000 MB`) and the process tree was killed.  Checkpoint:
+`output/local_runs/paper_v_cwrmf_event_guard_balanced_hardfloor2em4_t05_h0025_cutoff16_20260914_v1/checkpoint.npz`
+(`t=0.1175`, 384-coordinate state, bundle rank hint 60).  The run was resumed
+from that checkpoint under a `7000 MB` guard into
+`..._resume0p1175_20260915_v1/`; the round-1 projective agent measured about
+`5.3 GB` for one forced triggered stage of the one-shell selector, so a
+triggered repair on the 62-row cone at rank 60 appears to need more than the
+`3.27 GB` the record reported for the strict always-on bundle.
+
+### Projective fixed-dictionary APCM with the event-triggered outer guard through the full pulse, t=0 to 4
+
+Plan step 13 (second half), under the exploratory reading of D1 and D2 with
+the recorded lexicographic selector (`frontier_weight 0`) and the default
+event floors (`event_gram_floor 1e-8`, `event_gram_hard_floor 1e-3`,
+`event_coupling_threshold 1e-2`): fixed-dictionary APCM, 15 entrance keys,
+SSPRK(3,3) at `h=0.0025`, containment before every right-hand-side call,
+strong coupling, cutoff 16, exact-correlated preparation, scored offline
+against the exact cutoff-16 driven reference.  Artifact:
+`output/local_runs/paper_v_apcm_projective_event_guard_t4_h0025_cutoff16_20260914_v1/`.
+
+| quantity | this run, t=0 to 4 | raw 31-coordinate archive EOM (record, t=0 to 4, h=0.0025) | carried moments, no Gram guard (record) |
+|---|---:|---:|---:|
+| all-coordinate scalar RMS against the exact cutoff-16 reference (31 closed scalar coordinates; the fixed canonical-embedding offset is `8.1e-16`) | `0.026049` | `0.11090` | `0.48049` |
+| C-block dynamic scalar RMS | `0.020175` | `0.07660` | `0.47234` |
+| site-0 occupation RMS | `0.046452` | `0.02961` | `0.04864` |
+| blockwise dynamic scalar RMS rho / B / N / A | `0.05919` / `0.02602` / `0.01550` / `0.01389` | not printed | not printed |
+| minimum unshifted retained joint-Gram eigenvalue over the run | `2.892e-5` | `-0.5173` | `-17.6151` |
+| minimum scaled positive-extension eigenvalue over the run | `-9.3e-16` | --- | `-26.4455` (extended 62-row Gram) |
+| autonomous wall time / peak resident | `3,229.8 s` / `284 MB` | --- | `153.53 s` |
+
+The outer guard evaluated 5,559 stages, classified 4,948 quiet and 611
+tolerated (endpoint unshifted 24-row Gram minimum down to `-1.02e-4`, never
+below the hard floor; coupling measure at most `1.07e-3`), and fired no
+selector solve.  The physicality work was done entirely by the stage
+retraction (the proximal log-det completion, `direct_clarabel:Solved/Solved`)
+on 1,068 of the 5,559 stages, the other 4,491 being already feasible; the
+per-stage wall time including that retraction sums to `2,706.8 s` of the
+`3,229.8 s` (mean `0.487 s`, maximum `19.2 s` at `t=3.094`), while the event
+test itself costs about `0.01 s` per stage.  The driver's static-energy RMS
+(`0.036201`) is not the record's interaction-energy RMS column and is not
+compared to it here.
+
+Reading: this is the first moment-hierarchy trajectory through the full
+driven interval that stays representable (retained joint Gram positive to
+`2.9e-5`) and beats the raw archive EOM on the 31-coordinate and C-block
+errors, at the cost of a worse site-0 occupation error.  Against the
+60-coordinate positive-M4 record over the same interval (cell A, full cone
+plus controller: `0.012580` at `3,399.6 s`; cell B, zero-cumulant prior plus
+controller: `0.046475` at `52.9 s`; worklog:2608-2664) it sits between the
+two in accuracy at cell A's cost, and the cost is the stage retraction, not
+the guard.  Next: make the stage retraction cheaper (warm-started completion
+is under test in round 2) and extend the same configuration to `t=20` for the
+comparison against the both-cones line (`0.128607` over `t=0` to `20`,
+worklog:2781-2792).
