@@ -54,9 +54,70 @@ class APCMMomentEnvelopeError(APCMProjectionError):
     """An active or terminal moment reached the frozen model envelope."""
 
 
+_FACE_POLICIES = ("refuse", "continuation", "inflated")
+
+_RETRACTED_STAGE_ATTRIBUTE = "apcm_retracted_stage"
+
+
+def _attach_retracted_stage(
+    error: BaseException,
+    lower_moments: Mapping[MomentKey, float],
+    frontier_moments: Mapping[MomentKey, float],
+    base_minimum: float,
+    extension_minimum: float,
+) -> None:
+    """Record the retracted point a stage refusal was raised at.
+
+    The retraction moves the trial point before it re-selects the declared
+    completion, so a refusal raised after that move is about the retracted
+    lower moments, not the trial's.  Those are what a diagnosis of the
+    completion problem needs, so they travel on the exception.
+    """
+
+    if getattr(error, _RETRACTED_STAGE_ATTRIBUTE, None) is None:
+        try:
+            setattr(
+                error,
+                _RETRACTED_STAGE_ATTRIBUTE,
+                {
+                    "lower_moments": dict(lower_moments),
+                    "frontier_moments": dict(frontier_moments),
+                    "base_minimum": float(base_minimum),
+                    "extension_minimum": float(extension_minimum),
+                },
+            )
+        except AttributeError:  # pragma: no cover - builtin exceptions allow it
+            pass
+
+
+def apcm_retracted_stage(error: BaseException) -> dict[str, object] | None:
+    """Return the retracted point recorded on ``error``, when there is one."""
+
+    payload = getattr(error, _RETRACTED_STAGE_ATTRIBUTE, None)
+    return payload if isinstance(payload, dict) else None
+
+
 @dataclass(frozen=True)
 class APCMProjectionSettings:
-    """Numerical tolerances for the faithful APCM physical layer."""
+    """Numerical tolerances for the faithful APCM physical layer.
+
+    ``face_policy`` names what happens when the numerical face of one of the
+    two moment matrices is not the same under the declared refinement of the
+    null tolerance (factors 0.5, 1 and 2).  ``"refuse"``, the default, is the
+    committed path: the projection refuses and the rollout stops.
+    ``"continuation"`` carries the face identified at the previous stage when
+    it is still consistent at this state, with fresh identification as the
+    fallback.  A carried face of rank zero is the statement that the previous
+    stage exposed no face; its consistency residual is that of an empty basis
+    and is zero, so the gate that discriminates there is the rank range, which
+    admits zero only when the refinement itself is undecided between no face
+    and a face.  ``"inflated"`` identifies the face of the cone inflated by
+    ``face_inflation_multiple`` conic tolerances, which is the declared stage
+    margin of the coupled stage cone applied to the face, so a matrix that is
+    inside the inflated cone exposes no face and the projection stays
+    continuous there.  The two tolerances are read only by the policy that
+    names them, so the default instance is the committed path exactly.
+    """
 
     phonon_envelope: float = 16.0
     conic_tolerance: float = 1e-9
@@ -65,6 +126,9 @@ class APCMProjectionSettings:
     maximum_cvxpy_psd_dimension: int = 16
     maximum_direct_workspace_bytes: int = 512 * 1024**2
     clarabel_max_threads: int = 1
+    face_policy: str = "refuse"
+    face_continuation_tolerance: float = 1e-6
+    face_inflation_multiple: float = 100.0
 
     def __post_init__(self) -> None:
         if self.phonon_envelope <= 0.0:
@@ -81,6 +145,14 @@ class APCMProjectionSettings:
             raise ValueError("maximum_direct_workspace_bytes must be positive")
         if self.clarabel_max_threads <= 0:
             raise ValueError("clarabel_max_threads must be positive")
+        if self.face_policy not in _FACE_POLICIES:
+            raise ValueError(
+                "face_policy must be one of " + ", ".join(sorted(_FACE_POLICIES))
+            )
+        if self.face_continuation_tolerance <= 0.0:
+            raise ValueError("face_continuation_tolerance must be positive")
+        if self.face_inflation_multiple < 0.0:
+            raise ValueError("face_inflation_multiple must be nonnegative")
 
 
 @dataclass(frozen=True)
@@ -250,23 +322,61 @@ def _kernel_basis(
     tolerance: float,
     *,
     name: str,
-) -> ComplexArray:
-    eigenvalues, eigenvectors = np.linalg.eigh(
-        0.5 * (matrix + matrix.conjugate().T)
-    )
+    policy: str = "refuse",
+    inflation: float = 0.0,
+    carried: tuple[int, ComplexArray] | None = None,
+    continuation_tolerance: float = 1e-6,
+    counters: dict[str, int] | None = None,
+) -> tuple[ComplexArray, int, str]:
+    """Identify the numerical face of one moment matrix.
+
+    Returns the face basis, the rank it was identified at, and how it was
+    identified.  ``policy`` is the declared face policy; ``"refuse"`` is the
+    committed path and ignores ``inflation`` and ``carried`` entirely.
+    """
+
+    hermitian = 0.5 * (matrix + matrix.conjugate().T)
+    eigenvalues, eigenvectors = np.linalg.eigh(hermitian)
     if eigenvalues[0] < -10.0 * tolerance:
         raise APCMProjectionError(
             f"{name} is outside its cone: lambda_min={eigenvalues[0]:.3e}"
         )
+    offset = float(inflation) if policy == "inflated" else 0.0
     ranks = tuple(
-        int(np.count_nonzero(eigenvalues <= factor * tolerance))
+        int(np.count_nonzero(eigenvalues + offset <= factor * tolerance))
         for factor in (0.5, 1.0, 2.0)
     )
-    if len(set(ranks)) != 1:
-        raise APCMProjectionError(
-            f"{name} numerical face is unstable under null-tolerance refinement"
+    if len(set(ranks)) == 1:
+        if counters is not None:
+            counters["identified"] += 1
+        return (
+            np.asarray(eigenvectors[:, : ranks[1]], dtype=complex),
+            ranks[1],
+            "identified",
         )
-    return np.asarray(eigenvectors[:, : ranks[1]], dtype=complex)
+    if policy == "continuation" and carried is not None:
+        rank, basis = carried
+        if (
+            min(ranks) <= rank <= max(ranks)
+            and basis.shape[0] == hermitian.shape[0]
+        ):
+            residual = float(
+                np.linalg.norm(hermitian @ basis, ord=np.inf)
+                / (1.0 + np.linalg.norm(hermitian, ord=np.inf))
+            )
+            if residual <= continuation_tolerance:
+                if counters is not None:
+                    counters["continued"] += 1
+                return (
+                    np.asarray(eigenvectors[:, :rank], dtype=complex),
+                    rank,
+                    "continued",
+                )
+    if counters is not None:
+        counters["refused"] += 1
+    raise APCMProjectionError(
+        f"{name} numerical face is unstable under null-tolerance refinement"
+    )
 
 
 def _hermitian_linear_expression(
@@ -381,6 +491,48 @@ class SymmetryReducedAPCMGeometry:
         self._stage_common_cone_data: (
             tuple[sparse.csc_matrix, FloatArray, tuple[object, ...]] | None
         ) = None
+        self._carried_faces: dict[str, tuple[int, ComplexArray]] = {}
+        self.completion_ladder: tuple[SymmetryReducedPositiveExtension, ...] = ()
+        self.completion_ladder_counters: dict[str, int] = {
+            "retry_accepted": 0,
+            "retry_exhausted": 0,
+        }
+        self.face_policy_counters: dict[str, int] = {
+            "identified": 0,
+            "continued": 0,
+            "refused": 0,
+        }
+
+    def _identify_face(
+        self,
+        matrix: ComplexArray,
+        tolerance: float,
+        name: str,
+    ) -> ComplexArray:
+        """Identify one numerical face under the declared face policy."""
+
+        policy = self.settings.face_policy
+        basis, rank, source = _kernel_basis(
+            matrix,
+            tolerance,
+            name=name,
+            policy=policy,
+            inflation=(
+                self.settings.face_inflation_multiple
+                * max(
+                    self.settings.conic_tolerance,
+                    self.extension.settings.conic_tolerance,
+                )
+                if policy == "inflated"
+                else 0.0
+            ),
+            carried=self._carried_faces.get(name),
+            continuation_tolerance=self.settings.face_continuation_tolerance,
+            counters=self.face_policy_counters,
+        )
+        if policy == "continuation" and source == "identified":
+            self._carried_faces[name] = (rank, basis)
+        return basis
 
     @property
     def direct_retraction_estimate_bytes(self) -> int:
@@ -537,18 +689,18 @@ class SymmetryReducedAPCMGeometry:
             self.settings.null_tolerance_factor
             * self.settings.conic_tolerance
         )
-        base_kernel = _kernel_basis(
+        base_kernel = self._identify_face(
             scaled_base,
             tolerance,
-            name="retained affine moment matrix",
+            "retained affine moment matrix",
         )
         scaled_extension = self.extension.scaled_matrix(
             completion.moment_matrix
         )
-        extension_kernel = _kernel_basis(
+        extension_kernel = self._identify_face(
             scaled_extension,
             tolerance,
-            name="extended operator moment matrix",
+            "extended operator moment matrix",
         )
         if (
             extension_kernel.shape[1] > 0
@@ -1313,12 +1465,42 @@ class SymmetryReducedAPCMGeometry:
             lower,
             warm_frontier=frontier_warm,
         )
+        if not selected.success and self.completion_ladder:
+            for extension in self.completion_ladder:
+                retried = extension.complete(
+                    lower,
+                    warm_frontier=frontier_warm,
+                )
+                if retried.success:
+                    self.completion_ladder_counters["retry_accepted"] += 1
+                    selected = retried
+                    break
+            else:
+                self.completion_ladder_counters["retry_exhausted"] += 1
         if not selected.success:
-            raise APCMProjectionError(
+            refusal = APCMProjectionError(
                 "retracted lower moments did not admit the declared selector: "
                 f"{selected.message}"
             )
-        self.validate_envelopes(hidden_star, selected)
+            _attach_retracted_stage(
+                refusal,
+                lower,
+                frontier_warm,
+                direct_base_minimum,
+                direct_extension_minimum,
+            )
+            raise refusal
+        try:
+            self.validate_envelopes(hidden_star, selected)
+        except APCMProjectionError as error:
+            _attach_retracted_stage(
+                error,
+                lower,
+                frontier_warm,
+                direct_base_minimum,
+                direct_extension_minimum,
+            )
+            raise
         retained_delta = raw_star - raw
         auxiliary_delta = hidden_star - hidden
         return APCMStageRetraction(
@@ -1351,5 +1533,6 @@ __all__ = [
     "APCMStageRetraction",
     "APCMVelocityProjection",
     "SymmetryReducedAPCMGeometry",
+    "apcm_retracted_stage",
     "state_lower_moments",
 ]

@@ -855,3 +855,247 @@ def test_named_solver_setting_profiles_overlay_only_their_own_fields() -> None:
         assert settings.presolve_enable == overrides.get(
             "presolve_enable", True
         )
+
+
+def test_bundle_seed_and_growth_defaults_are_the_recorded_rule() -> None:
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_BUNDLE_SEED_POLICIES,
+        DEFAULT_BUNDLE_SEED_POLICY,
+    )
+
+    assert DEFAULT_BUNDLE_SEED_POLICY == "monotone_hint"
+    assert CWRMF_BUNDLE_SEED_POLICIES == (
+        "monotone_hint",
+        "spectral_threshold",
+        "previous_accepted_rank",
+        "previous_accepted_rank_margin",
+        "carried_accepted_basis",
+        "carried_accepted_basis_exit",
+    )
+    for settings in (
+        CWRMFSettings(),
+        cwrmf_settings_for_profile("strict"),
+        cwrmf_settings_for_profile("balanced"),
+    ):
+        assert settings.bundle_seed_policy == DEFAULT_BUNDLE_SEED_POLICY
+        assert settings.bundle_seed_rank_margin == 0
+        assert settings.bundle_growth_factor == 1.0
+        assert settings.bundle_growth_trigger == 0.0
+        assert settings.bundle_interior_overshoot == 1.0
+
+    with pytest.raises(ValueError, match="unknown CWRMF bundle seed policy"):
+        replace(CWRMFSettings(), bundle_seed_policy="guess_harder")
+    with pytest.raises(ValueError, match="bundle_seed_rank_margin"):
+        replace(CWRMFSettings(), bundle_seed_rank_margin=-1)
+    with pytest.raises(ValueError, match="bundle_seed_spectral_threshold"):
+        replace(CWRMFSettings(), bundle_seed_spectral_threshold=0.0)
+    with pytest.raises(ValueError, match="bundle_growth_factor"):
+        replace(CWRMFSettings(), bundle_growth_factor=0.5)
+    with pytest.raises(ValueError, match="bundle_growth_trigger"):
+        replace(CWRMFSettings(), bundle_growth_trigger=-1.0)
+    with pytest.raises(ValueError, match="bundle_interior_overshoot"):
+        replace(CWRMFSettings(), bundle_interior_overshoot=0.9)
+
+
+def _seed_operands(rank: int = 62, seed: int = 20260915):
+    """Return a shifted Hermitian predictor and its ordered eigenpairs."""
+
+    generator = np.random.default_rng(seed)
+    root = generator.normal(size=(rank, rank)) + 1j * generator.normal(
+        size=(rank, rank)
+    )
+    matrix = root.conjugate().T @ root
+    matrix = 1e-9 * 0.5 * (matrix + matrix.conjugate().T)
+    values, vectors = np.linalg.eigh(matrix)
+    return matrix, values, vectors
+
+
+def test_default_bundle_seed_is_the_literal_leading_eigenvector_block(
+) -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    model = CarriedWitnessModel(DimerParameters())
+    for hint, spectral_rank in ((0, 6), (26, 6), (26, 31), (70, 4)):
+        model._bundle_rank_hint = hint
+        basis = model._bundle_seed_working_set(
+            values, vectors, spectral_rank, matrix
+        )
+        expected_rank = min(
+            model.settings.critical_mode_limit, max(spectral_rank, hint)
+        )
+        selected = np.arange(expected_rank, dtype=np.int64)
+        assert np.array_equal(basis, vectors[:, selected])
+
+
+def test_named_bundle_seed_policies_move_only_the_starting_rank() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    threshold = float(values[33] - CWRMFSettings().psd_inflation)
+
+    def model_for(**overrides):
+        settings = replace(CWRMFSettings(), **overrides)
+        built = CarriedWitnessModel(DimerParameters(), settings=settings)
+        built._bundle_rank_hint = 26
+        built._bundle_accepted_rank = 24
+        return built
+
+    spectral = model_for(
+        bundle_seed_policy="spectral_threshold",
+        bundle_seed_spectral_threshold=threshold,
+    )
+    basis = spectral._bundle_seed_working_set(values, vectors, 6, matrix)
+    # 33 eigenvalues lie strictly below the declared threshold, which is more
+    # than both the spectral entry count and the monotone hint.
+    assert basis.shape[1] == 33
+    assert np.array_equal(basis, vectors[:, np.arange(33, dtype=np.int64)])
+
+    previous = model_for(bundle_seed_policy="previous_accepted_rank")
+    assert (
+        previous._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 24
+    )
+
+    margin = model_for(
+        bundle_seed_policy="previous_accepted_rank_margin",
+        bundle_seed_rank_margin=5,
+    )
+    assert (
+        margin._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 29
+    )
+
+    first = model_for(
+        bundle_seed_policy="previous_accepted_rank_margin",
+        bundle_seed_rank_margin=5,
+    )
+    first._bundle_accepted_rank = 0
+    assert (
+        first._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 6
+    )
+
+
+def test_carried_working_set_spans_the_accepted_directions() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    carried = vectors[:, np.arange(40, 60, dtype=np.int64)]
+    settings = replace(
+        CWRMFSettings(), bundle_seed_policy="carried_accepted_basis"
+    )
+    model = CarriedWitnessModel(DimerParameters(), settings=settings)
+    model._bundle_rank_hint = 26
+
+    # Without an accepted working set the policy is the recorded rule.
+    assert np.array_equal(
+        model._bundle_seed_working_set(values, vectors, 6, matrix),
+        vectors[:, np.arange(26, dtype=np.int64)],
+    )
+
+    model._bundle_accepted_rank = 20
+    model._bundle_accepted_basis = carried
+    basis = model._bundle_seed_working_set(values, vectors, 6, matrix)
+    assert basis.shape[1] == 26
+    assert np.allclose(basis.conjugate().T @ basis, np.eye(26), atol=1e-12)
+    projector = basis @ basis.conjugate().T
+    assert np.allclose(projector @ carried, carried, atol=1e-10)
+    assert np.allclose(
+        projector @ vectors[:, :6], vectors[:, :6], atol=1e-10
+    )
+
+    capped = CarriedWitnessModel(
+        DimerParameters(),
+        settings=replace(settings, bundle_seed_rank_margin=2),
+    )
+    capped._bundle_rank_hint = 26
+    capped._bundle_accepted_rank = 20
+    capped._bundle_accepted_basis = carried
+    assert (
+        capped._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 22
+    )
+
+
+def test_carried_working_set_exit_drops_the_risen_modes() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    carried = vectors[:, np.arange(40, 60, dtype=np.int64)]
+    threshold = float(values[50] - CWRMFSettings().psd_inflation)
+    settings = replace(
+        CWRMFSettings(),
+        bundle_seed_policy="carried_accepted_basis_exit",
+        bundle_seed_spectral_threshold=threshold,
+    )
+    model = CarriedWitnessModel(DimerParameters(), settings=settings)
+    model._bundle_rank_hint = 6
+    model._bundle_accepted_rank = 20
+    model._bundle_accepted_basis = carried
+    basis = model._bundle_seed_working_set(values, vectors, 6, matrix)
+    # Carried columns 40..49 stay below the declared threshold; 50..59 exit.
+    assert basis.shape[1] == 16
+    projector = basis @ basis.conjugate().T
+    kept = vectors[:, np.arange(40, 50, dtype=np.int64)]
+    dropped = vectors[:, np.arange(50, 60, dtype=np.int64)]
+    assert np.allclose(projector @ kept, kept, atol=1e-10)
+    assert float(np.max(np.abs(projector @ dropped))) < 1e-8
+
+
+def test_bundle_growth_target_is_the_declared_factor_capped() -> None:
+    from paper5.stability.apcm_carried_witness import _bundle_growth_target
+
+    assert _bundle_growth_target(1.5, 20, 61) == 30
+    assert _bundle_growth_target(1.25, 31, 61) == 39
+    assert _bundle_growth_target(2.0, 40, 61) == 61
+    assert _bundle_growth_target(1.0, 31, 61) == 31
+    # At the default factor the tier never reaches the padding branch.
+    assert CWRMFSettings().bundle_growth_factor == 1.0
+    assert not CWRMFSettings().bundle_growth_factor > 1.0
+
+
+def test_interior_overshoot_moves_the_compressed_margin_not_acceptance(
+) -> None:
+    default = CWRMFSettings()
+    assert (
+        default.schur_safety_margin * default.bundle_interior_overshoot
+        == default.schur_safety_margin
+    )
+    raised = replace(default, bundle_interior_overshoot=3.0)
+    assert raised.schur_safety_margin == default.schur_safety_margin
+    assert (
+        raised.schur_safety_margin * raised.bundle_interior_overshoot
+        == 3.0 * default.schur_safety_margin
+    )
+    assert raised.solver_tolerance == default.solver_tolerance
+
+
+def test_analysis_parser_defaults_leave_the_bundle_rule_untouched() -> None:
+    from paper5.stability.apcm_carried_witness_analysis import _parser
+
+    parsed = _parser().parse_args(["--output-directory", "run"])
+    assert parsed.bundle_seed_policy == "monotone_hint"
+    assert parsed.bundle_seed_spectral_threshold is None
+    assert parsed.bundle_seed_rank_margin is None
+    assert parsed.bundle_growth_factor is None
+    assert parsed.bundle_growth_trigger is None
+    assert parsed.bundle_interior_overshoot is None
+
+    parsed = _parser().parse_args(
+        [
+            "--output-directory",
+            "run",
+            "--bundle-seed-policy",
+            "carried_accepted_basis",
+            "--bundle-seed-rank-margin",
+            "2",
+        ]
+    )
+    assert parsed.bundle_seed_policy == "carried_accepted_basis"
+    assert parsed.bundle_seed_rank_margin == 2
+
+    with pytest.raises(SystemExit):
+        _parser().parse_args(
+            ["--output-directory", "run", "--bundle-seed-policy", "hopeful"]
+        )

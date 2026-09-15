@@ -48,8 +48,15 @@ from .adaptive_positive_moment import (
     raw_moment_coordinates_to_matrix_state,
 )
 from .apcm_carried_witness_analysis import _accuracy_metrics
-from .apcm_moment_projection import state_lower_moments
-from .apcm_positive_extension import SymmetryReducedPositiveExtension
+from .apcm_moment_projection import (
+    APCMProjectionSettings,
+    SymmetryReducedAPCMGeometry,
+    state_lower_moments,
+)
+from .apcm_positive_extension import (
+    APCMExtensionSettings,
+    SymmetryReducedPositiveExtension,
+)
 from .apcm_projective_guard import (
     compile_invariant_target_readout,
     select_outer_feasible_projective_guard,
@@ -68,10 +75,14 @@ from .projected_apcm import (
     FixedDictionaryProjectedAPCM,
     ProjectedAPCMSettings,
     ProjectedAPCMStagePolicy,
+    ProjectedAPCMStageFailure,
+    ProjectedAPCMTrajectory,
     ProjectiveOuterEventGuard,
     ProjectiveOuterEventGuardSettings,
     integrate_projected_apcm_ssprk3,
     prepare_projected_apcm_initial_state,
+    projected_apcm_partial_trajectory,
+    projected_apcm_stage_failure,
     unpack_projected_apcm_state,
 )
 
@@ -241,6 +252,95 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--completion-retry-shifts",
+        type=float,
+        nargs="+",
+        default=[],
+        help=(
+            "Declared ladder of log-determinant shifts retried, in order, "
+            "when the declared completion is not certified; empty is the "
+            "committed path."
+        ),
+    )
+    parser.add_argument(
+        "--completion-retry-weights",
+        type=float,
+        nargs="+",
+        default=[],
+        help=(
+            "Declared ladder of log-determinant weights retried after the "
+            "shifts; empty is the committed path."
+        ),
+    )
+    parser.add_argument(
+        "--face-policy",
+        choices=("refuse", "continuation", "inflated"),
+        default=APCMProjectionSettings.face_policy,
+        help=(
+            "What the velocity projection does when a numerical face is not "
+            "the same under the declared null-tolerance refinement; "
+            "'refuse' is the committed path."
+        ),
+    )
+    parser.add_argument(
+        "--face-continuation-tolerance",
+        type=float,
+        default=APCMProjectionSettings.face_continuation_tolerance,
+        help=(
+            "Relative consistency gate a carried face must pass before it "
+            "is reused under --face-policy continuation."
+        ),
+    )
+    parser.add_argument(
+        "--face-inflation-multiple",
+        type=float,
+        default=APCMProjectionSettings.face_inflation_multiple,
+        help=(
+            "Interior, in conic tolerances, of the inflated cone whose face "
+            "is identified under --face-policy inflated; 100 is the declared "
+            "stage margin of the coupled stage cone."
+        ),
+    )
+    parser.add_argument(
+        "--completion-logdet-shift",
+        type=float,
+        default=APCMExtensionSettings.logdet_shift,
+        help=(
+            "Declared positive-semidefinite inflation of the completion "
+            "cone: the shift inside the log-determinant barrier of the "
+            "proximal completion."
+        ),
+    )
+    parser.add_argument(
+        "--completion-logdet-weight",
+        type=float,
+        default=APCMExtensionSettings.logdet_weight,
+        help=(
+            "Weight of the log-determinant barrier against the proximal term "
+            "of the declared completion; a smaller value is a proximal step "
+            "of larger declared weight."
+        ),
+    )
+    parser.add_argument(
+        "--initial-state-file",
+        type=Path,
+        default=None,
+        help=(
+            "Continue the rollout from the last state of a stored "
+            "trajectory .npz (keys 'times' and 'states'), instead of the "
+            "exact-correlated preparation at t=0."
+        ),
+    )
+    parser.add_argument(
+        "--initial-time",
+        type=float,
+        default=None,
+        help=(
+            "Declared start time of the rollout; the default is 0.0 for a "
+            "prepared start and the stored final time for a continued one."
+        ),
+    )
+    parser.add_argument(
         "--disable-kpd-correction",
         action="store_true",
         help=(
@@ -406,6 +506,100 @@ def _run_outer_selector(
         record,
         np.asarray(selection.target_image, dtype=float),
         np.asarray(selection.current_standardized_values, dtype=float),
+    )
+
+
+def _exact_archive_coordinates(
+    parameters: DimerParameters,
+    times: np.ndarray,
+    *,
+    phonon_cutoff: int,
+    time_step: float,
+) -> np.ndarray:
+    """Exact closed scalar coordinates at ``times``, which may start late.
+
+    The exact propagation is defined from the prepared ground state at
+    ``t = 0``, so a rollout continued from a stored state is scored by
+    propagating the exact reference from zero through a grid that ends on
+    the rollout's own sample times and keeping the tail.
+    """
+
+    sample = np.asarray(times, dtype=float)
+    start = float(sample[0])
+    if start > 1e-15:
+        leading = np.arange(
+            0.0, start - 0.5 * time_step, time_step, dtype=float
+        )
+        sample = np.concatenate((leading, sample))
+    exact = exact_holstein_driven_trajectory(
+        parameters,
+        sample_times=sample,
+        phonon_cutoff=phonon_cutoff,
+        maximum_step=min(0.01, time_step * 4.0),
+    )
+    coordinates = np.asarray(
+        [
+            matrix_state_to_closed_scalar_coordinates(state)
+            for state in exact.matrix_states
+        ],
+        dtype=float,
+    )
+    return coordinates[coordinates.shape[0] - len(times):]
+
+
+def _stage_failure_record(
+    failure: ProjectedAPCMStageFailure | None,
+) -> dict[str, Any] | None:
+    """JSON view of the stage a failed rollout stopped at."""
+
+    if failure is None:
+        return None
+    return {
+        "stage": failure.stage,
+        "time": failure.time,
+        "message": failure.message,
+        "lower_moment_count": len(failure.lower_moments),
+        "lower_moments": {
+            repr(key): float(value)
+            for key, value in failure.lower_moments.items()
+        },
+        "state_euclidean_norm": float(np.linalg.norm(failure.state)),
+    }
+
+
+def _write_failure_artifacts(
+    output_directory: Path,
+    failure: ProjectedAPCMStageFailure | None,
+) -> None:
+    """Save the failing stage's state and lower moments for a rerun."""
+
+    if failure is None:
+        return
+    keys = tuple(failure.lower_moments)
+    np.savez_compressed(
+        output_directory / "stage_failure.npz",
+        stage=np.asarray(failure.stage),
+        time=np.asarray(failure.time, dtype=float),
+        state=np.asarray(failure.state, dtype=float),
+        lower_moment_names=np.asarray([repr(key) for key in keys]),
+        lower_moment_values=np.asarray(
+            [float(failure.lower_moments[key]) for key in keys], dtype=float
+        ),
+        warm_frontier_names=np.asarray(
+            []
+            if failure.warm_frontier_moments is None
+            else [repr(key) for key in failure.warm_frontier_moments]
+        ),
+        warm_frontier_values=np.asarray(
+            []
+            if failure.warm_frontier_moments is None
+            else [
+                float(value)
+                for value in failure.warm_frontier_moments.values()
+            ],
+            dtype=float,
+        ),
+        message=np.asarray(failure.message),
     )
 
 
@@ -658,46 +852,132 @@ def main() -> int:
         carried_completion_margin_multiple=(
             args.carried_completion_margin_multiple
         ),
+        completion_retry_shifts=tuple(args.completion_retry_shifts),
+        completion_retry_weights=tuple(args.completion_retry_weights),
     )
     model_settings = ProjectedAPCMSettings(
         include_k=not args.disable_kpd_correction,
         include_pauli=not args.disable_kpd_correction,
         include_opposite_spin=not args.disable_kpd_correction,
     )
+    extension_settings = APCMExtensionSettings(
+        logdet_weight=args.completion_logdet_weight,
+        logdet_shift=args.completion_logdet_shift,
+    )
+    projection_settings = APCMProjectionSettings(
+        face_policy=args.face_policy,
+        face_continuation_tolerance=args.face_continuation_tolerance,
+        face_inflation_multiple=args.face_inflation_multiple,
+    )
     started = perf_counter()
-    extension = SymmetryReducedPositiveExtension(active_keys=active_keys)
-    initialization = prepare_projected_apcm_initial_state(
-        parameters,
-        phonon_cutoff=args.phonon_cutoff,
-        extension=extension,
+    extension = SymmetryReducedPositiveExtension(
+        active_keys=active_keys, settings=extension_settings
     )
     model = FixedDictionaryProjectedAPCM(
         parameters,
         extension=extension,
+        geometry=SymmetryReducedAPCMGeometry(extension, projection_settings),
         settings=model_settings,
         stage_policy=stage_policy,
     )
+    if args.initial_state_file is None:
+        initialization = prepare_projected_apcm_initial_state(
+            parameters,
+            phonon_cutoff=args.phonon_cutoff,
+            extension=extension,
+        )
+        initial_state = initialization.state
+        initial_completion = initialization.completion
+        initial_time = 0.0 if args.initial_time is None else args.initial_time
+        continuation = None
+    else:
+        stored_path = args.initial_state_file.resolve()
+        stored = np.load(stored_path)
+        initial_state = np.asarray(stored["states"][-1], dtype=float)
+        stored_time = float(np.asarray(stored["times"])[-1])
+        initial_time = (
+            stored_time if args.initial_time is None else args.initial_time
+        )
+        initial_completion = None
+        continuation = {
+            "initial_state_file": str(stored_path),
+            "stored_final_time": stored_time,
+            "initial_time": float(initial_time),
+        }
+        progress(
+            f"continued from {stored_path} at t={initial_time:.6f} "
+            f"state_dim={initial_state.size}"
+        )
     guard = ProjectiveOuterEventGuard(model, settings=guard_settings)
     progress(
         f"prepared state_dim={len(model.state_names)} "
         f"gram_rows={extension.dimension} "
         f"frontier={len(extension.frontier_keys)} "
-        f"lambda_ext={initialization.completion.scaled_minimum_eigenvalue:.3e}"
+        + (
+            "lambda_ext="
+            f"{initial_completion.scaled_minimum_eigenvalue:.3e}"
+            if initial_completion is not None
+            else "lambda_ext=selected_at_start"
+        )
     )
     deadline = perf_counter() + float(args.wall_budget_seconds)
-    trajectory = integrate_projected_apcm_ssprk3(
-        model,
-        initialization.state,
-        initial_completion=initialization.completion,
-        final_time=args.final_time,
-        time_step=args.time_step,
-        maximum_subdivisions=args.maximum_subdivisions,
-        progress=progress,
-        outer_guard=guard,
-        deadline=deadline,
-        tolerate_stage_failure=bool(args.tolerate_stage_failure),
-    )
+    stage_failure: ProjectedAPCMStageFailure | None = None
+    failure_message: str | None = None
+    trajectory: ProjectedAPCMTrajectory | None
+    try:
+        trajectory = integrate_projected_apcm_ssprk3(
+            model,
+            initial_state,
+            initial_completion=initial_completion,
+            final_time=args.final_time,
+            time_step=args.time_step,
+            initial_time=float(initial_time),
+            maximum_subdivisions=args.maximum_subdivisions,
+            progress=progress,
+            outer_guard=guard,
+            deadline=deadline,
+            tolerate_stage_failure=bool(args.tolerate_stage_failure),
+        )
+    except Exception as error:  # noqa: BLE001 - every failure path is saved
+        trajectory = projected_apcm_partial_trajectory(error)
+        stage_failure = projected_apcm_stage_failure(error)
+        failure_message = f"{type(error).__name__}: {error}"
+        progress(f"rollout_failed {failure_message}")
     autonomous_elapsed = perf_counter() - started
+    if trajectory is None:
+        summary = dict(common)
+        summary["model"] = (
+            "fixed_dictionary_projected_apcm_event_triggered_outer_guard"
+        )
+        summary["guard_settings"] = asdict(guard_settings)
+        summary["stage_policy"] = asdict(stage_policy)
+        summary["model_settings"] = asdict(model_settings)
+        summary["projection_settings"] = asdict(projection_settings)
+        summary["extension_settings"] = asdict(extension_settings)
+        summary["face_policy_counters"] = dict(
+            model.geometry.face_policy_counters
+        )
+        summary["stage_policy_counters"] = dict(model.stage_policy_counters)
+        summary["retraction_completion_ladder_counters"] = dict(
+            model.geometry.completion_ladder_counters
+        )
+        summary["continuation"] = continuation
+        summary["failure"] = {
+            "message": failure_message,
+            "accepted_steps": 0,
+            "stage": _stage_failure_record(stage_failure),
+        }
+        summary["integration"] = {
+            "autonomous_wall_seconds": autonomous_elapsed,
+            "final_time_requested": args.final_time,
+            "initial_time": float(initial_time),
+            "time_step": args.time_step,
+            "success": False,
+            "peak_resident_bytes": _peak_resident_bytes(),
+        }
+        _write_failure_artifacts(output_directory, stage_failure)
+        _write(output_directory, summary)
+        return 1
     approximate_coordinates = _archive_coordinates(
         trajectory.states, active_keys=model.active_keys
     )
@@ -726,23 +1006,20 @@ def main() -> int:
     )
 
     exact_started = perf_counter()
-    exact = exact_holstein_driven_trajectory(
-        parameters,
-        sample_times=trajectory.times,
-        phonon_cutoff=args.phonon_cutoff,
-        maximum_step=min(0.01, args.time_step * 4.0),
-    )
-    exact_coordinates = np.asarray(
-        [
-            matrix_state_to_closed_scalar_coordinates(state)
-            for state in exact.matrix_states
-        ],
-        dtype=float,
-    )
+    if trajectory.times.size >= 2:
+        exact_coordinates = _exact_archive_coordinates(
+            parameters,
+            trajectory.times,
+            phonon_cutoff=args.phonon_cutoff,
+            time_step=args.time_step,
+        )
+        metrics: dict[str, Any] | None = _accuracy_metrics(
+            parameters, exact_coordinates, approximate_coordinates
+        )
+    else:
+        exact_coordinates = np.zeros((0, approximate_coordinates.shape[1]))
+        metrics = None
     exact_elapsed = perf_counter() - exact_started
-    metrics = _accuracy_metrics(
-        parameters, exact_coordinates, approximate_coordinates
-    )
     joint_minimum = float(
         min(
             np.linalg.eigvalsh(
@@ -771,12 +1048,33 @@ def main() -> int:
     summary["stage_policy"] = asdict(stage_policy)
     summary["stage_policy_counters"] = dict(model.stage_policy_counters)
     summary["model_settings"] = asdict(model_settings)
+    summary["projection_settings"] = asdict(projection_settings)
+    summary["extension_settings"] = asdict(extension_settings)
+    summary["face_policy_counters"] = dict(
+        model.geometry.face_policy_counters
+    )
+    summary["retraction_completion_ladder_counters"] = dict(
+        model.geometry.completion_ladder_counters
+    )
+    summary["continuation"] = continuation
+    if failure_message is None and not trajectory.success:
+        failure_message = trajectory.message
+        stage_failure = trajectory.stage_failure
+    if failure_message is not None:
+        summary["failure"] = {
+            "message": failure_message,
+            "accepted_steps": int(trajectory.completed_steps),
+            "last_accepted_time": float(trajectory.times[-1]),
+            "stage": _stage_failure_record(stage_failure),
+        }
+        _write_failure_artifacts(output_directory, stage_failure)
     summary["integration"] = {
         "method": (
             "SSPRK(3,3) with containment before every RHS call and the "
             "event-triggered one-shell outer guard"
         ),
         "final_time_requested": args.final_time,
+        "initial_time": float(initial_time),
         "last_time": float(trajectory.times[-1]),
         "time_step": args.time_step,
         "completed_steps": trajectory.completed_steps,
@@ -849,7 +1147,7 @@ def main() -> int:
         extension_minimum_eigenvalues=trajectory.extension_minimum_eigenvalues,
     )
     _write(output_directory, summary)
-    return 0 if trajectory.success else 1
+    return 0 if (trajectory.success and failure_message is None) else 1
 
 
 if __name__ == "__main__":

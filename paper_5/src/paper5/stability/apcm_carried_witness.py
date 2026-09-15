@@ -138,6 +138,62 @@ CWRMF_SOLVER_SETTING_PROFILES: dict[str, dict[str, object]] = {
     "max_threads_8": {"max_threads": 8},
 }
 
+#: Named starting-working-set rules for the adaptive spectral bundle tier.
+#: The default is the recorded one: the working set starts at the larger of
+#: the spectral entry count and the monotone rank hint, and the hint starts
+#: at zero.  Every other entry is a declared experiment, off by default.
+#:
+#: ``monotone_hint``
+#:     the recorded rule, ``max(spectral_rank, bundle_rank_hint)``;
+#: ``spectral_threshold``
+#:     the larger of the recorded rule and the number of endpoint unshifted
+#:     62-row Gram eigenvalues below ``bundle_seed_spectral_threshold``;
+#: ``previous_accepted_rank``
+#:     the rank at which the previous bundle atom's accepted solve ran,
+#:     without the monotone maximum over back-offs and polish ranks;
+#: ``previous_accepted_rank_margin``
+#:     that rank plus ``bundle_seed_rank_margin``;
+#: ``carried_accepted_basis``
+#:     the previous accepted working set itself, orthonormalised together
+#:     with the current predictor's leading ``spectral_rank`` eigenvectors,
+#:     so the directions the enlargement discovered are carried across the
+#:     radial atom instead of only their count.  A positive
+#:     ``bundle_seed_rank_margin`` trims the result to the
+#:     ``previous accepted rank + margin`` lowest modes of its own compressed
+#:     block, which bounds how fast the carried working set inflates;
+#: ``carried_accepted_basis_exit``
+#:     the same, after dropping the carried modes that the new endpoint no
+#:     longer holds critical -- the eigenvectors of the carried working set's
+#:     own compressed block whose unshifted eigenvalue has risen to or above
+#:     ``bundle_seed_spectral_threshold``.  That one declared threshold on
+#:     the unshifted 62-row Gram spectrum serves both policies: it counts the
+#:     seed rank for ``spectral_threshold`` and it is the exit criterion for
+#:     a carried mode here.
+DEFAULT_BUNDLE_SEED_POLICY = "monotone_hint"
+
+CWRMF_BUNDLE_SEED_POLICIES = (
+    "monotone_hint",
+    "spectral_threshold",
+    "previous_accepted_rank",
+    "previous_accepted_rank_margin",
+    "carried_accepted_basis",
+    "carried_accepted_basis_exit",
+)
+
+
+def _bundle_growth_target(factor: float, rank: int, limit: int) -> int:
+    """Return the working-set rank a declared growth factor asks for.
+
+    The adaptive bundle tier's recorded enlargement adds only the eigenvectors
+    of the full candidate Gram that sit below the safety margin, which is
+    about one direction per iteration once the working set is large.  A
+    declared ``factor`` above one asks for ``ceil(factor * rank)`` directions
+    instead, capped at the critical mode limit; at the default ``1.0`` the
+    caller never reaches this function.
+    """
+
+    return min(int(limit), int(np.ceil(float(factor) * int(rank))))
+
 
 @dataclass(frozen=True)
 class CWRMFSettings:
@@ -168,8 +224,30 @@ class CWRMFSettings:
     maximum_cutting_plane_iterations: int = 256
     batched_mode_gradients: bool = False
     solver_setting_profile: str = DEFAULT_SOLVER_SETTING_PROFILE
+    bundle_seed_policy: str = DEFAULT_BUNDLE_SEED_POLICY
+    bundle_seed_spectral_threshold: float = 1e-6
+    bundle_seed_rank_margin: int = 0
+    bundle_growth_factor: float = 1.0
+    bundle_growth_trigger: float = 0.0
+    bundle_interior_overshoot: float = 1.0
 
     def __post_init__(self) -> None:
+        if self.bundle_seed_policy not in CWRMF_BUNDLE_SEED_POLICIES:
+            raise ValueError(
+                f"unknown CWRMF bundle seed policy: {self.bundle_seed_policy}"
+            )
+        if self.bundle_seed_spectral_threshold <= 0.0:
+            raise ValueError(
+                "bundle_seed_spectral_threshold must be positive"
+            )
+        if self.bundle_seed_rank_margin < 0:
+            raise ValueError("bundle_seed_rank_margin must be nonnegative")
+        if self.bundle_growth_factor < 1.0:
+            raise ValueError("bundle_growth_factor must be at least one")
+        if self.bundle_growth_trigger < 0.0:
+            raise ValueError("bundle_growth_trigger must be nonnegative")
+        if self.bundle_interior_overshoot < 1.0:
+            raise ValueError("bundle_interior_overshoot must be at least one")
         if self.solver_setting_profile not in CWRMF_SOLVER_SETTING_PROFILES:
             raise ValueError(
                 "unknown CWRMF solver setting profile: "
@@ -891,6 +969,8 @@ class CarriedWitnessModel:
         )
         self._retained_scales: FloatArray | None = None
         self._bundle_rank_hint = 0
+        self._bundle_accepted_rank = 0
+        self._bundle_accepted_basis: ComplexArray | None = None
         self._tier_clock: _TierClock | None = None
         self._step_scaled_coefficients: tuple[float, ComplexArray] | None = None
         self._instance_recorder: ConicInstanceRecorder | None = None
@@ -976,6 +1056,101 @@ class CarriedWitnessModel:
         if value < 0 or value > 61:
             raise ValueError("bundle rank hint must lie between zero and 61")
         self._bundle_rank_hint = int(value)
+
+    @property
+    def bundle_accepted_rank(self) -> int:
+        """Return the rank of the last accepted bundle solve, or zero."""
+
+        return self._bundle_accepted_rank
+
+    def _bundle_seed_working_set(
+        self,
+        predictor_values: FloatArray,
+        predictor_vectors: ComplexArray,
+        spectral_rank: int,
+        shifted_predictor: ComplexArray,
+    ) -> ComplexArray:
+        """Return the starting working set of the adaptive bundle tier.
+
+        At the default ``monotone_hint`` policy this is exactly the recorded
+        construction: the ``max(spectral_rank, bundle_rank_hint)`` lowest
+        eigenvectors of the shifted 62-row predictor Gram, capped at
+        ``critical_mode_limit``.  Every other policy is a declared
+        experiment; the compressed problem built on the returned working set
+        is formed by the same code either way.
+        """
+
+        settings = self.settings
+        limit = settings.critical_mode_limit
+        policy = settings.bundle_seed_policy
+        if policy in {"carried_accepted_basis", "carried_accepted_basis_exit"}:
+            carried = self._bundle_accepted_basis
+            if carried is not None:
+                if policy == "carried_accepted_basis_exit":
+                    compressed = (
+                        carried.conjugate().T @ shifted_predictor @ carried
+                    )
+                    carried_values, carried_vectors = np.linalg.eigh(
+                        0.5 * (compressed + compressed.conjugate().T)
+                    )
+                    retained_modes = np.flatnonzero(
+                        carried_values - settings.psd_inflation
+                        < settings.bundle_seed_spectral_threshold
+                    )
+                    carried = carried @ carried_vectors[:, retained_modes]
+                    if carried.shape[1] == 0:
+                        seed = self._bundle_rank_hint
+                        required_rank = min(limit, max(spectral_rank, seed))
+                        selected = np.arange(required_rank, dtype=np.int64)
+                        return predictor_vectors[:, selected]
+                augmented = np.column_stack(
+                    (predictor_vectors[:, :spectral_rank], carried)
+                )
+                left, singular_values, _ = np.linalg.svd(
+                    augmented, full_matrices=False
+                )
+                rank = int(np.count_nonzero(singular_values > 1e-10))
+                working = left[:, : min(rank, limit)]
+                cap = (
+                    self._bundle_accepted_rank
+                    + settings.bundle_seed_rank_margin
+                )
+                if (
+                    settings.bundle_seed_rank_margin > 0
+                    and working.shape[1] > cap
+                ):
+                    compressed = (
+                        working.conjugate().T @ shifted_predictor @ working
+                    )
+                    _, working_vectors = np.linalg.eigh(
+                        0.5 * (compressed + compressed.conjugate().T)
+                    )
+                    working = working @ working_vectors[:, :cap]
+                return working
+            seed = self._bundle_rank_hint
+        elif policy == "spectral_threshold":
+            unshifted = predictor_values - settings.psd_inflation
+            seed = max(
+                self._bundle_rank_hint,
+                int(
+                    np.count_nonzero(
+                        unshifted < settings.bundle_seed_spectral_threshold
+                    )
+                ),
+            )
+        elif policy == "previous_accepted_rank":
+            seed = self._bundle_accepted_rank
+        elif policy == "previous_accepted_rank_margin":
+            seed = (
+                self._bundle_accepted_rank + settings.bundle_seed_rank_margin
+                if self._bundle_accepted_rank > 0
+                else 0
+            )
+        else:
+            seed = self._bundle_rank_hint
+        required_rank = min(limit, max(spectral_rank, seed))
+        selected = np.arange(required_rank, dtype=np.int64)
+        return predictor_vectors[:, selected]
 
     def prepare(self, *, phonon_cutoff: int = 16) -> CWRMFPreparation:
         geometry = self.geometry
@@ -2279,13 +2454,19 @@ class CarriedWitnessModel:
         if selected.size == 0:
             selected = np.asarray([0], dtype=np.int64)
         spectral_rank = int(selected.size)
-        required_rank = min(
-            self.settings.critical_mode_limit,
-            max(spectral_rank, self._bundle_rank_hint),
+        basis = self._bundle_seed_working_set(
+            predictor_values,
+            predictor_vectors,
+            spectral_rank,
+            shifted_predictor,
         )
-        selected = np.arange(required_rank, dtype=np.int64)
-        basis = predictor_vectors[:, selected]
+        seeded_rank = basis.shape[1]
+        padding_cursor = seeded_rank
         maximum_bundle = basis.shape[1]
+        compressed_margin = (
+            self.settings.schur_safety_margin
+            * self.settings.bundle_interior_overshoot
+        )
         backed_off_hint = False
         correction = np.zeros(geometry.completion_count, dtype=float)
         ceiling = self._velocity_ceiling(retained_velocity, desired)
@@ -2310,7 +2491,7 @@ class CarriedWitnessModel:
             assembly_started = perf_counter() if clock is not None else 0.0
             compressed_base = (
                 basis.conjugate().T @ shifted_predictor @ basis
-                - self.settings.schur_safety_margin
+                - compressed_margin
                 * np.eye(basis.shape[1], dtype=complex)
             )
             compressed_coefficients = np.einsum(
@@ -2421,6 +2602,7 @@ class CarriedWitnessModel:
                     self._bundle_rank_hint = retry_rank
                     basis = predictor_vectors[:, :retry_rank]
                     maximum_bundle = basis.shape[1]
+                    padding_cursor = retry_rank
                     status += f":retry_with_rank={retry_rank}"
                     continue
                 break
@@ -2466,6 +2648,8 @@ class CarriedWitnessModel:
                         self._bundle_rank_hint,
                         maximum_bundle,
                     )
+                self._bundle_accepted_rank = int(basis.shape[1])
+                self._bundle_accepted_basis = basis
                 return (
                     True,
                     candidate,
@@ -2481,6 +2665,29 @@ class CarriedWitnessModel:
             augmented = np.column_stack(
                 (basis, eigenvectors[:, new_indices])
             )
+            if (
+                self.settings.bundle_growth_factor > 1.0
+                and normalized_residual > self.settings.bundle_growth_trigger
+            ):
+                target = _bundle_growth_target(
+                    self.settings.bundle_growth_factor,
+                    basis.shape[1],
+                    self.settings.critical_mode_limit,
+                )
+                extra = min(
+                    target - augmented.shape[1],
+                    predictor_vectors.shape[1] - padding_cursor,
+                )
+                if extra > 0:
+                    augmented = np.column_stack(
+                        (
+                            augmented,
+                            predictor_vectors[
+                                :, padding_cursor : padding_cursor + extra
+                            ],
+                        )
+                    )
+                    padding_cursor += extra
             left, singular_values, _ = np.linalg.svd(
                 augmented, full_matrices=False
             )

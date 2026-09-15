@@ -15,7 +15,9 @@ import numpy as np
 
 from .adaptive_positive_moment import raw_moment_coordinates_to_matrix_state
 from .apcm_carried_witness import (
+    CWRMF_BUNDLE_SEED_POLICIES,
     CWRMF_SOLVER_SETTING_PROFILES,
+    DEFAULT_BUNDLE_SEED_POLICY,
     DEFAULT_SOLVER_SETTING_PROFILE,
     CarriedWitnessModel,
     cwrmf_settings_for_profile,
@@ -152,6 +154,73 @@ def _parser() -> argparse.ArgumentParser:
             "with the solution Clarabel returned, under "
             "conic_instances/ in the run directory.  The rollout is "
             "unchanged; the recorder only reads finished operands."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-policy",
+        choices=tuple(CWRMF_BUNDLE_SEED_POLICIES),
+        default=DEFAULT_BUNDLE_SEED_POLICY,
+        help=(
+            "Named starting-working-set rule for the adaptive spectral "
+            "bundle tier.  The default monotone_hint is the recorded rule "
+            "(the larger of the spectral entry count and the monotone rank "
+            "hint, which starts at zero).  The others are declared "
+            "experiments aimed at the enlargement iterations whose solution "
+            "is discarded."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-spectral-threshold",
+        type=float,
+        default=None,
+        help=(
+            "Declared threshold for the spectral_threshold seed policy: the "
+            "working set starts at the number of endpoint unshifted 62-row "
+            "Gram eigenvalues below it.  Unused by every other policy."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-rank-margin",
+        type=int,
+        default=None,
+        help=(
+            "Declared margin added to the previous accepted bundle rank by "
+            "the previous_accepted_rank_margin seed policy.  Unused by "
+            "every other policy."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-growth-factor",
+        type=float,
+        default=None,
+        help=(
+            "Named experiment, default 1.0 which is the recorded rule: when "
+            "the full-Gram acceptance test fails with a normalized residual "
+            "above --bundle-growth-trigger, pad the enlarged working set "
+            "with further predictor eigenvectors until its rank reaches this "
+            "factor times the current rank, capped at the critical mode "
+            "limit."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-growth-trigger",
+        type=float,
+        default=None,
+        help=(
+            "Normalized residual above which --bundle-growth-factor applies. "
+            "The default 0.0 makes every rejection a bad one."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-interior-overshoot",
+        type=float,
+        default=None,
+        help=(
+            "Named experiment, default 1.0 which is the recorded rule: "
+            "multiply the compressed problem's own interior margin by this "
+            "factor, so a solve aims further inside the cone than the "
+            "acceptance test demands.  The acceptance test itself is "
+            "unchanged."
         ),
     )
     parser.add_argument("--compact-output", action="store_true")
@@ -305,6 +374,34 @@ def main() -> int:
     if args.solver_setting_profile != DEFAULT_SOLVER_SETTING_PROFILE:
         settings = replace(
             settings, solver_setting_profile=args.solver_setting_profile
+        )
+    if args.bundle_seed_policy != DEFAULT_BUNDLE_SEED_POLICY:
+        settings = replace(
+            settings, bundle_seed_policy=args.bundle_seed_policy
+        )
+    if args.bundle_seed_spectral_threshold is not None:
+        settings = replace(
+            settings,
+            bundle_seed_spectral_threshold=(
+                args.bundle_seed_spectral_threshold
+            ),
+        )
+    if args.bundle_seed_rank_margin is not None:
+        settings = replace(
+            settings, bundle_seed_rank_margin=args.bundle_seed_rank_margin
+        )
+    if args.bundle_growth_factor is not None:
+        settings = replace(
+            settings, bundle_growth_factor=args.bundle_growth_factor
+        )
+    if args.bundle_growth_trigger is not None:
+        settings = replace(
+            settings, bundle_growth_trigger=args.bundle_growth_trigger
+        )
+    if args.bundle_interior_overshoot is not None:
+        settings = replace(
+            settings,
+            bundle_interior_overshoot=args.bundle_interior_overshoot,
         )
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)

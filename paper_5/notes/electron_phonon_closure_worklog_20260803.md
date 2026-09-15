@@ -4318,3 +4318,181 @@ enlargement iterations) and the `max_threads_8` profile (`1.51x`, balanced
 only) are the two levers left on this path; the memory of a triggered atom
 at rank 60 (`6.05 GB` peak) bounds concurrency to two such runs on this
 machine.
+
+## 2026-09-15: overnight loop, round 3 (four implementers, each independently reviewed)
+
+Full reports: `agent_guidance/paper-v/overnight/{bundle-rank-seed,projective-face,joint-gram-t20,outer-selector-formulation}-20260915.md`
+and the matching `review-*` files.  Three reviews passed; the joint-Gram
+review failed on the lane's base velocity and census (below) and its repair
+is recorded separately.  Defaults unchanged; `paper_5` suite 428 passed on
+the round-3 tree.  Round 3 started at 03:04 and its longest task, the two
+150-minute joint-Gram runs, is why the batch took six hours; that budget was
+this session's choice, not the task's need.
+
+### Bundle-rank seeding: the round-2 premise does not survive measurement
+
+The 26 discarded adaptive-bundle solves are not waste: they are how the
+working set finds the directions in which the correction drives the 62-row
+Gram negative, and those directions are not in the predictor's own low
+spectrum.  Seeding the first bundle atom with the 26 lowest eigenvectors of
+its shifted 62-row predictor Gram (the rank at which the recorded walk
+accepted) gives a full-Gram minimum eigenvalue of `-6.5304e-9` against the
+acceptance floor `1.9e-12` and does not accept; the lowest seeded rank that
+accepts there is 40 at `12.841 s` against the whole walk's `11.240 s`, and
+seeded ranks 46 and 52 return `NumericalError`.  Per atom over the strict
+`t=0` to `0.01` rollout (starting rank, accepting rank, discarded solves):
+atom 1 (6, 26, 12), atom 2 (26, 31, 5), atom 3 (31, 35, 4), atom 4 (35, 36,
+1), atom 5 (36, 38, 2), atom 6 (38, 39, 1), atom 7 (39, 40, 1); the 26
+discarded solves carry `86.224 s` of the tier's `145.817 s`.  The compressed
+problem's own dual cannot certify the full cone: all 26 discarded solves
+report compressed residuals at or below `4.9e-11` while their full-Gram
+minima reach `-5.6e-8`.
+
+What is recoverable is continuation: carrying the previous atom's accepted
+working set (not its rank) makes atoms 2 to 7 accept on their first solve.
+Six named seed policies (`--bundle-seed-policy`, default `monotone_hint`,
+the recorded rule, bitwise on the anchor), a growth factor, and an interior
+overshoot were added, all off by default.  Strict `t=0` to `0.01`, Clarabel
+tier seconds against the same-session default bracket `152.448 s` / 36 calls:
+`carried_accepted_basis` margin 2 `104.227 s` / 27 (`1.46x`), with
+`max_threads_8` `74.899 s` / 28 (`2.04x`, the 31 reported archive
+coordinates agreeing with the anchor to `1.7e-15`); `spectral_threshold 1e-4`
+`130.913 s` / 14 (`1.16x`, fewer solves but each costlier);
+`previous_accepted_rank_margin 3` `1.14x`; growth factor 1.5 with trigger
+`1e-7` `1.08x`, and without the trigger the working set runs to rank 61,
+Clarabel returns `NumericalError` and the rollout stops at `t=0.005`.  In the
+balanced profile over `t=0` to `0.05` the carried working set is `3.42x`
+slower (`879.775 s` against `257.439 s`), because 16 of the 21 balanced
+bundle atoms already accept on their first solve.  Reading: the guarded
+carried-witness atom has no lever left below a factor of about two on this
+machine; it is a CHTC-scale computation.  Artifacts under
+`output/local_runs/paper_v_cwrmf_seed_*_strict_t001_h0025_20260915_v1/`.
+
+### One-shell outer selector: the formulation is not the cause
+
+The recorded one-shell outer target program, reassembled unchanged and run
+at the recorded routine's own tightened retry profile (`retry_profile=2`:
+conic tolerance `1e-10`, `max_iter 500`, 20 iterative refinement passes at
+`1e-14`, equilibration off), returns an accepted witness under the unchanged
+`1e-6` exploratory acceptance at both operand sets: relative duality gap
+`7.4634e-7` at the cutoff-16 correlated preparation (objective
+`0.011267123150627062`, reconstructed outer Gram minimum scaled eigenvalue
+`-2.1e-14`, `75.86 s`) and `7.5469e-7` at the forced-trigger SSPRK(3,3)
+stage-one trial point (`74.91 s`), against the recorded first pass's
+`NumericalError` at `3.5740e-4` and `6.7813e-4`.  The recorded ladder never
+reaches that profile because its retry trigger set is `{AlmostSolved,
+InsufficientProgress, MaxIterations}` (`apcm_projective_guard.py:1493`) and
+the first pass ends in `NumericalError`.  Round 2's frontier weight `1e-5`
+was already at the tightened profile (a positive weight makes the first pass
+`AlmostSolved`) and is what pushed the gap to `1.1194e-6`; at weight 0 the
+same profile gives `7.4634e-7`.  The invariant target image quadratic
+`R^T M R` is exactly the orthogonal projector onto the row space of `R` (15
+unit eigenvalues, 223 zeros of 238); whitening the image improves the first
+pass by a factor 109 on the gap and nothing at the tightened profile.  All
+six requested alternatives (equilibration, PSD inflation at `1e-11` to
+`1e-8`, the dual, a first-order pass with polish, the nullspace
+parameterization, homogeneous frontier scaling) were measured on both operand
+sets: at the first pass none is admitted; at the tightened profile the
+formulation is immaterial (10 percent spread) except that Ruiz equilibration
+is the one row rejected at the stage operands.  At the post-pulse failing
+stage saved by the projective-face agent (`t=5.086270`) the outer target is
+`PrimalInfeasible` at both profiles with minimum scaled eigenvalue `-0.2554`:
+those retracted lower moments do not extend to the one-shell outer Gram
+inside the box, and no formulation, profile or tolerance touches that.  New
+module `apcm_outer_selector_formulations.py` with
+`solve_outer_target_with_tightened_retry` (drop-in `GuardConicResult` shape;
+first pass then the tightened profile when not accepted) and 14 tests; no
+existing file edited.  The accepted witness sits on the box face (outer
+envelope ratio `0.99946`, current `0.99274`, margin `7.3e-3` against the
+guard's `1 - 1e-8` envelope fallback).  Artifacts under
+`output/local_runs/paper_v_outer_selector_formulations_{prep,stage,t5086}_20260915_v1/`.
+
+### Projective route: failure paths saved, the face refusal answered, the post-pulse wall unmoved
+
+The driver now saves the partial trajectory, the exact reference over the
+horizon reached, the accuracy metrics, the last accepted state and the
+failing stage's state, lower moments and frontier moments on every failure
+path (`stage_failure.npz`, a failure block in `summary.json`, nonzero exit),
+with a forced-failure test, and gains `--initial-state-file` /
+`--initial-time`.  Its first use, a continuation of the default policy from
+the stored `t=4` state, reproduced the recorded post-pulse failure at
+`t=5.085` in `250.5 s` (434 steps, 122 stage retractions, dynamic
+all-coordinate scalar RMS `4.3845e-2` over `t=4` to `5.085`) and made it
+diagnosable.
+
+The stage retraction fires because the declared proximal log-det completion
+returns `success=False` at a lift that is inside its cone (an uncertified
+completion maps to minus infinity, `apcm_moment_projection.py:1348-1351`),
+and which declared setting certifies is a property of the stage: at the
+failing `t=5.0863` stage the declared settings are uncertified at KKT
+backward error `6.39e-7` after the 40-iteration Newton cap, while
+`logdet_shift` `1e-9`, `1e-8`, `1e-7` certify in 4 to 5 iterations and
+`logdet_weight` `1e-1`, `1e-2` certify too.  A declared completion retry
+ladder (`completion_retry_shifts` / `completion_retry_weights`, empty by
+default; shifts `1e-8`, `1e-7` and weight `1e-1` tried) removes all seven
+stage retractions of the recorded `t=0` to `0.05` rollout and takes its
+all-coordinate scalar RMS from `7.9318e-5` to `1.2277e-5`, the N block from
+`2.1728e-4` to `3.1027e-8`, at `112.5 s` against `54.4 s`: round 2's
+attributed gap closed at its cause.
+
+The "numerical face is unstable under null-tolerance refinement" refusal
+that stopped the carried-completion rollout at `t=0.11375` is a collision of
+two declared constants: the carried lift is accepted at
+`carried_completion_margin_multiple x conic_tolerance = 1e-8` while the face
+is refused for an eigenvalue in `[5e-9, 2e-8]`; the refused eigenvalue was
+`1.9998e-8`.  Two named face policies, `continuation` and `inflated`
+(default `refuse`), both carry the rollout to `t=0.5` at `h=0.00125` with
+byte-identical trajectories (`9.5474e-4` over `t=0` to `0.5`, `1.2875e-5`
+over `t=0` to `0.05`); raising the carried-completion margin multiple to 30
+does the same with no face policy (`1.0437e-3` over `t=0` to `0.5`, 9 stage
+retractions, 1,175 of 1,204 lifts carried, `56.9 s`).
+
+Past the pulse nothing reaches `t=6` inside a 40-minute budget: from the
+stored `t=4` state the committed path stops at `t=5.085`, PSD inflation of
+the completion cone (`logdet_shift 1e-8`) at `5.1025`, carried completion at
+`5.0975`, a larger proximal weight (`1e-2`) at `4.83`; the best horizon is
+`t=5.235` with the carried lift plus face continuation (494 steps, 269 stage
+retractions, dynamic RMS `4.9241e-2` over `t=4` to `5.235`), stopped by the
+budget rather than a refusal, and the retry ladder plus face continuation
+reaches `5.12`.  Past `t=5` the ladder certified 115 refusals and was
+exhausted on 149.  Reading: after the drive ends the fixed dictionary's
+positive extension approaches a face of the cone (the outer target at the
+failing stage is `PrimalInfeasible`, above), and the route as formulated has
+no completion that stays certified there.  At `t=0.5` the projective route
+is a factor 30 behind the carried-witness flow without its Gram guard
+(`9.5474e-4` against `3.19169e-5`).  Projective tests 63 (44 before).
+Artifacts under `output/local_runs/paper_v_apcm_projective_t4restart_*_t8_20260915_v1/`
+and `paper_v_apcm_projective_carried_*_t05_h000125_20260915_v1/`.
+
+### 31-coordinate joint-Gram energy-neutral barrier toward t=20: no long horizon (review failed; see the repair note)
+
+A named lane (`--corrected-controller joint_gram_barrier`, default
+unchanged) was added to the long-horizon driver with `--halfspace-backend
+{slsqp,active_set}`.  Under a 150-minute wall budget toward `t=20` at the
+pinned DOP853 protocol the default lane reached `t=0.30` (`9,000 s`, 650,243
+right-hand-side evaluations, 26,324,792 half-space projections, 46,034
+accepted steps, `148 MB`) and the `active_set` lane `t=0.35` (688,322
+evaluations, 28,457,232 projections).  The obstruction is a progressive
+step-size collapse under the corrected velocity, not the cost per
+correction: the mean accepted step falls from `1.24e-2` over `t=0` to `0.05`
+to `9.0e-6` over `t=0.22` to `0.23` while half-space projections per accepted
+step stay of order `300` to `800`; horizon gained per wall minute falls from
+`0.0144` to `0.0006` and was still falling.  Over `t=0` to `0.30` the lane's
+complete 31-coordinate l2 time-RMS distance from exact is `0.06420598`
+(`coordinate_scalar_rms` `0.01184757`, all-31 scaled RMS `0.10810603`),
+minimum bosonic eigenvalue `2.0685e-5`.  The reviewer's blocking findings:
+the lane's base velocity is the archive EOM without the initial-residual
+subtraction (`closed_electron_phonon_cone_projected_rhs` is built with
+`subtract_initial_residual=False`), so the driver's Eq. (112) `raw` lane
+(`0.00065244` on the same samples) is not the velocity it corrects, and the
+census was solved at that other velocity (at the lane's own velocity the
+barrier is active at 7 of 7 samples from `t=0`); the headline ratio mixed
+two conventions.  Definitional finding that stands: the record's "uncorrected
+archive EOM" `0.193205` over `t=0` to `20` is the plain archive EOM in the
+`coordinate_scalar_rms` convention (round 2's stored plain lane scores
+`0.193252`, its Eq. (112) lane `0.184065`, the ten-coordinate barrier
+`0.165865`).  Reading: the joint-Gram barrier is retired as a long-horizon
+route on this machine (extrapolating its final rate gives about 23 days to
+`t=20`); the record's both-cones line was a fixed-step SSPRK(3,3) run, and a
+fixed-step joint-Gram lane would be a different scheme from the pinned
+protocol.

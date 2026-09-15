@@ -19,7 +19,10 @@ from paper5.stability.adaptive_positive_moment import (
     ENTRANCE_RELATIVE_MOMENT_KEYS,
     matrix_state_to_raw_moment_coordinates,
 )
-from paper5.stability.apcm_moment_projection import state_lower_moments
+from paper5.stability.apcm_moment_projection import (
+    SymmetryReducedAPCMGeometry,
+    state_lower_moments,
+)
 from paper5.stability.apcm_positive_extension import (
     SymmetryReducedPositiveExtension,
 )
@@ -404,7 +407,10 @@ def test_stage_policy_default_reproduces_the_recorded_rollout_bitwise() -> None:
         "carried_completion_rejected": 0,
         "retraction_suppressed": 0,
         "quiet_containment_skipped": 0,
+        "completion_retry_accepted": 0,
+        "completion_retry_exhausted": 0,
     }
+    assert explicit.completion_ladder == ()
 
 
 def test_disabled_stage_retraction_keeps_the_trial_stage() -> None:
@@ -657,3 +663,274 @@ def test_exploratory_acceptance_tolerance_only_widens_acceptance() -> None:
             diagnostics=diagnostics,
             exploratory_acceptance_tolerance=0.0,
         )
+
+
+def test_driver_saves_the_horizon_a_failed_rollout_reached(  # noqa: ANN001
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """A forced stage failure leaves a scoreable partial trajectory behind.
+
+    The failure is forced in the fourth containment, which is the first
+    stage of the second step, so exactly one step is accepted.  The driver
+    must then write the partial trajectory, the last accepted state, the
+    failing stage's lower moments and the failure message, and report a
+    nonzero exit status.
+    """
+
+    from paper5.stability import apcm_projective_event_guard_analysis as driver
+    from paper5.stability.projected_apcm import ProjectedAPCMFailure
+
+    calls = {"retract": 0}
+    recorded = SymmetryReducedAPCMGeometry.retract_stage
+
+    def forced(self, *args, **kwargs):  # noqa: ANN001, ANN202
+        calls["retract"] += 1
+        if calls["retract"] == 4:
+            raise ProjectedAPCMFailure("forced test stage failure")
+        return recorded(self, *args, **kwargs)
+
+    monkeypatch.setattr(SymmetryReducedAPCMGeometry, "retract_stage", forced)
+
+    output = tmp_path / "forced_failure"
+    argv = [
+        "apcm_projective_event_guard_analysis",
+        "--mode",
+        "rollout",
+        "--output-directory",
+        str(output),
+        "--phonon-cutoff",
+        "6",
+        "--final-time",
+        "0.0075",
+        "--time-step",
+        "0.0025",
+        "--maximum-subdivisions",
+        "0",
+    ]
+    import sys
+
+    saved = sys.argv
+    sys.argv = argv
+    try:
+        assert driver.main() == 1
+    finally:
+        sys.argv = saved
+
+    summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert "forced test stage failure" in summary["failure"]["message"]
+    assert summary["failure"]["accepted_steps"] == 1
+    assert summary["failure"]["last_accepted_time"] == pytest.approx(0.0025)
+    assert summary["failure"]["stage"]["stage"] == "contain"
+    assert summary["failure"]["stage"]["lower_moment_count"] > 0
+    assert summary["integration"]["success"] is False
+    assert summary["accuracy"]["all_coordinate_scalar_rms_error"] >= 0.0
+
+    trajectory = np.load(output / "trajectory.npz")
+    assert trajectory["times"].tolist() == [0.0, 0.0025]
+    assert trajectory["exact_archive_coordinates"].shape[0] == 2
+    autonomous = np.load(output / "autonomous_trajectory.npz")
+    assert autonomous["states"].shape[0] == 2
+
+    stage_failure = np.load(output / "stage_failure.npz", allow_pickle=False)
+    assert str(stage_failure["stage"]) == "contain"
+    assert stage_failure["lower_moment_values"].size == (
+        summary["failure"]["stage"]["lower_moment_count"]
+    )
+    assert stage_failure["state"].size == autonomous["states"].shape[1]
+
+
+def test_driver_continues_a_rollout_from_a_stored_state(tmp_path) -> None:  # noqa: ANN001
+    """``--initial-state-file`` starts the declared model at the stored time."""
+
+    from paper5.stability import apcm_projective_event_guard_analysis as driver
+
+    stored = tmp_path / "stored.npz"
+    _, initialization = _entrance_model()
+    np.savez_compressed(
+        stored,
+        times=np.asarray([0.0]),
+        states=np.asarray([initialization.state]),
+    )
+
+    output = tmp_path / "continued"
+    argv = [
+        "apcm_projective_event_guard_analysis",
+        "--mode",
+        "rollout",
+        "--output-directory",
+        str(output),
+        "--phonon-cutoff",
+        "6",
+        "--initial-state-file",
+        str(stored),
+        "--initial-time",
+        "0.05",
+        "--final-time",
+        "0.055",
+        "--time-step",
+        "0.0025",
+    ]
+    import sys
+
+    saved = sys.argv
+    sys.argv = argv
+    try:
+        assert driver.main() == 0
+    finally:
+        sys.argv = saved
+    summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert summary["continuation"]["stored_final_time"] == pytest.approx(0.0)
+    assert summary["integration"]["initial_time"] == pytest.approx(0.05)
+    assert summary["integration"]["last_time"] == pytest.approx(0.055)
+    times = np.load(output / "trajectory.npz")["times"]
+    assert times.tolist() == pytest.approx([0.05, 0.0525, 0.055])
+    exact = np.load(output / "trajectory.npz")["exact_archive_coordinates"]
+    assert exact.shape[0] == 3
+
+
+def test_driver_declared_settings_reach_the_model_that_runs(tmp_path) -> None:  # noqa: ANN001
+    """The named completion and face flags are the ones the rollout uses."""
+
+    from paper5.stability import apcm_projective_event_guard_analysis as driver
+
+    output = tmp_path / "declared_settings"
+    argv = [
+        "apcm_projective_event_guard_analysis",
+        "--mode",
+        "rollout",
+        "--output-directory",
+        str(output),
+        "--phonon-cutoff",
+        "6",
+        "--final-time",
+        "0.0025",
+        "--time-step",
+        "0.0025",
+        "--face-policy",
+        "inflated",
+        "--face-inflation-multiple",
+        "250.0",
+        "--completion-logdet-shift",
+        "1e-9",
+    ]
+    import sys
+
+    saved = sys.argv
+    sys.argv = argv
+    try:
+        assert driver.main() == 0
+    finally:
+        sys.argv = saved
+    summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert summary["projection_settings"]["face_policy"] == "inflated"
+    assert summary["projection_settings"]["face_inflation_multiple"] == 250.0
+    assert summary["extension_settings"]["logdet_shift"] == 1e-9
+    assert summary["extension_settings"]["logdet_weight"] == 1.0
+    assert summary["face_policy_counters"]["identified"] > 0
+    assert summary["face_policy_counters"]["refused"] == 0
+
+
+def test_driver_records_a_failure_that_carries_no_accepted_step(  # noqa: ANN001
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """An exception with no partial trajectory still leaves the message."""
+
+    from paper5.stability import apcm_projective_event_guard_analysis as driver
+
+    def raise_unexpected(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        raise RuntimeError("forced test failure before the first step")
+
+    monkeypatch.setattr(
+        driver, "integrate_projected_apcm_ssprk3", raise_unexpected
+    )
+    output = tmp_path / "no_step"
+    argv = [
+        "apcm_projective_event_guard_analysis",
+        "--mode",
+        "rollout",
+        "--output-directory",
+        str(output),
+        "--phonon-cutoff",
+        "6",
+        "--final-time",
+        "0.0025",
+        "--time-step",
+        "0.0025",
+    ]
+    import sys
+
+    saved = sys.argv
+    sys.argv = argv
+    try:
+        assert driver.main() == 1
+    finally:
+        sys.argv = saved
+    summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert summary["failure"]["accepted_steps"] == 0
+    assert "forced test failure" in summary["failure"]["message"]
+    assert summary["failure"]["stage"] is None
+    assert summary["integration"]["success"] is False
+    assert not (output / "trajectory.npz").exists()
+
+
+def test_completion_retry_ladder_takes_the_first_certified_result() -> None:
+    """A declared retry answers a completion the declared settings refuse."""
+
+    from paper5.stability.apcm_positive_extension import APCMExtensionResult
+    from paper5.stability.projected_apcm import build_completion_ladder
+
+    model = FixedDictionaryProjectedAPCM(
+        _PARAMETERS,
+        stage_policy=ProjectedAPCMStagePolicy(
+            completion_retry_shifts=(1e-8,),
+            completion_retry_weights=(1e-1,),
+        ),
+    )
+    assert [
+        extension.settings.logdet_shift for extension in model.completion_ladder
+    ] == [1e-8, 1e-10]
+    assert [
+        extension.settings.logdet_weight
+        for extension in model.completion_ladder
+    ] == [1.0, 1e-1]
+    assert model.geometry.completion_ladder == model.completion_ladder
+
+    initialization = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6
+    )
+    raw, hidden = (
+        initialization.state[: -len(model.active_keys)],
+        initialization.state[-len(model.active_keys) :],
+    )
+    lower = state_lower_moments(raw, hidden, model.active_keys)
+    declared = initialization.completion
+
+    def refuse(moments, *, warm_frontier=None):  # noqa: ANN001, ANN202
+        return APCMExtensionResult(
+            lower_moments=declared.lower_moments,
+            frontier_moments=declared.frontier_moments,
+            moment_matrix=declared.moment_matrix,
+            scaled_minimum_eigenvalue=declared.scaled_minimum_eigenvalue,
+            minimum_eigenvalue=declared.minimum_eigenvalue,
+            objective=declared.objective,
+            kkt_backward_error=float("inf"),
+            iterations=0,
+            success=False,
+            message="forced test refusal",
+        )
+
+    model.extension.complete = refuse
+    result = model._select_stage_completion(lower, declared.frontier_moments)
+    assert result.success
+    assert model.stage_policy_counters["completion_retry_accepted"] == 1
+    assert model.stage_policy_counters["completion_retry_exhausted"] == 0
+
+
+def test_the_default_stage_policy_declares_no_completion_retry() -> None:
+    model = FixedDictionaryProjectedAPCM(_PARAMETERS)
+    assert model.completion_ladder == ()
+    assert model.geometry.completion_ladder == ()
+    assert model.stage_policy.is_default
+    assert model.stage_policy_counters["completion_retry_accepted"] == 0
