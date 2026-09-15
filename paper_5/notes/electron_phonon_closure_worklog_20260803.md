@@ -4283,3 +4283,38 @@ for later readers: `_boson_moment_derivative_from_blocks` now returns
 complex128 for every input (every in-repository caller already passes
 complex), and `_PAULI_MEAN_CACHE` is module-global, bounded at 8, returning
 read-only arrays.
+
+### Bounded-depth event-triggered guard, balanced profile: completes t=0.5
+
+Resumed from the `t=0.1175` checkpoint under a `7000 MB` guard, same
+settings (`balanced`, `--event-triggered-guard`, `--event-gram-hard-floor
+2e-4`, `--maximum-step-subdivisions 2`), `h=0.0025`, strong coupling, cutoff
+16.  Artifact:
+`output/local_runs/paper_v_cwrmf_event_guard_balanced_hardfloor2em4_t05_h0025_cutoff16_resume0p1175_20260915_v1/`.
+
+| quantity | value |
+|---|---:|
+| horizon completed | `t=0.1175` to `0.5`, 153 SSPRK2 steps, 306 radial atoms, no step subdivision used |
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference over `t=0.1175` to `0.5` (record's strict always-on figure over `t=0` to `0.5`: `3.19e-5`) | `2.4544e-5` |
+| dynamic site-0 occupation RMS / C-block scalar RMS, same horizon | `2.34e-7` / `6.83e-6` |
+| minimum carried unshifted 62-row Gram eigenvalue (declared hard floor `-2e-4`) | `-1.672e-4` |
+| minimum retained joint-Gram eigenvalue | `3.95e-15` |
+| maximum completion correction norm / maximum readable-rate residual | `3.86e-3` / `1.34e-2` |
+| autonomous wall time (this segment) / peak resident | `14,722 s` (4.09 h) / `6.05 GB` |
+| tier seconds: Clarabel solve / retraction / eigendecomposition / unguarded velocity | `14,636 s` over 381 calls / `51.6 s` over 82 calls / `1.06 s` over 1,072 / `0.83 s` over 306 |
+| maximum atom wall time | `381.5 s` (bundle rank 48 to 61 on triggered atoms; mean active critical modes 32.3) |
+
+Reading: the depth bound does what the record prescribed.  The balanced
+always-on attempt of 2026-08-18 stopped at `t=0.2` with `NumericalError`
+and the strict one at `t=0.08`; with repairs forced to fire at `2e-4` every
+triggered conic repair solved (`Solved` or `AlmostSolved` within the
+balanced acceptance), the retained joint Gram stayed positive, and the
+carried Gram never went below the floor.  The cost is still 99.4 percent
+Clarabel: about 4.1 h for the guarded `0.38` time units against the
+record's `12.1 h` for the strict always-on `0.5`, i.e. roughly `2.9x` on the
+guarded part and not the order of magnitude the route needs.  Round 3's
+bundle-rank seeding (26 of 33 recorded bundle solves were discarded
+enlargement iterations) and the `max_threads_8` profile (`1.51x`, balanced
+only) are the two levers left on this path; the memory of a triggered atom
+at rank 60 (`6.05 GB` peak) bounds concurrency to two such runs on this
+machine.
