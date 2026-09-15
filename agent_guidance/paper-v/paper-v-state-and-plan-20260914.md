@@ -1,0 +1,398 @@
+# Paper V: route state and plan (2026-09-14)
+
+Status: plan of record for Paper V. Supersedes nothing; the worklog
+`paper_5/notes/electron_phonon_closure_worklog_20260803.md` and the working
+notes `MATH/paper_facing/paper_V_high_u_gkba/stability_quantum_workflow_working_notes.md`
+remain the evidence record. Line references below point into those two files
+(`worklog:` and `notes:`) and into `paper_5/src/paper5/stability/`.
+
+## 1. Verdict
+
+No plan has been executed since 2026-08-18, and no single document ordered
+the open work across the routes until this file. What exists:
+
+- the working notes' two ordered workstreams (stability first, quantum
+  algorithm second, notes:19-31) and their forward protocols (reproduction
+  protocol notes:1748-1793, required causal ablation notes:1393-1435,
+  strange-attractor test notes:1928-1965, workflow boundary for the quantum
+  algorithm notes:1976-1993, open questions notes:1995-2026);
+- the manuscript's McLachlan pathway section (`paper_V_high_u_gkba.tex:172-326`),
+  which is the projective route's theory: the projected-velocity argmin, the
+  damped normal equations, the sector-gauge McLachlan equations, and a
+  four-route split for evaluating the force projection;
+- executable, schema-versioned plan documents emitted by the sensitivity and
+  Lyapunov drivers (`plan.json`, schemas `paper_v_*_plan_v1`), each carrying
+  its scientific question;
+- the worklog's terminal next actions: the bounded-depth event-guard pilot at
+  `event_gram_hard_floor = 2e-4` (worklog:3846-3854), stopped by the user for a
+  thermal concern before its first trigger, and the CHTC lane
+  `chtc/paper_v_cwrmf_event_guard_20260818`, never uploaded or submitted
+  (worklog:3867-3871);
+- the projective route's condition for proceeding (worklog:3321-3324):
+  redesign the selector representation, or weaken the every-stage outer-guard
+  requirement. Neither was done.
+
+The manuscript `MATH/paper_details/paper_V_high_u_gkba.tex` calls itself a
+planning template and still carries placeholder slots for the high-U failure
+mode and the quantum encoding; its McLachlan pathway section is written. The last substantive Paper V commit on `main` is `ba7f2ac9`
+(2026-08-18).
+
+## 2. State on this machine (2026-09-14)
+
+| item | state |
+|---|---|
+| `paper_5` test suite | 301 passed with `PYTHONPATH=paper_5/src` (recorded in `NEW-MACHINE-SETUP.md`); 300 passed, 1 failed without it (a subprocess could not import `paper5`) |
+| conic stack | numpy 2.3.5, scipy 1.16.3, cvxpy 1.9.2, clarabel 0.11.1; SCS, OSQP present |
+| `output/local_runs/paper_v_*` | absent; every trajectory, score, and plot artifact cited by the worklog was lost with the previous machine |
+| `output/pdf/paper_v_results_progression_20260804.pdf` and its figures | absent; source `paper_5/notes/paper_v_results_progression_20260804.tex` present |
+| CWRMF driver | `paper5.stability.apcm_carried_witness_analysis` prepares the canonical cutoff-16 correlated preparation in-process and regenerates the exact reference itself, so reruns do not depend on the lost artifacts |
+| branch `docs/paper-v-state` | created 2026-09-01 with no commits; this file is its first content |
+
+## 3. Route ledger
+
+Every number is over the stated horizon at the stated configuration.
+"Strong coupling" means `lambda = 1.5`, `gamma = 0.5`, drive amplitude 1,
+phonon cutoff 16, exact-correlated preparation, unless stated otherwise.
+
+### 3.1 Archive moment EOM repair (31 real coordinates for rho, B, N, A, C)
+
+Retired as the primary propagator by the 2026-08-04 abandonment decision
+(worklog:892-936) on the strength of the finite-cutoff non-identifiability
+witness: at phonon cutoff 3, at the single time point t = 0, two constructed
+spin-exchange-symmetric density operators agree in the retained
+31-coordinate tuple to a maximum difference of 3.25e-19 and in the combined
+exact (rho, B, N, A) velocity to 1.75e-18 in Euclidean norm, while their exact
+C velocities differ by 2.90343e-2 in Euclidean norm (worklog:356-373). The
+record's own scope statement is that this rules out "a universal exact
+deterministic velocity depending only on (rho, B, N, A, C) on any state class
+containing the witness pair" (worklog:897-899); it is not a proof that no
+archive-compatible closure exists. Best repaired
+result before closure: the same-spin Pauli-repaired archive EOM gave
+31-coordinate RMS error 0.057742 against the exact cutoff-16 trajectory over
+t = 0 to 4, single pulse, dt = 0.01, versus 0.11066 raw (worklog:1835-1842).
+Every later autonomous finite-memory variant was gated and rejected
+(worklog:1835-2044). Declared endpoint: a further attempt "would have to
+change the model class to nonlinear, gauge-invariant compression of the
+adaptive packet state" (worklog:2471-2475). Not reopened in this plan.
+
+### 3.2 Structured cone correction on the 31-coordinate archive EOM (`cone_correction.py`)
+
+Works as containment; not a closure repair.
+
+| quantity | value | horizon and configuration | source |
+|---|---:|---|---|
+| complete 31-coordinate l2 time-RMS distance from the exact cutoff-16 reference, raw then corrected | 0.585740 then 0.263960 | t = 0 to 100, weak point `lambda_ep = 0.5`, `gamma = 0.5`, double pulse, RK4 h = 0.01 | worklog:1430-1442 |
+| minimum bosonic eigenvalue, raw then energy-neutral matrix barrier | -3.05033e-1 then 2.89314e-5 | t = 0 to 20, strong coupling, DOP853 rtol 1e-9 atol 1e-11 | notes:1850-1859 |
+| maximum post-pulse drift from E(4): raw, full barrier, energy-neutral barrier | 2.41557e-6, 6.54778e-2, 2.53904e-6 | same run | notes:1850-1859 |
+| fraction of sampled times with the barrier active, unconstrained then energy-neutral | 36.16 percent then 55.11 percent | same run | notes:1861-1866 |
+| Hellinger distance of the polarization spectrum from exact, raw then corrected | 0.6381 then 0.1782 | 10 <= t <= 100, `g/t_hop = 0.6124` | worklog:2934-2941 |
+| electronic-band weight of that spectrum: exact, raw, corrected | 0.0569, 0.5225, 0.0026 | same window | worklog:2934-2941 |
+
+Declared next (notes:1868-1872), not executed: extend the energy-neutral
+barrier through the late amplitude-validation horizon and compare selected
+observables with exact driven-dimer propagation.
+
+Solver facts (code): custom constraint generation plus scipy SLSQP at four
+call sites (`cone_correction.py:465, 637, 1369, 1470`); no cvxpy; the
+correction is solved once per right-hand-side evaluation inside the ODE
+closures (`cone_correction.py:1911, 1968, 2022`), so DOP853 pays it several
+times per step and again on rejected steps; the 31-fold joint-Gram basis is
+rebuilt per call (`1279-1288`); no caching, warm start, or timing anywhere.
+
+### 3.3 Fixed-dictionary APCM with the positive degree-four completion (60 coordinates, both cones)
+
+| quantity | value | horizon and configuration | source |
+|---|---:|---|---|
+| all-coordinate scalar RMS and autonomous wall time: A full cone + controller; B zero-cumulant prior + controller; D positive M4, controller off | 0.012580 / 3399.6 s; 0.046475 / 52.9 s; 0.0125814 / 3268.6 s | t = 0 to 4, SSPRK(3,3) h = 0.0025, identical stored initial 60-vector | worklog:2608-2664 |
+| 31-coordinate scalar RMS against exact, both cones then uncorrected archive EOM | 0.128607 then 0.193205 | t = 0 to 20, h = 0.0025, 5832.34 s, hidden retraction on 5998 of 8000 steps | worklog:2781-2792, 2898-2903 |
+| internal-energy RMS, both cones then uncorrected | 0.000939628 then 0.0182361 | same run | worklog:2781-2792 |
+
+The accuracy comes from the positive degree-four completion, not from the
+retained joint-Gram controller (cell D versus A), at a roughly 64-fold
+runtime cost over cell B. The spin-exchange block-diagonal accelerator ran
+4.925x faster on t = 0 to 0.05 but failed solver-level parity (maximum
+60-coordinate state difference 0.245845 over t = 0 to 4) and was not promoted
+(worklog:2723-2762). The t = 240 continuation died at the t = 31 checkpoint
+as a process-lifecycle failure (worklog:2831-2837).
+
+### 3.4 Projective guard (URPG) selector, pre-rollout form (`apcm_projective_guard.py`)
+
+The memoryless selector stage of the "projective method directly on the
+moments". The selector minimizes the invariant target image on the one-shell
+outer cone and then restricts one common feasible witness to the current
+variables; a separate minimum-norm lift under the equality `R_D y = q*` is the
+declared canonical tie-break. This selector has never run per stage; the
+amendment's dynamically executable form is the carried-witness flow of
+section 3.5, which has propagated (worklog:3331-3334).
+
+| quantity | value | horizon and configuration | source |
+|---|---:|---|---|
+| one outer-aware target solve at the cutoff-16 correlated preparation | about 500 s, then 171 s after the gate reorder; objective 0.01126712315 unchanged | t = 0, one evaluation | worklog:3267-3269, 3282-3288 |
+| four-way relative outer audit at the same preparation | 820 s, about 2.7 GiB peak resident | t = 0, one evaluation | worklog:3229-3233 |
+| minimum-norm lift at the same preparation | `NumericalError`; witness recorded as noncanonical `outer_target_stage` | t = 0 | worklog:3253-3255; `apcm_projective_guard.py:2478, 2489-2491` |
+| frozen-face selector | 117 s, `PrimalInfeasible`, minimum scaled eigenvalue -0.04746; face-map singular values from order 1 to 1e-20 | t = 0 | worklog:3290-3299 |
+| PSD cutting-plane QP | still indefinite after 512 cuts on the correlated preparation | t = 0 | worklog:3301-3309 |
+| warm-started CVXPY/SCS at eps = 1e-5 | 80.1 s, 16,550 iterations, reconstructed Gram minimum scaled eigenvalue -3.15e-5 while reporting optimal | t = 0 | worklog:3311-3316 |
+
+No per-stage rollout of this selector has run. The fixed-dictionary
+integrator exists (`projected_apcm.py:745`, containment before every RHS
+call) and one SSPRK step at h = 0.0025 with the earlier nested selector and no
+retraction cost about 7.8 s and 331 MB (worklog:3076-3078). At 171 s per
+outer solve and three stages per step, an every-stage outer guard is about
+513 s per step, which the record calls "not an executable controller"
+(worklog:3267-3269). The audit recorded four attempts, not three: the gate
+reorder was kept, but it is the keyword `accept_first_provisional=False` on
+`_solve_explicit_target_qp` (`apcm_projective_guard.py:1152`) and on
+`select_outer_feasible_projective_guard` (`2422`), and no caller sets it
+True; the frozen-face selector is the only one the record marks "rejected";
+the cutting plane "remains a guarded diagnostic and is not connected to
+propagation"; SCS "fails both the runtime and physicality requirements".
+
+### 3.5 Carried-witness radial moment flow, CWRMF (`apcm_carried_witness.py`)
+
+The executable form of the 2026-08-06 projective-guard amendment
+(worklog:3331-3334): 44 retained archive-plus-entrance coordinates plus 340
+completion coordinates carrying one affine 62-row unified Gram; SSPRK2; the
+guard is a conic repair on that Gram at each radial atom. This is where the
+projective route and the physicality-cone correction meet, and it is the
+route whose cone solve must be made faster.
+
+| quantity | value | horizon and configuration | source |
+|---|---:|---|---|
+| autonomous solver time, strict always-on guard then no guard (the no-guard mode removes the 62-row PSD optimization and the endpoint rejection together; in the strict profile only the adaptive bundle tier runs, `enable_full_cone_fallback=False`) | 43,692 s (51 scored chunks, peak child RSS 3.27 GB) then 18.93 s | t = 0 to 0.5, h = 0.0025, strong coupling | worklog:3495-3498, 3597; `apcm_carried_witness.py:94` |
+| coordinate RMS difference between the no-guard and strict retained trajectories | 6.57e-7 | same interval | worklog:3599-3600 |
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference (fixed canonical-embedding offset subtracted), strict CWRMF then matched raw 31-coordinate archive EOM | 3.19e-5 then 2.13e-2 | t = 0 to 0.5 | worklog:3484-3493 |
+| balanced mixed-step profile (h = 0.01 to t = 0.4, then 0.005): time and all-coordinate scalar RMS | 17,561 s; 3.56e-5 | t = 0 to 0.5 | worklog:3523-3536 |
+| minimum extended 62-row Gram eigenvalue without the guard | -1.27089e-2 | t = 0 to 0.5 | worklog:3590-3598 |
+| no guard, full driven interval: time; 31-coordinate RMS error, CWRMF then raw archive EOM; interaction-energy RMS, CWRMF then raw | 153.53 s; 0.48049 then 0.11090; 0.01388 then 0.02759 | t = 0 to 4, h = 0.0025 | worklog:3620-3633 |
+| minimum extended 62-row Gram and retained joint-Gram eigenvalues without the guard | -26.4455 and -17.6151 | t = 0 to 4 | worklog:3632-3633 |
+| first time the retained joint Gram falls below -1e-8 without the guard | t = 1.355 | t = 0 to 4 | worklog:3645-3651 |
+| active spectral bundle rank | reached 57 of the 61 nontrivial directions, mean 50.15, read by the record as evidence that the earlier 8- and 16-mode caps were artificial; the balanced coarse phase eventually required all 61 critical modes, "so the remaining cost is structural rather than solely a consequence of excessive solver precision" | t = 0.1 to 0.5; balanced phase h = 0.01 to t = 0.4 | worklog:3475-3477, 3537-3539 |
+| event-triggered guard, strict numerics | t = 0.05 in 6.43 s at all-coordinate scalar RMS 3.236e-6 (always-on 3.24e-6); stopped at t = 0.08 after 933.6 s when a triggered repair returned independent residual 2.622e-9 against acceptance 1e-9 | t = 0 to 0.08 | worklog:3796-3816 |
+| event-triggered guard, balanced numerics | passed the first triggered conic repair near t = 0.0825 (maximum readable-rate residual 6.34e-2), then stopped at t = 0.2 after 2,184 s with `NumericalError` in both the bundle and full-cone solves; the record's reading: "The conic repair is therefore depth-limited: it succeeded from -2.3e-4 and failed from -5.9e-4" (unshifted endpoint 62-row Gram minimum). Both triggers fired through the negative-mode coupling measure exceeding 1e-2, since neither depth crossed the default hard floor 1e-3 (`apcm_carried_witness.py:82-83, 2621, 2643`); the 2e-4 override makes depth the trigger | t = 0 to 0.2 | worklog:3821-3830 |
+| minimum-norm completion retraction | -3.3e-6 restored to -8.2e-9 in 30 iterations, 0.5 s, no conic backend; stalls from -4e-5 and deeper | one triggered atom | worklog:3841-3844 |
+
+Code facts: one `perf_counter` per atom is the only instrumentation
+(`apcm_carried_witness.py:2729, 2961, 3264-3266`); `_clarabel_svec_upper` is a
+pure-Python double loop called 340 times per bundle outer iteration at 7,503
+packed floats each at rank 61 (`apcm_positive_extension.py:177-189`); the
+step-scaled completion coefficient tensor, a (340, 62, 62) complex array of
+about 20.9 MB, is rebuilt on every solver-tier entry
+(`apcm_carried_witness.py:1090, 1933, 2160, 2352`); the retraction and the
+coupling measure stream that tensor once per working mode (`2559-2568`,
+`3040-3052`); every Clarabel call is pinned to `max_threads = 1` (`958, 1269,
+1826, 2021, 2416`); `integrate_cwrmf_ssprk2` terminates the trajectory on a
+failed atom instead of halving the step (`3180-3196`), although the record's
+operating rule is local step halving (worklog:3539-3541).
+
+### 3.6 Context: multi-coherent adaptive packet route
+
+The only representation that propagates stably to long horizon: all-31
+scaled RMS against exact cutoff-16 over t = 0 to 98 of 0.063649 (ordinary
+K = 6 packet 0.140791), minimum exact-state fidelity 0.923677, joint-Gram
+minimum -1.72e-15 (worklog:2503-2523). It is not a moment closure and carries
+no online cone correction; it is the comparison line every moment route must
+be reported against.
+
+## 4. Plan
+
+Order is by dependency. Each step names its gate. All heavy runs go through
+`pipelines/shell/ram_guard.py` under the 18 GB aggregate contract; recorded
+peaks are 3.27 GB (CWRMF strict) and about 2.7 GiB (URPG audit).
+
+### 4.1 Re-anchor (both routes depend on this)
+
+1. Rerun the no-guard CWRMF over t = 0 to 0.5 at h = 0.0025 (recorded
+   18.93 s) and a strict always-on prefix over t = 0 to 0.05 (about 20 steps;
+   the recorded strict cost is 43,692 s over 200 steps). These are the parity
+   anchors every acceleration is checked against; both regenerate the exact
+   reference in-process.
+
+   ```bash
+   cd <checkout> && PYTHONPATH=paper_5/src /Users/lordskyler/Holstein_test/.venv/bin/python pipelines/shell/ram_guard.py --limit-mb 6000 -- /Users/lordskyler/Holstein_test/.venv/bin/python -m paper5.stability.apcm_carried_witness_analysis --output-directory output/local_runs/paper_v_cwrmf_no_gram_guard_t05_h0025_cutoff16_20260914_v1 --final-time 0.5 --time-step 0.0025 --no-gram-guard
+   ```
+
+   ```bash
+   cd <checkout> && PYTHONPATH=paper_5/src /Users/lordskyler/Holstein_test/.venv/bin/python pipelines/shell/ram_guard.py --limit-mb 6000 -- /Users/lordskyler/Holstein_test/.venv/bin/python -m paper5.stability.apcm_carried_witness_analysis --output-directory output/local_runs/paper_v_cwrmf_strict_t005_h0025_cutoff16_20260914_v1 --final-time 0.05 --time-step 0.0025 --numerical-profile strict
+   ```
+
+   Gate: no-guard all-coordinate scalar RMS reproduces 3.19169e-5 over t = 0
+   to 0.5 and the strict prefix reproduces 3.24e-6 over t = 0 to 0.05.
+
+### 4.2 Cone correction: make the CWRMF guard fast
+
+2. Instrument below the radial atom: per-tier `perf_counter` accumulators
+   for the 62-row eigendecomposition, coefficient assembly and svec packing,
+   the Clarabel solve, and the retraction, reported next to
+   `maximum_atom_seconds`. Gate: the strict prefix rerun attributes its wall
+   time by tier. Without this the ranking below is by code reading.
+3. Land the bitwise-neutral accelerations, each gated on reproducing the
+   strict t = 0.05 prefix to roundoff and on the 20 carried-witness tests:
+   vectorize `_clarabel_svec_upper`; cache the step-scaled completion
+   coefficient tensor once per rollout; batch the per-mode contractions in
+   the retraction and the coupling measure; precompile the time-independent
+   commutator structure in `desired_completion_velocity` and
+   `_moment_derivative` (`861-922`, `308-327`, note at `604-605`). The last
+   item also speeds the unguarded atom, which is the event guard's steady
+   state (about 0.047 s per atom from 18.93 s over 400 atoms).
+4. Add local step halving to `integrate_cwrmf_ssprk2` on a failed atom or
+   unresolved convex node, bounded by a declared subdivision depth
+   (`projected_apcm.py` already carries `maximum_subdivisions`). This removes
+   the human restart that ended three recorded runs.
+5. Run the bounded-depth event-triggered guard the record prescribed and
+   never completed: balanced profile, `--event-gram-hard-floor 2e-4`, t = 0 to
+   0.5, h = 0.0025, chunked through `checkpoint.npz`.
+
+   ```bash
+   cd <checkout> && PYTHONPATH=paper_5/src /Users/lordskyler/Holstein_test/.venv/bin/python pipelines/shell/ram_guard.py --limit-mb 6000 -- /Users/lordskyler/Holstein_test/.venv/bin/python -m paper5.stability.apcm_carried_witness_analysis --output-directory output/local_runs/paper_v_cwrmf_event_guard_balanced_hardfloor2em4_t05_h0025_cutoff16_20260914_v1 --final-time 0.5 --time-step 0.0025 --numerical-profile balanced --event-triggered-guard --event-gram-hard-floor 2e-4
+   ```
+
+   Gate: reaches t = 0.5 with minimum shifted 62-row Gram at or above the
+   declared floor and all-coordinate scalar RMS within a stated factor of the
+   strict 3.19e-5; report wall time against 18.93 s and 43,692 s.
+6. Decisive cone result: the same guard over the full driven interval t = 0
+   to 4, scored against the regenerated exact cutoff-16 reference and placed
+   next to the two existing t = 4 lines (raw archive EOM 0.11090; unguarded
+   CWRMF 0.48049 on the 31-coordinate RMS). This is the number Paper V does
+   not have: a guarded moment closure through the pulse that beats the raw
+   archive EOM at tolerable cost. Run on CHTC through the existing lane once
+   step 5 has validated the depth bound locally; the lane's argument contract
+   is `run_id final_time time_step event_gram_hard_floor`, and its README
+   gives the t = 4 form. Submission needs the user's Duo login.
+7. Only if steps 5 and 6 show the repair count, not the repair cost,
+   dominating: raise Clarabel `max_threads` for local runs, gated on
+   reproducing an accepted atom's candidate velocity, because multithreaded
+   factorization is not bitwise-neutral and the 2026-08-05 four-thread
+   accelerator failed parity.
+
+### 4.3 Cone correction: the 31-coordinate structured barrier
+
+8. Memoize the structured correction on the exact (state, derivative) pair
+   inside the RHS closures and hoist the per-call invariants (31-fold basis
+   rebuild, identity-metric Cholesky, equality SVD). Replace the SLSQP
+   projection in `_project_origin_onto_halfspaces` with a warm-started
+   active-set minimum-norm-point solve; keep the analytic single-cut path.
+   Gate: the cross-backend norm-agreement test at rtol 1e-8 and bitwise
+   reproduction of one pinned t = 20 energy-neutral run.
+9. Execute the declared next calculation (notes:1868-1872): energy-neutral
+   barrier through t = 100 at strong coupling with observables scored against
+   exact driven-dimer propagation, reported next to the packet route's t = 98
+   line. This settles whether the barrier's electronic-band suppression
+   (0.0026 against exact 0.0569 over 10 <= t <= 100) is intrinsic to the
+   31-coordinate closure or a controller artifact.
+
+### 4.4 Projective route: make the one-shell selector executable
+
+10. Make the outer guard event-triggered, reusing the CWRMF machinery
+    verbatim: unconstrained fixed-dictionary predictor, endpoint Gram
+    eigendecomposition, the shared `negative_mode_coupling` measure, and
+    `select_outer_feasible_projective_guard` only on triggered stages. This
+    is one of the record's two named ways forward. Needs decision D1.
+11. Replace the two-solve selector (target image, then unique minimum-norm
+    lift under `R_D y = q*`) by one strictly convex solve: the image quadratic
+    in the whitened metric plus a fixed positive-definite frontier term,
+    reported as a declared model parameter. The lift equality is exactly
+    what returned `NumericalError`; a strictly convex objective needs no
+    tie-break and removes the null lift space that defeated the cutting
+    plane. Acceptance: the four-way relative outer audit at the cutoff-16
+    preparation, compared against the recorded witness (objective
+    0.01126712315, target-image displacement 0.5193246). Needs decision D2.
+12. Repair the two conditioning entries: Tikhonov-damped or truncated face
+    solve in place of the componentwise division by face singular values
+    (`apcm_projective_guard.py:1762-1763`, rank floor 1e-12 at
+    `1674-1684`), and carry the active face across stages by continuation
+    with the existing consistency gate and fallback, instead of freezing it.
+13. First projective rollout: fixed-dictionary APCM, SSPRK(3,3), h = 0.0025,
+    t = 0 to 0.05, containment after every stage, event-triggered outer
+    guard, scored offline against the regenerated exact reference and placed
+    next to the CWRMF strict t = 0.05 figure (3.24e-6). Then t = 0 to 4 next
+    to the step 6 line.
+
+### 4.5 Reporting
+
+14. Rebuild `output/pdf/paper_v_results_progression_20260804.pdf` from the
+    regenerated artifacts through the existing plotting workflow; do not
+    hand-edit numbers.
+15. Fill the manuscript's two placeholder slots only from steps 6, 9, and
+    13; adoption is the user's decision.
+
+## 5. Decisions for the user
+
+D1. Is the amendment's requirement that the invariant target image
+`q_D = R_D y` be minimized on the one-shell outer cone at every SSPRK stage
+still binding, or may the outer cone be enforced as an event-triggered guard
+keyed on the endpoint 62-row Gram minimum and the negative-mode coupling
+measure, as the carried-witness flow already does? Recommendation: weaken it
+to event-triggered. The record names this as one of its two ways forward, and
+its mode audit supports an event-triggered guard over always-on optimization
+(worklog:3655-3663).
+
+D2. Does the lexicographic selector (minimum invariant target image, then the
+unique minimum-norm lift under `R_D y = q*`) remain the declared selector, or
+may it be replaced by one strictly convex objective with a declared frontier
+term? Recommendation: replace it; the lift equality is the part that failed.
+
+D3. Is the strict profile (acceptance `10 x solver_tolerance = 1e-9`,
+`psd_inflation 1e-11`) the reporting contract for the 62-row Gram cone, or is
+the balanced profile (declared unshifted floor -1e-8, acceptance 1e-7)
+acceptable as the reported cone with its floor stated in the caption?
+Recommendation: balanced as the reported cone, strict kept only as the
+parity anchor; the strict event-guard run stopped at t = 0.08 on a residual
+of 2.622e-9 that balanced admits.
+
+## 6. Verification ledger
+
+Ten load-bearing claims from the synthesis were each checked by three
+independent refuters (one against the worklog and notes, one against the
+source, one against definitions and horizons). Every correction below is
+already folded into sections 1 and 3.
+
+| claim | verdict | correction applied |
+|---|---|---|
+| no written Paper V plan exists | refuted 3/3 | the notes' workstreams and protocols, the manuscript's McLachlan pathway section, and the drivers' `plan.json` schemas are plans; what was missing is an executed, cross-route order (section 1) |
+| the projective route never propagated a trajectory | refuted 3/3 | the carried-witness flow is the amendment's executable form and propagated to t = 0.5; only the one-shell selector stage never ran per stage (sections 3.4, 3.5) |
+| the cone solve is the entire CWRMF runtime | refuted 2/3 | the no-guard mode removes the 62-row PSD optimization and endpoint rejection together; strict runs only the bundle tier; the numbers stand (section 3.5) |
+| the unguarded flow fails over the full pulse | stands 3/3 | precision added: the RMS is on the 31 retained coordinates; interaction-energy RMS is better without the guard (0.01388 versus 0.02759); the record calls it "not an immediate observable failure" |
+| the conic repair is depth-limited at -2.3e-4 versus -5.9e-4 | refuted 2/3 | the sentence is the record's; both triggers fired through the coupling measure, not depth; the 2e-4 override is what makes depth the trigger (section 3.5) |
+| the retraction cannot replace the conic repair | stands 3/3 | vocabulary: "minimum-norm completion retraction", a fast path for hysteresis-scale retriggers; single-atom measurement, not a trajectory |
+| bundle compression is nearly exhausted | refuted 3/3 | the record says "structural rather than solely a consequence of excessive solver precision"; 57 of 61 was read as evidence against the earlier mode caps (section 3.5) |
+| one outer solve costs 171 s and is unusable per stage | stands 3/3 | the gate reorder is `accept_first_provisional=False` by default with no caller setting it (section 3.4) |
+| all three per-stage accelerations were rejected | refuted 2/3 | four attempts; the gate reorder was kept; only the frozen face is marked rejected; the others are "guarded diagnostic" and "fails both requirements" (section 3.4) |
+| the archive-EOM repair route is closed by the witness | refuted 2/3 | the witness is at cutoff 3, t = 0; the record's scope is "any state class containing the witness pair"; the route was retired by decision, not closed by proof (section 3.1) |
+
+## 7. Overnight autonomous protocol (2026-09-14, user-directed)
+
+The user asked for unattended work on the routes above, "throw things at the
+wall and see what sticks", constrained to Paper V. Rules for the loop:
+
+- Checkout: `/Users/lordskyler/Holstein_test.worktrees/claude-paper-v-routes-20260914`,
+  branch `claude/paper-v-routes-20260914`. Every edit, run, and commit happens
+  there. The main checkout is read-only for this work; other agents use it.
+- Writable paths: `paper_5/**`, `agent_guidance/paper-v/**`,
+  `MATH/paper_facing/paper_V_high_u_gkba/**`, `MATH/paper_details/paper_V_high_u_gkba.tex`,
+  `chtc/paper_v_*/**`, `pipelines/open_dynamics/**` (Paper V pipelines only),
+  and `output/local_runs/paper_v_*` (ignored by git). Nothing under Paper I--IV
+  lanes, `src/`, `test/`, `pipelines/static_adapt`, `pipelines/time_dynamics`,
+  or the shared contracts. A change outside the list is reverted, not kept.
+- Python: `PYTHONPATH=paper_5/src` with the main checkout's `.venv`; every
+  heavy process runs under `pipelines/shell/ram_guard.py --limit-mb 5000`; at
+  most three heavy processes at once; aggregate under 18 GB.
+- Defaults do not change. Every new behaviour is a named experiment behind a
+  flag or profile with strict and balanced defaults untouched; the decisions
+  D1--D3 are assumed in their recommended form for exploration only, and the
+  record says so wherever a number depends on them.
+- Gates before a change is kept: the 20 carried-witness tests, the full
+  `paper_5` suite, and bitwise (or stated-tolerance) reproduction of the
+  section 4.1 anchors for any change on the guarded path.
+- Recording: one dated entry per completed experiment appended to
+  `paper_5/notes/electron_phonon_closure_worklog_20260803.md` in the record's
+  vocabulary, numbers with definition and horizon, artifact paths, and a
+  kept/dropped verdict; section 3 of this file is updated in place when a
+  route's state changes. Commits stage explicit paths only.
+- Subagents and workflow agents run on Opus with `model: "opus"`.
+- Stop conditions: a gate cannot be met after two independent attempts, the
+  memory contract would be exceeded, or a step needs a user decision beyond
+  D1--D3; then record the blocker and wait for the next wakeup.
+- Never: submit to CHTC (needs the user's Duo login), promote evidence,
+  rewrite the manuscript's claims, delete artifacts, or touch another
+  agent's jobs.
