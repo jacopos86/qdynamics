@@ -4773,3 +4773,76 @@ the raw archive EOM on the 31-coordinate RMS, so plan step 6 is not closed.
 Next: the same repair to `t=20` (the record's both-cones horizon,
 `0.128607`), and a hybrid that re-selects the completion every N steps with
 the cheap repair between.
+
+## 2026-09-15: projective route, task 1, with the reviewer's corrections
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`;
+review: `review-routes-20260915b.md` (evidence under
+`output/local_runs/paper_v_review_routes_20260915b/`).  The review failed
+the report on its stage-retraction counts, which are corrected here; the
+commit message of `59e3dc04` carries the wrong counts.
+
+Kept (defaults unchanged, default `t=0` to `0.05` path bitwise equal to the
+round-3 artifact): `select_outer_feasible_projective_guard(...,
+target_solver=None)` as the single seam for the target stage;
+`ProjectiveOuterEventGuardSettings.outer_target_solver` (`recorded` default,
+`tightened_retry`); driver flags `--outer-target-solver`,
+`--outer-target-single-pass`, `--outer-target-time-limit-seconds`,
+`--initial-exact-time` (the exact cutoff-16 driven state at a declared time
+contracted into the projected state and completed; a diagnostic initial
+condition only, no exact information afterwards), `--phonon-envelope`.
+
+Diagnosis of the post-pulse wall.  The exact state at `t=5.0`, contracted,
+has a certified declared completion with no retry (14 interior Newton
+iterations, KKT backward error `2.623e-9`, extension minimum `-6.2e-15`,
+box envelope ratio `0.246` against the frozen envelope 1, retained
+joint-Gram minimum `1.88e-5`).  Continued toward `t=8` at `h=0.0025` with
+the carried lift, face continuation and the completion retry ladder it
+reached `t=5.985` in 394 steps, stopped by its `1,080 s` budget, with 31
+stage retractions (`0.079` per step; the report's "2" was the last step's
+own count), five of them in `t=5.1325` to `5.1775`; all-coordinate scalar
+RMS against exact over `t=5.0` to `5.985` `6.4865e-3` (rho `7.47e-3`, B
+`7.12e-4`, N `5.10e-4`, A `1.46e-3`, C `8.95e-3`).  Every continuation from
+the propagated `t=4` state (default policy, 1,068 retractions over `t=0` to
+`4`, coordinate error `2.5037e-1` at `t=4`) stops between `t=4.83` and
+`5.235` at `0.28` to `0.55` retractions per step at the same `h=0.0025`.
+Reading: the wall is accumulated driven-interval error, not the frozen box;
+the claim holds at equal step size only.
+
+Halving the step from `t=4` (retry ladder plus face continuation,
+`h=0.00125`, `1,020 s` budget) reached `t=5.1075` in 886 steps with 64
+stage retractions (`0.072` per step; the report's "6" was again a last-step
+count) at dynamic RMS `4.4778e-2` over `t=4` to `5.1075`, against `t=5.12`,
+109 retractions, `4.5320e-2` and `2,583.8 s` at `h=0.0025`: the step buys
+cost, not horizon; 800 of the 886 steps ran in about `120 s` and the last 86
+took `995 s` with the ladder exhausted 78 times, all past `t=5`.  The wired
+selector has not yet solved a real triggered stage inside a rollout, and no
+trigger has fired on its own in any rollout to date (0 of 1,182 stages on
+the exact-start run).  Next: a full rollout from `t=0` under the best cheap
+policy, which has not been run.
+
+### Reviewer corrections to the cheap projection block above
+
+The Dykstra 30 per-step repair on the carried-witness no-guard flow makes
+the Eq. (22) internal-energy RMS over `t=0` to `4` 51 times worse
+(`0.0138792` unrepaired to `0.7092441` repaired) while improving the
+31-coordinate RMS 2.6 times; the block's reading that the repair buys
+physicality and accuracy is qualified by that column.  The rerun reproduces
+the artifact bitwise (raw `0.18429968`, dynamic `0.18430033`; 62-row Gram
+`-3.6615e-5`; retained `-2.50e-16`); the control is bitwise the record's
+no-guard flow; the affine-map claim holds to `1.8e-15` at independent
+probes.
+
+### Reviewer findings on the CHTC acceleration lane
+
+Gates pass (7 of 7 resume and wall-budget tests, bundle `edffe887` /
+`520,921` bytes / 101 entries, lifecycle validator exit 0, the inner runner
+deletes nothing and cannot overwrite a remote archive), but the
+`wall_budget` resume the wall budget exists to enable is not executable as
+shipped: every submit file names the previous segment's checkpoint (segment
+01 names `none`), so a stopped segment cannot be resubmitted at its own
+`final_time` without editing three lines the README says do not change, and
+a reused run id would let stage-out overwrite
+`raw_outputs/<batch>/<run_id>/checkpoint.npz`.  The bundle was also built
+from an uncommitted working tree: five modules inside it differ from HEAD
+`4510bd01`.  Both are being repaired before anything is uploaded.
