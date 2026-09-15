@@ -72,7 +72,15 @@ _RECORDED = {
     "carried_witness_strict_all_coordinate_scalar_rms_t0_to_0p05": 3.236e-6,
     "projective_retry_ladder_all_coordinate_scalar_rms_t0_to_0p05": 1.2277e-5,
     "projective_no_retraction_all_coordinate_scalar_rms_t0_to_0p015": 1.9408e-6,
-    "source": "worklog: 2026-09-14 and 2026-09-15 overnight rounds 1 to 3",
+    "both_cones_all_coordinate_scalar_rms_t0_to_20": 0.128607,
+    "plain_archive_eom_all_coordinate_scalar_rms_t0_to_20": 0.193205,
+    "both_cones_internal_energy_rms_t0_to_20": 0.000939628,
+    "plain_archive_eom_internal_energy_rms_t0_to_20": 0.0182361,
+    "projective_event_guard_wall_seconds_t0_to_4": 3229.8,
+    "cheap_route_dykstra30_both_no_reselection_rms_t0_to_4": 0.1313351146218195,
+    "cheap_route_no_repair_rms_t0_to_4": 0.13304,
+    "source": "worklog: 2026-09-14 and 2026-09-15 overnight rounds 1 to 3; "
+    "the t=0 to 20 lines are worklog:2781-2792 and 2898-2903",
 }
 
 
@@ -137,6 +145,27 @@ def _parser() -> argparse.ArgumentParser:
         help=(
             "Optional prefix of ENTRANCE_RELATIVE_MOMENT_KEYS for a small "
             "fixture; the declared dictionary is all 15 keys."
+        ),
+    )
+    parser.add_argument(
+        "--lift-reselection-interval",
+        type=int,
+        default=0,
+        help=(
+            "Re-solve the declared proximal log-det completion at the "
+            "accepted state every N steps and carry the solved lift, "
+            "repaired by the cheap projection, in between.  0 carries the "
+            "preparation's lift for the whole rollout, which is the route's "
+            "original form.  Fixed-dictionary state only."
+        ),
+    )
+    parser.add_argument(
+        "--lift-reselection-start",
+        choices=("warm", "cold"),
+        default="warm",
+        help=(
+            "Whether a re-selection hands the carried frontier to the "
+            "completion as its warm frontier."
         ),
     )
     parser.add_argument("--wall-budget-seconds", type=float, default=1200.0)
@@ -433,6 +462,8 @@ def main() -> int:
         progress=progress,
         deadline=started + float(args.wall_budget_seconds),
         record_stages=bool(args.record_stages),
+        lift_reselection_interval=int(args.lift_reselection_interval),
+        lift_reselection_warm_start=args.lift_reselection_start == "warm",
     )
     autonomous_elapsed = perf_counter() - started
 
@@ -529,6 +560,23 @@ def main() -> int:
                     1,
                     trajectory.repairs_applied + trajectory.repairs_skipped,
                 )
+            ),
+        },
+        "lift": {
+            "reselection_interval_steps": int(args.lift_reselection_interval),
+            "reselection_start": args.lift_reselection_start,
+            "reselections": trajectory.lift_reselections,
+            "reselection_failures": trajectory.lift_reselection_failures,
+            "reselection_wall_seconds": trajectory.lift_reselection_seconds,
+            "mean_reselection_seconds": (
+                trajectory.lift_reselection_seconds
+                / max(1, trajectory.lift_reselections)
+            ),
+            "maximum_reselection_frontier_displacement_euclidean": (
+                trajectory.maximum_lift_reselection_displacement
+            ),
+            "minimum_reselected_scaled_extension_eigenvalue": (
+                trajectory.minimum_reselected_scaled_extension_eigenvalue
             ),
         },
         "feasibility": {

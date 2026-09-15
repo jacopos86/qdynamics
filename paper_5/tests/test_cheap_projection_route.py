@@ -284,3 +284,103 @@ def test_unified_62_row_gram_is_affine_in_the_carried_coordinates() -> None:
     )
     assert repaired.applied
     assert repaired.extension_minimum_after > repaired.extension_minimum_before
+
+
+def test_lift_reselection_interval_zero_carries_the_preparation_lift(
+    prepared,
+) -> None:
+    """The route's original form: one completion at t=0 and none after."""
+
+    route, state, frontier, _ = prepared
+    trajectory = integrate_cheap_projection_ssprk3(
+        route,
+        state,
+        frontier,
+        final_time=0.005,
+        time_step=0.0025,
+        lift_reselection_interval=0,
+    )
+    assert trajectory.success
+    assert trajectory.lift_reselections == 0
+    assert trajectory.lift_reselection_failures == 0
+    assert trajectory.lift_reselection_seconds == 0.0
+    assert trajectory.maximum_lift_reselection_displacement == 0.0
+
+
+def test_lift_reselection_every_step_solves_once_per_step(prepared) -> None:
+    """The hybrid at N=1: one declared completion per accepted step."""
+
+    route, state, frontier, _ = prepared
+    trajectory = integrate_cheap_projection_ssprk3(
+        route,
+        state,
+        frontier,
+        final_time=0.005,
+        time_step=0.0025,
+        lift_reselection_interval=1,
+        record_stages=True,
+    )
+    assert trajectory.success
+    assert trajectory.lift_reselections == 2
+    assert trajectory.lift_reselection_failures == 0
+    assert trajectory.lift_reselection_seconds > 0.0
+    assert (
+        trajectory.minimum_reselected_scaled_extension_eigenvalue > -1e-9
+    )
+    reselections = [
+        record
+        for record in trajectory.records
+        if record["stage"] == "lift_reselection"
+    ]
+    assert len(reselections) == 2
+    assert all(record["applied"] for record in reselections)
+
+
+def test_lift_reselection_at_a_cadence_solves_on_that_cadence(
+    prepared,
+) -> None:
+    route, state, frontier, _ = prepared
+    trajectory = integrate_cheap_projection_ssprk3(
+        route,
+        state,
+        frontier,
+        final_time=0.01,
+        time_step=0.0025,
+        lift_reselection_interval=4,
+    )
+    assert trajectory.success
+    assert trajectory.completed_steps == 4
+    assert trajectory.lift_reselections == 1
+
+
+def test_reselect_lift_returns_the_declared_completion_frontier(
+    prepared,
+) -> None:
+    """The re-selected lift is the completion's own frontier, standardized."""
+
+    route, state, frontier, _ = prepared
+    perturbed = 0.5 * np.asarray(frontier, dtype=float)
+    selected, completion, seconds = route.reselect_lift(
+        state, perturbed, warm_start=True
+    )
+    assert completion.success
+    assert seconds > 0.0
+    assert np.allclose(
+        selected,
+        route.coordinates.standardize_frontier(completion.frontier_moments),
+    )
+    assert completion.scaled_minimum_eigenvalue > -1e-9
+    assert not np.allclose(selected, perturbed)
+
+
+def test_negative_lift_reselection_interval_is_rejected(prepared) -> None:
+    route, state, frontier, _ = prepared
+    with pytest.raises(ValueError, match="lift_reselection_interval"):
+        integrate_cheap_projection_ssprk3(
+            route,
+            state,
+            frontier,
+            final_time=0.0025,
+            time_step=0.0025,
+            lift_reselection_interval=-1,
+        )

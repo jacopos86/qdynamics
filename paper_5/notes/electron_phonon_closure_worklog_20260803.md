@@ -4846,3 +4846,62 @@ a reused run id would let stage-out overwrite
 `raw_outputs/<batch>/<run_id>/checkpoint.npz`.  The bundle was also built
 from an uncommitted working tree: five modules inside it differ from HEAD
 `4510bd01`.  Both are being repaired before anything is uploaded.
+
+## 2026-09-15: cheap projection route, second pass: the hybrid with periodic lift re-selection
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(second heading).  Strong coupling, cutoff 16, exact-correlated
+preparation, `h=0.0025`; RMS figures are the all-coordinate scalar RMS
+against the exact cutoff-16 reference on the 31 closed coordinates (raw and
+offset-subtracted agree to every printed digit on this route); wall times
+were measured with other agents' jobs on the machine and are upper bounds.
+
+Negative result first: neither cheap-repair route alone is a long-horizon
+closure.  Over `t=0` to `20`: the carried-witness no-guard flow with
+Dykstra 30 per step scores `12.9677` (Eq. (22) internal-energy RMS
+`47.2251`; 62-row Gram `-3.36e-2` after repair; the error is the
+phonon-occupation block, N-block scalar RMS `35.566`, while the site-0
+occupation stays at `0.210` against the record's `0.204690`; the Gram is
+lost progressively after `t=4`: `-9.9e-6` at 4, `-2.4e-4` at 8, `-2.9e-2` at
+20; `343.9 s`), and the fixed dictionary with the frozen lift and Dykstra 30
+scores `1.41587` (internal energy `6.79887`; extension `-1.5e-4`; envelope
+ratio `1.940`; `200.0 s`), against the record's both-cones `0.128607`
+(internal energy `0.000939628`, `5,832.34 s`) and plain archive EOM
+`0.193205` (`0.0182361`).
+
+The hybrid: the declared proximal log-det completion (the lift) re-selected
+every N steps, warm-started on the carried frontier, with Dykstra 30 on
+both targets between re-selections, fixed-dictionary state, `t=0` to `4`:
+
+| N | all-coordinate scalar RMS, `t=0` to `4` | wall |
+|---|---:|---:|
+| frozen lift (no re-selection) | `0.131335` | `39.4 s` |
+| 64 | `0.0412601` | `49.8 s` |
+| 16 | `0.0268423` | `89.6 s` |
+| 4 | `0.0262899` | `137.9 s` |
+| 1 | `0.0273992` | `702.2 s` |
+| record: projective event guard with stage retraction | `0.026049` | `3,229.8 s` |
+| record: raw archive EOM | `0.11090` | --- |
+
+The frozen lift was the whole gap between the cheap route and the projective
+route; N=16 gives the projective route's accuracy at one thirty-sixth of its
+cost.  N=1 is 4 percent worse than N=4 at 5.1 times the wall (250 of 1,600
+re-selections refuse and the carried lift is kept there); refusals are
+ordinary (1 of 25, 9 of 100, 59 of 400, 250 of 1,600) and never stop the
+route.  No post-pulse wall: N=16 to `t=8` completes all 3,200 steps in
+`195.7 s` at `0.0577300` over `t=0` to `8` (extension minimum `-9.1e-6`,
+retained `-8.3e-7`); N=64 gives `0.121366` at `98.4 s`.  Nothing happens at
+`t=5.09` to `5.24`, where every propagated projective continuation stops;
+the instantaneous 31-coordinate error is `0.3025` at `t=4`, `0.2867` at
+`t=5` and `0.7041` at `t=8`, and what degrades after the drive is the phonon
+occupation (N-block `0.0159` to `0.107`), not representability.  The
+internal-energy column for the hybrid was not reported and is requested
+next, given the Dykstra-only repair's 51-fold penalty on it.
+
+Code: `CheapProjectionRoute.reselect_lift`, `lift_reselection_interval` and
+`lift_reselection_warm_start` on the integrator, five trajectory fields,
+driver flags `--lift-reselection-interval` and `--lift-reselection-start`;
+21 tests in the file (5 new); `paper_5` suite 466 passed.  Nine artifacts
+under `output/local_runs/paper_v_cheap_projection_*`, peak `861 MB`, longest
+run 12 minutes.  Next: N=16 and N=4 to `t=20` against the record's
+`0.128607`, with the internal-energy column.

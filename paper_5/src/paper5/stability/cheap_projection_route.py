@@ -837,6 +837,11 @@ class CheapProjectionTrajectory:
     success: bool
     message: str
     records: tuple[dict[str, Any], ...] = field(default=())
+    lift_reselections: int = 0
+    lift_reselection_failures: int = 0
+    lift_reselection_seconds: float = 0.0
+    maximum_lift_reselection_displacement: float = 0.0
+    minimum_reselected_scaled_extension_eigenvalue: float = float("nan")
 
 
 class CheapProjectionRoute:
@@ -911,6 +916,53 @@ class CheapProjectionRoute:
             message="cheap_projection_carried_lift",
         )
 
+    def reselect_lift(
+        self,
+        state: FloatArray,
+        frontier_standardized: FloatArray,
+        *,
+        warm_start: bool = True,
+    ) -> tuple[FloatArray, APCMExtensionResult, float]:
+        """Solve the declared proximal log-det completion at this state.
+
+        This is the one place on the route where a conic solve runs after the
+        preparation, and it runs only on the declared re-selection cadence:
+        the hybrid re-selects the lift every ``N`` accepted steps and carries
+        it, repaired by the cheap projection, in between.  The solve is
+        ``SymmetryReducedPositiveExtension.complete``, that is the same
+        proximal log-det completion the projective route calls at every
+        stage; ``warm_start`` hands it the carried frontier as its warm
+        frontier, which is the projective route's non-cold
+        ``completion_start``.
+
+        A refusal is reported, never raised: the returned frontier is then
+        the carried one, unchanged, and the caller counts the refusal.
+        """
+
+        raw, hidden = unpack_projected_apcm_state(
+            state, active_keys=self.coordinates.active_keys
+        )
+        lower = state_lower_moments(raw, hidden, self.coordinates.active_keys)
+        warm = (
+            self.coordinates.frontier_mapping(frontier_standardized)
+            if warm_start
+            else None
+        )
+        started = perf_counter()
+        result = self.model.extension.complete(lower, warm_frontier=warm)
+        seconds = perf_counter() - started
+        if not result.success:
+            return (
+                np.asarray(frontier_standardized, dtype=float).copy(),
+                result,
+                seconds,
+            )
+        return (
+            self.coordinates.standardize_frontier(result.frontier_moments),
+            result,
+            seconds,
+        )
+
     def unguarded_velocity(
         self,
         time: float,
@@ -940,6 +992,8 @@ def integrate_cheap_projection_ssprk3(
     progress: Callable[[str], None] | None = None,
     deadline: float | None = None,
     record_stages: bool = False,
+    lift_reselection_interval: int = 0,
+    lift_reselection_warm_start: bool = True,
 ) -> CheapProjectionTrajectory:
     """SSPRK(3,3) on the unguarded velocity with the declared cheap repair.
 
@@ -949,10 +1003,20 @@ def integrate_cheap_projection_ssprk3(
     state at the end of a step.  Nothing here can refuse: the rollout stops
     only on a nonfinite state, the wall budget, or an exception raised by the
     velocity evaluation itself.
+
+    ``lift_reselection_interval`` is the hybrid: ``0`` carries the
+    preparation's lift for the whole rollout, which is the route's original
+    form; a positive ``N`` re-solves the declared proximal log-det completion
+    at the accepted state every ``N`` steps, after that step's repair, and
+    carries the solved lift until the next re-selection.  A completion that
+    refuses is counted and the carried lift is kept, so the rollout still
+    cannot stop on a conic refusal.
     """
 
     if final_time <= 0.0 or time_step <= 0.0:
         raise ValueError("final_time and time_step must be positive")
+    if lift_reselection_interval < 0:
+        raise ValueError("lift_reselection_interval must be nonnegative")
     span = float(final_time) - float(initial_time)
     if span <= 0.0:
         raise ValueError("final_time must exceed initial_time")
@@ -977,13 +1041,21 @@ def integrate_cheap_projection_ssprk3(
     envelope = np.empty(intervals + 1, dtype=float)
     records: list[dict[str, Any]] = []
 
-    counters = {"applied": 0, "skipped": 0}
+    counters = {
+        "applied": 0,
+        "skipped": 0,
+        "reselections": 0,
+        "reselection_failures": 0,
+    }
     totals = {
         "repair_seconds": 0.0,
         "velocity_seconds": 0.0,
         "state_displacement": 0.0,
         "frontier_displacement": 0.0,
         "dykstra_iterations": 0,
+        "reselection_seconds": 0.0,
+        "reselection_displacement": 0.0,
+        "reselected_minimum": float("inf"),
     }
 
     def sample(index: int, current: FloatArray, lift: FloatArray) -> None:
@@ -1103,6 +1175,46 @@ def integrate_cheap_projection_ssprk3(
                 "stage_3" if stage_cadence else "step",
                 when + time_step,
             )
+            if (
+                lift_reselection_interval > 0
+                and (step + 1) % lift_reselection_interval == 0
+            ):
+                carried = final_frontier
+                final_frontier, completion, seconds = route.reselect_lift(
+                    final_state,
+                    carried,
+                    warm_start=lift_reselection_warm_start,
+                )
+                totals["reselection_seconds"] += seconds
+                counters["reselections"] += 1
+                if not completion.success:
+                    counters["reselection_failures"] += 1
+                else:
+                    totals["reselected_minimum"] = min(
+                        totals["reselected_minimum"],
+                        float(completion.scaled_minimum_eigenvalue),
+                    )
+                totals["reselection_displacement"] = max(
+                    totals["reselection_displacement"],
+                    float(np.linalg.norm(final_frontier - carried)),
+                )
+                if record_stages:
+                    records.append(
+                        {
+                            "stage": "lift_reselection",
+                            "time": float(when + time_step),
+                            "applied": bool(completion.success),
+                            "iterations": int(completion.iterations),
+                            "scaled_minimum_eigenvalue": float(
+                                completion.scaled_minimum_eigenvalue
+                            ),
+                            "frontier_displacement": float(
+                                np.linalg.norm(final_frontier - carried)
+                            ),
+                            "seconds": float(seconds),
+                            "message": completion.message,
+                        }
+                    )
         except Exception as error:  # noqa: BLE001 - every failure is reported
             completed = step
             success = False
@@ -1133,7 +1245,8 @@ def integrate_cheap_projection_ssprk3(
                 f"lambda_retained={retained_minima[step + 1]:.3e} "
                 f"lambda_extension={extension_minima[step + 1]:.3e} "
                 f"envelope={envelope[step + 1]:.3e} "
-                f"repairs={counters['applied']}"
+                f"repairs={counters['applied']} "
+                f"reselections={counters['reselections']}"
             )
 
     kept = completed + 1
@@ -1156,6 +1269,15 @@ def integrate_cheap_projection_ssprk3(
         success=success,
         message=message,
         records=tuple(records),
+        lift_reselections=int(counters["reselections"]),
+        lift_reselection_failures=int(counters["reselection_failures"]),
+        lift_reselection_seconds=float(totals["reselection_seconds"]),
+        maximum_lift_reselection_displacement=float(
+            totals["reselection_displacement"]
+        ),
+        minimum_reselected_scaled_extension_eigenvalue=float(
+            totals["reselected_minimum"]
+        ),
     )
 
 
