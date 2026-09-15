@@ -4105,3 +4105,22 @@ the guard.  Next: make the stage retraction cheaper (warm-started completion
 is under test in round 2) and extend the same configuration to `t=20` for the
 comparison against the both-cones line (`0.128607` over `t=0` to `20`,
 worklog:2781-2792).
+
+### The same projective configuration toward t=20: fails between t=5 and t=6
+
+Same driver and settings as the `t=0` to `4` run above, `--final-time 20`.
+The rollout passed `t=4` (progress line: base Gram minimum `7.613e-4`,
+extension minimum `1.992e-4`, one stage retraction in the fourth unit) and
+`t=5` (`7.700e-4`, `2.022e-4`, none), then stopped with
+`ProjectedAPCMFailure: moment_extension_failure persisted after 8 stage
+subdivisions: retracted lower moments did not admit the declared selector:
+moment_extension_degeneracy: conic Newton step failed descent after full cone
+interior`.  The driver writes no trajectory on this failure path, so only
+`progress.jsonl` survives under
+`output/local_runs/paper_v_apcm_projective_event_guard_t20_h0025_cutoff16_20260915_v1/`;
+the failure time lies in `5 < t < 6`, after the drive has ended.  Two things
+to change before the next attempt: the driver must save the partial
+trajectory and the failing stage's lower moments on every failure path, and
+the post-pulse degeneracy of the proximal log-det completion needs its own
+diagnosis (the fixed dictionary's positive extension approaches a face of
+the cone once the drive is off).
