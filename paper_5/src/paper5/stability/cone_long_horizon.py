@@ -37,8 +37,13 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import DOP853
 
-from paper5.stability.cone_correction import structured_boson_barrier_correction
+from paper5.stability.cone_correction import (
+    structured_boson_barrier_correction,
+    structured_electron_phonon_barrier_correction,
+)
+from paper5.stability.initial_conditions import closed_residual_subtracted_rhs
 from paper5.stability.matrix_reference import (
+    closed_scalar_rhs,
     closed_scalar_to_matrix_state,
     local_holstein_couplings,
 )
@@ -89,6 +94,8 @@ def integrate_sampled_dop853(
     absolute_tolerance: float = 1e-11,
     maximum_step: float = 0.05,
     wall_budget_seconds: float | None = None,
+    step_callback: Callable[[float, int, float], None] | None = None,
+    on_rhs_error: str = "raise",
 ) -> SampledTrajectory:
     """Propagate with DOP853 and keep every sample reached inside the budget.
 
@@ -98,6 +105,16 @@ def integrate_sampled_dop853(
     result is the same trajectory ``solve_ivp`` returns; with a budget the
     integration stops after the first completed step whose end time is past
     the budget, and the samples already interpolated are returned.
+
+    ``step_callback``, when given, is called after every completed step with
+    the solver time, the step count and the elapsed wall seconds; it is a
+    reporting hook and touches nothing the solver reads.  ``on_rhs_error``
+    keeps the recorded behaviour ``"raise"`` by default: a right-hand side
+    that raises (the convergence contract of
+    ``closed_electron_phonon_cone_projected_rhs``, for one) propagates its
+    exception.  The named alternative ``"stop"`` ends the integration at the
+    last completed step and records the exception in ``stop_reason``, so a
+    long rollout keeps the samples it already produced.
     """
 
     times = np.asarray(sample_times, dtype=float)
@@ -109,6 +126,8 @@ def integrate_sampled_dop853(
         raise ValueError("sample_times must lie inside the integration span")
     if wall_budget_seconds is not None and wall_budget_seconds <= 0.0:
         raise ValueError("wall_budget_seconds must be positive when given")
+    if on_rhs_error not in ("raise", "stop"):
+        raise ValueError("on_rhs_error must be 'raise' or 'stop'")
 
     state = np.asarray(initial_state, dtype=float).copy()
     solver = DOP853(
@@ -127,7 +146,13 @@ def integrate_sampled_dop853(
     stop_reason = "final_time"
     started = _time.perf_counter()
     while True:
-        message = solver.step()
+        try:
+            message = solver.step()
+        except Exception as error:  # noqa: BLE001 - re-raised unless named
+            if on_rhs_error != "stop":
+                raise
+            stop_reason = f"rhs_error:{type(error).__name__}:{error}"
+            break
         if solver.status == "failed":
             stop_reason = f"solver_failed:{message}"
             break
@@ -139,6 +164,12 @@ def integrate_sampled_dop853(
             collected_times.append(step_times)
             collected_states.append(np.asarray(interpolant(step_times)).T)
             sample_index = next_index
+        if step_callback is not None:
+            step_callback(
+                float(solver.t),
+                step_count,
+                _time.perf_counter() - started,
+            )
         if solver.status == "finished":
             break
         if (
@@ -375,6 +406,115 @@ def barrier_activity(
         "maximum_constraint_count": int(np.max(constraint_counts)),
         "nonconverged_sample_count": int(nonconverged),
     }
+
+
+def joint_gram_barrier_activity(
+    times: FloatArray,
+    states: FloatArray,
+    base_rhs: RhsFunction,
+    parameters: Any,
+    *,
+    activation_margin: float = 1e-5,
+    target_flux: float = 0.0,
+    barrier_rate: float = 5.0,
+    energy_neutral: bool = True,
+    preserve_correlation_trace: bool = True,
+    cone_tolerance: float = 1e-8,
+    projection_tolerance: float = 1e-12,
+    correction_metric: str = "euclidean",
+    halfspace_backend: str | None = None,
+    window: tuple[float, float] | None = None,
+) -> dict[str, Any]:
+    """Census of the 31-coordinate joint-Gram barrier at the sampled states.
+
+    The same census ``barrier_activity`` performs for the ten-coordinate
+    structured boson barrier, performed instead with
+    ``structured_electron_phonon_barrier_correction``: the correction is
+    re-solved at each stored sample from the uncorrected velocity there, and a
+    sample counts as active when the correction norm exceeds
+    ``BARRIER_ACTIVITY_NORM``.  The correction norm here is the Euclidean norm
+    in all 31 correction coordinates, not in the ten ``(dN, dA)`` coordinates.
+    """
+
+    time_array = np.asarray(times, dtype=float)
+    state_array = np.asarray(states, dtype=float)
+    mask = (
+        np.ones(time_array.size, dtype=bool)
+        if window is None
+        else window_indices(time_array, window)
+    )
+    norms = np.zeros(int(np.count_nonzero(mask)), dtype=float)
+    constraint_counts = np.zeros(norms.size, dtype=int)
+    joint_minima = np.zeros(norms.size, dtype=float)
+    nonconverged = 0
+    for position, index in enumerate(np.flatnonzero(mask)):
+        state = state_array[index]
+        derivative = base_rhs(float(time_array[index]), state)
+        result = structured_electron_phonon_barrier_correction(
+            state,
+            derivative,
+            parameters,
+            activation_margin=activation_margin,
+            target_flux=target_flux,
+            barrier_rate=barrier_rate,
+            energy_neutral=energy_neutral,
+            preserve_correlation_trace=preserve_correlation_trace,
+            cone_tolerance=cone_tolerance,
+            projection_tolerance=projection_tolerance,
+            correction_metric=correction_metric,
+            halfspace_backend=halfspace_backend,
+        )
+        norms[position] = float(result.correction_norm)
+        constraint_counts[position] = int(result.constraint_count)
+        joint_minima[position] = float(result.joint_moment_minimum_eigenvalue)
+        if not result.converged:
+            nonconverged += 1
+    active = norms > BARRIER_ACTIVITY_NORM
+    selected_times = time_array[mask]
+    return {
+        "sample_count": int(norms.size),
+        "active_sample_fraction": float(np.mean(active)),
+        "first_active_sample_time": (
+            float(selected_times[np.flatnonzero(active)[0]])
+            if np.any(active)
+            else None
+        ),
+        "maximum_correction_norm": float(np.max(norms)),
+        "maximum_constraint_count": int(np.max(constraint_counts)),
+        "nonconverged_sample_count": int(nonconverged),
+        "minimum_joint_moment_eigenvalue": float(np.min(joint_minima)),
+    }
+
+
+def barrier_census_base_rhs(
+    parameters: Any,
+    initial_state: FloatArray,
+    *,
+    subtract_initial_residual: bool,
+) -> tuple[RhsFunction, str]:
+    """The velocity a barrier census has to solve its correction from.
+
+    A census of a controller is a census of the correction that controller
+    applies, so it starts from the same base velocity the controller's
+    right-hand side starts from.  ``closed_cone_projected_rhs`` and
+    ``closed_electron_phonon_cone_projected_rhs`` both carry
+    ``subtract_initial_residual``: with it the base velocity is the Eq. (112)
+    archive EOM ``closed_residual_subtracted_rhs``, without it the plain
+    archive EOM ``closed_scalar_rhs``.  Solving the census at the other one
+    reports a correction the lane never applied.  The returned name is what
+    the run record carries next to the census.
+    """
+
+    if subtract_initial_residual:
+        return (
+            closed_residual_subtracted_rhs(parameters, initial_state),
+            "closed_residual_subtracted_rhs (Eq. 112 archive EOM)",
+        )
+
+    def plain_rhs(time: float, state: FloatArray) -> FloatArray:
+        return closed_scalar_rhs(time, state, parameters)
+
+    return plain_rhs, "closed_scalar_rhs (plain archive EOM)"
 
 
 def post_pulse_energy_drift(

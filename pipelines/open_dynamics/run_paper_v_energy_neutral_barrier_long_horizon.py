@@ -23,8 +23,13 @@ Three lanes are produced on one sample grid:
     ``(dN, dA)`` derivative coordinates 7--16 corrected.
 ``raw``
     ``closed_residual_subtracted_rhs``, the uncorrected archive EOM of
-    Eq. (112), the same right-hand side the corrected lane corrects and the
-    same one ``_cone_correction_audit`` calls ``correction_mode="none"``.
+    Eq. (112), the same right-hand side the default corrected lane corrects
+    and the same one ``_cone_correction_audit`` calls
+    ``correction_mode="none"``.  The named ``joint_gram_barrier`` lane runs
+    with ``subtract_initial_residual=False``, so the velocity *it* corrects is
+    the plain archive EOM ``closed_scalar_rhs`` and not this lane; the summary
+    records which velocity the barrier census was solved from
+    (``corrected_lane.census_base_velocity``).
 ``exact``
     ``exact_holstein_driven_trajectory`` at phonon cutoff 16, contracted to
     the same 31 coordinates.
@@ -52,15 +57,19 @@ from paper5.stability import (  # noqa: E402
     closed_boson_moment_eigenvalues,
     closed_cone_projected_rhs,
     closed_electron_eigenvalues,
+    closed_electron_phonon_cone_projected_rhs,
     closed_residual_subtracted_rhs,
     exact_ground_closed_scalar_coordinates,
 )
+from paper5.stability import cone_correction as _cone_correction  # noqa: E402
 from paper5.stability.cone_long_horizon import (  # noqa: E402
     OBSERVABLE_NAMES,
     SampledTrajectory,
     barrier_activity,
+    barrier_census_base_rhs,
     closed_observable_trajectories,
     integrate_sampled_dop853,
+    joint_gram_barrier_activity,
     post_pulse_energy_drift,
     window_indices,
     window_scores,
@@ -124,6 +133,71 @@ def _parser() -> argparse.ArgumentParser:
         "--skip-barrier-census",
         action="store_true",
         help="skip re-solving the correction at every stored sample",
+    )
+    parser.add_argument(
+        "--corrected-controller",
+        choices=("boson_matrix_barrier", "joint_gram_barrier"),
+        default="boson_matrix_barrier",
+        help=(
+            "which structured barrier the corrected lane carries: the "
+            "recorded ten-coordinate energy-neutral structured boson matrix "
+            "barrier on derivative coordinates 7--16 "
+            "(structured_boson_barrier_correction through "
+            "closed_cone_projected_rhs, the default), or the 31-coordinate "
+            "joint-Gram barrier "
+            "(structured_electron_phonon_barrier_correction through "
+            "closed_electron_phonon_cone_projected_rhs)"
+        ),
+    )
+    parser.add_argument(
+        "--halfspace-backend",
+        choices=("slsqp", "active_set"),
+        default=None,
+        help=(
+            "minimum-norm-point solver inside the constraint-generation "
+            "loop; the default None resolves to "
+            "cone_correction.DEFAULT_HALFSPACE_BACKEND ('slsqp'), the "
+            "backend every recorded Paper V number was produced with"
+        ),
+    )
+    parser.add_argument(
+        "--corrected-on-rhs-error",
+        choices=("raise", "stop"),
+        default="raise",
+        help=(
+            "what the corrected lane does when its right-hand side raises "
+            "(the convergence contract of the joint-Gram barrier): 'raise' "
+            "is the recorded behaviour; 'stop' keeps the samples already "
+            "produced and records the exception"
+        ),
+    )
+    parser.add_argument(
+        "--progress-seconds",
+        type=float,
+        default=0.0,
+        help=(
+            "print a corrected-lane progress line no more often than this "
+            "many wall seconds; 0 prints nothing"
+        ),
+    )
+    parser.add_argument(
+        "--score-matched-horizon",
+        action="store_true",
+        help=(
+            "also score and census the window every lane actually reached, "
+            "under its own key, when a lane stopped before the requested "
+            "window's stop time; off by default, which is the recorded "
+            "behaviour of scoring only the requested windows"
+        ),
+    )
+    parser.add_argument(
+        "--spectrum-stop-at-common-horizon",
+        action="store_true",
+        help=(
+            "when a lane stopped before --spectrum-stop, take the spectral "
+            "window's stop time to be the last sample every lane reached "
+            "instead of declaring the spectrum unavailable"
+        ),
     )
     return parser
 
@@ -232,28 +306,94 @@ def main() -> int:
     # the integration span is not a sample of this protocol.
     sample_times = sample_times[sample_times <= args.final_time]
 
-    corrected_rhs = closed_cone_projected_rhs(
+    joint_gram_settings = {
+        "activation_margin": 1e-5,
+        "target_flux": 0.0,
+        "barrier_rate": 5.0,
+        "energy_neutral": True,
+        "preserve_correlation_trace": True,
+        "subtract_initial_residual": False,
+        "require_convergence": True,
+        "cone_tolerance": 1e-8,
+        "projection_tolerance": 1e-12,
+        "correction_metric": "euclidean",
+    }
+    if args.corrected_controller == "joint_gram_barrier":
+        corrected_rhs = closed_electron_phonon_cone_projected_rhs(
+            parameters,
+            initial_state,
+            halfspace_backend=args.halfspace_backend,
+            **joint_gram_settings,
+        )
+    else:
+        corrected_rhs = closed_cone_projected_rhs(
+            parameters,
+            initial_state,
+            activation_margin=1e-5,
+            target_flux=0.0,
+            barrier_rate=5.0,
+            energy_neutral=True,
+            halfspace_backend=args.halfspace_backend,
+        )
+    raw_rhs = closed_residual_subtracted_rhs(parameters, initial_state)
+    # A census of the corrected lane's barrier has to solve the correction
+    # from the velocity that lane's right-hand side corrects.  The joint-Gram
+    # lane runs with ``subtract_initial_residual=False``, so its base velocity
+    # is the plain archive EOM, not the Eq. (112) archive EOM of the raw lane.
+    census_base_rhs, census_base_velocity = barrier_census_base_rhs(
         parameters,
         initial_state,
-        activation_margin=1e-5,
-        target_flux=0.0,
-        barrier_rate=5.0,
-        energy_neutral=True,
+        subtract_initial_residual=bool(
+            joint_gram_settings["subtract_initial_residual"]
+        )
+        if args.corrected_controller == "joint_gram_barrier"
+        else True,
     )
-    raw_rhs = closed_residual_subtracted_rhs(parameters, initial_state)
 
+    progress_state = {"last": 0.0}
+
+    def _progress(solver_time: float, step_count: int, elapsed: float) -> None:
+        if args.progress_seconds <= 0.0:
+            return
+        if elapsed - progress_state["last"] < args.progress_seconds:
+            return
+        progress_state["last"] = elapsed
+        projections = _cone_correction.SOLVER_COUNTERS.halfspace_projections
+        print(
+            f"corrected lane progress: t={solver_time:.4f} "
+            f"steps={step_count} halfspace_projections={projections} "
+            f"elapsed={elapsed:.1f} s",
+            flush=True,
+        )
+
+    _cone_correction.SOLVER_COUNTERS.reset()
     corrected = integrate_sampled_dop853(
         corrected_rhs,
         initial_state,
         final_time=args.final_time,
         sample_times=sample_times,
         wall_budget_seconds=args.corrected_wall_budget_seconds,
+        step_callback=_progress,
+        on_rhs_error=args.corrected_on_rhs_error,
     )
+    corrected_counters = _cone_correction.SOLVER_COUNTERS.as_dict()
     print(
         "corrected lane: "
         f"{corrected.stop_reason} at t={corrected.final_time_reached} "
         f"in {corrected.wall_seconds:.1f} s",
         flush=True,
+    )
+    # Insurance for a long corrected lane: the propagated samples are on disk
+    # before any scoring runs.
+    np.savez_compressed(
+        args.output_directory / "corrected_trajectory_raw.npz",
+        times=corrected.times,
+        states=corrected.states,
+        initial_state=initial_state,
+        wall_seconds=corrected.wall_seconds,
+        function_evaluations=corrected.function_evaluations,
+        step_count=corrected.step_count,
+        stop_reason=corrected.stop_reason,
     )
     raw = integrate_sampled_dop853(
         raw_rhs,
@@ -321,16 +461,35 @@ def main() -> int:
         phonon_cutoff=args.phonon_cutoff,
     )
 
+    # The window every lane actually reached, so the matched-horizon table is
+    # regenerated by the driver itself rather than by a later script.
+    common_horizon = min(float(lane_trajectories[lane][0][-1]) for lane in LANES)
+    matched_window = (0.0, common_horizon)
+
     comparisons: dict[str, Any] = {}
     for lane in ("raw", "corrected"):
         lane_times, lane_states = lane_trajectories[lane]
         reached = float(lane_times[-1])
         lane_result: dict[str, Any] = {}
-        for start, stop in windows:
+        lane_windows = list(windows)
+        if args.score_matched_horizon and all(
+            abs(stop - common_horizon) > 1e-9 for _, stop in lane_windows
+        ):
+            lane_windows.append(matched_window)
+        scored: dict[tuple[float, float], dict[str, Any]] = {}
+        for start, stop in lane_windows:
             key = f"t_{start:g}_to_{stop:g}"
             effective_stop = min(stop, reached)
             if effective_stop <= start:
                 lane_result[key] = {"unavailable": "the lane did not reach this window"}
+                continue
+            already = scored.get((start, effective_stop))
+            if already is not None:
+                # Two requested windows truncated to the same effective window
+                # are one calculation; only the requested interval differs.
+                repeated = dict(already)
+                repeated["requested_window"] = [start, stop]
+                lane_result[key] = repeated
                 continue
             mask = window_indices(lane_times, (start, effective_stop))
             scores = window_scores(
@@ -364,6 +523,7 @@ def main() -> int:
                         window=(start, effective_stop),
                     )
                 )
+            scored[(start, effective_stop)] = scores
             lane_result[key] = scores
         lane_result["trajectory"] = _trajectory_record(
             corrected if lane == "corrected" else raw
@@ -375,16 +535,51 @@ def main() -> int:
             lane_times, lane_states = lane_trajectories[lane]
             reached = float(lane_times[-1])
             census: dict[str, Any] = {}
-            for start, stop in windows:
+            census_windows = list(windows)
+            if args.score_matched_horizon and all(
+                abs(stop - common_horizon) > 1e-9 for _, stop in census_windows
+            ):
+                census_windows.append(matched_window)
+            censused: dict[tuple[float, float], dict[str, Any]] = {}
+            for start, stop in census_windows:
                 effective_stop = min(stop, reached)
                 if effective_stop <= start:
                     continue
-                census[f"t_{start:g}_to_{stop:g}"] = barrier_activity(
-                    lane_times,
-                    lane_states,
-                    raw_rhs,
-                    window=(start, effective_stop),
-                )
+                already = censused.get((start, effective_stop))
+                if already is not None:
+                    census[f"t_{start:g}_to_{stop:g}"] = already
+                    continue
+                if args.corrected_controller == "joint_gram_barrier":
+                    census[f"t_{start:g}_to_{stop:g}"] = joint_gram_barrier_activity(
+                        lane_times,
+                        lane_states,
+                        census_base_rhs,
+                        parameters,
+                        activation_margin=joint_gram_settings["activation_margin"],
+                        target_flux=joint_gram_settings["target_flux"],
+                        barrier_rate=joint_gram_settings["barrier_rate"],
+                        energy_neutral=joint_gram_settings["energy_neutral"],
+                        preserve_correlation_trace=joint_gram_settings[
+                            "preserve_correlation_trace"
+                        ],
+                        cone_tolerance=joint_gram_settings["cone_tolerance"],
+                        projection_tolerance=joint_gram_settings[
+                            "projection_tolerance"
+                        ],
+                        correction_metric=joint_gram_settings["correction_metric"],
+                        halfspace_backend=args.halfspace_backend,
+                        window=(start, effective_stop),
+                    )
+                else:
+                    census[f"t_{start:g}_to_{stop:g}"] = barrier_activity(
+                        lane_times,
+                        lane_states,
+                        census_base_rhs,
+                        window=(start, effective_stop),
+                    )
+                censused[(start, effective_stop)] = census[
+                    f"t_{start:g}_to_{stop:g}"
+                ]
                 print(
                     f"barrier census {lane} {start}-{effective_stop}: "
                     f"{census[f't_{start:g}_to_{stop:g}']['active_sample_fraction']}",
@@ -392,15 +587,21 @@ def main() -> int:
                 )
             comparisons[lane]["barrier_activity"] = census
 
-    spectra_available = all(
-        float(lane_trajectories[lane][0][-1]) >= args.spectrum_stop - 1e-9
-        for lane in LANES
+    spectrum_stop = args.spectrum_stop
+    if args.spectrum_stop_at_common_horizon:
+        spectrum_stop = min(spectrum_stop, common_horizon)
+    spectra_available = (
+        spectrum_stop > args.spectrum_start
+        and all(
+            float(lane_trajectories[lane][0][-1]) >= spectrum_stop - 1e-9
+            for lane in LANES
+        )
     )
     spectrum_summary: dict[str, Any]
     if spectra_available:
         grid = _time_grid(
             args.spectrum_start,
-            args.spectrum_stop,
+            spectrum_stop,
             args.spectrum_sample_step,
         )
         spectra = {
@@ -412,7 +613,8 @@ def main() -> int:
         }
         reference = spectra["exact"]
         spectrum_summary = {
-            "interval": [args.spectrum_start, args.spectrum_stop],
+            "interval": [args.spectrum_start, float(grid[-1])],
+            "requested_interval": [args.spectrum_start, args.spectrum_stop],
             "sample_step": args.spectrum_sample_step,
             "observable": "polarization P = -Delta n / 2",
             "mean_subtracted": True,
@@ -509,7 +711,14 @@ def main() -> int:
             "target_flux": 0.0,
             "barrier_rate": 5.0,
             "energy_neutral": True,
-            "corrected_derivative_coordinates": [7, 17],
+            "corrected_derivative_coordinates": (
+                # The joint-Gram barrier solves its correction in all 31
+                # closed scalar coordinates; the default boson matrix barrier
+                # corrects the ten ``(dN, dA)`` coordinates 7--16.
+                [0, 31]
+                if args.corrected_controller == "joint_gram_barrier"
+                else [7, 17]
+            ),
             "integrator": "DOP853",
             "rtol": 1e-9,
             "atol": 1e-11,
@@ -524,6 +733,39 @@ def main() -> int:
             "function_evaluations": exact.function_evaluations,
             "maximum_state_norm_error": float(np.max(np.abs(exact.state_norms - 1.0))),
             "initial_coordinate_l2_difference": initial_difference,
+        },
+        "corrected_lane": {
+            "controller": args.corrected_controller,
+            "right_hand_side": (
+                "closed_electron_phonon_cone_projected_rhs"
+                if args.corrected_controller == "joint_gram_barrier"
+                else "closed_cone_projected_rhs"
+            ),
+            "correction": (
+                "structured_electron_phonon_barrier_correction"
+                if args.corrected_controller == "joint_gram_barrier"
+                else "structured_boson_barrier_correction"
+            ),
+            "settings": (
+                joint_gram_settings
+                if args.corrected_controller == "joint_gram_barrier"
+                else {
+                    "activation_margin": 1e-5,
+                    "target_flux": 0.0,
+                    "barrier_rate": 5.0,
+                    "energy_neutral": True,
+                }
+            ),
+            "halfspace_backend": (
+                args.halfspace_backend
+                if args.halfspace_backend is not None
+                else _cone_correction.DEFAULT_HALFSPACE_BACKEND
+            ),
+            "halfspace_backend_named_explicitly": args.halfspace_backend is not None,
+            "on_rhs_error": args.corrected_on_rhs_error,
+            "census_base_velocity": census_base_velocity,
+            "wall_budget_seconds": args.corrected_wall_budget_seconds,
+            "solver_counters": corrected_counters,
         },
         "observable_names": list(OBSERVABLE_NAMES),
         "observable_copy_maximum_difference": observable_copy_difference,

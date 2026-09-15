@@ -4496,3 +4496,29 @@ route on this machine (extrapolating its final rate gives about 23 days to
 `t=20`); the record's both-cones line was a fixed-step SSPRK(3,3) run, and a
 fixed-step joint-Gram lane would be a different scheme from the pinned
 protocol.
+
+### Joint-Gram lane, review repair: the headline reverses against the right base velocity
+
+The lane's base velocity is the plain archive EOM (`closed_scalar_rhs`,
+because `closed_electron_phonon_cone_projected_rhs` is built with
+`subtract_initial_residual=False`), not the Eq. (112) lane the driver had
+been comparing against.  On the matched window `t=0` to `0.30` (7 samples of
+the 0.05 grid) the barrier's complete 31-coordinate l2 time-RMS distance
+from exact is `0.06420598` against the plain archive EOM's `0.07152712`
+(ratio `0.898`) and the Eq. (112) archive EOM's `0.00065244`; the two
+uncorrected velocities differ by the Eq. (112) initial residual, a fixed
+31-vector of l2 norm `0.40968606`.  Re-solved at the lane's own velocity the
+barrier is active at 7 of 7 samples from `t=0` with maximum correction norm
+`0.2501716` (the pre-fix census, solved at the Eq. (112) velocity, read
+`0.857` and `0.0647`); the plain archive EOM reaches minimum joint moment
+eigenvalue `-0.02284502` over the window while the corrected lane holds
+`2.0675e-5`.  The driver now builds the census base velocity from the
+corrected lane's own `subtract_initial_residual`
+(`cone_long_horizon.barrier_census_base_rhs`, recorded as
+`corrected_lane.census_base_velocity`), reports
+`protocol.corrected_derivative_coordinates` `[0, 31]` for the joint-Gram
+controller, and puts the matched-horizon table behind the named
+`--score-matched-horizon`; default path bitwise unchanged against HEAD at
+`--final-time 2`.  The step-size collapse and the horizon (`t=0.30` in
+150 minutes) stand; the lane is retired as a long-horizon route on this
+machine.
