@@ -6,6 +6,29 @@ notes `MATH/paper_facing/paper_V_high_u_gkba/stability_quantum_workflow_working_
 remain the evidence record. Line references below point into those two files
 (`worklog:` and `notes:`) and into `paper_5/src/paper5/stability/`.
 
+## 0. Overnight outcome (2026-09-14 22:30 to 2026-09-15 09:00, branch `claude/paper-v-routes-20260914`)
+
+Three rounds of named experiments, every result in the worklog blocks headed
+"2026-09-14: overnight loop" onward and in `agent_guidance/paper-v/overnight/`.
+Defaults unchanged; `paper_5` suite green at every commit (301 to 379 tests).
+Costs are on the replacement M4 Pro; the exact cutoff-16 reference propagates
+to `t=4` in `0.7 s`, which is the scale every moment route is measured against.
+
+| route | state after the night | cost | verdict |
+|---|---|---|---|
+| projective fixed-dictionary APCM with the event-triggered outer guard (section 3.4, plan steps 10 and 13) | reaches `t=4` at 31-coordinate RMS `0.026049` against exact (raw archive EOM `0.11090`), retained joint Gram positive, no trigger ever fires; with the carried lift and the face carried across stages the `t=0` to `0.05` RMS is `1.2277e-5` (N block `3.1e-8`); every variant fails between `t=5.085` and `t=5.235` on a degenerate moment extension after the drive ends | `3,230 s` to `t=4` (stage retraction is the cost); `14 s` to `t=0.05` with the carried lift | the cheap route; the post-pulse degeneracy is the open problem |
+| one-shell outer selector (section 3.4) | `NumericalError` at the preparation and at a forced-trigger stage is removed by solver settings (refinement passes at `1e-14`, equilibration off): accepted at gap `7.46e-7` and `7.55e-7` against the unchanged `1e-6` acceptance | about `75 s` per solve, `3.9 GB` | the event guard can now fire when it needs to; untested inside a rollout |
+| carried-witness flow, bounded-depth event-triggered guard, balanced, hard floor `2e-4` (section 3.5, plan steps 4 to 6) | completes `t=0.5` where the record stopped at `t=0.2`; RMS `2.45e-5` over `t=0.1175` to `0.5`; carried Gram never below the floor | `14,722 s` for `0.38` time units, 99.4 percent Clarabel at bundle rank 48 to 61, `6.05 GB` peak | correct but not fast; CHTC-sized, not laptop-sized |
+| conic solve itself (plan step 7 and the round-2 replay bench) | 22 solver candidates on 36 recorded instances: none faster under the strict acceptance; `max_threads_8` `1.51x` under balanced only; bundle-rank seeding does not accept and carrying the accepted basis is `3.4x` slower | --- | no lever left inside one solve |
+| 31-coordinate structured cone correction (section 3.2, plan steps 8 and 9) | ten-coordinate energy-neutral barrier to `t=79.95`: containment only (all-31 scaled RMS `0.7008` against `0.7137` uncorrected; packet route `0.0636`); the record's electronic-band suppression is the joint-Gram controller's, not the closure's; the joint-Gram barrier reaches `t=0.30` in `150 min` even after the 24 and 35 percent speedups | `4.6 ms` per right-hand side (ten-coordinate); joint-Gram out of reach | diagnostic, not a route |
+| bitwise-neutral speedups | unguarded CWRMF atom `2x`; `cone_correction.py` `24 percent`; `matrix_reference.py` `35 percent`; all default-path, byte-identical | --- | kept |
+
+Recommendation put to the user on 2026-09-15 morning: make the projective
+route with carried lift and carried face the working route and push it past
+the post-pulse degeneracy using the repaired selector; treat the guarded
+carried-witness flow as a CHTC job, not a local one; retire the joint-Gram
+barrier as a long-horizon route on this machine.
+
 ## 1. Verdict
 
 No plan has been executed since 2026-08-18, and no single document ordered
