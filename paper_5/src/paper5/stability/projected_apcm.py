@@ -16,6 +16,7 @@ the core that that layer must preserve.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import partial
 from time import perf_counter
 from types import MappingProxyType
 from typing import Any, Callable, Mapping
@@ -1001,6 +1002,12 @@ class FixedDictionaryProjectedAPCM:
         )
 
 
+#: The named one-shell outer target solves of the event-triggered guard;
+#: ``"recorded"`` is the recorded explicit target stage.  See
+#: ``ProjectiveOuterEventGuardSettings.outer_target_solver``.
+OUTER_TARGET_SOLVERS: tuple[str, ...] = ("recorded", "tightened_retry")
+
+
 @dataclass(frozen=True)
 class ProjectiveOuterEventGuardSettings:
     """Declared thresholds for the event-triggered one-shell outer guard.
@@ -1014,6 +1021,22 @@ class ProjectiveOuterEventGuardSettings:
     between.  The selector keywords are the two named options of
     ``select_outer_feasible_projective_guard``; their defaults are the
     recorded lexicographic two-solve selector without the gate reorder.
+
+    ``outer_target_solver`` names which solve produces the one-shell outer
+    target stage of a triggered stage.  ``"recorded"``, the default, is
+    ``apcm_projective_guard._solve_explicit_target_qp`` with its recorded
+    retry ladder, which retries at the tightened numerical profile only for
+    the statuses ``{"AlmostSolved", "InsufficientProgress",
+    "MaxIterations"}``, so a first pass ending in ``NumericalError`` is
+    returned as it stands.  ``"tightened_retry"`` is
+    ``apcm_outer_selector_formulations.solve_outer_target_with_tightened_retry``:
+    the same conic program, run at that same recorded tightened numerical
+    profile (conic tolerance ``1e-10``, ``max_iter`` 500, 20 iterative
+    refinement passes at ``1e-14``, equilibration off) whenever the first
+    pass is not accepted, whatever its status.  The acceptance rule and its
+    tolerance are unchanged.  ``outer_target_ladder`` ``False`` runs the
+    tightened profile alone, and ``outer_target_time_limit_seconds`` is the
+    declared per-solve time limit handed to the conic solver.
     """
 
     event_gram_floor: float = 1e-8
@@ -1027,6 +1050,9 @@ class ProjectiveOuterEventGuardSettings:
     frontier_metric: str = "identity"
     warm_refinement_passes: int = 0
     exploratory_acceptance_tolerance: float | None = None
+    outer_target_solver: str = "recorded"
+    outer_target_ladder: bool = True
+    outer_target_time_limit_seconds: float | None = None
 
     def __post_init__(self) -> None:
         if not 0.0 < self.event_gram_floor < self.event_gram_hard_floor:
@@ -1050,6 +1076,64 @@ class ProjectiveOuterEventGuardSettings:
             raise ValueError(
                 "exploratory_acceptance_tolerance must be positive"
             )
+        if self.outer_target_solver not in OUTER_TARGET_SOLVERS:
+            raise ValueError(
+                "outer_target_solver must be one of "
+                f"{list(OUTER_TARGET_SOLVERS)}"
+            )
+        if (
+            self.outer_target_time_limit_seconds is not None
+            and not self.outer_target_time_limit_seconds > 0.0
+        ):
+            raise ValueError(
+                "outer_target_time_limit_seconds must be positive"
+            )
+
+
+def resolve_outer_target_selector(
+    settings: ProjectiveOuterEventGuardSettings,
+) -> Callable[..., Any]:
+    """Return the selector the named ``outer_target_solver`` declares.
+
+    At the default ``"recorded"`` this is
+    ``select_outer_feasible_projective_guard`` itself, the same object the
+    guard has always called, so the recorded path is unchanged.  At
+    ``"tightened_retry"`` it is that same selector with the one-shell outer
+    target stage handed to
+    ``solve_outer_target_with_tightened_retry``; nothing downstream of the
+    target stage changes.
+    """
+
+    if settings.outer_target_solver == "recorded":
+        return select_outer_feasible_projective_guard
+    from .apcm_outer_selector_formulations import (
+        solve_outer_target_with_tightened_retry,
+    )
+
+    target_solver = partial(
+        solve_outer_target_with_tightened_retry,
+        ladder=bool(settings.outer_target_ladder),
+        time_limit_seconds=settings.outer_target_time_limit_seconds,
+    )
+
+    def selector(
+        current: Any,
+        lower_moments: Mapping[MomentKey, float],
+        readout: Any = None,
+        **keywords: Any,
+    ) -> Any:
+        return select_outer_feasible_projective_guard(
+            current,
+            lower_moments,
+            readout,
+            target_solver=target_solver,
+            **keywords,
+        )
+
+    selector.__name__ = (
+        "select_outer_feasible_projective_guard_tightened_retry"
+    )
+    return selector
 
 
 class _CouplingGeometryAdapter:
@@ -1196,7 +1280,7 @@ class ProjectiveOuterEventGuard:
             else readout
         )
         self.selector = (
-            select_outer_feasible_projective_guard
+            resolve_outer_target_selector(self.settings)
             if selector is None
             else selector
         )
@@ -1871,8 +1955,10 @@ __all__ = [
     "build_completion_ladder",
     "ProjectedAPCMTargets",
     "ProjectedAPCMTrajectory",
+    "OUTER_TARGET_SOLVERS",
     "ProjectiveOuterEventGuard",
     "ProjectiveOuterEventGuardSettings",
+    "resolve_outer_target_selector",
     "integrate_projected_apcm_ssprk3",
     "pack_projected_apcm_state",
     "prepare_projected_apcm_initial_state",

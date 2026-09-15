@@ -29,6 +29,7 @@ from paper5.stability.apcm_positive_extension import (
 from paper5.stability.apcm_projective_guard import (
     GuardConicResult,
     OuterFeasibleProjectiveGuardSelection,
+    _solve_explicit_target_qp,
     compile_invariant_target_readout,
     select_outer_feasible_projective_guard,
 )
@@ -44,6 +45,7 @@ from paper5.stability.projected_apcm import (
     ProjectiveOuterEventGuardSettings,
     integrate_projected_apcm_ssprk3,
     prepare_projected_apcm_initial_state,
+    resolve_outer_target_selector,
 )
 
 _PARAMETERS = DimerParameters(lambda_ep=1.5)
@@ -934,3 +936,251 @@ def test_the_default_stage_policy_declares_no_completion_retry() -> None:
     assert model.geometry.completion_ladder == ()
     assert model.stage_policy.is_default
     assert model.stage_policy_counters["completion_retry_accepted"] == 0
+
+def test_the_default_event_guard_selector_is_the_recorded_selector() -> None:
+    model, _ = _entrance_model()
+    assert ProjectiveOuterEventGuardSettings().outer_target_solver == "recorded"
+    assert (
+        ProjectiveOuterEventGuard(model).selector
+        is select_outer_feasible_projective_guard
+    )
+    assert (
+        resolve_outer_target_selector(ProjectiveOuterEventGuardSettings())
+        is select_outer_feasible_projective_guard
+    )
+
+
+def test_guard_settings_reject_an_unknown_outer_target_solver() -> None:
+    with pytest.raises(ValueError):
+        ProjectiveOuterEventGuardSettings(outer_target_solver="whatever")
+    with pytest.raises(ValueError):
+        ProjectiveOuterEventGuardSettings(
+            outer_target_time_limit_seconds=0.0
+        )
+
+
+def test_an_injected_target_solver_replaces_only_the_target_stage() -> None:
+    extension, lower, readout = _small_selector_fixture()
+    declared = select_outer_feasible_projective_guard(
+        extension, lower, readout, boxed=True, canonicalize=False
+    )
+    operands: list[tuple] = []
+
+    def relay(outer, outer_lower, scaled_readout, target_metric, **kwargs):  # noqa: ANN001, ANN202
+        operands.append(
+            (outer, outer_lower, scaled_readout, target_metric, dict(kwargs))
+        )
+        return _solve_explicit_target_qp(
+            outer,
+            outer_lower,
+            scaled_readout,
+            target_metric,
+            **kwargs,
+        )
+
+    relayed = select_outer_feasible_projective_guard(
+        extension,
+        lower,
+        readout,
+        boxed=True,
+        canonicalize=False,
+        target_solver=relay,
+    )
+    assert len(operands) == 1
+    outer, outer_lower, scaled_readout, target_metric, kwargs = operands[0]
+    assert len(outer.frontier_keys) > len(extension.frontier_keys)
+    assert outer_lower is lower
+    assert scaled_readout.shape == (readout.rank, len(outer.frontier_keys))
+    assert target_metric.shape == (readout.rank, readout.rank)
+    assert kwargs == {"boxed": True, "frontier_weight": 0.0}
+    np.testing.assert_array_equal(declared.target_image, relayed.target_image)
+    np.testing.assert_array_equal(
+        declared.current_standardized_values,
+        relayed.current_standardized_values,
+    )
+    assert (
+        declared.outer_target_stage.objective
+        == relayed.outer_target_stage.objective
+    )
+    assert declared.witness_source == relayed.witness_source
+
+
+def test_a_supplied_target_solver_refuses_the_recorded_named_options() -> None:
+    extension, lower, readout = _small_selector_fixture()
+
+    def unused(*args: object, **kwargs: object) -> None:
+        raise AssertionError("the refused call must not reach the solver")
+
+    for named in (
+        {"accept_first_provisional": True},
+        {"frontier_metric": "readout_diagonal"},
+        {"warm_refinement_passes": 1},
+        {"exploratory_acceptance_tolerance": 2e-6},
+    ):
+        with pytest.raises(ValueError):
+            select_outer_feasible_projective_guard(
+                extension,
+                lower,
+                readout,
+                boxed=True,
+                canonicalize=False,
+                target_solver=unused,
+                **named,
+            )
+
+
+def test_the_named_tightened_retry_selector_accepts_the_same_image() -> None:
+    extension, lower, readout = _small_selector_fixture()
+    declared = select_outer_feasible_projective_guard(
+        extension, lower, readout, boxed=True, canonicalize=False
+    )
+    selector = resolve_outer_target_selector(
+        ProjectiveOuterEventGuardSettings(
+            outer_target_solver="tightened_retry"
+        )
+    )
+    assert selector is not select_outer_feasible_projective_guard
+    tightened = selector(
+        extension, lower, readout, boxed=True, canonicalize=False
+    )
+    assert tightened.success
+    assert tightened.witness_source == declared.witness_source
+    np.testing.assert_allclose(
+        tightened.target_image, declared.target_image, rtol=0.0, atol=1e-9
+    )
+    assert (
+        tightened.outer_target_stage.minimum_scaled_eigenvalue
+        >= declared.outer_target_stage.minimum_scaled_eigenvalue - 1e-9
+    )
+
+
+def test_a_forced_trigger_stage_carries_the_witness_through_the_seam() -> None:
+    model, initialization = _entrance_model()
+    seen: list[dict] = []
+
+    def stub_target_solver(  # noqa: ANN202
+        outer, outer_lower, scaled_readout, target_metric, **kwargs
+    ):  # noqa: ANN001
+        seen.append(
+            {
+                "outer_frontier": len(outer.frontier_keys),
+                "outer_dimension": outer.dimension,
+                "readout_rank": scaled_readout.shape[0],
+                **kwargs,
+            }
+        )
+        completion = model.extension.complete(outer_lower)
+        index = {
+            key: position
+            for position, key in enumerate(outer.frontier_keys)
+        }
+        values = np.zeros(len(outer.frontier_keys))
+        for key, scale in zip(
+            model.extension.frontier_keys,
+            model.extension.frontier_scales,
+            strict=True,
+        ):
+            values[index[key]] = completion.frontier_moments[key] / scale
+        return GuardConicResult(
+            success=True,
+            status="stub_target:Solved",
+            boxed=True,
+            conditioned=False,
+            standardized_values=values,
+            frontier_moments=completion.frontier_moments,
+            moment_matrix=completion.moment_matrix,
+            minimum_scaled_eigenvalue=completion.scaled_minimum_eigenvalue,
+            primal_residual=0.0,
+            dual_residual=0.0,
+            objective=0.0,
+            iterations=1,
+            certified=True,
+            provisional=False,
+            acceptance="certified",
+            independent_feasibility_residual=0.0,
+        )
+
+    def selector(current, lower, readout=None, **keywords):  # noqa: ANN001, ANN202
+        return select_outer_feasible_projective_guard(
+            current,
+            lower,
+            readout,
+            target_solver=stub_target_solver,
+            **keywords,
+        )
+
+    guard = ProjectiveOuterEventGuard(
+        model,
+        settings=ProjectiveOuterEventGuardSettings(
+            event_gram_floor=1e-18,
+            event_gram_hard_floor=1e-17,
+            outer_target_solver="tightened_retry",
+        ),
+        selector=selector,
+    )
+    evaluation = model.evaluate(
+        0.0, initialization.state, completion=initialization.completion
+    )
+    trial = initialization.state + 0.0025 * evaluation.derivative
+    retraction = guard.contain_stage(
+        0.0, initialization.state, evaluation, trial, 0.0025
+    )
+    record = guard.records[0]
+    assert record["triggered"]
+    assert record["reason"] == "hard_floor"
+    assert record["selector_outcome"] == "outer_feasible_witness"
+    assert record["selector_witness_source"] == "outer_target_stage"
+    assert len(seen) == 1
+    assert seen[0]["outer_frontier"] > len(model.extension.frontier_keys)
+    assert seen[0]["boxed"] is True
+    assert seen[0]["frontier_weight"] == 0.0
+    assert not retraction.applied
+
+
+def test_the_exact_start_contracts_the_state_the_preparation_agrees_with() -> None:
+    """The named exact start at a small time is the prepared state."""
+
+    from paper5.stability.apcm_projective_event_guard_analysis import (
+        _exact_contracted_initialization,
+    )
+    from paper5.stability.projected_apcm import build_completion_ladder
+
+    extension = SymmetryReducedPositiveExtension(
+        active_keys=ENTRANCE_RELATIVE_MOMENT_KEYS
+    )
+    prepared = prepare_projected_apcm_initial_state(
+        _PARAMETERS, phonon_cutoff=6, extension=extension
+    )
+    state, completion, record = _exact_contracted_initialization(
+        _PARAMETERS,
+        1e-3,
+        phonon_cutoff=6,
+        extension=extension,
+        completion_ladder=build_completion_ladder(
+            extension, shifts=(1e-8, 1e-7), weights=(1e-1,)
+        ),
+    )
+    assert record["initial_exact_time"] == 1e-3
+    assert record["exact_propagation_success"]
+    assert abs(record["exact_state_norm"] - 1.0) < 1e-9
+    assert float(np.max(np.abs(state - prepared.state))) < 1e-5
+    assert completion.success
+    assert (
+        record["initial_declared_completion_success"]
+        or record["initial_completion_retry_index"] >= 0
+    )
+    assert record["initial_completion_envelope_ratio"] < 1.0
+
+
+def test_the_exact_start_refuses_a_nonpositive_time() -> None:
+    from paper5.stability.apcm_projective_event_guard_analysis import (
+        _exact_contracted_initialization,
+    )
+
+    extension = SymmetryReducedPositiveExtension(
+        active_keys=ENTRANCE_RELATIVE_MOMENT_KEYS
+    )
+    with pytest.raises(ValueError):
+        _exact_contracted_initialization(
+            _PARAMETERS, 0.0, phonon_cutoff=6, extension=extension
+        )

@@ -21,7 +21,7 @@ from fractions import Fraction
 from hashlib import sha256
 import json
 from types import MappingProxyType
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 import clarabel
 import numpy as np
@@ -2602,6 +2602,7 @@ def select_outer_feasible_projective_guard(
     frontier_metric: str = "identity",
     warm_refinement_passes: int = 0,
     exploratory_acceptance_tolerance: float | None = None,
+    target_solver: Callable[..., GuardConicResult] | None = None,
 ) -> OuterFeasibleProjectiveGuardSelection:
     """Select the invariant image only from witnesses feasible on one shell.
 
@@ -2626,6 +2627,20 @@ def select_outer_feasible_projective_guard(
     ``exploratory_acceptance_tolerance`` are the three further named options
     of ``_solve_explicit_target_qp``; their defaults
     (``"identity"``, ``0`` and ``None``) are the recorded path.
+
+    ``target_solver`` is a named seam, ``None`` by default, which is the
+    recorded ``_solve_explicit_target_qp``.  A supplied callable is handed
+    the same four operands (the one-shell outer extension, the stage's own
+    lower moments, the invariant target image readout embedded in the outer
+    frontier, and the whitened target metric) with ``boxed`` and
+    ``frontier_weight``, and must return the ``GuardConicResult`` shape with
+    the acceptance already decided; everything downstream of the target
+    stage --- the minimum-norm lift, the restriction to the current frontier
+    and the invariant-image agreement test --- is unchanged.  The four
+    named options of the recorded solve that a supplied callable does not
+    take (``accept_first_provisional``, ``frontier_metric``,
+    ``warm_refinement_passes``, ``exploratory_acceptance_tolerance``) are
+    refused rather than silently dropped.
     """
 
     target_readout = (
@@ -2645,18 +2660,40 @@ def select_outer_feasible_projective_guard(
     )
     covariance = covariance @ covariance.T
     target_metric = np.linalg.inv(covariance)
-    target_stage = _solve_explicit_target_qp(
-        outer,
-        lower_moments,
-        scaled_outer_image,
-        target_metric,
-        boxed=boxed,
-        accept_first_provisional=accept_first_provisional,
-        frontier_weight=frontier_weight,
-        frontier_metric=frontier_metric,
-        warm_refinement_passes=warm_refinement_passes,
-        exploratory_acceptance_tolerance=exploratory_acceptance_tolerance,
-    )
+    if target_solver is None:
+        target_stage = _solve_explicit_target_qp(
+            outer,
+            lower_moments,
+            scaled_outer_image,
+            target_metric,
+            boxed=boxed,
+            accept_first_provisional=accept_first_provisional,
+            frontier_weight=frontier_weight,
+            frontier_metric=frontier_metric,
+            warm_refinement_passes=warm_refinement_passes,
+            exploratory_acceptance_tolerance=(
+                exploratory_acceptance_tolerance
+            ),
+        )
+    else:
+        if (
+            accept_first_provisional
+            or frontier_metric != "identity"
+            or warm_refinement_passes != 0
+            or exploratory_acceptance_tolerance is not None
+        ):
+            raise ValueError(
+                "a supplied target_solver does not carry the named options "
+                "of the recorded target stage"
+            )
+        target_stage = target_solver(
+            outer,
+            lower_moments,
+            scaled_outer_image,
+            target_metric,
+            boxed=boxed,
+            frontier_weight=frontier_weight,
+        )
     current_count = len(current.frontier_keys)
     empty_values = np.full(current_count, np.nan)
     empty_matrix = np.full((current.dimension, current.dimension), np.nan + 0j)

@@ -46,6 +46,7 @@ from .adaptive_positive_moment import (
     ENTRANCE_RELATIVE_MOMENT_KEYS,
     matrix_state_to_raw_moment_coordinates,
     raw_moment_coordinates_to_matrix_state,
+    uncentered_joint_moment_matrix,
 )
 from .apcm_carried_witness_analysis import _accuracy_metrics
 from .apcm_moment_projection import (
@@ -62,6 +63,10 @@ from .apcm_projective_guard import (
     select_outer_feasible_projective_guard,
 )
 from .exact_reference import (
+    _contract_matrix_state,
+    _contract_moment_hierarchy_coordinates,
+    _moment_hierarchy_observables,
+    _propagate_exact_wavefunctions,
     exact_holstein_driven_trajectory,
     exact_holstein_joint_moment_initial_state,
 )
@@ -72,14 +77,18 @@ from .matrix_reference import (
 )
 from .moment_hierarchy import THIRD_ORDER_HIERARCHY
 from .projected_apcm import (
+    OUTER_TARGET_SOLVERS,
     FixedDictionaryProjectedAPCM,
+    ProjectedAPCMFailure,
     ProjectedAPCMSettings,
     ProjectedAPCMStagePolicy,
     ProjectedAPCMStageFailure,
     ProjectedAPCMTrajectory,
     ProjectiveOuterEventGuard,
     ProjectiveOuterEventGuardSettings,
+    build_completion_ladder,
     integrate_projected_apcm_ssprk3,
+    pack_projected_apcm_state,
     prepare_projected_apcm_initial_state,
     projected_apcm_partial_trajectory,
     projected_apcm_stage_failure,
@@ -302,6 +311,19 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--phonon-envelope",
+        type=float,
+        default=APCMExtensionSettings.phonon_envelope,
+        help=(
+            "Declared phonon envelope of the completion box: the box "
+            "half-width of a frontier moment of relative-mode degree d is "
+            "(envelope + d)^(d/2).  The default 16 is the declared envelope "
+            "of the recorded path and equals the phonon cutoff; a larger "
+            "value widens the frozen box and rescales every reported scaled "
+            "eigenvalue with it."
+        ),
+    )
+    parser.add_argument(
         "--completion-logdet-shift",
         type=float,
         default=APCMExtensionSettings.logdet_shift,
@@ -332,12 +354,57 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--initial-exact-time",
+        type=float,
+        default=None,
+        help=(
+            "Named option: start the rollout from the exact cutoff state at "
+            "this time, contracted into the retained matrix moments and the "
+            "canonically ordered relative-mode entrance moments and "
+            "completed by the declared proximal log-det completion, instead "
+            "of from the exact-correlated preparation at t=0 or a stored "
+            "trajectory.  A rollout started this way carries no accumulated "
+            "moment error."
+        ),
+    )
+    parser.add_argument(
         "--initial-time",
         type=float,
         default=None,
         help=(
             "Declared start time of the rollout; the default is 0.0 for a "
             "prepared start and the stored final time for a continued one."
+        ),
+    )
+    parser.add_argument(
+        "--outer-target-solver",
+        choices=list(OUTER_TARGET_SOLVERS),
+        default=ProjectiveOuterEventGuardSettings.outer_target_solver,
+        help=(
+            "Named one-shell outer target solve of a triggered stage: "
+            "'recorded' is the recorded explicit target stage with its "
+            "recorded retry ladder, which never reaches the tightened "
+            "numerical profile from a NumericalError first pass; "
+            "'tightened_retry' runs that same recorded profile whenever "
+            "the first pass is not accepted, at the unchanged acceptance."
+        ),
+    )
+    parser.add_argument(
+        "--outer-target-single-pass",
+        action="store_true",
+        help=(
+            "Run the tightened numerical profile alone instead of the first "
+            "pass followed by it; only read under --outer-target-solver "
+            "tightened_retry."
+        ),
+    )
+    parser.add_argument(
+        "--outer-target-time-limit-seconds",
+        type=float,
+        default=None,
+        help=(
+            "Declared per-solve time limit handed to the conic solver of "
+            "the one-shell outer target stage."
         ),
     )
     parser.add_argument(
@@ -507,6 +574,115 @@ def _run_outer_selector(
         np.asarray(selection.target_image, dtype=float),
         np.asarray(selection.current_standardized_values, dtype=float),
     )
+
+
+def _exact_contracted_initialization(
+    parameters: DimerParameters,
+    time: float,
+    *,
+    phonon_cutoff: int,
+    extension: SymmetryReducedPositiveExtension,
+    maximum_step: float = 0.01,
+    completion_ladder: tuple[SymmetryReducedPositiveExtension, ...] = (),
+) -> tuple[np.ndarray, Any, dict[str, Any]]:
+    """Contract the exact driven state at ``time`` into a projected state.
+
+    Named option, off by default.  The exact truncated wavefunction is
+    propagated from the prepared ground state at ``t = 0`` to ``time`` and
+    contracted there into the same two representations
+    ``prepare_projected_apcm_initial_state`` contracts the preparation into
+    at ``t = 0``: the retained matrix moments, and the relative-mode
+    entrance moments normal ordered in the canonical CCR algebra, which is
+    the ordering APCM initialization requires.  The declared proximal
+    log-det completion at those lower moments is the initial lift, so a
+    rollout started this way carries no accumulated moment error at all and
+    the only thing it can fail on is the extension of the exact state
+    itself.
+    """
+
+    if not time > 0.0:
+        raise ValueError("initial exact time must be positive")
+    wavefunctions = _propagate_exact_wavefunctions(
+        parameters,
+        sample_times=np.asarray([0.0, float(time)], dtype=float),
+        phonon_cutoff=phonon_cutoff,
+        eigensolver_tolerance=1e-12,
+        relative_tolerance=1e-9,
+        absolute_tolerance=1e-11,
+        maximum_step=maximum_step,
+    )
+    observables = _moment_hierarchy_observables(
+        wavefunctions.model,
+        THIRD_ORDER_HIERARCHY,
+        canonical_embedding=True,
+    )
+    coordinates, _ = _contract_moment_hierarchy_coordinates(
+        wavefunctions.model,
+        wavefunctions.state_vectors[:, -1],
+        wavefunctions.state_derivatives[:, -1],
+        observables,
+        THIRD_ORDER_HIERARCHY,
+    )
+    matrix_state = _contract_matrix_state(
+        wavefunctions.model, wavefunctions.state_vectors[:, -1]
+    )
+    raw = matrix_state_to_raw_moment_coordinates(matrix_state)
+    _, moments = THIRD_ORDER_HIERARCHY.unpack(coordinates)
+    hidden = {key: moments[key] for key in extension.active_keys}
+    hidden_values = np.asarray(
+        [hidden[key] for key in extension.active_keys], dtype=float
+    )
+    state = pack_projected_apcm_state(
+        raw, hidden, active_keys=extension.active_keys
+    )
+    lower = state_lower_moments(raw, hidden_values, extension.active_keys)
+    completion = extension.complete(lower)
+    declared_completion_success = bool(completion.success)
+    retry_index = -1
+    if not completion.success:
+        for position, alternative in enumerate(completion_ladder):
+            retried = alternative.complete(lower)
+            if retried.success:
+                completion = retried
+                retry_index = position
+                break
+    standardized = np.asarray(
+        [
+            float(completion.frontier_moments[key]) / scale
+            for key, scale in zip(
+                extension.frontier_keys,
+                extension.frontier_scales,
+                strict=True,
+            )
+        ],
+        dtype=float,
+    )
+    record = {
+        "initial_exact_time": float(time),
+        "exact_propagation_maximum_step": float(maximum_step),
+        "exact_state_norm": float(
+            np.vdot(
+                wavefunctions.state_vectors[:, -1],
+                wavefunctions.state_vectors[:, -1],
+            ).real
+        ),
+        "exact_propagation_success": bool(wavefunctions.success),
+        "exact_propagation_message": str(wavefunctions.message),
+        "initial_declared_completion_success": declared_completion_success,
+        "initial_completion_retry_index": int(retry_index),
+        "initial_completion_success": bool(completion.success),
+        "initial_completion_message": str(completion.message),
+        "initial_completion_scaled_minimum_eigenvalue": float(
+            completion.scaled_minimum_eigenvalue
+        ),
+        "initial_completion_envelope_ratio": float(
+            np.max(np.abs(standardized))
+        ),
+        "initial_retained_minimum_eigenvalue": float(
+            np.linalg.eigvalsh(uncentered_joint_moment_matrix(raw))[0]
+        ),
+    }
+    return state, completion, record
 
 
 def _exact_archive_coordinates(
@@ -843,6 +1019,11 @@ def main() -> int:
         exploratory_acceptance_tolerance=(
             args.exploratory_acceptance_tolerance
         ),
+        outer_target_solver=args.outer_target_solver,
+        outer_target_ladder=not args.outer_target_single_pass,
+        outer_target_time_limit_seconds=(
+            args.outer_target_time_limit_seconds
+        ),
     )
     stage_policy = ProjectedAPCMStagePolicy(
         stage_retraction=not args.disable_stage_retraction,
@@ -861,6 +1042,7 @@ def main() -> int:
         include_opposite_spin=not args.disable_kpd_correction,
     )
     extension_settings = APCMExtensionSettings(
+        phonon_envelope=args.phonon_envelope,
         logdet_weight=args.completion_logdet_weight,
         logdet_shift=args.completion_logdet_shift,
     )
@@ -880,7 +1062,55 @@ def main() -> int:
         settings=model_settings,
         stage_policy=stage_policy,
     )
-    if args.initial_state_file is None:
+    if args.initial_state_file is not None and (
+        args.initial_exact_time is not None
+    ):
+        raise ValueError(
+            "--initial-state-file and --initial-exact-time name two "
+            "different starts"
+        )
+    if args.initial_exact_time is not None:
+        exact_start = float(args.initial_exact_time)
+        progress(
+            f"contracting the exact cutoff-{args.phonon_cutoff} state at "
+            f"t={exact_start:.6f}"
+        )
+        initial_state, initial_completion, exact_record = (
+            _exact_contracted_initialization(
+                parameters,
+                exact_start,
+                phonon_cutoff=args.phonon_cutoff,
+                extension=extension,
+                completion_ladder=build_completion_ladder(
+                    extension,
+                    shifts=tuple(args.completion_retry_shifts),
+                    weights=tuple(args.completion_retry_weights),
+                ),
+            )
+        )
+        progress(
+            "exact contraction "
+            f"certified={exact_record['initial_completion_success']} "
+            "lambda_ext="
+            f"{exact_record['initial_completion_scaled_minimum_eigenvalue']:.3e} "
+            "envelope="
+            f"{exact_record['initial_completion_envelope_ratio']:.6f} "
+            "lambda_retained="
+            f"{exact_record['initial_retained_minimum_eigenvalue']:.3e}"
+        )
+        if not initial_completion.success:
+            raise ProjectedAPCMFailure(
+                "initial moment_extension_failure at the exact state: "
+                + initial_completion.message
+            )
+        initial_time = (
+            exact_start if args.initial_time is None else args.initial_time
+        )
+        continuation = {
+            "initial_exact_state": dict(exact_record),
+            "initial_time": float(initial_time),
+        }
+    elif args.initial_state_file is None:
         initialization = prepare_projected_apcm_initial_state(
             parameters,
             phonon_cutoff=args.phonon_cutoff,
