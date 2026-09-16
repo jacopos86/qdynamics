@@ -21,6 +21,15 @@ hand edits, and it refuses to write a run id that any raw_outputs directory
 or any submit file in the lane already names, so a stage-out can never
 replace the checkpoint it was resumed from.
 
+A third case is explicit, never automatic.  A segment that left no
+checkpoint -- the driver died before its first accepted step (stop_reason
+unrecorded), or the submission came back with nothing at all -- is retried
+with --kind retry: the same interval again, from the input the segment was
+given (its own initial_state_file and expected_initial_time; "none none" for
+segment 01), under a fresh run id.  For a submission that returned nothing
+the source is the submit file itself; the run id it carries is consumed by
+the attempt and is refused like any other.
+
 Usage (on the AP, from the submit root):
 
   python3 chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py \
@@ -30,6 +39,11 @@ A run's own summary.json is accepted in place of the receipt:
 
   python3 .../make_resume_submit.py \
       raw_outputs/<campaign>/<run_id>/summary.json
+
+A shipped or generated submit file is the source for a retry:
+
+  python3 .../make_resume_submit.py --kind retry \
+      chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s01.sub
 
 The path written is printed on the last line of stdout.
 """
@@ -73,7 +87,7 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 transfer_executable = True
 preserve_relative_paths = True
-transfer_input_files = paper_5/src, {lane}, {image}, {checkpoint}
+transfer_input_files = paper_5/src, {lane}, {image}{checkpoint_transfer}
 transfer_output_files = raw_outputs, logs, archives_by_receipt
 {environment_line}stream_output = False
 stream_error = False
@@ -104,69 +118,144 @@ def _read_json(path: Path) -> dict:
         raise GeneratorError(f"{path} is not valid JSON: {exc}") from exc
 
 
+def _read_submit_assignments(path: Path) -> dict[str, str]:
+    """The ``name = value`` lines of a submit file, names lower-cased."""
+
+    assignments: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, value = stripped.split("=", 1)
+        assignments[name.strip().lower()] = value.strip()
+    return assignments
+
+
+def _record_from_submit_file(path: Path) -> dict:
+    """A submit file of this lane read as a segment that has not returned.
+
+    The contract arguments come from its ``arguments`` line, the campaign
+    from ``+JobBatchName`` (``<campaign>-<run_id>``), and any non-default
+    option from its ``environment`` line.  Its ``stop_reason`` is
+    ``not_returned``: the only continuation it admits is ``--kind retry``.
+    """
+
+    assignments = _read_submit_assignments(path)
+    fields = assignments.get("arguments", "").split()
+    if len(fields) < 5:
+        raise GeneratorError(
+            f"{path} carries no arguments line of this lane's contract "
+            "(run_id final_time time_step event_gram_hard_floor "
+            "initial_state_file [expected_initial_time])"
+        )
+    run_id, final_time, time_step, hard_floor, initial_state_file = fields[:5]
+    expected_initial_time = fields[5] if len(fields) > 5 else "none"
+    batch_name = assignments.get("+jobbatchname", "").strip('"')
+    suffix = f"-{run_id}"
+    if not batch_name.endswith(suffix):
+        raise GeneratorError(
+            f"{path}: +JobBatchName {batch_name!r} does not end in {suffix!r}, "
+            "so the campaign cannot be read from it"
+        )
+    environment: dict[str, str] = {}
+    for entry in assignments.get("environment", "").strip('"').split():
+        if "=" in entry:
+            key, value = entry.split("=", 1)
+            environment[key] = value
+    return {
+        "campaign": batch_name[: -len(suffix)],
+        "run_id": run_id,
+        "final_time": float(final_time),
+        "time_step": time_step,
+        "event_gram_hard_floor": hard_floor,
+        "initial_state_file": initial_state_file,
+        "expected_initial_time": expected_initial_time,
+        "stop_reason": "not_returned",
+        "last_time": "unrecorded",
+        "solver_setting_profile": environment.get(
+            "CWRMF_SOLVER_SETTING_PROFILE", LANE_SOLVER_SETTING_PROFILE
+        ),
+        "bundle_seed_policy": environment.get(
+            "CWRMF_BUNDLE_SEED_POLICY", LANE_BUNDLE_SEED_POLICY
+        ),
+        "bundle_seed_rank_margin": environment.get("CWRMF_BUNDLE_SEED_RANK_MARGIN"),
+    }
+
+
 def load_returned_segment(path: Path) -> dict:
-    """Read a receipt.json or a run's summary.json into one record.
+    """Read a receipt.json, a run's summary.json or a lane submit file into one record.
 
     A receipt carries the run id and the campaign directly.  A summary does
     not, so they are read off its own path,
     ``raw_outputs/<campaign>/<run_id>/summary.json``, which is where the
-    inner runner puts it.
+    inner runner puts it.  A submit file stands for a segment that has not
+    returned; see ``_record_from_submit_file``.  ``initial_state_file`` and
+    ``expected_initial_time`` -- the input the segment was given, which a
+    retry restarts from -- are known from a receipt or a submit file and
+    ``None`` from a summary.
     """
 
-    document = _read_json(path)
-    if "integration" in document and "numerical_settings" in document:
-        integration = document["integration"]
-        settings = document["numerical_settings"]
-        if path.parent.parent.parent.name != "raw_outputs":
-            raise GeneratorError(
-                f"{path} is a summary.json but is not at "
-                "raw_outputs/<campaign>/<run_id>/summary.json, so the run id "
-                "and campaign cannot be read from its path; pass the "
-                "receipt.json instead"
-            )
-        record = {
-            "campaign": path.parent.parent.name,
-            "run_id": path.parent.name,
-            "final_time": float(integration["final_time_requested"]),
-            "time_step": integration["time_step"],
-            "event_gram_hard_floor": settings.get("event_gram_hard_floor"),
-            "stop_reason": integration.get("stop_reason", "unrecorded"),
-            "last_time": integration.get("last_time", "unrecorded"),
-            "solver_setting_profile": settings.get(
-                "solver_setting_profile", LANE_SOLVER_SETTING_PROFILE
-            ),
-            "bundle_seed_policy": settings.get(
-                "bundle_seed_policy", LANE_BUNDLE_SEED_POLICY
-            ),
-            "bundle_seed_rank_margin": settings.get("bundle_seed_rank_margin"),
-        }
+    if path.suffix == ".sub":
+        record = _record_from_submit_file(path)
     else:
-        missing = [
-            key
-            for key in ("campaign", "run_id", "final_time", "time_step")
-            if key not in document
-        ]
-        if missing:
-            raise GeneratorError(
-                f"{path} is neither a lane receipt.json nor a run "
-                f"summary.json (missing {', '.join(missing)})"
-            )
-        record = {
-            "campaign": document["campaign"],
-            "run_id": document["run_id"],
-            "final_time": float(document["final_time"]),
-            "time_step": document["time_step"],
-            "event_gram_hard_floor": document.get("event_gram_hard_floor"),
-            "stop_reason": document.get("stop_reason", "unrecorded"),
-            "last_time": document.get("last_time", "unrecorded"),
-            "solver_setting_profile": document.get(
-                "solver_setting_profile", LANE_SOLVER_SETTING_PROFILE
-            ),
-            "bundle_seed_policy": document.get(
-                "bundle_seed_policy", LANE_BUNDLE_SEED_POLICY
-            ),
-            "bundle_seed_rank_margin": document.get("bundle_seed_rank_margin"),
-        }
+        document = _read_json(path)
+        if "integration" in document and "numerical_settings" in document:
+            integration = document["integration"]
+            settings = document["numerical_settings"]
+            if path.parent.parent.parent.name != "raw_outputs":
+                raise GeneratorError(
+                    f"{path} is a summary.json but is not at "
+                    "raw_outputs/<campaign>/<run_id>/summary.json, so the run id "
+                    "and campaign cannot be read from its path; pass the "
+                    "receipt.json instead"
+                )
+            record = {
+                "campaign": path.parent.parent.name,
+                "run_id": path.parent.name,
+                "final_time": float(integration["final_time_requested"]),
+                "time_step": integration["time_step"],
+                "event_gram_hard_floor": settings.get("event_gram_hard_floor"),
+                "initial_state_file": None,
+                "expected_initial_time": None,
+                "stop_reason": integration.get("stop_reason", "unrecorded"),
+                "last_time": integration.get("last_time", "unrecorded"),
+                "solver_setting_profile": settings.get(
+                    "solver_setting_profile", LANE_SOLVER_SETTING_PROFILE
+                ),
+                "bundle_seed_policy": settings.get(
+                    "bundle_seed_policy", LANE_BUNDLE_SEED_POLICY
+                ),
+                "bundle_seed_rank_margin": settings.get("bundle_seed_rank_margin"),
+            }
+        else:
+            missing = [
+                key
+                for key in ("campaign", "run_id", "final_time", "time_step")
+                if key not in document
+            ]
+            if missing:
+                raise GeneratorError(
+                    f"{path} is neither a lane receipt.json nor a run "
+                    f"summary.json (missing {', '.join(missing)})"
+                )
+            record = {
+                "campaign": document["campaign"],
+                "run_id": document["run_id"],
+                "final_time": float(document["final_time"]),
+                "time_step": document["time_step"],
+                "event_gram_hard_floor": document.get("event_gram_hard_floor"),
+                "initial_state_file": document.get("initial_state_file", "none"),
+                "expected_initial_time": document.get("expected_initial_time", "none"),
+                "stop_reason": document.get("stop_reason", "unrecorded"),
+                "last_time": document.get("last_time", "unrecorded"),
+                "solver_setting_profile": document.get(
+                    "solver_setting_profile", LANE_SOLVER_SETTING_PROFILE
+                ),
+                "bundle_seed_policy": document.get(
+                    "bundle_seed_policy", LANE_BUNDLE_SEED_POLICY
+                ),
+                "bundle_seed_rank_margin": document.get("bundle_seed_rank_margin"),
+            }
     if record["event_gram_hard_floor"] in (None, "", "none"):
         raise GeneratorError(
             f"{path} records no event_gram_hard_floor; the lane's guard "
@@ -225,10 +314,23 @@ def known_run_ids(submit_root: Path, campaign: str, lane_directory: Path) -> set
 
 
 def choose_run_id(record: dict, kind: str, taken: set[str], options) -> tuple[str, dict]:
-    """Name the continuation's run id and say what interval it covers."""
+    """Name the continuation's run id and say what interval it covers.
+
+    The plan returned beside the run id carries ``checkpoint`` -- the
+    transfer input the continuation starts from, relative to the submit
+    root, or ``None`` for a start from the prepared ground state -- and
+    ``expected_initial_time``, the time that checkpoint must hold.
+    """
 
     parts = parse_run_id(record["run_id"])
-    if kind == "resume":
+    own_checkpoint = (
+        f"raw_outputs/{record['campaign']}/{record['run_id']}/checkpoint.npz"
+    )
+    if kind in ("resume", "retry"):
+        # One counter for every re-submission of a segment, whether it
+        # resumes from the segment's own checkpoint or retries from the
+        # input the segment was given; the receipt's initial_state_file says
+        # which.  The counter is what keeps every run id used once.
         attempt = max(parts["resume"], 0) + 1
         while attempt < 100:
             candidate = (
@@ -236,21 +338,50 @@ def choose_run_id(record: dict, kind: str, taken: set[str], options) -> tuple[st
                 f"_t{parts['start']}_t{parts['end']}_r{attempt:02d}"
             )
             if candidate not in taken:
-                return candidate, {
-                    "final_time": record["final_time"],
-                    "expected_initial_time": record["last_time"],
-                    "headline": (
-                        f"Resume {attempt} of segment {parts['index']:02d}: "
-                        f"continue to t = {record['final_time']:g} at "
-                        f"h = {record['time_step']} from the checkpoint "
-                        f"{record['run_id']} left at t = {record['last_time']}."
-                    ),
-                }
+                break
             attempt += 1
-        raise GeneratorError(
-            f"segment {parts['index']:02d} already has 99 resumes; stop and "
-            "read why it is not advancing"
-        )
+        else:
+            raise GeneratorError(
+                f"segment {parts['index']:02d} already has 99 re-submissions; "
+                "stop and read why it is not advancing"
+            )
+        if kind == "resume":
+            return candidate, {
+                "final_time": record["final_time"],
+                "expected_initial_time": record["last_time"],
+                "checkpoint": own_checkpoint,
+                "headline": (
+                    f"Resume {attempt} of segment {parts['index']:02d}: "
+                    f"continue to t = {record['final_time']:g} at "
+                    f"h = {record['time_step']} from the checkpoint "
+                    f"{record['run_id']} left at t = {record['last_time']}."
+                ),
+            }
+        given = record.get("initial_state_file")
+        if given is None:
+            raise GeneratorError(
+                f"{record['run_id']}: a retry restarts from the input the "
+                "segment was given, which a summary.json does not record; pass "
+                "its receipt.json or the submit file that named it"
+            )
+        if given in ("", "none"):
+            checkpoint = None
+            origin = "the prepared ground state at t = 0"
+        else:
+            checkpoint = given
+            origin = f"the checkpoint {given} at t = {record['expected_initial_time']}"
+        return candidate, {
+            "final_time": record["final_time"],
+            "expected_initial_time": record.get("expected_initial_time"),
+            "checkpoint": checkpoint,
+            "headline": (
+                f"Retry {attempt} of segment {parts['index']:02d}: t = "
+                f"{int(parts['start']) / options.time_label_scale:g} to "
+                f"{record['final_time']:g} at h = {record['time_step']} from "
+                f"{origin}; the earlier submission {record['run_id']} returned "
+                f"{record['stop_reason']} and its run id is consumed."
+            ),
+        }
     campaign_final_time = options.campaign_final_time
     final_time = min(record["final_time"] + options.segment_length, campaign_final_time)
     if record["final_time"] >= campaign_final_time - 1e-12:
@@ -271,6 +402,7 @@ def choose_run_id(record: dict, kind: str, taken: set[str], options) -> tuple[st
     return candidate, {
         "final_time": final_time,
         "expected_initial_time": record["final_time"],
+        "checkpoint": own_checkpoint,
         "headline": (
             f"Segment {parts['index'] + 1:02d}: t = {record['final_time']:g} to "
             f"{final_time:g} at h = {record['time_step']}, event Gram hard "
@@ -326,9 +458,7 @@ def _expected_initial_time_field(plan: dict) -> str:
 
 
 def build_submit_text(record: dict, run_id: str, plan: dict, source: Path, options) -> str:
-    checkpoint = (
-        f"raw_outputs/{record['campaign']}/{record['run_id']}/checkpoint.npz"
-    )
+    checkpoint = plan["checkpoint"]
     try:
         source_relative = source.resolve().relative_to(options.submit_root.resolve())
     except ValueError:
@@ -347,7 +477,8 @@ def build_submit_text(record: dict, run_id: str, plan: dict, source: Path, optio
         final_time=f"{plan['final_time']:g}",
         time_step=record["time_step"],
         hard_floor=record["event_gram_hard_floor"],
-        checkpoint=checkpoint,
+        checkpoint=checkpoint if checkpoint is not None else "none",
+        checkpoint_transfer=f", {checkpoint}" if checkpoint is not None else "",
         expected_initial_time=_expected_initial_time_field(plan),
         environment_line=environment_line(record, options.maximum_wall_seconds),
         campaign=record["campaign"],
@@ -355,9 +486,17 @@ def build_submit_text(record: dict, run_id: str, plan: dict, source: Path, optio
 
 
 def resolve_kind(record: dict, requested: str) -> str:
+    stop_reason = record["stop_reason"]
+    if requested == "retry":
+        if stop_reason in ("wall_budget", "final_time"):
+            raise GeneratorError(
+                f"{record['run_id']} returned stop_reason {stop_reason!r} and "
+                "left a checkpoint; it is continued with --kind resume or "
+                "--kind next, not retried from its input"
+            )
+        return requested
     if requested != "auto":
         return requested
-    stop_reason = record["stop_reason"]
     if stop_reason == "wall_budget":
         return "resume"
     if stop_reason == "final_time":
@@ -365,9 +504,12 @@ def resolve_kind(record: dict, requested: str) -> str:
     raise GeneratorError(
         f"{record['run_id']} returned stop_reason {stop_reason!r}; only "
         "wall_budget and final_time continue the campaign on their own.  "
-        "step_failure needs the atom's message in summary.json read first, "
-        "and unrecorded means the driver died before writing it.  Pass "
-        "--kind resume or --kind next once the failure is understood."
+        "step_failure needs the atom's message in summary.json read first; "
+        "unrecorded means the driver died before writing summary.json; "
+        "not_returned means the source is a submit file whose submission "
+        "came back with nothing.  Pass --kind retry to resubmit the same "
+        "interval from the input the segment was given under a fresh run id, "
+        "or --kind resume / --kind next once the failure is understood."
     )
 
 
@@ -379,15 +521,22 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument(
-        "source", type=Path, help="receipt.json of a returned segment, or its summary.json"
+        "source",
+        type=Path,
+        help=(
+            "receipt.json of a returned segment, its summary.json, or -- for "
+            "--kind retry -- the submit file of a segment that left no checkpoint"
+        ),
     )
     parser.add_argument(
         "--kind",
-        choices=("auto", "resume", "next"),
+        choices=("auto", "resume", "next", "retry"),
         default="auto",
         help=(
             "auto reads stop_reason: wall_budget gives a resume of the same "
-            "segment, final_time gives the next segment"
+            "segment, final_time gives the next segment.  retry is never "
+            "automatic: the same interval again from the input the segment was "
+            "given, for a segment that left no checkpoint"
         ),
     )
     parser.add_argument(
@@ -476,23 +625,18 @@ def main(argv: list[str] | None = None) -> int:
         if options.lane_directory is None:
             options.lane_directory = options.submit_root / options.lane_relative_path
         kind = resolve_kind(record, options.kind)
-        checkpoint = (
-            options.submit_root
-            / "raw_outputs"
-            / record["campaign"]
-            / record["run_id"]
-            / "checkpoint.npz"
-        )
-        if not checkpoint.is_file() and not options.allow_missing_checkpoint:
-            raise GeneratorError(
-                f"the checkpoint the continuation resumes from is not here: "
-                f"{checkpoint}.  Collect the segment first, or pass "
-                "--allow-missing-checkpoint to write the file anyway"
-            )
         taken = known_run_ids(
             options.submit_root, record["campaign"], options.lane_directory
         )
         run_id, plan = choose_run_id(record, kind, taken, options)
+        if plan["checkpoint"] is not None:
+            checkpoint = options.submit_root / plan["checkpoint"]
+            if not checkpoint.is_file() and not options.allow_missing_checkpoint:
+                raise GeneratorError(
+                    f"the checkpoint the continuation starts from is not here: "
+                    f"{checkpoint}.  Collect the segment first, or pass "
+                    "--allow-missing-checkpoint to write the file anyway"
+                )
         text = build_submit_text(record, run_id, plan, source, options)
         target = (
             options.lane_directory

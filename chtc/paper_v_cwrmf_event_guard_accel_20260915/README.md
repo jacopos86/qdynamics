@@ -23,7 +23,10 @@ driver's declared wall budget of `138240 s`.
 | `run_cwrmf_event_guard_accel.sh` | inner runner; run-id and checkpoint refusals, flag assembly, conic-stack bootstrap, driver call, receipt-named archive |
 | `make_resume_submit.py` | writes the continuation submit file from a returned segment's `receipt.json`, under a run id nothing here has used |
 | `build_bundle.py` | builds the upload bundle from `git archive HEAD` plus this lane's working tree, with normalized archive metadata so the digest is reproducible |
-| `submit_cwrmf_accel_s01.sub` ... `s08.sub` | the planned grid, `t = 0` to `4` in eight `0.5`-unit segments |
+| `rehearse_bundle.sh` | the pre-upload gate: extracts a bundle into a scratch root inside no checkout and runs the inner runner there from the bundle's contents alone; see "Pre-upload gate" |
+| `submit_cwrmf_accel_s01.sub` ... `s08.sub` | the planned grid, `t = 0` to `4` in eight `0.5`-unit segments; `s01`'s run id `accel_s01_t0000_t0500` was consumed by cluster 10554184, so `s01.sub` is not submitted again |
+| `submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub` | the retry of segment 01 after cluster 10554184, generated with `--kind retry` from `s01.sub`; run id `accel_s01_t0000_t0500_r01`; the file that starts the campaign |
+| `submission_receipt_10554184.json` | the record of the consumed first submission |
 
 ## Why segments, and why `0.5` time units each
 
@@ -112,11 +115,28 @@ reads `stop_reason` and writes the one continuation that reason calls for:
 
 | `stop_reason` | what it writes | run id | `final_time` |
 |---|---|---|---|
-| `wall_budget` | a resume of the same segment | `<segment>_r01`, then `_r02`, ... | the stopped segment's own |
+| `wall_budget` | a resume of the same segment, from its own checkpoint | `<segment>_r01`, then `_r02`, ... | the stopped segment's own |
 | `final_time` | the next segment | `accel_s<k+1>_t<start>_t<end>` | the previous plus `0.5` |
-| `step_failure`, `unrecorded` | nothing; it refuses and says why | --- | --- |
+| `step_failure`, `unrecorded`, `not_returned` | nothing on its own; it refuses and says why | --- | --- |
+| any of those three, with `--kind retry` given explicitly | the same segment again, from the input it was given (`none none` for segment 01; the previous segment's checkpoint otherwise) | `<segment>_r<NN>`, the same counter | the segment's own |
 
-In both cases the checkpoint it names is the **returned segment's own**, which
+The `_r<NN>` counter counts every re-submission of a segment, a resume from
+its own checkpoint and a retry from its input alike; the receipt's
+`initial_state_file` says which one a run was.  `not_returned` is what a
+submit file given as the source stands for: a submission that came back with
+nothing, as cluster 10554184 did, has no receipt, so the file it was
+submitted from is the source of its retry:
+
+```bash
+python3 chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py --kind retry \
+    chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s01.sub
+```
+
+A retry of a segment that left a checkpoint is refused: `wall_budget` and
+`final_time` receipts are continued, not retried.
+
+For a resume and for the next segment the checkpoint it names is the
+**returned segment's own**, which
 is what makes a resumed segment's successor correct: `s02`'s shipped file
 names `accel_s01_t0000_t0500/checkpoint.npz`, and if segment 01 actually
 finished under the run id `accel_s01_t0000_t0500_r01` then that shipped file
@@ -140,7 +160,8 @@ the destructive case: a resume submitted into the run id that wrote the
 checkpoint would receive that checkpoint into its own output directory and
 then replace it on the access point with a shorter one.
 
-Useful options: `--kind resume|next` overrides what `stop_reason` chose;
+Useful options: `--kind resume|next|retry` overrides what `stop_reason`
+chose (`retry` is never chosen automatically);
 `--maximum-wall-seconds` shortens the continuation's budget;
 `--dry-run` prints the file instead of writing it; `--segment-length`,
 `--campaign-final-time` and `--time-label-scale` are the grid arithmetic and
@@ -157,9 +178,17 @@ setting set, which is why this lane is not the 2026-08-18 lane's 1 CPU),
 venv, trajectory and checkpoint), `+MaxRuntime = 172800`, against which the
 inner runner passes the driver a `138240 s` wall budget.
 
-The import chain is self-contained: `paper_5/src` plus numpy, scipy, cvxpy and
-clarabel.  The inner runner bootstraps a scratch venv with pinned versions
-only when the time-dynamics image lacks the conic stack.
+The import chain is self-contained -- `paper_5/src` plus numpy, scipy, cvxpy
+and clarabel -- only since `paper5/repo.py` resolves the parent repository
+lazily.  Before that, `paper5/__init__.py` imported `paper5.repo`, whose
+module-level `REPO_ROOT = find_repo_root()` raised
+`RuntimeError("Could not locate parent repo root with src/quantum.")` on any
+tree without the parent's `src/quantum`, which is every bundle; cluster
+10554184 died at import on it after two local rehearsals had passed with
+`paper_5` linked into a checkout.  The statement is now enforced rather than
+asserted: `rehearse_bundle.sh` proves it for each bundle (see "Pre-upload
+gate").  The inner runner bootstraps a scratch venv with pinned versions only
+when the time-dynamics image lacks the conic stack.
 
 ## Named options in this lane
 
@@ -217,6 +246,44 @@ report can name exactly which files that is.  Archive metadata is normalized
 `0644`/`0755`, gzip with no timestamp), so a rebuild from the same commit and
 the same lane bytes reproduces the digest.
 
+### Pre-upload gate: rehearse the bundle, not the worktree
+
+Required before every upload, on the exact bundle that will be uploaded, in
+this order: commit the `paper_5/src` the bundle will carry, `build_bundle.py`,
+`rehearse_bundle.sh`, upload.
+
+```bash
+PATH=/Users/lordskyler/Holstein_test/.venv/bin:$PATH \
+  python3 pipelines/shell/ram_guard.py --limit-mb 4000 -- \
+  bash chtc/paper_v_cwrmf_event_guard_accel_20260915/rehearse_bundle.sh
+# the last line must be  BUNDLE_REHEARSAL_OK <sha256>  with the sha256 in bundle.sha256
+```
+
+`rehearse_bundle.sh` extracts the bundle into a scratch root that lies inside
+no checkout (`mktemp -d` under `$TMPDIR`; it refuses a root under any
+directory holding `src/quantum/pauli_polynomial_class.py`, and a root inside
+this worktree), checks that nothing in the extracted tree is a symlink, and
+runs from that root with `PYTHONPATH=paper_5/src` only: the import gate
+(`import paper5` and the driver, with `paper5.__file__` resolved inside the
+scratch root), the driver's `--help`, segment 01 at `h = 1e-8`, the
+continuation `make_resume_submit.py` writes from segment 01's receipt, the
+negative case of a driver that dies before its output directory exists
+(which must still leave a receipt with `stop_reason unrecorded`), the
+lifecycle validator on every submit file in the extracted lane, and the
+tiling of the two trajectories.  On success it appends the digest to
+`bundle.rehearsed` beside the bundle; the last line of `bundle.rehearsed`
+must carry the digest in `bundle.sha256`, or the bundle is not the one that
+was rehearsed.  It refuses to start on a `python3` without numpy, scipy,
+cvxpy and clarabel, so the runner's pip bootstrap can never run locally.
+
+What it catches that the earlier rehearsals did not: those ran the inner
+runner in a scratch directory with `paper_5` **linked** into a checkout, so
+`paper5.repo`'s walk over the *resolved* ancestors of `repo.py` found the
+parent repository and passed, and cluster 10554184 then died at import on the
+execute node, where there is no parent.  Run on the bundle `eed32f13...`
+that job was submitted from, this gate fails at the import gate with that
+job's exact error.
+
 ```bash
 ssh -MNf ap2001                      # the user runs this once; it needs Duo
 
@@ -234,24 +301,31 @@ Skip the image copy if a Paper II root on the AP already holds the same
 
 ## Remote extract, validate, submit (on ap2001)
 
+The remote root already holds the `eed32f13...` extraction that cluster
+10554184 ran from.  Extracting the rehearsed bundle over it replaces every
+shipped file; no shipped file was removed between the two bundles, so nothing
+stale remains, and whatever empty `raw_outputs/` came back from that job
+names no run id.  The campaign starts on the retry file, not on `s01.sub`.
+
 ```bash
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
   && sha256sum paper_v_cwrmf_event_guard_accel_20260915.tgz \
   && tar -xzf paper_v_cwrmf_event_guard_accel_20260915.tgz \
   && chmod +x chtc/paper_v_cwrmf_event_guard_accel_20260915/*.sh \
   && mkdir -p logs raw_outputs archives_by_receipt'
+# the sha256sum line must equal bundle.sha256 and the last line of bundle.rehearsed
 
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
   && python3 chtc/validate_condor_submit_lifecycle.py \
-       chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s0*.sub \
+       chtc/paper_v_cwrmf_event_guard_accel_20260915/*.sub \
   && echo LIFECYCLE_OK'
 
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
-  && condor_submit -dry-run /tmp/paper_v_accel_s01.ad \
-       chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s01.sub'
+  && condor_submit -dry-run /tmp/paper_v_accel_s01_r01.ad \
+       chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub'
 
 ssh ap2001 'cd ~/Holstein_paper_v_cwrmf_accel_20260915 \
-  && condor_submit chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s01.sub'
+  && condor_submit chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub'
 ```
 
 Submit **one segment at a time**: segment `k+1` declares segment `k`'s
@@ -322,7 +396,7 @@ fields copied from the run's own `summary.json` that say what the segment did:
 | `final_time` | 0 | the next segment: `make_resume_submit.py <this receipt>` writes it, from this segment's `checkpoint.npz` |
 | `wall_budget` | 0 | **this** segment's `final_time` again: the same command writes it, from this segment's `checkpoint.npz`, under a fresh run id |
 | `step_failure` | 1 | nothing until the failure is read: `summary.json` gives the atom's message, and `checkpoint.npz` is still the last accepted step. The generator refuses this receipt until `--kind` is given explicitly |
-| `unrecorded` | nonzero | the driver died before writing `summary.json`; read the job's `.err`. The generator refuses this receipt too |
+| `unrecorded` | nonzero | the driver died before writing `summary.json`; read the job's `.err`. The receipt is written even when the driver died before creating its output directory: the runner archives an empty run directory instead of dying at `tar`, which is what cluster 10554184's runner did (exit 2, nothing staged). The generator refuses this receipt unless `--kind retry` is given, and a retry restarts from the input this segment was given |
 
 ## Traps
 
@@ -346,9 +420,18 @@ fields copied from the run's own `summary.json` that say what the segment did:
   one `make_resume_submit.py` writes from the receipt, and it is the only
   continuation this lane is meant to run.
 - **A run id is consumed even by a failure.** A segment that died still left
-  `raw_outputs/<campaign>/<run_id>/` on the AP, so the retry cannot reuse that
-  run id: the runner would refuse it at exit 3. Generate the retry, which
-  names a fresh one.
+  `raw_outputs/<campaign>/<run_id>/` on the AP, or at least its run id in a
+  shipped `.sub`, so the retry cannot reuse that run id: the generator refuses
+  it, and the runner would refuse it at exit 3. Generate the retry with
+  `--kind retry`, which names a fresh one: cluster 10554184 consumed
+  `accel_s01_t0000_t0500`, and its retry is `accel_s01_t0000_t0500_r01` in
+  `submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub`.
+- **A rehearsal inside a checkout is not a rehearsal of the bundle.**
+  `paper5.repo` climbs the resolved ancestors of `paper_5/src/paper5/repo.py`
+  looking for `src/quantum/pauli_polynomial_class.py`; a copy under a
+  checkout's `output/`, or a symlink to the worktree's `paper_5`, finds the
+  parent and passes what the execute node fails. `rehearse_bundle.sh` refuses
+  such a root and is the only rehearsal that counts as the pre-upload gate.
 - **The driver refuses an existing output directory.** It creates
   `--output-directory` with `exist_ok=False`, so a job that restarts after
   eviction into a sandbox that already holds its own partial output would

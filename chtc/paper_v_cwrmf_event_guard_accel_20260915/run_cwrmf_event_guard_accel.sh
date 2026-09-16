@@ -145,6 +145,17 @@ python3 -m paper5.stability.apcm_carried_witness_analysis "${ARGUMENTS[@]}"
 DRIVER_STATUS=$?
 set -e
 
+# A driver that dies before creating its output directory -- cluster
+# 10554184 died at import, before its arguments were read -- must still
+# leave the receipt below.  Without this the tar of a missing directory
+# fails under set -e, the runner exits 2, and nothing comes back to say
+# what happened.  The empty directory also consumes the run id on the
+# access point, which is the rule for a failed submission.
+if [[ ! -d "${OUT_DIR}" ]]; then
+  echo "driver exited ${DRIVER_STATUS} before creating ${OUT_DIR}; archiving an empty run directory" >&2
+  mkdir -p "${OUT_DIR}"
+fi
+
 # What the segment reached, read from the run's own summary.json.  A segment
 # stopped at the declared wall budget exits 0 exactly like one that reached
 # final_time, so stop_reason and last_time are the only things that separate

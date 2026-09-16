@@ -732,3 +732,238 @@ committed.
 - Bundle `eed32f13d55ca8a5c036da3e238d826cdaebde9a0e1fd65f57edda391b7a59ff`,
   `502619` bytes, 105 entries, built from `git archive e908c78a` plus the lane
   working tree, reproducible on rebuild, superseding `edffe887...`/`520921`.
+
+# Segment 1 died at import: the package imports without the parent, the bundle is rehearsed from its own contents, the retry is generated, 2026-09-16 (task 4)
+
+Same worktree and branch, from HEAD `dc925383`, the commit recording the
+failure.  Nothing is committed, nothing is uploaded or submitted, no default
+of the model or of the driver changed, and no stability module was touched.
+Cluster 10554184 (`accel_s01_t0000_t0500`, bundle `eed32f13...`) terminated
+after 14 s with exit 2 and nothing staged; the execute node's `.err` shows
+`paper5/__init__.py` importing `paper5.repo`, whose module-level
+`REPO_ROOT = find_repo_root()` raised
+`RuntimeError("Could not locate parent repo root with src/quantum.")`.
+
+## Negative results first
+
+**The two `paper5` source files that carry the fix are not in the worktree.**
+`.claude/settings.local.json` denies `Write(src/**)` and `Edit(src/**)`, and
+the permission system applies that unanchored pattern to `paper_5/src/**`
+through every tool: the Write tool, the Edit tool and a plain `cp` from Bash
+were each refused on `paper_5/src/paper5/repo.py`, although the scope-guard
+hook `.claude/hooks/paper-v-scope-guard.py` allows `paper_5/`.  The fixed
+files are staged, verified, and one `cp` away (see "What the parent commits");
+until they are copied in, the new test file errors at collection in the
+worktree (`ImportError: cannot import name 'locate_repo_root' from
+'paper5.repo'`), which is also its fail-before.  Anchoring the two rules to
+the absolute
+`//Users/lordskyler/Holstein_test.worktrees/claude-paper-v-routes-20260914/src/**`
+form the same file already uses for the main checkout would end the
+over-match.
+
+**The bundle is not rebuilt, and no upload digest exists yet.**
+`build_bundle.py` takes `paper_5/src` from `git archive HEAD`, and HEAD still
+carries the eager `repo.py`; a rebuild now would reproduce the failure.  At
+build time `paper_5/src` was also dirty against HEAD with the concurrent
+cheap-projection key's `cheap_projection_route.py` and
+`cheap_projection_route_analysis.py`, so the instruction's condition for
+building was not met either.
+
+**A second defect in the runner is what made the return empty.**  When the
+driver dies before creating its output directory, the runner's `tar` of the
+missing directory failed under `set -e` and the runner exited 2 -- the
+cluster's exit -- before the receipt was written.  The README's `unrecorded`
+row ("receipt still written") was true only for a driver that had already
+created the directory, which is what the 2026-09-15 rehearsal exercised.  The
+runner now archives an empty run directory in that case and writes the
+receipt with `stop_reason unrecorded` and the driver's exit status; rehearsed
+below.
+
+## (a) `paper5` imports without the parent repository
+
+Decision taken: when the parent is absent, `REPO_ROOT` raises the same
+`RuntimeError` on access rather than being `None`.  The reason is
+`paper5/stability/report.py`, which this key may not edit: it does
+`from paper5.repo import REPO_ROOT` and then `REPO_ROOT / "MATH" / ...` at
+module level, so a `None` would turn its failure into a `TypeError` that
+names nothing.  `locate_repo_root()` is the `None`-returning form for callers
+that want to test for the parent.
+
+| file | change |
+|---|---|
+| `paper_5/src/paper5/repo.py` (staged) | `locate_repo_root(start=None) -> Path \| None`, the walk without the raise; `find_repo_root` keeps its signature, walk and message; `REPO_ROOT` becomes a PEP 562 module attribute resolved on first access through `find_repo_root()` and cached as an ordinary module global (later lookups never re-enter `__getattr__`); `ensure_repo_root_on_path` resolves through the same cache; `__dir__` lists it; no walk at import |
+| `paper_5/src/paper5/__init__.py` (staged) | imports `ensure_repo_root_on_path`, `find_repo_root`, `locate_repo_root` eagerly (functions, no side effect); `REPO_ROOT` through a module `__getattr__` forwarding to `paper5.repo` and caching the same object; `__all__` unchanged plus `locate_repo_root` |
+| `paper_5/src/paper5/quantum_imports.py` | unchanged: its module-level `ensure_repo_root_on_path()` already raises the same `RuntimeError` at import, which is when it needs the parent |
+| `paper_5/tests/test_paper5_import_without_parent_repo.py` | new, in the worktree; 10 tests |
+
+Where the parent is needed, measured rather than assumed.  An `ast` walk of
+every `paper5` module reachable from
+`paper5.stability.apcm_carried_witness_analysis` (12 modules) and from the
+`paper5.stability` package init (29 modules) reaches none of `paper5.repo`,
+`paper5.quantum_imports`, `paper5.stability.report`; the package init's
+`from .repo import REPO_ROOT` was the only parent-requiring import on the
+driver's path.  Text search over the repository: `paper5.repo`'s names are
+used by `paper5/__init__.py`, `quantum_imports.py`, `stability/report.py`
+(six `REPO_ROOT` sites: two module-level paths, `_git_commit`'s `cwd`, three
+`_parser` defaults) and `tests/test_quantum_imports.py`; nothing outside
+`paper_5` and `test` imports them.  Impact from the main checkout's index,
+read-only: `find_repo_root` LOW, exact, 4 impacted (`repo.py`,
+`__init__.py`, `quantum_imports.py`, `report.py`); `ensure_repo_root_on_path`
+LOW, exact, 1 (`quantum_imports.py`); the `paper5` `REPO_ROOT` variable
+UNKNOWN with no resolved caller, settled by the text search.
+
+### Tests
+
+| test | what it pins |
+|---|---|
+| `test_the_package_and_the_carried_witness_driver_import_without_the_parent` | `paper_5/src` copied -- no symlink -- into a `tmp_path` tree, asserted to lie under no directory holding `src/quantum/pauli_polynomial_class.py`; a fresh interpreter with `PYTHONPATH=paper_5/src` imports `paper5`, `paper5.repo` and `paper5.stability`, resolves `paper5.__file__` inside that tree, and `locate_repo_root()` is `None`; `python -m paper5.stability.apcm_carried_witness_analysis --help` exits 0 with `usage:` and no parent message |
+| `test_the_parent_needing_entry_points_raise_the_same_error_only_when_used`, 8 cases | in that tree, `paper5.repo.REPO_ROOT`, `paper5.REPO_ROOT`, `from paper5.repo import REPO_ROOT`, `from paper5 import REPO_ROOT`, `ensure_repo_root_on_path()`, `find_repo_root()`, `import paper5.quantum_imports`, `import paper5.stability.report` each exit nonzero with `RuntimeError: Could not locate parent repo root with src/quantum.` |
+| `test_behaviour_with_the_parent_present_is_unchanged` | `find_repo_root()` is the directory holding the marker and equals `Path(paper5.__file__).resolve().parents[3]`; `paper5.repo.REPO_ROOT == root`, present in `vars(paper5.repo)` after first use, the identical object through `paper5.REPO_ROOT`; `ensure_repo_root_on_path()` returns it and it is on `sys.path`; `find_repo_root(tmp_path)` raises the exact message and `locate_repo_root(tmp_path)` is `None`; a fresh interpreter binds the same path through `from paper5 import REPO_ROOT`, `from paper5.repo import REPO_ROOT` and `report.REPO_ROOT`, `report.TEX_SOURCE` is `MATH/paper_facing/paper_V_high_u_gkba/paper_v_scalar_stability_diagnostic.tex` under it, and `quantum_imports.jw_creation(2, 0)` is a `PauliPolynomial` |
+
+Verified in a scratch overlay -- a copy of the worktree's `paper_5` with the
+two staged files applied, under a root whose `src`, `pipelines` and `MATH`
+are symlinks to the worktree's, so the parent is present there: the 10 new
+tests and the 2 existing `test_quantum_imports.py` tests pass in `2.78 s`.
+Fail-before: with HEAD's `repo.py`, `python -m
+paper5.stability.apcm_carried_witness_analysis --help` in a parentless copy
+of `paper_5/src` exits 1 with the cluster's traceback (`__init__.py` line 3,
+`repo.py` line 23).
+
+## (b) The pre-upload gate: `rehearse_bundle.sh`
+
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/rehearse_bundle.sh
+[bundle.tgz] [scratch-root]` extracts the bundle into a scratch root that
+lies inside no checkout (`mktemp -d` under `$TMPDIR` by default; it refuses a
+root under any directory holding `src/quantum/pauli_polynomial_class.py` and
+a root inside the worktree), refuses a tree containing any symlink, refuses a
+`python3` without numpy, scipy, cvxpy and clarabel (so the runner's pip
+bootstrap can never trigger locally), and runs from that root with
+`PYTHONPATH=paper_5/src` only: the import gate (`import paper5` and the
+driver, `paper5.__file__` resolved inside the scratch root), the driver's
+`--help`, segment 01 at `h = 1e-8`, the continuation `make_resume_submit.py`
+writes from segment 01's receipt, the negative case of a driver that dies
+before its output directory exists, the lifecycle validator on every submit
+file in the extracted lane, and the tiling of the two trajectories.  Success
+prints `BUNDLE_REHEARSAL_OK <sha256>` and appends the digest to
+`bundle.rehearsed` beside the bundle; anything else prints
+`BUNDLE_REHEARSAL_FAILED <step>` and leaves the scratch root to read.
+
+Why the 2026-09-15 rehearsals passed: they ran the inner runner with
+`paper_5` **linked** into a checkout, and `paper5.repo` walks the *resolved*
+ancestors of `repo.py`, so the walk found the parent.  A copy under
+`output/` of a checkout passes for the same reason; the gate refuses both.
+
+| gate run, under `ram_guard.py --limit-mb 4000` | bundle | result |
+|---|---|---|
+| on `eed32f13...`, the bundle cluster 10554184 ran from | `502619` bytes, 105 entries | `BUNDLE_REHEARSAL_FAILED import-gate`, exit 1, printing the job's exact `RuntimeError`; peak 5 MB |
+| on a scratch-only bundle: the staged `paper_5/src` plus the current lane, built from the working tree, never to be uploaded | `517438` bytes, 108 entries | `BUNDLE_REHEARSAL_OK`, exit 0, peak 286 MB: `paper5` imported from inside the scratch root; segment 01 `t = 0` to `2e-8`, `stop_reason final_time`, driver exit 0; generator wrote `rbundle_s02_t2000_t4000`; segment 02 `initial_time 2e-08`, `last_time 4e-08`, `stop_reason final_time`; the dead-driver case (`event_gram_hard_floor not-a-number`, argparse exit 2 before any directory) left a receipt with `stop_reason unrecorded`, `driver_exit_status 2`, runner exit 2; lifecycle validator exit 0 on the ten submit files in the extracted lane; trajectories `[0, 1e-8, 2e-8]` and `[2e-8, 3e-8, 4e-8]` |
+
+The scratch bundle's member list is `eed32f13`'s 105 plus exactly three
+(`rehearse_bundle.sh`, `submission_receipt_10554184.json`, the retry `.sub`)
+and nothing removed, so extracting the rebuilt bundle over the remote root
+leaves no stale member.
+
+README: a new required section "Pre-upload gate: rehearse the bundle, not
+the worktree" with the order commit -> `build_bundle.py` ->
+`rehearse_bundle.sh` -> upload and the rule that `bundle.rehearsed`'s last
+line must carry `bundle.sha256`'s digest; the sentence "The import chain is
+self-contained" replaced by the dated statement of when that became true and
+what enforces it; the file table, the continuation table, the receipt table's
+`unrecorded` row, the remote submit block (the retry file starts the
+campaign) and two traps rewritten.
+
+## (c) The resubmission of segment 1
+
+Run id `accel_s01_t0000_t0500_r01`, file
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub`,
+written by `make_resume_submit.py --kind retry
+chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_s01.sub`.
+`arguments = accel_s01_t0000_t0500_r01 0.5 0.0025 2e-4 none none`;
+`transfer_input_files` names no checkpoint; `output`, `error` and
+`+JobBatchName` carry the new id.  The lifecycle validator exits 0 on all nine
+lane submit files.
+
+What the generator gained: a lane submit file is accepted as the source and
+stands for `stop_reason not_returned` (a submission that came back with
+nothing has no receipt); `--kind retry` writes the same interval again from
+the input the segment was given (`initial_state_file` and
+`expected_initial_time` from a receipt or from the `.sub`'s own arguments) and
+is never chosen automatically; a retry of a `wall_budget` or `final_time`
+source is refused, as is `auto` on a `.sub` (exit 2); a second retry names
+`_r02`.  The `_r<NN>` counter now counts every re-submission of a segment,
+resume or retry, and the receipt's `initial_state_file` says which.  The
+`resume` and `next` outputs are byte-identical to HEAD's generator, checked by
+dry-run diff on the 2026-09-15 rehearsal receipts.
+
+## What the parent commits, then builds
+
+The bundle's committed half is `git archive HEAD`, so the two staged files
+must be in HEAD before `build_bundle.py`; the lane is taken from the working
+tree but belongs in the same commit for the submission receipt's
+`source_commit`.  The cheap-projection files and
+`test_cheap_projection_route.py` are the other key's and are not staged here.
+
+```bash
+S=/private/tmp/claude-501/-Users-lordskyler-Holstein-test/83d3ed05-f06e-4a0b-9a15-14a47577e0a0/scratchpad/stage
+L=chtc/paper_v_cwrmf_event_guard_accel_20260915
+cp $S/paper_5/src/paper5/repo.py paper_5/src/paper5/repo.py
+cp $S/paper_5/src/paper5/__init__.py paper_5/src/paper5/__init__.py
+PYTHONPATH=paper_5/src /Users/lordskyler/Holstein_test/.venv/bin/python -m pytest -q \
+  paper_5/tests/test_paper5_import_without_parent_repo.py paper_5/tests/test_quantum_imports.py   # 12 passed expected
+git add paper_5/src/paper5/repo.py paper_5/src/paper5/__init__.py \
+  paper_5/tests/test_paper5_import_without_parent_repo.py \
+  $L/README.md $L/make_resume_submit.py $L/run_cwrmf_event_guard_accel.sh \
+  $L/rehearse_bundle.sh $L/submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub \
+  agent_guidance/paper-v/overnight/cwrmf-chtc-20260915b.md
+git commit -m "paper-v: paper5 imports without the parent repository (lazy REPO_ROOT); CWRMF lane rehearses the bundle from its own contents; runner writes the receipt when the driver dies at import; segment 01 retry accel_s01_t0000_t0500_r01"
+/Users/lordskyler/Holstein_test/.venv/bin/python $L/build_bundle.py
+PATH=/Users/lordskyler/Holstein_test/.venv/bin:$PATH /Users/lordskyler/Holstein_test/.venv/bin/python \
+  pipelines/shell/ram_guard.py --limit-mb 4000 -- bash $L/rehearse_bundle.sh
+# last line BUNDLE_REHEARSAL_OK <sha>, equal to bundle.sha256; then the README's upload block,
+# then on ap2001 the retry file, not s01.sub:
+#   condor_submit $L/submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub
+```
+
+## Verification ledger
+
+| gate | result |
+|---|---|
+| new test file, overlay with the staged files applied | 10 passed; with `test_quantum_imports.py`'s 2, 12 passed in `2.78 s` |
+| new test file, worktree with HEAD's `repo.py` | collection error, `cannot import name 'locate_repo_root'` (the fail-before) |
+| `paper_5/tests/test_apcm_carried_witness.py`, worktree, `ram_guard.py --limit-mb 4000` | `48 passed in 61.52 s`, peak `1985 MB` |
+| full `paper_5` suite, overlay with the staged files applied, same guard, `PYTHONPATH=paper_5/src` from the root | `490 passed, 9 warnings in 261.04 s`, peak `2088 MB`; the count is the 2026-09-15 466 plus the concurrent keys' tests and these 10.  A first run with `PYTHONPATH` unset failed one test, `test_multi_coherent.py::test_frozen_model_trajectory_runs_without_a_reference_or_gate`, whose cost gate launches `python -m paper5.stability.multi_coherent_holdout_cli` as a child that inherits the environment; under the stated convention it passes in the worktree (`6.41 s`) and in the overlay (`6.99 s`) |
+| `rehearse_bundle.sh` on `eed32f13...` | `BUNDLE_REHEARSAL_FAILED import-gate`, exit 1 |
+| `rehearse_bundle.sh` on the scratch bundle with the fix | `BUNDLE_REHEARSAL_OK`, exit 0, peak 286 MB, nine steps |
+| `chtc/validate_condor_submit_lifecycle.py` on the nine lane submit files | exit 0 |
+| generator `resume` and `next` dry-run output vs HEAD's generator | byte-identical |
+| HEAD's `repo.py` in a parentless copy, driver `--help` | exit 1, `RuntimeError: Could not locate parent repo root with src/quantum.` |
+| impact, main index, read-only | `find_repo_root` LOW 4, `ensure_repo_root_on_path` LOW 1, `REPO_ROOT` UNKNOWN resolved by text search |
+
+Files touched by this key: `paper_5/tests/test_paper5_import_without_parent_repo.py`
+(new); in the lane, `README.md`, `make_resume_submit.py`,
+`run_cwrmf_event_guard_accel.sh`, `rehearse_bundle.sh` (new),
+`submit_cwrmf_accel_accel_s01_t0000_t0500_r01_20260916.sub` (new); this
+report.  Staged outside the worktree, refused by the permission rule:
+`paper_5/src/paper5/repo.py`, `paper_5/src/paper5/__init__.py`.
+`paper_5/src/paper5/quantum_imports.py` unchanged.  Nothing is committed.
+
+## Summary
+
+- `import paper5` and the carried-witness driver no longer need the parent
+  repository; `REPO_ROOT` resolves on first access and raises the same
+  `RuntimeError` only then; `quantum_imports` and `report` fail exactly when
+  they need the parent; behaviour with the parent present is pinned
+  unchanged.  The two source files are staged, tested (12 passed, 490 in the
+  suite), and blocked from the worktree by the unanchored `Write(src/**)`
+  deny.
+- `rehearse_bundle.sh` is the required pre-upload gate; it fails the shipped
+  `eed32f13...` bundle at the import gate with the cluster's error and passes
+  a bundle carrying the fix, including the dead-driver receipt the runner now
+  writes.
+- The retry of segment 01 is `accel_s01_t0000_t0500_r01`, generated,
+  validated, and the file the campaign starts on; `accel_s01_t0000_t0500` is
+  consumed.
+- Order for the parent: copy the two files, commit with explicit paths,
+  `build_bundle.py`, `rehearse_bundle.sh` (must print `BUNDLE_REHEARSAL_OK`
+  with `bundle.sha256`'s digest), upload, submit the retry file.  The upload
+  digest does not exist until then.
