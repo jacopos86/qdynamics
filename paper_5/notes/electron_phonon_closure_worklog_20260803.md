@@ -5465,3 +5465,18 @@ Open decision, the user's: whether the 27-key `post_pulse` chain becomes the
 its internal-energy `0.165` and cone figures beside it) or the `drive_power`
 chain does (`0.0852`, internal energy `0.0063`).  Both are subject to the
 sensitivity study in progress before any third-digit reading.
+
+### Cluster 10554184: terminated after 14 s, exit 2, no output
+
+Read on 2026-09-16 once the SSH master was reopened.  The execute node
+bootstrapped the conic stack, then `python -m
+paper5.stability.apcm_carried_witness_analysis` failed at import:
+`paper5/__init__.py` imports `paper5.repo`, whose `find_repo_root()` raises
+`RuntimeError("Could not locate parent repo root with src/quantum.")` because
+the bundle ships `paper_5/src` and the lane without the parent repository's
+`src/quantum`.  The 2026-08-18 lane's README statement that the import chain
+is self-contained predates `paper5/repo.py`; the local rehearsals passed
+because the parent repository exists on this machine.  The run id
+`accel_s01_t0000_t0500` is consumed; the resubmission carries a new one.
+Job log: `logs/paper_v_cwrmf_event_guard_accel_20260915_v1.10554184.0.log`
+and `.err` under the remote root.
