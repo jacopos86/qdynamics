@@ -2292,3 +2292,298 @@ alone cost 30 to 40 percent against the recorded rule's base
 | re-selections accepted of 500 (uncertified; declined; infeasible) | 347 (30; 4; 149), 385 (40; 3; 112), 385 (41; 5; 110), 395 (100; 5; 100); 94, 79, 83, 90 accepted in `t=15` to `20` where the recorded rule certified none |
 | gates | 44 tests in the file; full suite 499 passed in `257.04 s` under `ram_guard --limit-mb 5000`, peak `2,033 MB` |
 | files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, the worklog block, and the task-7 scripts under `output/local_runs/`.  Nothing committed |
+
+# Task 8: the attribution -- the measured acceptance buys the continuity, the anchor pays the accuracy (2026-09-16)
+
+Eleven rollouts of the recorded `N=16` drive-power configuration to `t=8`
+(3,200 steps), one at a time under `ram_guard --limit-mb 3000`, each
+differing from the recorded run only in the twin's one setting and the
+rule's flags on its command line (`chain.zsh`; walls `244.7` to `384.7 s`
+against the `1,140 s` budget, peaks `410` to `486 MiB`).  No
+module was edited: every rule here is a setting of task 7's
+`LiftReselectionRule` (`anchor_weight` is any nonnegative float and the
+two scopes are the existing ones), so there is no new option and no new
+test; the 44 tests of `test_cheap_projection_route.py` pass (`24.82 s`).
+Nothing is committed.  Conventions and the configuration are task 7's: the
+score is the all-coordinate scalar RMS of the 31 closed scalar coordinates
+against the exact cutoff-16 driven reference over `t=0` to `T`; the internal
+energy is the sample RMS of the Eq. (22) energy on that horizon; the
+physicality numbers are the minimum over `t <= T` of the scaled 24-row
+positive-extension eigenvalue and of the unshifted retained joint Gram
+eigenvalue (recomputed per sample from the states by the driver's formula,
+so the `t=0` to `20` rows of tasks 6 and 7 are restricted to the same
+horizons); a separation is the 31-coordinate Euclidean distance between two
+rollouts at the same accepted step; the spread of a set is the largest score
+minus the smallest as a fraction of the smallest; a re-selection's move is
+the Euclidean distance in the 62 standardized frontier coordinates.  The
+sets:
+
+| set | rule | runs |
+|---|---|---|
+| recorded | every field off (task 4's row and task 6's three twins, `t=0` to `20`, restricted) | base, `etol1e3`, `dykstra60`, `conic1e10` |
+| combined | margin `1e-3`, `measured` candidates, anchor `mu = 1` (task 7's chosen rule, its four `t=0` to `20` runs restricted) | the four |
+| A, measured | margin `1e-3`, `measured` candidates, no anchor: the measured-candidate acceptance without the anchor | the four, `t=8` |
+| B, anchor | anchor `mu = 1`, `certified` candidates, no margin: the anchor without the measured acceptance (the earlier form's acceptance, the move halved) | the four, `t=8` |
+| C | the combined rule with anchor `mu = 0.1` and `mu = 0.01` | base only, `t=8` |
+| D | margin `1e-3`, anchor `mu = 1`, `certified` candidates (the `t=2` screen's "margin and anchor" row, taken to `t=8`) | base only, `t=8` |
+
+Set A's four runs, set D's and the combined base reproduce the task-7 `t=2`
+screen runs with the same flags in every one of the 801 common samples' 31
+coordinates and 62 frontier coordinates (largest absolute difference `0.0`,
+`task8_extras.json`): the driver is deterministic across processes and the
+`t=2` numbers of task 7 (b) are this section's `t=2` numbers.
+
+## Negative result first
+
+The anchor pays the accuracy, and task 7's reading that it "buys accuracy
+back" holds only to `t=2`.  Set A (the measured acceptance alone) scores
+`0.027191` over `t=0` to `4` and `0.038538` over `t=0` to `8`, 15 percent
+above the recorded `0.023744` at `t=4` and 15 percent *below* the recorded
+`0.045571` at `t=8`, with the four twins spread 0.1 and 0.2 percent; set B
+(the anchor alone) scores `0.030650` and `0.071711`, 29 and 57 percent above
+the recorded row, with the twins spread 31.0 and 14.7 percent -- no
+continuity at all.  The combined rule's 33 and 66 percent are therefore the
+anchor's (at `t=4` both ingredients pay and the anchor the larger part; at
+`t=8` the anchor is the whole cost and the measured acceptance a gain).  Every anchored rule collapses its
+re-selection in `t=6` to `8`: 1 to 17 accepted of 50 (set B), 10 (combined),
+16 (D), against 50 of 50 under set A and 40 under the recorded rule, and
+task 7's "cones an order of magnitude better" was a `t=0` to `20` statement
+against a recorded row that is frozen-lift past `t=11.76`: over `t=0` to
+`8` the recorded base holds the tightest cones of every set (scaled
+extension minimum `-8.6e-5`, joint Gram `-2.1e-3`), set A is within a
+factor 1.6 of it, and the anchored rules are 2 to 4 times looser.
+
+## The rows side by side
+
+Scores (all-coordinate scalar RMS) and internal-energy RMS over `t=0` to
+`4` / `t=0` to `8`, base / `etol1e3` / `dykstra60` / `conic1e10`:
+
+| set | score `T=4` | score `T=8` | spread `T=4` / `8` | internal energy `T=4` | `T=8` |
+|---|---|---|---|---|---|
+| recorded | `0.023744` / `0.024240` / `0.026837` / `0.027954` | `0.045571` / `0.044530` / `0.040677` / `0.040450` | 17.7 % / 12.7 % | `0.02041` / `0.02040` / `0.02514` / `0.02864` | `0.02406` / `0.02415` / `0.02948` / `0.03383` |
+| combined | `0.031566` / `0.031582` / `0.031594` / `0.031566` | `0.075551` / `0.073518` / `0.076622` / `0.076060` | 0.1 % / 4.2 % | `0.02369` / `0.02393` / `0.02369` / `0.02369` | `0.02913` / `0.02940` / `0.02913` / `0.02913` |
+| A, measured | `0.027191` / `0.027215` / `0.027214` / `0.027191` | `0.038538` / `0.038617` / `0.038605` / `0.038538` | 0.1 % / 0.2 % | `0.03314` / `0.03332` / `0.03332` / `0.03314` | `0.03816` / `0.03835` / `0.03836` / `0.03816` |
+| B, anchor | `0.030650` / `0.027274` / `0.031232` / `0.035728` | `0.071711` / `0.062545` / `0.067015` / `0.070631` | 31.0 % / 14.7 % | `0.01760` / `0.01668` / `0.01322` / `0.01621` | `0.02206` / `0.02098` / `0.01705` / `0.02071` |
+| C, anchor `0.1` (base) | `0.027426` | `0.040099` | --- | `0.03270` | `0.03784` |
+| C, anchor `0.01` (base) | `0.027221` | `0.038647` | --- | `0.03311` | `0.03814` |
+| D, margin and anchor (base) | `0.032761` | `0.064289` | --- | `0.01981` | `0.02489` |
+
+Physicality over `t <= 4` / `t <= 8`, same order of runs (scaled 24-row
+extension minimum; unshifted retained joint Gram minimum), and the
+re-selections over `t=0` to `8` (accepted, of which uncertified; declined by
+the margin; refused or `infeasible`) with the accepted count in `t=6` to `8`
+of 50:
+
+| set | extension minimum, `t <= 4` / `<= 8` | joint Gram minimum, `t <= 4` / `<= 8` | re-selections of 200 over `t=0` to `8` | accepted in `[6, 8)` |
+|---|---|---|---|---|
+| recorded | `-7.5e-6` / `-8.6e-5`; `-4.6e-6` / `-1.7e-4`; `-1.1e-6` / `-3.4e-5`; `-5.5e-6` / `-1.6e-4` | `-2.4e-4` / `-2.1e-3`; `-1.5e-4` / `-4.7e-3`; `-4.2e-5` / `-8.0e-4`; `-1.8e-4` / `-4.8e-3` | base 173 (0); 0; 27 (the twins have no stage record) | 40 |
+| combined | `-1.0e-5` / `-2.9e-4`; `-1.6e-5` / `-3.6e-4`; `-3.9e-6` / `-1.7e-4`; `-1.0e-5` / `-3.5e-4` | `-6.7e-4` / `-6.8e-3`; `-7.7e-4` / `-8.7e-3`; `-2.1e-4` / `-4.1e-3`; `-6.7e-4` / `-8.6e-3` | 151 (9); 4; 45 -- 150 (6); 3; 47 -- 147 (4); 4; 49 -- 148 (30); 4; 48 | 10 |
+| A, measured | `-5.0e-6` / `-1.1e-4`; `-4.9e-6` / `-1.1e-4`; `-1.0e-6` / `-4.8e-5`; `-5.0e-6` / `-1.1e-4` | `-1.9e-4` / `-3.3e-3`; `-1.8e-4` / `-3.2e-3`; `-4.0e-5` / `-1.4e-3`; `-1.9e-4` / `-3.3e-3` | 196 (13); 4; 0 -- 196 (17); 4; 0 -- 196 (13); 4; 0 -- 196 (44); 4; 0 | 50, 50, 50, 50 |
+| B, anchor | `-1.5e-5` / `-2.1e-4`; `-1.7e-5` / `-3.6e-4`; `-4.6e-6` / `-1.8e-4`; `-2.8e-5` / `-3.0e-4` | `-4.1e-4` / `-5.3e-3`; `-4.4e-4` / `-8.3e-3`; `-1.3e-4` / `-4.4e-3`; `-7.3e-4` / `-6.9e-3` | 139 (0); 0; 61 -- 157; 0; 43 -- 139; 0; 61 -- 112; 0; 88 | 7, 17, 1, 4 |
+| C, anchor `0.1` / `0.01` | `-4.5e-6` / `-1.6e-4`; `-4.9e-6` / `-1.2e-4` | `-1.8e-4` / `-4.3e-3`; `-1.9e-4` / `-3.6e-3` | 196 (22); 4; 0 -- 196 (19); 4; 0 | 50, 50 |
+| D | `-1.4e-5` / `-3.1e-4` | `-4.2e-4` / `-7.5e-3` | 149 (0); 1; 50 | 16 |
+
+Where each twin leaves its set's base (first nonzero separation; first
+carried-frontier difference above `1e-6`; first crossing of `1e-3` / `1e-2`
+/ `1e-1`; separation at `t=4` / `8`; maximum over `t <= 8`):
+
+| set | twin | first nonzero | first frontier difference | crossings | at `t=4` / `8` | maximum, when |
+|---|---|---|---|---|---|---|
+| recorded | `etol1e3` | `0.0075` | `0.401` at `t=0.04` | `0.1475` / `0.7525` / `7.01` | `0.025` / `0.163` | `0.198` at `7.465` |
+| recorded | `dykstra60` | `0.0525` | `0.376` at `0.08` | `0.145` / `0.36` / `4.0025` | `0.100` / `0.236` | `0.283` at `7.52` |
+| recorded | `conic1e10` | `0.0425` | `0.333` at `0.04` | `0.125` / `0.48` / `3.085` | `0.127` / `0.168` | `0.263` at `6.8875` |
+| combined | `etol1e3` | `0.0075` | `0.0032` at `0.16` | `1.7875` / `4.1` / never by `t=8` | `0.0078` / `0.094` | `0.097` at `7.895` |
+| combined | `dykstra60` | `0.0625` | `0.0032` at `0.16` | `2.305` / `5.65` / never | `0.0027` / `0.067` | `0.071` at `7.8925` |
+| combined | `conic1e10` | `0.505` | `0.142` at `6.44` | `6.4525` / `6.8` / never | `3.2e-9` / `0.069` | `0.072` at `7.895` |
+| A, measured | `etol1e3` | `0.0075` | `0.0064` at `0.16` | `2.1075` / `5.83` / never | `0.0035` / `0.0175` | `0.0194` at `7.9275` |
+| A, measured | `dykstra60` | `0.0625` | `0.0064` at `0.16` | `2.105` / `5.76` / never | `0.0035` / `0.0232` | `0.0236` at `7.9875` |
+| A, measured | `conic1e10` | `0.245` (`8.7e-19`) | never | never / never / never | `5.1e-9` / `1.7e-8` | `1.9e-8` at `6.49` |
+| B, anchor | `etol1e3` | `0.0075` | `0.201` at `0.04` | `0.215` / `0.85` / `4.4275` | `0.079` / `0.259` | `0.297` at `5.9175` |
+| B, anchor | `dykstra60` | `0.06` | `0.244` at `0.08` | `0.285` / `0.745` / `5.0475` | `0.056` / `0.231` | `0.250` at `7.7575` |
+| B, anchor | `conic1e10` | `0.0425` | `0.167` at `0.04` | `0.1725` / `0.7125` / `2.985` | `0.114` / `0.476` | `0.480` at `7.94` |
+
+## (a) The measured acceptance without the anchor
+
+The four runs accept the same 196 re-selections of 200 (the four declined
+by the margin are the wrong-face answers of `t=0.04` to `0.16`, as at
+`t=2`), no iterate fails the measured feasibility test before `t=8`, the
+first accepted lift is a full-face answer `0.0064` to `0.0094` from the
+preparation's at `t=0.16` to `0.20`, and no accepted move exceeds `0.039`
+(medians `0.008`, `0.010`, `0.017`, `0.023` in the four two-unit intervals;
+the largest at `t=6.2` to `6.88`).  The `conic1e10` twin is identical to
+the base to `1.9e-8` in the 31 coordinates at every one of the 3,201
+samples (first nonzero `8.7e-19` at `t=0.245`; its 44 uncertified
+acceptances against the base's 13 are certificate flips without effect on
+the lift); the `etol1e3` and `dykstra60` twins part at `t=0.16` by `0.0064`
+in the frontier (two full-face answers after repairs differing at
+round-off, now taken whole where task 7 halved them) and stay within `0.024`
+of the base to `t=8`, crossing `1e-2` only at `t=5.8`.  The spread is 0.1
+percent at `t=4` and 0.2 percent at `t=8` (the combined rule's 0.1 and 4.2,
+the recorded rule's 17.7 and 12.7), so the second digit is resolved on both
+horizons and the third at `t=4`.  The cost: 15 percent at `t=4` (`0.0272`
+against the recorded `0.0237`, inside the recorded rule's own band `0.0237`
+to `0.0280` and 4 percent above the projective event guard's `0.026049`)
+and a gain of 15 percent at `t=8` (`0.0385` against `0.0456`, below the
+recorded rule's band `0.0404` to `0.0456`).  The cones over `t <= 8`
+(`-1.1e-4` / `-3.3e-3`) sit between the recorded base's (`-8.6e-5` /
+`-2.1e-3`) and the combined rule's (`-2.9e-4` / `-6.8e-3`).  The internal
+energy is the worst of every set (`0.0331` / `0.0382` against the recorded
+`0.0204` / `0.0241`); what that column measures is below.
+
+## (b) The anchor without the measured acceptance
+
+With certified candidates and no objective test the first re-selection at
+`t=0.04` accepts the 23-of-24-face answer and moves half-way, `0.167`
+(`0.151` for `etol1e3`), and the twins part there by `0.17` to `0.24` in
+the frontier, as under the recorded rule (`0.33` to `0.40`); the
+`conic1e10` twin, whose `1e-10` solve refuses that answer (task 6), first
+accepts at `t=0.2` (`0.0047`), so its branch is the certificate's.  The
+spread is 31.0 percent at `t=4` and 14.7 at `t=8`, wider than the recorded
+rule's, and the crossings of `1e-2` (`0.71` to `0.85`) and `1e-1` (`2.99`
+to `5.05`) are of the recorded rule's order (`0.36` to `0.75`; `3.1` to
+`7.0`).  The accuracy: `0.0307` / `0.0717` on the base (29 and 57 percent
+above the recorded row; the twins `0.0273` to `0.0357` and `0.0625` to
+`0.0717`), and the re-selection collapses in `t=6` to `8`: 33 to 49 of 50
+refused (the base: 4, 2, 11, 43 refusals in the four intervals), so over
+most of `t=6` to `8` the anchored run is the frozen-lift route with the
+Dykstra repair.  The internal energy is the best
+of every set (`0.0132` to `0.0176` / `0.0170` to `0.0221`) and the cones
+the loosest with the combined rule's (`-1.8e-4` to `-3.6e-4` / `-4.4e-3`
+to `-8.3e-3`).
+
+## (c) Which ingredient buys what, and the weaker anchor
+
+- **The measured acceptance buys the continuity.**  Set A alone gives
+  0.1 / 0.2 percent; the anchor alone gives 31.0 / 14.7.  The ingredient
+  is the objective test with `measured` scope: it declines the wrong-face
+  answer at `t=0.04` to `0.16` (any margin `m >= 0` does, the answer's
+  declared objective being `0.46` above the carried lift's) and judges
+  every later iterate by measured quantities, so the `conic1e10` twin
+  cannot branch on its certificate.  The anchor contributes nothing to the
+  continuity at `t=4` and worsens it at `t=8`: with it (combined) the
+  twins are `0.067` to `0.094` from the base at `t=8`, without it (set A)
+  `0.018` to `0.023`, because the anchored lift lags the answer and the
+  runs enter the `infeasible` regime (45 to 49 of 200 by `t=8`) on
+  slightly different steps.
+- **The anchor pays the accuracy.**  At `t=8` the anchor alone costs 57
+  percent, the combined rule 66, the measured acceptance alone gains 15;
+  at `t=4` the anchor alone costs 29 percent, the measured acceptance 15,
+  the combined rule 33.  The `t=1` and `t=2` scores show where task 7's
+  reading came from: at `t=2` the anchored rules lead (`0.0080` B,
+  `0.0090` D, `0.0093` combined, against `0.0112` for set A and `0.0079`
+  recorded), and the order is reversed by `t=4` (`0.0307`, `0.0328`,
+  `0.0316` against `0.0272`).  The reading offered in task 7 (the mean of
+  the minimum-norm lift and the carried lift is nearer the exact frontier
+  than either) is not supported past `t=2`: the half-way lift makes the
+  state leave the set of moment sequences that admit a positive extension
+  four units earlier than the whole answer does.
+- **A weaker anchor recovers the accuracy in proportion to how little
+  anchor is left, and never improves on none.**  On the base, over `t=0`
+  to `4` / `8`: anchor `0` `0.027191` / `0.038538`; `0.01` `0.027221` /
+  `0.038647` (0.1 / 0.3 percent above); `0.1` `0.027426` / `0.040099`
+  (0.9 / 4.1 percent above); `1` `0.031566` / `0.075551` (16 / 96
+  percent above).  Monotone in the weight at both horizons, and the
+  internal energy moves the other way by at most 1 percent (`0.0378` at
+  `0.1` against `0.0382` at `0`).  The twins' spread under a weak anchor
+  was not measured (base only, as asked); what was measured is that the
+  anchor `0.01` base sits `0.0197` from the no-anchor base at `t=8`, the
+  size of one set-A twin's separation (`0.0175` to `0.0232`), while the
+  anchor `0.1` base sits `0.209` away (crossing `1e-1` at `t=5.6`), ten
+  times a twin, so at `0.1` the anchor is itself a larger perturbation
+  than any twin and the two measured endpoints (0.2 percent at weight
+  `0`, 4.2 at weight `1`) are the only spreads on record.  The
+  recommendation is to drop the anchor: the rule margin `1e-3`, `measured`
+  candidates, anchor `0` is the one that resolves the second digit at
+  `t=4` and `t=8`, beats the recorded row at `t=8`, and keeps every
+  re-selection to `t=8` accepted.
+- **Set D locates the remaining piece.**  Margin `1e-3` with the anchor on
+  certified candidates scores `0.0328` / `0.0643` (38 and 41 percent
+  above the recorded row) with 50 refusals: the margin removes the
+  wrong-face branch (first acceptance `0.0047` at `t=0.2`, no move above
+  `0.073`) and the anchor still pays, so the cost is not the margin's.
+
+## What the internal-energy column measures on a drive-power run
+
+The exact Eq. (22) energy on the exact reference is `-3.571398` at `t=4`
+and changes by `3.1e-6` over `t=4` to `8` (the pulse envelope `exp(-t^2 /
+2)` is below `4e-4` there).  Each run's repair holds its internal energy on
+its declared drive-power reference from `t=4` on to `1e-14`, so its
+internal-energy RMS over `t=4` to `8` equals the reference minus the exact
+energy: `0.0272` (recorded), `0.0337` (combined), `0.0426` (set A; `0.0424`
+and `0.0426` at anchor `0.1` and `0.01`), `0.0258` (set B base; `0.0245`,
+`0.0202`, `0.0244` its twins), `0.0291` (D); the reference is the
+drive-power integral along the run's own trajectory over the pulse, and the
+`t=0` to `4` RMS is that running integral's error.  The two ingredients
+therefore trade the 31-coordinate score against the Eq. (22) energy in
+opposite directions: the measured acceptance without the anchor has the best
+coordinates at `t=8` and the worst energy (59 percent above the recorded
+`0.0241`), the anchor alone the best energy (8 percent below) and the worst
+coordinates.  Which of the two the route is scored on is the user's call;
+the recorded scoreboard of tasks 2 to 7 is the coordinate score.
+
+## Provenance and gates
+
+- Gates: `paper_5/tests/test_cheap_projection_route.py` 44 passed in
+  `24.82 s` (`test_cheap_projection_route.log`); the full `paper_5` suite
+  499 passed in `270.42 s` under `ram_guard --limit-mb 5000`, peak
+  `1,984 MB` (`paper5_suite.log`).  No module, test or default changed;
+  the modules committed at `a81b7ecb` are what ran (`HEAD` moved to
+  `e3374f6f`, another agent's commit, during the runs; it touches nothing
+  this route imports).
+- Scripts, all under
+  `output/local_runs/paper_v_cheap_projection_task8_attribution_20260916_v1/`:
+  `run_one.zsh` (task 7's, output directory changed), `chain.zsh` (the
+  eleven rollouts in order, every twin and rule as flags), `task8_scores.py`
+  (`task8_scores.json` and `.md`: the horizon scores, internal energies,
+  per-horizon physicality minima with the joint Gram recomputed from the
+  states, spreads, separations, decisions from the stage records; it
+  reproduces task 7's `t=4` and `t=8` numbers to every digit),
+  `task8_extras.py` (`task8_extras.json`: `t=1` and `t=2` scores, the
+  bitwise comparison against the task-7 `t=2` screens, decisions per
+  two-unit interval, largest moves), `energy_reference_check.py`
+  (`energy_reference_check.json`), `weak_anchor_separation.py`
+  (`weak_anchor_separation.json`), the run logs, `chain.log`, the smoke
+  `paper_v_cheap_projection_task8_smoke_anchor1_t005_20260916_v1`.  The
+  recorded set's base is its task-7 record-stages rerun (equal to the
+  recorded run in every array), which is what carries the stage record;
+  the recorded set's twins carry none.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_task8_{measured,anchor1}_{base,etol1e3,dykstra60,conic1e10}_t8_20260916_v1`,
+  `paper_v_cheap_projection_task8_measured_anchor0p1_base_t8_20260916_v1`,
+  `paper_v_cheap_projection_task8_measured_anchor0p01_base_t8_20260916_v1`,
+  `paper_v_cheap_projection_task8_margin_anchor1_base_t8_20260916_v1`, each
+  with `repairs.jsonl` (`5.8 MB` at `t=8`); walls `245.4`, `244.7`, `282.9`,
+  `258.4 s` (A), `325.9`, `325.2`, `384.7`, `351.7 s` (B), `276.0`, `255.5 s`
+  (C), `335.7 s` (D); peaks `410` to `486 MiB` (`ru_maxrss` of the
+  propagating process).  Set A's rollouts are the cheapest of any rule run
+  on this configuration; why was not measured.
+
+## What to try next, in order
+
+1. The rule margin `1e-3`, `measured` candidates, no anchor to `t=20` on the
+   four (four rollouts of 8,000 steps, about 11 minutes each by the `t=8`
+   walls): whether the continuity holds past `t=8` without the anchor, and
+   where the score stands against the recorded `0.329` and the both-cones
+   `0.129` when every re-selection stays accepted.
+2. The same rule on the 27-key `N=16` drive-power chain (task 7's item 3,
+   now with the anchor dropped): the row whose `t=4` lead over cell A sits
+   inside a 13 percent band.
+3. If the Eq. (22) energy is to be scored, the drive-power reference's
+   error (`0.043` under set A against `0.027` recorded) is the quantity to
+   move, and it is set over the pulse, `t=0` to `4`, not by the lift rule
+   after it.
+
+## Structured summary of task 8
+
+| item | value |
+|---|---|
+| what was run | eleven `t=8` rollouts of the recorded `N=16` drive-power configuration, one at a time under `ram_guard --limit-mb 3000`: set A (margin `1e-3`, `measured`, no anchor) on the base and three twins; set B (anchor `1`, certified, no margin) on the four; anchor `0.1` and `0.01` under the combined rule, base only; margin `1e-3` with anchor `1` on certified candidates, base only; no module edited, no new option, 44 tests pass, nothing committed |
+| negative result | the anchor pays the accuracy: alone it costs 29 percent at `t=4` and 57 at `t=8` (`0.0307` / `0.0717` against the recorded `0.0237` / `0.0456`), the combined rule 33 and 66; the measured acceptance alone costs 15 at `t=4` and gains 15 at `t=8` (`0.0272` / `0.0385`); task 7's "the anchor buys accuracy back" holds only to `t=2`, and its "cones an order of magnitude better" only over `t=0` to `20` -- over `t <= 8` the recorded base holds the tightest cones and the anchored rules the loosest |
+| (a) set A, base / `etol1e3` / `dykstra60` / `conic1e10` | `0.027191` / `0.027215` / `0.027214` / `0.027191` at `t=4`, `0.038538` / `0.038617` / `0.038605` / `0.038538` at `t=8`; spread 0.1 / 0.2 percent; `conic1e10` within `1.9e-8` of the base throughout; twins part at `t=0.16` by `0.0064`, cross `1e-3` at `2.1`, `1e-2` at `5.8`, never `1e-1`; internal energy `0.0331` to `0.0333` / `0.0382` to `0.0384`; extension minimum `-4.8e-5` to `-1.1e-4`, joint Gram `-1.4e-3` to `-3.3e-3` over `t <= 8`; 196 of 200 accepted (4 declined, none infeasible), largest move `0.039` |
+| (b) set B, same order | `0.030650` / `0.027274` / `0.031232` / `0.035728` at `t=4`, `0.071711` / `0.062545` / `0.067015` / `0.070631` at `t=8`; spread 31.0 / 14.7 percent; twins part at `t=0.04` to `0.08` by `0.17` to `0.24` (the halved wrong-face answer; `conic1e10` on its certificate), cross `1e-3` at `0.17` to `0.29`, `1e-2` at `0.71` to `0.85`, `1e-1` at `3.0` to `5.0`; internal energy `0.0132` to `0.0176` / `0.0170` to `0.0221`; extension minimum `-1.8e-4` to `-3.6e-4`, joint Gram `-4.4e-3` to `-8.3e-3`; 112 to 157 accepted, 43 to 88 refused, 1 to 17 accepted in `t=6` to `8` |
+| (c) attribution | continuity: the measured acceptance (objective test with `measured` scope); accuracy cost: the anchor, whose half-way lift drives the state into the no-positive-extension regime by `t=6` (combined 45 `infeasible` of 200, set A none); the margin is not the cost (set D `0.0328` / `0.0643` with 50 refusals) |
+| (c) the weaker anchor, base only | anchor `0.01` `0.027221` / `0.038647`, anchor `0.1` `0.027426` / `0.040099`, against `0` `0.027191` / `0.038538` and `1` `0.031566` / `0.075551`: monotone, none better than none; the `0.01` base is `0.020` from the no-anchor base at `t=8` (one twin's size), the `0.1` base `0.21` (ten twins); the twins' spread under a weak anchor was not measured; recommendation: drop the anchor |
+| the internal-energy column | past `t=4` it is the declared drive-power reference minus the exact energy (`0.0272` recorded, `0.0337` combined, `0.0426` set A, `0.0258` set B), set by the drive-power integral along the run's own trajectory over the pulse; the two ingredients trade the coordinate score against the Eq. (22) energy in opposite directions |
+| reproducibility | set A's four runs, set D and the combined base equal the task-7 `t=2` screens with the same flags in every coordinate over the 801 common samples |
+| gates | 44 tests pass in `24.82 s`; full `paper_5` suite 499 passed in `270.42 s` under `ram_guard --limit-mb 5000`, peak `1,984 MB` |
+| files changed | this report, the worklog block, and the task-8 scripts and artifacts under `output/local_runs/`; no module, test or default; nothing committed |

@@ -5939,3 +5939,96 @@ Artifacts under `output/local_runs/`:
 decade looser (`1e-8`) on both 27-key chains, a third member in every band;
 the cheap route's continuous re-selection rule, which removes the
 amplifier.
+
+## 2026-09-16: cheap projection route, eighth pass: the continuous rule's continuity is the measured acceptance's and its cost is the anchor's
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(eighth heading, "Task 8").  Eleven rollouts of the recorded `N=16`
+drive-power configuration (fourth pass: strong coupling, cutoff 16,
+exact-correlated preparation, 15 entrance keys, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence,
+the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, the energy-neutral option in
+`drive_power` mode) to `t=8` (3,200 steps), one at a time under `ram_guard
+--limit-mb 3000`, walls `244.7` to `384.7 s`, peaks `410` to `486 MiB`:
+set A, the seventh pass's rule without its anchor (margin `1e-3`,
+`measured` candidates) on the base and the sixth pass's three one-setting
+twins (`energy_tolerance` `1e-3`; Dykstra 60; re-selection
+`conic_tolerance` `1e-10`); set B, the anchor `mu = 1` on certified
+candidates with no margin, on the four; the seventh pass's rule with anchor
+`0.1` and `0.01`, base only; margin `1e-3` with anchor `1` on certified
+candidates, base only.  Scores, internal energy, separations and spreads
+are the sixth and seventh passes'; the physicality minima are over `t <= T`
+(the joint Gram recomputed per sample from the states), so the `t=0` to
+`20` rows of the sixth and seventh passes are restricted to the same
+horizons.  No module edited, no new option (every rule is a setting of
+`LiftReselectionRule`), no default changed, nothing committed; set A's
+four runs reproduce the seventh pass's `t=2` screens with the same flags
+bitwise over the 801 common samples.
+
+Negative result first: the anchor pays the accuracy, and the seventh
+pass's "the anchor buys accuracy back" holds only to `t=2`.  Set A scores
+`0.027191` / `0.027215` / `0.027214` / `0.027191` (base / `etol1e3` /
+`dykstra60` / `conic1e10`) over `t=0` to `4` and `0.038538` / `0.038617` /
+`0.038605` / `0.038538` to `8`, spreads 0.1 and 0.2 percent (recorded rule
+17.7, 12.7; seventh pass's rule 0.1, 4.2), 15 percent above the recorded
+`0.023744` at `t=4` (inside the recorded rule's band `0.0237` to `0.0280`,
+4 percent above the projective event guard's `0.026049`) and 15 percent
+below the recorded `0.045571` at `t=8` (below the band `0.0404` to
+`0.0456`); the `conic1e10` twin is within `1.9e-8` of the base at every
+sample, the other two part at `t=0.16` by `0.0064` in the frontier and
+cross `1e-3` / `1e-2` at `2.1` / `5.8`, never `1e-1`; 196 of 200
+re-selections accepted in every run (4 declined, the wrong-face answers of
+`t=0.04` to `0.16`; none infeasible), largest move `0.039`.  Set B scores
+`0.030650` / `0.027274` / `0.031232` / `0.035728` and `0.071711` /
+`0.062545` / `0.067015` / `0.070631`, spreads 31.0 and 14.7 percent: the
+twins part at `t=0.04` to `0.08` by `0.17` to `0.24` (the halved wrong-face
+answer; `conic1e10` on its certificate at `t=0.2`), cross `1e-3` / `1e-2`
+/ `1e-1` at `0.17` to `0.29` / `0.71` to `0.85` / `3.0` to `5.0`; 112 to
+157 accepted, 43 to 88 refused, 1 to 17 of 50 accepted in `t=6` to `8`
+(set A 50 of 50; recorded rule 40; seventh pass's rule 10 with 40
+`infeasible`).  So the continuity is the measured acceptance's (the
+objective test under `measured` scope) and the cost the anchor's: at `t=8`
+the anchor alone costs 57 percent, the seventh pass's rule 66, the measured
+acceptance alone gains 15; at `t=4` 29, 33 and 15.  Margin `1e-3` with the
+anchor on certified candidates scores `0.032761` / `0.064289` with 50
+refusals, so the margin is not the cost.  The anchored lift lags the answer
+and the state leaves the set admitting a positive 24-row extension four
+units earlier than under the whole answer; over `t <= 8` the recorded base
+holds the tightest cones of every set (scaled extension `-8.6e-5`, joint
+Gram `-2.1e-3`), set A `-4.8e-5` to `-1.1e-4` / `-1.4e-3` to `-3.3e-3`,
+the anchored rules `-1.7e-4` to `-3.6e-4` / `-4.1e-3` to `-8.7e-3` -- the
+seventh pass's "cones an order of magnitude better" was a `t=0` to `20`
+statement against a recorded row frozen-lift past `t=11.76`.  A weaker
+anchor recovers the accuracy in proportion and never improves on none:
+anchor `0.01` `0.027221` / `0.038647`, `0.1` `0.027426` / `0.040099`,
+against `0` `0.027191` / `0.038538` and `1` `0.031566` / `0.075551`; the
+`0.01` base sits `0.020` from the no-anchor base at `t=8` (one set-A
+twin's size, `0.018` to `0.023`), the `0.1` base `0.21` (ten twins); the
+twins' spread under a weak anchor was not measured.  Internal energy:
+set A `0.0331` to `0.0333` / `0.0382` to `0.0384`, set B `0.0132` to
+`0.0176` / `0.0170` to `0.0221`, recorded `0.0204` / `0.0241`; past `t=4`
+the column is the declared drive-power reference minus the exact Eq. (22)
+energy (`-3.571398`, constant to `3e-6` over `t=4` to `8`): `0.0272`
+recorded, `0.0337` seventh pass's rule, `0.0426` set A, `0.0258` set B,
+set by the drive-power integral along the run's own trajectory over the
+pulse; the two ingredients trade the coordinate score against the energy
+in opposite directions.  Recommendation recorded: drop the anchor (margin
+`1e-3`, `measured` candidates, anchor `0`).
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_task8_{measured,anchor1}_{base,etol1e3,dykstra60,conic1e10}_t8_20260916_v1`,
+`paper_v_cheap_projection_task8_measured_anchor0p1_base_t8_20260916_v1`,
+`paper_v_cheap_projection_task8_measured_anchor0p01_base_t8_20260916_v1`,
+`paper_v_cheap_projection_task8_margin_anchor1_base_t8_20260916_v1`, the
+smoke `paper_v_cheap_projection_task8_smoke_anchor1_t005_20260916_v1`, and
+the scripts and outputs in
+`paper_v_cheap_projection_task8_attribution_20260916_v1/` (`run_one.zsh`,
+`chain.zsh`, `task8_scores.py`, `task8_extras.py`,
+`energy_reference_check.py`, `weak_anchor_separation.py`, their `.json`
+and `.md`, the run logs, `chain.log`, the suite logs).  Gates: 44 tests in
+`test_cheap_projection_route.py` (`24.82 s`); full suite 499 passed in
+`270.42 s` under `ram_guard --limit-mb 5000`, peak `1,984 MB`.  Next: the
+rule without the anchor to `t=20` on the four; the same on the 27-key
+`N=16` drive-power chain; if the Eq. (22) energy is to be scored, the
+drive-power reference's error over the pulse is the quantity to move.
