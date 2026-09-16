@@ -980,3 +980,348 @@ dictionary reaches a rollout today.
 | physicality | minimum scaled positive-extension eigenvalue `-1.969e-07`, `-5.824e-07`, `-6.347e-06` at 15, 19, 27 keys (`N = 16`, `t = 0` to `4`); retained joint Gram at `10^-8` throughout; standardized frontier inside the frozen box at `0.4366`, `0.4433`, `0.3646` |
 | residual-driven enlargement layer | runs, refuses, admits nothing: `nested_completion_failure: ... PrimalInfeasible` at `t = 0` and `t = 1`, 15 candidates conditioned and 0 scored, `50.8` to `53.7 s` at peak `3.29 GB`; and it has no caller under `paper_5`, so no admitted key could reach a rollout even if one were named |
 | files changed | none.  No module edited, nothing committed; the report and the worklog block only |
+
+# projective-route, task 4 (2026-09-15, night)
+
+Task 3 measured one lever, the dictionary, and found that the twelve
+two-spin-and-one-boson relative-mode moments buy the whole chart except the
+four phonon-occupation coordinates, which get worse.  The cheap route's task 4
+measured the other lever, the energy-neutral Dykstra repair, and found that
+holding the Eq. (22) internal energy on a declared reference is what repairs
+the phonon-occupation block.  This round combines them: the 27-key dictionary
+at the hybrid's `N = 16` cadence with the energy-neutral repair, in the
+`drive_power` reference mode and, as the second variant, in `post_pulse`.
+
+Configuration for every rollout below: 27 active keys (the 15 entrance keys
+plus the twelve relative-mode moments of two spin operators and one boson
+coordinate), 56 state coordinates, 36 positive-extension rows, 70 frontier
+keys, 41 lower keys; strong coupling (`lambda_ep = 1.5`, `gamma = 0.5`, drive
+amplitude 1), phonon cutoff 16, exact-correlated preparation carried through
+the declared completion retry ladder at its first rung (`logdet_shift 1e-8`,
+recorded as `initialization_ladder_rung 0`), SSPRK(3,3) at `h = 0.0025`, the
+unguarded fixed-dictionary predictor, Dykstra 30 on both targets at stage
+cadence, the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, and `energy_tolerance 0`, so the
+hyperplane is met at every repair the constraint is active for.  Every score
+is the all-coordinate scalar RMS of the 31 closed scalar coordinates against
+the exact cutoff-16 driven reference (`all_coordinate_scalar_rms_error`) on
+the stated horizon; the internal energy is the sample RMS of the
+time-independent energy of Eq. (22) (`static_energy_rms_error`) on the same
+horizon; physicality numbers are measured minimum eigenvalues along the
+trajectory, and there is no certificate anywhere on this route.  Imports are
+from the committed tree at `2d8f0efb`, exported to
+`output/local_runs/paper_v_projective_dictionary_energy_20260915e/head_src/`
+and put on `PYTHONPATH`, because another agent was editing
+`cheap_projection_route.py` throughout; that export differs from the working
+tree in exactly the two files that agent owns.  No module was edited this
+round.
+
+## The result, first
+
+**The two levers compose, and the combination is the most accurate Paper V
+trajectory on record over `t = 0` to `4` and over `t = 0` to `8`.**  The
+27-key dictionary at `N = 16` with the energy-neutral repair in `drive_power`
+mode scores `1.142716e-02` over `t = 0` to `4` and `2.593079e-02` over `t = 0`
+to `8`, against the 27-key unconstrained `1.630660e-02` at `t = 4`, the 15-key
+energy-neutral `drive_power` row's `2.374400e-02` and `4.557100e-02`, the
+recorded projective event guard's `0.026049` at `t = 4` and the recorded
+60-coordinate positive-`M4` route's `0.012580` at `t = 4`.  It reached `t = 8`
+in three chained segments, `2,058.0 s` of autonomous wall in total.
+
+**The energy-neutral repair removes the phonon-occupation penalty the
+enlargement introduced, and more than removes it.**  On the four
+phonon-occupation coordinates over `t = 0` to `4` the same 27-key dictionary
+scores `9.836299e-03` with the constraint against `2.974702e-02` without it, a
+factor `3.02`, and the constrained 27-key value is below the *15*-key
+unconstrained `1.589107e-02` as well.  The Eq. (22) internal-energy sample RMS
+over that horizon falls from `7.088814e-02` to `4.597225e-03`, a factor `15.4`.
+
+**The price is the same one the cheap route measured at 15 keys: the cone and
+the conic solve.**  Over `t = 0` to `4` the minimum unshifted retained joint
+Gram moves from `-1.877e-08` to `-4.535e-04` and the minimum scaled
+positive-extension eigenvalue from `-6.347e-06` to `-4.852e-05`; the declared
+proximal log-det completion refuses 32 of 99 solves against 18 of 100, at
+`9.49 s` mean against `7.10 s`.
+
+**`post_pulse` is the worse variant at 27 keys, and its reference is why.**
+Held at the trajectory's own Eq. (22) energy at `t = 4`,
+`-3.3905733452008326`, it sits `0.180825` above the exact reference's
+`-3.571397982`, where the 15-key `post_pulse` reference sat `0.074667` above
+it: the enlarged dictionary drifts further in energy over the driven interval,
+so the quantity the post-pulse mode freezes is further from the truth.  Over
+`t = 0` to `8` it scores `4.537517e-02` at internal energy `1.373215e-01`
+against `drive_power`'s `2.593079e-02` and `5.751890e-03`.  The `drive_power`
+reference at 27 keys, by contrast, is the closest this route has produced:
+`-3.564687762684483`, `0.006710` above the exact value, against the 15-key
+`drive_power` reference's `0.027219`.
+
+## Gates
+
+| gate | result |
+|---|---|
+| chaining reproduces a single rollout | 27 keys, `N = 16`, `drive_power`: the chain `t = 0` to `0.05` resumed at `t = 0.04` and continued to `t = 0.08` differs from the single rollout `t = 0` to `0.08` by `1.732e-14` at most over the 56 state coordinates and the 31 closed scalar coordinates, with the same 33 sample times and the same re-selection schedule; the drive-power reference agrees to `8.9e-16`.  Artifacts `paper_v_dictionary_energy_smoke{A,B,S}_20260915e` |
+| a segment resumes on a re-selection boundary | every segment's `resume.npz` is written at the last accepted step that is a whole number of 16-step intervals from that segment's start, so the chain's completion solves fall on the steps a single rollout's would have |
+| the recorded driven interval is reusable for `post_pulse` | the 27-key `N = 16` unconstrained rollout rerun at the committed tree imported here, `t = 0` to `0.2`, is equal under `np.array_equal` to the task-3 artifact on times, states, carried frontier, both eigenvalue series and archive coordinates --- 81 samples, maximum absolute difference `0.0`.  Artifact `paper_v_dictionary_energy_prefixgate_27key_n16_20260915e`, comparison `prefix_gate.json` |
+| the constraint is off before its declared time | the `post_pulse` chain's `t = 0` to `4` row reproduces the unconstrained 27-key row in every printed digit: `1.630660e-02`, phonon-occupation `2.974702e-02`, internal energy `7.088814e-02` |
+| the energy is held where the constraint is on | maximum deviation from the declared reference `1.78e-15` over 9,559 constrained repairs (`drive_power`, `t = 0` to `8`) and `1.78e-15` over 4,800 (`post_pulse`, `t = 4` to `8`); the hyperplane was representable at every one of them |
+
+## (a) The chained rollouts
+
+Every segment is a separate `ram_guard --limit-mb 4500` process, resumed from
+the previous segment's saved state and carried frontier, and no two ever ran
+at once.  Counts are each segment's own totals from its `summary.json`.
+
+| quantity | `drive_power` seg 1 | seg 2 | seg 3 | `post_pulse` seg 1 |
+|---|---:|---:|---:|---:|
+| interval | `0` to `3.96` | `3.96` to `7.84` | `7.84` to `8.0` | `4.0` to `8.0` |
+| accepted steps | 1,584 | 1,552 | 64 | 1,600 |
+| why it stopped | `1,000 s` wall budget | `1,000 s` wall budget | reached `t = 8` | reached `t = 8` |
+| autonomous wall / build | `1,011.7 s` / `19.9 s` | `1,010.8 s` / `20.0 s` | `35.5 s` / `19.9 s` | `679.8 s` / `19.9 s` |
+| declared completions re-solved / refused | 99 / 32 | 97 / 42 | 4 / 1 | 100 / 12 |
+| wall in those solves | `939.3 s` | `937.6 s` | `32.4 s` | `616.2 s` |
+| repairs applied / skipped | 4,711 / 41 | 4,656 / 0 | 192 / 0 | 4,800 / 0 |
+| constrained repairs / hyperplane not representable | 4,711 / 0 | 4,656 / 0 | 192 / 0 | 4,800 / 0 |
+| repair wall / velocity wall | `47.6 s` / `24.4 s` | `48.7 s` / `24.1 s` | `2.0 s` / `1.0 s` | `50.2 s` / `12.9 s` |
+| peak resident | `630 MB` | `626 MB` | `628 MB` | `632 MB` |
+
+The `post_pulse` chain's driven interval is the recorded task-3 27-key
+`N = 16` rollout itself (`749.1 s`, 1,600 steps), reused under the gate above
+rather than repeated: in that mode the constraint is off before `t = 4`, and
+the rerun is bitwise equal over the prefix tested.
+
+### `t = 0` to `4`
+
+| quantity | 27 keys, `drive_power` | 27 keys, `post_pulse` = unconstrained | 15 keys, `drive_power` | 15 keys, unconstrained | recorded projective event guard | recorded positive-`M4` (cell A) |
+|---|---:|---:|---:|---:|---:|---:|
+| all-coordinate scalar RMS | `1.142716e-02` | `1.630660e-02` | `2.374400e-02` | `2.684227e-02` | `2.604900e-02` | `1.258000e-02` |
+| the same on the 27 coordinates outside the phonon-occupation block | `1.164437e-02` | `1.319865e-02` | --- | `2.810405e-02` | --- | --- |
+| the same on the four phonon-occupation coordinates | `9.836299e-03` | `2.974702e-02` | `1.149900e-02` | `1.589107e-02` | --- | --- |
+| blockwise scalar RMS, rho / B / N / A / C | `2.0368e-02` / `6.9088e-03` / `9.8363e-03` / `8.9418e-03` / `1.1167e-02` | `1.501e-02` / `4.528e-03` / `2.975e-02` / `1.576e-02` / `1.324e-02` | --- | `6.014e-02` / `1.956e-02` / `1.589e-02` / `1.711e-02` / `2.266e-02` | --- | --- |
+| Eq. (22) internal-energy sample RMS | `4.597225e-03` | `7.088814e-02` | `2.040600e-02` | `4.208700e-02` | `3.620100e-02` | `7.963000e-04` |
+| site-0 occupation RMS | `1.430879e-02` | `1.007098e-02` | `4.235300e-02` | `4.615600e-02` | --- | `6.957000e-03` |
+| minimum unshifted retained joint Gram | `-4.535e-04` | `-1.877e-08` | --- | `-1.705e-08` | --- | `2.889e-05` |
+| minimum scaled positive-extension eigenvalue | `-4.852e-05` | `-6.347e-06` | --- | `-1.969e-07` | --- | `-8.76e-07` (extended `M4`) |
+| maximum standardized frontier envelope ratio | `0.3694` | `0.3646` | --- | `0.4366` | --- | --- |
+| Euclidean coordinate difference at `t = 4`, all 31 / outside the phonon-occupation block | `1.551037e-01` / `1.439192e-01` | `2.350741e-01` / `1.829419e-01` | --- | `3.025108e-01` / `2.946822e-01` | --- | --- |
+| autonomous wall to this horizon | about `1,022 s` (segment 1's `1,011.7 s` for 1,584 steps plus 16 steps of segment 2 at its own rate) | `749.1 s` | --- | `93.1 s` | `3,229.8 s` | `3,399.6 s` |
+
+### `t = 0` to `8`
+
+| quantity | 27 keys, `drive_power` | 27 keys, `post_pulse` | 15 keys, `drive_power` | 15 keys, `post_pulse` | 15 keys, unconstrained |
+|---|---:|---:|---:|---:|---:|
+| all-coordinate scalar RMS | `2.593079e-02` | `4.537517e-02` | `4.557100e-02` | `4.254200e-02` | `5.773000e-02` |
+| the same on the 27 coordinates outside the phonon-occupation block | `2.474607e-02` | `4.219396e-02` | --- | --- | --- |
+| the same on the four phonon-occupation coordinates | `3.282777e-02` | `6.276381e-02` | `3.548400e-02` | `4.299000e-02` | `1.070910e-01` |
+| blockwise scalar RMS, rho / B / N / A / C | `4.0173e-02` / `2.7248e-02` / `3.2828e-02` / `1.9942e-02` / `2.1275e-02` | --- | --- | --- | --- |
+| Eq. (22) internal-energy sample RMS | `5.751890e-03` | `1.373215e-01` | `2.405500e-02` | `6.060300e-02` | `2.269430e-01` |
+| site-0 occupation RMS | `3.027929e-02` | `3.984892e-02` | `7.415600e-02` | `6.450500e-02` | `6.582300e-02` |
+| minimum unshifted retained joint Gram | `-2.152e-03` | `-2.907e-04` | --- | --- | --- |
+| minimum scaled positive-extension eigenvalue | `-1.922e-04` | `-2.486e-05` | --- | --- | --- |
+| maximum standardized frontier envelope ratio | `0.4518` | `0.3748` | --- | --- | --- |
+| Euclidean coordinate difference at `t = 8`, all 31 / outside the phonon-occupation block | `2.372364e-01` / `2.292268e-01` | --- | --- | --- | --- |
+| declared completions re-solved / refused to this horizon | 200 / 75 | 200 / 30 | --- | --- | --- |
+| autonomous wall to this horizon | `2,058.0 s` | `1,429.0 s` | --- | --- | --- |
+
+The 15-key columns are the cheap route's task-4 rows, rescored there on the
+same sub-horizons; its `t = 0` to `8` figures are read from that report's
+sub-horizon table.
+
+## (b) Does the energy-neutral repair remove the phonon-occupation penalty?
+
+**Yes, and it reverses it.**  On the four phonon-occupation coordinates over
+`t = 0` to `4`, at 27 keys and `N = 16`, with everything else identical:
+
+| dictionary | constraint | scalar RMS on the four phonon-occupation coordinates, `t = 0` to `4` |
+|---|---|---:|
+| 15 entrance keys | none | `1.589107e-02` |
+| 27 keys | none (and the `post_pulse` rollout, whose constraint is off before `t = 4`) | `2.974702e-02` |
+| 27 keys | energy-neutral, `drive_power` | `9.836299e-03` |
+
+The penalty task 3 measured is the rise from `1.589107e-02` to
+`2.974702e-02`, a factor `1.87`, when the twelve two-spin-and-one-boson
+moments are added.  Holding the Eq. (22) energy on the drive-power reference
+takes that block to `9.836299e-03`, which is `0.331` of the unconstrained
+27-key value and `0.619` of the 15-key value the enlargement started from.  So
+the constraint does not merely pay back the penalty; the enlarged dictionary
+with the constraint is better on those four coordinates than the small
+dictionary ever was.
+
+What the constraint costs on the rest of the chart at 27 keys over the same
+horizon, by block, constrained against unconstrained:
+
+| block | constrained | unconstrained | ratio |
+|---|---:|---:|---:|
+| rho (3 coordinates) | `2.0368e-02` | `1.501e-02` | `1.357` |
+| B (4) | `6.9088e-03` | `4.528e-03` | `1.526` |
+| N (4), the phonon-occupation block | `9.8363e-03` | `2.975e-02` | `0.331` |
+| A (6) | `8.9418e-03` | `1.576e-02` | `0.567` |
+| C (14) | `1.1167e-02` | `1.324e-02` | `0.843` |
+| all 31 | `1.142716e-02` | `1.630660e-02` | `0.701` |
+| the 27 outside the phonon-occupation block | `1.164437e-02` | `1.319865e-02` | `0.882` |
+| site-0 occupation | `1.430879e-02` | `1.007098e-02` | `1.421` |
+| Eq. (22) internal energy | `4.597225e-03` | `7.088814e-02` | `0.065` |
+
+So the constraint is not free on the chart: the electronic density block rho
+and the coherent-phonon block B are `1.36` and `1.53` times worse with it, and
+the site-0 occupation `1.42` times worse, which is the same direction the
+15-key `drive_power` row shows against its own unconstrained row.  The net is
+a `1.43`-fold improvement on the whole chart, carried by the phonon-occupation
+and correlation blocks, and a `15.4`-fold improvement on the quantity the
+constraint actually holds.
+
+The build-time reason the cheap route recorded for this was measured at the
+24-row extension; it was re-measured here at the 36-row one and it is
+unchanged.  Perturbing each of the 29 raw moment coordinates at the prepared
+state and taking the Frobenius norm of the derivative of the scaled positive
+extension matrix (the map is affine, so one finite difference is exact):
+
+| raw coordinate | 24 rows (15 keys) | 36 rows (27 keys) |
+|---|---:|---:|
+| `bloch_x` / `bloch_y` / `bloch_z` | `4.6904` / `4.4721` / `4.6904` | `4.6915` / `4.4729` / `4.6915` |
+| `raw_normal_00` / `raw_normal_11` | `0.10497` / `0.10497` | `0.14628` / `0.14628` |
+| `raw_normal_01_real` | `0.20993` | `0.29257` |
+| `raw_normal_01_imag` | `0` | `0` |
+
+So one of the four raw phonon normal coordinates is invisible to the positive
+extension at both dictionary sizes --- its derivative is exactly zero --- and
+the other three are seen `3.1` to `6.6` percent as strongly as the electronic
+Bloch coordinates at 27 keys (`2.2` to `4.5` percent at 15).  Enlarging the
+extension by twelve rows multiplies the phonon normal sensitivities by `1.39`
+and changes nothing about which coordinate it cannot constrain at all.  The
+Eq. (22) hyperplane, by contrast, is exactly a statement about that block ---
+`omega_ph` times the trace of the normal correction, plus the electronic and
+coupling terms --- which is why it is the constraint that repairs it.
+The probe is `probe_extension_sensitivity.py` with
+`extension_sensitivity_{15,27}key.json`; every retained-Gram derivative is
+`1.414` or `2.000` at both sizes, so the retained cone sees all 29 raw
+coordinates equally at both.
+
+## Provenance and gates of the runs themselves
+
+- Every rollout was wrapped in `pipelines/shell/ram_guard.py --limit-mb 4500`,
+  one at a time; the largest peak resident was `632 MB` and no segment
+  exceeded twenty minutes of autonomous wall.  Wall times were measured with
+  other agents' jobs possibly on the machine, so they are upper bounds.
+- No module was edited, nothing was committed, and no default, acceptance rule
+  or ladder was changed.  The only rule applied that
+  `prepare_projected_apcm_initial_state` does not apply itself is the declared
+  completion retry ladder at the preparation, which the 27-key dictionary
+  needs and which every run here records as
+  `initialization_ladder_rung 0` (`logdet_shift 1e-8`).
+- Scripts, all under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `run_energy_segment.py` (one chained segment, the only script that
+  propagates), `run_chain.py` (runs segments one after another, never two at
+  once), `seed_resume_from_run.py` (writes the `post_pulse` chain's `t = 4`
+  start from the recorded task-3 rollout), `compare_prefix.py` (the reuse
+  gate), `score_energy_chain.py` (concatenates segments, regenerates the exact
+  reference on the chained times and scores the horizons) and
+  `probe_extension_sensitivity.py` (the build-time derivative table of
+  section (b)); `head_src/` is the committed tree at `2d8f0efb`.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_dictionary_energy_power_27key_n16_20260915e_seg{1,...}`,
+  `paper_v_dictionary_energy_postpulse_27key_n16_20260915e_seg{0,1}`,
+  `paper_v_dictionary_energy_prefixgate_27key_n16_20260915e`,
+  `paper_v_dictionary_energy_smoke{A,B,S}_20260915e`, and the scores, logs and
+  probes in the script directory (`power_chain_score_*.json`,
+  `postpulse_chain_score_t8.json`, `prefix_gate.json`,
+  `extension_sensitivity_{15,27}key.json`).
+- The 27-key `post_pulse` chain reuses the recorded task-3 rollout
+  `paper_v_dictionary_entrance15_plus_two_spin_boson_n16_t4_20260915d` as its
+  driven interval under the bitwise gate above; nothing else is reused.
+
+## (a) continued: `t = 8` to `20` in three more segments
+
+The chain reached `t = 20` in three segments past `t = 8`, which is the budget
+the task set, for `4,794.4 s` of autonomous wall over all six segments and
+8,000 accepted steps.
+
+| quantity | `drive_power` seg 4 | seg 5 | seg 6 |
+|---|---:|---:|---:|
+| interval | `8.0` to `11.84` | `11.84` to `16.32` | `16.32` to `20.0` |
+| accepted steps | 1,536 | 1,792 | 1,472 |
+| why it stopped | `1,000 s` wall budget | `1,000 s` wall budget | reached `t = 20` |
+| autonomous wall | `1,000.4 s` | `1,004.5 s` | `731.5 s` |
+| declared completions re-solved / refused | 96 / 32 | 112 / 29 | 92 / 8 |
+| wall in those solves | `926.6 s` | `919.9 s` | `661.1 s` |
+| peak resident | `611 MB` | `631 MB` | `629 MB` |
+
+Chain totals over `t = 0` to `20`: 8,000 accepted steps, `4,794.4 s`, 500
+declared completions re-solved with **144 refused**, `4,416.9 s` of that wall
+in the solves (`8.83 s` mean), 23,959 repairs applied and 41 skipped, every
+applied repair carrying the hyperplane, maximum deviation of the energy from
+its reference `1.78e-15`, peak resident `631 MB`.
+
+Cumulative scores, all from `t = 0`:
+
+| horizon | all-coordinate | outside the phonon-occupation block (27) | the phonon-occupation block (4) | Eq. (22) internal energy | site-0 occupation | minimum retained joint Gram | minimum scaled extension |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `t = 4` | `1.142716e-02` | `1.164437e-02` | `9.836299e-03` | `4.597225e-03` | `1.430879e-02` | `-4.535e-04` | `-4.852e-05` |
+| `t = 6` | `2.090571e-02` | `1.856285e-02` | `3.257634e-02` | `5.394635e-03` | `2.116592e-02` | `-1.174e-03` | `-1.442e-04` |
+| `t = 8` | `2.593079e-02` | `2.474607e-02` | `3.282777e-02` | `5.751890e-03` | `3.027929e-02` | `-2.152e-03` | `-1.922e-04` |
+| `t = 12` | `4.250925e-02` | `4.385377e-02` | `3.198825e-02` | `6.088286e-03` | `5.278107e-02` | `-2.463e-03` | `-2.040e-04` |
+| `t = 16` | `6.377276e-02` | `6.722257e-02` | `3.188383e-02` | `6.249722e-03` | `8.393451e-02` | `-2.463e-03` | `-2.040e-04` |
+| `t = 20` | `8.519313e-02` | `9.045792e-02` | `3.187001e-02` | `6.344620e-03` | `1.125899e-01` | `-2.463e-03` | `-2.040e-04` |
+
+Beside the same horizons of the 15-key energy-neutral rows and the record:
+
+| row | all-coordinate, `t = 0` to `20` | Eq. (22) internal energy | site-0 occupation | autonomous wall |
+|---|---:|---:|---:|---:|
+| 27 keys, `drive_power`, `N = 16` (this chain) | `8.519313e-02` | `6.344620e-03` | `1.125899e-01` | `4,794.4 s` |
+| 15 keys, `post_pulse`, `N = 16` | `2.391720e-01` | `6.938400e-02` | `2.479700e-01` | `669.8 s` |
+| 15 keys, `drive_power`, `N = 16` | `3.286740e-01` | `2.600000e-02` | `1.869090e-01` | `719.6 s` |
+| 15 keys, unconstrained, `N = 16` | `5.793320e-01` | `2.593707e+00` | `1.999330e-01` | `486.2 s` |
+| record, both cones | `1.286070e-01` | `9.396280e-04` | `2.046900e-01` | `5,832.34 s` |
+| record, plain archive EOM | `1.932050e-01` | `1.823610e-02` | `2.861700e-01` | --- |
+
+Three readings.
+
+1. **The phonon-occupation block stops growing after the pulse.**  Its
+   cumulative scalar RMS is `3.257634e-02` at `t = 6` and `3.187001e-02` at
+   `t = 20`; every later horizon's growth is in the other 27 coordinates,
+   whose figure goes `1.856285e-02` to `9.045792e-02` over the same span.
+   That is the reverse of the unconstrained hybrid, whose `N`-block score at
+   15 keys runs from `3.8838e-02` at `t = 6` to `1.362353e+00` at `t = 20`.
+2. **The blocks that grow are rho and B.**  At `t = 20` the blockwise scalar
+   RMS is rho `1.3580e-01`, B `1.8729e-01`, N `3.1870e-02`, A `4.3970e-02`, C
+   `3.1283e-02`: the electronic density and the coherent phonon, which are the
+   two blocks the constraint makes worse at `t = 4` as well.
+3. **The wall is the completion solve and nothing else.**  `4,416.9 s` of the
+   `4,794.4 s` --- 92 percent --- is 500 declared completions, and 144 of them
+   refuse.  The repair itself costs `250.5 s` and the velocity `124.8 s` over
+   24,000 stages.
+
+## (c) Is it the best Paper V moment-closure trajectory on record?
+
+**On the all-coordinate scalar RMS of the 31 closed scalar coordinates
+against the exact cutoff-16 driven reference, yes at every horizon it reached
+--- `1.142716e-02` at `t = 4` against the best recorded `1.258000e-02`,
+`2.593079e-02` at `t = 8` against the best recorded `4.254200e-02`, and
+`8.519313e-02` at `t = 20` against the best recorded `1.286070e-01` --- but
+not on the Eq. (22) internal energy, where the recorded positive-`M4` route's
+`7.963000e-04` at `t = 4` and the recorded both-cones route's `9.396280e-04`
+at `t = 20` are `5.8` and `6.8` times smaller, and not on physicality, where
+both of those keep a positive retained joint Gram and this chain's minimum is
+`-2.463e-03`.**
+
+| horizon | this chain | the best other row on record at that horizon | what that row is |
+|---|---:|---:|---|
+| `t = 4` | `1.142716e-02` | `1.258000e-02` | the 60-coordinate positive-`M4` route, cell A, at `3,399.6 s` |
+| `t = 8` | `2.593079e-02` | `4.254200e-02` | the 15-key `post_pulse` energy-neutral hybrid |
+| `t = 12` | `4.250925e-02` | `1.251390e-01` | the 15-key `drive_power` energy-neutral hybrid |
+| `t = 16` | `6.377276e-02` | `1.950960e-01` | the 15-key `post_pulse` energy-neutral hybrid |
+| `t = 20` | `8.519313e-02` | `1.286070e-01` | the recorded both-cones run, at `5,832.34 s` |
+
+Two qualifications the record requires.  The `t = 4` comparator, cell A, is
+not the same construction --- 60 coordinates closed with
+`PositiveFourthMomentCompletion` at `logdet_shift 1e-5`, against 56
+coordinates closed with `SymmetryReducedPositiveExtension` here --- and no
+`t = 8`, `12` or `16` row exists for either recorded cone route, because those
+runs are recorded only at `t = 4` and `t = 20` and their artifacts are no
+longer on disk to rescore.  And the recorded cone routes are the only ones
+that carry a physicality statement: both cones held for 20 time units with a
+minimum retained joint Gram of `1.36819e-5`, where this route's repaired
+moments sit `2.463e-03` outside the retained cone and `2.040e-04` outside the
+scaled positive extension.  On accuracy per unit of wall, `4,794.4 s` against
+`5,832.34 s` for a score `1.51` times smaller, this chain wins; on the
+statement that the closure stayed inside its cones, it has nothing to say.

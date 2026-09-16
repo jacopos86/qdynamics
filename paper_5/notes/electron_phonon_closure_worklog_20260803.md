@@ -5268,3 +5268,74 @@ continued: the phonon-occupation block is the only part of the chart the
 enlargement hurts, and whether that is the cutoff-16 truncation or the
 enlarged extension failing to constrain those four coordinates is a build-time
 question about the affine map, not a run.
+
+## 2026-09-15/16: projective route, task 4: 27 keys with the energy-neutral repair
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(headings "(a) The chained rollouts" through "(c) Is it the best Paper V
+moment-closure trajectory on record?"); the agent was killed by an API
+disconnect after writing the report and before the worklog block, which
+this block supplies from the report; an independent review of the chain is
+in progress (`review-27key-chain-20260916.md`).
+
+Configuration: 27 entrance keys (56 state coordinates, 36 extension rows,
+70 frontier keys; retry-ladder preparation), hybrid cadence N=16 (the
+declared proximal log-det completion re-selected every 16 steps, warm
+started on the carried frontier), Dykstra 30 on both targets between
+re-selections with the Eq. (22) energy hyperplane in `drive_power` mode
+(reference advanced by the Hamiltonian's drive power; no exact information),
+`h=0.0025`, strong coupling, cutoff 16, exact-correlated preparation, six
+chained `ram_guard --limit-mb 4500` segments each stopped by a `1,000 s`
+budget or its horizon; 8,000 accepted steps; `4,794.4 s` total autonomous
+wall, of which `4,416.9 s` (92 percent) is the 500 completion solves
+(`8.83 s` mean, 144 refused); 23,959 repairs applied with the energy held
+to `1.78e-15`; peak resident `631 MB`.  RMS figures are the all-coordinate
+scalar RMS on the 31 closed scalar coordinates against the exact cutoff-16
+reference.
+
+| horizon from `t=0` | all 31 | 27 outside the phonon-occupation block | 4 phonon-occupation | Eq. (22) internal energy | site-0 occupation | minimum retained joint Gram | minimum scaled extension |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `t=4` | `1.142716e-2` | `1.164e-2` | `9.836e-3` | `4.597e-3` | `1.431e-2` | `-4.5e-4` | `-4.9e-5` |
+| `t=8` | `2.593079e-2` | `2.475e-2` | `3.283e-2` | `5.752e-3` | `3.028e-2` | `-2.2e-3` | `-1.9e-4` |
+| `t=12` | `4.250925e-2` | `4.385e-2` | `3.199e-2` | `6.088e-3` | `5.278e-2` | `-2.5e-3` | `-2.0e-4` |
+| `t=20` | `8.519313e-2` | `9.046e-2` | `3.187e-2` | `6.345e-3` | `1.126e-1` | `-2.5e-3` | `-2.0e-4` |
+
+Against the record (same convention): at `t=4` the recorded projective event
+guard `2.6049e-2` (internal energy `3.620e-2`, `3,229.8 s`) and the
+60-coordinate positive-M4 cell A `1.2580e-2` (internal energy `7.963e-4`,
+retained joint Gram minimum `2.889e-5`, `3,399.6 s`; a different
+construction, `PositiveFourthMomentCompletion` at `logdet_shift 1e-5`); at
+`t=20` the both-cones run `1.286070e-1` (internal energy `9.396e-4`, both
+cones held with retained minimum `1.368e-5`, `5,832.34 s`) and the plain
+archive EOM `1.932050e-1` (`1.824e-2`).  The 15-key energy-neutral hybrids
+over `t=0` to `20`: `post_pulse` `2.3917e-1` (internal energy `6.938e-2`,
+`669.8 s`), `drive_power` `3.2867e-1` (`2.600e-2`, `719.6 s`); unconstrained
+`5.7933e-1` (`2.594`, `486.2 s`).
+
+Readings.  (1) On the 31-coordinate RMS this chain is the best Paper V
+moment-closure trajectory on record at every horizon it reached (`0.908` of
+cell A at `t=4`, `0.662` of the both-cones line at `t=20`, at `0.82` of the
+both-cones wall); on the Eq. (22) internal energy it is `5.8` times worse
+than cell A at `t=4` and `6.8` times worse than the both-cones line at
+`t=20`; and it carries no physicality statement, since its repaired moments
+sit `2.46e-3` outside the retained cone and `2.04e-4` outside the scaled
+positive extension where both recorded cone routes stayed inside.  (2) The
+energy constraint reverses the enlargement's phonon-occupation penalty: on
+the four phonon-occupation coordinates over `t=0` to `4`, 15 keys
+unconstrained `1.589e-2`, 27 keys unconstrained `2.975e-2`, 27 keys
+energy-neutral `9.836e-3`; the constraint costs the electronic density block
+(`1.36x`), the coherent-phonon block (`1.53x`) and the site-0 occupation
+(`1.42x`) at `t=4`, and those are the blocks that grow after the pulse (at
+`t=20` rho `1.358e-1`, B `1.873e-1`, N `3.187e-2`, A `4.397e-2`, C
+`3.128e-2`), while the phonon-occupation block stops growing after the pulse
+(`3.258e-2` at `t=6`, `3.187e-2` at `t=20`).  (3) A build-time probe of the
+scaled positive extension's sensitivity to the 29 raw moment coordinates:
+one of the four raw phonon normal coordinates (`raw_normal_01_imag`) has
+exactly zero derivative at both 24 and 36 rows, and the other three are seen
+`3.1` to `6.6` percent as strongly as the electronic Bloch coordinates at 27
+keys (`2.2` to `4.5` at 15), while the retained Gram sees all 29 equally; the
+Eq. (22) hyperplane is a statement about exactly that block, which is why it
+repairs it.  Artifacts:
+`output/local_runs/paper_v_dictionary_energy_power_27key_n16_20260915e_seg1`
+to `_seg6`, `paper_v_dictionary_energy_postpulse_27key_n16_20260915e_seg1`
+to `_seg4`, `paper_v_projective_dictionary_energy_20260915e/`.
