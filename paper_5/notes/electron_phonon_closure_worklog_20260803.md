@@ -5425,3 +5425,43 @@ one at a time, `1,150 s` budget, longest `1,172.5 s`, largest own peak
 `507 MiB`.  Next: nothing at `N=4` on this route; settle the sensitivity
 before comparing any `t>8` row at the third digit; the dictionary lever
 moves the score more than anything measured here.
+
+### Reviewer corrections to the 27-key chain block above
+
+Review: `agent_guidance/paper-v/overnight/review-27key-chain-20260916.md`
+(artifacts under `output/local_runs/paper_v_review_27key_chain_20260916/`).
+The chain's own numbers reproduce digit for digit: the six segments tile
+with no gap, overlap or discarded sample; the exact reference is bitwise the
+record's; the energy is held to `1.78e-15`; no exact information enters the
+propagation; 85 projective tests and the committed cheap-route tests pass.
+Three corrections.
+
+1. "Best on record at every horizon it reached" is withdrawn at `t=20` and
+   `t=16`.  The route's own 27-key `post_pulse` chain (constraint off during
+   the drive, then the energy held to its drive-end value; segments 2 to 4
+   on disk from the same queue, unscored until the review) reads
+   `6.990927e-2` over `t=0` to `20` against the `drive_power` chain's
+   `8.519313e-2`, at `3,886.9 s` against `4,794.4 s`, and ties it at `t=16`
+   (`6.385168e-2` against `6.377276e-2`); its Eq. (22) internal-energy RMS
+   is 26 times worse (`1.648e-1` against `6.345e-3`) and its cones further
+   violated (retained `-3.12e-3`, extension `-3.43e-4`).  Restated: the
+   `drive_power` chain is best on the 31-coordinate RMS at `t=4`, `6`, `8`
+   and `12`, tied at `16`, second at `20`; the best other rows are `6.0758e-2`
+   at `t=12` and `6.3852e-2` at `t=16` (both the 27-key `post_pulse` chain)
+   and `6.9909e-2` at `t=20` (the same), then the both-cones `1.2861e-1`.
+2. The site-0 occupation column crossed conventions by a factor 2: the
+   record's both-cones `0.204690` and plain archive EOM `0.286170` are the
+   progression scorer's `2 rho[0,0]` trapezoidal time-RMS, while the chain's
+   `1.125899e-1` is `rho[0,0]`; doubled it is `0.2252`, worse than the
+   both-cones line.  The same crossing sits in the cheap-route report's and
+   worklog blocks' site-0 columns wherever a record value is quoted.
+3. `4,794.4 s` against `5,832.34 s` is two machines; the wall ratio is
+   unmeasured.  Smaller: the 15-key unconstrained `t=0` to `4` wall is
+   `89.6 s`, not `93.1 s`; peaks are MiB; "sees all 29 equally" means within
+   a factor `1.41`.
+
+Open decision, the user's: whether the 27-key `post_pulse` chain becomes the
+`t=20` line on record for this route (best 31-coordinate RMS, `0.0699`, with
+its internal-energy `0.165` and cone figures beside it) or the `drive_power`
+chain does (`0.0852`, internal energy `0.0063`).  Both are subject to the
+sensitivity study in progress before any third-digit reading.
