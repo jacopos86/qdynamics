@@ -1890,3 +1890,417 @@ jobs possibly present, 500 completions re-solved with 144 / 226 refused.
 | gates | boundary resumes at `t = 12.0` and `16.6` (`115 x 16` and `85 x 16` steps); reference unchanged; energy held to `1.78e-15` over 24,001 constrained repairs; one grid of 8,001 samples; tabulation reproduces task 5's 300 / 151 |
 | files changed | new driver scripts and outputs under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`; two new artifacts; this report; the worklog block; the plan ledger's row.  No module; nothing committed |
 | next | the same lever on the 27-key `post_pulse` chain (the one measurement that would settle the `t = 20` ordering against both bands); a decade looser (`1e-8`) on the `drive_power` chain |
+
+# projective-route, task 7 (2026-09-16)
+
+The lever of tasks 5 and 6 --- the re-selection completion solved at
+`APCMExtensionSettings.conic_tolerance = 1e-10` in place of the committed
+`1e-9`, everything else identical: preparation, the model's extension and
+the carried completion the velocity accepts, repair, velocity, integrator,
+cadence, reference mode; imports from `head_src` at `2d8f0efb`; the
+driver-level `ReselectionToleranceRoute` subclass of `CheapProjectionRoute`
+whose `reselect_lift` body is the committed one with the solver swapped ---
+applied to the other 27-key `N = 16` energy-neutral chain, the `post_pulse`
+one, from `t = 0` to `t = 20` in five `ram_guard --limit-mb 4500` segments,
+one at a time, so that both 27-key chains carry a measured band at every
+horizon and the `t = 20` ordering can be read against both.  No module was
+edited; nothing was committed; no default changed.  Both `post_pulse` chains
+and both `drive_power` members are scored on the one grid of 8,001 samples
+against the one exact cutoff-16 reference (`exact_t20.npz`).
+
+**The recorded driven interval could not be reused.**  Task 4 reused the
+task-3 unconstrained 27-key rollout
+(`paper_v_dictionary_entrance15_plus_two_spin_boson_n16_t4_20260915d`) as
+the `post_pulse` chain's `t = 0` to `4` because in that mode the constraint
+is off before `t = 4` and the rerun was bitwise the record.  The lever enters
+the 100 re-selections of that interval, so the record does not admit the
+reuse here: the driven interval was rerun under the lever (segment 0, no
+energy reference, `--final-time 4.0`, exactly the task-3 rollout's
+configuration) and the `post_pulse` segments resumed from its `t = 4` state
+as the recorded chain's segment 1 resumed from the task-3 rollout's.  The
+gate below establishes that the driver in that mode at the committed
+tolerance is bitwise the task-3 rollout, so the rerun differs from the
+record by the lever alone.  A consequence: the `t = 0` to `4` row of the
+`post_pulse` chain is the unconstrained 27-key row, and its band below is
+also the sensitivity of task 3's 27-key `N = 16` unconstrained `t = 4`
+score.
+
+## The result, first
+
+**At `t = 20` the ordering of the two 27-key chains is settled against both
+measured bands: the `post_pulse` chain is ahead under every pairing of the
+four members.**  On the all-coordinate scalar RMS of the 31 closed scalar
+coordinates over `t = 0` to `20`, the `post_pulse` chain's two members score
+`6.990927e-02` (recorded) and `7.563847e-02` (tightened), a band `8.2`
+percent wide; the `drive_power` chain's members score `8.519313e-02` and
+`9.088037e-02` (`6.7` percent).  The bands are disjoint: the `drive_power`
+chain's better member is `12.6` percent above the `post_pulse` chain's worse
+one, and the `post_pulse` chain leads by a factor `1.13` (closest members)
+to `1.30` (farthest).  The gap is `1.5` and `1.9` times the two bands'
+widths at this horizon.  It is, however, smaller than the `post_pulse`
+chain's own response to the same lever at `t = 4` (`20.9` percent) and
+`t = 12` (`24.1` percent), so the statement rests on the two members
+measured per chain and not on a bound.
+
+**On the Eq. (22) internal energy and on physicality the ordering is the
+reverse, under both settings.**  Internal-energy sample RMS over `t = 0` to
+`20`: `post_pulse` `1.648045e-01` / `1.876433e-01`, `drive_power`
+`6.344620e-03` / `5.217702e-03` (recorded / tightened): the `drive_power`
+chain is `26` to `36` times better under any pairing.  Minimum unshifted
+retained joint Gram over `t = 0` to `20`: `post_pulse` `-3.124e-03` /
+`-2.993e-03`, `drive_power` `-2.463e-03` / `-2.374e-03`; minimum scaled
+positive-extension eigenvalue: `-3.429e-04` / `-3.295e-04` against
+`-2.040e-04` / `-2.098e-04`.  Neither chain holds either cone under either
+setting; the `drive_power` chain's minima are less negative by factors
+`1.21` to `1.32` (retained) and `1.57` to `1.68` (extension).
+
+**The lever's effect on the `post_pulse` chain has no sign.**  The relative
+difference (tightened minus recorded, over recorded) of the all-coordinate
+score runs `+20.9`, `+4.0`, `-8.3`, `-10.7`, `-24.1`, `-15.6`, `+8.2`
+percent at `t = 4, 6, 8, 10, 12, 16, 20`: the tightened member is worse over
+the driven interval, better from `t = 8` to `t = 16` by up to a quarter, and
+worse again at `t = 20`.  On the `drive_power` chain the same lever gave
+`+13.1`, `+10.7`, `+4.5`, `+0.7`, `+1.9`, `+5.4`, `+6.7` --- always worse.
+The `post_pulse` band is the wider of the two at every horizon but `t = 6`.
+
+**Two earlier statements move.**  At `t = 8` the 15-key `post_pulse`
+`N = 16` row's `4.254184e-02` lies inside the 27-key `post_pulse` band
+(`4.16e-2` to `4.54e-2`): task 4's reading that `post_pulse` at 27 keys is
+worse than at 15 keys at `t = 8` is a tie.  At `t = 12` the `drive_power`
+chain's lead over the `post_pulse` chain, `1.40` in task 5 against the
+recorded member, is `1.06` against the tightened member (`4.331967e-02`
+against `4.611524e-02`); the bands are disjoint by `6.5` percent, less than
+the `post_pulse` band's own `24.1` percent width there.  At `t = 16` the
+bands overlap (on `6.377e-2` to `6.385e-2`): no ordering, as task 6 said.
+At `t = 4` the 27-key unconstrained score is `1.63e-2` to `1.97e-2`; both
+members stay below the 15-key unconstrained `2.684227e-02` and the recorded
+projective event guard's `2.604900e-02` (factors `1.36` and `1.32` on the
+worse member), and cell A's `1.258000e-02` is below both.
+
+**The two `post_pulse` members separate five times further than the two
+`drive_power` members, and at `t = 12` they are further from each other than
+the better one is from the exact reference.**  The 31-coordinate Euclidean
+distance between the chains at equal sample times reaches `1e-2` at
+`t = 1.54`, `0.1` at `t = 5.39`, `0.2` at `t = 7.09` and a maximum of
+`0.486` at `t = 11.695` (the `drive_power` pair: `1e-2` at `1.74`, never
+`0.1`, maximum `0.0955`).  Against the chains' own distance from the exact
+reference at the horizon, the members are `28`, `69`, `147`, `81` and `62`
+percent of the way apart at `t = 4, 8, 12, 16, 20` (the `drive_power` pair:
+`21`, `16`, `16`, `13`, `8`).  The two members are held on energy
+hyperplanes `2.459164e-02` apart --- the difference of their `post_pulse`
+references, which is `|E_tight - E_rec|` at every constrained sample (minimum
+and maximum both `2.459e-02`) --- where the `drive_power` members' references
+differ by `1.176e-03`.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the re-selection subclass at the committed `1e-9`, in the driven interval's mode (no energy reference), reproduces the recorded task-3 rollout | `t = 0` to `0.4`: equal under `np.array_equal` on all 161 samples of times, states, standardized frontier, both eigenvalue series, archive coordinates and envelope ratio (maximum difference `0.0`).  Artifact `paper_v_dictionary_energy_prefixgate_postpulse_reselroute_20260916g`, `prefix_gate_postpulse_reselroute.json`; its `reselections.json` records the committed outcome of the first ten re-selections, which the recorded rollout did not record |
+| the rerun driven interval differs from the record by the lever alone | the gate above, plus: the first re-selection (`t = 0.04`) refuses in both chains with the identical reduced gradient `6.012e-08` after 40 interior-Newton iterations, and the two chains are identical through `t = 0.0775`; the first difference is the `t = 0.08` re-selection |
+| segments resume on a re-selection boundary | segment 1 resumed at `t = 4.0` (`100 x 16` steps of segment 0); segment 2 at `8.0`; segment 3 at `12.76` (`119 x 16` from `8.0`); segment 4 at `18.08` (`133 x 16` from `12.76`; segment 3's last 14 accepted steps to `18.115` are discarded by the resume); segment 4 reached `t = 20.0` in `48 x 16` steps |
+| the declared reference is unchanged across the continuation | `-3.3659817053234624`, `-3.365981705323463`, `-3.3659817053234633` in segments 1, 2, 3 and 4, which agree to `9e-16` (the recorded chain's `-3.3905733452008326` and `-3.390573345200832` agree to `6e-16`) |
+| the energy is held where the constraint is on | maximum deviation from the declared reference `2.22e-15` over the tightened chain's 19,130 constrained repairs (`1.78e-15` over the recorded chain's 19,195), 0 hyperplane refusals in either |
+| the chains are on one time grid | 8,001 common samples, `t = 0` to `20`, times equal to `1e-12`; the scorer hit the `exact_t20.npz` cache and regenerated nothing; the recorded `post_pulse` chain's rescore reproduces task 6's values in every printed digit |
+
+## The five segments, and the chain to `t = 20`
+
+Every segment is a separate `ram_guard --limit-mb 4500` process resumed from
+the previous segment's saved state and carried frontier, none ever
+concurrent, with the recorded chain's `--final-time` values mirrored (`8.0`
+for the first post-pulse segment, `20.0` after) so the grids coincide.  The
+recorded chain is the task-3 rollout followed by
+`paper_v_dictionary_energy_postpulse_27key_n16_20260915e_seg1` to `_seg4`,
+as the review assembled it.  Counts are each segment's own `summary.json`
+totals; peaks are the summary's resident bytes in MiB.
+
+| quantity | tightened seg 0 | seg 1 | seg 2 | seg 3 | seg 4 | recorded driven (task-3 rollout) | seg 1 | seg 2 | seg 3 | seg 4 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| interval | `0` to `4.0` | `4.0` to `8.0` | `8.0` to `12.76` | `12.76` to `18.115` (resume `18.08`) | `18.08` to `20.0` | `0` to `4.0` | `4.0` to `8.0` | `8.0` to `12.6` | `12.6` to `17.48` | `17.48` to `20.0` |
+| energy reference | none | `post_pulse` | `post_pulse` | `post_pulse` | `post_pulse` | none | `post_pulse` | `post_pulse` | `post_pulse` | `post_pulse` |
+| accepted steps | 1,600 | 1,600 | 1,904 | 2,142 (2,128 kept) | 768 | 1,600 | 1,600 | 1,840 | 1,952 | 1,008 |
+| why it stopped | reached `t = 4` | reached `t = 8` | budget | budget | reached `t = 20` | reached `t = 4` | reached `t = 8` | budget | budget | reached `t = 20` |
+| autonomous wall | `708.0 s` | `721.8 s` | `1,002.2 s` | `1,000.0 s` | `336.0 s` | `749.1 s` | `679.8 s` | `1,005.4 s` | `1,000.2 s` | `452.4 s` |
+| declared completions re-solved / refused | 100 / 30 | 100 / 35 | 119 / 60 | 133 / 37 | 48 / 8 | 100 / 18 | 100 / 12 | 115 / 16 | 122 / 28 | 63 / 3 |
+| wall in those solves | `664.9 s` | `660.7 s` | `928.0 s` | `921.6 s` | `309.1 s` | `710.4 s` | `616.2 s` | `931.7 s` | `927.8 s` | `415.2 s` |
+| repairs applied / skipped | 2,934 / 1,866 | 4,749 / 51 | 5,712 / 0 | 6,426 / 0 | 2,243 / 61 | 2,622 / 2,178 | 4,800 / 0 | 5,515 / 5 | 5,856 / 0 | 3,024 / 0 |
+| minimum retained joint Gram / scaled extension eigenvalue within the segment | `-3.614e-08` / `-1.043e-05` | `-7.746e-04` / `-6.170e-05` | `-2.993e-03` / `-3.295e-04` | `-2.386e-03` / `-2.545e-04` | `-5.779e-04` / `-5.724e-05` | `-1.877e-08` / `-6.347e-06` | `-2.907e-04` / `-2.486e-05` | `-3.124e-03` / `-3.429e-04` | `-2.753e-03` / `-3.100e-04` | `-1.047e-03` / `-8.599e-05` |
+| peak resident | `695 MiB` | `697 MiB` | `649 MiB` | `717 MiB` | `652 MiB` | `621 MiB` | `631 MiB` | `606 MiB` | `644 MiB` | `712 MiB` |
+
+Chain totals over `t = 0` to `20`, tightened against recorded: 8,000
+accepted steps in five segments each; `3,768.0 s` against `3,887.0 s` of
+autonomous wall (`3.1` percent faster); 500 declared completions re-solved
+in each, **170 refused against 77**, `3,484.3 s` against `3,601.2 s` in
+those solves (`92.5` and `92.6` percent of the wall; `6.97 s` and `7.20 s`
+mean; longest single solve `50.4 s`); repairs `22,064 / 1,978` against
+`21,817 / 2,183` applied / skipped, of which `19,130` against `19,195`
+constrained; peak `717` against `712 MiB`.  Every segment stayed inside
+twenty minutes (longest `1,002.2 s` of autonomous wall plus about `20 s` of
+build).  Beside the `drive_power` chain's `4,789.8 s` / `4,794.4 s` and
+`226` / `144` refusals: the `post_pulse` chain is `19` to `21` percent
+cheaper and refuses less often under both settings.
+
+Of the tightened chain's 170 refusals, by the certificate the completion
+reported: 96 interior-Newton stationarity certificates with the KKT backward
+error over `5e-9`; 45 `conic Newton step failed descent` (44 after the
+relative face, 1 after the full face); 19 conic certificates `Solved` with
+the KKT error over the threshold; 6 reference completions
+`PrimalInfeasible` and 2 `AlmostPrimalInfeasible`; 2 `AlmostSolved`.  Of the
+330 certified, 327 carry the interior-Newton certificate and 3 the conic
+`Solved` one.  15 of the 447 interior-Newton solves have their reduced
+gradient in `(5e-9, 5e-8]`, the band the decade moves (the `drive_power`
+chain: 33 of 401).  Refusals by window: `15/50`, `15/50`, `19/49`, `16/51`,
+`24/50`, `25/50`, `21/50`, `13/50`, `14/50`, `8/50` over `(0, 2]` to
+`(18, 20]`; cumulative `30/100` at `t = 4`, `65/200` at `t = 8`, `114/300`
+at `t = 12`, `148/400` at `t = 16`, `170/500` at `t = 20`.  The recorded
+chain, which carries no per-re-selection ledger, refused `18/100`, `12/100`,
+`16/115`, `28/122`, `3/63` by segment.
+
+The first ten re-selections, the committed outcome (from the gate's ledger,
+bitwise the recorded rollout over this interval) against the tightened one:
+
+| `t` | committed: applied, reduced gradient, certificate | tightened: applied, reduced gradient, certificate |
+|---:|---|---|
+| `0.04` | no, `6.012e-08`, interior Newton (40 iterations) | no, `6.012e-08`, interior Newton (40) |
+| `0.08` | **yes**, `9.016e-09` (18 iterations) | **no**, `9.327e-09` (40 iterations) |
+| `0.12` | no, `1.577e-09`, `AlmostSolved` | no, `2.417e-09`, interior Newton |
+| `0.16` | no, `3.002e-10`, interior Newton | no, `3.465e-09`, `AlmostSolved` |
+| `0.20` | no, `9.089e-10` | yes, `4.496e-10` |
+| `0.24` | no, `7.319e-09` | yes, `2.309e-10` |
+| `0.28` | yes, `3.859e-08` | no, conic Newton step failed descent |
+| `0.32` | yes, `2.648e-08` | no, `1.050e-10` |
+| `0.36` | yes, `1.021e-08` | yes, `3.285e-09` |
+| `0.40` | yes, `1.871e-09` | yes, `1.341e-09` |
+
+The flip at `t = 0.08` is the only one on a common state: the committed
+solve stopped at 18 interior-Newton iterations with a reduced gradient under
+`5e-8` and certified; the tightened solve, whose stopping thresholds scale
+with the tolerance, ran to the 40-iteration cap and refused at `9.327e-09`
+over `5e-9`.  Every later row is a different solve on a different state.
+The refused lift is a `0.344` jump in the 70 standardized frontier
+coordinates, the chain's maximum frontier separation.
+
+## The chart at `t = 4, 8, 12, 16, 20`, `post_pulse` chain
+
+Cumulative from `t = 0`, recorded / tightened; the relative column is
+(tightened minus recorded) over recorded; site-0 occupation in the chain's
+own `rho[0,0]` sample-RMS convention and the record's `2 rho[0,0]`.
+
+| quantity | `t = 4` | rel. | `t = 8` | rel. | `t = 12` | rel. | `t = 16` | rel. | `t = 20` | rel. |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| all-coordinate scalar RMS, 31 coordinates | `1.630660e-02` / `1.971786e-02` | `+20.9 %` | `4.537517e-02` / `4.158658e-02` | `-8.3 %` | `6.075829e-02` / `4.611524e-02` | `-24.1 %` | `6.385168e-02` / `5.386180e-02` | `-15.6 %` | `6.990927e-02` / `7.563847e-02` | `+8.2 %` |
+| Eq. (22) internal-energy RMS | `7.088814e-02` / `8.534046e-02` | `+20.4 %` | `1.373215e-01` / `1.572710e-01` | `+14.5 %` | `1.531984e-01` / `1.747959e-01` | `+14.1 %` | `1.605503e-01` / `1.829311e-01` | `+13.9 %` | `1.648045e-01` / `1.876433e-01` | `+13.9 %` |
+| the four phonon-occupation coordinates (N block) | `2.974702e-02` / `3.689404e-02` | `+24.0 %` | `6.276381e-02` / `6.596302e-02` | `+5.1 %` | `8.295406e-02` / `6.570523e-02` | `-20.8 %` | `8.798803e-02` / `6.171997e-02` | `-29.9 %` | `8.256954e-02` / `5.692572e-02` | `-31.1 %` |
+| the 27 coordinates outside the phonon-occupation block | `1.319865e-02` / `1.564411e-02` | `+18.5 %` | `4.219396e-02` / `3.662031e-02` | `-13.2 %` | `5.673628e-02` / `4.245101e-02` | `-25.2 %` | `5.944826e-02` / `5.259787e-02` | `-11.5 %` | `6.783302e-02` / `7.803000e-02` | `+15.0 %` |
+| blockwise rho / B / N / A / C, recorded | `1.5014e-02` / `4.5282e-03` / `2.9747e-02` / `1.5756e-02` / `1.3244e-02` | | `5.3828e-02` / `3.1666e-02` / `6.2764e-02` / `6.7971e-02` / `2.3368e-02` | | `6.2826e-02` / `7.4876e-02` / `8.2954e-02` / `6.8250e-02` / `4.2001e-02` | | `6.1940e-02` / `8.7497e-02` / `8.7988e-02` / `6.7077e-02` / `4.3336e-02` | | `8.0311e-02` / `1.1223e-01` / `8.2570e-02` / `7.0619e-02` / `4.1905e-02` | |
+| blockwise, tightened | `2.3240e-02` / `6.1861e-03` / `3.6894e-02` / `1.6568e-02` / `1.5089e-02` | | `5.7903e-02` / `2.0067e-02` / `6.5963e-02` / `5.2128e-02` / `2.4254e-02` | | `5.9585e-02` / `4.3445e-02` / `6.5705e-02` / `4.7101e-02` / `3.4994e-02` | | `7.6918e-02` / `7.9397e-02` / `6.1720e-02` / `4.9700e-02` / `3.4755e-02` | | `1.1569e-01` / `1.4966e-01` / `5.6926e-02` / `5.4881e-02` / `3.4414e-02` | |
+| site-0 occupation, `rho[0,0]` sample RMS | `1.007098e-02` / `1.670803e-02` | `+65.9 %` | `3.984892e-02` / `4.208789e-02` | `+5.6 %` | `4.751135e-02` / `4.216922e-02` | `-11.2 %` | `4.662803e-02` / `5.878463e-02` | `+26.1 %` | `6.249305e-02` / `9.338428e-02` | `+49.4 %` |
+| site-0 occupation, `2 rho[0,0]` (the record's convention) | `0.0201` / `0.0334` | | `0.0797` / `0.0842` | | `0.0950` / `0.0843` | | `0.0933` / `0.1176` | | `0.1250` / `0.1868` | |
+| minimum unshifted retained joint Gram over `t = 0` to `T` | `-1.877e-08` / `-3.614e-08` | | `-2.907e-04` / `-7.746e-04` | | `-3.124e-03` / `-2.993e-03` | | `-3.124e-03` / `-2.993e-03` | | `-3.124e-03` / `-2.993e-03` | |
+| minimum scaled positive-extension eigenvalue | `-6.347e-06` / `-1.043e-05` | | `-2.486e-05` / `-6.170e-05` | | `-3.429e-04` / `-3.295e-04` | | `-3.429e-04` / `-3.295e-04` | | `-3.429e-04` / `-3.295e-04` | |
+| maximum standardized frontier envelope ratio | `0.3646` / `0.3611` | | `0.3748` / `0.3725` | | `0.4841` / `0.4231` | | `0.4841` / `0.4231` | | `0.4841` / `0.4231` | |
+| Euclidean coordinate difference from the exact reference at the horizon, all 31 | `2.350741e-01` / `2.724948e-01` | `+15.9 %` | `4.323609e-01` / `3.378869e-01` | `-21.9 %` | `5.098658e-01` / `2.808019e-01` | `-44.9 %` | `3.639121e-01` / `4.979643e-01` | `+36.8 %` | `7.097088e-01` / `1.046397e+00` | `+47.4 %` |
+| declared completions re-solved / refused, cumulative | `100 / 18` / `100 / 30` | | `200 / 30` / `200 / 65` | | (`315 / 46` to `12.6`) / `300 / 114` | | (`437 / 74` to `17.48`) / `400 / 148` | | `500 / 77` / `500 / 170` | |
+| 31-coordinate distance between the chains at the horizon | `0.0663` | | `0.2344` | | `0.4135` | | `0.2951` | | `0.4403` | |
+| 56-state distance between the chains | `0.2557` | | `0.9139` | | `2.5004` | | `2.0608` | | `1.4352` | |
+| 70-frontier distance between the chains | `0.0189` | | `0.0922` | | `0.2787` | | `0.1655` | | `0.0677` | |
+
+At `t = 6` and `t = 10`: all-coordinate `3.335615e-02` / `3.470686e-02`
+(`+4.0 %`) and `4.956048e-02` / `4.424362e-02` (`-10.7 %`); internal energy
+`1.193549e-01` / `1.375353e-01` and `1.470531e-01` / `1.680050e-01`.
+
+Three readings.
+
+1. **The internal-energy difference is the reference, and here the
+   tightened reference is the worse one.**  The `post_pulse` reference is
+   the trajectory's own Eq. (22) energy at `t = 4`: `-3.3905733452008326`
+   for the recorded chain, `0.180825` above the exact `-3.571397982`, and
+   `-3.3659817053234624` for the tightened one, `0.205416` above.  The
+   tightened driven interval drifts `2.459e-02` further in energy over
+   `t = 0` to `4`, is frozen there, and the two chains' Eq. (22) energies
+   differ by exactly that at every sample after `t = 4`; the `14` to `20`
+   percent internal-energy penalty of the tightened member at every horizon
+   is that number.  On the `drive_power` chain the same lever moved the
+   reference the other way, by `1.176e-03`, and the tightened member's
+   internal energy was the better by `18` percent.
+2. **The block the lever moves changes with the horizon.**  Over the driven
+   interval every block is worse on the tightened member, rho most (`+55`
+   percent on the block, `+66` on site 0), then B (`+37`) and N (`+24`).
+   From `t = 8` the tightened member is better on B and A (the
+   coherent phonon and the electron-phonon correlation: `2.007e-02` against
+   `3.167e-02` and `5.213e-02` against `6.797e-02` at `t = 8`; `4.345e-02`
+   against `7.488e-02` and `4.710e-02` against `6.825e-02` at `t = 12`) and
+   from `t = 12` on the N block (`-21`, `-30`, `-31` percent), while rho
+   turns worse from `t = 16` (`7.692e-02` against `6.194e-02`, then
+   `1.157e-01` against `8.031e-02` at `t = 20`) and B follows at `t = 20`
+   (`1.497e-01` against `1.122e-01`).  The `t = 20` ordering of the two
+   members is rho and B; the N-block improvement of the tightened member
+   survives to `t = 20`.
+3. **In the record's site-0 convention the `post_pulse` chain is the only
+   27-key chain below the both-cones value, under both settings, and that
+   column is the chain's least stable.**  `2 rho[0,0]` sample RMS over
+   `t = 0` to `20`: `0.1250` / `0.1868` against the both-cones `0.204690`
+   and the `drive_power` chain's `0.2252` / `0.2380`; the `post_pulse` band
+   there is `49` percent wide.
+
+## The `post_pulse` chain's band at every horizon, in the task-6 form
+
+All-coordinate scalar RMS on the 31 closed scalar coordinates against the
+exact cutoff-16 driven reference, cumulative from `t = 0` on the
+`h = 0.0025` grid; the band is the recorded member (re-selection completion
+at `1e-9`) and the tightened member (`1e-10`); the comparator is the
+`drive_power` chain's own band from task 6 at every horizon, with the
+review's other comparators where they exist (`t = 4`, `t = 8`).
+
+| horizon | recorded | tightened | band | width | comparator | standing of the `post_pulse` chain |
+|---|---:|---:|---:|---:|---|---|
+| `t = 4` | `1.630660e-02` | `1.971786e-02` | `1.63e-2` to `1.97e-2` | `20.9 %` | `drive_power` band `1.14e-2` to `1.29e-2`; positive-`M4` cell A `1.258000e-02` | behind the `drive_power` band, factors `1.26` (closest members) to `1.73` (farthest), bands disjoint by `26.2 %`; behind cell A by `1.30` on the better member |
+| `t = 6` | `3.335615e-02` | `3.470686e-02` | `3.34e-2` to `3.47e-2` | `4.0 %` | `drive_power` band `2.09e-2` to `2.31e-2` | behind, `1.44` to `1.66`, disjoint by `44.1 %` |
+| `t = 8` | `4.537517e-02` | `4.158658e-02` | `4.16e-2` to `4.54e-2` | `8.3 %` | `drive_power` band `2.59e-2` to `2.71e-2`; 15-key `post_pulse` `N = 16` `4.254184e-02` | behind the `drive_power` band, `1.53` to `1.75`, disjoint by `53.5 %`; the 15-key row lies inside the band: tie |
+| `t = 10` | `4.956048e-02` | `4.424362e-02` | `4.42e-2` to `4.96e-2` | `10.7 %` | `drive_power` band `3.33e-2` to `3.36e-2` | behind, `1.32` to `1.49`, disjoint by `31.8 %` |
+| `t = 12` | `6.075829e-02` | `4.611524e-02` | `4.61e-2` to `6.08e-2` | `24.1 %` | `drive_power` band `4.25e-2` to `4.33e-2` | behind, `1.06` to `1.43`; the bands are disjoint by `6.5 %` of the `drive_power` upper member, less than this band's own width |
+| `t = 16` | `6.385168e-02` | `5.386180e-02` | `5.39e-2` to `6.39e-2` | `15.6 %` | `drive_power` band `6.38e-2` to `6.72e-2` | bands overlap on `6.377e-2` to `6.385e-2`: no ordering; the tightened `post_pulse` member is below both `drive_power` members by `1.18` to `1.25` |
+| `t = 20` | `6.990927e-02` | `7.563847e-02` | `6.99e-2` to `7.56e-2` | `8.2 %` | `drive_power` band `8.52e-2` to `9.09e-2` | ahead, `1.13` to `1.30`; bands disjoint by `12.6 %` of the `post_pulse` upper member |
+
+Companion columns of the same row, recorded / tightened: Eq. (22)
+internal-energy RMS `7.09e-2` / `8.53e-2` at `t = 4` to `1.65e-1` /
+`1.88e-1` at `t = 20` (the `drive_power` chain `4.60e-3` / `3.69e-3` to
+`6.34e-3` / `5.22e-3`; both cones `9.4e-4` at `t = 20`); minimum unshifted
+retained joint Gram `-3.12e-3` / `-2.99e-3` and minimum scaled extension
+eigenvalue `-3.43e-4` / `-3.29e-4` over `t = 0` to `20`, both attained in
+`(8, 12]` in both members (the `drive_power` chain `-2.46e-3` / `-2.37e-3`
+and `-2.04e-4` / `-2.10e-4`); site-0 occupation in the record's
+`2 rho[0,0]` convention `0.125` / `0.187` at `t = 20` (both cones `0.205`;
+`drive_power` `0.225` / `0.238`); autonomous wall `3,887.0 s` / `3,768.0 s`
+to `t = 20`, 500 completions re-solved with `77` / `170` refused.
+
+## The two bands together: the `t = 20` ordering and every other horizon
+
+| horizon | `drive_power`, recorded / tightened | `post_pulse`, recorded / tightened | ordering on the all-coordinate score | internal-energy RMS, `drive_power` / `post_pulse` (recorded, tightened) | minimum retained joint Gram, `drive_power` / `post_pulse` |
+|---|---:|---:|---|---|---|
+| `t = 4` | `1.142716e-02` / `1.292283e-02` (`+13.1 %`) | `1.630660e-02` / `1.971786e-02` (`+20.9 %`) | `drive_power` ahead, `1.26` to `1.73`, disjoint by `26.2 %` | `4.60e-3`, `3.69e-3` / `7.09e-2`, `8.53e-2` | `-4.54e-4`, `-4.51e-4` / `-1.88e-8`, `-3.61e-8` |
+| `t = 8` | `2.593079e-02` / `2.709352e-02` (`+4.5 %`) | `4.537517e-02` / `4.158658e-02` (`-8.3 %`) | `drive_power` ahead, `1.53` to `1.75`, disjoint by `53.5 %` | `5.75e-3`, `4.70e-3` / `1.37e-1`, `1.57e-1` | `-2.15e-3`, `-2.20e-3` / `-2.91e-4`, `-7.75e-4` |
+| `t = 12` | `4.250925e-02` / `4.331967e-02` (`+1.9 %`) | `6.075829e-02` / `4.611524e-02` (`-24.1 %`) | `drive_power` ahead, `1.06` to `1.43`, disjoint by `6.5 %` (inside the `post_pulse` band's width) | `6.09e-3`, `5.00e-3` / `1.53e-1`, `1.75e-1` | `-2.46e-3`, `-2.37e-3` / `-3.12e-3`, `-2.99e-3` |
+| `t = 16` | `6.377276e-02` / `6.719628e-02` (`+5.4 %`) | `6.385168e-02` / `5.386180e-02` (`-15.6 %`) | bands overlap: no ordering | `6.25e-3`, `5.14e-3` / `1.61e-1`, `1.83e-1` | `-2.46e-3`, `-2.37e-3` / `-3.12e-3`, `-2.99e-3` |
+| `t = 20` | `8.519313e-02` / `9.088037e-02` (`+6.7 %`) | `6.990927e-02` / `7.563847e-02` (`+8.2 %`) | `post_pulse` ahead, `1.13` to `1.30`, disjoint by `12.6 %` | `6.34e-3`, `5.22e-3` / `1.65e-1`, `1.88e-1` | `-2.46e-3`, `-2.37e-3` / `-3.12e-3`, `-2.99e-3` |
+
+At `t = 6` and `t = 10` the `drive_power` chain is ahead by `1.44` to `1.66`
+and `1.32` to `1.49`, bands disjoint by `44.1` and `31.8` percent.
+
+**The final statement of the `t = 20` ordering of the two 27-key `N = 16`
+energy-neutral chains.**  On the all-coordinate scalar RMS of the 31 closed
+scalar coordinates over `t = 0` to `20`, the `post_pulse` chain is ahead of
+the `drive_power` chain under every pairing of the four measured members,
+`6.99e-2` to `7.56e-2` against `8.52e-2` to `9.09e-2`, by a factor `1.13` to
+`1.30`, with the two bands disjoint by `12.6` percent --- more than either
+band's width at this horizon (`8.2` and `6.7` percent), less than the
+`post_pulse` chain's own response to the lever at `t = 4` and `t = 12`
+(`20.9` and `24.1` percent).  The best moment-closure row on record at
+`t = 20` on that score is therefore the 27-key `post_pulse` chain's recorded
+member, `6.990927e-02`, with a measured band to `7.563847e-02`, against the
+both-cones `1.286070e-01`.  On the Eq. (22) internal energy the `drive_power`
+chain is ahead by `26` to `36` times under every pairing; on physicality
+neither chain holds a cone under either setting and the `drive_power`
+chain's minima are less negative by `1.21` to `1.32` (retained joint Gram)
+and `1.57` to `1.68` (scaled extension); on site-0 occupation in the
+record's convention the `post_pulse` chain is ahead by `1.21` to `1.90`.
+The `drive_power` chain remains ahead over `t = 0` to `12` at every horizon
+scored (`1.06` to `1.75` on the closest members), tied at `t = 16`, and
+behind at `t = 20`.
+
+## Separation of the two `post_pulse` members
+
+Times at which the two trajectories first separate, Euclidean distance at
+equal sample times, with the `drive_power` pair of tasks 5 and 6 beside:
+
+| threshold | 31 closed scalar coordinates | 56 state coordinates | 70 standardized frontier | `drive_power` pair, 31 / 56 / 70 |
+|---:|---:|---:|---:|---|
+| `1e-6`, `1e-5` | `0.0825` | `0.0825` | `0.08` | `0.2025` / `0.2025` / `0.2` |
+| `1e-4` | `0.0875` | `0.085` | `0.08` | `0.2025` / `0.2025` / `0.2` |
+| `1e-3` | `0.245` | `0.13` | `0.08` | `0.5275` / `0.23` / `0.2` |
+| `1e-2` | `1.54` | `0.635` | `0.08` | `1.7375` / `0.545` / `0.2` |
+| `1e-1` | `5.3925` | `2.1575` | `0.08` | never (max `0.0955` at `13.845`) / `2.485` / `0.2` |
+| `0.2` | `7.0925` | `3.0875` | `0.08` | never / --- / --- |
+| `1` | never (max `0.4856` at `11.695`) | `7.82` (max `2.711` at `11.565`) | never (max `0.344` at `0.08`) | never / never (max `0.528`) / never (max `0.353`) |
+
+Window means of the 31-coordinate distance: `0.0232`, `0.1411`, `0.3128`,
+`0.3452`, `0.3312` over `(0, 4]`, `(4, 8]`, `(8, 12]`, `(12, 16]`,
+`(16, 20]` (the `drive_power` pair: `0.0162`, `0.0346`, `0.0532`, `0.0818`,
+`0.0733`); of the 56-state distance `0.1064`, `0.5361`, `1.8839`, `2.2571`,
+`1.6628`.  The 31-coordinate distance saturates after `t = 12` at three to
+four tenths, as the `drive_power` pair's did at eight hundredths; the
+56-state distance has its maximum `2.711` at `t = 11.565` and its window
+mean peaks in `(12, 16]` and falls, where the `drive_power` pair's was
+still growing at `t = 20`.  Beside the branch's other two
+pairs: the cheap route's 15-key `N = 4` `post_pulse` pair reached `1e-2` at
+`t = 6.93`, `0.1` at `8.38` and order one by `t = 11`; the 15-key `N = 16`
+`drive_power` pair at this lever reached `1e-2` at `0.48`, `0.1` at `3.085`
+and `0.72` near `t = 12`; the 27-key `drive_power` pair `1e-2` at `1.74` and
+never `0.1`; this pair `1e-2` at `1.54`, `0.1` at `5.39`, `0.49` at `11.7`.
+Of the four, the 27-key `drive_power` pair is the least sensitive by a
+factor five to ten on the pointwise measure, and the constraint mode is what
+distinguishes it from this pair at the same dictionary: whether that is the
+constraint acting through the driven interval or the `21`-times-larger
+reference difference here is not separated by this measurement.
+
+## Provenance and gates of the runs themselves
+
+- Five rollouts,
+  `paper_v_dictionary_energy_postpulse_27key_n16_tightresel_20260916g_seg0`
+  to `_seg4`, each under `pipelines/shell/ram_guard.py --limit-mb 4500`,
+  one at a time (a cheap-route job under its own guard was on the machine
+  throughout; guard limits summed under the `18 GB` budget); summary peaks
+  `695`, `697`, `649`, `717`, `652 MiB` (`ram_guard` reports `693`, `697`,
+  `639`, `646`, `628 MB`); autonomous wall `708.0`, `721.8`, `1,002.2`,
+  `1,000.0`, `336.0 s`.  The gate rollout
+  `paper_v_dictionary_energy_prefixgate_postpulse_reselroute_20260916g` ran
+  under the same guard (`128.0 s`, `633 MB`).  The scoring, comparison and
+  tabulation ran under `--limit-mb 2000`.
+- Drivers, all under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `queue_tight_postpulse.sh` (segment 0 by `run_energy_segment.py` in mode
+  `none`, segment 1 resumed from it in `post_pulse` mode with
+  `--energy-reference-time 4.0` and `--final-time 8.0`, then the unchanged
+  `run_chain.py` with `--first 2 --last 8 --final-time 20.0`; the fifth
+  segment reached `t = 20` so segments 5 to 8 were not needed),
+  `prefixgate_postpulse_reselroute.sh` (the gate), `score_tight_postpulse.sh`
+  (score, compare, tabulate), `monitor_tight_postpulse.sh`, and the new
+  `tabulate_task7.py` (the ledgers, the chart, the band table in the task-6
+  form, the two-band table, the separation recomputed from the arrays, the
+  refusal ledger, and the first-ten comparison against the gate's ledger).
+  `run_energy_segment.py`, `run_chain.py`, `compare_chains.py`,
+  `compare_prefix.py` and `score_energy_chain.py` are as task 5 left them.
+- Outputs there: `tightresel_postpulse_chain_score_t20.json`,
+  `compare_tightresel_postpulse_t20.json`,
+  `compare_tightresel_postpulse_driven.json` (the driven interval alone,
+  written after segment 0), `tightresel_postpulse_chain_score_t8.json`
+  (written after segment 1), `prefix_gate_postpulse_reselroute.json`,
+  `tabulate_task7.log`, `tightresel_postpulse_chain.log`,
+  `tightresel_postpulse_seg{0,1}.log`, the three `run_chain` segment logs,
+  `prefixgate_postpulse_reselroute.log`.  The recorded chains' artifacts and
+  `postpulse_chain_score_all.json`, `power_chain_score_all.json`,
+  `tightresel_chain_score_t20.json` are untouched.
+- The previous instance of this agent ran the gate and segments 0 to 4 and
+  was lost to a connection error before scoring; this instance scored,
+  compared and tabulated the finished chain and repeated no segment.
+- No module was edited, nothing was committed, no default, acceptance rule
+  or ladder changed.
+
+## Structured summary of task 7
+
+| item | value |
+|---|---|
+| the lever | `APCMExtensionSettings.conic_tolerance` of the re-selection completion, `1e-10` against the committed `1e-9`, on the 27-key `N = 16` `post_pulse` energy-neutral chain from `t = 0`; preparation, model extension, repair, velocity, integrator, cadence and reference mode identical; imports from `head_src` at `2d8f0efb` |
+| the driven interval | not reusable: the lever enters its 100 re-selections; rerun under the lever as segment 0 (mode `none`, `708.0 s`, 100 re-solved / 30 refused against the recorded 18); the driver at `1e-9` in that mode is bitwise the task-3 rollout over `t = 0` to `0.4` (161 samples, `0.0`, seven arrays) |
+| the runs | segments 0 (`0` to `4`), 1 (`4` to `8`), 2 (`8` to `12.76`, budget), 3 (`12.76` to `18.115`, budget, resume `18.08`), 4 (`18.08` to `20`, reached); `3,768.0 s` (recorded `3,887.0 s`); 500 re-solved, 170 refused (recorded 77); energy held to `2.22e-15` over 19,130 constrained repairs; reference `-3.36598170532346` unchanged to `9e-16`; peak `717 MiB` |
+| `post_pulse` band, all 31, recorded / tightened | `t = 4` `1.630660e-02` / `1.971786e-02` (`+20.9 %`); `t = 8` `4.537517e-02` / `4.158658e-02` (`-8.3 %`); `t = 12` `6.075829e-02` / `4.611524e-02` (`-24.1 %`); `t = 16` `6.385168e-02` / `5.386180e-02` (`-15.6 %`); `t = 20` `6.990927e-02` / `7.563847e-02` (`+8.2 %`); `t = 6` `+4.0 %`, `t = 10` `-10.7 %`: no sign |
+| internal-energy RMS, `post_pulse` / `drive_power` (recorded, tightened) | `t = 4` `7.09e-2`, `8.53e-2` / `4.60e-3`, `3.69e-3`; `t = 20` `1.65e-1`, `1.88e-1` / `6.34e-3`, `5.22e-3`; the `post_pulse` references sit `0.180825` / `0.205416` above exact, `2.459e-02` apart, and that is `|E_tight - E_rec|` at every constrained sample |
+| physicality minima over `t = 0` to `20`, `post_pulse` / `drive_power` (recorded, tightened) | retained joint Gram `-3.124e-03`, `-2.993e-03` / `-2.463e-03`, `-2.374e-03`; scaled extension `-3.429e-04`, `-3.295e-04` / `-2.040e-04`, `-2.098e-04`; no member of either chain holds a cone |
+| the `t = 20` ordering | settled against both bands: `post_pulse` ahead by `1.13` to `1.30` under every pairing, bands disjoint by `12.6 %` against widths `8.2` and `6.7 %`; the gap is inside the `post_pulse` chain's own sensitivity at `t = 4` and `t = 12`, so the statement is on the four members, not a bound |
+| the other horizons | `drive_power` ahead at `t = 4, 6, 8, 10, 12` by `1.26` to `1.73`, `1.44` to `1.66`, `1.53` to `1.75`, `1.32` to `1.49`, `1.06` to `1.43` (bands disjoint by `26.2`, `44.1`, `53.5`, `31.8`, `6.5 %`); `t = 16` bands overlap: no ordering |
+| statements that move | `t = 8`: the 15-key `post_pulse` row `4.254184e-02` lies inside the 27-key `post_pulse` band: tie, not "worse at 27 keys"; `t = 12`: the `drive_power` lead is `1.06` on the closest members, disjoint by `6.5 %` against a `24.1 %` `post_pulse` band; `t = 4`: task 3's 27-key unconstrained score is `1.63e-2` to `1.97e-2`, still below the 15-key `2.684e-02` and the projective event guard's `2.605e-02` |
+| separation | first difference at the `t = 0.08` re-selection (committed certified at reduced gradient `9.016e-09` in 18 iterations, tightened refused at `9.327e-09` at the 40-iteration cap), a `0.344` frontier jump; 31-coordinate distance `1e-2` at `1.54`, `0.1` at `5.39`, `0.2` at `7.09`, maximum `0.486` at `11.695`; `147 %` of the better member's own distance from exact at `t = 12`; five times the `drive_power` pair's maximum |
+| refusals | 170 of 500: 96 interior-Newton KKT over `5e-9`, 45 conic-Newton descent failures, 19 conic `Solved` over the threshold, 8 infeasible reference completions, 2 `AlmostSolved`; 15 of 447 reduced gradients in `(5e-9, 5e-8]`; by window `15/50` to `25/50`, then `8/50` over `(18, 20]` |
+| gates | bitwise prefix gate (161 samples, `0.0`); common first re-selection (`6.012e-08`, refused in both); boundary resumes at `4.0`, `8.0`, `12.76`, `18.08`; reference unchanged to `9e-16`; energy held to `2.22e-15`; one grid of 8,001 samples; the recorded chain's rescore reproduces task 6 |
+| files changed | new driver scripts and outputs under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`; six new artifacts (five segments and the gate); this report; the worklog block; the plan ledger's row.  No module; nothing committed |
+| next | a decade looser (`1e-8`) on both 27-key chains, which would put a third member in every band and test whether the `12.6 %` gap at `t = 20` survives a lever the `post_pulse` chain answered with `24 %` at `t = 12`; the continuous re-selection rule the cheap route is building, which removes the amplifier these seven tasks have measured |
