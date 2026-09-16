@@ -98,6 +98,8 @@ CHEAP_PROJECTION_TARGETS = ("extension", "retained", "both")
 CHEAP_PROJECTION_CADENCES = ("stage", "step")
 CHEAP_PROJECTION_COORDINATES = ("state_and_frontier", "frontier_only")
 CHEAP_PROJECTION_ENERGY_REFERENCES = ("none", "post_pulse", "drive_power")
+LIFT_RESELECTION_TRUST_POLICIES = ("carried", "ball")
+LIFT_RESELECTION_CANDIDATES = ("certified", "measured")
 
 
 @dataclass(frozen=True)
@@ -276,6 +278,140 @@ class CheapProjectionSettings:
             else self.applied_floor
             for name in blocks
         )
+
+
+@dataclass(frozen=True)
+class LiftReselectionRule:
+    """Declared rule that turns one completion solve into the carried lift.
+
+    Every default is the route's earlier form: a certified lift replaces the
+    carried one whole and a refusal keeps the carried lift.  The declared
+    completion exposes no proximal centre -- its proximal term is
+    ``0.5 |z|^2`` about the zero standardized frontier, and its warm
+    frontier is a starting point of the solve, not a term of the objective
+    -- so every field here acts on the completion's answer and on the
+    carried lift, both in the standardized frontier coordinates.
+
+    ``anchor_weight``
+        Proximal anchor at the carried lift, ``mu >= 0``: the carried lift
+        moves the fraction ``1 / (1 + mu)`` of the way to the accepted lift.
+        That point minimizes ``0.5 |z - z*|^2 + (mu / 2) |z - z_c|^2``,
+        which is the anchored objective under the identity-Hessian model of
+        the declared objective (whose Hessian is the identity plus the
+        log-determinant term's), and it lies on the segment between two
+        lifts, so it is inside the positive cone and the frontier box
+        whenever both ends are.  ``0`` is off.
+    ``trust_radius``
+        Declared cap on the Euclidean move of the standardized frontier in
+        one re-selection.  ``None`` is off.
+    ``trust_policy``
+        What happens when the cap binds: ``"carried"`` keeps the carried
+        lift; ``"ball"`` takes the point at the cap on the segment toward
+        the accepted lift.
+    ``acceptance_margin``
+        Deterministic acceptance: a candidate is accepted only when the
+        declared objective at it lies below the declared objective at the
+        carried lift by more than this margin.  Both values are the
+        completion's own functional,
+        ``0.5 |z|^2 - (w / n) sum log(max(lambda, 0) + s)`` on the scaled
+        24-row matrix, evaluated here by the same formula on both lifts, so
+        the rule cannot flip on a change of its inputs smaller than the
+        margin divided by the functional's Lipschitz constant.  ``None`` is
+        off.
+    ``candidates``
+        Which solves are candidates: ``"certified"`` accepts the
+        completion's own certificate, the earlier form; ``"measured"``
+        takes any returned iterate whose scaled minimum eigenvalue is at or
+        above ``-10`` times the conic tolerance and whose standardized
+        coordinates lie in the frontier box to the same tolerance (the
+        completion's own feasibility test of a warm frontier) and whose
+        declared objective improves on the carried lift's by more than
+        ``max(acceptance_margin, 0)``; the certificate is recorded and not
+        consulted.
+    """
+
+    anchor_weight: float = 0.0
+    trust_radius: float | None = None
+    trust_policy: str = "carried"
+    acceptance_margin: float | None = None
+    candidates: str = "certified"
+
+    def __post_init__(self) -> None:
+        if not np.isfinite(self.anchor_weight) or self.anchor_weight < 0.0:
+            raise ValueError("anchor_weight must be finite and nonnegative")
+        if self.trust_radius is not None and not (
+            np.isfinite(self.trust_radius) and self.trust_radius > 0.0
+        ):
+            raise ValueError("trust_radius must be positive or None")
+        if self.trust_policy not in LIFT_RESELECTION_TRUST_POLICIES:
+            raise ValueError(
+                "trust_policy must be one of "
+                + ", ".join(LIFT_RESELECTION_TRUST_POLICIES)
+            )
+        if self.acceptance_margin is not None and not (
+            np.isfinite(self.acceptance_margin)
+            and self.acceptance_margin >= 0.0
+        ):
+            raise ValueError("acceptance_margin must be nonnegative or None")
+        if self.candidates not in LIFT_RESELECTION_CANDIDATES:
+            raise ValueError(
+                "candidates must be one of "
+                + ", ".join(LIFT_RESELECTION_CANDIDATES)
+            )
+
+    @property
+    def is_earlier_form(self) -> bool:
+        """True when every field is off: the certified lift, taken whole."""
+
+        return (
+            self.anchor_weight == 0.0
+            and self.trust_radius is None
+            and self.acceptance_margin is None
+            and self.candidates == "certified"
+        )
+
+    @property
+    def evaluates_objective(self) -> bool:
+        return (
+            self.acceptance_margin is not None or self.candidates == "measured"
+        )
+
+
+@dataclass(frozen=True)
+class LiftReselectionDecision:
+    """What one lift re-selection did, in the standardized frontier.
+
+    ``decision`` is one of ``"accepted"`` (the lift moved to the candidate,
+    anchored when the anchor is on), ``"refused"`` (no certificate, the
+    carried lift kept), ``"infeasible"`` (``candidates="measured"`` and the
+    returned iterate fails the measured feasibility test),
+    ``"declined_by_margin"`` (a candidate whose objective improvement does
+    not exceed the margin), ``"cap_bound_carried"`` (the move exceeded the
+    trust radius and the carried lift was kept), ``"cap_bound_ball"`` (the
+    move exceeded the trust radius and was scaled to it, then anchored) or
+    ``"no_frontier"`` (the completion returned no finite frontier).
+    ``solved_displacement`` is the Euclidean distance from the carried lift
+    to the completion's own answer, whatever was done with it;
+    ``applied_displacement`` is the distance the carried lift actually
+    moved.  The objectives are the declared completion's functional at the
+    carried lift and at the completion's answer, ``nan`` when the rule did
+    not evaluate them and evaluation was not requested.
+    """
+
+    frontier_standardized: FloatArray
+    completion: APCMExtensionResult
+    seconds: float
+    certified: bool
+    accepted: bool
+    decision: str
+    solved_displacement: float
+    applied_displacement: float
+    objective_carried: float
+    objective_solved: float
+
+    @property
+    def improvement(self) -> float:
+        return float(self.objective_carried - self.objective_solved)
 
 
 @dataclass(frozen=True)
@@ -1087,6 +1223,11 @@ class CheapProjectionTrajectory:
     lift_reselection_retries_exhausted: int = 0
     lift_reselection_retry_solves: int = 0
     lift_reselection_retry_seconds: float = 0.0
+    lift_reselections_accepted: int = 0
+    lift_reselections_accepted_uncertified: int = 0
+    lift_reselections_declined_by_margin: int = 0
+    lift_reselections_cap_bound: int = 0
+    maximum_lift_reselection_solved_displacement: float = 0.0
 
 
 class CheapProjectionRoute:
@@ -1114,6 +1255,11 @@ class CheapProjectionRoute:
     decade); it must carry the same dictionary, lower keys and frontier keys,
     so only the solver's settings can differ.  ``None`` is the route's
     earlier form: re-selections solve ``model.extension`` itself.
+
+    ``reselection_rule`` is the declared :class:`LiftReselectionRule` that
+    turns a completion's answer into the carried lift (proximal anchor,
+    trust radius, acceptance margin, candidate scope); ``None`` is the
+    earlier form, every field off.
     """
 
     def __init__(
@@ -1125,8 +1271,14 @@ class CheapProjectionRoute:
         completion_retry_shifts: tuple[float, ...] = (),
         completion_retry_weights: tuple[float, ...] = (),
         reselection_extension: SymmetryReducedPositiveExtension | None = None,
+        reselection_rule: LiftReselectionRule | None = None,
     ) -> None:
         self.model = model
+        self.reselection_rule = (
+            LiftReselectionRule()
+            if reselection_rule is None
+            else reselection_rule
+        )
         self.settings = (
             CheapProjectionSettings() if settings is None else settings
         )
@@ -1223,6 +1375,169 @@ class CheapProjectionRoute:
             message="cheap_projection_carried_lift",
         )
 
+    def declared_objective(
+        self,
+        lower_moments: Mapping[MomentKey, float],
+        frontier_standardized: FloatArray,
+    ) -> float:
+        """The completion's own objective at one lift.
+
+        ``0.5 |z|^2 - (w / n) sum log(max(lambda, 0) + s)`` in the
+        standardized frontier ``z``, with ``lambda`` the eigenvalues of the
+        scaled 24-row matrix the re-selection completion builds from these
+        lower moments and this lift, ``w`` its log-determinant weight, ``s``
+        its shift and ``n`` its dimension: the same formula
+        ``APCMExtensionResult.objective`` reports for a solve, evaluated here
+        so the carried lift and the solved lift are compared by one
+        function.
+        """
+
+        extension = self.reselection_extension
+        values = np.asarray(frontier_standardized, dtype=float)
+        matrix = extension.scaled_matrix(
+            extension.matrix(
+                lower_moments, self.coordinates.frontier_mapping(values)
+            )
+        )
+        shifted = (
+            np.maximum(np.linalg.eigvalsh(matrix), 0.0)
+            + extension.settings.logdet_shift
+        )
+        return float(
+            0.5 * float(values @ values)
+            - extension.settings.logdet_weight
+            / extension.dimension
+            * float(np.sum(np.log(shifted)))
+        )
+
+    def _solved_frontier(
+        self, result: APCMExtensionResult
+    ) -> FloatArray | None:
+        """The completion's answer in standardized coordinates, or None."""
+
+        keys = self.coordinates.frontier_keys
+        if any(key not in result.frontier_moments for key in keys):
+            return None
+        values = self.coordinates.standardize_frontier(result.frontier_moments)
+        if not np.all(np.isfinite(values)):
+            return None
+        return values
+
+    def reselect_lift_decision(
+        self,
+        state: FloatArray,
+        frontier_standardized: FloatArray,
+        *,
+        warm_start: bool = True,
+        retries: bool = True,
+        evaluate_objective: bool = False,
+    ) -> LiftReselectionDecision:
+        """Solve the declared completion and apply the declared rule.
+
+        The solve is :meth:`reselect_lift`'s, ladder included; the rule is
+        the route's :class:`LiftReselectionRule`.  With every field of the
+        rule off the returned frontier is the certified solve's answer
+        exactly, or the carried lift on a refusal, which is the earlier
+        form.  ``evaluate_objective`` computes the declared objective at the
+        carried and solved lifts even when the rule does not need them, for
+        the stage record.
+        """
+
+        rule = self.reselection_rule
+        carried = np.asarray(frontier_standardized, dtype=float)
+        raw, hidden = unpack_projected_apcm_state(
+            state, active_keys=self.coordinates.active_keys
+        )
+        lower = state_lower_moments(raw, hidden, self.coordinates.active_keys)
+        warm = (
+            self.coordinates.frontier_mapping(carried) if warm_start else None
+        )
+        started = perf_counter()
+        result = self.reselection_extension.complete(
+            lower, warm_frontier=warm
+        )
+        if not result.success and retries and self.completion_ladder:
+            ladder_started = perf_counter()
+            self.completion_retry_counters["attempted"] += 1
+            for extension in self.completion_ladder:
+                self.completion_retry_counters["solves"] += 1
+                retried = extension.complete(lower, warm_frontier=warm)
+                if retried.success:
+                    self.completion_retry_counters["accepted"] += 1
+                    result = retried
+                    break
+            else:
+                self.completion_retry_counters["exhausted"] += 1
+            self.completion_retry_seconds += perf_counter() - ladder_started
+        seconds = perf_counter() - started
+
+        certified = bool(result.success)
+        solved = self._solved_frontier(result)
+        tolerance = float(self.reselection_extension.settings.conic_tolerance)
+        candidate: FloatArray | None
+        if solved is None:
+            candidate, decision = None, "no_frontier"
+        elif rule.candidates == "certified":
+            candidate = solved if certified else None
+            decision = "accepted" if certified else "refused"
+        else:
+            feasible = bool(
+                float(result.scaled_minimum_eigenvalue) >= -10.0 * tolerance
+                and float(np.max(np.abs(solved))) <= 1.0 + 10.0 * tolerance
+            )
+            candidate = solved if feasible else None
+            decision = "accepted" if feasible else "infeasible"
+
+        objective_carried = objective_solved = float("nan")
+        if evaluate_objective or (
+            rule.evaluates_objective and candidate is not None
+        ):
+            objective_carried = self.declared_objective(lower, carried)
+            if solved is not None:
+                objective_solved = self.declared_objective(lower, solved)
+        if candidate is not None and rule.evaluates_objective:
+            margin = (
+                0.0
+                if rule.acceptance_margin is None
+                else rule.acceptance_margin
+            )
+            improvement = objective_carried - objective_solved
+            if not improvement > margin:
+                candidate, decision = None, "declined_by_margin"
+
+        solved_displacement = (
+            0.0 if solved is None else float(np.linalg.norm(solved - carried))
+        )
+        if candidate is None:
+            selected = carried.copy()
+        else:
+            selected = candidate
+            move = candidate - carried
+            distance = float(np.linalg.norm(move))
+            if rule.trust_radius is not None and distance > rule.trust_radius:
+                if rule.trust_policy == "carried":
+                    candidate, decision = None, "cap_bound_carried"
+                    selected = carried.copy()
+                else:
+                    decision = "cap_bound_ball"
+                    selected = carried + (rule.trust_radius / distance) * move
+            if candidate is not None and rule.anchor_weight > 0.0:
+                selected = carried + (selected - carried) / (
+                    1.0 + rule.anchor_weight
+                )
+        return LiftReselectionDecision(
+            frontier_standardized=selected,
+            completion=result,
+            seconds=seconds,
+            certified=certified,
+            accepted=candidate is not None,
+            decision=decision,
+            solved_displacement=solved_displacement,
+            applied_displacement=float(np.linalg.norm(selected - carried)),
+            objective_carried=objective_carried,
+            objective_solved=objective_solved,
+        )
+
     def reselect_lift(
         self,
         state: FloatArray,
@@ -1254,45 +1569,22 @@ class CheapProjectionRoute:
         certified.  An empty ladder is the route's earlier form: one solve,
         and the carried lift kept on a refusal.  The returned ``seconds`` is
         the whole wall of the re-selection, retries included.
+
+        The returned frontier is what the route's declared
+        :class:`LiftReselectionRule` makes of the solve; with the rule's
+        every field off it is the certified answer exactly.
         """
 
-        raw, hidden = unpack_projected_apcm_state(
-            state, active_keys=self.coordinates.active_keys
+        decision = self.reselect_lift_decision(
+            state,
+            frontier_standardized,
+            warm_start=warm_start,
+            retries=retries,
         )
-        lower = state_lower_moments(raw, hidden, self.coordinates.active_keys)
-        warm = (
-            self.coordinates.frontier_mapping(frontier_standardized)
-            if warm_start
-            else None
-        )
-        started = perf_counter()
-        result = self.reselection_extension.complete(
-            lower, warm_frontier=warm
-        )
-        if not result.success and retries and self.completion_ladder:
-            ladder_started = perf_counter()
-            self.completion_retry_counters["attempted"] += 1
-            for extension in self.completion_ladder:
-                self.completion_retry_counters["solves"] += 1
-                retried = extension.complete(lower, warm_frontier=warm)
-                if retried.success:
-                    self.completion_retry_counters["accepted"] += 1
-                    result = retried
-                    break
-            else:
-                self.completion_retry_counters["exhausted"] += 1
-            self.completion_retry_seconds += perf_counter() - ladder_started
-        seconds = perf_counter() - started
-        if not result.success:
-            return (
-                np.asarray(frontier_standardized, dtype=float).copy(),
-                result,
-                seconds,
-            )
         return (
-            self.coordinates.standardize_frontier(result.frontier_moments),
-            result,
-            seconds,
+            decision.frontier_standardized,
+            decision.completion,
+            decision.seconds,
         )
 
     def unguarded_velocity(
@@ -1417,6 +1709,10 @@ def integrate_cheap_projection_ssprk3(
         "skipped": 0,
         "reselections": 0,
         "reselection_failures": 0,
+        "reselection_accepted": 0,
+        "reselection_accepted_uncertified": 0,
+        "reselection_declined": 0,
+        "reselection_cap_bound": 0,
         "energy_constrained": 0,
         "energy_refusals": 0,
     }
@@ -1428,6 +1724,7 @@ def integrate_cheap_projection_ssprk3(
         "dykstra_iterations": 0,
         "reselection_seconds": 0.0,
         "reselection_displacement": 0.0,
+        "reselection_solved_displacement": 0.0,
         "reselected_minimum": float("inf"),
         "energy_deviation": 0.0,
     }
@@ -1639,11 +1936,15 @@ def integrate_cheap_projection_ssprk3(
                 and (step + 1) % lift_reselection_interval == 0
             ):
                 carried = final_frontier
-                final_frontier, completion, seconds = route.reselect_lift(
+                chosen = route.reselect_lift_decision(
                     final_state,
                     carried,
                     warm_start=lift_reselection_warm_start,
+                    evaluate_objective=record_stages,
                 )
+                final_frontier = chosen.frontier_standardized
+                completion = chosen.completion
+                seconds = chosen.seconds
                 totals["reselection_seconds"] += seconds
                 counters["reselections"] += 1
                 if not completion.success:
@@ -1653,23 +1954,54 @@ def integrate_cheap_projection_ssprk3(
                         totals["reselected_minimum"],
                         float(completion.scaled_minimum_eigenvalue),
                     )
+                if chosen.accepted:
+                    counters["reselection_accepted"] += 1
+                    if not chosen.certified:
+                        counters["reselection_accepted_uncertified"] += 1
+                if chosen.decision == "declined_by_margin":
+                    counters["reselection_declined"] += 1
+                if chosen.decision in ("cap_bound_carried", "cap_bound_ball"):
+                    counters["reselection_cap_bound"] += 1
                 totals["reselection_displacement"] = max(
                     totals["reselection_displacement"],
                     float(np.linalg.norm(final_frontier - carried)),
+                )
+                totals["reselection_solved_displacement"] = max(
+                    totals["reselection_solved_displacement"],
+                    float(chosen.solved_displacement),
                 )
                 if record_stages:
                     records.append(
                         {
                             "stage": "lift_reselection",
                             "time": float(when + time_step),
-                            "applied": bool(completion.success),
+                            "applied": bool(chosen.accepted),
+                            "certified": bool(chosen.certified),
+                            "decision": chosen.decision,
                             "iterations": int(completion.iterations),
                             "scaled_minimum_eigenvalue": float(
                                 completion.scaled_minimum_eigenvalue
                             ),
+                            "kkt_backward_error": float(
+                                completion.kkt_backward_error
+                            ),
+                            "relative_face_support_dimension": int(
+                                completion.relative_face_support_dimension
+                            ),
+                            "relative_face_direction_dimension": int(
+                                completion.relative_face_direction_dimension
+                            ),
                             "frontier_displacement": float(
                                 np.linalg.norm(final_frontier - carried)
                             ),
+                            "solved_displacement": float(
+                                chosen.solved_displacement
+                            ),
+                            "objective_carried": float(
+                                chosen.objective_carried
+                            ),
+                            "objective_solved": float(chosen.objective_solved),
+                            "objective_reported": float(completion.objective),
                             "seconds": float(seconds),
                             "message": completion.message,
                         }
@@ -1772,6 +2104,17 @@ def integrate_cheap_projection_ssprk3(
         lift_reselection_retry_seconds=float(
             route.completion_retry_seconds - retry_seconds_before
         ),
+        lift_reselections_accepted=int(counters["reselection_accepted"]),
+        lift_reselections_accepted_uncertified=int(
+            counters["reselection_accepted_uncertified"]
+        ),
+        lift_reselections_declined_by_margin=int(
+            counters["reselection_declined"]
+        ),
+        lift_reselections_cap_bound=int(counters["reselection_cap_bound"]),
+        maximum_lift_reselection_solved_displacement=float(
+            totals["reselection_solved_displacement"]
+        ),
     )
 
 
@@ -1787,6 +2130,7 @@ def prepare_cheap_projection_route(
     completion_retry_shifts: tuple[float, ...] = (),
     completion_retry_weights: tuple[float, ...] = (),
     reselection_extension_settings: Any = None,
+    reselection_rule: LiftReselectionRule | None = None,
 ) -> tuple[CheapProjectionRoute, FloatArray, FloatArray, float]:
     """Build the route at the canonical correlated preparation.
 
@@ -1804,6 +2148,9 @@ def prepare_cheap_projection_route(
     dictionary whose solver settings the lift re-selections use, leaving the
     preparation's completion at ``extension_settings``; ``None`` is the
     earlier form, one extension for both.
+
+    ``reselection_rule`` is handed to the route as its declared
+    :class:`LiftReselectionRule`; ``None`` is the earlier form.
     """
 
     from .apcm_moment_projection import (
@@ -1859,6 +2206,7 @@ def prepare_cheap_projection_route(
         completion_retry_shifts=tuple(completion_retry_shifts),
         completion_retry_weights=tuple(completion_retry_weights),
         reselection_extension=reselection_extension,
+        reselection_rule=reselection_rule,
     )
     frontier = route.coordinates.standardize_frontier(
         initialization.completion.frontier_moments

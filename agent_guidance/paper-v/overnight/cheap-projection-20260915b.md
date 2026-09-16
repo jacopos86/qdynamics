@@ -1810,3 +1810,485 @@ are other agents' rows and their sensitivity is not this section's.
 | (c) meaningful at the second digit | no horizon, for this configuration; resolved at the first digit against rows more than about 1.3 times away: at `t=4` the 27-key chain, chain C and the raw archive EOM, not the projective event guard; at `t=20` both cones, the 27-key chain, the task-3 `N=16` row and (at the edge) the plain archive EOM, not the `N=16` post-pulse row or any `N=4` row; the task-4 "best row" sentence stands on the internal energy only |
 | gates | 35 tests in the file; full suite 480 passed in `264.86 s` with one untracked foreign test module (`test_paper5_import_without_parent_repo.py`, collection `ImportError`, not this route's) ignored |
 | files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, the worklog block, and the task-6 scripts under `output/local_runs/`.  Nothing committed |
+
+# Task 7: a continuous lift update, and whether it resolves the second digit (2026-09-16)
+
+Same branch, worktree and modules as the six sections above.  The two
+modules this route owns gained one declared object, the lift re-selection
+rule (`LiftReselectionRule` on `CheapProjectionRoute` and
+`prepare_cheap_projection_route`; driver flags
+`--reselection-anchor-weight`, `--reselection-trust-radius`,
+`--reselection-trust-policy`, `--reselection-acceptance-margin`,
+`--reselection-candidates`), every field of which is off by default, and
+the stage record of a re-selection now carries the completion's
+certificate, the identified face, the KKT backward error, the declared
+objective at the carried lift and at the completion's answer, and the
+answer's move separately from the move the route applied.  No file this
+route does not own was edited; no default changed; nothing is committed.
+Conventions are those of tasks 2 to 6: the score is the all-coordinate
+scalar RMS of the 31 closed scalar coordinates against the exact cutoff-16
+driven reference on the stated horizon; the internal energy is the sample
+RMS of the time-independent energy of Eq. (22) on that horizon;
+physicality numbers are measured minimum eigenvalues and there is no
+certificate anywhere on this route; the configuration is the recorded
+`paper_v_cheap_projection_energy_power_n16_t20_20260915_v1` (task 4:
+strong coupling, cutoff 16, exact-correlated preparation, 15 entrance
+keys, SSPRK(3,3) at `h = 0.0025`, the unguarded fixed-dictionary
+predictor, Dykstra 30 on both targets at stage cadence, the declared
+proximal log-det completion re-solved every 16 steps warm-started on the
+carried frontier, the energy-neutral option in `drive_power` mode with
+`energy_tolerance` 0, 8,000 steps to `t=20`), and its three one-setting
+twins are task 6's (`energy_tolerance` `1e-3`; Dykstra 60; re-selection
+`conic_tolerance` `1e-10`).  The separation between two rollouts is the
+Euclidean distance between their 31 closed scalar coordinates at the same
+accepted step; the spread of a set of scores is the largest minus the
+smallest as a fraction of the smallest.  A lift is a point of the 62
+standardized frontier coordinates (each frontier moment divided by its
+declared scale, so the frontier box is `[-1, 1]` per coordinate); the
+carried lift is the one the route propagates between re-selections,
+repaired by Dykstra; the answer is what the completion returns at a
+re-selection, whatever the rule then does with it.
+
+## (a) How the declared completion is posed, and what its 500 re-selections did
+
+Read from `apcm_positive_extension.py` (not edited).  The declared
+proximal log-det completion, `SymmetryReducedPositiveExtension.complete`,
+solves, over the 62 frontier moments `f` with the 29 lower moments of the
+state fixed,
+
+    minimize    0.5 |z|^2  -  (w / n) log det ( S(lower, f) + s I )
+    subject to  S(lower, f) >= 0   (the scaled 24-row positive extension),
+                |z_k| <= 1         (the frontier box),
+    where       z = f / frontier_scales,  n = 24,
+                w = logdet_weight = 1,  s = logdet_shift = 1e-10.
+
+Its proximal term `0.5 |z|^2` is proximal to the *zero* standardized
+frontier -- the completion is the minimum-norm lift regularized by a
+log-determinant barrier of weight `1/24` per eigenvalue -- and not to any
+carried lift.  The warm frontier the route hands it is the starting point
+of the solve and enters the objective nowhere, so the API exposes no
+proximal centre, and (b) acts on the answer, outside the solve.  The
+objective the result reports is `0.5 |z|^2 - (w/n) sum log(max(lambda_i,
+0) + s)`, finite at an infeasible point; the barrier contributes
+`-log(1e-10)/24 = +0.96` for an eigenvalue at zero and `+0.48` for one at
+`1e-5`, so on this route, where the Dykstra repair (floor 0) leaves the
+carried lift's scaled minimum eigenvalue near zero, the objective
+difference between two lifts is set by where their smallest eigenvalue
+sits and not by the `0.5 |z|^2` distance between them.
+
+Certification (`clarabel_newton`, the declared backend): a result is
+certified when the solver's own stationarity test passed, the answer's
+scaled minimum eigenvalue is at or above `-10 tol` and the KKT backward
+error is at most `50 tol`, `tol = conic_tolerance = 1e-9`.  The solve
+takes one of two paths.  When the warm frontier is *strictly* feasible
+(scaled minimum eigenvalue above `100 tol = 1e-7`, box margin above
+`1e-7`) the Newton iteration starts from it on the full cone (support 24,
+all 62 directions).  Otherwise a facial reduction first solves a Clarabel
+reference problem at the same lower moments, identifies the face of the
+cone the feasible set lies in, and restricts the Newton iteration to that
+face's directions (support 23 of 24 leaves 24 of the 62 directions).  Then
+at most 40 Newton steps, each a line search keeping the iterate at or
+above `-0.1 tol`, with a direct conic QP when the interior step is not
+accepted, and a final certificate.  A refusal is one of: the reference
+problem infeasible or the reduction not stabilizing
+(`moment_extension_degeneracy`), a conic Newton step that fails descent, a
+Newton cone failure, or a final certificate above `50 tol`.  On a refusal
+the result still carries the last iterate as its frontier.
+
+The recorded configuration was rerun once with `--record-stages`
+(`paper_v_cheap_projection_energy_power_n16_t20_recorded_stages_20260916_v1`,
+`671.2 s` against the recorded `719.6 s`, peak `874 MiB`); its 8,001
+states and carried frontiers equal the recorded run's in every entry and
+its score is the recorded `0.328674`.  The 500 re-selections, every 16
+steps over `t=0` to `20` (`reselection_stats_recorded_rule.json`):
+
+| quantity, over the 500 re-selections of `t=0` to `20` | value |
+|---|---|
+| certified / refused | 224 / 276; every certified answer replaced the carried lift (the earlier form) |
+| certified per quarter, `t` in `[0,5)`, `[5,10)`, `[10,15)`, `[15,20)` | 112 of 124, 98 of 125, 14 of 125, 0 of 125; the last certified re-selection is at `t=11.76` and all 206 after it refuse |
+| refusals by message | 227 reference completion `PrimalInfeasible` and 7 `AlmostPrimalInfeasible` (the state's 29 lower moments admit no positive 24-row extension at all); 23 conic Newton descent failures; 19 final certificates above `50 tol` (KKT `5.3e-8` to `1.6e-5`) |
+| face of the certified answers | 223 on the full face (support 24, 62 directions); one on the 23-of-24 face (`t=0.04`) |
+| carried lift's scaled minimum eigenvalue at the re-selection | `-2.33e-3` to `+2.69e-3`, median `-2.0e-4`; strictly feasible (above `1e-7`, the warm-start path) at 79, of which 69 certify; not at 421, of which 155 certify |
+| move of the certified answer from the carried lift (Euclidean, standardized frontier) | minimum `0.0026`, 10th percentile `0.0077`, median `0.0122`, 90th `0.0367`, maximum `0.3340`; 160 above `0.01`, 5 above `0.1` (`t=0.04` `0.3335` on the 23/24 face, `t=0.16` `0.3340`, `t=11.08` `0.1142`, `t=11.48` `0.1092`, `t=11.76` `0.2007`); median per quarter `0.0095`, `0.017`, `0.046` |
+| declared objective at the answer against the carried lift, certified | improvement minimum `-0.460` (`t=0.04`, the 23/24 answer, the only certified answer worse than the carried lift), 10th percentile `0.0067`, median `0.653`, 90th `1.275`, maximum `1.426` |
+| refused answers that pass the completion's own feasibility test and improve the objective | 42 (the 23 descent failures and the 19 certificate failures); moves median `0.025`, maximum `0.505`; improvement median `0.83` |
+| certified KKT backward error | median `1.6e-9`, maximum `4.9e-8` |
+| solve wall | mean `0.904 s`, median `0.76 s`, maximum `22.7 s` |
+
+Three readings.
+
+- **The recorded rule's update is the full-face minimizer where it
+  certifies, and the minimizer moves little**: 223 of 224 certified
+  answers are on the full face, the median move is `0.012` and the 90th
+  percentile `0.037`, so between re-selections the carried lift drifts by
+  a few hundredths from the completion's own answer.  The one certified
+  answer on the 23-of-24 face, at `t=0.04`, is the run's largest move
+  (`0.334`) and the only one whose declared objective is above the
+  carried lift's: it is not the minimizer the other 223 are, and it is
+  the answer task 6 found `0.40` away from the `etol1e3` twin's on inputs
+  equal to `1e-14`.
+- **Past `t=11.76` the recorded row is the frozen-lift route with the
+  Dykstra repair.**  Nothing certifies after that, and 234 of the 276
+  refusals are the reference problem reporting the state's lower moments
+  primal-infeasible: the propagated state has left the set of moment
+  sequences that admit any positive 24-row extension (its scaled
+  extension minimum reaches `-2.3e-3` and the retained Gram `-5.3e-2`),
+  and no rule on the answer can act where there is no answer.  The task-4
+  `t=20` score of `0.329` is therefore a hybrid to `t=11.76` continued by
+  the task-2 frozen-lift route (which scored `1.42` at `t=20` on its own).
+- **42 refusals hold a usable answer**: their last iterate passes the
+  completion's own feasibility test of a warm frontier (scaled minimum
+  eigenvalue at or above `-1e-8`, inside the box) and improves the
+  declared objective, by `0.83` at the median; 12 of them move the lift by
+  more than `0.1`.  These are the refusal flips of task 6 (the `dykstra60`
+  twin's step 32 certified where the recorded run's refused).
+
+## (b) The named options, all off by default
+
+The completion exposes no proximal centre, so every option acts on the
+answer and the carried lift in the standardized frontier, in
+`CheapProjectionRoute.reselect_lift_decision`; `reselect_lift` keeps its
+signature and returns what the rule selects.  With every field off the
+selected lift is the certified answer exactly (the record-stages run above
+is bitwise the recorded run).
+
+- **Proximal anchor at the carried lift**, `anchor_weight` `mu >= 0`
+  (`--reselection-anchor-weight`): the carried lift moves the fraction
+  `1/(1+mu)` of the way to the accepted answer.  That point is the
+  minimizer of `0.5 |z - z*|^2 + (mu/2) |z - z_c|^2`, the anchored
+  objective under the identity-Hessian model of the declared objective
+  (whose Hessian is the identity plus the log-determinant term's), and it
+  lies on the segment between two lifts, hence inside the positive cone
+  and the box whenever both ends are.  `0` is off.
+- **Trust radius on the move**, `trust_radius` `r`
+  (`--reselection-trust-radius`), with `trust_policy`
+  (`--reselection-trust-policy`) `carried` (the cap binds: keep the
+  carried lift, the rule named in the task) or `ball` (the cap binds:
+  take the point at distance `r` on the segment toward the answer).
+  `None` is off.
+- **Deterministic acceptance margin**, `acceptance_margin` `m >= 0`
+  (`--reselection-acceptance-margin`): a candidate replaces the carried
+  lift only when the declared objective at it lies below the declared
+  objective at the carried lift by more than `m`, both values by one
+  formula (`CheapProjectionRoute.declared_objective`, the completion's own
+  `0.5 |z|^2 - (w/n) sum log(max(lambda, 0) + s)`; a test checks it equals
+  the completion's reported objective).  A flip needs the improvement to
+  cross `m`, and the improvement is a continuous function of the inputs
+  with the barrier's Lipschitz constant, so an input change of `1e-14`
+  cannot flip it unless the improvement sits within `1e-14` times that
+  constant of `m`.  `None` is off.
+- **Candidate scope**, `candidates` (`--reselection-candidates`):
+  `certified` (the earlier form: only a certified answer is a candidate)
+  or `measured`: any returned iterate is a candidate when it passes the
+  completion's own feasibility test of a warm frontier (scaled minimum
+  eigenvalue at or above `-10 tol`, inside the box to `10 tol`) and
+  improves the declared objective by more than `max(m, 0)`; the
+  certificate is recorded and not consulted.  This is the option aimed at
+  the refusal flip: the rule then depends on measured, continuous
+  quantities of the iterate and not on the solver's status.
+
+Each rule was screened on the recorded configuration and its three
+one-setting twins over `t=0` to `2` (`screens_all.zsh`, 20 rollouts of 800
+steps, `55 s` to `68 s` each, one at a time; `screen_<rule>_t2.json`); the
+recorded rule's own four `t=2` rows are the task-4 and task-6 artifacts
+rescored (`baseline_recorded_rule.json`).  Every screened rule carries the
+margin `1e-3`; the anchor, ball and cap rows add one option to it.
+
+| rule (margin `1e-3` throughout) | scores over `t=0` to `2`, base / `etol1e3` / `dykstra60` / `conic1e10` | spread at `t=2` (`t=1`) | internal energy at `t=2`, smallest to largest | largest frontier difference between a twin and the base in one step | first crossing of `1e-3` / `1e-2` by any twin | accepted of 50 per run (of which uncertified) |
+|---|---|---|---|---:|---|---|
+| recorded rule (every field off) | `0.007852` / `0.008091` / `0.009999` / `0.010136` | 29.1 % (125.6 %) | `0.0066` to `0.0123` | `0.334` to `0.401` at `t=0.04` and `0.08` | `0.125` / `0.36` | 47, 43, 50, 45 (0) |
+| margin only, certified candidates | `0.011272` / `0.010279` / `0.010327` / `0.010136` | 11.2 % (3.5 %) | `0.0123` to `0.0160` | `0.0064` to `0.0089` at `t=0.16` and `0.6` | `0.6375` / `1.1` | 40, 36, 39, 35 (0) |
+| margin and trust radius `0.05`, `ball` | identical to the margin row: no accepted move exceeds `0.031`, the cap never binds | 11.2 % | --- | --- | --- | --- |
+| margin and trust radius `0.05`, `carried` | identical to the margin row, for the same reason | 11.2 % | --- | --- | --- | --- |
+| margin and anchor `mu = 1` | `0.008973` / `0.009117` / `0.009286` / `0.008883` | 4.5 % (9.3 %) | `0.0042` to `0.0082` | `0.0032` to `0.0088` | `0.52` / `0.9825` | 44, 40, 46, 36 (0) |
+| margin and `measured` candidates | `0.011160` / `0.011215` / `0.011217` / `0.011160` | 0.5 % (0.1 %) | `0.0163` to `0.0164` | `0.0064` at `t=0.16` (`etol1e3`, `dykstra60`); none above `1e-6` for `conic1e10` | never / never | 46, 46, 46, 46 (4, 3, 4, 11) |
+| margin, `measured` candidates and anchor `mu = 1` | `0.009265` / `0.009306` / `0.009286` / `0.009265` | 0.4 % (0.6 %) | `0.0082` to `0.0083` | `0.0032` at `t=0.16`; none above `1e-6` for `conic1e10` | `1.7875` (`etol1e3` only) / never | 46, 47, 46, 46 (1, 3, 0, 12) |
+
+(each score is the all-coordinate scalar RMS over `t=0` to `2`; the
+separation columns are the 31-coordinate Euclidean distance from the base
+run of the same rule; `conic1e10` under the two `measured` rules is
+identical to its base in every one of the 801 samples' 31 coordinates,
+its certificate flipping 11 to 12 times without effect on the lift.)
+
+Four readings.
+
+- **Declining the wrong-face answer is what the margin does, and it costs
+  early accuracy.**  Under the margin the `t=0.04` answer on the 23-of-24
+  face (declared objective `0.46` above the carried lift's) is declined
+  in every run, as are the 23/24 and 23/23 answers at `t=0.08` to `0.16`,
+  and the first accepted lift is a full-face answer `0.006` to `0.009`
+  from the preparation's lift at `t=0.16` to `0.20`.  That is the branch
+  the recorded `conic1e10` twin took (its `t=2` score `0.010136` is
+  reproduced to every digit), and it scores `0.0101` to `0.0113` at
+  `t=2` where the recorded run's excursion to the wrong face and back
+  (`0.334` out at `t=0.04`, `0.334` back at `t=0.16`) scored `0.0079`.
+  The remaining 11 percent spread is the refusal flip: with only
+  certified answers as candidates, one run's refusal is another's
+  accepted `0.006` move.
+- **The `measured` scope removes the refusal flip.**  Judged by the
+  completion's own feasibility test and the declared objective rather
+  than by the certificate, the four runs accept the same 46 answers and
+  the base and the `conic1e10` twin (which differs only in the certificate
+  tolerance) are identical to the last digit; the other two twins, whose
+  Dykstra repair differs at round-off or at a skipped stage, separate by
+  `8e-4` to `9e-4` at `t=2`, never reaching `1e-3`.  The uncertified
+  answers accepted move the lift by `0.004` to `0.011`, the same as their
+  certified neighbours.
+- **The anchor buys accuracy back.**  Half-way moves score `0.0089` to
+  `0.0093` against the margin's `0.0101` to `0.0113` and the internal
+  energy `0.004` to `0.008` against `0.012` to `0.016`; with the
+  `measured` scope the combination scores `0.0093` at spread 0.4 percent
+  with internal energy `0.0082`.  Why the half-way point beats the answer
+  was not measured here; one reading is that the answer is the minimum
+  norm lift for the state's lower moments at the re-selection step while
+  the carried lift holds information from the trajectory, and the mean of
+  the two is nearer the exact frontier than either.
+- **The trust radius is inert once the margin is on**: at `0.05` no
+  accepted move reaches it over `t=0` to `2`.  It would have capped the
+  recorded rule's `0.334` moves, but the margin declines those first.
+
+The rule taken to `t=20` in (c) is the last row: margin `1e-3`,
+`measured` candidates, anchor `mu = 1`.
+
+## (c) The recorded configuration and its three twins to `t=20` under the chosen rule
+
+Four rollouts of 8,000 steps
+(`paper_v_cheap_projection_task7_measured_anchor1_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1`),
+each differing from the base in exactly the one setting task 6's twin
+changed, all under the rule margin `1e-3`, `measured` candidates, anchor
+`mu = 1`, with `--record-stages`; one at a time under `ram_guard
+--limit-mb 3000` inside the recorded `1,140 s` budget (walls `843.7`,
+`822.6`, `998.7`, `908.5 s`; peaks `794` to `869 MiB`); scores by
+`screen_scores.py` (`screen_measured_anchor1_t20.json`).
+
+| `T` | base | `etol1e3` | `dykstra60` | `conic1e10` | spread of the four (recorded rule's four, task 6) | recorded row (task 4), and the recorded rule's four |
+|---:|---|---|---|---|---|---|
+| 4 | `0.031566` / `0.02369` | `0.031582` / `0.02393` | `0.031594` / `0.02369` | `0.031566` / `0.02369` | 0.1 % (17.7 %) | `0.023744` / `0.020406`; `0.0237` to `0.0280` |
+| 8 | `0.075551` / `0.02913` | `0.073518` / `0.02940` | `0.076622` / `0.02913` | `0.076060` / `0.02913` | 4.2 % (12.7 %) | `0.045571` / `0.024055`; `0.0405` to `0.0456` |
+| 12 | `0.143618` / `0.03073` | `0.120502` / `0.03101` | `0.130712` / `0.03073` | `0.127896` / `0.03073` | 19.2 % (21.0 %) | `0.125139` / `0.025154`; `0.108` to `0.131` |
+| 20 | `0.264357` / `0.03195` | `0.256831` / `0.03225` | `0.273564` / `0.03195` | `0.254707` / `0.03195` | 7.4 % (26.4 %) | `0.328674` / `0.026000`; `0.260` to `0.329` |
+
+(each cell: all-coordinate scalar RMS / Eq. (22) internal-energy sample
+RMS over `t=0` to `T`.  The internal energy is the same to five digits in
+three of the four runs because the repair holds it on the drive-power
+reference at every stage and the three references agree to `2e-10`; the
+`etol1e3` twin's reference differs by `3e-4`.)
+
+Where each twin leaves the base (31-coordinate Euclidean separation at the
+same accepted step; the recorded rule's values from task 6 in brackets):
+
+| twin | first nonzero | first carried-frontier difference above `1e-6` | first crossing of `1e-3` / `1e-2` / `1e-1` | separation at `t=4` / `8` / `12` / `20` | maximum, and when |
+|---|---|---|---|---|---|
+| `etol1e3` | `t=0.0075` | `0.0032` at `t=0.16` [`0.401` at `0.04`] | `1.7875` / `4.1` / `8.415` [`0.1475` / `0.7525` / `7.01`] | `0.0078` / `0.094` / `0.57` / `1.39` [`0.025` / `0.16` / `0.37` / `0.08`] | `1.68` at `t=15.3` [`0.41` at `12.2`] |
+| `dykstra60` | `t=0.0625` | `0.0032` at `t=0.16` [`0.376` at `0.08`] | `2.305` / `5.65` / `8.6025` [`0.145` / `0.36` / `4.0025`] | `0.0027` / `0.067` / `0.43` / `1.65` [`0.10` / `0.24` / `0.57` / `0.70`] | `1.74` at `t=18.6` [`0.99` at `12.9`] |
+| `conic1e10` | `t=0.505` | `0.1417` at `t=6.44` [`0.334` at `0.04`] | `6.4525` / `6.8` / `8.545` [`0.125` / `0.48` / `3.085`] | `3.2e-9` / `0.069` / `0.49` / `1.37` [`0.13` / `0.17` / `0.32` / `0.35`] | `1.37` at `t=20` [`0.72` at `13.1`] |
+
+Lift re-selections per quarter of the horizon (accepted of 125; in
+brackets the recorded rule's certified-and-accepted):
+
+| `t` in | base | `etol1e3` | `dykstra60` | `conic1e10` |
+|---|---|---|---|---|
+| `[0, 5)` | 120, 3 uncertified, 4 declined [112] | 121, 3, 3 | 120, 2, 4 | 120, 25, 4 |
+| `[5, 10)` | 55, 6 uncertified [98] | 66, 8 | 61, 10 | 64, 20 |
+| `[10, 15)` | 78, 6 uncertified [14] | 119, 18 | 121, 15 | 121, 23 |
+| `[15, 20)` | 94, 15 uncertified [0] | 79, 11 | 83, 14, 1 declined | 90, 32, 1 declined |
+
+(every re-selection not accepted or declined is an iterate that fails
+the measured feasibility test, decision `infeasible`: 149, 112, 110, 100
+of 500, none in `t=0` to `5`; under the `measured` scope no re-selection
+is a `refused` decision, the certificate being recorded and not
+consulted.  Of the `infeasible` iterates 19, 13, 10, 9 per run are
+reference-completion `PrimalInfeasible` refusals whose last iterate is
+out of the frontier box by `1e22` to `1e113`; they set the summaries'
+`maximum_reselection_solved_frontier_displacement_euclidean` field,
+`4.2e113`, `2.5e113`, `1.4e111`, `5.9e112`, which is therefore a
+record of diverged refused iterates and not of any move; the largest
+answer the rule accepted stood `0.30`, `0.71`, `0.79`, `0.56` from the
+carried lift and the anchor applied half, `0.15`, `0.35`, `0.39`,
+`0.28`, the summaries' `maximum_reselection_frontier_displacement_euclidean`.)
+
+Both cones over `t=0` to `20`: scaled 24-row extension minimum `-3.5e-4`,
+`-5.5e-4`, `-3.2e-4`, `-5.8e-4` (recorded rule `-2.3e-3` to `-5.9e-4`);
+unshifted retained joint Gram minimum `-9.1e-3`, `-1.3e-2`, `-7.6e-3`,
+`-1.4e-2` (recorded rule `-5.3e-2` to `-1.4e-2`); the standardized
+frontier envelope reaches `0.63`, `0.84`, `0.97`, `0.95` (recorded rule
+`0.72` to `0.92`).
+
+**Is the second digit resolved, and at what cost.**
+
+- Over `t=0` to `4`, yes: the four scores are `0.03157` to `0.03159`,
+  agreeing at the third significant digit (spread 0.1 percent against
+  the recorded rule's 17.7 percent), and the `conic1e10` twin is within
+  `3.2e-9` of the base in the 31 coordinates at every one of the 1,601
+  samples (first nonzero `3.2e-15` at `t=0.505`).  The cost is 33
+  percent: `0.0316` against the recorded `0.0237`, above every one of the
+  recorded rule's four (`0.0237` to `0.0280`) and 21 percent above the
+  projective event guard's `0.026049`; internal energy `0.0237` against
+  `0.0204`.
+- Over `t=0` to `8`, the first digit and the second to within three
+  units: `0.0735`, `0.0756`, `0.0761`, `0.0766` (4.2 percent; the recorded
+  rule 12.7 percent).  The cost is 66 percent: `0.0756` against the
+  recorded `0.0456`, 1.6 to 1.9 times the recorded rule's four (`0.0405`
+  to `0.0456`).  This is the horizon on which the rule pays most: in
+  `t=5` to `10` it accepts 55 to 66 lifts of 125 where the recorded rule
+  certified 98, and the separation of every twin crosses `1e-1` at
+  `t=8.4` to `8.6`.
+- Over `t=0` to `12`, no: `0.12` to `0.14` (19.2 percent, the recorded
+  rule 21.0 percent); the score is 15 percent above the recorded row and
+  inside the recorded rule's own spread (`0.108` to `0.131`).
+- Over `t=0` to `20`, no, and the 7.4 percent spread of the cumulative
+  RMS (`0.255` to `0.274`, the recorded rule's 26.4 percent) is not the
+  trajectories agreeing: by `t=20` each twin is `1.37` to `1.65` from the
+  base in the 31 coordinates (the recorded rule's twins `0.08` to `0.70`),
+  the base's site-0 occupation RMS is `0.34` against the recorded row's
+  `0.19`, and what the four runs share is the frozen-lift decay the
+  recorded rule reached at `t=11.76` being replaced by re-selection to
+  the end (94 accepted lifts in `t=15` to `20` against none) while the
+  state itself has wandered.  The score is 20 percent below the recorded
+  row (`0.264` against `0.329`) and inside 5 percent of the recorded
+  rule's best twin (`0.260`); the internal energy is 23 percent worse
+  (`0.0320` against `0.0260`).
+
+What moved the branch.  Under the recorded rule the twins parted at the
+first or second re-selection (`t=0.04`, `0.08`) by `0.33` to `0.40` in the
+lift; under the chosen rule the `etol1e3` and `dykstra60` twins part at
+`t=0.16` by `0.0032` (two full-face answers `0.0064` apart after repairs
+that differ at round-off, halved by the anchor) and the `conic1e10` twin
+not until `t=6.44`, by `0.14` (the `1e-9` and `1e-10` solves converge to
+feasible, improving answers `0.28` apart, halved by the anchor -- an
+answer branch, not a certificate flip, and the one event of its kind in
+that run's first 6.4 time units).  The `1e-2` crossing moved from
+`t=0.36` to `0.75` to `t=4.1` to `6.8`, and the `1e-1` crossing from
+`t=3.1` to `7.0` to `t=8.4` to `8.6`.  Past `t=8.5` the closure's own
+amplification (task 6 (b): at most `1.16` for the exact flow) carries
+every difference to order one by `t=15` to `20` under either rule.
+
+What the cost is made of was not separated here: the three ingredients of
+the chosen rule were screened together at `t=2` only, where the margin
+alone cost 30 to 40 percent against the recorded rule's base
+(`0.0101`–`0.0113` against `0.0079`) and the anchor recovered part of it
+(`0.0093`); no rule with the `measured` scope and no anchor was run past
+`t=2`, and no rule was run at `t=20` other than the chosen one.
+
+## Provenance and gates
+
+- `paper_5/tests/test_cheap_projection_route.py`: 44 passed in
+  `22.73 s` (`cd paper_5 && PYTHONPATH=src python -m pytest -q
+  tests/test_cheap_projection_route.py`), the 35 of task 6 plus nine: that
+  `LiftReselectionRule()` is the earlier form, that each field is validated,
+  and which fields make the rule evaluate the objective; that
+  `declared_objective` at the completion's answer equals the objective the
+  completion reports, and the decision's solved displacement is the
+  Euclidean move of that answer; that the default rule returns the
+  certified answer exactly and the carried lift on a refusal, without
+  evaluating the objective; that anchor `mu = 3` moves the carried lift one
+  quarter of the way to the answer; that a binding trust radius keeps the
+  carried lift under `carried`, moves it exactly the radius under `ball`,
+  is inert when wider than the move, and composes with the anchor; that a
+  margin below the measured improvement accepts and one above it declines,
+  by one formula, the declined decision carrying both objectives; that
+  under `measured` an uncertified iterate is accepted, declined or found
+  infeasible by the measured test and the objective alone; that a rollout
+  counts accepted, uncertified, declined and cap-bound re-selections and
+  its stage record carries the decision, the certificate, the face, the
+  KKT backward error and the objectives; and that the five driver flags at
+  their defaults give the earlier form and otherwise reach the route's
+  rule.  Full `paper_5` suite: 499 passed in `257.04 s`
+  (`cd paper_5 && PYTHONPATH=src python -m pytest -q`, under `ram_guard
+  --limit-mb 5000`, peak `2,033 MB`): the 480 tests of task 6, the
+  nine here, and the 10 of `tests/test_paper5_import_without_parent_repo.py`,
+  the module task 6 ignored as untracked and failing at collection, tracked
+  since `1023ef39` and collecting now.  The previous instance's pass (`paper5_suite.log`, `ram_guard --limit-mb 3000`, peak `2,092 MB`, `256.46 s`, 489 tests with that module ignored) had one failure outside this route, `tests/test_multi_coherent.py::test_frozen_model_trajectory_runs_without_a_reference_or_gate`, whose `exact-cost-once` subprocess of `multi_coherent_holdout_cli` exited 1 with its stderr piped and unshown; that module was last changed in `6442fbb5`, the test passed in task 6's gate and passes here, and the failure was not investigated further.
+- Modules changed, both owned by this route and neither imported by any
+  other: `cheap_projection_route.py` gained `LiftReselectionRule`,
+  `LiftReselectionDecision`, `CheapProjectionRoute.declared_objective`,
+  `CheapProjectionRoute.reselect_lift_decision` (the solve and retry
+  ladder of `reselect_lift`, then the rule), the `reselection_rule`
+  argument of `CheapProjectionRoute` and `prepare_cheap_projection_route`,
+  five fields on `CheapProjectionTrajectory` (`lift_reselections_accepted`,
+  `lift_reselections_accepted_uncertified`,
+  `lift_reselections_declined_by_margin`, `lift_reselections_cap_bound`,
+  `maximum_lift_reselection_solved_displacement`) and the enlarged stage
+  record; `reselect_lift` keeps its signature and returns the decision's
+  frontier.  `cheap_projection_route_analysis.py` gained the five flags,
+  `_reselection_rule`, and the `reselection_rule` block and five counters
+  in the summary's `lift` section.  Every default is unchanged: with every
+  flag absent the rule is `LiftReselectionRule()`, and the record-stages
+  rerun of the recorded configuration under it reproduces the recorded
+  run's 8,001 times, states, carried frontiers, closed coordinates,
+  eigenvalue minima and internal energies with maximum absolute difference
+  `0.0` in every array, and its score `0.328674`.  Nothing is committed.
+  `HEAD` is `bb576659` (another agent's commit); the recorded run and
+  task 6's three twins predate every change here and were not re-run.
+- Scripts, all under
+  `output/local_runs/paper_v_cheap_projection_task7_continuity_20260916_v1/`:
+  `run_one.zsh` (one rollout of the recorded configuration under
+  `ram_guard --limit-mb 3000`, every twin or rule stated as flags on its
+  command line and nowhere else), `screen.zsh` (one rule on the base and
+  its three twins, one at a time, then the scores), `screens_all.zsh` (the
+  five `t=2` screens of (b)), `screen_scores.py` (`screen_<rule>_t2.json`,
+  `screen_measured_anchor1_t20.json`, `base_only_measured_anchor1_t20.json`:
+  horizon scores, internal energies, spreads, lift counters, and the
+  31-coordinate separations with their crossings; it reads only
+  `trajectory.npz` and `summary.json` and propagates nothing),
+  `reselection_stats.py` (`reselection_stats_recorded_rule.json`,
+  `reselection_stats_measured_anchor1_base_t20.json`: every re-selection of
+  a record-stages run, from `repairs.jsonl`), `baseline_recorded_rule.json`
+  (the task-4 and task-6 artifacts rescored at `t=1` and `2`), the run
+  logs, `chain.log`, and the two suite logs (`paper5_suite.log`, the
+  previous instance's pass under `--limit-mb 3000`;
+  `paper5_suite_limit5000.log`, this one).  A `t=20` stage record is
+  15 MB.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_energy_power_n16_t20_recorded_stages_20260916_v1`
+  (`671.2 s`, peak `874 MiB`);
+  `paper_v_cheap_projection_task7_{margin,measured,anchor1,ball005,cap005,measured_anchor1}_{base,etol1e3,dykstra60,conic1e10}_t2_20260916_v1`
+  (24 rollouts of 800 steps, at most `79 s` each by `chain.log`);
+  `paper_v_cheap_projection_task7_measured_anchor1_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1`
+  (walls `843.7`, `822.6`, `998.7`, `908.5 s`; peaks `802`, `869`, `866`,
+  `794 MiB`); and `paper_v_cheap_projection_task7_smoke_t05_20260916_v1`.
+  Every rollout under `pipelines/shell/ram_guard.py --limit-mb 3000`, one
+  at a time, `1,140 s` budget, longest `998.7 s`; peaks are each run's own
+  `peak_resident_bytes` (`ru_maxrss` of the propagating process).  The
+  instance of this agent that ran the rollouts was lost to a connection
+  error after the four `t=20` rollouts and its pass of the suite had
+  completed; the instance that finished this section propagated nothing,
+  re-ran only the suite and the file's tests, and checked every number of
+  (c) against the artifacts.
+
+## What to try next, in order
+
+1. Separate the cost.  The three ingredients were screened together at
+   `t=2` only.  Two four-twin sets to `t=8`, the horizon on which the rule
+   pays most (66 percent): `measured` candidates with margin `1e-3` and no
+   anchor, and anchor `mu = 1` with certified candidates and no margin, so
+   the 33 percent at `t=4` and the 66 percent at `t=8` are attributed to
+   the margin (which declines the wrong-face answer and pays early), the
+   anchor (which recovered accuracy at `t=2`) or the `measured` scope.
+   Eight rollouts of 3,200 steps, about six minutes each.
+2. The anchor weight.  `mu = 0.5` and `mu = 2` on the base alone to `t=8`:
+   the half-way point beat the whole answer at `t=2`, and the reading
+   offered for it (the mean of the minimum-norm lift and the carried lift
+   is nearer the exact frontier than either) predicts an optimum between
+   `0` and infinity that one more decade would locate.
+3. The chosen rule on the 27-key `N=16` drive-power chain, the row whose
+   `t=4` lead over cell A sits inside a 13 percent sensitivity band
+   (`review-27key-chain-20260916.md`); the chain runs through this driver,
+   so the rule is five flags away.  If it resolves that row's `t=4` score
+   at the third digit as it does here, the ordering is settled either way.
+
+## Structured summary of task 7
+
+| item | value |
+|---|---|
+| what was added | `LiftReselectionRule` (proximal anchor at the carried lift, trust radius with `carried` / `ball` policy, deterministic acceptance margin on the completion's own objective, `certified` / `measured` candidate scope) on `CheapProjectionRoute` and `prepare_cheap_projection_route`, `reselect_lift_decision` and `declared_objective`, five driver flags, five counters and the enlarged stage record; nine tests (44 in the file); no default changed (the record-stages rerun equals the recorded run in every array); nothing committed |
+| negative result, the recorded rule | of its 500 re-selections 224 certify and 276 refuse, none after `t=11.76` (234 of the refusals are the state's lower moments admitting no positive extension), so the recorded `t=20` row is a hybrid to `t=11.76` continued by the frozen-lift route; the declared completion is proximal to the zero frontier, not the carried lift; 223 of 224 certified answers are full-face minimizers a median `0.012` from the carried lift, and the `t=0.04` answer on the 23-of-24 face (move `0.334`) is the one certified answer worse than the carried lift by the declared objective |
+| (b) the screens over `t=0` to `2`, four twins each | recorded rule spread 29.1 percent; margin `1e-3` alone 11.2 percent at `0.0101` to `0.0113` against the recorded base's `0.0079` (it declines the wrong-face answer, and that costs early accuracy); trust radius `0.05` inert; anchor `mu = 1` 4.5 percent at `0.0089` to `0.0093`; `measured` candidates 0.5 percent (the refusal flip removed; `conic1e10` identical to its base); `measured` with anchor `mu = 1` 0.4 percent at `0.0093`, the rule taken to `t=20` |
+| (c) the four scores under the chosen rule, base / `etol1e3` / `dykstra60` / `conic1e10` | over `t=0` to `4`: `0.031566` / `0.031582` / `0.031594` / `0.031566`; to `8`: `0.075551` / `0.073518` / `0.076622` / `0.076060`; to `12`: `0.143618` / `0.120502` / `0.130712` / `0.127896`; to `20`: `0.264357` / `0.256831` / `0.273564` / `0.254707`; internal energy `0.02369` to `0.02393`, `0.02913` to `0.02940`, `0.03073` to `0.03101`, `0.03195` to `0.03225` on the four horizons; over `t=0` to `20` the scaled extension minima `-3.5e-4`, `-5.5e-4`, `-3.2e-4`, `-5.8e-4` and the retained joint Gram minima `-9.1e-3`, `-1.3e-2`, `-7.6e-3`, `-1.4e-2` (recorded rule `-2.3e-3` to `-5.9e-4`, `-5.3e-2` to `-1.4e-2`) |
+| spread of the four (the recorded rule's, task 6) | 0.1 (17.7), 4.2 (12.7), 19.2 (21.0), 7.4 (26.4) percent at `T=4`, `8`, `12`, `20` |
+| separation from the base, first crossing of `1e-3` / `1e-2` / `1e-1` (the recorded rule's) | `etol1e3` `1.7875` / `4.1` / `8.415` (`0.1475` / `0.7525` / `7.01`); `dykstra60` `2.305` / `5.65` / `8.6025` (`0.145` / `0.36` / `4.0025`); `conic1e10` `6.4525` / `6.8` / `8.545` (`0.125` / `0.48` / `3.085`) |
+| is the second digit resolved, and at what cost | `t=4`: yes, at the third digit, for 33 percent (`0.0316` against the recorded `0.0237`; 21 percent above the projective event guard's `0.026049`); `t=8`: to within three units of the second digit, for 66 percent (`0.0756` against `0.0456`); `t=12`: no (19.2 percent), and 15 percent above the recorded row; `t=20`: no (7.4 percent of the cumulative RMS while every twin is `1.37` to `1.65` from the base in the 31 coordinates), 20 percent below the recorded row's `0.329` with the internal energy 23 percent worse |
+| what moved the branch | the twins now part at `t=0.16` by `0.0032` (two full-face answers after repairs differing at round-off, halved by the anchor) or at `t=6.44` by `0.14` (an answer branch of the `1e-9` and `1e-10` solves), not at `t=0.04` to `0.08` by `0.33` to `0.40`; past `t=8.5` the closure carries every difference to order one by `t=15` to `20` under either rule |
+| re-selections accepted of 500 (uncertified; declined; infeasible) | 347 (30; 4; 149), 385 (40; 3; 112), 385 (41; 5; 110), 395 (100; 5; 100); 94, 79, 83, 90 accepted in `t=15` to `20` where the recorded rule certified none |
+| gates | 44 tests in the file; full suite 499 passed in `257.04 s` under `ram_guard --limit-mb 5000`, peak `2,033 MB` |
+| files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, the worklog block, and the task-7 scripts under `output/local_runs/`.  Nothing committed |

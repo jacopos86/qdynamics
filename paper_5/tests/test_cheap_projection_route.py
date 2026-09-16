@@ -21,6 +21,7 @@ from paper5.stability.cheap_projection_route import (
     CheapProjectionRoute,
     CheapProjectionSettings,
     InternalEnergyFunctional,
+    LiftReselectionRule,
     _clip_to_floor,
     _hermitian_features,
     _hermitian_from_features,
@@ -973,3 +974,363 @@ def test_completion_conic_tolerance_is_a_declared_driver_setting() -> None:
                 active_keys=ENTRANCE_RELATIVE_MOMENT_KEYS[:3],
             ),
         )
+
+
+# --- task 7: the declared lift re-selection rule ---------------------------
+
+
+def _route_with(route, rule):
+    """The prepared route with one declared rule and nothing else changed."""
+
+    return CheapProjectionRoute(
+        route.model,
+        route.settings,
+        coordinates=route.coordinates,
+        reselection_rule=rule,
+    )
+
+
+def _force_certificate(route, monkeypatch, success: bool) -> None:
+    """The declared completion with its certificate set, its answer kept."""
+
+    declared = route.reselection_extension.complete
+
+    def forced(lower, *, warm_frontier=None):
+        return replace(
+            declared(lower, warm_frontier=warm_frontier),
+            success=success,
+            message=f"test_forced_certificate_{success}",
+        )
+
+    monkeypatch.setattr(route.reselection_extension, "complete", forced)
+
+
+@pytest.fixture(scope="module")
+def advanced(prepared):
+    """The prepared route carried 16 steps on the frozen lift.
+
+    At the accepted state after those steps the completion's answer is away
+    from the carried lift, so a re-selection has something to decide.
+    """
+
+    route, state, frontier, _ = prepared
+    trajectory = integrate_cheap_projection_ssprk3(
+        route, state, frontier, final_time=0.04, time_step=0.0025
+    )
+    assert trajectory.success
+    return trajectory.states[-1].copy(), trajectory.frontier_standardized[
+        -1
+    ].copy()
+
+
+def test_lift_reselection_rule_defaults_are_the_earlier_form() -> None:
+    rule = LiftReselectionRule()
+    assert rule.is_earlier_form
+    assert not rule.evaluates_objective
+    assert not LiftReselectionRule(anchor_weight=1.0).is_earlier_form
+    assert not LiftReselectionRule(trust_radius=0.1).is_earlier_form
+    assert LiftReselectionRule(acceptance_margin=0.0).evaluates_objective
+    assert LiftReselectionRule(candidates="measured").evaluates_objective
+    for bad in (
+        {"anchor_weight": -1.0},
+        {"anchor_weight": float("nan")},
+        {"trust_radius": 0.0},
+        {"trust_policy": "elsewhere"},
+        {"acceptance_margin": -1e-3},
+        {"candidates": "elsewhere"},
+    ):
+        with pytest.raises(ValueError):
+            LiftReselectionRule(**bad)
+
+
+def test_declared_objective_is_the_completions_reported_objective(
+    prepared, advanced
+) -> None:
+    """One formula on both lifts, and it is the completion's own."""
+
+    route, _, _, _ = prepared
+    state, carried = advanced
+    decision = route.reselect_lift_decision(
+        state, carried, evaluate_objective=True
+    )
+    assert decision.decision != "no_frontier"
+    raw, hidden = unpack_projected_apcm_state(
+        state, active_keys=route.coordinates.active_keys
+    )
+    lower = state_lower_moments(raw, hidden, route.coordinates.active_keys)
+    solved = route.coordinates.standardize_frontier(
+        decision.completion.frontier_moments
+    )
+    assert route.declared_objective(lower, solved) == pytest.approx(
+        decision.completion.objective, abs=1e-9
+    )
+    assert decision.objective_solved == pytest.approx(
+        decision.completion.objective, abs=1e-9
+    )
+    assert np.isfinite(decision.objective_carried)
+    assert decision.solved_displacement == pytest.approx(
+        float(np.linalg.norm(solved - carried))
+    )
+    assert decision.solved_displacement > 0.0
+
+
+def test_default_rule_takes_the_certified_answer_exactly(
+    prepared, advanced
+) -> None:
+    route, _, _, _ = prepared
+    state, carried = advanced
+    decision = route.reselect_lift_decision(state, carried)
+    selected, completion, _ = route.reselect_lift(state, carried)
+    assert decision.certified == completion.success
+    assert np.isnan(decision.objective_carried)
+    if completion.success:
+        expected = route.coordinates.standardize_frontier(
+            completion.frontier_moments
+        )
+        assert np.array_equal(selected, expected)
+        assert np.array_equal(decision.frontier_standardized, expected)
+        assert decision.decision == "accepted" and decision.accepted
+        assert decision.applied_displacement == decision.solved_displacement
+    else:
+        assert np.array_equal(selected, carried)
+        assert decision.decision == "refused" and not decision.accepted
+        assert decision.applied_displacement == 0.0
+
+
+def test_anchor_weight_moves_the_fraction_of_the_way(
+    prepared, advanced, monkeypatch
+) -> None:
+    route, _, _, _ = prepared
+    state, carried = advanced
+    _force_certificate(route, monkeypatch, True)
+    whole = _route_with(route, LiftReselectionRule()).reselect_lift_decision(
+        state, carried
+    )
+    anchored = _route_with(
+        route, LiftReselectionRule(anchor_weight=3.0)
+    ).reselect_lift_decision(state, carried)
+    assert whole.accepted and anchored.accepted
+    assert anchored.decision == "accepted"
+    assert whole.solved_displacement > 0.0
+    solved = whole.frontier_standardized
+    assert np.allclose(
+        anchored.frontier_standardized, carried + 0.25 * (solved - carried)
+    )
+    assert anchored.applied_displacement == pytest.approx(
+        0.25 * whole.solved_displacement
+    )
+    assert anchored.solved_displacement == pytest.approx(
+        whole.solved_displacement
+    )
+
+
+def test_trust_radius_keeps_the_carried_lift_or_scales_the_move(
+    prepared, advanced, monkeypatch
+) -> None:
+    route, _, _, _ = prepared
+    state, carried = advanced
+    _force_certificate(route, monkeypatch, True)
+    whole = _route_with(route, LiftReselectionRule()).reselect_lift_decision(
+        state, carried
+    )
+    radius = 0.5 * whole.solved_displacement
+    kept = _route_with(
+        route, LiftReselectionRule(trust_radius=radius)
+    ).reselect_lift_decision(state, carried)
+    assert kept.decision == "cap_bound_carried" and not kept.accepted
+    assert np.array_equal(kept.frontier_standardized, carried)
+    assert kept.applied_displacement == 0.0
+    assert kept.solved_displacement == pytest.approx(whole.solved_displacement)
+    ball = _route_with(
+        route, LiftReselectionRule(trust_radius=radius, trust_policy="ball")
+    ).reselect_lift_decision(state, carried)
+    assert ball.decision == "cap_bound_ball" and ball.accepted
+    assert ball.applied_displacement == pytest.approx(radius)
+    assert np.allclose(
+        ball.frontier_standardized,
+        carried + 0.5 * (whole.frontier_standardized - carried),
+    )
+    wide = _route_with(
+        route, LiftReselectionRule(trust_radius=2.0 * whole.solved_displacement)
+    ).reselect_lift_decision(state, carried)
+    assert wide.decision == "accepted"
+    assert np.array_equal(wide.frontier_standardized, whole.frontier_standardized)
+    both = _route_with(
+        route,
+        LiftReselectionRule(
+            trust_radius=radius, trust_policy="ball", anchor_weight=1.0
+        ),
+    ).reselect_lift_decision(state, carried)
+    assert both.decision == "cap_bound_ball"
+    assert both.applied_displacement == pytest.approx(0.5 * radius)
+
+
+def test_acceptance_margin_is_a_deterministic_tie_break(
+    prepared, advanced, monkeypatch
+) -> None:
+    """A candidate is taken only past the margin, on one formula."""
+
+    route, _, _, _ = prepared
+    state, carried = advanced
+    _force_certificate(route, monkeypatch, True)
+    whole = _route_with(route, LiftReselectionRule()).reselect_lift_decision(
+        state, carried, evaluate_objective=True
+    )
+    improvement = whole.improvement
+    assert np.isfinite(improvement)
+    if improvement > 0.0:
+        taken = _route_with(
+            route, LiftReselectionRule(acceptance_margin=0.5 * improvement)
+        ).reselect_lift_decision(state, carried)
+        assert taken.decision == "accepted"
+        assert np.array_equal(
+            taken.frontier_standardized, whole.frontier_standardized
+        )
+        declined = _route_with(
+            route, LiftReselectionRule(acceptance_margin=2.0 * improvement)
+        ).reselect_lift_decision(state, carried)
+    else:
+        declined = _route_with(
+            route, LiftReselectionRule(acceptance_margin=0.0)
+        ).reselect_lift_decision(state, carried)
+    assert declined.decision == "declined_by_margin"
+    assert not declined.accepted
+    assert np.array_equal(declined.frontier_standardized, carried)
+    assert declined.objective_carried == pytest.approx(whole.objective_carried)
+    assert declined.objective_solved == pytest.approx(whole.objective_solved)
+
+
+def test_measured_candidates_judge_an_uncertified_iterate_by_measurement(
+    prepared, advanced, monkeypatch
+) -> None:
+    route, _, _, _ = prepared
+    state, carried = advanced
+    _force_certificate(route, monkeypatch, False)
+    refused = _route_with(route, LiftReselectionRule()).reselect_lift_decision(
+        state, carried, evaluate_objective=True
+    )
+    assert refused.decision == "refused"
+    assert not refused.certified and not refused.accepted
+    assert np.array_equal(refused.frontier_standardized, carried)
+    measured = _route_with(
+        route, LiftReselectionRule(candidates="measured")
+    ).reselect_lift_decision(state, carried)
+    assert not measured.certified
+    tolerance = route.reselection_extension.settings.conic_tolerance
+    answer = route.coordinates.standardize_frontier(
+        measured.completion.frontier_moments
+    )
+    feasible = bool(
+        measured.completion.scaled_minimum_eigenvalue >= -10.0 * tolerance
+        and np.max(np.abs(answer)) <= 1.0 + 10.0 * tolerance
+    )
+    if not feasible:
+        assert measured.decision == "infeasible"
+    elif refused.improvement > 0.0:
+        assert measured.decision == "accepted"
+        assert np.array_equal(measured.frontier_standardized, answer)
+    else:
+        assert measured.decision == "declined_by_margin"
+    assert measured.accepted == (feasible and refused.improvement > 0.0)
+
+
+def test_rollout_counts_the_rule_and_records_the_objectives(prepared) -> None:
+    """A cap the solve cannot meet: the lift never moves, and it is counted."""
+
+    route, state, frontier, _ = prepared
+    ruled = _route_with(
+        route, LiftReselectionRule(trust_radius=1e-9, acceptance_margin=0.0)
+    )
+    trajectory = integrate_cheap_projection_ssprk3(
+        ruled,
+        state,
+        frontier,
+        final_time=0.04,
+        time_step=0.0025,
+        record_stages=True,
+        lift_reselection_interval=16,
+    )
+    assert trajectory.success
+    assert trajectory.lift_reselections == 1
+    assert trajectory.lift_reselections_accepted == 0
+    assert trajectory.lift_reselections_accepted_uncertified == 0
+    assert trajectory.maximum_lift_reselection_displacement == 0.0
+    records = [
+        record
+        for record in trajectory.records
+        if record["stage"] == "lift_reselection"
+    ]
+    assert len(records) == 1
+    record = records[0]
+    for key in (
+        "certified",
+        "decision",
+        "solved_displacement",
+        "objective_carried",
+        "objective_solved",
+        "objective_reported",
+        "kkt_backward_error",
+        "relative_face_support_dimension",
+        "relative_face_direction_dimension",
+    ):
+        assert key in record
+    assert record["applied"] is False
+    assert record["frontier_displacement"] == 0.0
+    assert record["solved_displacement"] == pytest.approx(
+        trajectory.maximum_lift_reselection_solved_displacement
+    )
+    assert np.isfinite(record["objective_carried"])
+    counted = (
+        trajectory.lift_reselections_cap_bound
+        + trajectory.lift_reselections_declined_by_margin
+        + trajectory.lift_reselection_failures
+    )
+    assert counted == 1
+    assert record["decision"] in (
+        "cap_bound_carried",
+        "declined_by_margin",
+        "refused",
+    )
+
+
+def test_reselection_rule_flags_reach_the_route() -> None:
+    from paper5.stability.cheap_projection_route_analysis import (
+        _parser,
+        _reselection_rule,
+    )
+
+    parsed = _parser().parse_args(["--output-directory", "unused"])
+    assert _reselection_rule(parsed) == LiftReselectionRule()
+    assert _reselection_rule(parsed).is_earlier_form
+    parsed = _parser().parse_args(
+        [
+            "--output-directory",
+            "unused",
+            "--reselection-anchor-weight",
+            "2",
+            "--reselection-trust-radius",
+            "0.1",
+            "--reselection-trust-policy",
+            "ball",
+            "--reselection-acceptance-margin",
+            "1e-3",
+            "--reselection-candidates",
+            "measured",
+        ]
+    )
+    rule = _reselection_rule(parsed)
+    assert rule == LiftReselectionRule(
+        anchor_weight=2.0,
+        trust_radius=0.1,
+        trust_policy="ball",
+        acceptance_margin=1e-3,
+        candidates="measured",
+    )
+    route, _, _, _ = prepare_cheap_projection_route(
+        DimerParameters(),
+        phonon_cutoff=16,
+        settings=CheapProjectionSettings(policy="dykstra", target="both"),
+        reselection_rule=rule,
+    )
+    assert route.reselection_rule == rule
+    assert route.reselection_rule.evaluates_objective

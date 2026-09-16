@@ -49,8 +49,11 @@ from .cheap_projection_route import (
     CHEAP_PROJECTION_ENERGY_REFERENCES,
     CHEAP_PROJECTION_POLICIES,
     CHEAP_PROJECTION_TARGETS,
+    LIFT_RESELECTION_CANDIDATES,
+    LIFT_RESELECTION_TRUST_POLICIES,
     CarriedWitnessAffineGram,
     CheapProjectionSettings,
+    LiftReselectionRule,
     integrate_carried_witness_cheap_projection,
     integrate_cheap_projection_ssprk3,
     prepare_cheap_projection_route,
@@ -255,6 +258,61 @@ def _parser() -> argparse.ArgumentParser:
             "decade cannot be applied there."
         ),
     )
+    parser.add_argument(
+        "--reselection-anchor-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Proximal anchor at the carried lift, mu >= 0: an accepted "
+            "re-selection moves the carried lift the fraction 1/(1+mu) of "
+            "the way to the completion's answer, which is the minimizer of "
+            "the anchored objective under the identity-Hessian model of the "
+            "declared objective (the completion exposes no proximal "
+            "centre).  0 is the earlier form, the answer taken whole."
+        ),
+    )
+    parser.add_argument(
+        "--reselection-trust-radius",
+        type=float,
+        default=None,
+        help=(
+            "Declared cap on the Euclidean move of the standardized "
+            "frontier in one re-selection; None is the earlier form."
+        ),
+    )
+    parser.add_argument(
+        "--reselection-trust-policy",
+        choices=LIFT_RESELECTION_TRUST_POLICIES,
+        default="carried",
+        help=(
+            "When the cap binds: carried keeps the carried lift; ball takes "
+            "the point at the cap on the segment toward the answer."
+        ),
+    )
+    parser.add_argument(
+        "--reselection-acceptance-margin",
+        type=float,
+        default=None,
+        help=(
+            "Deterministic acceptance: the answer replaces the carried lift "
+            "only when the declared objective at it lies below the declared "
+            "objective at the carried lift by more than this margin, both "
+            "evaluated by one formula; None is the earlier form."
+        ),
+    )
+    parser.add_argument(
+        "--reselection-candidates",
+        choices=LIFT_RESELECTION_CANDIDATES,
+        default="certified",
+        help=(
+            "Which solves may replace the carried lift: certified (the "
+            "completion's own certificate, the earlier form) or measured "
+            "(any returned iterate that passes the completion's own "
+            "feasibility test of a warm frontier and improves the declared "
+            "objective by more than max(margin, 0); the certificate is "
+            "recorded, not consulted)."
+        ),
+    )
     parser.add_argument("--wall-budget-seconds", type=float, default=1200.0)
     parser.add_argument(
         "--record-stages",
@@ -279,6 +337,31 @@ def _extension_settings(
         return APCMExtensionSettings()
     return replace(
         APCMExtensionSettings(), conic_tolerance=float(conic_tolerance)
+    )
+
+
+def _reselection_rule(args: argparse.Namespace) -> LiftReselectionRule:
+    """The declared lift re-selection rule the driver's flags state.
+
+    With every flag at its default this is ``LiftReselectionRule()``, the
+    earlier form of the driver: the certified answer taken whole and the
+    carried lift kept on a refusal.
+    """
+
+    return LiftReselectionRule(
+        anchor_weight=float(args.reselection_anchor_weight),
+        trust_radius=(
+            None
+            if args.reselection_trust_radius is None
+            else float(args.reselection_trust_radius)
+        ),
+        trust_policy=args.reselection_trust_policy,
+        acceptance_margin=(
+            None
+            if args.reselection_acceptance_margin is None
+            else float(args.reselection_acceptance_margin)
+        ),
+        candidates=args.reselection_candidates,
     )
 
 
@@ -645,6 +728,7 @@ def main() -> int:
     )
     projection_settings = APCMProjectionSettings()
     model_settings = ProjectedAPCMSettings()
+    reselection_rule = _reselection_rule(args)
 
     build_started = perf_counter()
     route, initial_state, initial_frontier, ground_energy = (
@@ -659,6 +743,7 @@ def main() -> int:
             completion_retry_shifts=tuple(args.completion_retry_shifts),
             completion_retry_weights=tuple(args.completion_retry_weights),
             reselection_extension_settings=reselection_extension_settings,
+            reselection_rule=reselection_rule,
         )
     )
     route.coordinates.factorization(settings)
@@ -860,6 +945,18 @@ def main() -> int:
             ),
             "retry_solves": trajectory.lift_reselection_retry_solves,
             "retry_wall_seconds": trajectory.lift_reselection_retry_seconds,
+            "reselection_rule": asdict(reselection_rule),
+            "reselections_accepted": trajectory.lift_reselections_accepted,
+            "reselections_accepted_uncertified": (
+                trajectory.lift_reselections_accepted_uncertified
+            ),
+            "reselections_declined_by_margin": (
+                trajectory.lift_reselections_declined_by_margin
+            ),
+            "reselections_cap_bound": trajectory.lift_reselections_cap_bound,
+            "maximum_reselection_solved_frontier_displacement_euclidean": (
+                trajectory.maximum_lift_reselection_solved_displacement
+            ),
         },
         "internal_energy": {
             "reference_mode": args.energy_reference_mode,

@@ -5751,3 +5751,191 @@ and the outputs `tightresel_chain_score_t20.json`,
 Next: the same lever on the 27-key `post_pulse` chain, which is the one
 measurement that settles the `t=20` ordering against both bands; a decade
 looser (`1e-8`) on the drive-power chain.
+
+## 2026-09-16: cheap projection route, seventh pass: a continuous lift update, and whether it resolves the second digit
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(seventh heading).  Configuration of every row is the recorded
+`paper_v_cheap_projection_energy_power_n16_t20_20260915_v1` (fourth pass)
+and its three one-setting twins of the sixth pass (`energy_tolerance`
+`1e-3`; Dykstra 60; re-selection `conic_tolerance` `1e-10`): strong
+coupling, cutoff 16, exact-correlated preparation, 15 entrance keys,
+`h=0.0025`, the unguarded fixed-dictionary predictor, Dykstra 30 on both
+targets at stage cadence, the declared proximal log-det completion
+re-solved every 16 steps warm-started on the carried frontier, the
+energy-neutral option in `drive_power` mode, 8,000 steps to `t=20`.
+Scores, internal energy and separations are the sixth pass's; a lift is a
+point of the 62 standardized frontier coordinates.  Added to the owned
+modules: the declared lift re-selection rule `LiftReselectionRule`
+(proximal anchor at the carried lift, trust radius with `carried` / `ball`
+policy, deterministic acceptance margin on the completion's own objective,
+`certified` / `measured` candidate scope), five driver flags, five
+counters, the enlarged stage record; nine tests (44 in the file); no
+default changed (a record-stages rerun of the recorded configuration
+equals it in every array); nothing committed.
+
+Negative result first: under the recorded rule the recorded `t=20` row is
+a hybrid only to `t=11.76`.  Of its 500 re-selections 224 certify and 276
+refuse, the last certificate at `t=11.76` and 234 of the refusals the
+reference completion reporting the state's 29 lower moments
+primal-infeasible (no positive 24-row extension exists), so the row's last
+8.24 time units are the frozen-lift route with the Dykstra repair.  The
+declared completion is proximal to the zero frontier and not to the
+carried lift (its warm frontier is a starting point, not a term of the
+objective), so every rule acts on the answer.  223 of the 224 certified
+answers are full-face minimizers a median `0.012` (90th percentile
+`0.037`) from the carried lift; the `t=0.04` answer on the 23-of-24 face
+(move `0.334`) is the one certified answer whose declared objective is
+above the carried lift's.  Screens over `t=0` to `2` on the four twins
+(20 rollouts, one at a time): the margin `1e-3` alone declines that answer
+in every run and cuts the spread from 29.1 to 11.2 percent at a cost,
+`0.0101` to `0.0113` against the recorded base's `0.0079`; the trust
+radius `0.05` is inert; anchor `mu = 1` gives 4.5 percent at `0.0089` to
+`0.0093`; `measured` candidates remove the refusal flip (0.5 percent,
+`conic1e10` identical to its base); `measured` with anchor `mu = 1` gives
+0.4 percent at `0.0093`.
+
+That rule to `t=20` on the four (walls `843.7`, `822.6`, `998.7`,
+`908.5 s`, one at a time under `ram_guard --limit-mb 3000`): scores base /
+`etol1e3` / `dykstra60` / `conic1e10` `0.031566` / `0.031582` / `0.031594`
+/ `0.031566` over `t=0` to `4`, `0.075551` / `0.073518` / `0.076622` /
+`0.076060` to `8`, `0.143618` / `0.120502` / `0.130712` / `0.127896` to
+`12`, `0.264357` / `0.256831` / `0.273564` / `0.254707` to `20`; spreads
+0.1, 4.2, 19.2, 7.4 percent against the recorded rule's 17.7, 12.7, 21.0,
+26.4; internal energy `0.0237`, `0.0291`, `0.0307`, `0.0320` on the four
+horizons (three runs to five digits; `etol1e3` `3e-4` above); scaled
+extension minima `-3.2e-4` to `-5.8e-4` and retained joint Gram minima
+`-7.6e-3` to `-1.4e-2` over `t=0` to `20` (recorded rule `-2.3e-3` to
+`-5.9e-4`, `-5.3e-2` to `-1.4e-2`).  Separation from the base crosses
+`1e-3` / `1e-2` / `1e-1` at `1.7875` / `4.1` / `8.415` (`etol1e3`),
+`2.305` / `5.65` / `8.6025` (`dykstra60`), `6.4525` / `6.8` / `8.545`
+(`conic1e10`), against the recorded rule's `0.125` to `0.1475` / `0.36` to
+`0.7525` / `3.085` to `7.01`.  The second digit is resolved over `t=0` to
+`4` (at the third digit; cost 33 percent, `0.0316` against the recorded
+`0.0237`, 21 percent above the projective event guard) and to within three
+units over `t=0` to `8` (cost 66 percent, `0.0756` against `0.0456`); not
+at `t=12` (19.2 percent) nor at `t=20`, where the 7.4 percent of the
+cumulative RMS hides twins `1.37` to `1.65` from the base in the 31
+coordinates, though the score is 20 percent below the recorded row
+(`0.264` against `0.329`) with the internal energy 23 percent worse and
+re-selection continuing to the end (94 of 125 accepted in `t=15` to `20`
+against none).  The ingredients' costs were not separated.
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_energy_power_n16_t20_recorded_stages_20260916_v1`,
+the 24 `paper_v_cheap_projection_task7_<rule>_<twin>_t2_20260916_v1`
+screens, the four
+`paper_v_cheap_projection_task7_measured_anchor1_<twin>_t20_20260916_v1`,
+and the scripts and outputs in
+`paper_v_cheap_projection_task7_continuity_20260916_v1/` (`run_one.zsh`,
+`screen.zsh`, `screens_all.zsh`, `screen_scores.py`,
+`reselection_stats.py`, their `.json`, the run logs, `chain.log`, the
+suite logs).  Longest rollout `998.7 s`, largest own peak `874 MiB`.
+Gates: 44 tests in `test_cheap_projection_route.py`; full suite
+499 passed in `257.04 s` under `ram_guard --limit-mb 5000`,
+peak `2,033 MB`.  Next: separate the cost (`measured` without the
+anchor, the anchor without the margin, four twins each to `t=8`); the
+anchor weight `0.5` and `2`; the chosen rule on the 27-key `N=16`
+drive-power chain.
+
+## 2026-09-16: projective route, task 7: the same lever on the 27-key `N=16` post-pulse chain to `t=20`, and the `t=20` ordering against both bands
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 7 (2026-09-16)").  The lever of tasks 5
+and 6 (re-selection completion solved at `conic_tolerance=1e-10` against
+the committed `1e-9`, everything else identical, imports from `head_src` at
+`2d8f0efb`) on the 27-key `N=16` `post_pulse` energy-neutral chain from
+`t=0` to `20` in five chained `ram_guard --limit-mb 4500` segments (`0` to
+`4` in mode `none`, `708.0 s`, 100 completions re-solved / 30 refused; `4`
+to `8` in `post_pulse` mode, `721.8 s`, 100 / 35; `8` to `12.76` on budget,
+`1,002.2 s`, 119 / 60; `12.76` to `18.115` on budget, resume `18.08`,
+`1,000.0 s`, 133 / 37; `18.08` to `20` reached, `336.0 s`, 48 / 8; peaks
+`649` to `717 MiB`).  The recorded driven interval could not be reused as
+task 4 reused it: the lever enters its 100 re-selections, so it was rerun
+under the lever, and the gate that the driver in that mode at `1e-9` is
+bitwise the task-3 rollout over `t=0` to `0.4` (161 samples, `0.0`, seven
+arrays) is what makes the rerun differ from the record by the lever alone.
+Chain totals: `3,768.0 s` (recorded `3,887.0 s`), 500 re-solved with 170
+refused (recorded 77), `92.5` percent in the solves, energy held to
+`2.22e-15` over 19,130 constrained repairs, reference `-3.36598170532346`
+unchanged to `9e-16`.  All four 27-key members scored on one grid of 8,001
+samples against the cached exact reference.  No module edited; nothing
+committed; no default changed.
+
+Result first: the `t=20` ordering of the two 27-key chains is settled
+against both measured bands --- the `post_pulse` chain scores
+`6.990927e-2` / `7.563847e-2` (recorded / tightened, band 8.2 percent) on
+the all-coordinate scalar RMS of the 31 closed scalar coordinates over
+`t=0` to `20`, the `drive_power` chain `8.519313e-2` / `9.088037e-2` (6.7
+percent); the bands are disjoint by 12.6 percent and the `post_pulse` chain
+leads by 1.13 (closest members) to 1.30 (farthest) under every pairing.
+The gap exceeds both band widths at `t=20` but not the `post_pulse` chain's
+own response to the lever at `t=4` (20.9 percent) and `t=12` (24.1), so the
+statement is on the four members, not a bound.  On the Eq. (22) internal
+energy the ordering is reversed under both settings (`post_pulse`
+`1.648e-1` / `1.876e-1` against `drive_power` `6.345e-3` / `5.218e-3`: 26 to
+36 times), and on physicality neither chain holds a cone under either
+setting (retained joint Gram minima `-3.124e-3` / `-2.993e-3` against
+`-2.463e-3` / `-2.374e-3`; scaled extension `-3.429e-4` / `-3.295e-4`
+against `-2.040e-4` / `-2.098e-4`).
+
+The lever's effect on the `post_pulse` chain has no sign: tightened minus
+recorded over recorded `+20.9`, `+4.0`, `-8.3`, `-10.7`, `-24.1`, `-15.6`,
+`+8.2` percent at `t=4, 6, 8, 10, 12, 16, 20` (the `drive_power` chain:
+`+13.1`, `+10.7`, `+4.5`, `+0.7`, `+1.9`, `+5.4`, `+6.7`); the `post_pulse`
+band is the wider at every horizon but `t=6`.  Band table (recorded /
+tightened; the `drive_power` band as comparator): `t=4` `1.631e-2` /
+`1.972e-2`, `drive_power` ahead 1.26 to 1.73 (disjoint by 26.2 percent;
+cell A `1.258e-2` ahead of the better member by 1.30); `t=8` `4.538e-2` /
+`4.159e-2`, `drive_power` ahead 1.53 to 1.75, and the 15-key `post_pulse`
+row `4.254e-2` lies inside the band (task 4's "worse at 27 keys" at `t=8`
+is a tie); `t=12` `6.076e-2` / `4.612e-2`, `drive_power` ahead 1.06 to
+1.43, disjoint by only 6.5 percent against a 24.1 percent band; `t=16`
+`6.385e-2` / `5.386e-2`, the bands overlap on `6.377e-2` to `6.385e-2`: no
+ordering; `t=20` as above.  The `t=0` to `4` row is task 3's 27-key
+unconstrained row, so its band `1.63e-2` to `1.97e-2` is that number's
+sensitivity; both members stay below the 15-key unconstrained `2.684e-2`
+and the projective event guard's `2.605e-2`.
+
+The internal-energy penalty of the tightened member (14 to 20 percent at
+every horizon) is its reference: the `post_pulse` reference is the
+trajectory's own Eq. (22) energy at `t=4`, `-3.3905733452008326` (recorded,
+`0.180825` above exact) against `-3.3659817053234624` (tightened,
+`0.205416` above), and the difference `2.459e-2` is `|E_tight - E_rec|` at
+every constrained sample; the `drive_power` members' references differ by
+`1.176e-3`.  Separation: identical through `t=0.0775`; the first difference
+is the `t=0.08` re-selection, certified at the committed setting (reduced
+gradient `9.016e-9` after 18 interior-Newton iterations; the gate's ledger
+stands in for the recorded rollout, which recorded none) and refused at the
+tightened one (`9.327e-9` at the 40-iteration cap), a `0.344` frontier
+jump; the 31-coordinate distance reaches `1e-2` at `t=1.54`, `0.1` at
+`5.39`, `0.2` at `7.09`, maximum `0.486` at `11.695` (window means
+`0.0232`, `0.1411`, `0.3128`, `0.3452`, `0.3312` over `(0,4]` to
+`(16,20]`), and at `t=12` is 147 percent of the better member's own
+distance from exact; the 56-state distance reaches 1 at `t=7.82`, maximum
+`2.71`.  Five times the `drive_power` pair's maximum `0.0955`.  Refusals of
+the tightened chain, 170 of 500: 96 interior-Newton certificates over the
+KKT threshold, 45 conic-Newton descent failures, 19 conic `Solved`
+certificates over it, 8 infeasible reference completions, 2 `AlmostSolved`;
+15 of 447 reduced gradients in `(5e-9, 5e-8]`; by window `15/50`, `15/50`,
+`19/49`, `16/51`, `24/50`, `25/50`, `21/50`, `13/50`, `14/50`, `8/50`.
+Site-0 in the record's `2 rho[0,0]` convention at `t=20`: `0.125` /
+`0.187` against both cones `0.205` and `drive_power` `0.225` / `0.238`.
+Plan-file row updated with this.
+
+Artifacts under `output/local_runs/`:
+`paper_v_dictionary_energy_postpulse_27key_n16_tightresel_20260916g_seg{0,1,2,3,4}`
+(each with `reselections.json`),
+`paper_v_dictionary_energy_prefixgate_postpulse_reselroute_20260916g`; in
+`paper_v_projective_dictionary_energy_20260915e/`:
+`queue_tight_postpulse.sh`, `prefixgate_postpulse_reselroute.sh`,
+`score_tight_postpulse.sh`, `monitor_tight_postpulse.sh`,
+`tabulate_task7.py`, and the outputs
+`tightresel_postpulse_chain_score_t20.json`,
+`compare_tightresel_postpulse_t20.json`,
+`compare_tightresel_postpulse_driven.json`,
+`prefix_gate_postpulse_reselroute.json`, `tabulate_task7.log`,
+`tightresel_postpulse_chain.log`, the segment and gate logs.  Next: a
+decade looser (`1e-8`) on both 27-key chains, a third member in every band;
+the cheap route's continuous re-selection rule, which removes the
+amplifier.
