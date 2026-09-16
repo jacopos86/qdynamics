@@ -1325,3 +1325,306 @@ moments sit `2.463e-03` outside the retained cone and `2.040e-04` outside the
 scaled positive extension.  On accuracy per unit of wall, `4,794.4 s` against
 `5,832.34 s` for a score `1.51` times smaller, this chain wins; on the
 statement that the closure stayed inside its cones, it has nothing to say.
+
+# projective-route, task 5 (2026-09-16)
+
+The cheap route's task 5 found that two runs of one 15-key `N = 4`
+`post_pulse` configuration, differing only in whether near-zero repairs were
+skipped, separate to `1e-2` at `t = 6.93`, `0.1` at `t = 8.38` and order one
+by `t = 11`, and named the completion's refusal --- a discontinuous function
+of the state --- as the candidate amplifier.  This round measures the
+sensitivity of the 27-key `N = 16` `drive_power` energy-neutral chain of task
+4 to the one setting that decides a refusal: the completion solve's conic
+tolerance, `APCMExtensionSettings.conic_tolerance`, moved one decade tighter
+from the committed `1e-9` to `1e-10`, everything else identical.  Imports are
+again from `head_src/` (the committed tree at `2d8f0efb`, unchanged by the
+cheap route's later commits); no module was edited and nothing was
+committed.  The reviewer's corrections to task 4
+(`review-27key-chain-20260916.md`) are taken as the record below: the "best
+other row" at `t = 12`, `16` and `20` is the route's own 27-key `post_pulse`
+chain (`6.075829e-02`, `6.385168e-02`, `6.990927e-02`), so the task-4
+statement was already withdrawn at `t = 16` (a tie) and `t = 20` (second).
+
+Where the tolerance enters, read from `apcm_positive_extension.py`: it is
+Clarabel's `tol_gap_abs`, `tol_gap_rel` and `tol_feas` in the completion's
+conic solves, the interior Newton's warm-start, stopping and relative-interior
+thresholds (`0.1`, `5`, `10` and `100` times it), the acceptance of a
+`NumericalError` exit (`100` times it), and the certificate every completion
+must pass: scaled minimum eigenvalue `>= -10 tol` and KKT backward error
+`<= 50 tol`.  It enters nothing else on this route: the Dykstra repair, the
+velocity and the integrator never read it.  The same setting on the *model's*
+extension does enter the carried completion the velocity accepts at every
+stage (`FixedDictionaryProjectedAPCM._carried_completion`: box margin
+`1 - 10 m tol`, scaled minimum `>= m tol`), which is why the run below
+tightens the re-selection solve alone.
+
+## The result, first
+
+**The recorded chain's `t = 4` score is not a second-digit number, and the
+"best on record" statement at `t = 4` does not survive.**  With the
+re-selection completion solved at `1e-10`, the all-coordinate scalar RMS of
+the 31 closed scalar coordinates over `t = 0` to `4` is `1.292283e-02`
+against the recorded `1.142716e-02`, a `13.1` percent difference for a
+one-decade solver-tolerance change, and the recorded comparator, the
+positive-`M4` cell A at `1.258000e-02`, lies between the two.  The recorded
+member of the configuration is `0.908` of cell A and the tightened member
+`1.027` of it; the `9` percent margin task 4 reported sits inside the
+sensitivity.
+
+**At `t = 8` and `t = 12` the statement survives with room to spare.**
+Over `t = 0` to `8` the two members score `2.593079e-02` and `2.709352e-02`
+(`4.5` percent apart) against the best other recorded row's `4.254200e-02`;
+over `t = 0` to `12` they score `4.250925e-02` and `4.331967e-02` (`1.9`
+percent) against the 27-key `post_pulse` chain's `6.075829e-02`.
+
+**The two trajectories separate at the first re-selection whose certificate
+flips, and never by more than a fifth of their own error.**  The two chains
+start from the identical state and carried frontier (the preparation is at
+the committed setting; the gate below is bitwise).  At `t = 0.2` the recorded
+chain certified its re-selection (conic certificate `Solved`, reduced
+gradient `1.247e-08`, under the committed `5e-8`) and the tightened chain
+refused the same solve (`1.247e-08` is over `5e-9`) and carried its lift, a
+`0.353` jump in the 70 standardized frontier coordinates; its first certified
+re-selection is at `t = 0.72`.  The 31-coordinate Euclidean distance between
+the chains is `1e-4` at the next sample (`t = 0.2025`), `1e-3` at
+`t = 0.5275`, `1e-2` at `t = 1.7375`, and never reaches `1e-1` through
+`t = 12`; its maximum is `0.0937` at `t = 11.7475`.  Against the trajectories'
+own distance from the exact reference at the same horizon (`0.155` to `0.171`
+at `t = 4`, `0.234` to `0.237` at `t = 8`, `0.503` to `0.533` at `t = 12`),
+the two members are `21`, `16` and `16` percent of the way apart.
+
+**The whole-extension form of the change cannot even be prepared.**  With
+the model's extension itself at `1e-10` the declared completion retry ladder
+is exhausted at the exact-correlated preparation: at the base setting the
+interior-Newton certificate's KKT backward error is `6.209e-08` against
+`5e-9`, at the `1e-8` shift rung `9.076e-08`, and at the `1e-7` shift and
+`0.1` weight rungs the conic certificates report `AlmostSolved` with KKT
+errors `1.459` and `2.447`.  At the committed `1e-9` the base setting refuses
+by the same check (`6.209e-08` over `5e-8`) and the `1e-8` shift rung
+certifies at `4.270e-08`, a `15` percent margin under the threshold: the
+recorded chain's own preparation is inside a factor `1.2` of refusing.  The
+scaled minimum eigenvalue is `-1e-15` at every setting and both tolerances
+--- the cone check never binds; the discriminating check of this completion
+is the KKT backward error against `50 tol`.  The tightened chain therefore
+prepares at the committed setting, keeps the model's extension at the
+committed setting (so the carried completion the velocity accepts is
+unchanged) and solves only the re-selection completion at `1e-10`, through a
+driver-level subclass of `CheapProjectionRoute` whose `reselect_lift` body is
+the committed one with the solver swapped.  The cheap route's sixth pass met
+the same wall at 15 keys (`AlmostSolved` at the preparation) and made the
+same choice.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the patched driver at the committed setting reproduces the recorded chain | `t = 0` to `0.4` with `--record-reselections` and no tolerance flag: equal under `np.array_equal` to the recorded segment 1 on all 161 samples of times, states, standardized frontier, both eigenvalue series, envelope ratio, archive coordinates, internal energy and its reference (maximum difference `0.0`).  Artifact `paper_v_dictionary_energy_prefixgate_tightdriver_20260916f`, `prefix_gate_tightdriver.json` |
+| the re-selection subclass at the committed `1e-9` reproduces it too | the same bitwise equality on the same arrays, and the same 10-entry re-selection ledger (applied, iterations, message) as the first gate.  Artifact `paper_v_dictionary_energy_prefixgate_reselroute_20260916f`, `prefix_gate_reselroute.json` |
+| the recording of re-selections changes no number | the two gates above record every re-selection and are bitwise the recorded run, which recorded none |
+| a segment resumes on a re-selection boundary | segment 1 stopped at `t = 3.74` and segment 2 resumed at `t = 3.72`, the last accepted step that is a whole number of 16-step intervals from `t = 0`; segment 2 stopped at `7.52` and resumed there; segments 3 and 4 reached their horizons |
+| the energy is held where the constraint is on | maximum deviation from the declared reference `1.78e-15` over 14,401 constrained repairs, hyperplane representable at every one |
+| the two chains are on one time grid | 4,801 common samples, `t = 0` to `12`, times equal to `1e-12` |
+
+## (a) The chain to `t = 8`, and (b) its continuation to `t = 12`
+
+Every segment is a separate `ram_guard --limit-mb 4500` process, resumed
+from the previous segment's saved state and carried frontier, no two ever at
+once, with the `1,000 s` autonomous budget of the recorded chain.  The third
+segment fit and a fourth reached `t = 12` inside one budget.
+
+| quantity | tightened seg 1 | seg 2 | seg 3 | seg 4 | recorded seg 1 | seg 2 | seg 3 | seg 4 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| interval | `0` to `3.74` | `3.72` to `7.52` | `7.52` to `8.0` | `8.0` to `12.0` | `0` to `3.96` | `3.96` to `7.84` | `7.84` to `8.0` | `8.0` to `11.84` |
+| accepted steps | 1,496 | 1,520 | 192 | 1,600 | 1,584 | 1,552 | 64 | 1,536 |
+| why it stopped | budget | budget | reached `t = 8` | reached `t = 12` | budget | budget | reached `t = 8` | budget |
+| autonomous wall | `1,000.0 s` | `1,001.3 s` | `113.5 s` | `961.0 s` | `1,011.7 s` | `1,010.8 s` | `35.5 s` | `1,000.4 s` |
+| declared completions re-solved / refused | 93 / 42 | 95 / 48 | 12 / 7 | 100 / 54 | 99 / 32 | 97 / 42 | 4 / 1 | 96 / 32 |
+| wall in those solves | `929.9 s` | `930.0 s` | `104.5 s` | `887.6 s` | `939.3 s` | `937.6 s` | `32.4 s` | `926.6 s` |
+| repairs applied / skipped | 4,465 / 23 | 4,560 / 0 | 576 / 0 | 4,800 / 0 | 4,711 / 41 | 4,656 / 0 | 192 / 0 | 4,608 / 0 |
+| peak resident | `637 MiB` | `642 MiB` | `646 MiB` | `634 MiB` | `629 MiB` | `626 MiB` | `627 MiB` | `611 MiB` |
+
+Chain totals: to `t = 8`, 200 declared completions re-solved with **97
+refused** (recorded: 75), `1,964.4 s` of `2,114.8 s` in the solves
+(recorded `1,909.4 s` of `2,058.0 s`); to `t = 12`, 300 re-solved with 151
+refused, `2,852.0 s` of `3,075.9 s` (`93` percent), `9.51 s` mean solve
+(recorded to `t = 11.84`: 296 re-solved, 107 refused).  The tightened chain
+is `2.8` percent slower to `t = 8` and every segment stayed inside twenty
+minutes.
+
+Of the 151 refusals, by the certificate the completion reported: 69
+interior-Newton stationarity certificates whose KKT backward error is over
+`5e-9`; 41 `conic Newton step failed descent`; 15 conic certificates `Solved`
+with the KKT error over the threshold; 15 reference completions
+`PrimalInfeasible` and 3 `AlmostPrimalInfeasible`; 7 facial reductions that
+removed every frontier direction; 1 `AlmostSolved`.  All 149 certified
+re-selections carry the interior-Newton certificate.  27 of the 234
+interior-Newton solves have their reduced gradient in `(5e-9, 5e-8]`, the
+band the decade moves from certified to refused.  Refusals by window: 31 of
+50 re-selections over `(0, 2]`, 11 of 50 over `(2, 4]`, 25 of 49 over
+`(4, 6]`, 30 of 51 over `(6, 8]`, 29 of 50 over `(8, 10]`, 25 of 50 over
+`(10, 12]`.
+
+Cumulative scores from `t = 0`, tightened member against the recorded one;
+the relative column is (tightened minus recorded) over recorded; the best
+other row is the reviewer's corrected one:
+
+| horizon | all-coordinate, recorded | tightened | relative | Eq. (22) internal energy, recorded | tightened | best other row on record | statement |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `t = 4` | `1.142716e-02` | `1.292283e-02` | `+13.1 %` | `4.597225e-03` | `3.687212e-03` | `1.258000e-02` (cell A) | fails for the tightened member |
+| `t = 6` | `2.090571e-02` | `2.314018e-02` | `+10.7 %` | `5.394635e-03` | `4.390441e-03` | --- | --- |
+| `t = 8` | `2.593079e-02` | `2.709352e-02` | `+4.5 %` | `5.751890e-03` | `4.702571e-03` | `4.254200e-02` (15-key `post_pulse`) | survives, factor `1.57` on the worse member |
+| `t = 10` | `3.332970e-02` | `3.356926e-02` | `+0.7 %` | `5.955999e-03` | `4.880305e-03` | --- | --- |
+| `t = 12` | `4.250925e-02` | `4.331967e-02` | `+1.9 %` | `6.088286e-03` | `4.995294e-03` | `6.075829e-02` (27-key `post_pulse`) | survives, factor `1.40` |
+
+The rest of the chart at the same horizons (site-0 occupation is
+`rho[0,0]` sample RMS for both members, the chain's own convention; the
+reviewer's factor-2 note applies only where a record value is quoted):
+
+| quantity | `t = 4`, recorded / tightened | `t = 8` | `t = 12` |
+|---|---:|---:|---:|
+| the 27 coordinates outside the phonon-occupation block | `1.164437e-02` / `1.347560e-02` | `2.474607e-02` / `2.577152e-02` | `4.385377e-02` / `4.483890e-02` |
+| the four phonon-occupation coordinates | `9.836299e-03` / `8.276556e-03` | `3.282777e-02` / `3.472464e-02` | `3.198825e-02` / `3.118564e-02` |
+| blockwise, rho / B / N / A / C, recorded | `2.0368e-02` / `6.9088e-03` / `9.8363e-03` / `8.9418e-03` / `1.1167e-02` | `4.0173e-02` / `2.7248e-02` / `3.2828e-02` / `1.9942e-02` / `2.1275e-02` | `6.9808e-02` / `7.5185e-02` / `3.1988e-02` / `3.0539e-02` / `2.5493e-02` |
+| blockwise, tightened | `2.2501e-02` / `7.2741e-03` / `8.2766e-03` / `1.2051e-02` / `1.2820e-02` | `4.1681e-02` / `2.5356e-02` / `3.4725e-02` / `2.2288e-02` / `2.2628e-02` | `7.2200e-02` / `7.3405e-02` / `3.1186e-02` / `3.5349e-02` / `2.6180e-02` |
+| site-0 occupation | `1.430879e-02` / `1.515553e-02` | `3.027929e-02` / `3.095132e-02` | `5.278107e-02` / `5.430664e-02` |
+| minimum unshifted retained joint Gram | `-4.535e-04` / `-4.511e-04` | `-2.152e-03` / `-2.201e-03` | `-2.463e-03` / `-2.374e-03` |
+| minimum scaled positive-extension eigenvalue | `-4.852e-05` / `-5.846e-05` | `-1.922e-04` / `-1.980e-04` | `-2.040e-04` / `-2.098e-04` |
+| maximum standardized frontier envelope ratio | `0.3694` / `0.3605` | `0.4518` / `0.4212` | `0.4518` / `0.4365` |
+| Euclidean coordinate difference from the exact reference at the horizon, all 31 | `1.551037e-01` / `1.706443e-01` | `2.372364e-01` / `2.335909e-01` | `5.027756e-01` / `5.331822e-01` |
+
+Three readings of the table.
+
+1. **The internal energy is the one column the tightened member improves,
+   by `18` to `20` percent at every horizon, and the reason is its
+   reference, not its repair.**  The `drive_power` reference the tightened
+   chain selects at `t = 4` is `-3.565863978942048`, `0.005534` above the
+   exact `-3.571397982`, where the recorded chain's is
+   `-3.564687762684483`, `0.006710` above: the two references differ by
+   `1.176e-03`, and that is exactly the difference of the two chains'
+   Eq. (22) energies at every sample after `t = 4` (maximum `2.168e-03`
+   during the drive).  The physicality minima agree to `2` to `5` percent,
+   so neither member holds a cone and the task-4 physicality statement is
+   unchanged.
+2. **The block that moves the score is not the phonon-occupation block.**
+   At `t = 4` the tightened member is better on the four phonon-occupation
+   coordinates (`8.277e-03` against `9.836e-03`) and worse on the other 27
+   (`1.348e-02` against `1.164e-02`), the A and C correlation blocks most
+   (`1.35` and `1.15` times).  The task-4 finding that the energy constraint
+   reverses the enlargement's phonon-occupation penalty holds for both
+   members (`8.277e-03` and `9.836e-03` against the unconstrained
+   `2.975e-02`).
+3. **The pointwise separation is still growing at `t = 12` while the
+   cumulative score's sensitivity is shrinking.**  Window means of the
+   31-coordinate distance between the chains: `0.0162` over `(0, 4]`,
+   `0.0346` over `(4, 8]`, `0.0532` over `(8, 12]`, with the maximum
+   `0.0937` at `t = 11.75` and `0.0828` at `t = 12`; the relative
+   difference of the cumulative score runs `13.1`, `10.7`, `4.5`, `0.7`,
+   `1.9` percent at `t = 4`, `6`, `8`, `10`, `12`.  The cumulative RMS
+   averages over a horizon that is mostly common history, so its agreement
+   past `t = 8` is not evidence that the trajectories agree there.
+
+Times at which the two trajectories first separate, in the Euclidean
+distance at equal sample times:
+
+| threshold | 31 closed scalar coordinates | 56 state coordinates | 70 standardized frontier coordinates |
+|---:|---:|---:|---:|
+| `1e-6`, `1e-5`, `1e-4` | `0.2025` | `0.2025` | `0.2` |
+| `1e-3` | `0.5275` | `0.23` | `0.2` |
+| `1e-2` | `1.7375` | `0.545` | `0.2` |
+| `1e-1` | never through `t = 12` (maximum `0.0937` at `11.7475`) | `2.485` | `0.2` |
+| `1` | never | never (maximum `0.337` at `10.9925`) | never (maximum `0.353`) |
+
+Beside the two sibling measurements on this branch: the cheap route's 15-key
+`N = 4` `post_pulse` pair separated from a perturbation of order `1e-5` to
+`1e-2` at `t = 6.93`, `0.1` at `t = 8.38` and order one by `t = 11`; its
+sixth pass's 15-key `N = 16` `drive_power` rerun at the same re-selection
+tolerance `1e-10` flipped at its first re-selection (`t = 0.04`), crossed
+`1e-2` at `t = 0.48` and `0.1` at `t = 3.085`, and reached a maximum of
+`0.72` near `t = 12` to `13`, with an `18` percent score change over
+`t = 0` to `4`.  Here the perturbation is likewise a whole lift (`0.353` in
+the frontier, at `t = 0.2`), the distance reaches `1e-2` at `t = 1.74` and
+stays under `0.1` through `t = 12`, and the `t = 0` to `4` score changes by
+`13` percent.  The 27-key `N = 16` `drive_power` chain is the least
+sensitive of the three configurations by the pointwise measure and the same
+as the 15-key one by the cumulative one, and the amplifier the cheap route
+named is the one measured here: every difference between the two chains
+descends from re-selections whose certificate flipped, `97` refusals
+against `75` over the first 200, with the first flip at `t = 0.2`.
+
+## (c) Which recorded horizons carry a second-digit meaning
+
+| horizon | recorded | tightened member | second digit | "best on record" at that horizon, against the reviewer's corrected comparator |
+|---|---:|---:|---|---|
+| `t = 4` | `1.142716e-02` | `1.292283e-02` | no: `1.1e-2` against `1.3e-2`; only the leading digit is stable | does not survive: cell A's `1.258000e-02` lies between the two members, and the `9` percent margin is inside the `13` percent sensitivity.  Both members remain below the recorded projective event guard's `2.604900e-02` and every 15-key row |
+| `t = 8` | `2.593079e-02` | `2.709352e-02` | one unit: `2.6e-2` against `2.7e-2` | survives: the best other row `4.254200e-02` is `1.57` times the worse member |
+| `t = 12` | `4.250925e-02` | `4.331967e-02` | yes: both round to `4.3e-2` | survives: the 27-key `post_pulse` chain's `6.075829e-02` is `1.40` times the worse member |
+| `t = 16` | `6.377276e-02` | not measured | unmeasured | already withdrawn by the review (a tie with the 27-key `post_pulse` chain's `6.385168e-02`, `0.12` percent apart); a tie inside any sensitivity measured here is not an ordering |
+| `t = 20` | `8.519313e-02` | not measured | unmeasured | already withdrawn by the review (second to the 27-key `post_pulse` chain's `6.990927e-02`); the `18` percent gap between the two 27-key chains is the size of the sensitivities measured at `t = 4` here and at `t = 20` for the 15-key `N = 16` chain (`26` percent), so which 27-key chain is the better `t = 20` row is unresolved until both are measured there |
+
+What the record should say from now on: the 27-key `N = 16` `drive_power`
+chain scores `1.1e-2` to `1.3e-2` over `t = 0` to `4` depending on the
+completion's certificate tolerance, which brackets cell A's `1.258e-02`; it
+is the best moment-closure row on record over `t = 0` to `8` and `t = 0` to
+`12` under either setting; and its `t = 16` and `t = 20` values are single
+samples of a configuration whose sensitivity is measured only to `t = 12`.
+The recorded chain remains the reported one --- nothing here says the
+tightened member is the better estimate --- but a second digit at `t = 4`
+is not a property of the configuration.
+
+## Provenance and gates of the runs themselves
+
+- Every rollout was wrapped in `pipelines/shell/ram_guard.py --limit-mb
+  4500`, one at a time; the largest peak resident was `646 MiB` and the
+  longest segment `1,001.3 s` of autonomous wall (plus about `20 s` of build
+  and under `2 s` of exact-reference scoring).  Wall times were measured
+  with other agents' jobs possibly on the machine and are upper bounds.
+- No module was edited, nothing was committed, no default, acceptance rule
+  or ladder changed.  The edits are to driver scripts under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`, which
+  are not repository modules and not in the GitNexus index; no impact
+  analysis applies to them.  `run_energy_segment.py` gained
+  `--conic-tolerance` (the whole extension; the form that fails at the
+  preparation), `--reselection-conic-tolerance` (the form run, through the
+  `ReselectionToleranceRoute` subclass defined in the driver) and
+  `--record-reselections` (writes the integrator's per-re-selection records
+  to `reselections.json`; changes no number, gate above), and records the
+  effective tolerances in `summary.json`; `run_chain.py` forwards the three;
+  `compare_prefix.py` compares three more arrays when both runs carry them.
+  With none of the new flags the driver is the recorded one, bitwise.
+- New scripts in the same directory: `compare_chains.py` (the separation
+  tables; reads only `trajectory.npz`, `summary.json` and
+  `reselections.json`), `tabulate_task5.py` (the ledger, horizon and
+  refusal tables), `probe_preparation_tolerance.py` with its `.sh` (the
+  preparation's completion at both tolerances and every rung),
+  `prefixgate_tightdriver.sh`, `prefixgate_reselroute.sh`, `queue_tight.sh`
+  (the chain, one segment at a time).
+- Outputs in that directory: `preparation_tolerance_probe.{json,log}`,
+  `prefix_gate_tightdriver.json`, `prefix_gate_reselroute.json`,
+  `compare_tightresel_{partial_seg1,partial_seg2,t8,t12}.json`,
+  `tightresel_chain_score_{partial,t8,t12}.json`,
+  `power_chain_score_t10.json` (the recorded chain rescored at `t = 10`),
+  `tight_seg1.log` (the whole-extension attempt that exhausted the ladder),
+  `tightresel_seg1.log`, `tightresel_chain.log` and the per-segment logs.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_dictionary_energy_power_27key_n16_tightresel_20260916f_seg{1,2,3,4}`
+  (each with `reselections.json`),
+  `paper_v_dictionary_energy_prefixgate_tightdriver_20260916f`,
+  `paper_v_dictionary_energy_prefixgate_reselroute_20260916f`.  The recorded
+  chain's artifacts are untouched.
+
+## Structured summary of task 5
+
+| item | value |
+|---|---|
+| the lever | `APCMExtensionSettings.conic_tolerance` of the re-selection completion, `1e-10` against the committed `1e-9`; preparation, model extension, repair, velocity, integrator, cadence and reference mode identical; imports from `head_src` at `2d8f0efb` |
+| the whole-extension form | not preparable: the declared completion retry ladder is exhausted at `t = 0` (KKT backward errors `6.209e-08`, `9.076e-08`, `1.459`, `2.447` against `5e-9`); at `1e-9` the `1e-8` shift rung certifies at `4.270e-08` against `5e-8`, a `15` percent margin; the cone check never binds (`-1e-15`) |
+| (a) `t = 0` to `8`, three segments, `2,114.8 s` | `2.709352e-02` against the recorded `2.593079e-02` (`+4.5 %`); internal energy `4.702571e-03` against `5.751890e-03`; retained joint Gram `-2.201e-03` against `-2.152e-03`, extension `-1.980e-04` against `-1.922e-04`; 200 completions re-solved, 97 refused against 75 |
+| (a) `t = 0` to `4` | `1.292283e-02` against `1.142716e-02` (`+13.1 %`); internal energy `3.687212e-03` against `4.597225e-03`; phonon-occupation block `8.276556e-03` against `9.836299e-03`; the other 27 `1.347560e-02` against `1.164437e-02` |
+| separation, 31-coordinate Euclidean distance | identical at `t = 0`; first flip at the `t = 0.2` re-selection (recorded certified at reduced gradient `1.247e-08`, tightened refused); `1e-3` at `t = 0.5275`, `1e-2` at `t = 1.7375`, `1e-1` never through `t = 12` (maximum `0.0937` at `t = 11.7475`); 56-state distance `1e-1` at `t = 2.485` |
+| (b) `t = 0` to `12`, four segments, `3,075.9 s` | `4.331967e-02` against `4.250925e-02` (`+1.9 %`); `t = 10`: `3.356926e-02` against `3.332970e-02` (`+0.7 %`); internal energy `4.995294e-03` against `6.088286e-03`; retained `-2.374e-03` against `-2.463e-03`; 300 re-solved, 151 refused against 107 by `t = 11.84` |
+| (c) second-digit meaning | `t = 4`: no (`1.1e-2` to `1.3e-2`); `t = 8`: one unit (`2.6e-2` to `2.7e-2`); `t = 12`: yes (`4.3e-2`); `t = 16`, `20`: unmeasured |
+| (c) "best on record" | fails at `t = 4` (cell A `1.258e-02` between the members); survives at `t = 8` (factor `1.57`) and `t = 12` (`1.40` against the 27-key `post_pulse` chain); at `t = 16` and `t = 20` already withdrawn by the review, and the `t = 20` ordering of the two 27-key chains (`18` percent apart) is inside the measured sensitivities |
+| the amplifier | the completion's certificate: 27 of 234 interior-Newton solves have reduced gradients in `(5e-9, 5e-8]`; refusal fractions by window `31/50`, `11/50`, `25/49`, `30/51`, `29/50`, `25/50` over `(0,2]` to `(10,12]` |
+| gates | two bitwise prefix gates (161 samples, `0.0`); resumption on 16-step boundaries; energy held to `1.78e-15` over 14,401 constrained repairs |
+| files changed | `run_energy_segment.py`, `run_chain.py`, `compare_prefix.py` (drivers under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`), new `compare_chains.py`, `tabulate_task5.py`, `probe_preparation_tolerance.{py,sh}`, `prefixgate_{tightdriver,reselroute}.sh`, `queue_tight.sh`; this report; the worklog block.  No module; nothing committed |
+| next | two more segments carry the tightened chain to `t = 20` and settle the ordering of the two 27-key chains there; the same lever on the 27-key `post_pulse` chain; a decade looser (`1e-8`) measures the other direction, where the recorded preparation's `15` percent margin says most refusals would certify |

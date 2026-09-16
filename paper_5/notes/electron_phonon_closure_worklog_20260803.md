@@ -5581,3 +5581,99 @@ parent repository (`locate_repo_root()` is `None`); lifecycle validator exit
 0 on the nine submit files; dry run 1 job; same resources and physical
 protocol as cluster 10554184.  Receipt:
 `chtc/paper_v_cwrmf_event_guard_accel_20260915/submission_receipt_10737278.json`.
+
+## 2026-09-16: projective route, task 5: sensitivity of the 27-key `N=16` drive-power chain to the completion's conic tolerance
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 5 (2026-09-16)").  Configuration: the
+task-4 27-key `N=16` `drive_power` energy-neutral chain (56 state
+coordinates, 36 extension rows, ladder preparation at rung 0, Dykstra 30 on
+both targets at stage cadence, `h=0.0025`, strong coupling, cutoff 16,
+`energy_tolerance 0`, imports from `head_src` at `2d8f0efb`), rerun with
+one setting changed: the re-selection completion
+(`SymmetryReducedPositiveExtension.complete` every 16 accepted steps) solved
+at `APCMExtensionSettings.conic_tolerance = 1e-10` in place of the committed
+`1e-9`, through a driver-level subclass of `CheapProjectionRoute` whose
+`reselect_lift` is the committed body with the solver swapped; preparation,
+model extension (whose tolerance also enters the carried completion the
+velocity accepts), repair, velocity and integrator unchanged.  Four chained
+`ram_guard --limit-mb 4500` segments (`0` to `3.74`, `3.72` to `7.52`,
+`7.52` to `8`, `8` to `12`; longest `1,001.3 s`; peak `646 MiB`), `2,114.8 s`
+to `t=8` and `3,075.9 s` to `t=12`, 93 percent in the completion solves
+(`9.51 s` mean).  Scores are the all-coordinate scalar RMS on the 31 closed
+scalar coordinates against the exact cutoff-16 driven reference from `t=0`;
+a separation is the Euclidean distance between the two chains' 31
+coordinates at equal sample times.  No module edited; nothing committed; no
+default changed.
+
+Negative result first: the whole-extension form (preparation at `1e-10`
+too) exhausts the declared completion retry ladder at `t=0` --- KKT backward
+errors `6.209e-8` (base), `9.076e-8` (shift `1e-8`), `1.459` (shift `1e-7`),
+`2.447` (weight `0.1`) against `50 tol = 5e-9`; at `1e-9` the base setting
+refuses by the same check (`6.209e-8 > 5e-8`) and the `1e-8` rung certifies
+at `4.270e-8`, a 15 percent margin; the scaled minimum eigenvalue is
+`-1e-15` throughout, so the cone check never binds.  Gates: the patched
+driver with no tolerance flag, and the subclass at `1e-9`, are each bitwise
+the recorded segment 1 over `t=0` to `0.4` (161 samples, every array,
+`0.0`), with the same 10-entry re-selection ledger.
+
+Results.  (a) `t=0` to `4`: `1.292283e-2` against the recorded
+`1.142716e-2` (`+13.1` percent); internal energy `3.687e-3` against
+`4.597e-3`; phonon-occupation block `8.277e-3` against `9.836e-3`, the other
+27 `1.348e-2` against `1.164e-2`.  `t=0` to `8`: `2.709352e-2` against
+`2.593079e-2` (`+4.5`); internal energy `4.703e-3` against `5.752e-3`;
+retained joint Gram `-2.201e-3` against `-2.152e-3`, extension `-1.980e-4`
+against `-1.922e-4`; 200 completions re-solved, 97 refused against 75.
+(b) `t=0` to `12`: `4.331967e-2` against `4.250925e-2` (`+1.9`; `t=10`:
+`3.356926e-2` against `3.332970e-2`, `+0.7`); internal energy `4.995e-3`
+against `6.088e-3`; retained `-2.374e-3` against `-2.463e-3`; 300 re-solved,
+151 refused (recorded 107 by `t=11.84`).  The internal-energy difference is
+the reference: the tightened chain's drive-power reference
+`-3.565863978942048` sits `0.005534` above the exact `-3.571397982` where
+the recorded `-3.564687762684483` sits `0.006710`, and the two chains'
+energies differ by exactly `1.176e-3` at every sample after `t=4`.
+Separation: identical at `t=0`; the first difference is the `t=0.2`
+re-selection, certified by the recorded chain (conic certificate `Solved`,
+reduced gradient `1.247e-8 <= 5e-8`) and refused by the tightened one
+(`> 5e-9`), a `0.353` jump in the 70 standardized frontier coordinates;
+`1e-4` at `t=0.2025`, `1e-3` at `t=0.5275`, `1e-2` at `t=1.7375`, `1e-1`
+never through `t=12` (maximum `0.0937` at `t=11.7475`; 56-state distance
+`1e-1` at `t=2.485`, maximum `0.337`); window means `0.0162`, `0.0346`,
+`0.0532` over `(0,4]`, `(4,8]`, `(8,12]`, that is 21, 16 and 16 percent of
+the chains' own distance from the exact reference at `t=4`, `8`, `12`.  Of
+the 151 refusals, 69 are interior-Newton certificates over the KKT
+threshold, 41 conic-Newton descent failures, 15 conic `Solved` certificates
+over it, 18 infeasible reference completions, 7 empty facial reductions, 1
+`AlmostSolved`; 27 of 234 interior-Newton solves have reduced gradients in
+`(5e-9, 5e-8]`, the band the decade moves.
+
+(c) Second digit, against the reviewer's corrected comparators: `t=4`, no
+(`1.1e-2` to `1.3e-2`; cell A's `1.258e-2` lies between the two members, so
+"best on record" fails there); `t=8`, one unit (`2.6e-2` to `2.7e-2`;
+survives, the best other row `4.2542e-2` is `1.57` times the worse member);
+`t=12`, yes (`4.3e-2`; survives, the 27-key `post_pulse` chain's
+`6.0758e-2` is `1.40` times); `t=16` and `t=20`, unmeasured, and already
+withdrawn by the review (tie with, then second to, the 27-key `post_pulse`
+chain); the 18 percent gap between the two 27-key chains at `t=20` is the
+size of the sensitivities measured (13 percent at `t=4` here, 26 percent at
+`t=20` for the 15-key `N=16` chain), so that ordering is unresolved until
+both are measured there.  The cumulative score's sensitivity shrinks with
+horizon (13.1, 10.7, 4.5, 0.7, 1.9 percent at `t=4`, `6`, `8`, `10`, `12`)
+while the pointwise separation is at its maximum at `t=11.75`; the former
+is not evidence about the latter.
+
+Artifacts under `output/local_runs/`:
+`paper_v_dictionary_energy_power_27key_n16_tightresel_20260916f_seg{1,2,3,4}`
+(each with `reselections.json`),
+`paper_v_dictionary_energy_prefixgate_{tightdriver,reselroute}_20260916f`,
+and in `paper_v_projective_dictionary_energy_20260915e/`: the drivers
+(`run_energy_segment.py` with `--conic-tolerance`,
+`--reselection-conic-tolerance`, `--record-reselections`; `run_chain.py`;
+`compare_prefix.py`), the new `compare_chains.py`, `tabulate_task5.py`,
+`probe_preparation_tolerance.{py,sh}`, `queue_tight.sh`,
+`prefixgate_{tightdriver,reselroute}.sh`, and their outputs
+(`preparation_tolerance_probe.json`, `prefix_gate_{tightdriver,reselroute}.json`,
+`compare_tightresel_{t8,t12}.json`, `tightresel_chain_score_{t8,t12}.json`,
+`power_chain_score_t10.json`, the logs).  Next: two more segments to carry
+the tightened chain to `t=20`; the same lever on the 27-key `post_pulse`
+chain; a decade looser (`1e-8`).
