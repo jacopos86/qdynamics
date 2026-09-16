@@ -5569,3 +5569,15 @@ and the scripts and their outputs in
 `--record-stages` once on this configuration so the flips are counted, not
 inferred; a re-selection rule that cannot flip on a `1e-14` input change;
 the same three perturbations on the 27-key chain and the both-cones run.
+
+### Cluster 10737278: retry of segment 1 after the import fix
+
+Submitted 2026-09-16T17:40:11Z as run id `accel_s01_t0000_t0500_r01` from
+the regenerated retry submit file; bundle `c717b8ca` (`519,591` bytes, 108
+entries) built by `build_bundle.py` from `git archive` of `1023ef39` plus
+the lane, and passed the new parentless rehearsal gate
+(`BUNDLE_REHEARSAL_OK`); on the submit host `import paper5` succeeds with no
+parent repository (`locate_repo_root()` is `None`); lifecycle validator exit
+0 on the nine submit files; dry run 1 job; same resources and physical
+protocol as cluster 10554184.  Receipt:
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/submission_receipt_10737278.json`.
