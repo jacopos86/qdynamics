@@ -1160,3 +1160,320 @@ percent of the exact one without ever constraining it.
 | build-time fact answering task 3's next step 3 | the 24-row extension does not constrain the phonon normal block -- one of the four raw normal coordinates lies entirely in the 15-dimensional null space of its affine map and two more lie 83 percent in it -- while the two targets together have full column rank 106 of 106 |
 | gates | `paper_5` suite 473 passed in `239.12 s`; 28 tests in `test_cheap_projection_route.py` (22 of task 3 plus six) |
 | files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, and the worklog block in `paper_5/notes/electron_phonon_closure_worklog_20260803.md`.  Nothing committed |
+
+# Task 5: the chained `N=4` energy-neutral runs to `t=20`, and the completion retry ladder (2026-09-15/16)
+
+Same branch, worktree and modules as the four sections above.  The two
+modules this route owns gained three things the task-4 list asked for, and
+the tests that cover them: the record's declared completion retry ladder,
+built by the record's own `build_completion_ladder` and walked only where a
+lift re-selection's declared completion is not certified; a declared
+`energy_tolerance` above zero, so the hyperplane is met only where the drift
+has accumulated; and `--resume-from`, which continues a rollout that stopped
+on its wall budget from its last accepted state, its carried frontier, its
+time and the declared internal-energy reference the first segment selected,
+so that a `t=20` run at `N=4` can be made of segments that each obey the
+twenty-minute rule.  No file this route does not own was edited.  The
+previous instance of this key launched the three chains, saw the last one
+reach `t=20`, and was killed while scoring; this pass propagated nothing
+except the exact cutoff-16 driven reference on the chained sample times,
+which every score needs.
+
+Conventions are those of tasks 2 to 4: the score is the all-coordinate
+scalar RMS of the 31 closed scalar coordinates against the exact cutoff-16
+driven reference (`all_coordinate_scalar_rms_error`) on the stated horizon;
+the internal energy is the sample RMS of the time-independent energy of
+Eq. (22) (`static_energy_rms_error`) on that horizon; physicality numbers
+are measured minimum eigenvalues along the trajectory and there is no
+certificate anywhere on this route; the record's `0.128607`, `0.193205`,
+`0.000939628` and `0.0182361` are the raw convention, and every
+fixed-dictionary run here carries a `t=0` offset of `8.08e-16`, so the raw
+and offset-subtracted conventions agree to every digit printed.
+Configuration for every row: strong coupling (`lambda_ep = 1.5`,
+`gamma = 0.5`, drive amplitude 1), phonon cutoff 16, exact-correlated
+preparation, 15 entrance keys, SSPRK(3,3) at `h = 0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence
+between re-selections, the declared proximal log-det completion re-solved
+every 4 steps warm-started on the carried frontier, and the energy-neutral
+option of task 4 in the mode each row names.
+
+## Negative result first
+
+Neither completed `N=4` energy-neutral chain stands next to the record's
+both-cones line, and both are worse over `t=0` to `20` than the
+unconstrained `N=4` hybrid they were meant to improve.  The post-pulse chain
+scores `0.318110` and the drive-power chain `0.283805`, against the
+unconstrained `N=4` row's `0.259573`, the record's both-cones `0.128607` and
+the record's plain archive EOM `0.193205`; their Eq. (22) internal-energy
+sample RMS is `0.0539267` and `0.0437311` against `0.000939628` and
+`0.0182361`.  Both lose the retained cone (`-2.632e-2` and `-1.777e-2`
+against the both-cones run's `1.36819e-5`) and both carry the standardized
+frontier to the edge of its frozen box (`0.9966` and `0.9938`).  The
+completion refuses 1,270 and 1,165 of 2,000 solves; in the last segment of
+the post-pulse chain, `t=18.27` to `20`, all 173 declared completions
+refuse, so its last 1.73 time units are the frozen-lift route of task 2 with
+the hyperplane added.
+
+The `t=0` to `11.63` advantage task 4 reported for `N=4` (`0.079973`
+against the unconstrained `0.138634`) is also not a reproducible number.
+The post-pulse chain differs from the task-4 run only in repairs skipped
+while the sampled energy sat within `8.9e-6` of its reference, coincides
+with it over `t=0` to `4` to every digit, separates past `1e-2` in the
+31-coordinate Euclidean norm at `t=6.93` and past `0.1` at `t=8.38`, and
+scores `0.132357` on that same horizon.  Past about `t=8` the post-pulse
+`N=4` row is one sample of a sensitive trajectory, and its digits there
+should not be quoted against another row's.
+
+The record's completion retry ladder does not fix the constrained
+completion's refusals: walked at 493 refused re-selections it certified 119,
+all before `t=8.19`, and none of the 289 after, at `3.87 s` a solve; that
+chain stopped at `t=11.09` and was not continued.
+
+## (a) The three variants, and how far each got
+
+Every segment is its own `ram_guard --limit-mb 3000` process with a
+`1,150 s` wall budget, resumed from the previous segment's last accepted
+state and carried frontier; no two ever ran at once.  Counts are each
+segment's own `summary.json`; the score script checks that each segment
+starts at the state the previous one ended on, to `1e-12`.
+
+| variant | reference mode | `energy_tolerance` | ladder | segments (`t` reached) | autonomous wall | completions re-solved / refused | of those, refused per segment | why the chain ended |
+|---|---|---:|---|---|---:|---:|---|---|
+| A | `post_pulse` at `t=4` | `0` | shifts `1e-8`, `1e-7`; weight `0.1` | `0` to `8.19`, `8.19` to `11.09` | `2,322.5 s` | 1,109 / 493 (374 after the ladder) | 85 of 819; 289 of 290 | stopped at `t=11.09` on the second segment's wall budget, not continued: the ladder was exhausted at all 289 refusals of that segment and the mean solve was `3.87 s`, so `t=20` would have needed three more segments |
+| B | `post_pulse` at `t=4` | `1e-3` | none | `0` to `11.14`, to `18.27`, to `20` | `2,467.4 s` | 2,000 / 1,270 | 447 of 1,114; 650 of 713; 173 of 173 | reached `t=20` |
+| C | `drive_power` | `1e-3` | none | `0` to `6.73`, to `14.71`, to `20` | `3,179.8 s` | 2,000 / 1,165 | 357 of 673; 379 of 798; 429 of 529 | reached `t=20` |
+
+The declared tolerance never bound.  In B the sampled energy sits within
+`8.92e-6` of its reference at every one of 6,401 post-pulse samples, in C
+within `3.91e-14` at every one of 8,001, and no sample of either falls
+outside `1e-3`; the tolerance changed only the 2,043 stages of B between
+`t=4` and `11.14` at which both cones were met and the repair was skipped
+(against none skipped in the task-4 run), and in C the 1,213 skipped
+stages.  What reached `t=20` was the chaining, not the tolerance and not
+the ladder.  The ladder's cost is the other half of its verdict: 1,306
+retry solves took `1,408.3 s` of A's `2,322.5 s`, and with it A reached
+`t=11.09` in two segments where B reached `t=11.14` in one.
+
+Where the completion wall goes is unchanged from task 4: `2,305.9 s` of
+B's `2,467.4 s` and `2,936.9 s` of C's `3,179.8 s` are the declared
+completions, 93 percent of each; the repair costs `106.7 s` and `133.9 s`,
+the velocity `53.0 s` and `107.0 s`.  Peak resident (each run's own
+`peak_resident_bytes`, `ru_maxrss` of the propagating process): `507 MiB`
+(B), `382 MiB` (C), `400 MiB` (A).
+
+## (b) `t=0` to `20` next to the record and the 27-key chain
+
+| quantity, `t=0` to `20`, 8,000 steps | B: `N=4`, `post_pulse`, tol `1e-3` | C: `N=4`, `drive_power`, tol `1e-3` | task 3: `N=4`, unconstrained | task 4: `N=16`, `post_pulse` | task 4: `N=16`, `drive_power` | projective task 4: 27 keys, `N=16`, `drive_power` | record, both cones | record, plain archive EOM |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| all-coordinate scalar RMS | `0.318110` | `0.283805` | `0.259573` | `0.239172` | `0.328674` | `0.085193` | `0.128607` | `0.193205` |
+| internal-energy sample RMS, Eq. (22) | `0.0539267` | `0.0437311` | `0.804515` | `0.069384` | `0.026000` | `0.0063446` | `0.000939628` | `0.0182361` |
+| site-0 occupation RMS | `0.212252` | `0.290898` | `0.203657` | `0.247970` | `0.186909` | `0.112590` | `0.204690` | `0.286170` |
+| N-block scalar RMS | `0.4805` | `0.3089` | `0.532930` | `0.267235` | `0.519769` | `0.03187` | --- | --- |
+| C-block scalar RMS | `0.1715` | `0.1207` | `0.0917819` | `0.104318` | --- | `0.031283` | --- | --- |
+| rho / B-block scalar RMS | `0.2546` / `0.3848` | `0.3435` / `0.5254` | `0.2466` / `0.3187` | --- | --- | `0.1358` / `0.1873` | --- | --- |
+| minimum scaled 24-row extension eigenvalue | `-1.153e-3` | `-6.815e-4` | `-5.553e-6` | `-3.311e-4` | `-2.331e-3` | `-2.040e-4` (36-row) | --- | --- |
+| minimum unshifted retained joint Gram | `-2.632e-2` | `-1.777e-2` | `-8.975e-8` | `-8.776e-3` | `-5.284e-2` | `-2.463e-3` | `1.36819e-5` | --- |
+| maximum standardized frontier envelope ratio | `0.9966` | `0.9938` | `0.6356` | `0.9555` | --- | --- | --- | --- |
+| completions solved / refused | 2,000 / 1,270 | 2,000 / 1,165 | 2,000 / 154 | 500 / 107 | 500 / 276 | 500 / 144 | --- | --- |
+| repairs applied / skipped of 24,000; constrained | 18,110 / 5,890; 17,157 | 22,787 / 1,213; 22,787 | 5,643 / 18,357; 0 | 20,850 / 3,150; 18,939 | --- | 23,959 / 41; 23,959 | --- | --- |
+| reference above the exact `-3.571397982` at `t=4` | `0.057286` | `0.045186` | --- | `0.074667` | `0.027219` | `0.006710` | --- | --- |
+| autonomous wall | `2,467.4 s` (3 segments) | `3,179.8 s` (3) | `884.2 s` | `669.8 s` | `719.6 s` | `4,794.4 s` (6) | `5,832.34 s` | --- |
+
+Cumulative scores from `t=0`, score / internal energy, by rescoring the
+saved artifacts (`chain_score_*.json` under the task-5 score directory; the
+27-key column is the projective report's table):
+
+| `T` | B | C | task 3, `N=4` | task 4, `N=16` `post_pulse` | task 4, `N=16` `drive_power` | 27 keys, `N=16` `drive_power` |
+|---:|---|---|---|---|---|---|
+| 4 | `0.026290` / `0.037608` | `0.047670` / `0.037386` | `0.026290` / `0.037608` | `0.026842` / `0.042087` | `0.023744` / `0.020406` | `0.011427` / `0.004597` |
+| 8 | `0.046722` / `0.048453` | `0.126944` / `0.041465` | `0.049575` / `0.091559` | `0.042542` / `0.060603` | `0.045571` / `0.024055` | `0.025931` / `0.005752` |
+| 12 | `0.146385` / `0.051566` | `0.184550` / `0.042739` | `0.145974` / `0.408489` | `0.138493` / `0.065626` | `0.125139` / `0.025154` | `0.042509` / `0.006088` |
+| 16 | `0.264509` / `0.053054` | `0.240903` / `0.043362` | `0.201714` / `0.578188` | `0.195096` / `0.067999` | `0.258499` / `0.025686` | `0.063773` / `0.006250` |
+| 20 | `0.318110` / `0.053927` | `0.283805` / `0.043731` | `0.259573` / `0.804515` | `0.239172` / `0.069384` | `0.328674` / `0.026000` | `0.085193` / `0.006345` |
+
+Four readings.
+
+- **The tighter cadence is the worse one once the energy is held.**  Over
+  `t=0` to `20` the `N=4` chains are 1.33 and 1.19 times the `N=16`
+  post-pulse row, where without the constraint `N=4` was 2.23 times *better*
+  than `N=16` (task 3).  The reason is in the refusal column: the constraint
+  makes the warm-started completion refuse at 58 to 64 percent of
+  re-selections at `N=4` against 21 percent at `N=16`, and a refusal keeps a
+  carried lift the hyperplane then pulls on for another four steps.  More
+  re-selections that mostly refuse are not more re-selections.
+- **What the hyperplane holds, it holds; what it does not, it makes worse.**
+  The internal energy of B and C is 15 and 18 times better than the
+  unconstrained `N=4` row's `0.804515`, and C's phonon-occupation block
+  (`0.3089`) is the best of the three `N=4` rows; but C's electronic density
+  and coherent-phonon blocks are `0.3435` and `0.5254` against the
+  unconstrained `0.2466` and `0.3187`, and its site-0 occupation `0.290898`
+  is worse than the plain archive EOM's `0.286170`.  That is the same
+  direction the 27-key chain reports for its rho and B blocks; at 15 keys
+  and `N=4` it outweighs the phonon-occupation gain.
+- **The 27-key chain is the only row in the table below the both-cones
+  score**, `0.085193` against `0.128607`, at `4,794.4 s` against
+  `5,832.34 s`; on the internal energy it is 6.8 times the both-cones value
+  and on the retained cone it sits at `-2.463e-3`.  Every 15-key row is
+  above both record lines on the score.
+- **Drive power at `N=4` is worse than at `N=16` over the driven
+  interval.**  C scores `0.047670` over `t=0` to `4` where the `N=16`
+  drive-power row scored `0.023744`, with the completion refusing 357 of
+  673 solves by `t=6.73`.  The likeliest amplifier is the one above: at
+  `N=4` the constrained state reaches the completion four steps after the
+  last hyperplane pull rather than sixteen.
+
+## (c) `t=0` to `4` next to the projective event guard
+
+| row, `t=0` to `4` | all-coordinate scalar RMS | internal energy | site-0 occupation | N block | minimum unshifted retained joint Gram | wall to `t=4` |
+|---|---:|---:|---:|---:|---:|---:|
+| B (`post_pulse` is off before `t=4`; bitwise the task-3 `N=4` row) | `0.0262899` | `0.037608` | `0.0487012` | `0.01479` | `-4.020e-8` | `137.9 s` (task 2) |
+| A (ladder; the lift differs from B's at the 119 certified retries) | `0.0263373` | `0.0382408` | `0.0492229` | `0.01548` | `-5.183e-8` | inside segment 1 |
+| C (`drive_power`, `N=4`) | `0.0476697` | `0.0373856` | `0.0755899` | `0.05205` | `-1.771e-3` | inside segment 1 (`1,151.1 s` to `t=6.73`) |
+| task 4: `N=16`, `drive_power` | `0.023744` | `0.020406` | `0.042353` | `0.011499` | --- | inside a `719.6 s` run to `t=20` |
+| projective task 4: 27 keys, `N=16`, `drive_power` | `0.011427` | `0.004597` | `0.014309` | `0.009836` | `-4.535e-4` | about `1,022 s` |
+| record: projective event guard | `0.026049` | `0.036201` | --- | --- | `2.892e-5` | `3,229.8 s` |
+
+A's `t=0` to `4` row differs from B's in the fourth digit because the
+ladder certified retries inside the driven interval and each certified
+retry is a different lift; the two trajectories are `1e-3` apart in the
+31-coordinate Euclidean norm from `t=0.815` and `1e-2` apart from `t=2.90`.
+
+## (d) The post-pulse `N=4` row past `t=8` is one sample of a sensitive trajectory
+
+Three rollouts of the post-pulse `N=4` configuration exist: the task-4 run
+(tolerance `0`, stopped at `t=11.63`), B (tolerance `1e-3`) and A (tolerance
+`0` with the ladder).  Euclidean distance between the 31 closed scalar
+coordinates of B and of the task-4 run, and of A and of the task-4 run, at
+the same times:
+
+| `t` | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| B against task 4 | `0` | `2.3e-4` | `5.3e-3` | `1.1e-2` | `5.4e-2` | `2.3e-1` | `3.9e-1` | `1.07` |
+| A against task 4 | `1.9e-2` | `2.7e-2` | `2.9e-2` | `3.9e-2` | `1.6e-1` | `5.2e-1` | `1.28` | `1.78` |
+
+and the three scores on the common horizon `t=0` to `11.09`: task 4
+`0.072875`, B `0.110625`, A `0.163635`, against the unconstrained `N=4`
+row's `0.127335` there.  B and the task-4 run are the same declared
+configuration up to repairs skipped while the energy drift was below
+`8.9e-6`; that perturbation, of order `1e-5` in the coordinates, is `1e-2`
+by `t=6.93`, `0.1` by `t=8.38` and order one by `t=11`.  The amplifier was
+not measured separately; the candidate is the completion's refusal, which
+is a discontinuous function of the state and flips at 40 to 100 percent of
+re-selections on this interval, so a state difference below the solver's
+tolerance can exchange a re-selected lift for a carried one.  What follows
+for the record is that the task-4 `t=0` to `11.63` comparison
+(`0.079973` against `0.138634`) is not a factor-1.7 result: on the same
+horizon B scores `0.132357`, 0.95 of the unconstrained row.  The
+`t=0` to `8` scores of all three, `0.046854`, `0.046722` and `0.046972`,
+agree to three digits and are the reproducible part.
+
+## (e) What stands next to the both-cones line
+
+- **B, `N=4` `post_pulse` to `t=20`, `0.318110`**: a containment only; it
+  reaches `t=20` with the energy on its reference, at 2.47 times the
+  both-cones score, 1.65 times the plain archive EOM, worse than the
+  unconstrained `N=4` row, with the retained cone at `-2.6e-2` and the
+  frontier at the edge of its box.
+- **C, `N=4` `drive_power` to `t=20`, `0.283805`**: a containment only; 2.21
+  times the both-cones score, 1.47 times the archive EOM, internal energy
+  2.4 times the archive EOM's, site-0 occupation worse than the archive
+  EOM's, retained cone at `-1.8e-2`.
+- **A, `N=4` `post_pulse` with the ladder, stopped at `t=11.09`,
+  `0.163635` there**: not a result at any horizon; what it establishes is
+  that the record's retry ladder certifies nothing past `t=8.19` under the
+  constraint and triples the solve, so it is not the refusal fix.
+- **Task 3, `N=4` unconstrained, `0.259573`**: still the best 15-key `N=4`
+  row at `t=20` and the only one of the four that holds both cones
+  (`-8.975e-8`); at 2.02 times the both-cones score it is a containment with
+  both cones held, not a result.
+- **Task 4, `N=16` `post_pulse`, `0.239172`**: the best 15-key row at `t=20`
+  on this route, 1.86 times the both-cones score; a containment.
+- **Projective task 4, 27 keys `N=16` `drive_power`, `0.085193`**: the one
+  row that stands next to the both-cones line on the score and on the wall
+  (0.66 of the score at 0.82 of the wall), and it stands there without a
+  physicality statement, at 6.8 times the both-cones internal energy and
+  `-2.463e-3` on the retained cone; the both-cones run remains the only
+  `t=20` row that holds both cones.
+
+## Provenance and gates
+
+- `paper_5/tests/test_cheap_projection_route.py`: 34 passed in `15.87 s`
+  (`cd paper_5 && PYTHONPATH=src python -m pytest -q
+  tests/test_cheap_projection_route.py`), the 28 of task 4 plus six: that the
+  ladder this route builds is the record's own `build_completion_ladder` for
+  the declared shifts `1e-8`, `1e-7` and weight `1e-1`; that a refused
+  re-selection walks it and takes the first certified rung; that an
+  exhausted ladder keeps the carried lift and stops nothing; that a declared
+  `energy_tolerance` skips a repair the cones do not need and tolerance zero
+  applies it onto the reference; that a supplied reference is the one a
+  resumed segment holds, and is refused without a mode; and that two chained
+  segments reproduce one rollout to `1e-12` in state and frontier with the
+  same re-selection count.  The full `paper_5` suite was not re-run in this
+  pass; the previous instance's last full run was task 4's 473.
+- Modules changed, both owned by this route and neither imported by any
+  other: `cheap_projection_route.py` gained the `completion_retry_shifts`
+  and `completion_retry_weights` arguments of `CheapProjectionRoute` and
+  `prepare_cheap_projection_route`, the ladder walk inside `reselect_lift`
+  with its counters, the `energy_reference_value` argument of the integrator
+  and six trajectory fields; `cheap_projection_route_analysis.py` gained
+  `--completion-retry-shifts`, `--completion-retry-weights`,
+  `--resume-from`, `_resume_state` (which refuses a segment whose
+  parameters, cutoff, dictionary or step differ and records changed repair
+  settings), a `resume` block and ladder counters in the summary, and an
+  exact reference that is propagated from `t=0` and sampled on a resumed
+  segment's own times.  Every default is unchanged: an empty ladder, a zero
+  tolerance and no resume are the earlier form.  Nothing is committed.
+  `HEAD` moved from `2d8f0efb` to `0615282f` during this task (the
+  projective agent's report); that commit does not touch these modules.
+- Scoring: `score_segments.py` under
+  `output/local_runs/paper_v_cheap_projection_task5_score_20260915_v1/`
+  reads only `trajectory.npz` and `summary.json` of the segments named on
+  its command line, checks the chain boundaries, regenerates the exact
+  reference on the chained times and scores the horizons; its outputs are
+  `chain_score_{power_tol_n4,postpulse_tol_n4,postpulse_ladder_n4,task4_postpulse_n4,task3_unconstrained_n4}.json`.
+  The two single-directory rescorings reproduce the task-3 and task-4 rows
+  in every printed digit.  The energy-drift and separation figures are from
+  two scratch scripts reading the same arrays.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_energy_ladder_n4_t20_20260915_v1_seg{1,2}`,
+  `paper_v_cheap_projection_energy_tol_n4_t20_20260915_v1_seg{1,2,3}`,
+  `paper_v_cheap_projection_energy_power_tol_n4_t20_20260915_v1_seg{1,2,3}`,
+  `paper_v_cheap_projection_resume_smoke_{a,b}_20260915_v1` (the resume
+  smoke, two 2-step segments).  Every segment ran under
+  `pipelines/shell/ram_guard.py --limit-mb 3000`, one at a time, with a
+  `1,150 s` autonomous budget; the longest segment was `1,172.5 s`.  Wall
+  times were measured with other agents' jobs on the machine and are upper
+  bounds.
+
+## What to try next, in order
+
+1. Nothing on this route at `N=4`.  The constrained completion refuses more
+   often the tighter the cadence, and the ladder does not change that; the
+   long-horizon cadence for the energy-neutral repair is `N=16`, and the
+   dictionary lever the projective agent measured moves the score more than
+   anything measured here.
+2. The sensitivity of section (d) is the first thing to settle before any
+   `t>8` row on this route is compared with another at the third digit: two
+   seeds of the same configuration, or the same run with the completion's
+   conic tolerance moved one decade, would say whether the refusal is the
+   amplifier.
+3. The record's `energy_neutral` control restriction in projection form
+   (task 4's item 2) is still the unrun variant that would separate the
+   repair's energy drift from the velocity's.
+
+## Structured summary of task 5
+
+| item | value |
+|---|---|
+| what was added | the record's completion retry ladder at a refused lift re-selection; a declared `energy_tolerance`; `--resume-from`, which chains segments from the last accepted state, carried frontier, time and the first segment's declared reference; 34 tests (6 new); no default changed; nothing committed |
+| B: `N=4`, `post_pulse`, tol `1e-3`, `t=0` to `20`, 3 segments, `2,467.4 s` | `0.318110`, internal energy `0.0539267`, site-0 `0.212252`, N block `0.4805`, C block `0.1715`, extension `-1.153e-3`, retained joint Gram `-2.632e-2`, envelope `0.9966`, 2,000 solved / 1,270 refused (173 of 173 in the last segment), energy within `8.92e-6` of its reference at every sample, `507 MiB` |
+| C: `N=4`, `drive_power`, tol `1e-3`, `t=0` to `20`, 3 segments, `3,179.8 s` | `0.283805`, internal energy `0.0437311`, site-0 `0.290898`, N block `0.3089`, C block `0.1207`, rho / B `0.3435` / `0.5254`, extension `-6.815e-4`, retained joint Gram `-1.777e-2`, envelope `0.9938`, 2,000 solved / 1,165 refused, energy within `3.91e-14` at every sample, `382 MiB` |
+| A: `N=4`, `post_pulse`, tol `0`, ladder | stopped at `t=11.09` after two segments (`2,322.5 s`), not continued; the ladder certified 119 of 493 refusals, all before `t=8.19`, and 0 of 289 after, at `3.87 s` a solve; `0.163635` over `t=0` to `11.09`, the worst of the three variants there |
+| against the record over `t=0` to `20` | both cones `0.128607` / `0.000939628` / site-0 `0.204690` / retained `1.36819e-5` at `5,832.34 s`; plain archive EOM `0.193205` / `0.0182361` / `0.286170`.  B is 2.47 and 1.65 times the two scores, C 2.21 and 1.47; both are worse than the unconstrained `N=4` row's `0.259573` and the `N=16` post-pulse row's `0.239172` |
+| against the 27-key `N=16` drive-power chain | `0.085193` / `0.0063446` / site-0 `0.112590` / retained `-2.463e-3` at `4,794.4 s`: the only row below the both-cones score, 6.8 times its internal energy, no physicality statement |
+| `t=0` to `4` against the projective event guard `0.026049` / `0.036201` | B `0.0262899` / `0.037608` (bitwise task 3); A `0.0263373` / `0.0382408`; C `0.0476697` / `0.0373856`; the `N=16` drive-power row `0.023744` / `0.020406`; 27 keys `0.011427` / `0.004597` |
+| the tolerance | never bound: no sample of B or C is outside `1e-3`; it changed 2,043 skipped stages of B and 1,213 of C |
+| the sensitivity | B and the task-4 run, identical up to those skipped repairs, separate to `1e-2` at `t=6.93`, `0.1` at `t=8.38`, order one at `t=11`; scores on `t=0` to `11.09`: `0.072875` (task 4), `0.110625` (B), `0.163635` (A); the task-4 `t=0` to `11.63` advantage is not reproducible (B `0.132357` against the unconstrained `0.138634`) |
+| what stands next to the both-cones line | none of the 15-key rows; B and C are containments, A is a negative result about the ladder, the 27-key chain stands on the score axis alone |
+| gates | 34 tests in `test_cheap_projection_route.py` passed in `15.87 s`; full suite not re-run this pass |
+| files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py` (all from the previous instance, kept), `score_segments.py` (four lines, tolerates the task-3 summary schema), this report, and the worklog block.  Nothing committed |

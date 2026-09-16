@@ -5339,3 +5339,89 @@ repairs it.  Artifacts:
 `output/local_runs/paper_v_dictionary_energy_power_27key_n16_20260915e_seg1`
 to `_seg6`, `paper_v_dictionary_energy_postpulse_27key_n16_20260915e_seg1`
 to `_seg4`, `paper_v_projective_dictionary_energy_20260915e/`.
+
+## 2026-09-15/16: cheap projection route, fifth pass: the chained `N=4` energy-neutral runs and the retry ladder
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(fifth heading).  Same configuration as the fourth pass at `N=4`: strong
+coupling, cutoff 16, exact-correlated preparation, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence, the
+declared proximal log-det completion re-solved every 4 steps warm-started on
+the carried frontier, the energy-neutral option in the named mode.  Scores
+are the all-coordinate scalar RMS on the 31 closed coordinates against the
+exact cutoff-16 driven reference on the stated horizon; internal energy is
+the sample RMS of the time-independent energy of Eq. (22) on that horizon.
+No default changed; nothing committed.  The previous instance launched the
+runs and was killed while scoring; this pass propagated nothing but the
+exact reference on the chained sample times.
+
+Three additions to the owned modules, each a declared option whose absence
+is the earlier form: the record's completion retry ladder, built by the
+record's `build_completion_ladder` and walked only at a refused lift
+re-selection; an `energy_tolerance` above zero; and `--resume-from`, which
+continues a rollout stopped on its wall budget from its last accepted state,
+carried frontier, time and the first segment's declared reference (a
+segment whose parameters, cutoff, dictionary or step differ is refused).
+Six tests cover them; 34 pass in the file.  Two chained segments reproduce
+one rollout to `1e-12`.
+
+Negative result first: neither completed `N=4` chain stands next to the
+both-cones line, and both are worse over `t=0` to `20` than the
+unconstrained `N=4` hybrid.  Post-pulse, tolerance `1e-3`, three segments,
+`2,467.4 s`: `0.318110`, internal energy `0.0539267`, site-0 `0.212252`,
+N block `0.4805`, extension `-1.153e-3`, retained joint Gram `-2.632e-2`,
+frontier envelope `0.9966`, 1,270 of 2,000 completions refused, all 173 of
+the last segment (`t=18.27` to `20`).  Drive-power, tolerance `1e-3`, three
+segments, `3,179.8 s`: `0.283805`, internal energy `0.0437311`, site-0
+`0.290898`, N block `0.3089`, rho / B blocks `0.3435` / `0.5254`, extension
+`-6.815e-4`, retained joint Gram `-1.777e-2`, envelope `0.9938`, 1,165 of
+2,000 refused.  Against the unconstrained `N=4` `0.259573`, the `N=16`
+post-pulse `0.239172`, the record's both-cones `0.128607` /
+`0.000939628` / retained `1.36819e-5` at `5,832.34 s` and the plain archive
+EOM `0.193205` / `0.0182361`.  Once the energy is held the tighter cadence
+is the worse one, because the constrained completion refuses at 58 to 64
+percent of re-selections at `N=4` against 21 percent at `N=16`.  The
+tolerance never bound: no sample is outside `1e-3` (post-pulse within
+`8.92e-6`, drive-power within `3.91e-14`); what reached `t=20` was the
+chaining.
+
+The ladder is not the refusal fix.  Post-pulse, tolerance `0`, shifts
+`1e-8`, `1e-7`, weight `0.1`: it certified 119 of 493 refused
+re-selections, all before `t=8.19`, and 0 of 289 after at `3.87 s` a solve,
+`1,408.3 s` of retries in `2,322.5 s`; the chain stopped at `t=11.09` on
+its second segment's budget and was not continued, scoring `0.163635`
+there, the worst of the three variants.
+
+The post-pulse `N=4` row past about `t=8` is one sample of a sensitive
+trajectory.  The tolerance chain and the task-4 run are the same declared
+configuration up to repairs skipped while the energy drift was below
+`8.9e-6`; they coincide over `t=0` to `4`, separate to `1e-2` in the
+31-coordinate Euclidean norm at `t=6.93`, `0.1` at `t=8.38` and order one
+at `t=11`, and score `0.110625` against `0.072875` over `t=0` to `11.09`
+(ladder chain `0.163635`; unconstrained `0.127335`).  The task-4 `t=0` to
+`11.63` advantage (`0.079973` against `0.138634`) is therefore not a
+reproducible factor: the tolerance chain scores `0.132357` on that horizon.
+The `t=0` to `8` scores of all three agree to three digits
+(`0.046854`, `0.046722`, `0.046972`).  The amplifier was not measured; the
+candidate is the completion's refusal, a discontinuous function of the
+state.
+
+Over `t=0` to `4` against the projective event guard's `0.026049` /
+`0.036201`: post-pulse `0.0262899` / `0.037608` (bitwise task 3), ladder
+`0.0263373` / `0.0382408`, drive-power `N=4` `0.0476697` / `0.0373856`,
+against the `N=16` drive-power row's `0.023744` / `0.020406` and the
+projective agent's 27-key `N=16` drive-power chain's `0.011427` /
+`0.004597`.  That 27-key chain (`0.085193` / `0.0063446` / retained
+`-2.463e-3` at `t=20`, `4,794.4 s`) is the only row below the both-cones
+score, at 6.8 times its internal energy and without a physicality
+statement.  Every 15-key row is a containment.
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_energy_{ladder,tol,power_tol}_n4_t20_20260915_v1_seg*`,
+`paper_v_cheap_projection_resume_smoke_{a,b}_20260915_v1`, and the scores
+in `paper_v_cheap_projection_task5_score_20260915_v1/` (`score_segments.py`,
+`chain_score_*.json`).  Every segment under `ram_guard --limit-mb 3000`,
+one at a time, `1,150 s` budget, longest `1,172.5 s`, largest own peak
+`507 MiB`.  Next: nothing at `N=4` on this route; settle the sensitivity
+before comparing any `t>8` row at the third digit; the dictionary lever
+moves the score more than anything measured here.

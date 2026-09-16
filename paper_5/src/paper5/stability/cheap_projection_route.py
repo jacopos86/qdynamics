@@ -79,6 +79,7 @@ from .moment_hierarchy import MomentKey
 from .projected_apcm import (
     FixedDictionaryProjectedAPCM,
     ProjectedAPCMTargets,
+    build_completion_ladder,
     unpack_projected_apcm_state,
 )
 
@@ -1080,6 +1081,12 @@ class CheapProjectionTrajectory:
     energy_constrained_repairs: int = 0
     energy_hyperplane_refusals: int = 0
     maximum_absolute_energy_deviation: float = 0.0
+    energy_reference_supplied: bool = False
+    lift_reselection_retries_attempted: int = 0
+    lift_reselection_retries_accepted: int = 0
+    lift_reselection_retries_exhausted: int = 0
+    lift_reselection_retry_solves: int = 0
+    lift_reselection_retry_seconds: float = 0.0
 
 
 class CheapProjectionRoute:
@@ -1094,6 +1101,12 @@ class CheapProjectionRoute:
     per-stage proximal log-det completion are never called: the lift the
     commutator velocity reads is the carried frontier, repaired by the
     declared cheap projection.
+
+    ``completion_retry_shifts`` and ``completion_retry_weights`` are the
+    record's declared completion retry ladder, built here by the record's
+    own ``build_completion_ladder`` and walked only where a re-selection's
+    declared completion is not certified.  Both empty is the route's earlier
+    form and changes nothing.
     """
 
     def __init__(
@@ -1102,6 +1115,8 @@ class CheapProjectionRoute:
         settings: CheapProjectionSettings | None = None,
         *,
         coordinates: AffineGramCoordinates | None = None,
+        completion_retry_shifts: tuple[float, ...] = (),
+        completion_retry_weights: tuple[float, ...] = (),
     ) -> None:
         self.model = model
         self.settings = (
@@ -1114,6 +1129,24 @@ class CheapProjectionRoute:
             if coordinates is None
             else coordinates
         )
+        self.completion_retry_shifts = tuple(
+            float(value) for value in completion_retry_shifts
+        )
+        self.completion_retry_weights = tuple(
+            float(value) for value in completion_retry_weights
+        )
+        self.completion_ladder = build_completion_ladder(
+            model.extension,
+            shifts=self.completion_retry_shifts,
+            weights=self.completion_retry_weights,
+        )
+        self.completion_retry_counters: dict[str, int] = {
+            "attempted": 0,
+            "accepted": 0,
+            "exhausted": 0,
+            "solves": 0,
+        }
+        self.completion_retry_seconds = 0.0
         if self.coordinates.extension is not model.extension:
             raise ValueError(
                 "affine coordinates must be built on the model's extension"
@@ -1170,6 +1203,7 @@ class CheapProjectionRoute:
         frontier_standardized: FloatArray,
         *,
         warm_start: bool = True,
+        retries: bool = True,
     ) -> tuple[FloatArray, APCMExtensionResult, float]:
         """Solve the declared proximal log-det completion at this state.
 
@@ -1185,6 +1219,15 @@ class CheapProjectionRoute:
 
         A refusal is reported, never raised: the returned frontier is then
         the carried one, unchanged, and the caller counts the refusal.
+
+        ``retries`` walks the declared completion retry ladder the route was
+        built with -- the record's own ``build_completion_ladder``, one
+        log-determinant shift or one log-determinant weight per entry,
+        solved on the same lower moments from the same warm start, the first
+        certified result taken -- when the declared completion is not
+        certified.  An empty ladder is the route's earlier form: one solve,
+        and the carried lift kept on a refusal.  The returned ``seconds`` is
+        the whole wall of the re-selection, retries included.
         """
 
         raw, hidden = unpack_projected_apcm_state(
@@ -1198,6 +1241,19 @@ class CheapProjectionRoute:
         )
         started = perf_counter()
         result = self.model.extension.complete(lower, warm_frontier=warm)
+        if not result.success and retries and self.completion_ladder:
+            ladder_started = perf_counter()
+            self.completion_retry_counters["attempted"] += 1
+            for extension in self.completion_ladder:
+                self.completion_retry_counters["solves"] += 1
+                retried = extension.complete(lower, warm_frontier=warm)
+                if retried.success:
+                    self.completion_retry_counters["accepted"] += 1
+                    result = retried
+                    break
+            else:
+                self.completion_retry_counters["exhausted"] += 1
+            self.completion_retry_seconds += perf_counter() - ladder_started
         seconds = perf_counter() - started
         if not result.success:
             return (
@@ -1243,6 +1299,7 @@ def integrate_cheap_projection_ssprk3(
     lift_reselection_interval: int = 0,
     lift_reselection_warm_start: bool = True,
     energy_reference_time: float = 4.0,
+    energy_reference_value: float | None = None,
 ) -> CheapProjectionTrajectory:
     """SSPRK(3,3) on the unguarded velocity with the declared cheap repair.
 
@@ -1260,6 +1317,13 @@ def integrate_cheap_projection_ssprk3(
     carries the solved lift until the next re-selection.  A completion that
     refuses is counted and the carried lift is kept, so the rollout still
     cannot stop on a conic refusal.
+
+    ``energy_reference_value`` is the declared internal-energy reference a
+    segment is resumed on.  A rollout that stops on its wall budget is
+    continued by handing its last accepted state, its last carried frontier,
+    its last time and this value to a second call, so the declared reference
+    is the one the first segment selected rather than one re-declared at the
+    resumed state; ``None`` selects the reference the mode declares below.
 
     ``energy_reference_time`` is the declared time the drive ends, which the
     settings' ``"post_pulse"`` energy reference mode uses: the constraint is
@@ -1300,6 +1364,12 @@ def integrate_cheap_projection_ssprk3(
             "an energy reference mode needs affine coordinates built with "
             "the model parameters"
         )
+    supplied_reference = energy_reference_value is not None
+    if supplied_reference and mode == "none":
+        raise ValueError(
+            "energy_reference_value is the reference a resumed segment "
+            "carries; it needs an energy_reference_mode"
+        )
 
     times = float(initial_time) + np.linspace(0.0, span, intervals + 1)
     states = np.empty((intervals + 1, state.size), dtype=float)
@@ -1312,6 +1382,8 @@ def integrate_cheap_projection_ssprk3(
     records: list[dict[str, Any]] = []
     reference: float | None = None
 
+    retries_before = dict(route.completion_retry_counters)
+    retry_seconds_before = float(route.completion_retry_seconds)
     counters = {
         "applied": 0,
         "skipped": 0,
@@ -1437,7 +1509,9 @@ def integrate_cheap_projection_ssprk3(
         return value, power
 
     sample(0, state, frontier)
-    if mode == "drive_power":
+    if supplied_reference:
+        reference = float(energy_reference_value)
+    elif mode == "drive_power":
         reference = float(energies[0])
     capture(0)
     completed = intervals
@@ -1650,6 +1724,26 @@ def integrate_cheap_projection_ssprk3(
         energy_constrained_repairs=int(counters["energy_constrained"]),
         energy_hyperplane_refusals=int(counters["energy_refusals"]),
         maximum_absolute_energy_deviation=float(totals["energy_deviation"]),
+        energy_reference_supplied=bool(supplied_reference),
+        lift_reselection_retries_attempted=int(
+            route.completion_retry_counters["attempted"]
+            - retries_before["attempted"]
+        ),
+        lift_reselection_retries_accepted=int(
+            route.completion_retry_counters["accepted"]
+            - retries_before["accepted"]
+        ),
+        lift_reselection_retries_exhausted=int(
+            route.completion_retry_counters["exhausted"]
+            - retries_before["exhausted"]
+        ),
+        lift_reselection_retry_solves=int(
+            route.completion_retry_counters["solves"]
+            - retries_before["solves"]
+        ),
+        lift_reselection_retry_seconds=float(
+            route.completion_retry_seconds - retry_seconds_before
+        ),
     )
 
 
@@ -1662,6 +1756,8 @@ def prepare_cheap_projection_route(
     model_settings: Any = None,
     projection_settings: Any = None,
     extension_settings: Any = None,
+    completion_retry_shifts: tuple[float, ...] = (),
+    completion_retry_weights: tuple[float, ...] = (),
 ) -> tuple[CheapProjectionRoute, FloatArray, FloatArray, float]:
     """Build the route at the canonical correlated preparation.
 
@@ -1670,6 +1766,10 @@ def prepare_cheap_projection_route(
     initial lift is the declared proximal log-det completion at the
     preparation, which is the one conic solve on this route and is paid once
     at ``t = 0``; every later lift is carried and repaired.
+
+    ``completion_retry_shifts`` and ``completion_retry_weights`` are handed
+    to the route as its declared completion retry ladder, which is walked
+    only where a lift re-selection is not certified.
     """
 
     from .apcm_moment_projection import (
@@ -1711,7 +1811,12 @@ def prepare_cheap_projection_route(
     initialization = prepare_projected_apcm_initial_state(
         parameters, phonon_cutoff=phonon_cutoff, extension=extension
     )
-    route = CheapProjectionRoute(model, settings)
+    route = CheapProjectionRoute(
+        model,
+        settings,
+        completion_retry_shifts=tuple(completion_retry_shifts),
+        completion_retry_weights=tuple(completion_retry_weights),
+    )
     frontier = route.coordinates.standardize_frontier(
         initialization.completion.frontier_moments
     )

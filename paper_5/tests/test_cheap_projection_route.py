@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
@@ -34,7 +36,10 @@ from paper5.stability.adaptive_positive_moment import (
     raw_moment_coordinates_to_matrix_state,
 )
 from paper5.stability.hubbard_dimer import DimerParameters
-from paper5.stability.projected_apcm import unpack_projected_apcm_state
+from paper5.stability.projected_apcm import (
+    build_completion_ladder,
+    unpack_projected_apcm_state,
+)
 
 
 @pytest.fixture(scope="module")
@@ -617,3 +622,279 @@ def test_drive_power_reference_follows_the_drive(prepared) -> None:
     assert abs(references[-1] - references[0]) > 1e-6
     assert trajectory.maximum_absolute_energy_deviation < 1e-10
     assert trajectory.energy_constrained_repairs > 0
+
+
+def test_completion_retry_ladder_is_the_records_declared_ladder(
+    prepared,
+) -> None:
+    """The ladder is the record's own, one declared setting per entry.
+
+    The shifts and the weight are the ones the projective route declares,
+    ``1e-8`` and ``1e-7`` on the log-determinant shift and ``1e-1`` on the
+    log-determinant weight, and the ladder this route builds is the one
+    ``build_completion_ladder`` returns for them.
+    """
+
+    route, _, _, _ = prepared
+    assert route.completion_ladder == ()
+    laddered = CheapProjectionRoute(
+        route.model,
+        route.settings,
+        coordinates=route.coordinates,
+        completion_retry_shifts=(1e-8, 1e-7),
+        completion_retry_weights=(1e-1,),
+    )
+    declared = build_completion_ladder(
+        route.model.extension, shifts=(1e-8, 1e-7), weights=(1e-1,)
+    )
+    assert len(laddered.completion_ladder) == len(declared) == 3
+    base = route.model.extension.settings
+    shifts = [entry.settings.logdet_shift for entry in declared]
+    weights = [entry.settings.logdet_weight for entry in declared]
+    assert shifts == [1e-8, 1e-7, base.logdet_shift]
+    assert weights == [base.logdet_weight, base.logdet_weight, 1e-1]
+    for entry in declared:
+        assert entry.active_keys == route.model.extension.active_keys
+
+
+def _refusing_completion(declared):
+    """The declared completion with its certificate withheld."""
+
+    def refusing(lower, *, warm_frontier=None):
+        return replace(
+            declared(lower, warm_frontier=warm_frontier),
+            success=False,
+            message="test_forced_refusal",
+        )
+
+    return refusing
+
+
+def test_a_refused_lift_reselection_walks_the_declared_ladder(
+    prepared, monkeypatch
+) -> None:
+    """A refusal is retried, and the first certified retry is the lift.
+
+    The declared completion is forced to refuse; the ladder entries are
+    separate dictionaries and are left alone, so the re-selection returns
+    the retried completion's own frontier and the refusal never reaches the
+    caller.
+    """
+
+    route, state, frontier, _ = prepared
+    laddered = CheapProjectionRoute(
+        route.model,
+        route.settings,
+        coordinates=route.coordinates,
+        completion_retry_shifts=(1e-8,),
+        completion_retry_weights=(1e-1,),
+    )
+    monkeypatch.setattr(
+        route.model.extension,
+        "complete",
+        _refusing_completion(route.model.extension.complete),
+    )
+    selected, completion, seconds = laddered.reselect_lift(state, frontier)
+    assert completion.success
+    assert seconds > 0.0
+    assert laddered.completion_retry_counters["attempted"] == 1
+    assert laddered.completion_retry_counters["accepted"] == 1
+    assert laddered.completion_retry_counters["exhausted"] == 0
+    assert laddered.completion_retry_counters["solves"] == 1
+    assert laddered.completion_retry_seconds > 0.0
+    assert np.allclose(
+        selected,
+        route.coordinates.standardize_frontier(completion.frontier_moments),
+    )
+
+
+def test_an_exhausted_ladder_keeps_the_carried_lift(
+    prepared, monkeypatch
+) -> None:
+    """Every entry refusing is counted, and nothing stops."""
+
+    route, state, frontier, _ = prepared
+    laddered = CheapProjectionRoute(
+        route.model,
+        route.settings,
+        coordinates=route.coordinates,
+        completion_retry_shifts=(1e-8,),
+    )
+    monkeypatch.setattr(
+        route.model.extension,
+        "complete",
+        _refusing_completion(route.model.extension.complete),
+    )
+    for entry in laddered.completion_ladder:
+        monkeypatch.setattr(
+            entry, "complete", _refusing_completion(entry.complete)
+        )
+    selected, completion, _ = laddered.reselect_lift(state, frontier)
+    assert not completion.success
+    assert laddered.completion_retry_counters["attempted"] == 1
+    assert laddered.completion_retry_counters["accepted"] == 0
+    assert laddered.completion_retry_counters["exhausted"] == 1
+    assert np.array_equal(selected, np.asarray(frontier, dtype=float))
+
+
+def test_energy_tolerance_skips_a_repair_the_cones_do_not_need(
+    prepared,
+) -> None:
+    """A declared tolerance holds the hyperplane only where drift has grown.
+
+    At the preparation both cones are met to the declared
+    ``repair_tolerance``, so the only reason to repair is the energy.  A
+    drift inside the declared ``energy_tolerance`` is left alone and counted
+    as skipped; the same drift at tolerance zero is repaired and lands on
+    the reference.
+    """
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    reference = coordinates.energy.value(state) + 1e-6
+    tolerant = CheapProjectionSettings(
+        policy="dykstra",
+        target="both",
+        dykstra_iterations=30,
+        repair_tolerance=1e-6,
+        energy_reference_mode="post_pulse",
+        energy_tolerance=1e-4,
+    )
+    exact = replace(tolerant, energy_tolerance=0.0)
+    skipped = coordinates.repair(
+        state, frontier, tolerant, energy_reference=reference
+    )
+    applied = coordinates.repair(
+        state, frontier, exact, energy_reference=reference
+    )
+    assert not skipped.applied
+    assert skipped.state_displacement == 0.0
+    assert applied.applied
+    assert abs(applied.internal_energy_after - reference) < 1e-10
+    assert abs(skipped.internal_energy_after - reference) == pytest.approx(
+        1e-6, rel=1e-6
+    )
+
+
+def test_a_supplied_reference_is_the_one_a_resumed_segment_holds(
+    prepared,
+) -> None:
+    """The declared reference is carried into a segment, not re-declared.
+
+    A segment resumed from a saved state would otherwise declare the
+    reference at its own first sample, which with a nonzero
+    ``energy_tolerance`` is the drifted value rather than the one the first
+    segment selected.
+    """
+
+    route, state, frontier, _ = prepared
+    held = CheapProjectionRoute(
+        route.model,
+        CheapProjectionSettings(
+            policy="dykstra",
+            target="both",
+            dykstra_iterations=30,
+            energy_reference_mode="post_pulse",
+        ),
+        coordinates=route.coordinates,
+    )
+    declared = route.coordinates.energy.value(state) - 1e-3
+    supplied = integrate_cheap_projection_ssprk3(
+        held,
+        state,
+        frontier,
+        final_time=0.005,
+        time_step=0.0025,
+        energy_reference_time=0.0,
+        energy_reference_value=declared,
+    )
+    own = integrate_cheap_projection_ssprk3(
+        held,
+        state,
+        frontier,
+        final_time=0.005,
+        time_step=0.0025,
+        energy_reference_time=0.0,
+    )
+    assert supplied.success and own.success
+    assert supplied.energy_reference_supplied
+    assert not own.energy_reference_supplied
+    assert supplied.energy_reference_value == declared
+    assert abs(own.energy_reference_value - declared) == pytest.approx(
+        1e-3, rel=1e-6
+    )
+    assert abs(supplied.internal_energy[-1] - declared) < 1e-10
+    with pytest.raises(ValueError, match="energy_reference_mode"):
+        integrate_cheap_projection_ssprk3(
+            route,
+            state,
+            frontier,
+            final_time=0.0025,
+            time_step=0.0025,
+            energy_reference_value=declared,
+        )
+
+
+def test_two_chained_segments_reproduce_one_rollout(prepared) -> None:
+    """A rollout stopped on its budget is continued from its saved state.
+
+    The segment carries the last accepted state, the frontier carried with
+    it, its time and the declared internal-energy reference, which is what
+    the driver's ``--resume-from`` reads out of ``trajectory.npz`` and
+    ``summary.json``.
+    """
+
+    route, state, frontier, _ = prepared
+    held = CheapProjectionRoute(
+        route.model,
+        CheapProjectionSettings(
+            policy="dykstra",
+            target="both",
+            dykstra_iterations=30,
+            energy_reference_mode="post_pulse",
+        ),
+        coordinates=route.coordinates,
+    )
+    whole = integrate_cheap_projection_ssprk3(
+        held,
+        state,
+        frontier,
+        final_time=0.01,
+        time_step=0.0025,
+        energy_reference_time=0.0025,
+        lift_reselection_interval=2,
+    )
+    first = integrate_cheap_projection_ssprk3(
+        held,
+        state,
+        frontier,
+        final_time=0.005,
+        time_step=0.0025,
+        energy_reference_time=0.0025,
+        lift_reselection_interval=2,
+    )
+    second = integrate_cheap_projection_ssprk3(
+        held,
+        first.states[-1],
+        first.frontier_standardized[-1],
+        initial_time=float(first.times[-1]),
+        final_time=0.01,
+        time_step=0.0025,
+        energy_reference_time=0.0025,
+        energy_reference_value=first.energy_reference_value,
+        lift_reselection_interval=2,
+    )
+    assert whole.success and first.success and second.success
+    assert whole.completed_steps == 4
+    assert first.completed_steps == second.completed_steps == 2
+    assert second.energy_reference_value == first.energy_reference_value
+    assert np.allclose(second.states[-1], whole.states[-1], atol=1e-12)
+    assert np.allclose(
+        second.frontier_standardized[-1],
+        whole.frontier_standardized[-1],
+        atol=1e-12,
+    )
+    assert (
+        first.lift_reselections + second.lift_reselections
+        == whole.lift_reselections
+    )

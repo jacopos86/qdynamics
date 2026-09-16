@@ -203,6 +203,42 @@ def _parser() -> argparse.ArgumentParser:
             "even when both cones are already satisfied."
         ),
     )
+    parser.add_argument(
+        "--completion-retry-shifts",
+        type=float,
+        nargs="+",
+        default=[],
+        help=(
+            "Declared ladder of log-determinant shifts retried, in order, "
+            "when a lift re-selection's declared completion is not "
+            "certified; empty is this route's earlier form, one solve and "
+            "the carried lift kept on a refusal."
+        ),
+    )
+    parser.add_argument(
+        "--completion-retry-weights",
+        type=float,
+        nargs="+",
+        default=[],
+        help=(
+            "Declared ladder of log-determinant weights retried after the "
+            "shifts at a refused lift re-selection."
+        ),
+    )
+    parser.add_argument(
+        "--resume-from",
+        type=Path,
+        default=None,
+        help=(
+            "Continue a rollout that stopped on its wall budget: the run "
+            "directory whose trajectory.npz supplies the last accepted "
+            "state, the carried frontier and the time this segment starts "
+            "at, and whose summary.json supplies the declared "
+            "internal-energy reference the segment carries.  The exact "
+            "reference of a resumed segment is propagated from t=0 and "
+            "sampled on that segment's own times."
+        ),
+    )
     parser.add_argument("--wall-budget-seconds", type=float, default=1200.0)
     parser.add_argument(
         "--record-stages",
@@ -223,19 +259,25 @@ def _exact_archive_coordinates(
     phonon_cutoff: int,
     time_step: float,
 ) -> np.ndarray:
+    requested = np.asarray(times, dtype=float)
+    prepended = abs(float(requested[0])) > 1e-15
+    sample_times = (
+        np.concatenate(([0.0], requested)) if prepended else requested
+    )
     exact = exact_holstein_driven_trajectory(
         parameters,
-        sample_times=np.asarray(times, dtype=float),
+        sample_times=sample_times,
         phonon_cutoff=phonon_cutoff,
         maximum_step=min(0.01, time_step * 4.0),
     )
-    return np.asarray(
+    coordinates = np.asarray(
         [
             matrix_state_to_closed_scalar_coordinates(state)
             for state in exact.matrix_states
         ],
         dtype=float,
     )
+    return coordinates[1:] if prepended else coordinates
 
 
 def _archive_coordinates(
@@ -250,6 +292,97 @@ def _archive_coordinates(
             )
         )
     return np.asarray(rows, dtype=float)
+
+
+def _resume_state(
+    directory: Path,
+    *,
+    parameters: DimerParameters,
+    phonon_cutoff: int,
+    time_step: float,
+    entrance_key_count: int,
+    settings: CheapProjectionSettings,
+) -> dict[str, Any]:
+    """Read the last accepted state of a segment that stopped on its budget.
+
+    A segment is continued from exactly three saved quantities -- the last
+    accepted 44-coordinate state, the standardized frontier carried with it,
+    and the time that state was accepted at -- plus the declared
+    internal-energy reference the earlier segment selected, so the resumed
+    repair holds the same hyperplane rather than re-declaring one at the
+    resumed state.  The model, the step and the preparation are re-derived
+    from the same flags; a segment whose step, parameters, cutoff or
+    dictionary differ is refused, and a segment whose repair settings differ
+    is allowed and recorded, because completing a stopped run under a
+    changed option is a declared experiment and must be visible in the
+    summary.
+    """
+
+    directory = directory.resolve()
+    summary = json.loads(
+        (directory / "summary.json").read_text(encoding="utf-8")
+    )
+    with np.load(directory / "trajectory.npz") as archive:
+        times = np.asarray(archive["times"], dtype=float)
+        states = np.asarray(archive["states"], dtype=float)
+        frontiers = np.asarray(archive["frontier_standardized"], dtype=float)
+        references = (
+            np.asarray(archive["internal_energy_reference"], dtype=float)
+            if "internal_energy_reference" in archive
+            else np.zeros(0, dtype=float)
+        )
+    saved_parameters = summary["parameters"]
+    for name, value in (
+        ("gamma", parameters.gamma),
+        ("lambda_ep", parameters.lambda_ep),
+        ("drive_amplitude", parameters.drive_amplitude),
+    ):
+        if not np.isclose(float(saved_parameters[name]), float(value)):
+            raise ValueError(
+                f"the resumed segment was run at {name}="
+                f"{saved_parameters[name]}, not {value}"
+            )
+    if int(summary["phonon_cutoff"]) != int(phonon_cutoff):
+        raise ValueError("the resumed segment used a different phonon cutoff")
+    if int(summary["entrance_key_count"]) != int(entrance_key_count):
+        raise ValueError(
+            "the resumed segment used a different entrance dictionary"
+        )
+    if not np.isclose(
+        float(summary["integration"]["time_step"]), float(time_step)
+    ):
+        raise ValueError("the resumed segment used a different time step")
+    saved_settings = dict(summary["projection_settings"])
+    current_settings = dict(asdict(settings))
+    changed = {
+        key: [saved_settings.get(key), current_settings.get(key)]
+        for key in sorted(set(saved_settings) | set(current_settings))
+        if saved_settings.get(key) != current_settings.get(key)
+    }
+    reference = summary.get("internal_energy", {}).get(
+        "declared_reference_value", float("nan")
+    )
+    if reference is None or not np.isfinite(float(reference)):
+        reference = (
+            float(references[-1])
+            if references.size and np.isfinite(float(references[-1]))
+            else None
+        )
+    else:
+        reference = float(reference)
+    return {
+        "directory": str(directory),
+        "initial_time": float(times[-1]),
+        "state": states[-1].copy(),
+        "frontier_standardized": frontiers[-1].copy(),
+        "energy_reference_value": reference,
+        "source_last_time": float(times[-1]),
+        "source_completed_steps": int(
+            summary["integration"]["completed_steps"]
+        ),
+        "source_message": summary["integration"]["message"],
+        "projection_settings_changed": changed,
+    }
 
 
 def _carried_witness_main(args: argparse.Namespace) -> int:
@@ -484,6 +617,8 @@ def main() -> int:
             model_settings=model_settings,
             projection_settings=projection_settings,
             extension_settings=extension_settings,
+            completion_retry_shifts=tuple(args.completion_retry_shifts),
+            completion_retry_weights=tuple(args.completion_retry_weights),
         )
     )
     route.coordinates.factorization(settings)
@@ -495,6 +630,29 @@ def main() -> int:
         f"build_seconds={build_elapsed:.3f}"
     )
 
+    initial_time = 0.0
+    energy_reference_value: float | None = None
+    resume: dict[str, Any] | None = None
+    if args.resume_from is not None:
+        resume = _resume_state(
+            args.resume_from,
+            parameters=parameters,
+            phonon_cutoff=args.phonon_cutoff,
+            time_step=args.time_step,
+            entrance_key_count=len(route.coordinates.active_keys),
+            settings=settings,
+        )
+        initial_time = float(resume["initial_time"])
+        initial_state = np.asarray(resume["state"], dtype=float)
+        initial_frontier = np.asarray(
+            resume["frontier_standardized"], dtype=float
+        )
+        energy_reference_value = resume["energy_reference_value"]
+        progress(
+            f"resumed from {resume['directory']} at t={initial_time:.6f} "
+            f"reference={energy_reference_value}"
+        )
+
     started = perf_counter()
     trajectory = integrate_cheap_projection_ssprk3(
         route,
@@ -502,12 +660,14 @@ def main() -> int:
         initial_frontier,
         final_time=args.final_time,
         time_step=args.time_step,
+        initial_time=initial_time,
         progress=progress,
         deadline=started + float(args.wall_budget_seconds),
         record_stages=bool(args.record_stages),
         lift_reselection_interval=int(args.lift_reselection_interval),
         lift_reselection_warm_start=args.lift_reselection_start == "warm",
         energy_reference_time=float(args.energy_reference_time),
+        energy_reference_value=energy_reference_value,
     )
     autonomous_elapsed = perf_counter() - started
 
@@ -545,6 +705,22 @@ def main() -> int:
         )
     )
 
+    resume_block: dict[str, Any] | None = None
+    if resume is not None:
+        resume_block = {
+            "source_directory": resume["directory"],
+            "source_last_time": resume["source_last_time"],
+            "source_completed_steps": resume["source_completed_steps"],
+            "source_message": resume["source_message"],
+            "initial_time": float(initial_time),
+            "supplied_internal_energy_reference": (
+                resume["energy_reference_value"]
+            ),
+            "projection_settings_changed": resume[
+                "projection_settings_changed"
+            ],
+        }
+
     summary: dict[str, Any] = {
         "schema_version": 1,
         "classification": "exploratory_local_not_promoted",
@@ -571,6 +747,7 @@ def main() -> int:
                 "cheap repair"
             ),
             "final_time_requested": args.final_time,
+            "initial_time": float(initial_time),
             "last_time": float(trajectory.times[-1]),
             "time_step": args.time_step,
             "completed_steps": trajectory.completed_steps,
@@ -622,11 +799,30 @@ def main() -> int:
             "minimum_reselected_scaled_extension_eigenvalue": (
                 trajectory.minimum_reselected_scaled_extension_eigenvalue
             ),
+            "completion_retry_shifts": [
+                float(value) for value in args.completion_retry_shifts
+            ],
+            "completion_retry_weights": [
+                float(value) for value in args.completion_retry_weights
+            ],
+            "completion_retry_ladder_length": len(route.completion_ladder),
+            "retries_attempted": (
+                trajectory.lift_reselection_retries_attempted
+            ),
+            "retries_accepted": trajectory.lift_reselection_retries_accepted,
+            "retries_exhausted": (
+                trajectory.lift_reselection_retries_exhausted
+            ),
+            "retry_solves": trajectory.lift_reselection_retry_solves,
+            "retry_wall_seconds": trajectory.lift_reselection_retry_seconds,
         },
         "internal_energy": {
             "reference_mode": args.energy_reference_mode,
             "declared_reference_time": float(args.energy_reference_time),
             "energy_tolerance": float(args.energy_tolerance),
+            "reference_supplied_by_resume": bool(
+                trajectory.energy_reference_supplied
+            ),
             "declared_reference_value": (
                 trajectory.energy_reference_value
             ),
@@ -659,6 +855,7 @@ def main() -> int:
             ),
         },
         "accuracy": metrics,
+        "resume": resume_block,
         "recorded_reference": _RECORDED,
     }
 
