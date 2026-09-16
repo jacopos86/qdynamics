@@ -1477,3 +1477,336 @@ agree to three digits and are the reproducible part.
 | what stands next to the both-cones line | none of the 15-key rows; B and C are containments, A is a negative result about the ladder, the 27-key chain stands on the score axis alone |
 | gates | 34 tests in `test_cheap_projection_route.py` passed in `15.87 s`; full suite not re-run this pass |
 | files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py` (all from the previous instance, kept), `score_segments.py` (four lines, tolerates the task-3 summary schema), this report, and the worklog block.  Nothing committed |
+
+# Task 6: the sensitivity of the recorded `N=16` drive-power row to one declared setting (2026-09-16)
+
+Same branch, worktree and modules as the five sections above.  The two
+modules this route owns gained one declared setting, needed for one of the
+three reruns and absent from the driver before: `--completion-conic-tolerance`,
+which builds a second `SymmetryReducedPositiveExtension` on the same
+dictionary whose conic tolerance the lift re-selections solve at, leaving
+the preparation's completion at the declared `APCMExtensionSettings`
+(`CheapProjectionRoute(reselection_extension=...)`,
+`prepare_cheap_projection_route(reselection_extension_settings=...)`,
+recorded in the summary's `reselection_extension_settings` block; `None`
+is the earlier form, one extension for both).  No file this route does not
+own was edited; no default changed; nothing is committed.  Conventions are
+those of tasks 2 to 5: the score is the all-coordinate scalar RMS of the 31
+closed scalar coordinates against the exact cutoff-16 driven reference
+(`all_coordinate_scalar_rms_error`) on the stated horizon; the internal
+energy is the sample RMS of the time-independent energy of Eq. (22)
+(`static_energy_rms_error`) on that horizon; physicality numbers are
+measured minimum eigenvalues along the trajectory and there is no
+certificate anywhere on this route.  The configuration of every row is the
+recorded run's, `paper_v_cheap_projection_energy_power_n16_t20_20260915_v1`
+(task 4, section (b), the cheapest configuration with a `t=20` row,
+`719.6 s`): strong coupling (`lambda_ep = 1.5`, `gamma = 0.5`, drive
+amplitude 1), phonon cutoff 16, exact-correlated preparation, 15 entrance
+keys, SSPRK(3,3) at `h = 0.0025`, the unguarded fixed-dictionary predictor,
+Dykstra 30 on both targets at stage cadence, the declared proximal log-det
+completion re-solved every 16 steps warm-started on the carried frontier,
+the energy-neutral option in `drive_power` mode with `energy_tolerance` 0,
+`8,000` steps to `t=20`.  Each rerun differs from that in exactly one
+declared setting.  The separation between two rollouts is the Euclidean
+distance between their 31 closed scalar coordinates at the same accepted
+step; "first crossing" is the first sample at or above the level.
+
+## Negative result first
+
+The tighter decade cannot be applied to the completion as declared.  At
+`conic_tolerance = 1e-10` the preparation's proximal log-det completion is
+not certified (Clarabel `AlmostSolved`, `relative_lambda 2.0e-7`,
+`reduced_gradient 3.7e-9`, face support 23 of 24), so
+`prepare_projected_apcm_initial_state` refuses and no route can be built;
+the rerun below tightens the re-selection completion alone and keeps the
+preparation's solve at `1e-9`.  The same refusal is the first thing that
+rerun does at `t=0.04`: where the declared `1e-9` solve certifies a lift
+`0.333` from the carried one, the `1e-10` solve on the same lower moments
+and the same warm start (both runs are bitwise equal to that step) refuses
+and keeps the carried lift.
+
+No horizon of this configuration is resolved at the second digit.  The
+three reruns move the `t=0` to `4` score from the recorded `0.023744` to
+`0.024240`, `0.026837` and `0.027953` (spread 18 percent of the smallest),
+the `t=0` to `8` score from `0.045571` to `0.044530`, `0.040677` and
+`0.040450` (13 percent), `t=0` to `12` from `0.125139` to `0.130946`,
+`0.114863` and `0.108195` (21 percent), and `t=0` to `20` from `0.328674`
+to `0.325970`, `0.260123` and `0.300340` (26 percent); the internal energy
+moves by 40 percent at both `t=4` and `t=20`.  The recorded row's lead over
+the projective event guard on `t=0` to `4` (`0.023744` against `0.026049`,
+task 4) is inside that spread: two of its three one-setting twins score
+worse than the guard.
+
+The amplifier is the lift re-selection's completion, not the flow and not
+the repair.  In every rerun the 31 coordinates agree with the recorded run
+to round-off (`5e-16` to `3e-15`) or exactly until a re-selection step,
+where the standardized frontier the two runs carry jumps apart by `0.33` to
+`0.40` in one step; the propagated state follows one step later, from
+`1e-14` to `1.2e-3`, `2.3e-3` and `1.4e-3` in the 44 coordinates (one-step
+growth `4.7e10` and `4.9e10` where the difference before it was nonzero),
+and every later one-step growth of the 31-coordinate separation is at most
+`4.0`.  Two mechanisms were caught: a refusal flip, where one run's
+completion certifies and the other's refuses on inputs that agree to
+`1e-14` (`dykstra60` at `t=0.08`, `conic1e10` at `t=0.04`); and two
+certified solves on inputs that agree to `1e-14` returning lifts `0.40`
+apart (`etol1e3` at `t=0.04`).  Beside this the exact reference is inert:
+the record's smallest physical perturbation is amplified by at most `1.16`
+over `t=0` to `20`, at the record's size and at the route's.
+
+## (a) The three reruns
+
+Every rerun completed its 8,000 steps under `ram_guard --limit-mb 3000`,
+one at a time, inside the recorded `1,140 s` budget.  Counters are each
+run's own `summary.json`; the exact reference stored with each rerun equals
+the recorded run's in every one of `8,001 x 31` entries.
+
+| run | the one setting changed | autonomous wall | completions solved / refused, mean solve | repairs applied / skipped of 24,000, largest Dykstra count | minimum scaled 24-row extension eigenvalue | minimum unshifted retained joint Gram | maximum standardized frontier envelope ratio | drive-power reference above the exact `-3.571397982` | peak resident |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| recorded (task 4) | --- | `719.6 s` | 500 / 276, `0.966 s` | 22,212 / 1,788, 30 | `-2.331e-3` | `-5.284e-2` | `0.8422` | `0.027219` | `768 MiB` |
+| `etol1e3` | `energy_tolerance` 0 to `1e-3` (the flag of task 5's chain B) | `702.4 s` | 500 / 285, `0.959 s` | 19,925 / 4,075, 30 | `-2.042e-3` | `-4.637e-2` | `0.9238` | `0.027382` | `774 MiB` |
+| `dykstra60` | `dykstra_iterations` 30 to 60 | `984.9 s` | 500 / 192, `1.280 s` | 22,568 / 1,432, 60 | `-5.860e-4` | `-1.423e-2` | `0.7224` | `0.033253` | `771 MiB` |
+| `conic1e10` | re-selection completion's `conic_tolerance` `1e-9` to `1e-10` (preparation at `1e-9`) | `831.0 s` | 500 / 267, `1.204 s` | 22,583 / 1,417, 30 | `-1.566e-3` | `-3.585e-2` | `0.8927` | `0.038320` | `803 MiB` |
+
+The energy is held on each run's own reference to `1.2e-14` or better at
+every constrained repair; the reference column is why the internal-energy
+column below moves: the drive-power reference is advanced along each
+trajectory by the power the drive delivers, so a different trajectory
+selects a different reference, by up to `1.1e-2` here.
+
+Cumulative scores from `t=0`, by rescoring the saved artifacts
+(`score_sensitivity.py`; the recorded column reproduces task 4's rows in
+every printed digit):
+
+| `T` | recorded | `etol1e3` | `dykstra60` | `conic1e10` | spread of the four, all-coordinate scalar RMS |
+|---:|---|---|---|---|---:|
+| 4 | `0.023744` / `0.020406` | `0.024240` / `0.020400` | `0.026837` / `0.025140` | `0.027953` / `0.028639` | 18 percent |
+| 8 | `0.045571` / `0.024055` | `0.044530` / `0.024145` | `0.040677` / `0.029477` | `0.040450` / `0.033827` | 13 percent |
+| 12 | `0.125139` / `0.025154` | `0.130946` / `0.025270` | `0.114863` / `0.030787` | `0.108195` / `0.035388` | 21 percent |
+| 20 | `0.328674` / `0.026000` | `0.325970` / `0.026136` | `0.260123` / `0.031797` | `0.300340` / `0.036590` | 26 percent |
+
+(each cell: all-coordinate scalar RMS / Eq. (22) internal-energy sample
+RMS over `t=0` to `T`; the spread is the largest minus the smallest of the
+four scores, as a fraction of the smallest.)
+
+Where each rerun leaves the recorded run:
+
+| run | first nonzero separation, 31 coordinates | first nonzero difference of the carried frontier | first crossing of `1e-3` / `1e-2` / `1e-1` | separation at `t=4` / `8` / `12` / `20` | maximum, and when |
+|---|---|---|---|---|---|
+| `etol1e3` | `5.0e-16` at `t=0.0075` | `2.5e-32` at `t=0.0075`; `0.401` at `t=0.04` | `0.1475` / `0.7525` / `7.01` | `0.0246` / `0.1627` / `0.3738` / `0.0805` | `0.4080` at `t=12.16` |
+| `dykstra60` | `2.7e-15` at `t=0.0525` | `1.7e-15` at `t=0.0525`; `0.376` at `t=0.08` | `0.145` / `0.36` / `4.0025` | `0.1000` / `0.2365` / `0.5692` / `0.6955` | `0.9868` at `t=12.85` |
+| `conic1e10` | `9.1e-7` at `t=0.0425` | `0.333` at `t=0.04` | `0.125` / `0.48` / `3.085` | `0.1271` / `0.1680` / `0.3177` / `0.3516` | `0.7219` at `t=13.09` |
+
+Three readings.
+
+- **The perturbation each setting makes is at round-off, or nothing, until
+  a re-selection.**  The tolerance flag first differs from the recorded run
+  by `5e-16` at `t=0.0075` (a skipped repair against an applied one that
+  moved the state by round-off); the doubled Dykstra cap first differs by
+  `2.7e-15` at `t=0.0525` (a repair that ran past 30 iterations moves the
+  point by the residual it had at 30); the tightened re-selection tolerance
+  differs by nothing at all until its first solve refuses at `t=0.04`.
+  Then in each case the separation is `1e-3` within `0.125` to `0.1475`
+  time units, `1e-2` within `0.36` to `0.7525`, and `1e-1` between `t=3.1`
+  and `7.0`, and reaches `0.4` to `1.0` near `t=12` to `13`.
+- **The recorded run is the worst of the four at every horizon past `t=4`
+  and the best at `t=4`.**  Its three twins score `0.0405` to `0.0445`
+  against `0.0456` over `t=0` to `8` and `0.260` to `0.326` against `0.329`
+  over `t=0` to `20`; the doubled Dykstra cap also refuses least (192 of 500
+  against 276) and holds both cones best (`-5.9e-4` and `-1.4e-2` against
+  `-2.3e-3` and `-5.3e-2`).  One sample each, and the point of this section
+  is that one sample resolves one digit, so this is a direction and not a
+  number: with the Dykstra cap at 60 the `t=0` to `20` score reads `0.26`,
+  the `N=16` post-pulse row's `0.24` (task 4) is then inside 9 percent of
+  it, and the ordering of the 15-key `t=20` rows in task 5's table
+  (`0.239`, `0.260`, `0.284`, `0.318`, `0.329`) is within one setting's
+  spread.
+- **The tighter tolerance buys nothing it was asked for.**  At `1e-10` the
+  re-selection refuses 267 of 500 against 276, at `1.25` times the mean
+  solve, and its first act is to refuse a lift the declared solve
+  certifies; the certificate at `1e-9` is an `AlmostSolved` at `1e-10`.
+
+## (b) The exact reference under the record's physical perturbations
+
+The record's helper `exact_reference_sensitivity` (the matched
+sensitivity study's two perturbations of the exact ground state, `drive`
+generated by the site-imbalance operator the pulse couples to and
+`relative_phonon_position` by the relative phonon displacement) was run at
+its smallest recorded wavefunction amplitude, `5e-6`, and at `5e-4`, the
+amplitude at which its 31-coordinate distance at `t=0` matches the size
+the route's separation reaches at its first crossing (`1e-3`), on the
+recorded run's own 8,001 sample times.  Its base trajectory agrees with the
+exact reference stored in the run artifacts to `1.1e-11`; the state
+fidelity of every shadow is constant to `1.5e-14`, so the flow is the
+unitary one.
+
+| direction | amplitude | 31-coordinate distance at `t=0` | at `t=4` / `8` / `12` / `20` | maximum, and when | maximum over initial | first crossing of `1e-3` / `1e-2` / `1e-1` |
+|---|---:|---:|---|---|---:|---|
+| `drive` | `5e-6` | `1.185e-5` | `8.53e-6` / `9.83e-6` / `1.18e-5` / `4.49e-6` | `1.185e-5` at `t=0` | `1.000` | never / never / never |
+| `relative_phonon_position` | `5e-6` | `1.281e-5` | `1.19e-5` / `1.14e-5` / `1.49e-5` / `5.25e-6` | `1.489e-5` at `t=13.995` | `1.163` | never / never / never |
+| `drive` | `5e-4` | `1.185e-3` | --- | `1.185e-3` at `t=0` | `1.000` | `0` / never / never |
+| `relative_phonon_position` | `5e-4` | `1.281e-3` | --- | `1.488e-3` | `1.162` | `0` / never / never |
+
+The two amplitudes give the same amplification to three digits, which is
+the flow's linearity in the wavefunction.  So a physical perturbation of
+the size the route's separation has at its first crossing, `1e-3` at
+`t=0.125` to `0.1475`, is carried by the exact dynamics to at most
+`1.5e-3` anywhere in `t=0` to `20`, while the route carries it to `1e-2`
+by `t=0.36` to `0.75` and to `1e-1` by `t=3.1` to `7.0`.  Two decades in
+three to seven time units is the closure's, and none of it is the physics'.
+
+## The amplifier, located
+
+`separation_jumps.py` and `refusal_flip.py` read the saved frontiers and
+states of the four runs.  At a re-selection step the frontier a run
+carries out of the step is the solved lift when the declared completion
+certifies and the carried, repaired lift when it refuses; the two are told
+apart by the frontier's own displacement over the step, at most `1.0e-3`
+for a repair on the recorded run and up to `0.334` for a certified
+re-selection.
+
+| rerun | first step at which the two runs' frontiers differ by more than `1e-6` | the recorded run's frontier displacement over that step | the rerun's | distance between the two frontiers after it | 44-coordinate state distance one step later | 31-coordinate separation one step later |
+|---|---|---:|---:|---:|---:|---:|
+| `etol1e3` | step 16, `t=0.04`, a re-selection step | `0.3335` (certified) | `0.3021` (certified) | `0.4013` | `1.173e-3` | `6.6e-7` |
+| `dykstra60` | step 32, `t=0.08`, a re-selection step (step 16 certified in both: `0.3335` and `0.3335`, frontiers then equal) | `1.6e-11` (refused, the carried lift) | `0.3763` (certified) | `0.3763` | `2.339e-3` | `1.6e-6` |
+| `conic1e10` | step 16, `t=0.04`, a re-selection step | `0.3335` (certified) | `1.3e-15` (refused, the carried lift) | `0.3335` | `1.420e-3` | `9.1e-7` |
+
+Two facts about the declared completion follow, both measured on inputs
+that agree to at most `1.2e-14` in the 44 propagated coordinates and
+`1e-15` in the warm frontier (`dykstra60`, `etol1e3`) or exactly
+(`conic1e10`):
+
+- **its certificate is a discontinuous function of the input and of the
+  tolerance**: at step 32 the recorded run's solve refused and the
+  `dykstra60` run's certified; at step 16 the `1e-9` solve certified and
+  the `1e-10` solve on identical inputs refused.  Task 5's section (d)
+  named this the candidate amplifier; it is one of two.
+- **its certified solution is not a continuous function of the input
+  either**: at step 16 the recorded run and the `etol1e3` run both
+  certified, and the two certified lifts are `0.40` apart in the
+  standardized frontier, that is 1.2 times the largest displacement any
+  single re-selection makes on the recorded run.  The completion is
+  deterministic for identical inputs (task 4's bitwise reading over 100
+  re-selections), so this is a branch of the solve, not noise.
+
+After the one jump, the 31-coordinate separation grows by at most `4.0` in
+any step and by at most `1.45` at any re-selection step, and no later
+one-step growth reaches a factor of ten in any of the three reruns: the
+later refusal flips (the refusal counts differ by 9 to 84 of 500) do not
+show as decades, because the frontiers are already `0.3` to `0.4` apart.
+The two decades from `1e-3` to `1e-1` in `3` to `7` time units are the
+unguarded velocity's own sensitivity to a lift that differs by `0.3`
+to `0.4`, which task 1 measured as 37 to 101 percent of the entrance-moment
+velocity.
+
+## (c) Which comparisons are meaningful at the second digit
+
+For this configuration, none, at any horizon.  Rounded to two significant
+digits the four `t=0` to `4` scores read `0.024`, `0.024`, `0.027`, `0.028`;
+`t=0` to `8`: `0.046`, `0.045`, `0.041`, `0.040`; `t=0` to `12`: `0.13`,
+`0.13`, `0.11`, `0.11`; `t=0` to `20`: `0.33`, `0.33`, `0.26`, `0.30`;
+the internal energy `0.020` to `0.029` at `t=4` and `0.026` to `0.037` at
+`t=20`.  What (b) adds is that none of this spread is the physics': the
+exact dynamics' own amplification is `1.16`, so every digit past the
+first, past the first re-selection at `t=0.04`, belongs to the branch the
+completion took and not to the closure's accuracy.
+
+A comparison between this row and another route's is resolved at the
+first digit where the other row lies outside the one-setting spread,
+that is by more than about 1.3 times.  On the record:
+
+| horizon | resolved (ratio to this row across its four samples) | not resolved |
+|---|---|---|
+| `t=0` to `4` | the 27-key `N=16` drive-power chain `0.011427` (2.1 to 2.4 times better); the `N=4` drive-power chain C `0.0476697` (1.7 to 2.0 times worse); the raw archive EOM `0.11090` (4 to 5 times worse) | the projective event guard `0.026049` (0.91 to 1.10 times: two twins are worse than it, two better); the `N=4` post-pulse chain B `0.0262899`; the task-3 `N=16` row `0.026842` |
+| `t=0` to `8` | --- | the task-3 `N=16` `0.057730` (1.27 to 1.43 times); the `N=16` post-pulse `0.042542`; the `N=4` rows `0.046722` to `0.049575` |
+| `t=0` to `20` | both cones `0.128607` (2.0 to 2.6 times better); the 27-key chain `0.085193` (3.1 to 3.9 times better); the task-3 `N=16` `0.579332` (1.8 to 2.2 times worse); the plain archive EOM `0.193205` (1.35 to 1.70 times better, at the edge) | the `N=16` post-pulse row `0.239172` (1.09 to 1.37 times); the unconstrained `N=4` `0.259573`; the `N=4` chains `0.318110` and `0.283805` |
+| internal energy, `t=0` to `20` | both cones `0.000939628` (28 to 39 times better); the `N=16` post-pulse `0.069384` (1.9 to 2.7 times worse) | the plain archive EOM `0.0182361` (1.4 to 2.0 times better, at the edge) |
+
+Two consequences for the record.  The sentence in task 4 that the
+drive-power `N=16` row over `t=0` to `4` "is the best row this route has
+produced, `0.023744` at internal energy `0.020406`, against the record's
+projective event guard's `0.026049` and `0.036201`" stands only on the
+internal energy (1.3 to 1.8 times better across the four samples), not on
+the score.  And every ordering among the 15-key `t=20` rows in task 5's
+table (`0.239` to `0.329`) is inside one setting's spread and should be
+read as "all `0.2` to `0.3`", not as a ranking.  Whether the 27-key chain's
+lead over both cones (`0.085193` against `0.128607`, 1.5 times) survives
+its own spread was not measured here; that chain and the both-cones run
+are other agents' rows and their sensitivity is not this section's.
+
+## Provenance and gates
+
+- `paper_5/tests/test_cheap_projection_route.py`: 35 passed in `21.01 s`
+  (`cd paper_5 && PYTHONPATH=src python -m pytest -q
+  tests/test_cheap_projection_route.py`), the 34 of task 5 plus one: that
+  `--completion-conic-tolerance` is `None` by default, that
+  `_extension_settings(None)` is the declared `APCMExtensionSettings` and a
+  value replaces the conic tolerance and nothing else, that the value
+  reaches the re-selection completion while the model's extension keeps
+  the declared settings, that a refusal keeps the carried lift and a
+  certified solve at `1e-8` moves it, and that a re-selection extension on
+  a different dictionary is refused.  Full `paper_5` suite: 480 passed in `264.86 s` (`cd paper_5 && PYTHONPATH=src python -m pytest -q --ignore=tests/test_paper5_import_without_parent_repo.py`, under `ram_guard`, peak `2,042 MB`), the 479 the tree collects plus the one new test.  The ignored module is an untracked file another agent left in this worktree (`git status`: `??`) that imports `locate_repo_root` from `paper5.repo`, a name that module has neither here nor on `main`; it fails at collection on any tree and is not this route's.
+- Modules changed, both owned by this route and neither imported by any
+  other: `cheap_projection_route.py` gained the `reselection_extension`
+  argument of `CheapProjectionRoute` (validated against the model's
+  dictionary, lower keys and frontier keys; the ladder is built on it) and
+  the `reselection_extension_settings` argument of
+  `prepare_cheap_projection_route`; `cheap_projection_route_analysis.py`
+  gained `--completion-conic-tolerance`, `_extension_settings`, and the
+  `reselection_extension_settings` summary block.  Every default is
+  unchanged: with the flag absent the route solves `model.extension`
+  itself, as before.  Nothing is committed.  `HEAD` is `a3146764` (task
+  5's commit, made by another agent); the recorded run predates every
+  change here and was not re-run.
+- Scripts, all under
+  `output/local_runs/paper_v_cheap_projection_task6_sensitivity_20260916_v1/`,
+  each reading only `trajectory.npz` and `summary.json` of the runs named
+  on its command line and propagating nothing but, in one case, the exact
+  reference: `run_chain.zsh` (the three reruns, one at a time),
+  `score_sensitivity.py` (`score_sensitivity.json`: the horizon scores,
+  counters and separation crossings), `separation_jumps.py`
+  (`separation_jumps.json`: decade crossings, re-selection-step
+  attribution, one-step growth), `refusal_flip.py` (`refusal_flip.json`:
+  frontier displacements at the first differing re-selection),
+  `exact_sensitivity.py` (`exact_sensitivity.json` at `5e-6`,
+  `exact_sensitivity_amplitude5e-4.json` at `5e-4`, with the arrays in the
+  matching `.npz`; this one propagates the exact reference and its
+  shadows, `4.7 s`), and the run logs and `chain.log`.
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_energy_power_n16_t20_{etol1e3,dykstra60,conic1e10}_20260916_v1`.
+  Every rerun under `pipelines/shell/ram_guard.py --limit-mb 3000`, one at
+  a time, `1,140 s` budget, longest `984.9 s`; peaks are each run's own
+  `peak_resident_bytes` (`ru_maxrss` of the propagating process).  Wall
+  times were measured with a reviewer's test process on the machine and
+  are upper bounds.
+
+## What to try next, in order
+
+1. Record the stages (`--record-stages`) on this configuration once, so the
+   certified / refused branch of every one of the 500 re-selections is on
+   disk and the count of flips between two runs is a number rather than an
+   inference from frontier displacements.
+2. The completion's branch, not its tolerance, is what a second digit
+   needs: a re-selection rule that cannot flip on a `1e-14` input change
+   (a declared tie-break between the carried lift and the solved one, or a
+   solve warm-started from a fixed reference lift rather than the carried
+   frontier) is the one experiment that could make two runs of one
+   configuration agree past the first re-selection.  The completion is
+   not this route's module; the rule around it is.
+3. The same three perturbations on the 27-key `N=16` drive-power chain and
+   on the both-cones run, which are the two `t=20` rows whose ordering the
+   record currently reads at the second digit.
+
+## Structured summary of task 6
+
+| item | value |
+|---|---|
+| what was added | `--completion-conic-tolerance` in the driver and `reselection_extension` / `reselection_extension_settings` on the route, a second extension on the same dictionary for the re-selection solves alone; one test (35 in the file); no default changed; nothing committed |
+| negative result, the tolerance | the preparation's completion is not certified at `1e-10` (Clarabel `AlmostSolved`), so the tighter decade applies to re-selections only, and its first act at `t=0.04` is to refuse a lift the `1e-9` solve certifies on identical inputs |
+| (a) three reruns, each one setting away from the recorded `N=16` drive-power run | `energy_tolerance` `1e-3`: `0.024240` / `0.044530` / `0.130946` / `0.325970` over `t=0` to `4` / `8` / `12` / `20`, internal energy `0.020400` to `0.026136`, `702.4 s`; Dykstra 60: `0.026837` / `0.040677` / `0.114863` / `0.260123`, energy `0.025140` to `0.031797`, `984.9 s`; re-selection `conic_tolerance` `1e-10`: `0.027953` / `0.040450` / `0.108195` / `0.300340`, energy `0.028639` to `0.036590`, `831.0 s`; recorded `0.023744` / `0.045571` / `0.125139` / `0.328674`, energy `0.020406` to `0.026000` |
+| spread across the four samples | 18, 13, 21 and 26 percent of the score at `T=4`, `8`, `12`, `20`; 40 percent of the internal energy at `T=4` and `20` |
+| separation times, 31-coordinate Euclidean distance from the recorded run | first nonzero `5.0e-16` at `t=0.0075`, `2.7e-15` at `t=0.0525`, `9.1e-7` at `t=0.0425`; `1e-3` at `t=0.1475`, `0.145`, `0.125`; `1e-2` at `0.7525`, `0.36`, `0.48`; `1e-1` at `7.01`, `4.0025`, `3.085`; maxima `0.41`, `0.99`, `0.72` near `t=12` to `13` |
+| (b) the exact reference under the record's two physical perturbations | amplitude `5e-6`: 31-coordinate distance `1.19e-5` and `1.28e-5` at `t=0`, maximum over initial `1.000` and `1.163`, never reaches `1e-3`; amplitude `5e-4` (the route's first-crossing size): `1.19e-3` and `1.28e-3` at `t=0`, maximum `1.49e-3`, never reaches `1e-2` |
+| the amplifier | the lift re-selection's completion: a refusal flip on inputs equal to `1e-14` (`dykstra60` at step 32, recorded refused / rerun certified; `conic1e10` at step 16, `1e-9` certified / `1e-10` refused), and two certified lifts `0.40` apart on inputs equal to `1e-14` (`etol1e3` at step 16); the state follows one step later at `1.2e-3` to `2.3e-3`; every later one-step growth is at most `4.0` |
+| (c) meaningful at the second digit | no horizon, for this configuration; resolved at the first digit against rows more than about 1.3 times away: at `t=4` the 27-key chain, chain C and the raw archive EOM, not the projective event guard; at `t=20` both cones, the 27-key chain, the task-3 `N=16` row and (at the edge) the plain archive EOM, not the `N=16` post-pulse row or any `N=4` row; the task-4 "best row" sentence stands on the internal energy only |
+| gates | 35 tests in the file; full suite 480 passed in `264.86 s` with one untracked foreign test module (`test_paper5_import_without_parent_repo.py`, collection `ImportError`, not this route's) ignored |
+| files changed | `cheap_projection_route.py`, `cheap_projection_route_analysis.py`, `test_cheap_projection_route.py`, this report, the worklog block, and the task-6 scripts under `output/local_runs/`.  Nothing committed |

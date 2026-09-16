@@ -29,7 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import resource
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -239,6 +239,22 @@ def _parser() -> argparse.ArgumentParser:
             "sampled on that segment's own times."
         ),
     )
+    parser.add_argument(
+        "--completion-conic-tolerance",
+        type=float,
+        default=None,
+        help=(
+            "Conic tolerance of the proximal log-det completion the lift "
+            "re-selections solve.  None keeps the declared "
+            "APCMExtensionSettings value (1e-9) for every solve; a value "
+            "is a named sensitivity setting that changes the re-selection "
+            "completion alone and is recorded in the summary's "
+            "reselection_extension_settings block.  The preparation's "
+            "completion at t=0 keeps the declared settings: at 1e-10 it "
+            "is not certified (Clarabel AlmostSolved), so the tighter "
+            "decade cannot be applied there."
+        ),
+    )
     parser.add_argument("--wall-budget-seconds", type=float, default=1200.0)
     parser.add_argument(
         "--record-stages",
@@ -246,6 +262,24 @@ def _parser() -> argparse.ArgumentParser:
         help="Save one JSON line per repair to repairs.jsonl.",
     )
     return parser
+
+
+def _extension_settings(
+    conic_tolerance: float | None,
+) -> APCMExtensionSettings:
+    """The declared completion settings, with only the conic tolerance movable.
+
+    ``None`` is the earlier form of the driver, the declared
+    ``APCMExtensionSettings`` untouched; a value replaces that one field and
+    nothing else, so a sensitivity rerun differs from the recorded run in
+    exactly one declared numerical setting.
+    """
+
+    if conic_tolerance is None:
+        return APCMExtensionSettings()
+    return replace(
+        APCMExtensionSettings(), conic_tolerance=float(conic_tolerance)
+    )
 
 
 def _peak_resident_bytes() -> int:
@@ -604,6 +638,11 @@ def main() -> int:
         energy_tolerance=args.energy_tolerance,
     )
     extension_settings = APCMExtensionSettings()
+    reselection_extension_settings = (
+        None
+        if args.completion_conic_tolerance is None
+        else _extension_settings(args.completion_conic_tolerance)
+    )
     projection_settings = APCMProjectionSettings()
     model_settings = ProjectedAPCMSettings()
 
@@ -619,6 +658,7 @@ def main() -> int:
             extension_settings=extension_settings,
             completion_retry_shifts=tuple(args.completion_retry_shifts),
             completion_retry_weights=tuple(args.completion_retry_weights),
+            reselection_extension_settings=reselection_extension_settings,
         )
     )
     route.coordinates.factorization(settings)
@@ -741,6 +781,11 @@ def main() -> int:
         "model_settings": asdict(model_settings),
         "apcm_projection_settings": asdict(projection_settings),
         "extension_settings": asdict(extension_settings),
+        "reselection_extension_settings": (
+            None
+            if reselection_extension_settings is None
+            else asdict(reselection_extension_settings)
+        ),
         "integration": {
             "method": (
                 "SSPRK(3,3) on the unguarded velocity with the declared "

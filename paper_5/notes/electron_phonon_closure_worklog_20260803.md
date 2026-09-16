@@ -5480,3 +5480,92 @@ because the parent repository exists on this machine.  The run id
 `accel_s01_t0000_t0500` is consumed; the resubmission carries a new one.
 Job log: `logs/paper_v_cwrmf_event_guard_accel_20260915_v1.10554184.0.log`
 and `.err` under the remote root.
+
+## 2026-09-16: cheap projection route, sixth pass: the sensitivity of the recorded `N=16` drive-power row to one declared setting
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(sixth heading).  Configuration of every row is the recorded
+`paper_v_cheap_projection_energy_power_n16_t20_20260915_v1` (fourth pass):
+strong coupling, cutoff 16, exact-correlated preparation, 15 entrance keys,
+`h=0.0025`, the unguarded fixed-dictionary predictor, Dykstra 30 on both
+targets at stage cadence, the declared proximal log-det completion re-solved
+every 16 steps warm-started on the carried frontier, the energy-neutral
+option in `drive_power` mode, 8,000 steps to `t=20`, `719.6 s`.  Scores are
+the all-coordinate scalar RMS on the 31 closed coordinates against the
+exact cutoff-16 driven reference on the stated horizon; internal energy is
+the sample RMS of the time-independent energy of Eq. (22) on that horizon;
+a separation is the Euclidean distance between two rollouts' 31 closed
+coordinates at the same accepted step.  One declared setting added to the
+owned modules, `--completion-conic-tolerance` / `reselection_extension`, a
+second extension on the same dictionary for the re-selection solves alone;
+one test (35 in the file); no default changed; nothing committed.
+
+Negative result first: the preparation's completion is not certified at
+`conic_tolerance = 1e-10` (Clarabel `AlmostSolved`, `relative_lambda
+2.0e-7`), so the tighter decade could be applied to the re-selection solve
+only, and its first act at `t=0.04` is to refuse, on identical inputs, the
+lift the `1e-9` solve certifies.  And no horizon of this configuration is
+resolved at the second digit.  Three reruns, each one setting away from the
+recorded run and each completed under `ram_guard --limit-mb 3000` one at a
+time: `energy_tolerance` `1e-3` (`702.4 s`) scores `0.024240` / `0.044530`
+/ `0.130946` / `0.325970` over `t=0` to `4` / `8` / `12` / `20`, internal
+energy `0.020400` to `0.026136`; Dykstra 60 (`984.9 s`) `0.026837` /
+`0.040677` / `0.114863` / `0.260123`, energy `0.025140` to `0.031797`,
+192 of 500 completions refused against 276, both cones better (`-5.9e-4`,
+`-1.4e-2` against `-2.3e-3`, `-5.3e-2`); re-selection `conic_tolerance`
+`1e-10` (`831.0 s`) `0.027953` / `0.040450` / `0.108195` / `0.300340`,
+energy `0.028639` to `0.036590`, 267 refused at 1.25 times the mean solve.
+Recorded: `0.023744` / `0.045571` / `0.125139` / `0.328674`, energy
+`0.020406` to `0.026000`.  Spread of the four: 18, 13, 21, 26 percent of
+the score at `T=4`, `8`, `12`, `20`, and 40 percent of the internal energy.
+The fourth pass's "best row this route has produced" over `t=0` to `4`
+(`0.023744` against the projective event guard's `0.026049`) stands on the
+internal energy only: two of its three twins score worse than the guard.
+
+Separation from the recorded run: first nonzero `5.0e-16` at `t=0.0075`
+(tolerance), `2.7e-15` at `t=0.0525` (Dykstra 60), `9.1e-7` at `t=0.0425`
+(tolerance `1e-10`); `1e-3` at `t=0.1475`, `0.145`, `0.125`; `1e-2` at
+`0.7525`, `0.36`, `0.48`; `1e-1` at `7.01`, `4.0025`, `3.085`; maxima
+`0.41`, `0.99`, `0.72` near `t=12` to `13`.  The amplifier is the lift
+re-selection's completion: in every rerun the carried frontiers jump apart
+by `0.33` to `0.40` in one re-selection step on inputs equal to `1e-14`
+(or exactly), the 44-coordinate state follows one step later at `1.2e-3`
+to `2.3e-3`, and every later one-step growth is at most `4.0`.  Two
+mechanisms: a refusal flip (Dykstra 60 at step 32, the recorded solve
+refused and the rerun's certified; tolerance `1e-10` at step 16, the
+`1e-9` solve certified and the `1e-10` solve refused), which is the fifth
+pass's named candidate; and two certified solves returning lifts `0.40`
+apart on inputs equal to `1e-14` (tolerance flag at step 16).
+
+The exact reference is inert beside this.  The record's helper
+`exact_reference_sensitivity` at its smallest amplitude `5e-6` (the
+matched sensitivity study's `drive` and `relative_phonon_position`
+perturbations) on the same 8,001 sample times: 31-coordinate distance
+`1.19e-5` and `1.28e-5` at `t=0`, maximum over initial `1.000` and
+`1.163` over `t=0` to `20`, never `1e-3`; at amplitude `5e-4`, the size of
+the route's first crossing, `1.19e-3` and `1.28e-3` at `t=0`, maximum
+`1.49e-3`, never `1e-2`.  Two decades in three to seven time units are the
+closure's, none the physics'.
+
+What is meaningful at the second digit for this configuration: nothing, at
+any horizon.  At the first digit, a comparison is resolved where the other
+row is more than about 1.3 times away: over `t=0` to `4` the 27-key chain
+(`0.011427`), chain C (`0.0476697`) and the raw archive EOM (`0.11090`),
+not the projective event guard (`0.026049`) or the `N=4` post-pulse chain
+(`0.0262899`); over `t=0` to `20` both cones (`0.128607`), the 27-key chain
+(`0.085193`), the third pass's `N=16` (`0.579332`) and at the edge the plain
+archive EOM (`0.193205`), not the `N=16` post-pulse row (`0.239172`) or any
+`N=4` row (`0.259573` to `0.318110`); every ordering among the 15-key `t=20`
+rows of the fifth pass is inside one setting's spread.
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_energy_power_n16_t20_{etol1e3,dykstra60,conic1e10}_20260916_v1`,
+and the scripts and their outputs in
+`paper_v_cheap_projection_task6_sensitivity_20260916_v1/` (`run_chain.zsh`,
+`score_sensitivity.py`, `separation_jumps.py`, `refusal_flip.py`,
+`exact_sensitivity.py`, their `.json`, the run logs).  Longest rerun
+`984.9 s`, largest own peak `803 MiB`.  Gates: 35 tests in
+`test_cheap_projection_route.py`; full suite 480 passed in `264.86 s` with one untracked foreign test module (`test_paper5_import_without_parent_repo.py`, collection `ImportError`, not this route's) ignored.  Next:
+`--record-stages` once on this configuration so the flips are counted, not
+inferred; a re-selection rule that cannot flip on a `1e-14` input change;
+the same three perturbations on the 27-key chain and the both-cones run.

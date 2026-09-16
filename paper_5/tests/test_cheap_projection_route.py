@@ -898,3 +898,78 @@ def test_two_chained_segments_reproduce_one_rollout(prepared) -> None:
         first.lift_reselections + second.lift_reselections
         == whole.lift_reselections
     )
+
+
+def test_completion_conic_tolerance_is_a_declared_driver_setting() -> None:
+    """``--completion-conic-tolerance`` moves one field of one completion.
+
+    Its absence is the earlier form of the driver, the declared
+    ``APCMExtensionSettings`` untouched everywhere; a value replaces the
+    conic tolerance and nothing else, and reaches the completion the lift
+    re-selections solve while the preparation's completion keeps the
+    declared settings (at ``1e-10`` the preparation is not certified).
+    """
+
+    from paper5.stability.apcm_positive_extension import (
+        APCMExtensionSettings,
+    )
+    from paper5.stability.cheap_projection_route_analysis import (
+        _extension_settings,
+        _parser,
+    )
+
+    parsed = _parser().parse_args(["--output-directory", "unused"])
+    assert parsed.completion_conic_tolerance is None
+    assert _extension_settings(None) == APCMExtensionSettings()
+    tightened = _extension_settings(1e-10)
+    assert tightened.conic_tolerance == 1e-10
+    assert (
+        replace(
+            tightened,
+            conic_tolerance=APCMExtensionSettings().conic_tolerance,
+        )
+        == APCMExtensionSettings()
+    )
+    route, state, frontier, _ = prepare_cheap_projection_route(
+        DimerParameters(),
+        phonon_cutoff=16,
+        settings=CheapProjectionSettings(policy="dykstra", target="both"),
+        reselection_extension_settings=tightened,
+    )
+    assert route.model.extension.settings == APCMExtensionSettings()
+    assert route.reselection_extension is not route.model.extension
+    assert route.reselection_extension.settings.conic_tolerance == 1e-10
+    assert (
+        route.reselection_extension.frontier_keys
+        == route.model.extension.frontier_keys
+    )
+    reselected, completion, _ = route.reselect_lift(state, frontier)
+    assert reselected.shape == frontier.shape
+    if not completion.success:
+        # The preparation state is where the declared 1e-9 solve certifies
+        # and the 1e-10 solve does not (Clarabel AlmostSolved); a refusal
+        # keeps the carried lift, which is the route's documented form.
+        assert np.array_equal(reselected, frontier)
+    loosened = CheapProjectionRoute(
+        route.model,
+        route.settings,
+        coordinates=route.coordinates,
+        reselection_extension=SymmetryReducedPositiveExtension(
+            settings=_extension_settings(1e-8),
+            active_keys=ENTRANCE_RELATIVE_MOMENT_KEYS,
+        ),
+    )
+    assert loosened.reselection_extension.settings.conic_tolerance == 1e-8
+    reselected, completion, _ = loosened.reselect_lift(state, frontier)
+    assert completion.success
+    assert not np.array_equal(reselected, frontier)
+    with pytest.raises(ValueError, match="dictionary"):
+        CheapProjectionRoute(
+            route.model,
+            route.settings,
+            coordinates=route.coordinates,
+            reselection_extension=SymmetryReducedPositiveExtension(
+                settings=tightened,
+                active_keys=ENTRANCE_RELATIVE_MOMENT_KEYS[:3],
+            ),
+        )

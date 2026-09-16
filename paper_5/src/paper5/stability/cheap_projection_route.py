@@ -1107,6 +1107,13 @@ class CheapProjectionRoute:
     own ``build_completion_ladder`` and walked only where a re-selection's
     declared completion is not certified.  Both empty is the route's earlier
     form and changes nothing.
+
+    ``reselection_extension`` is the completion a lift re-selection solves,
+    when it is to differ from the model's own extension in a declared
+    numerical setting (the sensitivity study moves its conic tolerance one
+    decade); it must carry the same dictionary, lower keys and frontier keys,
+    so only the solver's settings can differ.  ``None`` is the route's
+    earlier form: re-selections solve ``model.extension`` itself.
     """
 
     def __init__(
@@ -1117,6 +1124,7 @@ class CheapProjectionRoute:
         coordinates: AffineGramCoordinates | None = None,
         completion_retry_shifts: tuple[float, ...] = (),
         completion_retry_weights: tuple[float, ...] = (),
+        reselection_extension: SymmetryReducedPositiveExtension | None = None,
     ) -> None:
         self.model = model
         self.settings = (
@@ -1129,6 +1137,24 @@ class CheapProjectionRoute:
             if coordinates is None
             else coordinates
         )
+        self.reselection_extension = (
+            model.extension
+            if reselection_extension is None
+            else reselection_extension
+        )
+        if (
+            tuple(self.reselection_extension.active_keys)
+            != tuple(model.extension.active_keys)
+            or tuple(self.reselection_extension.lower_keys)
+            != tuple(model.extension.lower_keys)
+            or tuple(self.reselection_extension.frontier_keys)
+            != tuple(model.extension.frontier_keys)
+        ):
+            raise ValueError(
+                "the re-selection completion must carry the model's "
+                "dictionary, lower keys and frontier keys; only its solver "
+                "settings may differ"
+            )
         self.completion_retry_shifts = tuple(
             float(value) for value in completion_retry_shifts
         )
@@ -1136,7 +1162,7 @@ class CheapProjectionRoute:
             float(value) for value in completion_retry_weights
         )
         self.completion_ladder = build_completion_ladder(
-            model.extension,
+            self.reselection_extension,
             shifts=self.completion_retry_shifts,
             weights=self.completion_retry_weights,
         )
@@ -1240,7 +1266,9 @@ class CheapProjectionRoute:
             else None
         )
         started = perf_counter()
-        result = self.model.extension.complete(lower, warm_frontier=warm)
+        result = self.reselection_extension.complete(
+            lower, warm_frontier=warm
+        )
         if not result.success and retries and self.completion_ladder:
             ladder_started = perf_counter()
             self.completion_retry_counters["attempted"] += 1
@@ -1758,6 +1786,7 @@ def prepare_cheap_projection_route(
     extension_settings: Any = None,
     completion_retry_shifts: tuple[float, ...] = (),
     completion_retry_weights: tuple[float, ...] = (),
+    reselection_extension_settings: Any = None,
 ) -> tuple[CheapProjectionRoute, FloatArray, FloatArray, float]:
     """Build the route at the canonical correlated preparation.
 
@@ -1770,6 +1799,11 @@ def prepare_cheap_projection_route(
     ``completion_retry_shifts`` and ``completion_retry_weights`` are handed
     to the route as its declared completion retry ladder, which is walked
     only where a lift re-selection is not certified.
+
+    ``reselection_extension_settings`` builds a second extension on the same
+    dictionary whose solver settings the lift re-selections use, leaving the
+    preparation's completion at ``extension_settings``; ``None`` is the
+    earlier form, one extension for both.
     """
 
     from .apcm_moment_projection import (
@@ -1811,11 +1845,20 @@ def prepare_cheap_projection_route(
     initialization = prepare_projected_apcm_initial_state(
         parameters, phonon_cutoff=phonon_cutoff, extension=extension
     )
+    reselection_extension = (
+        None
+        if reselection_extension_settings is None
+        else SymmetryReducedPositiveExtension(
+            settings=reselection_extension_settings,
+            active_keys=tuple(active_keys),
+        )
+    )
     route = CheapProjectionRoute(
         model,
         settings,
         completion_retry_shifts=tuple(completion_retry_shifts),
         completion_retry_weights=tuple(completion_retry_weights),
+        reselection_extension=reselection_extension,
     )
     frontier = route.coordinates.standardize_frontier(
         initialization.completion.frontier_moments
