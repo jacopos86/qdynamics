@@ -1628,3 +1628,265 @@ is not a property of the configuration.
 | gates | two bitwise prefix gates (161 samples, `0.0`); resumption on 16-step boundaries; energy held to `1.78e-15` over 14,401 constrained repairs |
 | files changed | `run_energy_segment.py`, `run_chain.py`, `compare_prefix.py` (drivers under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`), new `compare_chains.py`, `tabulate_task5.py`, `probe_preparation_tolerance.{py,sh}`, `prefixgate_{tightdriver,reselroute}.sh`, `queue_tight.sh`; this report; the worklog block.  No module; nothing committed |
 | next | two more segments carry the tightened chain to `t = 20` and settle the ordering of the two 27-key chains there; the same lever on the 27-key `post_pulse` chain; a decade looser (`1e-8`) measures the other direction, where the recorded preparation's `15` percent margin says most refusals would certify |
+
+# projective-route, task 6 (2026-09-16)
+
+Continuation of task 5: the tightened-tolerance member of the 27-key
+`N = 16` `drive_power` energy-neutral chain (re-selection completion solved
+at `APCMExtensionSettings.conic_tolerance = 1e-10` in place of the committed
+`1e-9`; preparation, model extension, repair, velocity, integrator, cadence
+and reference mode identical; imports from `head_src` at `2d8f0efb`) carried
+from its `t = 12` state to `t = 20` in two more `ram_guard --limit-mb 4500`
+segments, one at a time, with the same `1,000 s` autonomous budget, so that
+the record's `t = 16` and `t = 20` rows have a measured sensitivity and the
+ordering of the two 27-key chains at `t = 20` can be read against it.  No
+module was edited; nothing was committed; no default changed.  The recorded
+chain and the 27-key `post_pulse` chain were rescored from their saved
+arrays on the same seven horizons (`t = 4, 6, 8, 10, 12, 16, 20`) with the
+same exact cutoff-16 reference (`exact_t20.npz`, which the reviewer found
+bitwise equal to a regeneration), so every comparison below is on one grid
+of 8,001 samples and one reference.
+
+## The result, first
+
+**At `t = 20` the ordering of the two 27-key chains is outside the
+sensitivity measured here.**  The `drive_power` chain's two members score
+`8.519313e-02` (recorded) and `9.088037e-02` (tightened) on the
+all-coordinate scalar RMS of the 31 closed scalar coordinates over `t = 0`
+to `20`, a band `6.7` percent wide; the 27-key `post_pulse` chain's
+`6.990927e-02` lies below the band, `1.22` times better than the recorded
+member and `1.30` times better than the tightened one.  The review's placing
+of the `drive_power` chain second at `t = 20` stands under either setting.
+What is measured is one-sided: the band is the `drive_power` chain's; the
+`post_pulse` chain's response to the same lever is unmeasured, and the only
+same-horizon sensitivity on the branch, the 15-key `N = 16` `drive_power`
+chain's `26` percent at `t = 20`, would cover a `22` percent gap if it
+applied to the `post_pulse` chain.  So: settled against the `drive_power`
+chain's measured band; not yet settled against every sensitivity measured
+on the branch.
+
+**At `t = 16` the tie is confirmed as a tie.**  The members score
+`6.377276e-02` and `6.719628e-02` over `t = 0` to `16` (`5.4` percent
+apart); the `post_pulse` chain's `6.385168e-02` lies inside that band,
+`0.12` percent above the recorded member and `5.0` percent below the
+tightened one.  No ordering at `t = 16` is a property of the configuration.
+
+**The cumulative score's sensitivity is not monotone in the horizon, and
+task 5's reading that it "shrinks" does not hold past `t = 12`.**  The
+relative difference (tightened minus recorded, over recorded) of the
+all-coordinate scalar RMS runs `+13.1`, `+10.7`, `+4.5`, `+0.7`, `+1.9`,
+`+5.4`, `+6.7` percent at `t = 4, 6, 8, 10, 12, 16, 20`.  The minimum at
+`t = 10` was a crossing of the two members' running errors, not a
+convergence.
+
+**The pointwise separation of the two trajectories stopped growing at
+`t = 12` on the 31 closed scalar coordinates and kept growing on the 56
+state coordinates.**  The 31-coordinate Euclidean distance between the
+chains at equal sample times has its maximum `0.0955` at `t = 13.845`, never
+reaches `0.1` through `t = 20`, and reads `0.0833` at `t = 16` and `0.0771`
+at `t = 20` (window means `0.0532`, `0.0818`, `0.0733` over `(8, 12]`,
+`(12, 16]`, `(16, 20]`); the 56-state distance has its maximum `0.528` at
+`t = 19.94` (window means `0.279`, `0.289`, `0.398` over the same windows).
+Against the chains' own distance from the exact reference at the horizon
+(`0.656` / `0.718` at `t = 16`, `0.969` / `1.039` at `t = 20`) the members
+are `12.7` and `8.0` percent of the way apart, after `21`, `16`, `16`
+percent at `t = 4`, `8`, `12`.
+
+## Gates
+
+| gate | result |
+|---|---|
+| segments resume on a re-selection boundary | segment 5 resumed at `t = 12.0`, segment 4's resume sample (index 1,600); segment 5 stopped on budget at `t = 16.6` after 1,840 accepted steps (`115 x 16`) and segment 6 resumed there; segment 6 reached `t = 20.0` in 1,360 steps (`85 x 16`) |
+| the declared reference is unchanged across the continuation | `-3.565863978942047` in segments 4, 5 and 6 (the tightened chain's `drive_power` reference after the drive tail) |
+| the energy is held where the constraint is on | maximum deviation from the declared reference `1.33e-15` in each new segment, `1.78e-15` over the chain's 24,001 constrained repairs, 0 hyperplane refusals |
+| the two chains are on one time grid | 8,001 common samples, `t = 0` to `20`, times equal to `1e-12`; the scorer hit the `exact_t20.npz` cache for both chains and regenerated nothing |
+| the tabulation reproduces task 5 | the boundary-inclusive merge of the re-selection ledgers gives 300 re-solved / 151 refused to `t = 12` and 27 of 234 reduced gradients in `(5e-9, 5e-8]`, as reported there |
+
+## The two segments, and the chain to `t = 20`
+
+| quantity | tightened seg 5 | seg 6 | recorded seg 5 | seg 6 |
+|---|---:|---:|---:|---:|
+| interval | `12.0` to `16.6` | `16.6` to `20.0` | `11.84` to `16.32` | `16.32` to `20.0` |
+| accepted steps | 1,840 | 1,360 | 1,792 | 1,472 |
+| why it stopped | budget | reached `t = 20` | budget | reached `t = 20` |
+| autonomous wall | `1,004.4 s` | `709.5 s` | `1,004.5 s` | `731.5 s` |
+| declared completions re-solved / refused | 115 / 50 | 85 / 25 | 112 / 29 | 92 / 8 |
+| wall in those solves | `916.9 s` | `644.5 s` | `919.9 s` | `661.1 s` |
+| repairs applied / skipped | 5,520 / 0 | 4,080 / 0 | 5,376 / 0 | 4,416 / 0 |
+| minimum retained joint Gram / scaled extension eigenvalue within the segment | `-1.325e-03` / `-1.655e-04` | `-5.818e-04` / `-5.510e-05` | `-1.418e-03` / `-1.659e-04` | `-6.302e-04` / `-6.850e-05` |
+| peak resident | `638 MiB` | `627 MiB` | `630 MiB` | `629 MiB` |
+
+Chain totals over `t = 0` to `20`, tightened against recorded: 8,000
+accepted steps in six segments each; `4,789.8 s` against `4,794.4 s` of
+autonomous wall (equal to `0.1` percent, after the tightened chain was
+`2.8` percent slower to `t = 8`); 500 declared completions re-solved in
+each, **226 refused against 144**, `4,413.4 s` against `4,416.9 s` in those
+solves (`92.1` percent of the wall and `8.83 s` mean in both); repairs
+`24,001 / 23` against `23,959 / 41` applied / skipped; peak `646 MiB`
+against `630 MiB`.  Every segment stayed inside twenty minutes (longest
+`1,004.4 s` of autonomous wall plus about `20 s` of build).
+
+Of the tightened chain's 226 refusals over `t = 0` to `20`, by the
+certificate the completion reported: 103 interior-Newton stationarity
+certificates with the KKT backward error over `5e-9`; 70 `conic Newton step
+failed descent`; 23 conic certificates `Solved` with the KKT error over the
+threshold; 19 reference completions `PrimalInfeasible` and 3
+`AlmostPrimalInfeasible`; 7 facial reductions that removed every frontier
+direction; 1 `AlmostSolved`.  All 274 certified re-selections carry the
+interior-Newton certificate; 33 of the 401 interior-Newton solves have
+their reduced gradient in `(5e-9, 5e-8]`, the band the decade moves.
+Refusals by window: `31/50`, `11/50`, `25/49`, `30/51`, `29/50`, `25/50`,
+`28/50`, `19/50`, `14/49`, `14/51` over `(0, 2]` to `(18, 20]`; cumulative
+`97/200` at `t = 8`, `151/300` at `t = 12`, `198/400` at `t = 16`,
+`226/500` at `t = 20`.  The recorded chain, which carries no
+per-re-selection ledger, refused 29 of 112 over `t = 11.84` to `16.32` and
+8 of 92 over `16.32` to `20` (136 of 408 to `t = 16.32`, 144 of 500 to
+`t = 20`); both chains refuse less often after `t = 16`.
+
+## The chart at `t = 16` and `t = 20`
+
+Cumulative from `t = 0`, recorded / tightened; the relative column is
+(tightened minus recorded) over recorded; site-0 occupation is given in both
+conventions, the chain's own `rho[0,0]` sample RMS and the record's
+`2 rho[0,0]` (sample RMS here; the record's both-cones `0.204690` is the
+trapezoidal time-RMS, which differs from the sample RMS by `4e-5` relative
+on this grid):
+
+| quantity | `t = 16`, recorded / tightened | relative | `t = 20`, recorded / tightened | relative |
+|---|---:|---:|---:|---:|
+| all-coordinate scalar RMS, 31 coordinates | `6.377276e-02` / `6.719628e-02` | `+5.4 %` | `8.519313e-02` / `9.088037e-02` | `+6.7 %` |
+| Eq. (22) internal-energy RMS | `6.249722e-03` / `5.135424e-03` | `-17.8 %` | `6.344620e-03` / `5.217702e-03` | `-17.8 %` |
+| the four phonon-occupation coordinates (N block) | `3.188383e-02` / `2.843693e-02` | `-10.8 %` | `3.187001e-02` / `2.881790e-02` | `-9.6 %` |
+| the 27 coordinates outside the phonon-occupation block | `6.722257e-02` / `7.116514e-02` | `+5.9 %` | `9.045792e-02` / `9.674606e-02` | `+7.0 %` |
+| blockwise rho / B / N / A / C, recorded | `1.0302e-01` / `1.3219e-01` / `3.1884e-02` / `3.5397e-02` / `3.0187e-02` | | `1.3580e-01` / `1.8729e-01` / `3.1870e-02` / `4.3970e-02` / `3.1283e-02` | |
+| blockwise, tightened | `1.0716e-01` / `1.3733e-01` / `2.8437e-02` / `4.3884e-02` / `3.3056e-02` | | `1.4316e-01` / `2.0012e-01` / `2.8818e-02` / `5.0174e-02` / `3.3726e-02` | |
+| site-0 occupation, `rho[0,0]` sample RMS | `8.393451e-02` / `8.741714e-02` | `+4.1 %` | `1.125899e-01` / `1.190197e-01` | `+5.7 %` |
+| site-0 occupation, `2 rho[0,0]` (the record's convention) | `1.678690e-01` / `1.748343e-01` | | `2.251798e-01` / `2.380393e-01` | |
+| minimum unshifted retained joint Gram over `t = 0` to `T` | `-2.463e-03` / `-2.374e-03` | | `-2.463e-03` / `-2.374e-03` | |
+| minimum scaled positive-extension eigenvalue | `-2.040e-04` / `-2.098e-04` | | `-2.040e-04` / `-2.098e-04` | |
+| maximum standardized frontier envelope ratio | `0.4518` / `0.4365` | | `0.4518` / `0.4365` | |
+| Euclidean coordinate difference from the exact reference at the horizon, all 31 | `6.559115e-01` / `7.183868e-01` | `+9.5 %` | `9.693869e-01` / `1.039229e+00` | `+7.2 %` |
+| declared completions re-solved / refused, cumulative | `408 / 136` (to `16.32`) / `400 / 198` | | `500 / 144` / `500 / 226` | |
+| 31-coordinate distance between the chains at the horizon | `0.0833` | | `0.0771` | |
+| 56-state distance between the chains at the horizon | `0.3046` | | `0.5216` | |
+| 70-frontier distance between the chains at the horizon | `0.0217` | | `0.0373` | |
+
+Three readings.
+
+1. **The internal-energy improvement of the tightened member is the
+   reference difference, unchanged.**  The two chains' Eq. (22) energies
+   differ by exactly `1.176e-03` at every sample after the drive, the
+   difference of the two `drive_power` references (`-3.565863978942047`
+   against `-3.564687762684483`), so the `17.8` percent at `t = 16` and
+   `t = 20` is the `t = 4` reference selection carried forward, not a
+   repair effect.  The physicality minima over `t = 0` to `20` are attained
+   before `t = 12` in both chains and agree to `2` to `4` percent; the
+   within-segment minima after `t = 12` (`-1.3e-03` to `-5.8e-04` on the
+   retained joint Gram, `-1.7e-04` to `-5.5e-05` on the extension) are alike
+   in the two chains; neither member holds a cone.
+2. **The block that moves the score past `t = 12` is still not the
+   phonon-occupation block.**  The tightened member is better on the four
+   phonon-occupation coordinates (`-10.8`, `-9.6` percent) and worse on the
+   other 27 (`+5.9`, `+7.0` percent), the A block most (`1.24` and `1.14`
+   times), then C (`1.10`, `1.08`) and rho (`1.04`, `1.05`); the B block,
+   the largest at both horizons in both chains, differs by `3.9` and `6.9`
+   percent.  The growth from `t = 12` to `20` is in rho and B in both
+   members, as the reviewer's reading of the recorded chain said.
+3. **In the record's site-0 convention both members are worse than both
+   cones.**  `2 rho[0,0]` sample RMS `0.2252` and `0.2380` over `t = 0` to
+   `20` against the both-cones `0.204690`; the tightened member widens the
+   gap.
+
+## (c) Second-digit meaning at `t = 16` and `t = 20`, completing task 5's table
+
+| horizon | recorded | tightened member | second digit | "best on record" at that horizon |
+|---|---:|---:|---|---|
+| `t = 16` | `6.377276e-02` | `6.719628e-02` | no: `6.4e-2` against `6.7e-2`; the leading digit is stable | the tie with the 27-key `post_pulse` chain's `6.385168e-02` is inside the band (`0.12` percent above the recorded member, `5.0` percent below the tightened): no ordering |
+| `t = 20` | `8.519313e-02` | `9.088037e-02` | no: `8.5e-2` against `9.1e-2`, a band that crosses a leading-digit boundary (both round to `9e-2` at one figure) | second to the 27-key `post_pulse` chain's `6.990927e-02` under either setting, factors `1.22` (recorded) and `1.30` (tightened) against a `6.7` percent band: outside the sensitivity measured here; the `post_pulse` chain's own band is unmeasured |
+
+What the record should say for the `drive_power` chain past `t = 12`: over
+`t = 0` to `16` it scores `6.4e-2` to `6.7e-2` depending on the completion's
+certificate tolerance, a band that contains the 27-key `post_pulse` chain;
+over `t = 0` to `20` it scores `8.5e-2` to `9.1e-2`, and the `post_pulse`
+chain's `7.0e-2` is better than either member by more than the band.  The
+recorded chain remains the reported member.
+
+## The final ledger of the 27-key `N = 16` `drive_power` energy-neutral chain, with its sensitivity band at every horizon
+
+All-coordinate scalar RMS on the 31 closed scalar coordinates against the
+exact cutoff-16 driven reference, cumulative from `t = 0` on the
+`h = 0.0025` grid; the band is the recorded member (re-selection completion
+at `1e-9`) and the tightened member (`1e-10`); the comparator is the best
+other moment-closure row on record at that horizon where the review
+established one (`t = 4`, `8`, `12`, `16`, `20`), and at `t = 6` and
+`t = 10` the only other chain scored on this reference at that horizon, the
+27-key `post_pulse` chain (rescored here: `3.335615e-02` and
+`4.956048e-02`).
+
+| horizon | recorded | tightened | band | width | comparator | standing of the chain |
+|---|---:|---:|---:|---:|---|---|
+| `t = 4` | `1.142716e-02` | `1.292283e-02` | `1.14e-2` to `1.29e-2` | `13.1 %` | positive-`M4` cell A `1.258000e-02` | comparator inside the band: tie |
+| `t = 6` | `2.090571e-02` | `2.314018e-02` | `2.09e-2` to `2.31e-2` | `10.7 %` | 27-key `post_pulse` `3.335615e-02` | ahead, factor `1.44` on the worse member |
+| `t = 8` | `2.593079e-02` | `2.709352e-02` | `2.59e-2` to `2.71e-2` | `4.5 %` | 15-key `post_pulse` `N = 16` `4.254184e-02` | ahead, factor `1.57` |
+| `t = 10` | `3.332970e-02` | `3.356926e-02` | `3.33e-2` to `3.36e-2` | `0.7 %` | 27-key `post_pulse` `4.956048e-02` | ahead, factor `1.48` |
+| `t = 12` | `4.250925e-02` | `4.331967e-02` | `4.25e-2` to `4.33e-2` | `1.9 %` | 27-key `post_pulse` `6.075829e-02` | ahead, factor `1.40` |
+| `t = 16` | `6.377276e-02` | `6.719628e-02` | `6.38e-2` to `6.72e-2` | `5.4 %` | 27-key `post_pulse` `6.385168e-02` | comparator inside the band: tie |
+| `t = 20` | `8.519313e-02` | `9.088037e-02` | `8.52e-2` to `9.09e-2` | `6.7 %` | 27-key `post_pulse` `6.990927e-02` | behind, factors `1.22` to `1.30`, outside the band |
+
+Companion columns of the same row, recorded / tightened: Eq. (22)
+internal-energy RMS `4.60e-3` / `3.69e-3` at `t = 4` to `6.34e-3` /
+`5.22e-3` at `t = 20` (the `post_pulse` chain `7.09e-2` to `1.65e-1`; both
+cones `9.4e-4` at `t = 20`); minimum unshifted retained joint Gram
+`-2.46e-3` / `-2.37e-3` and minimum scaled extension eigenvalue `-2.04e-4`
+/ `-2.10e-4` over `t = 0` to `20` (the `post_pulse` chain `-3.12e-3` /
+`-3.43e-4`); site-0 occupation in the record's `2 rho[0,0]` convention
+`0.225` / `0.238` at `t = 20` (both cones `0.205`); autonomous wall
+`4,794.4 s` / `4,789.8 s` to `t = 20` on this machine with other agents'
+jobs possibly present, 500 completions re-solved with 144 / 226 refused.
+
+## Provenance and gates of the runs themselves
+
+- Two rollouts,
+  `paper_v_dictionary_energy_power_27key_n16_tightresel_20260916f_seg5` and
+  `_seg6`, each under `pipelines/shell/ram_guard.py --limit-mb 4500`, one
+  at a time (a cheap-route job under a `3,000 MB` guard was on the machine
+  throughout; guard limits summed to `7.5 GB` of the `18 GB` budget); peaks
+  `638` and `627 MiB`; autonomous wall `1,004.4` and `709.5 s`.  The
+  scoring, comparison and tabulation ran under `--limit-mb 2000` (peaks
+  `143 MB` and under).
+- Driver: `queue_tight_t20.sh` (calls the unchanged `run_chain.py` with
+  `--first 5 --last 7 --final-time 20.0`; the seventh segment was not
+  needed).  `run_energy_segment.py`, `run_chain.py`, `compare_chains.py`
+  and `score_energy_chain.py` are as task 5 left them.  New in the
+  directory: `tabulate_task6.py` (the ledgers, the chart in both site-0
+  conventions, the band table, the separation window means recomputed from
+  the arrays, and the boundary-inclusive refusal ledger),
+  `rescore_recorded_all.sh` and `rescore_postpulse_all.sh` (the recorded and
+  27-key `post_pulse` chains on the seven horizons), `score_tight_t20.sh`
+  (score, compare, tabulate), `monitor_tight_t20.sh`,
+  `tabulate_task6_dryrun.sh`, `comparators_task6.json`.
+- Outputs: `tightresel_chain_score_t20.json`, `compare_tightresel_t20.json`,
+  `power_chain_score_all.json`, `postpulse_chain_score_all.json`,
+  `tabulate_task6.log`, the two segment logs, `tightresel_chain.log`
+  (appended), `queue_tight_t20.log`.  The `post_pulse` chain is the task-3
+  rollout `paper_v_dictionary_entrance15_plus_two_spin_boson_n16_t4_20260915d`
+  followed by `..._postpulse_27key_n16_20260915e_seg1` to `_seg4`, as the
+  reviewer assembled it; its rescore reproduces every value in the review's
+  table to the printed digits.
+- No module was edited, nothing was committed, no default, acceptance rule
+  or ladder changed.  The recorded chain's artifacts are untouched.
+
+## Structured summary of task 6
+
+| item | value |
+|---|---|
+| the runs | segments 5 (`t = 12.0` to `16.6`, budget, 1,840 steps, `1,004.4 s`, 115 re-solved / 50 refused) and 6 (`16.6` to `20.0`, reached, 1,360 steps, `709.5 s`, 85 / 25) of the tightened chain; peaks `638` / `627 MiB` |
+| `t = 16`, recorded / tightened | all 31 `6.377276e-02` / `6.719628e-02` (`+5.4 %`); internal energy `6.249722e-03` / `5.135424e-03`; N block `3.188383e-02` / `2.843693e-02`; site-0 `8.393451e-02` / `8.741714e-02` (`rho[0,0]`), `1.678690e-01` / `1.748343e-01` (`2 rho[0,0]`); retained `-2.463e-03` / `-2.374e-03`, extension `-2.040e-04` / `-2.098e-04`; refusals `136/408` to `16.32` / `198/400`; separation `0.0833` |
+| `t = 20`, recorded / tightened | all 31 `8.519313e-02` / `9.088037e-02` (`+6.7 %`); internal energy `6.344620e-03` / `5.217702e-03`; N block `3.187001e-02` / `2.881790e-02`; site-0 `1.125899e-01` / `1.190197e-01` (`rho[0,0]`), `2.251798e-01` / `2.380393e-01` (`2 rho[0,0]`); physicality minima unchanged from `t = 16`; refusals `144/500` / `226/500`; separation `0.0771` (maximum `0.0955` at `t = 13.845`, never `0.1`) |
+| the `t = 20` ordering | 27-key `post_pulse` `6.990927e-02` is below the `drive_power` band `8.52e-2` to `9.09e-2` by factors `1.22` to `1.30` against a `6.7` percent band width: outside the sensitivity measured here; the `post_pulse` chain's own band is unmeasured, and the branch's only same-horizon sensitivity (15-key `N = 16`, `26` percent) would cover the gap |
+| the `t = 16` ordering | the `post_pulse` chain's `6.385168e-02` lies inside the band `6.38e-2` to `6.72e-2`: a tie, as the review said |
+| sensitivity by horizon | `+13.1`, `+10.7`, `+4.5`, `+0.7`, `+1.9`, `+5.4`, `+6.7` percent at `t = 4, 6, 8, 10, 12, 16, 20`: not monotone; task 5's "shrinking" reading withdrawn past `t = 12` |
+| separation | 31-coordinate distance saturates (window means `0.0532`, `0.0818`, `0.0733` over `(8,12]`, `(12,16]`, `(16,20]`) while the 56-state distance grows (`0.279`, `0.289`, `0.398`; maximum `0.528` at `t = 19.94`) |
+| gates | boundary resumes at `t = 12.0` and `16.6` (`115 x 16` and `85 x 16` steps); reference unchanged; energy held to `1.78e-15` over 24,001 constrained repairs; one grid of 8,001 samples; tabulation reproduces task 5's 300 / 151 |
+| files changed | new driver scripts and outputs under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`; two new artifacts; this report; the worklog block; the plan ledger's row.  No module; nothing committed |
+| next | the same lever on the 27-key `post_pulse` chain (the one measurement that would settle the `t = 20` ordering against both bands); a decade looser (`1e-8`) on the `drive_power` chain |

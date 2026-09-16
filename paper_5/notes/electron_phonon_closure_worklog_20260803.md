@@ -5677,3 +5677,77 @@ and in `paper_v_projective_dictionary_energy_20260915e/`: the drivers
 `power_chain_score_t10.json`, the logs).  Next: two more segments to carry
 the tightened chain to `t=20`; the same lever on the 27-key `post_pulse`
 chain; a decade looser (`1e-8`).
+
+## 2026-09-16: projective route, task 6: the tightened 27-key `N=16` drive-power chain to `t=20`, and the `t=20` ordering of the two 27-key chains
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 6 (2026-09-16)").  The task-5 tightened
+member (27-key `N=16` `drive_power` energy-neutral chain with the
+re-selection completion solved at `conic_tolerance=1e-10` against the
+committed `1e-9`, everything else identical, imports from `head_src` at
+`2d8f0efb`) carried from `t=12` to `t=20` in two chained `ram_guard
+--limit-mb 4500` segments (`12.0` to `16.6` on budget, 1,840 steps,
+`1,004.4 s`, 115 completions re-solved / 50 refused; `16.6` to `20.0`
+reached, 1,360 steps, `709.5 s`, 85 / 25; peaks `638` / `627 MiB`).  Chain
+totals over `t=0` to `20`: `4,789.8 s` (recorded `4,794.4 s`), 500 re-solved
+with 226 refused (recorded 144), `92.1` percent in the solves, energy held to
+`1.78e-15` over 24,001 constrained repairs, reference `-3.565863978942047`
+unchanged.  The recorded and the 27-key `post_pulse` chains were rescored
+on the same seven horizons from the cached exact reference; 8,001 samples
+on one grid.  No module edited; nothing committed; no default changed.
+
+Negative result first: the `t=20` "best on record" ordering of the two
+27-key chains is outside the sensitivity measured here, and the drive-power
+chain is second under either setting --- members `8.519313e-2` (recorded)
+and `9.088037e-2` (tightened) on the all-coordinate scalar RMS of the 31
+closed scalar coordinates over `t=0` to `20`, a `6.7` percent band, against
+the `post_pulse` chain's `6.990927e-2` (factors `1.22` and `1.30`).  The
+measurement is one-sided: the `post_pulse` chain's own response to the lever
+is unmeasured, and the branch's only same-horizon sensitivity (15-key `N=16`
+drive-power, `26` percent at `t=20`) would cover the `22` percent gap.  At
+`t=16` the members read `6.377276e-2` / `6.719628e-2` (`+5.4` percent) and
+the `post_pulse` chain's `6.385168e-2` is inside the band: a tie.  The
+cumulative sensitivity is not monotone (`+13.1`, `+10.7`, `+4.5`, `+0.7`,
+`+1.9`, `+5.4`, `+6.7` percent at `t=4, 6, 8, 10, 12, 16, 20`); task 5's
+"shrinking" reading is withdrawn past `t=12`.
+
+Chart at `t=16` / `t=20`, recorded then tightened: internal-energy RMS
+`6.250e-3` / `5.135e-3` and `6.345e-3` / `5.218e-3` (the `1.176e-3`
+reference difference, as before); phonon-occupation block `3.188e-2` /
+`2.844e-2` and `3.187e-2` / `2.882e-2` (the tightened member better there,
+worse on the other 27: `7.117e-2` vs `6.722e-2`, `9.675e-2` vs `9.046e-2`);
+site-0 `rho[0,0]` sample RMS `8.393e-2` / `8.742e-2` and `1.126e-1` /
+`1.190e-1`, doubled to the record's `2 rho[0,0]` convention `0.168` / `0.175`
+and `0.225` / `0.238` (both cones `0.205`); physicality minima over `t=0` to
+`20` retained `-2.463e-3` / `-2.374e-3`, extension `-2.040e-4` /
+`-2.098e-4`, attained before `t=12`; refusals cumulative `198/400` at `t=16`
+and `226/500` at `t=20` (recorded `136/408` to `16.32`, `144/500`); 33 of 401
+interior-Newton reduced gradients in `(5e-9, 5e-8]`.  Separation: the
+31-coordinate distance between the chains is `0.0833` at `t=16` and `0.0771`
+at `t=20`, maximum `0.0955` at `t=13.845`, never `0.1`; window means
+`0.0532`, `0.0818`, `0.0733` over `(8,12]`, `(12,16]`, `(16,20]` while the
+56-state distance grows (`0.279`, `0.289`, `0.398`; maximum `0.528` at
+`t=19.94`); the members are `12.7` and `8.0` percent of their own distance
+from exact apart at `t=16` and `t=20`.
+
+Final ledger row of the chain (recorded / tightened, band width, comparator):
+`t=4` `1.143e-2` / `1.292e-2`, 13.1 percent, cell A `1.258e-2` inside; `t=6`
+`2.091e-2` / `2.314e-2`, 10.7, 27-key `post_pulse` `3.336e-2` (factor 1.44);
+`t=8` `2.593e-2` / `2.709e-2`, 4.5, 15-key `post_pulse` `4.254e-2` (1.57);
+`t=10` `3.333e-2` / `3.357e-2`, 0.7, 27-key `post_pulse` `4.956e-2` (1.48);
+`t=12` `4.251e-2` / `4.332e-2`, 1.9, `6.076e-2` (1.40); `t=16` `6.377e-2` /
+`6.720e-2`, 5.4, `6.385e-2` inside; `t=20` `8.519e-2` / `9.088e-2`, 6.7,
+`6.991e-2` ahead by 1.22 to 1.30.  Plan-file row updated with this.
+
+Artifacts under `output/local_runs/`:
+`paper_v_dictionary_energy_power_27key_n16_tightresel_20260916f_seg{5,6}`
+(each with `reselections.json`); in
+`paper_v_projective_dictionary_energy_20260915e/`: `queue_tight_t20.sh`,
+`tabulate_task6.py`, `score_tight_t20.sh`, `rescore_recorded_all.sh`,
+`rescore_postpulse_all.sh`, `monitor_tight_t20.sh`, `comparators_task6.json`,
+and the outputs `tightresel_chain_score_t20.json`,
+`compare_tightresel_t20.json`, `power_chain_score_all.json`,
+`postpulse_chain_score_all.json`, `tabulate_task6.log`, the segment logs.
+Next: the same lever on the 27-key `post_pulse` chain, which is the one
+measurement that settles the `t=20` ordering against both bands; a decade
+looser (`1e-8`) on the drive-power chain.
