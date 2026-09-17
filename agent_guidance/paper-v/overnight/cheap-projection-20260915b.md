@@ -2587,3 +2587,351 @@ the recorded scoreboard of tasks 2 to 7 is the coordinate score.
 | reproducibility | set A's four runs, set D and the combined base equal the task-7 `t=2` screens with the same flags in every coordinate over the 801 common samples |
 | gates | 44 tests pass in `24.82 s`; full `paper_5` suite 499 passed in `270.42 s` under `ram_guard --limit-mb 5000`, peak `1,984 MB` |
 | files changed | this report, the worklog block, and the task-8 scripts and artifacts under `output/local_runs/`; no module, test or default; nothing committed |
+
+# Task 9: the measured acceptance without the anchor to `t=20` -- the continuity holds to `t=12`, the gain grows to `t=20`, and past `t=12` the large uncertified moves branch the twins (2026-09-16)
+
+Four rollouts of the recorded `N=16` drive-power configuration to `t=20`
+(8,000 steps) under task 8's set-A rule, margin `1e-3`, `measured`
+candidates, no anchor, on the base and the three one-setting twins, one at
+a time under `ram_guard --limit-mb 3000` (`chain.zsh`; walls `900.2`,
+`851.5`, `841.1`, `848.7 s` against the `1,140 s` budget, all reaching
+`t=20`; peaks `782`, `771`, `774`, `784 MiB`, each run's own
+`peak_resident_bytes`).  No module was edited: the rule is a setting of
+task 7's `LiftReselectionRule` and every run is `run_one.zsh` (task 7's
+script, output directory changed) plus the twin's one setting plus the
+rule's three flags on its command line; the 44 tests of
+`test_cheap_projection_route.py` pass (`24.03 s`); nothing is committed.
+Conventions and the configuration are tasks 7 and 8's: the score is the
+all-coordinate scalar RMS of the 31 closed scalar coordinates against the
+exact cutoff-16 driven reference over `t=0` to `T`; the internal energy is
+the sample RMS of the Eq. (22) energy on that horizon; the physicality
+numbers are the minimum over `t <= T` of the scaled 24-row
+positive-extension eigenvalue and of the unshifted retained joint Gram
+eigenvalue (recomputed per sample from the states by the driver's formula);
+a separation is the 31-coordinate Euclidean distance between two rollouts
+at the same accepted step; the spread of a set is the largest score minus
+the smallest as a fraction of the smallest; a re-selection's move is the
+Euclidean distance in the 62 standardized frontier coordinates between the
+carried lift and the lift the rule applied (under this rule, the
+completion's answer whole); a solver refusal is a re-selection whose
+completion returned uncertified, whatever the rule did with the iterate.
+The comparison rows are the recorded rule's four runs (task 4's row as its
+task-7 record-stages rerun, equal to it in every array, and task 6's three
+twins) and the combined rule's four (task 7: margin `1e-3`, `measured`
+candidates, anchor `mu = 1`), all `t=0` to `20`, rescored here on the five
+horizons by one script (`task9_scores.py`; the `t=4`, `8`, `12`, `20`
+numbers of tasks 7 and 8 are reproduced to every digit).  The four runs
+here equal task 8's four set-A `t=8` runs in every one of the 3,201
+common samples' times, states, 31 closed coordinates and 62 standardized
+frontier coordinates (largest absolute difference `0.0` in each array), so
+the `t=4` and `t=8` rows below are task 8's set-A rows and the driver is
+deterministic across processes and horizons.
+
+## Negative result first
+
+The continuity does not survive to `t=16` and `t=20` in one of the three
+twins, and what breaks it is the rule's own acceptance of large
+uncertified moves once the state reaches the edge of the set admitting a
+positive extension.  The four scores over `t=0` to `20` are `0.150102`
+(base), `0.223420` (`etol1e3`), `0.160803` (`dykstra60`), `0.150285`
+(`conic1e10`): spread 48.8 percent, the `etol1e3` twin alone; the other
+three lie within 7.1 percent.  At `t=16` the spread is 18.8 percent (7.4
+without `etol1e3`), at `t=12` 3.2 percent (2.7), at `t=8` 0.2 and at `t=4`
+0.1.  The separation of the `etol1e3` twin from the base crosses `1e-1`
+at `t=11.23` and reaches `2.27` at `t=20`; the `dykstra60` twin crosses
+`1e-1` at `t=12.9` and reaches `0.53`; the `conic1e10` twin never crosses
+`1e-1` (`0.089` at most, `t=19.9`).  From `t=10` on every run accepts, as
+the rule is written, iterates that move the lift by `0.4` to `0.8` in the
+standardized frontier (the base `0.716` at `t=10.04`, an uncertified
+conic-Newton descent failure's last iterate that passes the measured
+feasibility test and improves the declared objective by `0.175`; then
+`0.686` certified at `t=10.2`), the size of the wrong-face jump the
+margin was introduced to decline at `t=0.04` (`0.334`), and the frontier
+envelope reaches `1.0` (a frontier coordinate at its declared scale) at
+`t=10.04` in the base.  Two twins whose repairs differ at round-off reach
+`t=10` with states `0.05` to `0.07` apart and their completions there
+return different large iterates; that, and not the certificate (the
+`conic1e10` twin accepts the base's `0.716` iterate to `0.0022`), is the
+branch.
+
+The gain, stated once: at every horizon from `t=8` on, all four runs are
+below every run of the recorded rule and of the combined rule, and the
+band of the four is disjoint from both other bands.  Over `t=0` to `20`
+the base's `0.150` is 54 percent below the recorded row's `0.329`, 42
+percent below the recorded rule's best twin (`0.260`), 41 percent below
+the combined rule's best (`0.255`), and 1.17 times the record's
+both-cones line (`0.128607`, the `5,832 s` conic run); the worst twin,
+`0.223`, is still below the best of the other eight (`0.255`).  The cost
+is unchanged from task 8: 15 percent at `t=4` (`0.0272` against the
+recorded `0.0237`, inside the recorded rule's band), and the Eq. (22)
+internal energy, `0.0409` over `t=0` to `20` against the recorded `0.0260`
+(57 percent worse; the drive-power reference's error over the pulse,
+`0.0426` against `0.0272`, as task 8 measured).
+
+## The rows side by side
+
+Scores (all-coordinate scalar RMS over `t=0` to `T`), base / `etol1e3` /
+`dykstra60` / `conic1e10`, and the spread of the four:
+
+| `T` | recorded rule (task 4 row, task 6 twins) | spread | combined rule (task 7) | spread | measured, no anchor (this task) | spread (without `etol1e3`) |
+|---:|---|---|---|---|---|---|
+| 4 | `0.023744` / `0.024240` / `0.026837` / `0.027954` | 17.7 % | `0.031566` / `0.031582` / `0.031594` / `0.031566` | 0.1 % | `0.027191` / `0.027215` / `0.027214` / `0.027191` | 0.1 % (0.1) |
+| 8 | `0.045571` / `0.044530` / `0.040677` / `0.040450` | 12.7 % | `0.075551` / `0.073518` / `0.076622` / `0.076060` | 4.2 % | `0.038538` / `0.038617` / `0.038605` / `0.038538` | 0.2 % (0.2) |
+| 12 | `0.125139` / `0.130946` / `0.114863` / `0.108195` | 21.0 % | `0.143618` / `0.120502` / `0.130712` / `0.127896` | 19.2 % | `0.098187` / `0.101367` / `0.100824` / `0.098186` | 3.2 % (2.7) |
+| 16 | `0.258499` / `0.256609` / `0.201866` / `0.228471` | 28.1 % | `0.223586` / `0.183926` / `0.196958` / `0.188325` | 21.6 % | `0.136367` / `0.161977` / `0.146397` / `0.136288` | 18.8 % (7.4) |
+| 20 | `0.328674` / `0.325970` / `0.260123` / `0.300340` | 26.4 % | `0.264357` / `0.256831` / `0.273564` / `0.254707` | 7.4 % | `0.150102` / `0.223420` / `0.160803` / `0.150285` | 48.8 % (7.1) |
+
+Internal-energy sample RMS (Eq. (22)) over `t=0` to `T`, same order:
+
+| `T` | recorded rule | combined rule | measured, no anchor |
+|---:|---|---|---|
+| 4 | `0.02041` / `0.02040` / `0.02514` / `0.02864` | `0.02369` / `0.02393` / `0.02369` / `0.02369` | `0.03314` / `0.03332` / `0.03332` / `0.03314` |
+| 8 | `0.02406` / `0.02415` / `0.02948` / `0.03383` | `0.02913` / `0.02940` / `0.02913` / `0.02913` | `0.03816` / `0.03835` / `0.03836` / `0.03816` |
+| 12 | `0.02515` / `0.02527` / `0.03079` / `0.03539` | `0.03073` / `0.03101` / `0.03073` / `0.03073` | `0.03969` / `0.03989` / `0.03990` / `0.03969` |
+| 16 | `0.02569` / `0.02582` / `0.03142` / `0.03614` | `0.03150` / `0.03179` / `0.03150` / `0.03150` | `0.04043` / `0.04064` / `0.04064` / `0.04043` |
+| 20 | `0.02600` / `0.02614` / `0.03180` / `0.03659` | `0.03195` / `0.03225` / `0.03196` / `0.03195` | `0.04087` / `0.04108` / `0.04109` / `0.04087` |
+
+(The internal-energy spread of the four is 0.5 percent at every horizon
+under this rule; on every window past the pulse the RMS is the run's
+drive-power reference minus the exact energy, `0.04259` (base,
+`conic1e10`) and `0.0428` (`etol1e3`, `dykstra60`), against `0.02722`
+recorded and `0.0337` combined.)
+
+Score per four-unit window `(a, b]` of the horizon, the same RMS on that
+window's samples alone (`windows.py`), base runs and the `etol1e3` twin of
+this rule:
+
+| window | recorded base | combined base | measured base | measured `etol1e3` | measured `dykstra60` |
+|---|---|---|---|---|---|
+| `(0, 4]` | `0.0237` | `0.0316` | `0.0272` | `0.0272` | `0.0272` |
+| `(4, 8]` | `0.0599` | `0.1021` | `0.0472` | `0.0474` | `0.0473` |
+| `(8, 12]` | `0.2070` | `0.2247` | `0.1611` | `0.1669` | `0.1659` |
+| `(12, 16]` | `0.4694` | `0.3716` | `0.2132` | `0.2723` | `0.2350` |
+| `(16, 20]` | `0.5224` | `0.3866` | `0.1956` | `0.3803` | `0.2087` |
+
+Physicality over `t <= T` (scaled 24-row extension minimum; unshifted
+retained joint Gram minimum), base / `etol1e3` / `dykstra60` /
+`conic1e10`; the standardized frontier envelope's first arrival at `1.0`
+and the number of the 8,001 samples at or above it:
+
+| set | extension minimum, `t <= 8` / `<= 12` / `<= 20` | joint Gram minimum, `t <= 8` / `<= 12` / `<= 20` | envelope first at `1.0` (samples at `1.0`) |
+|---|---|---|---|
+| recorded | `-8.6e-5` / `-6.0e-4` / `-2.3e-3`; `-1.7e-4` / `-6.8e-4` / `-2.0e-3`; `-3.4e-5` / `-1.4e-4` / `-5.9e-4`; `-1.6e-4` / `-3.8e-4` / `-1.6e-3` | `-2.1e-3` / `-1.4e-2` / `-5.3e-2`; `-4.7e-3` / `-1.6e-2` / `-4.6e-2`; `-8.0e-4` / `-3.4e-3` / `-1.4e-2`; `-4.8e-3` / `-9.2e-3` / `-3.6e-2` | never (maxima `0.84`, `0.92`, `0.72`, `0.89`) |
+| combined | `-2.9e-4` / `-3.1e-4` / `-3.5e-4`; `-3.6e-4` / `-3.6e-4` / `-5.5e-4`; `-1.7e-4` / `-1.7e-4` / `-3.2e-4`; `-3.5e-4` / `-3.5e-4` / `-5.8e-4` | `-6.8e-3` / `-9.1e-3` / `-9.1e-3`; `-8.7e-3` / `-1.1e-2` / `-1.3e-2`; `-4.1e-3` / `-4.9e-3` / `-7.6e-3`; `-8.6e-3` / `-9.2e-3` / `-1.4e-2` | never (`0.63`, `0.84`, `0.97`, `0.95`) |
+| measured, no anchor | `-1.1e-4` / `-2.6e-4` / `-2.6e-4`; `-1.1e-4` / `-2.5e-4` / `-6.6e-4`; `-4.8e-5` / `-1.2e-4` / `-1.2e-4`; `-1.1e-4` / `-2.6e-4` / `-2.6e-4` | `-3.3e-3` / `-7.9e-3` / `-7.9e-3`; `-3.2e-3` / `-7.8e-3` / `-1.6e-2`; `-1.4e-3` / `-3.7e-3` / `-3.7e-3`; `-3.3e-3` / `-7.9e-3` / `-7.9e-3` | `t=10.04` (199), `18.96` (79), `10.20` (15), `10.04` (108); maxima `1.00012`, `1.00016`, `1.00001`, `1.00012` |
+
+Site-0 occupation RMS over `t=0` to `20`: `0.158` / `0.201` / `0.159` /
+`0.159` (recorded rule `0.187` / `0.191` / `0.192` / `0.183`; combined
+`0.337` / `0.238` / `0.252` / `0.264`; the both-cones record `0.205`).
+
+## (a) Where each twin leaves the base, and what moves it
+
+31-coordinate Euclidean separation from the base at the same accepted step
+(the combined rule's crossings from task 7 and the recorded rule's from
+task 6 in brackets):
+
+| twin | first nonzero | first carried-frontier difference above `1e-6` | first crossing of `1e-3` / `1e-2` / `1e-1` [combined] [recorded] | at `t=4` / `8` / `12` / `16` / `20` | window mean `(8,12]` / `(12,16]` / `(16,20]` | maximum, when |
+|---|---|---|---|---|---|---|
+| `etol1e3` | `t=0.0075` | `0.0064` at `t=0.16` | `2.1075` / `5.83` / `11.2275` [`1.7875` / `4.1` / `8.415`] [`0.1475` / `0.7525` / `7.01`] | `0.0035` / `0.0175` / `0.214` / `0.755` / `2.27` | `0.066` / `0.49` / `1.49` | `2.27` at `t=20` |
+| `dykstra60` | `t=0.0625` | `0.0064` at `t=0.16` | `2.105` / `5.76` / `12.905` [`2.305` / `5.65` / `8.6025`] [`0.145` / `0.36` / `4.0025`] | `0.0035` / `0.0232` / `0.066` / `0.347` / `0.534` | `0.046` / `0.23` / `0.43` | `0.534` at `t=20` |
+| `conic1e10` | `t=0.245` (`8.7e-19`) | `0.0022` at `t=10.04` | `14.205` / `18.6425` / never [`6.4525` / `6.8` / `8.545`] [`0.125` / `0.48` / `3.085`] | `5.1e-9` / `1.7e-8` / `1.2e-4` / `0.0030` / `0.0875` | `2.4e-5` / `0.0014` / `0.023` | `0.0886` at `t=19.9` |
+
+Under the combined rule every twin crossed `1e-1` at `t=8.4` to `8.6`;
+here the crossings are at `11.2`, `12.9` and never, so the continuity
+extends by three to four time units and, for the twin that differs only
+in the certificate tolerance, to the end of the horizon.  What then parts
+the other two is measured in the stage records (`reselection_moves.py`):
+
+| run | accepted moves per quarter `[0,5)` / `[5,10)` / `[10,15)` / `[15,20)`: median, 90th percentile, maximum (count above `0.1`) | largest applied moves (time; certificate; declared-objective improvement) |
+|---|---|---|
+| base | `0.010`, `0.013`, `0.019` (0) / `0.023`, `0.035`, `0.152` (2) / `0.026`, `0.048`, `0.716` (5) / `0.044`, `0.246`, `0.624` (13) | `0.716` at `t=10.04` (uncertified, conic-Newton descent failure; `+0.175`); `0.686` at `10.2` (certified; `+1.588`); `0.624` at `17.12` (uncertified, Newton cone failure on the 23/24 face; `+0.657`); `0.610` at `17.16` (certified; `+1.726`); `0.513` at `20` (uncertified; `+1.588`) |
+| `etol1e3` | `0.010`, `0.014`, `0.018` (0) / `0.023`, `0.034`, `0.164` (2) / `0.023`, `0.051`, `0.522` (5) / `0.045`, `0.190`, `0.805` (15) | `0.805` at `t=18.96` (uncertified, descent failure; `+0.050`); `0.533` at `19.16` (certified; `+1.525`); `0.522` at `10.28` (uncertified; `+0.440`); `0.434` at `10.32` (uncertified, 40-iteration cap, KKT `1.0e-7`; `+1.269`); `0.394` at `10.04` (uncertified, 40-iteration cap; `+0.641`) |
+| `dykstra60` | `0.010`, `0.013`, `0.018` (0) / `0.022`, `0.033`, `0.155` (2) / `0.023`, `0.039`, `0.510` (5) / `0.017`, `0.032`, `0.471` (5) | `0.510` at `t=10.2` (uncertified, descent failure; `+0.308`); `0.471` at `17.32` (certified; `+1.501`); `0.358` at `10.24` (uncertified; `+1.218`); `0.278` at `17.24` (uncertified, 40-iteration cap; `+1.202`); `0.265` at `17.28` (uncertified, `AlmostSolved`, KKT `0.24`; `+0.736`) |
+| `conic1e10` | `0.010`, `0.013`, `0.019` (0) / `0.023`, `0.035`, `0.152` (2) / `0.026`, `0.048`, `0.717` (5) / `0.045`, `0.202`, `0.510` (14) | `0.717` at `t=10.04` (uncertified, `Solved` with KKT `0.998`; `+0.175`: the base's iterate to `0.0022`); `0.687` at `10.2` (uncertified, 40-iteration cap, KKT `3.5e-8`; `+1.590`); `0.510` at `17.28` (uncertified; `+0.382`) |
+
+Three readings.
+
+- **To `t=10` the rule moves the lift by hundredths and the twins stay
+  together.**  No accepted move exceeds `0.019` in `[0, 5)` and two exceed
+  `0.1` in `[5, 10)` (`0.13` at `t=8.68` and `0.15` to `0.16` at `t=9.56`
+  to `9.64`, certified in every run but the `conic1e10` twin's second);
+  the twins' separations stay below `0.024` to `t=8`, are `0.051`
+  (`etol1e3`, `dykstra60`) at `t=10`, and stay below `0.07` (`dykstra60`)
+  and `0.22` (`etol1e3`) to `t=12`.  This is task 8's continuity carried
+  four time units further.
+- **From `t=10` the rule accepts moves of `0.4` to `0.8`, most of them
+  uncertified.**  They are the last iterates of conic-Newton descent
+  failures, Newton cone failures and 40-iteration caps that pass the
+  completion's own feasibility test of a warm frontier and improve the
+  declared objective by `0.05` to `1.7`, so the rule as written accepts
+  them; the certified answers that follow within `0.04` to `0.2` time
+  units are of the same size (`0.686`, `0.610`, `0.533`, `0.471`).  The
+  frontier envelope reaches its declared scale at the first of them
+  (`t=10.04` in the base, `10.2` in `dykstra60`, `18.96` in `etol1e3`) and
+  stays there for 15 to 199 samples.  The `etol1e3` twin's departure is
+  its `0.394` / `0.522` / `0.434` moves at `t=10.04` to `10.32` where the
+  base took `0.716` / `0.686`: two states `0.05` apart at `t=10` whose
+  completions return different large iterates, an answer branch of the
+  kind task 7 saw once at `t=6.44` under the combined rule.  The
+  `conic1e10` twin, whose state equals the base's to `1.7e-8` at `t=8`
+  and `1.2e-4` at `t=12`, accepts the same large iterates and stays
+  within `0.09` to the end: the certificate tolerance does not branch
+  this rule anywhere on the horizon.
+- **The `infeasible` regime begins at `t=8` to `10` and the `dykstra60`
+  twin largely avoids it.**  Re-selections whose iterate fails the
+  measured feasibility test: base 0 / 34 / 29 / 56 per quarter, `etol1e3`
+  0 / 32 / 24 / 53, `conic1e10` 0 / 34 / 29 / 52, `dykstra60` 0 / 32 / 1
+  / 1, so the 60-iteration repair keeps the state's lower moments
+  admitting a positive extension through `t=10` to `20` where the
+  30-iteration repair loses it at 24 to 56 of 125 re-selections per
+  quarter; that twin accepts 124 of 125 in each of the last two quarters
+  and scores `0.161` at `t=20`, 7 percent above the base, with the
+  tightest cones of the four (`-1.2e-4` / `-3.7e-3`).
+
+## (b) The gain past `t=8`
+
+- Over `t=0` to `12` the four runs (`0.0982` to `0.1014`) lie below the
+  recorded rule's best twin (`0.1082`) and the combined rule's best
+  (`0.1205`); over `t=0` to `16` (`0.136` to `0.162`) below `0.202` and
+  `0.184`; over `t=0` to `20` (`0.150` to `0.223`) below `0.260` and
+  `0.255`.  On the windows: `(8, 12]` `0.161` against the recorded base's
+  `0.207`, `(12, 16]` `0.213` against `0.469`, `(16, 20]` `0.196` against
+  `0.522` -- the recorded row is the frozen-lift route past `t=11.76`
+  (task 7 (a)) and its last two windows are that route's decay; this rule
+  keeps re-selecting to the end (69 to 124 accepted of 125 in `[15, 20)`
+  against the recorded rule's none) and its last window is no worse than
+  its `(8, 12]` window.
+- Against the record over `t=0` to `20`: the base's `0.150` stands at 1.17
+  times the both-cones line (`0.128607`) and below the 15-key
+  `post_pulse` row (`0.239`, task 4's best 15-key row at `t=20` until now)
+  by 37 percent, with the site-0 occupation RMS `0.158` against the
+  both-cones `0.205`; the 27-key chains remain ahead (`0.0852`
+  `drive_power`, `0.0699` `post_pulse`).  The cones are not held: joint
+  Gram minimum `-7.9e-3` (both cones `+1.4e-5`), 6.7 times better than
+  the recorded row's `-5.3e-2` and within 15 percent of the combined
+  rule's `-9.1e-3`; scaled extension minimum `-2.6e-4` against the
+  recorded `-2.3e-3`; the frontier box is exceeded by at most `1.6e-4`.
+- The internal energy is the worst of the three sets at every horizon
+  (`0.0409` at `t=20` against `0.0260` recorded and `0.0320` combined),
+  and it is set over the pulse: the drive-power reference is `0.0426`
+  above the exact energy from `t=4` on, task 8's number, and no
+  re-selection after `t=4` changes it.
+
+## (c) Re-selections of 500 over `t=0` to `20`
+
+| run | accepted (of which uncertified) / declined by the margin / `infeasible` | solver refusals (uncertified returns), of which accepted | accepted per quarter `[0,5)` / `[5,10)` / `[10,15)` / `[15,20)` |
+|---|---|---|---|
+| base | 377 (39) / 4 / 119 | 161, 39 | 120 / 91 / 96 / 69 |
+| `etol1e3` | 385 (51) / 5 / 110 | 163, 51 | 120 / 93 / 101 / 71 |
+| `dykstra60` | 462 (35) / 4 / 34 | 72, 35 | 120 / 93 / 124 / 124 |
+| `conic1e10` | 380 (88) / 4 / 116 | 208, 88 | 120 / 91 / 96 / 73 |
+| recorded rule, base (certified and accepted / refused) | 224 (0) / 0 / 0; 276 refused | 276, 0 | 112 / 98 / 14 / 0 |
+| combined rule, base | 347 (30) / 4 / 149 | 182, 30 | 120 / 55 / 78 / 93 |
+
+(the four declined are the wrong-face answers of `t=0.04` to `0.16`, as
+in tasks 7 and 8; no re-selection is a `refused` decision under the
+`measured` scope; the recorded rule's twins carry no stage record and
+their whole-run solver refusals are 285, 192, 267.)
+
+## The 15-key ledger row
+
+For the plan file's cheap-projection row (15 entrance keys, `N=16`,
+strong coupling, cutoff 16, exact-correlated preparation, `h=0.0025`,
+Dykstra 30 on both targets at stage cadence, the declared proximal
+log-det completion re-solved every 16 steps warm-started on the carried
+frontier, the energy-neutral repair in `drive_power` mode, and the lift
+re-selection rule margin `1e-3`, `measured` candidates, no anchor; every
+band the base and its three one-setting twins, `energy_tolerance` `1e-3`,
+Dykstra 60, re-selection `conic_tolerance` `1e-10`):
+
+| horizon `t=0` to `T` | score, base (band of the four; spread) | Eq. (22) internal-energy RMS (band) | recorded rule's band (task 6) | record, both cones |
+|---:|---|---|---|---|
+| 4 | `0.0272` (`0.0272` to `0.0272`; 0.1 %) | `0.0331` (`0.0331` to `0.0333`) | `0.0237` to `0.0280` | --- |
+| 8 | `0.0385` (`0.0385` to `0.0386`; 0.2 %) | `0.0382` (`0.0382` to `0.0384`) | `0.0404` to `0.0456` | --- |
+| 12 | `0.0982` (`0.0982` to `0.1014`; 3.2 %) | `0.0397` (`0.0397` to `0.0399`) | `0.108` to `0.131` | --- |
+| 16 | `0.136` (`0.136` to `0.162`; 18.8 %, three of four within 7.4 %) | `0.0404` (`0.0404` to `0.0406`) | `0.202` to `0.258` | --- |
+| 20 | `0.150` (`0.150` to `0.223`; 48.8 %, three of four within 7.1 %) | `0.0409` (`0.0409` to `0.0411`) | `0.260` to `0.329` | `0.1286` (energy `0.00094`; joint Gram `+1.4e-5`) |
+
+with the joint Gram minimum over `t=0` to `20` `-7.9e-3` (band `-3.7e-3`
+to `-1.6e-2`), the scaled extension minimum `-2.6e-4` (`-1.2e-4` to
+`-6.6e-4`), the site-0 occupation RMS `0.158` (`0.158` to `0.201`), walls
+`841` to `900 s` for 8,000 steps under `ram_guard --limit-mb 3000`, and
+the caveat that the `t=16` and `t=20` bands are set by the accepted
+`0.4` to `0.8` frontier moves from `t=10` on, which no option of the rule
+caps in these runs (the trust radius was off).  The plan file
+(`agent_guidance/paper-v/paper-v-state-and-plan-20260914.md`, the
+cheap-projection row) was not edited here: it is shared with the
+projective-route agent, which commits to it, and this route does not
+commit.
+
+## Provenance and gates
+
+- Gates: `paper_5/tests/test_cheap_projection_route.py` 44 passed in
+  `24.03 s` (`cd paper_5 && PYTHONPATH=src python -m pytest -q
+  tests/test_cheap_projection_route.py`).  The full `paper_5` suite was
+  not re-run: no module, test or default changed since task 8's pass
+  (499 passed) of the same module contents, committed at `4de52486`
+  (`HEAD`), and the projective-route agent's chain was running on the
+  machine.
+- Scripts, all under
+  `output/local_runs/paper_v_cheap_projection_task9_measured_t20_20260916_v1/`:
+  `run_one.zsh` (task 7's, output directory changed), `chain.zsh` (the
+  four rollouts in order, every twin and the rule as flags),
+  `task9_scores.py` (`task9_scores.json` and `.md`: the five-horizon
+  scores, internal energies, site-0 occupation, per-horizon physicality
+  minima with the joint Gram recomputed from the states, spreads,
+  separations with crossings and horizon values, decisions over `t <= T`
+  and per quarter, from `trajectory.npz`, `summary.json` and
+  `repairs.jsonl`; it propagates nothing and reproduces every `t=4`, `8`,
+  `12`, `20` number of tasks 7 and 8), `windows.py` (`windows.json` and
+  `.md`: the score, internal energy and site-0 RMS per four-unit window
+  and the twins' mean and maximum separation per window),
+  `reselection_moves.py` (`reselection_moves.json`: the ten largest
+  applied moves per run with certificate, face, KKT backward error and
+  objective improvement; the accepted moves' median, 90th percentile and
+  maximum per quarter; the envelope's first arrival at `0.99` and `1.0`),
+  the run logs, `chain.log`, `chain_stdout.log`, `task9_scores.log`, the
+  partial score `task9_scores_partial.json` (taken after the base run),
+  and the smoke
+  `paper_v_cheap_projection_task9_smoke_measured_t005_20260916_v1`
+  (`1.7 s`, peak `228 MiB`).
+- Artifacts, under `output/local_runs/`:
+  `paper_v_cheap_projection_task9_measured_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1`,
+  each with `repairs.jsonl` (`15 MB`); walls `900.2`, `851.5`, `841.1`,
+  `848.7 s` (`autonomous_wall_seconds`; `1,140 s` budget, none reached
+  it), peaks `782`, `771`, `774`, `784 MiB`; every rollout under
+  `pipelines/shell/ram_guard.py --limit-mb 3000`, one at a time,
+  `17:55` to `18:53`.  `HEAD` is `4de52486` throughout.
+
+## What to try next, in order
+
+1. Cap the move.  The rule's trust radius (`--reselection-trust-radius`,
+   task 7's option, inert at `0.05` over `t=0` to `2` and off here) is the
+   declared instrument for the `0.4` to `0.8` moves that set the `t=16`
+   and `t=20` bands: radius `0.1` under `ball` and under `carried`, on
+   the four to `t=20` (eight rollouts of about 14 minutes), to learn
+   whether the `t=12` continuity (3.2 percent) extends to `t=20` and what
+   the cap costs against the base's `0.150`.  A radius binds 5 to 15
+   times per quarter from `t=10` on by the counts above.
+2. The same rule (and, if 1 helps, the cap) on the 27-key `N=16`
+   drive-power chain: task 8's item 2, unchanged.
+3. The Eq. (22) energy: if it is to be scored, the drive-power
+   reference's `0.0426` over the pulse is the quantity, set before any
+   re-selection rule acts; task 8's item 3, unchanged.
+
+## Structured summary of task 9
+
+| item | value |
+|---|---|
+| what was run | four `t=0` to `20` rollouts (8,000 steps) of the recorded `N=16` drive-power configuration under the rule margin `1e-3`, `measured` candidates, no anchor, on the base and the three one-setting twins, one at a time under `ram_guard --limit-mb 3000`; walls `900.2` / `851.5` / `841.1` / `848.7 s`, peaks `782` to `784 MiB`; no module edited, 44 tests pass, nothing committed |
+| scores, base / `etol1e3` / `dykstra60` / `conic1e10` | `t=4` `0.027191` / `0.027215` / `0.027214` / `0.027191`; `t=8` `0.038538` / `0.038617` / `0.038605` / `0.038538`; `t=12` `0.098187` / `0.101367` / `0.100824` / `0.098186`; `t=16` `0.136367` / `0.161977` / `0.146397` / `0.136288`; `t=20` `0.150102` / `0.223420` / `0.160803` / `0.150285` |
+| spread (recorded rule; combined rule) | 0.1 (17.7; 0.1), 0.2 (12.7; 4.2), 3.2 (21.0; 19.2), 18.8 (28.1; 21.6), 48.8 (26.4; 7.4) percent at `T=4`, `8`, `12`, `16`, `20`; without `etol1e3` 0.1, 0.2, 2.7, 7.4, 7.1 |
+| does the continuity survive past `t=8` without the anchor | to `t=12` yes (3.2 percent, the second digit); to `t=16` and `20` no in the `etol1e3` twin (`1e-1` crossed at `t=11.23`, separation `2.27` at `t=20`) and marginally in `dykstra60` (`12.9`; `0.53`); the `conic1e10` twin never crosses `1e-1` (`0.089`); the combined rule's crossings were `8.4` to `8.6`, the recorded rule's `3.1` to `7.0` |
+| does the `t=8` gain survive | yes, and grows: every run below every recorded-rule and combined-rule run from `t=8` on, bands disjoint at `8`, `12`, `16`, `20`; the base 22 / 47 / 54 percent below the recorded row at `t=12` / `16` / `20` and 42 percent below the recorded rule's best twin at `t=20`; `0.150` is 1.17 times the both-cones `0.1286` and 37 percent below the 15-key `post_pulse` row `0.239`; window RMS `(16, 20]` `0.196` against the recorded `0.522` |
+| what breaks the continuity past `t=12` | accepted moves of `0.4` to `0.8` from `t=10` on (base `0.716` at `t=10.04`, uncertified, objective improvement `0.175`; 13 to 15 moves above `0.1` in `[15, 20)`), the envelope at `1.0` from `t=10.04`; an answer branch between states `0.05` apart at `t=10`, not the certificate (`conic1e10` takes the base's iterate to `0.0022`) |
+| internal energy | `0.0331` / `0.0382` / `0.0397` / `0.0404` / `0.0409` on the five horizons (band 0.5 percent), against the recorded `0.0204` / `0.0241` / `0.0252` / `0.0257` / `0.0260`; the drive-power reference `0.0426` above exact from `t=4` on |
+| physicality over `t <= 20` | scaled extension minimum `-2.6e-4` / `-6.6e-4` / `-1.2e-4` / `-2.6e-4` (recorded `-2.3e-3` to `-5.9e-4`); joint Gram `-7.9e-3` / `-1.6e-2` / `-3.7e-3` / `-7.9e-3` (recorded `-5.3e-2` to `-1.4e-2`; combined `-7.6e-3` to `-1.4e-2`); frontier box exceeded by at most `1.6e-4` |
+| re-selections of 500: accepted (uncertified) / declined / `infeasible`; solver refusals | 377 (39) / 4 / 119; 161 -- 385 (51) / 5 / 110; 163 -- 462 (35) / 4 / 34; 72 -- 380 (88) / 4 / 116; 208; accepted in `[15, 20)` 69, 71, 124, 73 (recorded rule none, combined 93) |
+| ledger row | the table under "The 15-key ledger row": `0.0272` (0.1 %), `0.0385` (0.2 %), `0.0982` (3.2 %), `0.136` (18.8 %; three within 7.4), `0.150` (48.8 %; three within 7.1) at `t=4`, `8`, `12`, `16`, `20`; plan file not edited |
+| next | trust radius `0.1` (`ball`, `carried`) on the four to `t=20`; then the 27-key chain |
+| files changed | this report, the worklog block, and the task-9 scripts and artifacts under `output/local_runs/`; no module, test or default; nothing committed |

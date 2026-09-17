@@ -6032,3 +6032,99 @@ and `.md`, the run logs, `chain.log`, the suite logs).  Gates: 44 tests in
 rule without the anchor to `t=20` on the four; the same on the 27-key
 `N=16` drive-power chain; if the Eq. (22) energy is to be scored, the
 drive-power reference's error over the pulse is the quantity to move.
+
+## 2026-09-16: cheap projection route, ninth pass: the measured acceptance without the anchor to `t=20` -- continuity to `t=12`, the gain grows to `t=20`, and the large uncertified moves branch the twins after
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(ninth heading, "Task 9").  Four rollouts of the recorded `N=16`
+drive-power configuration (fourth pass: strong coupling, cutoff 16,
+exact-correlated preparation, 15 entrance keys, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence,
+the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, the energy-neutral option in
+`drive_power` mode) to `t=20` (8,000 steps) under the eighth pass's set-A
+rule, margin `1e-3`, `measured` candidates, no anchor, on the base and the
+sixth pass's three one-setting twins (`energy_tolerance` `1e-3`; Dykstra
+60; re-selection `conic_tolerance` `1e-10`), one at a time under
+`ram_guard --limit-mb 3000`: walls `900.2` / `851.5` / `841.1` / `848.7 s`
+(budget `1,140 s`), peaks `782` to `784 MiB`, all reaching `t=20`; equal
+to the eighth pass's set-A `t=8` runs in every array over the 3,201
+common samples.  Scores, internal energy, separations, spreads and
+physicality minima are the sixth to eighth passes' conventions, on the
+horizons `t=0` to `4`, `8`, `12`, `16`, `20`; the recorded rule's four
+runs and the seventh pass's combined rule's four are rescored on the same
+five horizons by one script.  No module edited, no new option, no default
+changed, 44 tests pass, nothing committed.
+
+Negative result first: the continuity does not survive to `t=16` and
+`t=20` in the `etol1e3` twin, and what breaks it is the rule's acceptance
+of `0.4` to `0.8` frontier moves from `t=10` on.  Scores base / `etol1e3`
+/ `dykstra60` / `conic1e10`: `0.027191` / `0.027215` / `0.027214` /
+`0.027191` over `t=0` to `4`; `0.038538` / `0.038617` / `0.038605` /
+`0.038538` to `8`; `0.098187` / `0.101367` / `0.100824` / `0.098186` to
+`12`; `0.136367` / `0.161977` / `0.146397` / `0.136288` to `16`;
+`0.150102` / `0.223420` / `0.160803` / `0.150285` to `20`; spreads 0.1,
+0.2, 3.2, 18.8, 48.8 percent (the recorded rule 17.7, 12.7, 21.0, 28.1,
+26.4; the combined rule 0.1, 4.2, 19.2, 21.6, 7.4), and without the
+`etol1e3` twin 0.1, 0.2, 2.7, 7.4, 7.1.  Separation from the base crosses
+`1e-3` / `1e-2` / `1e-1` at `2.1075` / `5.83` / `11.2275` (`etol1e3`; `2.27`
+at `t=20`), `2.105` / `5.76` / `12.905` (`dykstra60`; `0.534`), `14.205`
+/ `18.6425` / never (`conic1e10`; `0.089` at most), against the combined
+rule's `1e-1` crossings at `8.4` to `8.6` and the recorded rule's `3.1` to
+`7.0`.  To `t=10` no accepted move exceeds `0.16`; from `t=10.04` the base
+accepts `0.716` (uncertified, a conic-Newton descent failure's last
+iterate passing the measured feasibility test, objective improvement
+`0.175`), then `0.686` certified at `10.2`, and 13 to 15 moves above
+`0.1` in `[15, 20)` (`dykstra60` 5); the frontier envelope reaches `1.0`
+at `t=10.04` (base, `conic1e10`), `10.2` (`dykstra60`), `18.96`
+(`etol1e3`).  The branch is an answer branch between states `0.051` apart
+at `t=10`, not the certificate: the `conic1e10` twin accepts the base's
+`0.716` iterate to `0.0022` and stays within `0.09` to the end.  The
+`infeasible` decisions begin at `t=8` to `10` (base 0 / 34 / 29 / 56 per
+five-unit quarter; `dykstra60` 0 / 32 / 1 / 1, which accepts 124 of 125
+in each of the last two quarters).
+
+The gain survives and grows: from `t=8` on every one of the four runs is
+below every run of the recorded and the combined rule, with the bands
+disjoint at `8`, `12`, `16`, `20`; the base is 22 / 47 / 54 percent below
+the recorded row at `t=12` / `16` / `20` (`0.0982` / `0.136` / `0.150`
+against `0.125` / `0.258` / `0.329`), 42 percent below the recorded rule's
+best twin at `t=20` (`0.260`), 41 percent below the combined rule's best
+(`0.255`), 1.17 times the both-cones `0.128607`, and 37 percent below the
+fourth pass's 15-key `post_pulse` row (`0.239`); the worst twin `0.223` is
+below the best of the other eight runs.  Window RMS `(8, 12]` / `(12,
+16]` / `(16, 20]`: base `0.161` / `0.213` / `0.196` against the recorded
+`0.207` / `0.469` / `0.522` (frozen-lift past `t=11.76`).  Cost unchanged:
+15 percent at `t=4` (`0.0272` against `0.0237`), and the Eq. (22)
+internal energy `0.0331` / `0.0382` / `0.0397` / `0.0404` / `0.0409`
+against the recorded `0.0204` / `0.0241` / `0.0252` / `0.0257` / `0.0260`
+(the drive-power reference `0.0426` above exact from `t=4` on).
+Physicality over `t <= 20`: scaled extension minimum `-2.6e-4` /
+`-6.6e-4` / `-1.2e-4` / `-2.6e-4` (recorded `-2.3e-3` to `-5.9e-4`),
+joint Gram `-7.9e-3` / `-1.6e-2` / `-3.7e-3` / `-7.9e-3` (recorded
+`-5.3e-2` to `-1.4e-2`; both cones `+1.4e-5`); the frontier box exceeded
+by at most `1.6e-4`; site-0 occupation RMS `0.158` to `0.201` (both cones
+`0.205`).  Re-selections of 500: accepted (uncertified) / declined /
+`infeasible`, solver refusals: 377 (39) / 4 / 119, 161; 385 (51) / 5 /
+110, 163; 462 (35) / 4 / 34, 72; 380 (88) / 4 / 116, 208.  Ledger row
+for the plan file's 15-key cheap-projection row (score, band of the four,
+spread): `0.0272` (0.1 %), `0.0385` (0.2 %), `0.0982` (`0.0982` to
+`0.1014`, 3.2 %), `0.136` (`0.136` to `0.162`, 18.8 %), `0.150` (`0.150`
+to `0.223`, 48.8 %; three of four within 7.1 %) at `t=4`, `8`, `12`,
+`16`, `20`; the plan file was not edited (shared with the projective
+agent, which commits to it).
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_task9_measured_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1`
+(each with `repairs.jsonl`), the smoke
+`paper_v_cheap_projection_task9_smoke_measured_t005_20260916_v1`, and the
+scripts and outputs in
+`paper_v_cheap_projection_task9_measured_t20_20260916_v1/` (`run_one.zsh`,
+`chain.zsh`, `task9_scores.py`, `windows.py`, `reselection_moves.py`,
+their `.json` and `.md`, the run logs, `chain.log`).  Gates: 44 tests in
+`test_cheap_projection_route.py` (`24.03 s`); the full suite not re-run
+(no module changed since the eighth pass's 499-test pass at the same
+contents, `HEAD` `4de52486`; the projective agent's chain was running).
+Next: the trust radius `0.1` (`ball` and `carried`) on the four to
+`t=20`, the declared instrument for the `0.4` to `0.8` moves; then the
+27-key `N=16` drive-power chain under the rule.
