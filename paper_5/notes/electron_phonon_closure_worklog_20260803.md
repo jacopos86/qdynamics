@@ -6359,3 +6359,120 @@ Next: the trust radius (`0.1`, `ball` and `carried`) on the four to `t=8`,
 then the base to `t=20` under the rule and the cap; and whether the `t=8`
 loss against the earlier form is the `t=0.04` acceptance or the `(4, 8]`
 re-selections.
+
+## 2026-09-17: cheap projection route, eleventh pass: the certified-only rule's band, and the rule with the ball radius -- the certificate is the branch (132 percent at `t=20`, two twins frozen), the `conic1e10` twin is the recorded rule's twin bitwise, and the radius on the certified base moves `0.149` to `0.152`
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(eleventh heading, "Task 11").  Four rollouts of the recorded `N=16`
+drive-power configuration (fourth pass: strong coupling, cutoff 16,
+exact-correlated preparation, 15 entrance keys, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence,
+the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, the energy-neutral option in
+`drive_power` mode) to `t=20` (8,000 steps), one at a time under
+`ram_guard --limit-mb 3000` on 2026-09-17 (`20:27` to `21:25`): the
+certified-only rule (margin `1e-3`, `certified` candidates, no anchor, no
+trust radius: an uncertified return refused outright, a certified answer
+accepted when its declared-objective improvement exceeds the margin) on
+the sixth pass's three one-setting twins (`energy_tolerance` `1e-3`;
+Dykstra 60; re-selection `conic_tolerance` `1e-10`), completing the band
+whose base is the tenth pass's certified screen; and the same rule with
+the trust radius `0.1` under the `ball` policy, base only.  Walls `914.8`,
+`869.8`, `840.7`, `802.4 s` (budget `1,140 s`), peaks `748` to `783 MiB`,
+all at `t=20`.  Scores, internal energy, separations, spreads and
+physicality minima are the sixth to tenth passes' conventions on the
+horizons `t=0` to `4`, `8`, `12`, `16`, `20`.  No module edited (the
+fields are the seventh pass's `LiftReselectionRule` at `a81b7ecb`; `HEAD`
+`f971a284` throughout, the projective route's task-8 commit of `20:26`, no owned module changed), no default changed, 44 tests pass before and
+after, nothing committed.
+
+Negative result first: the certified-only rule has the widest band on
+record and the certificate sets it.  Base / `etol1e3` / `dykstra60` /
+`conic1e10`: `0.027635` / `0.028102` / `0.027735` / `0.027953` over `t=0`
+to `4`, `0.046342` / `0.051402` / `0.058107` / `0.040450` to `8`,
+`0.097956` / `0.095070` / `0.181008` / `0.108195` to `12`, `0.123294` /
+`0.144537` / `0.290131` / `0.228471` to `16`, `0.149326` / `0.203554` /
+`0.345743` / `0.300340` to `20`: spreads 1.7, 43.7, 90.4, 135.3, 131.5
+percent (three of four 1.2, 25.4, 13.8, 85.3, 69.9; the ninth pass 0.1,
+0.2, 3.2, 18.8, 48.8; the `ball` form 0.1, 0.2, 5.5, 19.3, 56.2; the
+recorded rule 17.7, 12.7, 21.0, 28.1, 26.4).  The twins leave the base at
+a refusal flip at `t=0.6` to `0.8` (a re-selection the base accepts at a
+`0.008` move and the twin refuses, on states `5e-16` to `3e-5` apart;
+`1e-3` crossed at `0.6375`, `0.81`, `0.6375`), cross `1e-1` at `5.175`,
+`6.1375`, `3.9225` (ninth pass `11.2`, `12.9`, never; recorded `7.0`,
+`4.0`, `3.1`) and end `0.772`, `1.63`, `1.60` from it.  Refusals of 500:
+65 / 125 / 274 / 267 (per quarter `dykstra60` 13 / 29 / 106 / 125,
+`conic1e10` 26 / 34 / 81 / 125, `etol1e3` 17 / 25 / 23 / 60); the
+`dykstra60` twin's completion refuses 202 consecutive re-selections from
+`t=11.96` (last accepted `t=11.92`) and the `conic1e10` twin's 159 from
+`t=13.68`, so both are the frozen-lift route with the Dykstra repair over
+their last 6 to 8 time units, with the recorded base's late windows
+(`(12, 16]` `0.49`, `0.42`; `(16, 20]` `0.51`, `0.49`; recorded `0.47`,
+`0.52`), joint Gram minima `-2.3e-2`, `-3.6e-2` attained at `t=19.8` to
+`20`, and the `dykstra60` twin's frontier envelope above the box from
+`t=18.78` (`1.018`).  The rule is the recorded rule plus the margin: the
+`conic1e10` twin, whose margin never declines, is the sixth pass's
+`conic1e10` twin bitwise (zero separation over 8,001 samples), and the
+base, `etol1e3` and `dykstra60` runs leave the recorded rule's same twin
+at `t=0.0425`, the sample after the `t=0.04` re-selection, where the
+margin declines the certified wrong-face answer (frontier move `0.30` to
+`0.33`, declared-objective improvement `-0.40` to `-0.46`) that the
+recorded rule accepted (`etol1e3` declines two more, at `t=0.08`, `0.12`);
+that one decline takes `t=20` from `0.329` to `0.149` (base), `0.326` to
+`0.204` (`etol1e3`) and `0.260` to `0.346` (`dykstra60`), and the
+recorded rule's band (`0.260` to `0.329`) sits inside this one (`0.149`
+to `0.346`).  Internal energy at `t=20` `0.0413` / `0.0367` / `0.0368` /
+`0.0366` (references `0.0430` / `0.0384` / `0.0385` / `0.0383` above the
+exact post-pulse energy; the twins' trajectories are `0.05` to `0.10`
+from the base's at `t=4`, when the reference is set); site-0 occupation
+RMS `0.146` / `0.207` / `0.195` / `0.183`; physicality over `t <= 20`:
+extension `-1.9e-4` / `-6.3e-4` / `-1.0e-3` / `-1.6e-3`, joint Gram
+`-4.4e-3` / `-1.5e-2` / `-2.3e-2` / `-3.6e-2`, envelope `0.710` / `0.851`
+/ `1.018` / `0.893`.
+
+The certified rule with the `ball` radius, base only: `0.027635` /
+`0.046342` / `0.097938` / `0.124542` / `0.151644`, equal to the certified
+screen to `t=11.12` (the first cap: the certified `0.290` answer,
+improvement `0.741`, scaled to `0.1`), within `6.7e-3` to `t=12` and
+`0.107` to `t=16`, then 1.0 and 1.6 percent above it at `t=16` and `20`
+(refusals in `[15, 20)` 35 against 19) and 14 percent above the `ball`
+base (`0.132542`); seven caps, all on certified answers of `0.10` to
+`0.29`, none on the `0.4` to `0.8` answers, which the certificate refuses
+(33 above `0.4`, 20 of them in `[15, 20)`); envelope `0.616`, cones
+`-2.1e-4` / `-5.0e-3`; its band unmeasured and, by the above, the
+certificate's.  The tenth pass's item 1 is answered: the certified
+screen's band past `t=12` is the recorded rule's certificate branch made
+wider by the `t=0.04` decline, not a band below the ninth pass's, and the
+measured acceptance stands.  Tightest bands at an accuracy below `0.21`
+at `t=16` and `0.25` at `t=20`: the measured rule without the radius
+(ninth pass), 18.8 percent at `0.136` to `0.162` and 48.8 at `0.150` to
+`0.223` (three of four 7.4, 7.1); tighter only at worse accuracy
+(`carried` 10.1 / 16.3 at `0.188` to `0.207` / `0.216` to `0.252`;
+combined 7.4 at `0.255` to `0.274`); best base the `ball` form (`0.132`,
+`0.133`; 19.3, 56.2).  Ledger row unchanged: the `ball` row, `0.0272`
+(0.1 %), `0.0385` (0.2 %), `0.0989` (`0.0989` to `0.1043`), `0.132`
+(`0.132` to `0.158`), `0.133` (`0.133` to `0.207`; three of four within
+23 percent; `0.133` to `0.223` across the eight measured-candidate runs)
+at `t=4`, `8`, `12`, `16`, `20`, the certified-only rule excluded on its
+band; the sentence for the plan file's cheap-projection row is in the
+report ("The 15-key ledger row"); the plan file not edited (shared; this
+route does not commit).
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_task11_certified_{etol1e3,dykstra60,conic1e10}_t20_20260917_v1`,
+`paper_v_cheap_projection_task11_certball_base_t20_20260917_v1` (each
+with `repairs.jsonl`), the smoke
+`paper_v_cheap_projection_task11_smoke_certball_t005_20260917_v1` (equal
+to the certified screen over the 21 common samples), and the scripts and
+outputs in `paper_v_cheap_projection_task11_certified_t20_20260917_v1/`
+(`run_one.zsh`, `chain.zsh`, `smoke_check.py`, `smoke_check.zsh`,
+`test_gate.zsh`, `dry_run.zsh`, `analyse.zsh`, `task11_scores.py`,
+`windows.py`, `refusals.py`, the tenth pass's `cap_events.py` and
+`large_answers.py` applied, their `.json`, `.md` and `.log`, the run
+logs, `chain.log`).  Gates: 44 tests in `test_cheap_projection_route.py`
+(`25.08 s` before the chain, `24.66 s` after); the full suite not re-run
+(no module changed since the eighth pass's 499-test pass at the same
+contents).  Next: the 27-key `N=16` drive-power chain under the `ball`
+rule, base to `t=20`; the `infeasible` regime against the Dykstra
+iteration count (60, 120) on the base; nothing further on the certified
+screen.
