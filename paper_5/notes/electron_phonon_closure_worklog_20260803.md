@@ -6770,3 +6770,153 @@ each with `reselections.json`; in
 Plan-file row updated in place.  Next: the anchor-free rule without the
 radius with Dykstra 120 from `t=0` to `t=20`; the `(4,8]`
 phonon-occupation loss.
+
+## 2026-09-18: projective route, task 11: the candidate final configuration --- the anchor-free measured rule without the radius with Dykstra 120 --- from `t=0` to `t=20`, with three one-setting twins to `t=8`
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 11 (2026-09-18)").  The two ingredients
+task 10 measured separately, run together from `t=0` on the 27-key `N=16`
+`drive_power` energy-neutral chain: `LiftReselectionRule(acceptance_margin
+=1e-3, candidates="measured", anchor_weight=0)` with no trust radius
+(task 8's rule) and `--dykstra-iterations 120` (task 10's repair depth).
+Base `t=0` to `20` in six `ram_guard --limit-mb 4500` segments (boundaries
+`3.92`, `8.32`, `11.76`, `15.2`, `19.24`; `5,183.6 s`, longest `1,006.6 s`
+plus `18.9 s` of build) and three one-setting twins to `t=8`
+(`energy_tolerance 1e-3` in two segments, `1,977.0 s`; Dykstra 240 in
+three, `2,196.6 s`; re-selection `conic_tolerance 1e-10` in two,
+`1,880.4 s`), one at a time, `04:16` to `07:30`, nothing else heavy on the
+machine.  Smoke gate first (`t=0` to `0.08`): `summary.json` records
+`dykstra_iterations 120` and the rule with `trust_radius None`, both
+re-selections accepted (`0.344683`, `0.863514`, uncertified), no cap.
+Imports from `head_src_e3374f6f`, identical to `paper_5/src/paper5` at
+`HEAD 31136ae9` outside `__pycache__`; `run_chain.py`,
+`run_energy_segment.py` and `score_energy_chain.py` are task 8's
+unchanged; no module edited; nothing committed; no default, rule, radius,
+Dykstra count or ladder changed.  Scores are the all-coordinate scalar RMS
+of the 31 closed scalar coordinates against the exact cutoff-16 driven
+reference from `t=0` on one grid (`exact_t8.npz`, 3,201 samples;
+`exact_t20.npz`, 8,001).
+
+Negative results first.  (1) The combination is behind every 27-key chain
+at `t=8`, `10` and `12`: the base scores `3.304213e-2` at `t=8` (behind the
+recorded `drive_power` band `2.593e-2` to `2.709e-2` by 1.22 to 1.27, task
+8's anchor-free four `3.180e-2` to `3.224e-2` by 1.025 to 1.039 and the
+ball four `3.143e-2` to `3.216e-2` by 1.028 to 1.051), `3.856445e-2` at
+`t=10` (behind the ball four `3.580e-2` to `3.737e-2` by 1.03 to 1.08) and
+`4.059694e-2` at `t=12` (behind the ball band `3.797e-2` to `3.906e-2` by
+1.04 to 1.07), so the deeper repair applied from `t=0` costs where task
+10's from-`t=8` chain cost nothing.  (2) It re-opens the one-setting
+sensitivity the rule had closed: the four members spread 7.14 percent at
+`t=4` (`9.289800e-3` to `9.953452e-3`) and 9.78 at `t=8` (`3.009869e-2` to
+`3.304213e-2`) against task 8's 0.52 and 1.40 at Dykstra 30 (14.76, 12.16,
+12.33 percent at `t=1`, `2`, `6` against 3.83, 0.99, 1.35), every member
+branching at the `t=0.08` re-selection where the completion's answer is
+`0.8635` (base, accepted uncertified), `1.2690` and `1.3304` (declined by
+the margin) and `1.4150` (`infeasible`) --- the same re-selection at which
+task 8's Dykstra-30 base found a diverged answer `infeasible`; the base
+then applies four more answers above `0.4` in `(0, 0.8]` (up to `1.092` at
+`0.76`) and carries a frontier envelope maximum of `0.8825` at `t=0.7575`.
+(3) It does not touch the `(4, 8]` phonon-occupation loss: the four
+phonon-occupation coordinates score `6.7792e-2` over that window against
+the recorded chain's `4.5378e-2` (1.494), where the same rule at Dykstra 30
+gives `6.6901e-2`, at 240 `6.4449e-2` and the ball base `6.8097e-2`.
+
+Results.  The base is the best 27-key number on record at `t=4` and at
+`t=20`: `9.289800e-3` over `t=0` to `4`, ahead of task 8's whole band by
+1.072 to 1.078 (and every task-11 member ahead of it by 1.001 to 1.078,
+the worst tying task 8's best by 0.06 percent), ahead of the ball band by
+1.08 to 1.12, the recorded `drive_power` band `1.143e-2` to `1.292e-2` by
+1.23 to 1.39 and the `post_pulse` band by 1.76 to 2.12, `0.7385` of cell
+A's `0.01258`; and `5.603962e-2` over `t=0` to `20`, ahead of the whole
+ball band `5.792e-2` to `6.353e-2` by 1.034 to 1.134, of task 10's
+Dykstra-120-from-`t=8` member `5.784276e-2` by 1.032, of the
+`drive_power` band `8.519e-2` to `9.088e-2` by 1.52 to 1.62 and the
+`post_pulse` band `6.991e-2` to `7.564e-2` by 1.25 to 1.35, `0.4357` of
+the both-cones `0.128607`.  At `t=16` `4.610355e-2`, inside the ball band
+and `1.0047` times its low edge (a tie with the `dykstra60` twin's
+`4.588696e-2`); at `t=6` `1.984642e-2`, ahead of task 8's whole band by
+1.002 to 1.015.  Windows `(0,4]`, `(4,8]`, `(8,12]`, `(12,16]`, `(16,20]`,
+`(8,20]`: `9.2927e-3`, `4.5803e-2`, `5.2546e-2`, `5.9650e-2`,
+`8.4857e-2`, `6.7131e-2` (ratios to the ball base `0.891`, `1.047`,
+`1.095`, `0.846`, `0.813`, `0.863`; to the Dykstra-120-from-`t=8` member
+`0.891`, `1.047`, `1.075`, `0.939`, `0.932`, `0.959`).  The gain is
+outside the phonon-occupation block: the 27 coordinates outside it score
+`4.268e-2` and `5.556e-2` at `t=16` and `20` against the ball's
+`4.769e-2` and `6.564e-2` and the recorded chain's `6.722e-2` and
+`9.046e-2`, while the four phonon-occupation coordinates are worse at
+every horizon past `t=4` (`5.919e-2` at `t=20` against the ball's
+`4.692e-2` and the recorded chain's `3.187e-2`); blockwise at `t=20` rho /
+`B` / `N` / `A` / `C` `8.711e-2` / `9.768e-2` / `5.919e-2` / `3.964e-2` /
+`3.045e-2` (ball `1.006e-1` / `1.252e-1` / `4.692e-2` / `4.258e-2` /
+`2.974e-2`); site-0 occupation `6.805e-2` in the `rho[0,0]` convention at
+`t=20`, `1.361e-1` doubled (both cones `0.205`, the `post_pulse` chain
+`1.250e-1`).  The cones are the shallowest of any 27-key chain measured
+from `t=0`: retained joint Gram minimum `-4.460e-4` at `t=11.04` and
+extension `-3.936e-5` at `9.4975` over `t<=20`, 5.1 and 5.4 times
+shallower than the same rule at Dykstra 30 (`-2.292e-3` / `-2.145e-4`),
+mean negative part `-1.069e-4` / `-9.425e-6` against `-6.748e-4` /
+`-5.631e-5`; past `t=8` the retained cone is violated at all 4,800 samples
+as in every chain and the extension cone at 4,293 of 4,800 (task 8's base
+4,363).  Internal-energy RMS `4.032812e-3` / `4.887963e-3` / `5.141528e-3`
+/ `5.263751e-3` / `5.335746e-3` at `t=4` / `8` / `12` / `16` / `20`, the
+declared reference `-3.565784077173663` lying `5.614e-3` above the exact
+post-pulse energy `-3.571397982`, held to `1.78e-15` over 23,802
+constrained repairs with 0 hyperplane refusals.  Decisions of 500: 484
+accepted (101 uncertified), 16 `infeasible`, no cap, no decline, 117
+solver refusals (task 8's base 137, the ball's 136, the recorded chain's
+144); eight applied moves above `0.1`, five in `(0, 0.8]` and three past
+`t=8` (`0.127u` at `10.40`, `0.174u` at `15.28`, `0.117u` at `15.32`); of
+15 answers above `0.4`, four accepted and 11 `infeasible`; `(16,20]`
+accepts all 100 with no answer above `0.0115`.  Wall `5,183.6 s`, `0.803`
+in the 500 completion solves at `8.32 s` mean and `0.173` in the repair
+(`895.4 s`, 3.69 times task 8's `242.4 s`, at `+8.3` percent of wall);
+peaks `626` to `699 MiB`.  Twins at `t=8`: `3.108092e-2` / `3.009869e-2` /
+`3.167023e-2`, retained joint Gram / extension minima `-1.917e-4` /
+`-1.625e-5`, `-5.512e-5` / `-7.602e-6`, `-1.943e-4` / `-1.673e-5` (base
+`-2.096e-4` / `-2.138e-5`), refusals 36 / 36 / 73 of 200 (base 43), the
+`energy_tolerance 1e-3` twin holding its reference to `4.44e-15` over
+8,975 constrained repairs.
+
+The `(4, 8]` phonon-occupation loss, unchanged by any setting of this
+rule, is entirely in the second half of the window and is a bias: over
+`(4, 6]` the base scores `4.8357e-2` against the recorded chain's
+`5.4693e-2` (ahead by 1.131) and over `(6, 8]` `8.2784e-2` against
+`3.3571e-2` (behind by 2.466), with per-coordinate signed mean errors over
+`(4, 8]` of `-7.348e-2`, `-7.436e-2`, `+7.332e-2`, `-8.343e-4` against
+per-coordinate RMS `7.788e-2`, `7.916e-2`, `7.776e-2`, `2.120e-3`, while
+all 100 completions of the window are accepted at a median applied
+frontier displacement of `0.0093` and a maximum of `0.0145` (the twins
+100, 101, 100 accepted, maxima `0.0149`, `0.0149`, `0.0147`).  So neither
+the acceptance test nor the repair depth is implicated; the loss is in the
+closed flow of the phonon-occupation coordinates over `(6, 8]`.
+
+The 27-key ledger row's standing changes at `t=4` and `t=20` and nowhere
+else, and the row now names three configurations across the five horizons:
+this configuration's `9.29e-3` at `t=4` (band `9.29e-3` to `9.95e-3`, 7.1
+percent) and `5.60e-2` at `t=20` (one run, no band of its own), the
+recorded `drive_power` chain's `2.59e-2` at `t=8` (band `2.59e-2` to
+`2.71e-2`), and the ball rule at Dykstra 30 `3.80e-2` at `t=12` (band
+`3.797e-2` to `3.906e-2`) and `4.82e-2` at `t=16` (band `4.589e-2` to
+`4.861e-2`).  Adoption is the user's call; the plan-file row was updated
+in place.  Gates: smoke gate records the combination; source tree
+identical to `HEAD 31136ae9`; every segment's `summary.json` records its
+`resumed_from`, rule, `dykstra_iterations`, `energy_tolerance` and
+`reselection_conic_tolerance`; energy held; one grid (8,001 and 3,201
+samples); ledgers merge to 500 and 200; thirteen sequential rollouts under
+`4,500 MB`.  Artifacts:
+`paper_v_dictionary_energy_measured_dyk120_smoke_20260918m`,
+`paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg{1..6}`,
+`..._measured_dyk120_{etol1e3,dykstra240,conic1e10}_20260918m_seg*` (each
+with `reselections.json`); in
+`paper_v_projective_dictionary_energy_20260915e/`: `smoke_task11.sh`,
+`check_task11_smoke.py`, `queue_task11.sh`, `tabulate_task11.py`,
+`peek_task11_details.py`, `cone_counts_task11.py`,
+`update_plan_row_task11.py`, `task11_base_score_t20.json`,
+`task11_{etol1e3,dykstra240,conic1e10}_score_t8.json`,
+`tabulate_task11.log`, `peek_task11_details.log`,
+`cone_counts_task11.log`, `task11_chain.log`, `queue_task11.log`, the
+segment logs.  Next: the two `t=4` to `8` reruns that locate the
+phonon-occupation loss (task 8's rule from the recorded chain's `t=3.96`
+state; this base with `certified` candidates from its `t=3.92` state); the
+three twins of this configuration from `t=8` to `t=20` for the `t=20`
+band.
