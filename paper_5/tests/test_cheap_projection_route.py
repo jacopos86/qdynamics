@@ -1501,3 +1501,185 @@ def test_the_carried_witness_lane_refuses_a_declared_metric() -> None:
                 raw_coordinate_motion_scales=(("raw_normal_00", 0.5),),
             )
         )
+
+
+def test_energy_reference_band_is_off_and_changes_no_number(
+    prepared,
+) -> None:
+    """The declared band is zero by default and the repair is untouched.
+
+    A zero band is the declared Eq. (22) equality: the alternation's energy
+    step takes up the whole offset, which is the committed arithmetic.  A
+    short rollout with the hyperplane on reproduces itself bitwise under the
+    default, under an explicitly declared zero, and again after a banded
+    repair has run on the same coordinates object.
+    """
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    settings = CheapProjectionSettings(
+        policy="dykstra",
+        target="both",
+        dykstra_iterations=30,
+        energy_reference_mode="drive_power",
+    )
+    assert CheapProjectionSettings().energy_reference_band == 0.0
+    assert settings.energy_reference_band == 0.0
+
+    def rollout(declared: CheapProjectionSettings):
+        return integrate_cheap_projection_ssprk3(
+            CheapProjectionRoute(
+                route.model, declared, coordinates=coordinates
+            ),
+            state,
+            frontier,
+            final_time=0.0075,
+            time_step=0.0025,
+        )
+
+    committed = rollout(settings)
+    assert committed.success
+    assert committed.energy_constrained_repairs > 0
+    declared_zero = rollout(replace(settings, energy_reference_band=0.0))
+    banded = rollout(replace(settings, energy_reference_band=1e-3))
+    again = rollout(settings)
+    for other in (declared_zero, again):
+        assert np.array_equal(committed.states, other.states)
+        assert np.array_equal(
+            committed.frontier_standardized, other.frontier_standardized
+        )
+        assert np.array_equal(
+            committed.retained_minimum_eigenvalues,
+            other.retained_minimum_eigenvalues,
+        )
+        assert np.array_equal(
+            committed.scaled_extension_minimum_eigenvalues,
+            other.scaled_extension_minimum_eigenvalues,
+        )
+        assert np.array_equal(
+            committed.internal_energy, other.internal_energy
+        )
+    assert not np.array_equal(committed.states, banded.states)
+
+
+def test_energy_reference_band_rejects_what_it_cannot_band() -> None:
+    with pytest.raises(ValueError, match="nonnegative"):
+        CheapProjectionSettings(
+            policy="dykstra",
+            energy_reference_mode="post_pulse",
+            energy_reference_band=-1e-3,
+        )
+    with pytest.raises(ValueError, match="no reference to band"):
+        CheapProjectionSettings(policy="dykstra", energy_reference_band=1e-3)
+    declared = CheapProjectionSettings(
+        policy="dykstra",
+        energy_reference_mode="post_pulse",
+        energy_reference_band=1e-3,
+    )
+    assert declared.energy_reference_band == 1e-3
+    assert declared.holds_internal_energy
+
+
+def test_energy_reference_band_corrects_only_the_excess(prepared) -> None:
+    """The third set is the slab, and the repair stops at its boundary.
+
+    Three readings on one perturbed state: the zero band lands the Eq. (22)
+    internal energy on the declared reference, a band smaller than the energy
+    an unconstrained repair changes lands it exactly on the band's boundary
+    while moving the four raw phonon normal coordinates less and leaving both
+    cone minima nearer their floors, and a band wider than that energy change
+    reproduces the unconstrained repair bitwise.
+    """
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    reference = coordinates.energy.value(state)
+    generator = np.random.default_rng(31)
+    perturbed = state + 1e-3 * generator.normal(size=state.size)
+    block = [
+        RAW_MOMENT_COORDINATE_NAMES.index(name)
+        for name in RAW_PHONON_NORMAL_COORDINATE_NAMES
+    ]
+    held = CheapProjectionSettings(
+        policy="dykstra",
+        target="both",
+        dykstra_iterations=30,
+        energy_reference_mode="post_pulse",
+    )
+
+    def repair(declared):
+        result = coordinates.repair(
+            perturbed, frontier, declared, energy_reference=reference
+        )
+        assert result.applied
+        return result
+
+    free = coordinates.repair(
+        perturbed,
+        frontier,
+        CheapProjectionSettings(
+            policy="dykstra", target="both", dykstra_iterations=30
+        ),
+    )
+    excess = free.internal_energy_after - reference
+    assert abs(excess) > 1e-4
+
+    equality = repair(held)
+    assert equality.energy_hyperplane_applied
+    assert abs(equality.internal_energy_after - reference) < 1e-12
+
+    band = 0.5 * abs(excess)
+    slab = repair(replace(held, energy_reference_band=band))
+    assert slab.energy_hyperplane_applied
+    assert abs(slab.internal_energy_after - reference) == pytest.approx(
+        band, rel=1e-9
+    )
+    assert np.sign(slab.internal_energy_after - reference) == np.sign(excess)
+    equality_block = float(
+        np.linalg.norm((equality.state - perturbed)[block])
+    )
+    slab_block = float(np.linalg.norm((slab.state - perturbed)[block]))
+    assert slab_block < equality_block
+    assert slab.state_displacement < equality.state_displacement
+    assert slab.retained_minimum_after > equality.retained_minimum_after
+    assert slab.extension_minimum_after > equality.extension_minimum_after
+
+    wide = repair(replace(held, energy_reference_band=10.0 * abs(excess)))
+    assert np.array_equal(wide.state, free.state)
+    assert np.array_equal(
+        wide.frontier_standardized, free.frontier_standardized
+    )
+    assert wide.internal_energy_after == free.internal_energy_after
+
+
+def test_the_carried_witness_lane_refuses_a_declared_band() -> None:
+    """That lane's repair carries no Eq. (22) hyperplane to band."""
+
+    from paper5.stability.apcm_carried_witness import CarriedWitnessGeometry
+
+    gram = CarriedWitnessAffineGram(CarriedWitnessGeometry())
+    with pytest.raises(ValueError, match="carried-witness"):
+        gram.factorization(
+            CheapProjectionSettings(
+                policy="dykstra",
+                target="extension",
+                energy_reference_mode="post_pulse",
+                energy_reference_band=1e-3,
+            )
+        )
+
+
+def test_energy_reference_band_is_a_declared_driver_setting() -> None:
+    from paper5.stability.cheap_projection_route_analysis import _parser
+
+    parsed = _parser().parse_args(["--output-directory", "unused"])
+    assert parsed.energy_reference_band == 0.0
+    parsed = _parser().parse_args(
+        [
+            "--output-directory",
+            "unused",
+            "--energy-reference-band",
+            "1e-3",
+        ]
+    )
+    assert parsed.energy_reference_band == 1e-3

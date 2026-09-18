@@ -7681,3 +7681,112 @@ the earlier path is unchanged), `tabulate_phonon_scale_20260918.py`,
 `repair_displacement_phonon_scale_tables_20260918.log`.  Next: the slab, in
 that order --- the one-place module change, the free replay at a band of
 `1e-3`, then the same 15-minute `t=4` to `8` segment.
+
+## 2026-09-18: cheap projection route: the Eq. (22) reference as a slab -- a named band, default off, swept from `1e-5` to `1e-1` on two chains and run to `t=8` at `3e-4`: it cuts the replayed per-repair displacement `4.6` times and the rollout keeps `3` percent of that, because in a rollout the slab binds at every repair
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(heading "The Eq. (22) reference as a slab rather than a point: implemented,
+swept, and run to `t = 8` at a band of `3e-4` (2026-09-18)").  The
+declared-metric round ended on the instruction *a slab rather than a
+hyperplane -- one place, the hyperplane step of `_dykstra`; free replay
+first, then the same `t = 4` to `8` segment*.  This round is the module
+change, the replay at nine declared band widths on two chains, and -- the
+replay passing its pre-stated condition -- one `t = 0` to `8` chain of the
+task-11 configuration at the band the replay selects.  Configuration is tasks
+11's and 12's: 27 active keys, 56 state and 70 frontier coordinates, 36
+extension rows, 8 retained rows, `N=16`, strong coupling, cutoff 16, step
+`0.0025`, `policy="dykstra"`, `cadence="stage"`, `target="both"`,
+`dykstra_iterations` 120 on the task-11 base and 30 on the recorded chain,
+800 stored samples in `(6, 8]` per chain, stride 1.  The exact trajectory is
+a reporting input only.
+
+**(a) What was implemented.**  `CheapProjectionSettings.energy_reference_band`,
+default `0.0`, the declared half-width of a band around the Eq. (22)
+reference; zero is the declared equality of every earlier pass and a positive
+value makes the third set of the alternation the slab
+`|E - reference| <= band`.  It changes exactly one quantity: the offset
+`AffineGramCoordinates._dykstra`'s energy step takes up, soft-thresholded by
+the band -- zero inside it, the excess alone outside it, so the iterate lands
+on the nearer boundary and no further -- taken along the same direction as
+before and divided by the same pairing, so the slab is met exactly.  It
+leaves alone the velocity, both cones and their floors, the clip, the affine
+Gram set and its range basis, the map back and its metric, the factorization
+and energy-functional cache signatures (the band is not a metric and does not
+key them), the Dykstra count and bookkeeping, the declared reference, the
+firing tolerance and the lift re-selection; what changes about the repaired
+coordinates is that their internal energy is on the reference to the band
+(`3.000000e-04` maximum over the chain below) rather than to the arithmetic
+(`1.776357e-15`).  A negative band is refused, so is a positive band with no
+`energy_reference_mode`, and the carried-witness lane refuses it outright.
+Unlike the declared metric it is exposed on the command line
+(`--energy-reference-band`), because the replay passes.  Five tests added, 53
+pass (48 before).  Gate: a 4-step `drive_power` rollout is bitwise identical
+under the changed module and under the module at `HEAD efade34d` -- all seven
+stored arrays, maximum difference `0.000000e+00`.
+
+**(b) The sweep.**  On the task-11 base the per-repair displacement of the
+relative-mode population runs `1.502784e-04` (the equality), `1.399951e-04`,
+`1.214396e-04`, `6.829136e-05`, `3.235795e-05` at bands `1e-5`, `3e-5`,
+`1e-4`, `3e-4`, and `4.681371e-05` from `1e-3` upward, which is the
+hyperplane-free repair to every printed digit; a refinement puts the sign
+crossing between `2e-4` (`-4.519099e-06`) and `2.5e-4` (`+1.415659e-05`) and
+the family's minimum at `2.5e-4` (`3.010093e-05`).  The family therefore
+passes *below* both ends the record had measured, at `0.36` of the closure's
+own per-step `8.421646e-05`.  Both-cone attainment rises monotonically
+`0.010` to `0.121` at `3e-4` and `0.134` at saturation (retained cone `0.010`
+to `0.311` and `0.388`), and the energy after the repair sits on the declared
+band exactly.  On the recorded `drive_power` chain the same shape sits an
+order of magnitude out -- `5.264001e-04`, `4.817265e-04`, `3.923560e-04`,
+`1.446854e-04` at `1e-4`, `3e-4`, `1e-3`, then `9.368395e-04` from `1e-2` --
+and never reaches the base's figure; each chain's crossing sits near the
+energy its own unconstrained repair opens (`1.8006e-04` and `3.3023e-03`).
+Method note: the offset the hyperplane step reads is not the stored sample's
+own (`3.469447e-16`) but the energy the cone projection opens inside the
+alternation, which is why the small bands separate at all.
+
+**(c) The rollout, and what it keeps.**  The task-11 configuration at band
+`3e-4`, `t=0` to `8` in two `ram_guard --limit-mb 4500` segments
+(`1,935.3 s`), scored on `exact_t8.npz`: `9.314847e-03` at `t=4` and
+`3.312528e-02` at `t=8` against the task-11 base's `9.289800e-03` and
+`3.304213e-02` (`1.003` at both, that is `0.25` percent worse); the four
+phonon-occupation coordinates' block `6.526520e-02` over `(4, 8]` and
+`8.004316e-02` over `(6, 8]` against `6.779204e-02` and `8.278358e-02`
+(`0.963`, `0.967`); the relative-mode population `1.844331e-01` over `(6, 8]`
+against `1.907462e-01` (`0.967`), where the recorded chain stands at
+`7.513319e-02`; Eq. (22) internal-energy RMS `4.472609e-03` at `t=8` against
+`4.887963e-03` (`0.915`); retained minimum `-1.754855e-04` and extension
+minimum `-1.587110e-05` against `-2.096395e-04` and `-2.137939e-05` (`0.837`,
+`0.742`); the same rate of advance to within `0.7` percent (`4.13e-3` against
+`4.16e-3` units per second).  So a `4.64`-times cut in the replayed
+displacement buys `3` to `4` percent of the block, better physicality and a
+better internal-energy RMS, at no wall, and closes none of the gap to the
+recorded chain.  The chain's own samples say why: over `(6, 8]` its stored
+internal energy is `3.000000e-04` from its reference in both mean absolute
+value and maximum at all 800 samples, so in a rollout the slab binds at every
+repair and the route meets an equality displaced by the band; its in-rollout
+displacement per step falls only to `1.529396e-04` from `1.988844e-04` while
+its signed mean grows to `-1.219112e-04` from `-8.853883e-05`.
+
+Gates: the default path bitwise unchanged against `HEAD efade34d`; the
+`head_src_efade34d` snapshot differs from `paper_5/src/paper5` in exactly the
+two files this round edits; the one edit made while the chain ran compiles to
+identical bytecode in all 77 code objects with one differing string constant,
+a class docstring; the replay reproduces the declared-metric round's table to
+every digit and reads the record's coordinate to `0.000000e+00` on all three
+chains; the smoke gate records `energy_reference_band 0.0003`, 95 constrained
+repairs, 0 refusals and maximum deviation `3.000000000006331e-04`; 53 tests
+pass in `23.6 s`; five replay processes under `--limit-mb 2500` and three
+rollout processes under `--limit-mb 4500`, one at a time, peaks to
+`701 MiB`.  The ledger row does not move.  Files: the module, the analysis
+driver, the tests, and under
+`paper_v_projective_dictionary_energy_20260915e/` the probe's `--energy-band`,
+`tabulate_energy_band_20260918.py`,
+`tabulate_energy_band_chain_20260918.py`,
+`gate_energy_band_default_path_20260918.py`,
+`gate_docstring_only_20260918.py`, `queue_band3e4.sh`, the two run drivers'
+flag, and the outputs; run artifacts
+`paper_v_dictionary_energy_band3e4_measured_dyk120_smoke_20260918p` and
+`paper_v_dictionary_energy_band3e4_27key_n16_measured_dyk120_base_20260918p_seg{1,2}`.
+Nothing committed.  Next: record the Eq. (22) offset each repair actually sees
+in the rollout (a declared, default-off counter), size a band from that
+distribution, and run one `t=0` to `8` chain at it.

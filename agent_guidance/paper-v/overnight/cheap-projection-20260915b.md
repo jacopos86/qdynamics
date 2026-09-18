@@ -4134,3 +4134,347 @@ energy those rows also carry.
 | method note | a stride that divides the chain's `lift_reselection_interval` 16 samples one phase of the re-selection cadence: at stride 16 the committed setting reads `3.145754e-06` per repair against `1.502784e-04` at stride 1, a factor `47.8`.  Every figure here is stride 1 over all 800 samples |
 | the ledger row | unchanged; this round produces no horizon score |
 | files changed | the module and its tests (the named option, four tests), the replay script's two additive flags and the tabulation script, the outputs listed above, this report and the worklog block.  `projected_apcm.py` and `apcm_projective_event_guard_analysis.py` untouched; nothing committed |
+
+# The Eq. (22) reference as a slab rather than a point: implemented, swept, and run to `t = 8` at a band of `3e-4` (2026-09-18)
+
+The declared-metric round ended on one instruction: *a slab rather than a
+hyperplane --- correct the Eq. (22) energy only when it is further than a
+declared band from the reference, and then only to the band's boundary; one
+place, the hyperplane step of `_dykstra`; free replay first at a band of
+`1e-3`, then the same 15-minute `t = 4` to `8` segment*.  This round is the
+module change, the replay across nine declared band widths on two chains, and
+--- because the replay passes its pre-stated condition --- one `t = 0` to `8`
+chain of the task-11 configuration at the band the replay selects.
+
+Configuration and conventions are tasks 11's and 12's: 27 active keys
+(`entrance15_plus_two_spin_boson`), 56 propagated state coordinates, 70
+standardized frontier coordinates, 36 positive-extension rows, 8 retained
+rows, `N = 16`, strong coupling, cutoff 16, the exact-correlated preparation
+at the declared ladder's first rung, time step `0.0025`, `policy="dykstra"`,
+`cadence="stage"`, `target="both"`, `eigenvalue_floor`, `repair_tolerance` and
+`energy_tolerance` all `0`, `dykstra_iterations` 120 on the task-11 base and
+30 on the recorded `drive_power` chain, 800 stored samples in `(6, 8]` per
+chain after duplicate resume times are dropped, one replayed repair at each,
+stride 1.  The quantity throughout is the relative-mode population
+`(phonon[0,0] + phonon[1,1]) / 2 - Re phonon[0,1]` of the centred phonon
+density, read through the chart the scorer uses.  The exact cutoff-16 driven
+trajectory is a reporting input only; nothing exact enters the propagation or
+the repair.
+
+## Negative results first
+
+**The rollout keeps almost none of what the replay gained.**  On the task-11
+base's stored samples the band `3e-4` cuts the per-repair displacement of the
+relative-mode population by `4.64` times, from `1.502784e-04` to
+`3.235795e-05`; the chain run from `t = 0` at that band scores
+`3.312528e-02` at `t = 8` against the task-11 base's `3.304213e-02` --- `0.25`
+percent *worse* on all 31 closed scalar coordinates --- and improves the four
+phonon-occupation coordinates' block by `3.7` percent over `(4, 8]`
+(`6.526520e-02` against `6.779204e-02`) and `3.3` percent over `(6, 8]`
+(`8.004316e-02` against `8.278358e-02`).  The relative-mode population's own
+`(6, 8]` RMS moves from `1.907462e-01` to `1.844331e-01`, `0.967` times, where
+the recorded `drive_power` chain stands at `7.513319e-02`.  The window's loss
+is not closed, and no ledger number moves.
+
+**The reason is on the chain's own samples: in a rollout the slab binds at
+every repair, so the route meets a displaced equality rather than a band.**
+Over `(6, 8]` the banded chain's stored Eq. (22) internal energy sits at
+`3.000000e-04` from its declared reference in both mean absolute value and
+maximum, at all 800 samples --- the band exactly, with one sign.  The replay
+measured its gain at states whose offset was `3.469447e-16`, where the slab is
+genuinely slack; the rollout's repair sees a stage state whose stage increment
+has already opened more energy than `3e-4`, so the soft threshold is active
+every time.  Consistently, the chain's own in-rollout displacement of the
+coordinate per step falls only to `1.529396e-04` in mean absolute value from
+the task-11 base's `1.988844e-04` (`0.769`), while its *signed* mean grows in
+the losing direction, `-1.219112e-04` against `-8.853883e-05`, and the
+integrated displacement over the window with it, `-9.752893e-02` against
+`-7.083106e-02`.
+
+**The band that minimizes the replayed displacement is a property of the
+chain, not of the route.**  On the task-11 base the minimum sits at
+`2.5e-4`--`3e-4` (`3.010093e-05`, `3.235795e-05`) and the sign of the
+displacement crosses zero between `2e-4` and `2.5e-4`; on the recorded
+`drive_power` chain at `dykstra_iterations` 30 the minimum is at `1e-3`
+(`1.446854e-04`) and no declared band reaches the base's closure-flow figure
+`8.421646e-05` there.  Each chain's crossing sits where the band is
+comparable with the energy its own unconstrained repair opens ---
+`1.8006e-04` on the base, `3.3023e-03` on the recorded chain.
+
+**One expectation of the previous round was right for the wrong reason.**  It
+predicted that every repair in the replay would fall inside any band worth
+declaring, because the stored sample's own offset is `3.469447e-16`.  What the
+hyperplane step actually reads is not that offset but the energy the cone
+projection has opened *inside* the alternation, measured from the same
+starting point; that is why the bands `1e-5` to `3e-4` separate at all, and
+why the rows only collapse onto the hyperplane-free ones from `1e-3` upward on
+the base and `1e-2` upward on the recorded chain.
+
+## (a) What the option is, what it changes, and what it leaves alone
+
+`CheapProjectionSettings.energy_reference_band`, default `0.0`, the declared
+half-width of a band around the Eq. (22) reference.  Zero is the declared
+equality of every earlier pass.  A positive value makes the third set of the
+alternation the slab `|E - reference| <= band` instead of the hyperplane
+`E = reference`.  A negative value is refused, and so is a positive one
+without an `energy_reference_mode`: there is then no reference to band.
+
+It changes exactly one thing: the offset the alternation's energy step takes
+up.  `AffineGramCoordinates._dykstra` still computes
+`hyperplane[1] - projected_normal . reduced` --- the energy the current
+iterate still owes the reference, measured in the reduced coordinates of the
+range basis --- and now soft-thresholds it by the declared band: zero inside
+the band, and outside it the excess alone, so the step lands the iterate on
+the nearer boundary and no further.  The correction is taken along the same
+direction as before (the hyperplane's own normal in the realified feature
+space, or the declared direction when `raw_coordinate_motion_scales` names
+one), and the divisor is unchanged, so the slab is met exactly.
+
+It leaves alone: the propagated velocity, the two cones and their declared
+floors, the eigenvalue clip that projects onto them, the affine Gram set and
+its orthogonal projection, the least-squares map back and its metric, the
+factorization and energy-functional caches and their signatures (the band is
+not a metric and does not key them), the number of Dykstra iterations and the
+correction bookkeeping, the declared reference itself, the `energy_tolerance`
+at which a repair fires, and the lift re-selection.  What it does change about
+the repaired coordinates is that their Eq. (22) internal energy is on the
+declared reference to the band rather than to the arithmetic: measured over
+the `t = 0` to `8` chain below, `3.000000e-04` maximum against
+`1.776357e-15` for the equality.  The carried-witness lane refuses a declared
+band, as it refuses a declared metric: its repair carries no Eq. (22)
+hyperplane to band.
+
+Two consequences worth stating.  `dataclasses.asdict` now carries
+`"energy_reference_band": 0.0` into every `summary.json`, so a segment resumed
+from a summary written before this change lists that one field in its recorded
+`projection_settings_changed`; nothing reads or raises on it.  And unlike the
+declared metric, this option *is* exposed on the command line ---
+`--energy-reference-band` on `cheap_projection_route_analysis.py` and on this
+directory's `run_energy_segment.py` and `run_chain.py` --- because the replay
+passes and the rollout below needs it.
+
+## (b) The sweep on the stored `(6, 8]` samples
+
+One replayed repair at each of the 800 stored samples, at the chain's own
+stored `frontier_standardized` and stored `internal_energy_reference`, stride
+1.  `mean absolute`, `signed mean` and `integrated` are of the per-repair
+displacement of the relative-mode population; `correction` is the mean
+Euclidean length of the repair's correction to the 56 propagated coordinates
+and `share` the mean fraction of that length landing on this one direction;
+the three cone columns are the fraction of the 800 repairs after which that
+cone is reached; `dE` is the mean absolute change of the Eq. (22) internal
+energy and `|E-ref|` its mean absolute distance from the declared reference
+after the repair.  `--` is the declared equality, that is the committed
+repair.
+
+Task-11 base (`..._measured_dyk120_base_20260918m`, `dykstra_iterations` 120,
+`energy_reference_mode="drive_power"`):
+
+| declared | mean absolute | signed mean | integrated | correction | share | both cones | retained | extension | `dE` | `|E-ref|` |
+|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| `--` (the equality) | `1.502784e-04` | `-1.502784e-04` | `-1.202227e-01` | `2.131e-04` | `0.771` | `0.010` | `0.010` | `0.161` | `6.3782e-16` | `3.4084e-16` |
+| band `1e-5` | `1.399951e-04` | `-1.399372e-04` | `-1.119497e-01` | `2.074e-04` | `0.570` | `0.091` | `0.113` | `0.194` | `8.6904e-06` | `8.6904e-06` |
+| band `3e-5` | `1.214396e-04` | `-1.211071e-04` | `-9.688565e-02` | `1.984e-04` | `0.469` | `0.094` | `0.145` | `0.201` | `2.4695e-05` | `2.4695e-05` |
+| band `1e-4` | `6.829136e-05` | `-6.396561e-05` | `-5.117249e-02` | `1.829e-04` | `0.247` | `0.094` | `0.182` | `0.204` | `7.4300e-05` | `7.4300e-05` |
+| band `1.5e-4` | `4.507684e-05` | `-3.055471e-05` | `-2.444377e-02` | `1.827e-04` | `0.172` | `0.095` | `0.217` | `0.205` | `1.0410e-04` | `1.0410e-04` |
+| band `2e-4` | `3.377150e-05` | `-4.519099e-06` | `-3.615279e-03` | `1.867e-04` | `0.144` | `0.100` | `0.253` | `0.205` | `1.2798e-04` | `1.2798e-04` |
+| band `2.5e-4` | `3.010093e-05` | `+1.415659e-05` | `+1.132527e-02` | `1.920e-04` | `0.138` | `0.107` | `0.285` | `0.205` | `1.4571e-04` | `1.4571e-04` |
+| band `3e-4` | `3.235795e-05` | `+2.683453e-05` | `+2.146762e-02` | `1.970e-04` | `0.145` | `0.121` | `0.311` | `0.205` | `1.5832e-04` | `1.5832e-04` |
+| band `5e-4` | `4.643969e-05` | `+4.643949e-05` | `+3.715159e-02` | `2.093e-04` | `0.171` | `0.134` | `0.378` | `0.205` | `1.7965e-04` | `1.7965e-04` |
+| band `1e-3` to `1e-1` | `4.681371e-05` | `+4.681350e-05` | `+3.745080e-02` | `2.096e-04` | `0.172` | `0.134` | `0.388` | `0.205` | `1.8006e-04` | `1.8006e-04` |
+| hyperplane off | `4.681371e-05` | `+4.681350e-05` | `+3.745080e-02` | `2.096e-04` | `0.172` | `0.134` | `0.388` | `0.205` | `1.8006e-04` | -- |
+
+The declared set was `1e-5`, `3e-5`, `1e-4`, `3e-4`, `1e-3`, `3e-3`, `1e-2`,
+`3e-2`, `1e-1`; the four rows `1.5e-4`, `2e-4`, `2.5e-4`, `5e-4` are a
+refinement run afterwards to locate the crossing, and `3e-3` to `1e-1`
+reproduce `1e-3` to every printed digit.
+
+Recorded `drive_power` chain (`..._27key_n16_20260915e`, `dykstra_iterations`
+30):
+
+| declared | mean absolute | signed mean | integrated | correction | share | both cones | retained | extension | `dE` | `|E-ref|` |
+|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| `--` (the equality) | `5.264001e-04` | `-5.264001e-04` | `-4.211201e-01` | `1.099e-03` | `0.495` | `0.000` | `0.000` | `0.007` | `6.3949e-16` | `3.4250e-16` |
+| band `1e-5` | `5.219388e-04` | `-5.219388e-04` | `-4.175510e-01` | `1.100e-03` | `0.490` | `0.000` | `0.000` | `0.007` | `1.0000e-05` | `1.0000e-05` |
+| band `3e-5` | `5.130098e-04` | `-5.130098e-04` | `-4.104078e-01` | `1.102e-03` | `0.479` | `0.000` | `0.000` | `0.009` | `3.0000e-05` | `3.0000e-05` |
+| band `1e-4` | `4.817265e-04` | `-4.817265e-04` | `-3.853812e-01` | `1.113e-03` | `0.439` | `0.000` | `0.000` | `0.009` | `1.0000e-04` | `1.0000e-04` |
+| band `3e-4` | `3.923560e-04` | `-3.919768e-04` | `-3.135815e-01` | `1.174e-03` | `0.322` | `0.000` | `0.000` | `0.009` | `3.0000e-04` | `3.0000e-04` |
+| band `1e-3` | `1.446854e-04` | `-8.239197e-05` | `-6.591358e-02` | `1.600e-03` | `0.081` | `0.000` | `0.014` | `0.013` | `9.8834e-04` | `9.8834e-04` |
+| band `3e-3` | `6.927233e-04` | `+6.852257e-04` | `+5.481805e-01` | `3.160e-03` | `0.218` | `0.000` | `0.163` | `0.028` | `2.6903e-03` | `2.6903e-03` |
+| band `1e-2` to `1e-1` | `9.368395e-04` | `+9.368340e-04` | `+7.494672e-01` | `3.790e-03` | `0.240` | `0.000` | `0.407` | `0.031` | `3.3023e-03` | `3.3023e-03` |
+| hyperplane off | `9.368395e-04` | `+9.368340e-04` | `+7.494672e-01` | `3.790e-03` | `0.240` | `0.000` | `0.407` | `0.031` | `3.3023e-03` | -- |
+
+Read plainly.  The slab is a one-parameter family joining the two ends the
+record had already measured, and it is not monotone between them: it passes
+*below* both.  On the base the displacement falls from `1.502784e-04` to
+`3.010093e-05` at `2.5e-4` --- `0.64` of the hyperplane-free `4.681371e-05`
+and `0.36` of the closure's own per-step `8.421646e-05` --- and rises back to
+the hyperplane-free value once the band exceeds the energy one repair opens.
+Cone attainment improves monotonically all the way: both cones `0.010` to
+`0.121` at `3e-4` and `0.134` at saturation, the retained cone `0.010` to
+`0.311` and `0.388`.  The pre-stated pass condition --- the per-repair
+displacement below `8.421646e-05` with the both-cone fraction not below
+`0.010` --- holds for every band from `1e-4` upward on the base.  Selected for
+the rollout: `3e-4`, a member of the declared set, within `7.5` percent of the
+family's minimum, with the highest cone attainment among the bands below
+saturation.
+
+## (c) The `t = 0` to `8` chain at the band `3e-4`
+
+The task-11 configuration exactly --- 27 keys, `N = 16`, `drive_power`, the
+anchor-free measured rule (`acceptance_margin` `1e-3`, `candidates="measured"`,
+`anchor_weight` `0`, no trust radius), `--dykstra-iterations 120`,
+`--lift-reselection-interval 16`, the declared ladder --- with
+`--energy-reference-band 3e-4`, from `t = 0` to `t = 8` in two chained
+`ram_guard --limit-mb 4500` segments of `1,000 s` autonomous budget
+(boundary `3.8`; `1,935.3 s`, `934.9 s` and `1,000.4 s`, builds `18.9` and
+`19.3 s`), scored from `t = 0` on the cached exact cutoff-16 driven reference
+(`exact_t8.npz`, 3,201 samples).
+
+| quantity | band `3e-4` | task-11 base | ratio | recorded `drive_power` |
+|---|---|---|---:|---|
+| all 31 at `t = 4` | `9.314847e-03` | `9.289800e-03` | `1.003` | `1.142716e-02` |
+| all 31 at `t = 8` | `3.312528e-02` | `3.304213e-02` | `1.003` | `2.593079e-02` |
+| phonon-occupation block at `t = 8` | `4.658062e-02` | `4.829765e-02` | `0.964` | `3.282777e-02` |
+| block over `(4, 8]` | `6.526520e-02` | `6.779204e-02` | `0.963` | `4.537824e-02` |
+| block over `(4, 6]` | `4.595852e-02` | `4.835703e-02` | `0.950` | `5.469327e-02` |
+| block over `(6, 8]` | `8.004316e-02` | `8.278358e-02` | `0.967` | `3.357107e-02` |
+| relative-mode population over `(6, 8]` | `1.844331e-01` | `1.907462e-01` | `0.967` | `7.513319e-02` |
+| 27 coordinates outside the block at `t = 8` | `3.063331e-02` | `3.013217e-02` | `1.017` | `2.474607e-02` |
+| Eq. (22) internal-energy RMS at `t = 4` | `3.542980e-03` | `4.032812e-03` | `0.879` | `4.597225e-03` |
+| Eq. (22) internal-energy RMS at `t = 8` | `4.472609e-03` | `4.887963e-03` | `0.915` | `5.751890e-03` |
+| minimum unshifted retained joint Gram | `-1.754855e-04` | `-2.096395e-04` | `0.837` | `-2.152324e-03` |
+| minimum scaled positive extension | `-1.587110e-05` | `-2.137939e-05` | `0.742` | `-1.921980e-04` |
+| maximum `\|E - reference\|` | `3.000000e-04` | `1.776357e-15` | -- | `1.776357e-15` |
+| wall to the horizon reached | `1,935.3 s` to `t = 8.0` | `2,000.2 s` to `t = 8.3225` | -- | `2,058.0 s` to `t = 8.0` |
+
+The band is the first declared setting in this series that improves the
+phonon-occupation block without spending wall: the two chains advance at
+`4.13e-3` and `4.16e-3` units of time per second, a difference of `0.7`
+percent, and the banded chain applies 9,599 repairs with one skipped against the
+base's 9,786 with 243 skipped over its slightly longer span, with 200
+re-selections and 36 solver refusals against 208 and 45.  It also
+improves both physicality minima and the Eq. (22) internal-energy RMS against
+the exact trajectory, while holding the declared reference only to `3e-4`.
+What it does not do is close the `(6, 8]` loss: the block there is still
+`2.38` times the recorded chain's and the all-coordinate score is `1.28`
+times it at `t = 8`.
+
+The chain's own samples say why, and the statement is the round's most useful
+one.  Over `(6, 8]` the banded chain's stored internal energy is at
+`3.000000e-04` from its reference at every one of the 800 samples in both
+mean absolute value and maximum: the slab is saturated, one-sided, so in the
+rollout the alternation meets an equality displaced by the band rather than a
+band with slack.  Its stored cone violations are shallower than the base's ---
+the scaled positive extension below zero at `0.778` of samples against
+`0.835`, the retained joint Gram at `0.979` against `0.990`, both cones met at
+`0.021` against `0.010` --- and a replay on its own samples reproduces the
+sweep's shape at its own working point: `4.932316e-04` per repair at the
+equality against `1.093979e-04` at its own band `3e-4`, both cones `0.000`
+against `0.021`.  The in-rollout displacement per step over the window is
+`1.529396e-04` in mean absolute value (base `1.988844e-04`), signed mean
+`-1.219112e-04` (base `-8.853883e-05`), integrated `-9.752893e-02` (base
+`-7.083106e-02`), against a closure flow of `7.951139e-05` per step (base
+`8.421646e-05`).
+
+## What to try next, in order
+
+1. **Size the band against the offsets the rollout actually opens, not
+   against the stored samples'.**  The rollout's repair sees a stage state
+   whose offset is not recorded anywhere (`reselections.json` records the lift
+   re-selection only), and the saturation above shows that offset exceeds
+   `3e-4` at every repair of `(6, 8]`.  The cheapest measurement is one
+   declared, default-off counter: record `reference - energy_before` at each
+   repair in the trajectory, run one `t = 4` to `8` segment from the task-11
+   base's stored `t = 3.92` state, and read the distribution.  A band chosen
+   from that distribution --- say its median --- is the first band that would
+   leave part of the alternation genuinely slack.
+2. **A band of the size that distribution names**, as one `t = 0` to `8`
+   chain, read against this round's `3e-4` chain and the task-11 base at the
+   same four windows.
+3. Only then the two candidates the record already carries: a dictionary key
+   whose extension row carries the phonon normal moments, and the three twins
+   of the task-11 configuration from `t = 8` to `t = 20` for the `t = 20`
+   band.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the default path is unchanged bitwise | a 4-step rollout (`t = 0` to `0.01`, step `0.0025`, 15 entrance keys, cutoff 16, `policy="dykstra"`, `target="both"`, `cadence="stage"`, `dykstra_iterations` 30, `energy_reference_mode="drive_power"`, 8 repairs applied, all 8 energy-constrained) run under the changed module and under the module at `HEAD efade34d` agrees in all seven stored arrays --- times, states, standardized frontier, both minimum-eigenvalue series, internal energy and its reference --- at maximum difference `0.000000e+00` |
+| the snapshot is the branch head outside the option | `diff -rq` of the `head_src_efade34d` snapshot against `paper_5/src/paper5` reports exactly two differing files, `cheap_projection_route.py` and `cheap_projection_route_analysis.py`, which are the two this round edits |
+| one edit was made while the chain ran, and it was a docstring | the module as the first segment imported it and as the second imported it compile to 77 code objects with identical bytecode in every one and exactly one differing non-code constant, `CheapProjectionSettings`'s class docstring |
+| the replay reproduces the record | base at its own mode `1.502784e-04` mean absolute, `-1.502784e-04` signed mean, `-1.202227e-01` integrated, both cones `0.010`; `energy_reference_mode="none"` `4.681371e-05` at `0.134`; recorded chain `5.264001e-04` and `9.368395e-04` --- every digit of the declared-metric round's tables |
+| the replay reads the record's coordinate | the relative-mode population read from the stored 56 propagated coordinates through the scorer's chart equals the one read from the stored `archive_coordinates` to `0.000000e+00`, and the affine Eq. (22) energy equals the stored `internal_energy` to `0.000000e+00`, at every sample of all three chains |
+| the slab is met exactly | the replayed repair's distance from the reference after the repair equals the declared band to every printed digit at every binding band on both chains, and the `t = 0` to `8` chain records maximum `\|E - reference\|` `3.000000e-04` in both segments with 9,599 energy-constrained repairs and 0 hyperplane refusals |
+| the smoke gate records the option | `t = 0` to `0.08` at the band: `summary.json` carries `energy_reference_band 0.0003` in both the configuration and the internal-energy block, `dykstra_iterations` 120, ladder rung `0`, the radius-free measured rule, 95 constrained repairs, 0 refusals, maximum deviation `3.000000000006331e-04` |
+| the trajectories are the recorded ones | each chain read from its own stored `trajectory.npz` segments (two for the banded chain, six for each reference chain); sample spacing `0.0025` exactly throughout; 800 samples per chain in `(6, 8]` after duplicate resume times are dropped; stride 1 |
+| the scoring grid | one cached exact cutoff-16 driven reference, `exact_t8.npz`, 3,201 samples, the banded chain and both reference chains read on the same grid to `1e-12` |
+| the tests | `paper_5/tests/test_cheap_projection_route.py` 53 passed in `23.6 s` (48 before, 5 added), under `ram_guard --limit-mb 2500`, peak `459 MiB` |
+| nothing else changed | no default, rule, radius, Dykstra count, reference mode, tolerance or ladder changed; `projected_apcm.py`, `apcm_projective_event_guard_analysis.py`, `apcm_carried_witness*.py`, `cone_correction.py` and `matrix_reference.py` untouched; tasks 8 to 13's artifacts untouched; nothing committed |
+| compute | six replay processes under `ram_guard --limit-mb 2500` (peaks `143` to `159 MiB`, the three full sweeps `87.8`, `140.8` and `299.8 s` of replay), the test run and the two gate runs, and three rollout processes under `--limit-mb 4500` (peaks `604`, `669` and `659 MiB`, walls `23.5 s`, `1,000.4 s` and `934.9 s`), one at a time |
+
+## Provenance
+
+- Module: `paper_5/src/paper5/stability/cheap_projection_route.py`
+  (`CheapProjectionSettings.energy_reference_band` and its two validations,
+  the `hyperplane_band` argument of `AffineGramCoordinates._dykstra` and its
+  soft threshold, the argument `repair` passes, and the carried-witness
+  refusal).  Driver:
+  `paper_5/src/paper5/stability/cheap_projection_route_analysis.py`
+  (`--energy-reference-band`).  Tests:
+  `paper_5/tests/test_cheap_projection_route.py`
+  (`test_energy_reference_band_is_off_and_changes_no_number`,
+  `test_energy_reference_band_rejects_what_it_cannot_band`,
+  `test_energy_reference_band_corrects_only_the_excess`,
+  `test_the_carried_witness_lane_refuses_a_declared_band`,
+  `test_energy_reference_band_is_a_declared_driver_setting`).
+- Scripts under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `probe_repair_displacement_20260918.py` extended with `--energy-band`
+  (additive; without it every earlier invocation takes the same path, which
+  the committed row of every table above checks),
+  `tabulate_energy_band_20260918.py`,
+  `tabulate_energy_band_chain_20260918.py`,
+  `gate_energy_band_default_path_20260918.py`,
+  `gate_docstring_only_20260918.py`, `queue_band3e4.sh`, and
+  `run_energy_segment.py` and `run_chain.py` extended with
+  `--energy-reference-band` (the segment driver also records it in both
+  summary blocks).
+- Outputs in the same directory:
+  `repair_displacement_base_band_20260918.{json,log}`,
+  `repair_displacement_base_band_fine_20260918.{json,log}`,
+  `repair_displacement_recorded_band_20260918.{json,log}`,
+  `repair_displacement_band3e4_w68_20260918.{json,log}`,
+  `gate_energy_band_{changed,head,changed_final}_20260918.npz`,
+  `gate_energy_band_default_path_20260918.{json,log}` and
+  `gate_energy_band_default_path_final_20260918.json` (the same comparison
+  repeated against the module as this round leaves it, after the one
+  docstring edit),
+  `head_src_efade34d_diff_20260918.log`,
+  `gate_docstring_only_20260918.log`, `smoke_band3e4_20260918.log`,
+  `band3e4_chain.log`, `band3e4_seg1.log`,
+  `paper_v_dictionary_energy_band3e4_..._seg2.log`,
+  `band3e4_score_t8.{json,log}`, `band3e4_tables_20260918.log`,
+  `queue_band3e4.log`, and the snapshot `head_src_efade34d/`.
+- Run artifacts:
+  `paper_v_dictionary_energy_band3e4_measured_dyk120_smoke_20260918p` and
+  `paper_v_dictionary_energy_band3e4_27key_n16_measured_dyk120_base_20260918p_seg{1,2}`
+  (each with `reselections.json`).
+- Read but not modified: `adaptive_positive_moment.py`,
+  `apcm_positive_extension.py`, `matrix_reference.py`,
+  `score_energy_chain.py`, `compare_chains.py`, `tabulate_task13.py`.
+
+## Structured summary of the band round
+
+| item | value |
+|---|---|
+| (a) what was implemented | `CheapProjectionSettings.energy_reference_band`, default `0.0` (the declared equality), the half-width of a band around the Eq. (22) reference.  It changes one thing: the offset `_dykstra`'s energy step takes up is soft-thresholded by the band, so an iterate inside the band is left where the cone projection put it and one outside is moved to the nearer boundary.  Direction, divisor, cones, floors, clip, affine Gram set, map back and its metric, cache signatures, Dykstra count and bookkeeping, declared reference, firing tolerance and lift re-selection are untouched; the repaired energy is then on the reference to the band.  Refused: a negative band, and a positive band with no reference mode; the carried-witness lane refuses it outright.  Default path bitwise unchanged against `HEAD efade34d`, maximum difference `0.000000e+00` in all seven arrays |
+| (b) the sweep, base over `(6, 8]` | `1.502784e-04` per repair at the equality; `1.399951e-04`, `1.214396e-04`, `6.829136e-05`, `3.235795e-05` at bands `1e-5`, `3e-5`, `1e-4`, `3e-4`; `4.681371e-05` from `1e-3` upward, which is the hyperplane-free repair to every digit.  The refinement puts the sign crossing between `2e-4` (`-4.519099e-06`) and `2.5e-4` (`+1.415659e-05`) and the family's minimum at `2.5e-4` (`3.010093e-05`).  Both-cone attainment rises `0.010` to `0.121` at `3e-4` and `0.134` at saturation; the retained cone `0.010` to `0.311` and `0.388`; the energy lands on the band exactly |
+| (b) the sweep, recorded chain | `5.264001e-04` at the equality; `4.817265e-04`, `3.923560e-04`, `1.446854e-04` at `1e-4`, `3e-4`, `1e-3`; `6.927233e-04` at `3e-3` and `9.368395e-04` from `1e-2`, the hyperplane-free value.  Its minimum sits at `1e-3` and never reaches the base's `8.421646e-05`; each chain's crossing sits near the energy its own unconstrained repair opens (`1.8006e-04` base, `3.3023e-03` recorded) |
+| (b) the pass condition | met on the base from band `1e-4` upward: displacement below the closure's own `8.421646e-05` with the both-cone fraction above `0.010` and the energy on the reference to the declared band.  Selected `3e-4` |
+| (c) the rollout | `t = 0` to `8`, two segments, `1,935.3 s`: `9.314847e-03` at `t = 4` and `3.312528e-02` at `t = 8` (task-11 base `9.289800e-03`, `3.304213e-02`; `1.003` both), phonon-occupation block `6.526520e-02` over `(4, 8]` and `8.004316e-02` over `(6, 8]` (`0.963`, `0.967`), relative-mode population `1.844331e-01` over `(6, 8]` (`0.967`), internal-energy RMS `4.472609e-03` at `t = 8` (`0.915`), retained minimum `-1.754855e-04` and extension minimum `-1.587110e-05` (`0.837`, `0.742`), maximum deviation from the declared reference `3.000000e-04`.  Against the recorded chain the block is still `1.44` and `2.38` times over the two windows and the score `1.28` times at `t = 8` |
+| (c) why so little transfers | in the rollout the slab binds at every repair: the banded chain's stored energy is `3.000000e-04` from its reference in both mean and maximum at all 800 samples of `(6, 8]`, so the route meets an equality displaced by the band.  Its in-rollout displacement per step falls only to `1.529396e-04` from `1.988844e-04` and its signed mean grows to `-1.219112e-04` from `-8.853883e-05` |
+| the ledger row | unchanged; the banded chain is behind the standing entry at `t = 4` and `t = 8` on all 31 coordinates |
+| files changed | the module, the analysis driver, the tests (five added, 53 pass); under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/` the probe's `--energy-band`, two tabulation scripts, two gate scripts, the queue script, the two run drivers' flag, and the outputs listed above.  `projected_apcm.py`, `apcm_projective_event_guard_analysis.py`, `apcm_carried_witness*.py`, `cone_correction.py` and `matrix_reference.py` untouched; nothing committed |
+| next | record the Eq. (22) offset each repair actually sees in the rollout (a declared, default-off counter), size a band from that distribution, and run one `t = 0` to `8` chain at it |

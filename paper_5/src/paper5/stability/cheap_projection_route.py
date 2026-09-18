@@ -52,6 +52,7 @@ the honest reading of a run is those minima next to the accuracy score.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from math import copysign
 from time import perf_counter
 from types import MappingProxyType
 from typing import Any, Callable, Mapping
@@ -173,6 +174,31 @@ class CheapProjectionSettings:
         internal energy is further than this from the reference, even when
         both cones are already satisfied.  Zero constrains the energy at
         every repair opportunity.
+    ``energy_reference_band``
+        The declared half-width of a band around that same reference, which
+        turns the set the alternation meets from the hyperplane
+        ``E = reference`` into the slab ``|E - reference| <= band``.  Zero,
+        the default, is the declared equality of every earlier pass.  With a
+        positive band the alternation's energy step corrects only the excess:
+        a candidate whose Eq. (22) internal energy is already inside the band
+        is left where the cone projection put it, and one outside it is moved
+        to the nearer boundary and no further, so a cone correction that
+        costs less energy than the band is let through whole and the
+        coordinates Eq. (22) reads pay for the excess alone.  This is not
+        ``energy_tolerance``: that one decides whether a repair runs at all
+        and leaves the set it then meets an equality, while the band changes
+        the set.  It leaves alone the propagated velocity, the two cones and
+        their declared floors, the eigenvalue clip, the affine Gram set and
+        its range basis, the least-squares map back and its metric, the
+        number of Dykstra iterations and their correction bookkeeping, the
+        declared reference itself and the tolerance at which a repair fires,
+        and the lift re-selection.  The slab is the intersection of the
+        hyperplane's own two half-spaces, so it is met along the same
+        direction the equality is --- the hyperplane's normal in the
+        realified feature space, or the declared direction when
+        ``raw_coordinate_motion_scales`` names one --- and the internal
+        energy the repaired coordinates carry is then on the declared
+        reference to the band rather than to the arithmetic.
     ``state_motion_scale`` and ``frontier_motion_scale``
         Relative freedom of the 44 state coordinates and the 62 standardized
         frontier coordinates in the least-squares map back.  The repair takes
@@ -237,6 +263,7 @@ class CheapProjectionSettings:
     raw_coordinate_motion_scales: tuple[tuple[str, float], ...] = ()
     energy_reference_mode: str = "none"
     energy_tolerance: float = 0.0
+    energy_reference_band: float = 0.0
 
     def __post_init__(self) -> None:
         if self.policy not in CHEAP_PROJECTION_POLICIES:
@@ -330,6 +357,17 @@ class CheapProjectionSettings:
                 )
         if self.energy_tolerance < 0.0:
             raise ValueError("energy_tolerance must be nonnegative")
+        if self.energy_reference_band < 0.0:
+            raise ValueError("energy_reference_band must be nonnegative")
+        if (
+            self.energy_reference_band > 0.0
+            and self.energy_reference_mode == "none"
+        ):
+            raise ValueError(
+                "energy_reference_band is the half-width of a band around "
+                "the Eq. (22) reference; without an energy_reference_mode "
+                "there is no reference to band"
+            )
 
     @property
     def holds_internal_energy(self) -> bool:
@@ -1224,6 +1262,7 @@ class AffineGramCoordinates:
                     if hyperplane is None
                     else self.energy_correction_direction(settings)
                 ),
+                hyperplane_band=float(settings.energy_reference_band),
             )
         else:
             corrected = self._cone_projection(
@@ -1283,6 +1322,7 @@ class AffineGramCoordinates:
         *,
         hyperplane: tuple[FloatArray, float] | None = None,
         hyperplane_direction: FloatArray | None = None,
+        hyperplane_band: float = 0.0,
     ) -> tuple[FloatArray, int]:
         """Alternate between the affine Gram set and the cone, with memory.
 
@@ -1309,6 +1349,19 @@ class AffineGramCoordinates:
         normal's pairing with it and the step divides by exactly that
         pairing; a direction the normal is orthogonal to carries no energy
         at all and is refused in favour of the normal itself.
+
+        ``hyperplane_band`` is the declared half-width of a band around the
+        reference, which makes the third set the slab
+        ``|E - reference| <= band`` instead of the hyperplane
+        ``E = reference``.  Zero is the declared equality and runs the
+        committed arithmetic unchanged.  A positive band soft-thresholds the
+        offset the step takes up: an iterate already inside the band is left
+        exactly where the cone projection put it, and one outside is moved to
+        the nearer boundary, so the alternation spends nothing on an energy
+        change it is allowed to keep.  The slab is the intersection of the
+        hyperplane's own two half-spaces, so the projection onto it is still
+        along the same direction and the affine Gram set is still met in the
+        same closed form.
         """
 
         projected_normal = None
@@ -1337,9 +1390,15 @@ class AffineGramCoordinates:
             displacement = shifted - features
             reduced = range_basis.T @ displacement
             if projected_normal is not None:
+                offset = hyperplane[1] - float(projected_normal @ reduced)
+                if hyperplane_band > 0.0:
+                    offset = (
+                        0.0
+                        if abs(offset) <= hyperplane_band
+                        else offset - copysign(hyperplane_band, offset)
+                    )
                 reduced = reduced + correction_direction * (
-                    (hyperplane[1] - float(projected_normal @ reduced))
-                    / normal_square
+                    offset / normal_square
                 )
             affine_point = features + range_basis @ reduced
             affine_correction = shifted - affine_point
@@ -2468,6 +2527,12 @@ class CarriedWitnessAffineGram:
                 "of the fixed-dictionary state; the carried-witness lane "
                 "propagates its own 384 coordinates and carries no such "
                 "declaration"
+            )
+        if settings.energy_reference_band > 0.0:
+            raise ValueError(
+                "energy_reference_band bands the Eq. (22) internal energy "
+                "of the fixed-dictionary coordinates; the carried-witness "
+                "lane's repair carries no such hyperplane to band"
             )
         signature = (
             settings.repair_coordinates,

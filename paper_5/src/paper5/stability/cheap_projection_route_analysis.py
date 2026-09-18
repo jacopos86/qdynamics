@@ -139,6 +139,18 @@ def _parser() -> argparse.ArgumentParser:
         default="state_and_frontier",
     )
     parser.add_argument("--dykstra-iterations", type=int, default=5)
+    parser.add_argument(
+        "--energy-reference-band",
+        type=float,
+        default=0.0,
+        help=(
+            "Declared half-width of a band around the Eq. (22) reference. "
+            "0.0, the default, is the declared equality of every earlier "
+            "pass; a positive value makes the third set of the alternation "
+            "the slab |E - reference| <= band, so a cone correction costing "
+            "less energy than the band is let through whole."
+        ),
+    )
     parser.add_argument("--repair-tolerance", type=float, default=0.0)
     parser.add_argument("--state-motion-scale", type=float, default=1.0)
     parser.add_argument("--frontier-motion-scale", type=float, default=1.0)
@@ -719,6 +731,7 @@ def main() -> int:
         frontier_motion_scale=args.frontier_motion_scale,
         energy_reference_mode=args.energy_reference_mode,
         energy_tolerance=args.energy_tolerance,
+        energy_reference_band=args.energy_reference_band,
     )
     extension_settings = APCMExtensionSettings()
     reselection_extension_settings = (
