@@ -6128,3 +6128,126 @@ contents, `HEAD` `4de52486`; the projective agent's chain was running).
 Next: the trust radius `0.1` (`ball` and `carried`) on the four to
 `t=20`, the declared instrument for the `0.4` to `0.8` moves; then the
 27-key `N=16` drive-power chain under the rule.
+
+## 2026-09-17: cheap projection route, tenth pass: the trust radius `0.1` on the frontier move -- `ball` improves the base to `1.03` times the both-cones line and closes no band; `carried` is a freeze from `t=8.68`; the certified screen ties the base with two large moves
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(tenth heading, "Task 10").  Nine rollouts of the recorded `N=16`
+drive-power configuration (fourth pass: strong coupling, cutoff 16,
+exact-correlated preparation, 15 entrance keys, `h=0.0025`, the unguarded
+fixed-dictionary predictor, Dykstra 30 on both targets at stage cadence,
+the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, the energy-neutral option in
+`drive_power` mode) to `t=20` (8,000 steps), one at a time under
+`ram_guard --limit-mb 3000` on 2026-09-16 (`19:07` to `21:12`): the ninth
+pass's rule (margin `1e-3`, `measured` candidates, no anchor) with the
+declared trust radius `0.1` on the Euclidean move of the standardized
+frontier in one re-selection under the `ball` policy (the move scaled to
+the radius on the segment toward the accepted lift) and the `carried`
+policy (the carried lift kept when the cap binds), each on the base and
+the sixth pass's three one-setting twins (`energy_tolerance` `1e-3`;
+Dykstra 60; re-selection `conic_tolerance` `1e-10`); and, base only, the
+certified screen (margin `1e-3`, `certified` candidates, no anchor, no
+radius: an uncertified return refused outright).  Walls `761.6` to
+`879.5 s` (budget `1,140 s`), peaks `778` to `872 MiB`, all at `t=20`.
+The agent instance that launched the chain was lost to a network outage
+after it completed; the scoring, the report section and this block were
+written on 2026-09-17 from the artifacts, no rollout repeated.  Scores,
+internal energy, separations, spreads and physicality minima are the
+sixth to ninth passes' conventions on the horizons `t=0` to `4`, `8`,
+`12`, `16`, `20`; a cap-bound re-selection is one whose candidate's move
+exceeded the radius (`cap_bound_ball`, counted among the accepted since
+the lift moves; `cap_bound_carried`, counted apart).  No module edited
+(the radius and both policies are the seventh pass's `LiftReselectionRule`
+fields at `a81b7ecb`; `HEAD` `3ea96121` throughout), no default changed,
+44 tests pass before and after, nothing committed.
+
+Negative result first: the radius closes neither the `t=16` nor the
+`t=20` band below 10 percent under either policy.  `ball` scores base /
+`etol1e3` / `dykstra60` / `conic1e10` `0.098867` / `0.104307` /
+`0.103216` / `0.098867` over `t=0` to `12`, `0.132318` / `0.151238` /
+`0.157814` / `0.132318` to `16`, `0.132542` / `0.163027` / `0.206990` /
+`0.132542` to `20` (the `t=4` and `t=8` rows are the ninth pass's: the cap
+first binds at `t=8.68` in every run, on the certified answer `0.125` to
+`0.133`, and the eight runs equal the ninth pass's four in every array to
+there): spreads 5.5, 19.3, 56.2 percent (ninth pass 3.2, 18.8, 48.8;
+three of four within 4.4, 14.3, 23.0).  `carried` scores `0.135734` /
+`0.145165` / `0.141612` / `0.135734`, `0.187509` / `0.206528` / `0.196694`
+/ `0.187509`, `0.216450` / `0.251668` / `0.236386` / `0.216450`: spreads
+6.9, 10.1, 16.3 percent, the narrowest past `t=12` on record, at 37 to 63
+percent above the `ball` base, because from `t=8.68` the policy keeps the
+carried lift at all but 7 of the remaining 283 re-selections (175
+cap-bound, 128 of them on answers below `0.2`, minimum `0.105`, median
+`0.183`; 116 `infeasible`): the frozen-lift route with the Dykstra repair
+from `t=8.68`, cones `-5.3e-4` / `-1.2e-2` attained at `t=10.26` to
+`10.30`, envelope at most `0.60`; not a candidate for the ledger row.
+What the cap buys: the `ball` base's `0.132542` at `t=20` is 12 percent
+below the ninth pass's base (`0.150102`), 60 percent below the recorded
+row (`0.328674`) and `1.03` times the both-cones `0.128607`, with the
+`(16, 20]` window `0.133` against `0.196`, the site-0 occupation RMS
+`0.1245` against the both-cones `0.205`, the `conic1e10` twin identical
+within `6.0e-5` at every sample (ninth pass `0.089`), the envelope never
+at the box (`0.748`, `0.819`, `0.910`, `0.748`; the ninth pass's runs sat
+at `1.0`), the same cones as the ninth pass's base (`-2.6e-4` / `-7.9e-3`,
+attained at `t=8.37` before the first cap) and the internal energy
+unchanged (`0.0331` / `0.0382` / `0.0397` / `0.0404` / `0.0409`, the
+reference being set over the pulse).  On the base's trajectory the cap
+never meets a `0.4` to `0.8` answer: its 72 answers above `0.4` are 69
+`infeasible` and 3 declined by the margin (the wrong-face answers of
+`t=0.08`, `0.16`, and the `0.894` uncertified iterate at `t=10.04` where
+the ninth pass's base accepted `0.716`); the eight cap-bound re-selections
+(per quarter 0, 2, 5, 1; `t=8.68` to `16.88`) are answers of `0.13` to
+`0.25`, seven certified.  The two caps at `t=8.68` and `9.64` move the
+state by enough that the `t=10.04` iterate no longer improves the
+declared objective; that is the gain and the branch: the `etol1e3` twin's
+trajectory admits and caps `0.670` and `0.511` at `t=10.08` and `10.12`
+(28 caps, 8 uncertified), the `dykstra60` twin's `0.429` at `10.28` and
+`0.567` at `16.44` (20 caps), after which `dykstra60` enters the
+`infeasible` regime it avoided in the ninth pass (38 of 125 in `[15, 20)`
+against 1) and scores `0.339` on `(16, 20]`, the outlier at `0.207`,
+while `etol1e3` improves from `0.223` to `0.163`; separations from the
+`ball` base cross `1e-1` at `11.78` (`etol1e3`; ninth pass `11.23`) and
+`10.30` (`dykstra60`; `12.91`) and reach `0.626` and `1.41` at `t=20`
+(`2.27`, `0.534`); which twin enters the regime is the trajectory's at
+`t=10`, and no radius acts on it.  The `infeasible` regime begins in
+`[5, 10)` at 33 to 34 of 125 in every measured-candidate run whatever the
+rule.  The certified screen, base only: `0.027635` / `0.046342` /
+`0.097956` / `0.123294` / `0.149326`; 65 refused (12 / 19 / 14 / 19 per
+quarter, the first at `t=0.08`; its 14 answers above `0.4` all refused, in
+runs of consecutive re-selections), 1 declined, no `infeasible`, 434
+accepted with two moves above `0.1` (`0.290`, `0.316` at `t=11.12`,
+`11.2`; ninth pass's base 21); it leaves the ninth pass's base at `t=0.24`
+and costs 20 percent at `t=8` (`0.0463`; `(4, 8]` window `0.0594` against
+`0.0472`), is the best run of the pass at `t=16` (`0.1233`) and ties the
+ninth pass's base at `t=20` (13 percent above the `ball` base), with the
+tightest cones past `t=8` (`-1.9e-4` / `-4.4e-3`), envelope `0.710`,
+internal energy `0.0413` at `t=20` (reference `0.0430` above exact); its
+band is unmeasured.  Ledger row under the `ball` rule (score, band of the
+four, spread; three of four): `0.0272` (0.1 %), `0.0385` (0.2 %),
+`0.0989` (`0.0989` to `0.1043`; 5.5 %), `0.132` (`0.132` to `0.158`;
+19.3 %; 14.3), `0.133` (`0.133` to `0.207`; 56.2 %; 23.0) at `t=4`, `8`,
+`12`, `16`, `20`, joint Gram `-7.9e-3` (`-5.4e-3` to `-7.9e-3`), extension
+`-2.6e-4` (`-2.2e-4` to `-2.6e-4`), site-0 `0.1245` (`0.1245` to
+`0.1705`), walls `762` to `847 s`: the second digit resolved to `t=12`
+under either rule (all eight runs `0.0982` to `0.1043`), the first digit
+past it (`0.13` to `0.16` at `t=16`, `0.13` to `0.21` at `t=20`; `0.13` to
+`0.22` across the eight); the plan file not edited (shared; this route
+does not commit); whether the row moves from the ninth pass's rule to
+this one is an adoption call.
+
+Artifacts under `output/local_runs/`:
+`paper_v_cheap_projection_task10_{ball,carried}_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1`,
+`paper_v_cheap_projection_task10_certified_base_t20_20260916_v1` (each
+with `repairs.jsonl`), the smoke
+`paper_v_cheap_projection_task10_smoke_ball_t005_20260916_v1`, and the
+scripts and outputs in
+`paper_v_cheap_projection_task10_trust_t20_20260916_v1/` (`run_one.zsh`,
+`chain.zsh`, `smoke_check.py`, `analyse.zsh`, `task10_scores.py`,
+`windows.py`, `cap_events.py`, `cap_summary.py`, `large_answers.py`,
+`test_gate.zsh`, their `.json`, `.md` and `.log`, the run logs,
+`chain.log`).  Gates: 44 tests in `test_cheap_projection_route.py`
+(`23.95 s` before the chain, `25.20 s` after the scoring); the full suite
+not re-run (no module changed since the eighth pass's 499-test pass at
+the same contents).  Next: the certified screen's three twins to `t=20`
+(its band); the 27-key `N=16` drive-power chain under the ledger row's
+rule; the `infeasible` regime against the Dykstra iteration count.
