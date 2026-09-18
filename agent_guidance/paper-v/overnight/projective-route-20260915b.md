@@ -3298,3 +3298,341 @@ the band.  Next, in order: the anchor-free base from `t = 8` to `t = 20`
 acceptance owns the gain past `t = 8`); the Dykstra count at 120 on the
 ball base past `t = 8` (the `dykstra60` twin is the best member and the
 only one on which the cap acts); the `(4, 8]` phonon-occupation loss.
+
+# projective-route, task 10 (2026-09-18)
+
+Task 9 left the 27-key `N = 16` `drive_power` energy-neutral chain with a
+four-member band under the ball rule at every horizon and two open
+attributions: whether the `1.33` to `1.48` per-window gain over the
+recorded chain past `t = 8` belongs to the trust radius or to the
+measured-candidate acceptance the radius sits on, and whether a deeper
+Dykstra repair moves the physicality minima or the score.  This round
+runs the two chains that answer them, each from a stored `t = 8` state to
+`t = 20` in `1,000 s` segments under `ram_guard --limit-mb 4500`, one at a
+time, `02:13` to `04:01` on 2026-09-18, nothing else heavy on the machine:
+(a) the anchor-free measured rule without the radius ---
+`LiftReselectionRule(acceptance_margin=1e-3, candidates="measured",
+anchor_weight=0)`, task 8's rule --- continued from its own `t = 8`
+segment (`..._measured_base_20260916i_seg2`) by `queue_task9_t20.sh
+measured`, three segments; (b) the ball base of task 9 (the same rule
+with `trust_radius=0.1`, `trust_policy="ball"`) continued from its `t = 8`
+segment (`..._ball_base_20260917k_seg2`) with `--dykstra-iterations 120`
+in place of the default 30, four segments, under the new prefix
+`..._ball_base_dyk120_20260918l_seg` whose `seg1` and `seg2` are symbolic
+links to the ball base's own, so that `run_chain.py` resumes from the
+identical `t = 8` state and the scorer reads one chain from `t = 0`.
+Imports are from `head_src_e3374f6f`, which `diff -rq` shows identical to
+`paper_5/src/paper5` at `HEAD c14bf1bd` outside `__pycache__` (recorded
+in `task10_chain.log`); `run_chain.py`, `run_energy_segment.py` and
+`score_energy_chain.py` are task 8's unchanged; no module was edited;
+nothing was committed; no default changed.  Configuration and conventions
+are task 9's: 27 active keys, 56 state coordinates, 36 positive-extension
+rows, 70 standardized frontier coordinates, strong coupling, cutoff 16,
+exact-correlated preparation at the declared ladder's first rung,
+SSPRK(3,3) at `h = 0.0025`, Dykstra on both targets at stage cadence (30
+iterations, or 120 in (b) past `t = 8`), the declared proximal log-det
+completion re-solved every 16 steps warm-started on the carried frontier,
+the energy-neutral repair in `drive_power` mode with each chain's own
+reference (`-3.5658908873520327` for (a), `5.507e-03` above the exact
+post-pulse energy `-3.571397982`; `-3.5652343570276206` for (b) and the
+ball base, `6.164e-03` above); the score is the all-coordinate scalar RMS
+of the 31 closed scalar coordinates against the exact cutoff-16 driven
+reference from `t = 0` on one grid (`exact_t20.npz`, 8,001 samples); a
+window score `(a, b]` is the same RMS over the samples in that interval;
+the physicality minima are the sampled (post-repair) minimum unshifted
+retained joint Gram eigenvalue and minimum scaled positive-extension
+eigenvalue, over `t <= T` or over `(8, 20]` --- the `t = 8.0` sample is
+the shared state (`-1.2218e-03` in both (b) and the ball base) and is
+excluded from the latter.
+
+## Negative result first
+
+**The trust radius owns none of the gain past `t = 8`.**  The
+anchor-free rule without the radius scores `3.851781e-02` /
+`4.848061e-02` / `6.291440e-02` over `t = 0` to `12` / `16` / `20`, inside
+the ball rule's four-member band at every horizon from `t = 8` on
+(`3.797e-2` to `3.906e-2`, `4.589e-2` to `4.861e-2`, `5.792e-2` to
+`6.353e-2`; ratios to the ball base `1.014` / `1.006` / `0.990`), and its
+window scores over `(8, 12]`, `(12, 16]`, `(16, 20]` are `4.926e-02`,
+`7.036e-02`, `1.019e-01` against the ball base's `4.799e-02`, `7.050e-02`,
+`1.043e-01` (ratios `1.027` / `0.998` / `0.977`; over `(8, 20]` `0.989`)
+where the recorded chain's are `1.331` / `1.477` / `1.356` times the ball
+base's.  So the gain over the recorded `drive_power` chain past `t = 8`
+is the measured-candidate acceptance's (margin `1e-3`, `measured`
+candidates, anchor weight `0`), and the radius, which task 9 found costs
+4 percent at `t = 4` and nothing at `t = 8`, buys nothing past `t = 8`
+either: at 27 keys it moves six applied displacements of `0.105` to
+`0.228` (their excess above `0.1` sums to `0.261` of the `4.465` applied
+past `t = 8`) and every answer above `0.4` that it would have capped
+(30 of them on the radius-free chain, `0.56` to `0.79`) is already
+refused by the measured feasibility test.  The 15-key result of the
+cheap route's task 10 (the radius buying 12 percent at `t = 20`) does not
+carry to 27 keys.
+
+**Dykstra 120 moves the cones and the `t = 20` score, not the internal
+energy, and it worsens the phonon-occupation block.**  The ball base
+with the deeper repair from `t = 8` scores `3.834289e-02` /
+`4.594082e-02` / `5.784276e-02` at `t = 12` / `16` / `20` (ratios to the
+ball base `1.010` / `0.953` / `0.910`); the `t = 20` number is the best
+27-key number on record, `0.14` percent below the `dykstra60` twin's
+`5.792205e-02` --- a tie with it --- and `0.450` of the both-cones
+`0.128607`.  Over `(8, 20]` its minimum retained joint Gram is
+`-4.420e-04` (at `t = 11.047`) against the ball base's `-2.377e-03` (at
+`10.08`) and its minimum extension eigenvalue `-4.187e-05` (at `9.498`)
+against `-2.202e-04` (at `9.545`): `5.4` and `5.3` times shallower, the
+mean of the negative part over `(8, 20]` `6.1` and `5.8` times smaller
+(`-1.635e-04` / `-1.426e-05` against `-9.940e-04` / `-8.243e-05`), while
+the retained cone is still violated at every one of the 4,800 samples
+past `t = 8` in every chain.  The internal-energy RMS is the ball base's
+to every printed digit (`5.641305e-03` / `5.776465e-03` / `5.856071e-03`):
+the energy is pinned to the same declared reference in both, so the RMS
+is that reference's `6.164e-03` offset and no repair depth changes it.
+The four phonon-occupation coordinates are worse at every horizon past
+`t = 8` (`5.391e-02` against the ball's `4.692e-02` and the recorded
+chain's `3.187e-02` at `t = 20`; per window `(8, 12]`, `(12, 16]`,
+`(16, 20]` `7.685e-02`, `5.633e-02`, `2.680e-02` against `6.762e-02`,
+`3.658e-02`, `1.917e-02`) while the other 27 coordinates are better
+(`5.840e-02` against `6.564e-02` at `t = 20`).  The cost is 11 percent of
+wall to `t = 20` (`5,393.7 s` against `4,844.7 s`): repair time past
+`t = 8` `549.3 s` against `142.7 s` (`3.85` times; 16.1 percent of the
+wall against 5.0), and the completion solves `9.30 s` mean against
+`8.83 s`.
+
+## The chart, `t = 8` to `20`
+
+Cumulative all-coordinate scalar RMS over `t = 0` to `T`; the ball base
+with its four-member band (task 9); (a) the radius-free chain; (b) the
+Dykstra-120 chain; the recorded `drive_power` band (task 4 with its
+tightened member) and `post_pulse` band (task 3/4 with its tightened
+member).
+
+| `T` | ball base (band) | (a) radius-free, / ball | (b) Dykstra 120, / ball | recorded `drive_power` band | (a), (b) standing | recorded `post_pulse` band | (a), (b) standing |
+|---:|---|---|---|---|---|---|---|
+| 8 | `3.180974e-02` (`3.143e-2` to `3.216e-2`) | `3.181485e-02`, `1.0002` | `3.180974e-02`, `1.0000` (shared) | `2.593e-2` to `2.709e-2` | both behind by `1.17` to `1.23` | `4.159e-2` to `4.538e-2` | both ahead by `1.31` to `1.43` |
+| 10 | `3.608325e-02` (`3.580e-2` to `3.737e-2`) | `3.633736e-02`, `1.0070` | `3.639411e-02`, `1.0086` | `3.333e-2` to `3.357e-2` | both behind by `1.08` to `1.09` | `4.424e-2` to `4.956e-2` | both ahead by `1.22` to `1.36` |
+| 12 | `3.797419e-02` (`3.797e-2` to `3.906e-2`) | `3.851781e-02`, `1.0143` | `3.834289e-02`, `1.0097` | `4.251e-2` to `4.332e-2` | ahead by `1.104` to `1.125`; `1.109` to `1.130` | `4.612e-2` to `6.076e-2` | ahead by `1.197` to `1.577`; `1.203` to `1.585` |
+| 16 | `4.820897e-02` (`4.589e-2` to `4.861e-2`) | `4.848061e-02`, `1.0056` | `4.594082e-02`, `0.9530` | `6.377e-2` to `6.720e-2` | ahead by `1.315` to `1.386`; `1.388` to `1.463` | `5.386e-2` to `6.385e-2` | ahead by `1.111` to `1.317`; `1.172` to `1.390` |
+| 20 | `6.353308e-02` (`5.792e-2` to `6.353e-2`) | `6.291440e-02`, `0.9903` | `5.784276e-02`, `0.9104` | `8.519e-2` to `9.088e-2` | ahead by `1.354` to `1.445`; `1.473` to `1.571` | `6.991e-2` to `7.564e-2` | ahead by `1.111` to `1.202`; `1.209` to `1.308` |
+
+Both new chains lie inside the ball band at `t = 8`, `10`, `12` and `16`;
+at `t = 20` (a) is inside it and (b) is below its bottom by `1.001`.
+Against the both-cones `0.128607` at `t = 20`: (a) `0.489`, (b) `0.450`.
+The other quantities at the horizons, ball base / (a) / (b) [recorded
+`drive_power` chain]:
+
+| quantity | `t = 12` | `t = 16` | `t = 20` |
+|---|---|---|---|
+| the 27 coordinates outside the phonon-occupation block | `3.459e-02` / `3.521e-02` / `3.410e-02` [`4.385e-02`] | `4.769e-02` / `4.779e-02` / `4.372e-02` [`6.722e-02`] | `6.564e-02` / `6.482e-02` / `5.840e-02` [`9.046e-02`] |
+| the four phonon-occupation coordinates | `5.569e-02` / `5.594e-02` / `5.955e-02` [`3.199e-02`] | `5.158e-02` / `5.294e-02` / `5.876e-02` [`3.188e-02`] | `4.692e-02` / `4.814e-02` / `5.391e-02` [`3.187e-02`] |
+| blockwise rho / B / N / A / C, `t = 20` | --- | --- | ball `1.006e-01` / `1.252e-01` / `4.692e-02` / `4.258e-02` / `2.974e-02`; (a) `1.004e-01` / `1.233e-01` / `4.814e-02` / `4.078e-02` / `2.977e-02`; (b) `9.109e-02` / `1.077e-01` / `5.391e-02` / `3.812e-02` / `2.934e-02` [`1.358e-01` / `1.873e-01` / `3.187e-02` / `4.397e-02` / `3.128e-02`] |
+| Eq. (22) internal-energy RMS | `5.641305e-03` / `5.035053e-03` / `5.641305e-03` [`6.088286e-03`] | `5.776465e-03` / `5.157268e-03` / `5.776465e-03` [`6.249722e-03`] | `5.856071e-03` / `5.229233e-03` / `5.856071e-03` [`6.344620e-03`; tightened `5.217702e-03`; both cones `0.00094`] |
+| site-0 occupation, `rho[0,0]` sample RMS | `3.226e-02` / `3.432e-02` / `3.086e-02` [`5.278e-02`] | `5.776e-02` / `5.868e-02` / `5.249e-02` [`8.393e-02`] | `8.122e-02` / `8.073e-02` / `7.242e-02` [`1.126e-01`] |
+| minimum retained joint Gram over `t <= T`, time attained | `-2.377e-03` (`10.08`) / `-2.292e-03` (`11.08`) / `-1.298e-03` (`6.52`, the shared segment's) [`-2.463e-03` (`8.76`)] | same | same |
+| minimum extension eigenvalue over `t <= T`, time attained | `-2.202e-04` (`9.545`) / `-2.145e-04` (`9.547`) / `-1.369e-04` (`6.678`, shared) [`-2.040e-04` (`9.918`)] | same | same |
+| Euclidean coordinate difference from the exact reference at `T`, all 31 | `2.899e-01` / `2.961e-01` / `2.689e-01` [`5.028e-01`] | `4.402e-01` / `4.330e-01` / `3.907e-01` [`6.559e-01`] | `7.668e-01` / `7.466e-01` / `6.761e-01` [`9.694e-01`] |
+
+The radius-free chain's internal-energy RMS is the ball base's scaled by
+`0.893` at every horizon (`0.8925`, `0.8928`, `0.8930`), the ratio of the
+two declared references' offsets above the exact post-pulse energy
+(`5.507e-03 / 6.164e-03 = 0.893`): the constraint holds each chain to its
+own reference (to `2.22e-15` over 23,935 and 23,994 constrained repairs,
+0 hyperplane refusals in both), so the difference is the reference each
+trajectory selected at `t = 4`, not the dynamics past `t = 8`.  Window
+scores `(a, b]`, ball base / (a) / (b) [recorded]: `(8, 12]` `4.799e-02`
+/ `4.926e-02` / `4.886e-02` [`6.385e-02`]; `(12, 16]` `7.050e-02` /
+`7.036e-02` / `6.350e-02` [`1.042e-01`]; `(16, 20]` `1.043e-01` /
+`1.019e-01` / `9.104e-02` [`1.415e-01`]; `(8, 20]` `7.780e-02` /
+`7.696e-02` / `7.002e-02` [`1.079e-01`].  The deeper repair's gain is in
+the last two windows (`0.901`, `0.872`) and it loses the first (`1.018`).
+
+## (a) What the radius did at 27 keys, and what the rule did without it
+
+Decisions past `t = 8` (300 re-selections of 500, merged ledgers):
+
+| chain | accepted (uncertified) | cap-bound | `infeasible` | solver refusals | answers above `0.4`, decisions | applied moves above `0.1` | `(16, 20]` |
+|---|---:|---:|---:|---:|---|---|---|
+| ball base | 255 (55) | 11 | 34 | 89 | 30: 29 `infeasible`, 1 capped (`0.793` at `11.04`) | none (the cap) | all 100 accepted, largest answer `0.0112` |
+| (a) radius-free | 260 (49) | --- | 40 | 89 | 30, all `infeasible` (`0.564` to `0.793`) | 6: `9.08` `0.105u`, `9.20` `0.150`, `11.00` `0.124u`, `11.08` `0.228`, `14.24` `0.120u`, `14.40` `0.135` | all 100 accepted, `0.0111` |
+| (b) Dykstra 120 | 281 (71) | 5 | 14 | 85 | 7, all `infeasible` (`0.574` to `0.636`) | none | all 100 accepted, `0.0112` |
+
+Whole chains of 500: ball 441 (91) / 14 / 44 / 1 declined, refusals 136;
+(a) 448 (85) / 0 / 52 / 0, refusals 137; (b) 467 (107) / 8 / 24 / 1,
+refusals 132.  Median applied move per window `(8, 12]`, `(12, 16]`,
+`(16, 20]`: ball `0.0150`, `0.0106`, `0.0074`; (a) `0.0137`, `0.0105`,
+`0.0076`; (b) `0.0133`, `0.0107`, `0.0075`; total applied displacement
+past `t = 8` `4.785` / `4.465` / `4.359`.  At the ball's eleven cap
+times the radius-free chain accepted six answers whole (`9.08` `0.105u`,
+`9.20` `0.150`, `10.04` `0.073u`, `11.00` `0.124u`, `11.28` `0.022`,
+`11.32` `0.048u`) and found five `infeasible` (`9.24` `0.231u`, `10.00`
+`0.596u`, `11.04` `0.793u` --- the same `0.793` answer the ball capped,
+on the other side of the measured test from a state `3e-2` away ---
+`11.24` `0.577u`, `14.36` diverged at 250 iterations); its remaining
+over-radius moves fall where the ball found the completion `infeasible`
+(`11.08` `0.857u`, `14.24` `0.620u`) or accepted a small one (`14.40`
+`0.060u`).  The two chains part at `t = 0.04` (the first re-selection,
+capped against applied whole, task 9) and stay `1.7e-2` to `3.4e-2`
+apart in the 31 coordinates from `t = 8` on (`2.012e-02` / `2.056e-02` /
+`3.357e-02` / `1.719e-02` / `2.523e-02` at `t = 8` / `10` / `12` / `16` /
+`20`, maximum `3.441e-02` at `13.035`; the frontier `d70` maximum
+`0.953` at `t = 6.6` is task 8's excursion), 3 percent of either chain's
+distance from the exact reference at `t = 20` (`0.747` / `0.767`); from
+the recorded chain the radius-free chain is `0.253` to `0.273` away at
+every horizon from `t = 8`.  The physicality minima are the ball base's
+to 4 percent: over `t <= 20` `-2.292e-03` (at `11.08`) / `-2.145e-04` (at
+`9.547`); per window `(8, 12]`, `(12, 16]`, `(16, 20]` `-2.292e-03` /
+`-2.145e-04`, `-1.922e-03` / `-1.946e-04`, `-8.275e-04` / `-9.285e-05`
+(ball `-2.377e-03` / `-2.202e-04`, `-2.060e-03` / `-1.975e-04`,
+`-8.315e-04` / `-9.596e-05`); the frontier envelope maximum over
+`t <= 20` is `0.772`, task 8's `t = 6.6` excursion (ball `0.573`).
+
+## (b) The deeper repair
+
+The Dykstra-120 chain leaves the ball base at `t = 8.0025`, the first
+repaired step (`d31 >= 1e-3` there, `>= 1e-2` at `8.4925`, never
+`1e-1`; `4.733e-02` / `8.681e-02` / `7.591e-02` / `9.784e-02` at
+`t = 10` / `12` / `16` / `20`, maximum `9.788e-02` at `14.32`; `d70`
+maximum `0.340` at `11.2`), 14 percent of the ball's distance from the
+exact reference at `t = 20` and 12 percent nearer to it (`0.676` against
+`0.767`).  Its first re-selection decision to differ from the ball's is
+at `t = 8.16` (accepted `0.0190` against `infeasible` `0.567u`); the
+decisions agree at 257 of the 300 common times past `t = 8`.  The
+retained joint Gram at the first repaired sample is `-2.939e-05` against
+the ball's `-3.531e-04` from the same `-1.2218e-03` state; per window
+`(8, 12]`, `(12, 16]`, `(16, 20]` the minima are `-4.420e-04` /
+`-4.187e-05`, `-3.539e-04` / `-3.644e-05`, `-1.429e-04` / `-1.647e-05`
+(ball `-2.377e-03` / `-2.202e-04`, `-2.060e-03` / `-1.975e-04`,
+`-8.315e-04` / `-9.596e-05`; the `dykstra60` twin, whose minima are
+attained past `t = 8`, `-1.085e-03` at `11.04` / `-9.84e-05` at `9.543`);
+the extension eigenvalue is below zero at 4,287 of the 4,800 samples
+past `t = 8` (ball 4,366) and the retained one at all 4,800 in every
+chain; the frontier envelope maximum is `0.515` (ball `0.573`; recorded
+`0.452`).  The cap binds five times past `t = 8` (`8.28` `0.139u`,
+`8.32` `0.101`, `10.24` `0.259u`, `10.28` `0.151`, `14.28` `0.281u`)
+against the ball's eleven, at times where the ball accepted a small
+answer (`8.28` `0.031`, `10.24` `0.024u`) or found one `infeasible`
+(`8.32` `0.561u`, `10.28` `0.598u`, `14.28` `0.620u`); at nine of the
+ball's eleven cap times the deeper repair's completion returns a small
+answer (`0.016` to `0.045`, accepted) and at the other two `infeasible`
+(`9.20` `0.588u`) or a divergence (`11.04`, 263 iterations).  Seven
+answers above `0.4` against the ball's 30, all `infeasible`; 14
+`infeasible` against 34.  So the deeper repair hands the completion a
+state from which it returns small certified answers more often (281
+accepted, 71 uncertified, of 300; the ball 255 and 55), and that, with
+the cones, is where its `(12, 16]` and `(16, 20]` gain comes from; the
+phonon-occupation block it does not help.
+
+Cost: the four segments `8.0` to `11.04` (1,216 steps, `1,009.9 s`),
+`11.04` to `14.24` (1,280, `1,042.2 s`), `14.24` to `18.3925` (1,661,
+`1,000.1 s`; resume written at the boundary `18.36`), `18.36` to `20.0`
+(656, `364.3 s`); `3,416.5 s` past `t = 8` (ball `2,867.4 s` in three),
+`0.817` in the 300 completion solves at `9.30 s` mean (ball `0.924` at
+`8.83 s`; the mean iteration count `39.9` against `37.8`, 89 solves at
+the 40-iteration cap against 84), repairs `549.3 s`; peaks `630` to
+`668 MiB`; longest segment `1,042.2 s` of autonomous wall plus `18.9 s`
+of build.  The radius-free chain: `8.0` to `11.4` (1,360 steps,
+`1,012.6 s`), `11.4` to `15.4` (1,600, `1,038.6 s`, the largest overrun
+of the `1,000 s` budget on record), `15.4` to `20.0` (1,840, `850.6 s`);
+`2,901.8 s` past `t = 8`, `4,788.1 s` in all (ball `4,844.7 s`; recorded
+`4,794.4 s`), `0.925` in the solves at `8.95 s` mean, repairs `141.8 s`;
+peaks `633` to `649 MiB`.
+
+## Gates
+
+| gate | result |
+|---|---|
+| (a) continues the stored `t = 8` state under task 8's rule | `seg3`'s `summary.json` records `resumed_from` the measured base's `seg2`, `reselection_rule` `{anchor_weight 0.0, trust_radius None, trust_policy carried, acceptance_margin 0.001, candidates measured}`, `dykstra_iterations 30`, the `e3374f6f` source tree; its `t = 8.0` sample carries the `seg2`'s retained minimum `-1.2847e-03`; resumes at `8.0`, `11.4`, `15.4` (85 and 100 intervals of 16 steps) |
+| (b) resumes through the links from the ball base's `t = 8` state | `seg3`'s `resumed_from` is the `dyk120` prefix's `seg2` link (resolved to `..._ball_base_20260917k_seg2/resume.npz`); `d31 = d70 = 0` between (b) and the ball base at `t = 8.0` and the first differing sample is `t = 8.0025`; `dykstra_iterations` `120` in `seg3` to `seg6` and `30` in the linked `seg1`, `seg2`; the score ledger lists six segments from `t = 0`; resumes at `8.0`, `11.04`, `14.24`, `18.36` (76, 80, 103 intervals; `seg5` reached `18.3925` and wrote its resume at the boundary) |
+| the source tree is HEAD's | `diff -rq head_src_e3374f6f/paper5 paper_5/src/paper5 -x __pycache__` empty against `c14bf1bd`, recorded at the queue's start |
+| the energy is held | maximum deviation from the declared reference `2.22e-15` over 23,935 (a) and 23,994 (b) constrained repairs, 0 hyperplane refusals; (a)'s `seg5` records its reference as `-3.5658908873520323`, one unit in the last place from `seg3`'s and `seg4`'s `-3.5658908873520327`, the carried energy at the `t = 15.4` boundary |
+| one grid | 8,001 common samples, `t = 0` to `20`; `tabulate_task10.py` asserts the `exact_t20.npz` grid against every chain's times to `1e-12` |
+| the ledgers merge | 500 entries on one schedule per chain, 300 past `t = 8`, 100 in `(16, 20]`; the cross-check finds every cap time of one chain in the other two ledgers |
+| one heavy process at a time, under 20 minutes | seven segments under `ram_guard --limit-mb 4500`, sequential; longest `1,042.2 s` plus `18.9 s` of build; scoring and tabulation under `--limit-mb 2500`, arrays only |
+
+## The 27-key ledger row after task 10
+
+| horizon `t = 0` to `T` | the row | band | task 10 | what changes |
+|---:|---|---|---|---|
+| 4 | task 8's anchor-free rule, `1.00e-2` | `9.96e-3` to `1.001e-2`, 0.5 % | (a) is task 8's base | nothing |
+| 8 | the recorded `drive_power` chain, `2.59e-2` | `2.59e-2` to `2.71e-2`, 4.5 % | (a) `3.181e-2`, (b) `3.181e-2` (shared), both behind by `1.17` to `1.23` | nothing |
+| 12 | the ball rule, base `3.80e-2` | `3.797e-2` to `3.906e-2`, 2.9 % | (a) `3.852e-2` and (b) `3.834e-2` inside | nothing in the number |
+| 16 | the ball rule, base `4.82e-2` | `4.589e-2` to `4.861e-2`, 5.9 % | (a) `4.848e-2` and (b) `4.594e-2` inside | nothing in the number |
+| 20 | the ball rule, base `6.35e-2` | `5.792e-2` to `6.353e-2`, 9.7 % | (a) `6.291e-2` inside; (b) `5.784e-2` below the bottom by `1.001` | nothing in the number unless the Dykstra-120 member is adopted as the low edge (`5.78e-2`, one run, no band of its own) |
+
+What changes is the row's attribution, not its numbers or its standing:
+the radius is not an ingredient of any number past `t = 8` and costs 4
+percent at `t = 4`, so the rule of the row may be stated as the
+anchor-free measured rule (task 8's), the ball members and the
+radius-free base together being its band (five members: `3.797e-2` to
+`3.906e-2` at `t = 12`, `4.589e-2` to `4.861e-2` at `16`, `5.792e-2` to
+`6.353e-2` at `20`, unchanged); and the Dykstra count is the one setting
+measured to move the score past `t = 12` --- 30 / 60 / 120 give
+`6.353e-2` / `5.792e-2` / `5.784e-2` at `t = 20` and `4.821e-2` /
+`4.589e-2` / `4.594e-2` at `t = 16`, saturating from 60 to 120 in the
+score but not in the cones (retained joint Gram minimum past `t = 8`
+`-2.38e-3` / `-1.09e-3` / `-4.42e-4`, the 60 on its own trajectory from
+`t = 0.04`) --- at 11 percent of wall per doubling and with the
+phonon-occupation block worse each time.  Adoption is the user's call;
+the plan-file row carries the numbers.
+
+## Provenance
+
+- Seven rollouts under `pipelines/shell/ram_guard.py --limit-mb 4500`,
+  one at a time, `02:13` to `04:01` on 2026-09-18:
+  `paper_v_dictionary_energy_power_27key_n16_measured_base_20260916i_seg{3,4,5}`
+  and
+  `paper_v_dictionary_energy_power_27key_n16_ball_base_dyk120_20260918l_seg{3,4,5,6}`
+  (with `seg1`, `seg2` symbolic links to
+  `..._ball_base_20260917k_seg{1,2}`), each with `reselections.json`.
+  Scoring, tabulation and the cross-check under `--limit-mb 2500`, arrays
+  only.
+- Scripts under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `queue_task10.sh` (runs `queue_task9_t20.sh measured`, makes the two
+  links, chains (b) with `--dykstra-iterations 120`, scores it),
+  `tabulate_task10.py` (ledgers, totals, the chart with ratios and
+  standings, windows, physicality minima with the times attained over
+  `t <= 20`, `(8, 20]` and per window, decisions past `t = 8` with every
+  cap and every over-radius applied move, separations),
+  `crosscheck_task10_caps.py` (every chain's decision at every cap time
+  or over-radius move of the others), `update_plan_row_task10.py`.
+  Outputs: `task9_measured_base_score_t20.json` and `.log`,
+  `task10_ball_base_dyk120_score_t20.json` and `.log`,
+  `tabulate_task10.log` (and `tabulate_task10_a.log`, run when (a) alone
+  had landed), `crosscheck_task10_caps.log` (and `_a.log`),
+  `task10_chain.log`, `queue_task10.log`, `task9_t20_chain.log`
+  (appended), the segment logs
+  `paper_v_dictionary_energy_power_27key_n16_measured_base_20260916i_seg{3,4,5}.log`
+  and `..._ball_base_dyk120_20260918l_seg{3,4,5,6}.log`.
+- No module was edited, nothing was committed, no default, rule, radius,
+  Dykstra count or ladder changed; task 9's and the recorded chains'
+  artifacts are untouched.  Wall times were measured with nothing else
+  heavy on the machine.  The worklog carries a matching block; the
+  plan-file row was updated in place.
+
+## What to try next, in order
+
+1. **The anchor-free rule without the radius with Dykstra 120 from
+   `t = 0` to `t = 20`** (one chain, about 95 minutes): the two
+   ingredients this round measured separately --- the acceptance that
+   owns the gain and the repair depth that moves the cones and the
+   `t = 20` score --- combined, which gives the Dykstra-120 member a
+   `t = 4` and `t = 8` standing (whether the deeper repair moves the
+   `(4, 8]` phonon-occupation loss) and the `t = 20` row a band partner.
+2. **The `(4, 8]` phonon-occupation loss**, which every member carries
+   and the deeper repair worsens (`5.39e-2` against `4.69e-2` at
+   `t = 20`; the recorded chain `3.19e-2`): task 8's proposal stands, a
+   rerun with `certified` candidates from `t = 4`.
+
+## Structured summary of task 10
+
+| item | value |
+|---|---|
+| the two chains | (a) `LiftReselectionRule(acceptance_margin=1e-3, candidates="measured", anchor_weight=0)`, no radius, Dykstra 30, continued from `..._measured_base_20260916i_seg2` (`t = 8`) to `t = 20` in three segments; (b) the ball base (`trust_radius=0.1`, `ball`) continued from `..._ball_base_20260917k_seg2` with `--dykstra-iterations 120` in four segments under the `dyk120` prefix (`seg1`, `seg2` links); 27 keys, `N = 16`, `drive_power`, `e3374f6f` tree identical to `c14bf1bd` |
+| (a) `t = 12` / `16` / `20` | `3.851781e-02` / `4.848061e-02` / `6.291440e-02`; ratios to the ball base `1.014` / `1.006` / `0.990`; inside the ball band at every horizon from `t = 8`; ahead of the `drive_power` bands by `1.104` to `1.125`, `1.315` to `1.386`, `1.354` to `1.445` and of the `post_pulse` bands by `1.197` to `1.577`, `1.111` to `1.317`, `1.111` to `1.202`; `0.489` of the both-cones line; windows `(8, 12]`, `(12, 16]`, `(16, 20]` `4.926e-02` / `7.036e-02` / `1.019e-01` (ratios to the ball `1.027` / `0.998` / `0.977`; the recorded chain `1.331` / `1.477` / `1.356`) |
+| (a) energy, physicality, decisions, wall | internal-energy RMS `5.035053e-03` / `5.157268e-03` / `5.229233e-03` (the ball's scaled by the references' offsets, `0.893`); retained joint Gram `-2.292e-03` at `11.08`, extension `-2.145e-04` at `9.547` (ball `-2.377e-03` / `-2.202e-04`); past `t = 8` accepted 260 (49 uncertified), `infeasible` 40, refusals 89, no cap, six applied moves above `0.1` (`0.105` to `0.228`, excess `0.261` of `4.465`), 30 answers above `0.4` all `infeasible`; `(16, 20]` accepts all 100; wall `4,788.1 s` to `t = 20`, `2,901.8 s` past `t = 8`; peaks `649 MiB` |
+| (b) `t = 12` / `16` / `20` | `3.834289e-02` / `4.594082e-02` / `5.784276e-02`; ratios `1.010` / `0.953` / `0.910`; inside the ball band at `12` and `16`, below its bottom by `1.001` at `20` (the `dykstra60` twin `5.792205e-02`); ahead of the `drive_power` bands by `1.109` to `1.130`, `1.388` to `1.463`, `1.473` to `1.571` and of the `post_pulse` bands by `1.203` to `1.585`, `1.172` to `1.390`, `1.209` to `1.308`; `0.450` of the both-cones line; windows `4.886e-02` / `6.350e-02` / `9.104e-02` (ratios `1.018` / `0.901` / `0.872`) |
+| (b) energy, physicality, decisions, wall | internal-energy RMS identical to the ball's (`5.641305e-03` / `5.776465e-03` / `5.856071e-03`; the same pinned reference); over `(8, 20]` retained joint Gram `-4.420e-04` at `11.047` and extension `-4.187e-05` at `9.498` against the ball's `-2.377e-03` / `-2.202e-04` (`5.4` and `5.3` times shallower; mean negative part `6.1` and `5.8` times smaller), the retained cone still violated at every sample; phonon-occupation block `5.391e-02` against `4.692e-02` at `t = 20`, the other 27 coordinates `5.840e-02` against `6.564e-02`; past `t = 8` accepted 281 (71), cap 5, `infeasible` 14, refusals 85, 7 answers above `0.4` all `infeasible`; first differing decision `t = 8.16`; wall `5,393.7 s` (`+11 %`), repair `549.3 s` past `t = 8` (`3.85` times), solves `9.30 s` mean; peaks `668 MiB` |
+| which ingredient owns the gain past `t = 8` | the measured-candidate acceptance (margin `1e-3`, `measured`, anchor `0`): the radius-free chain reproduces the ball chain's windows to `0.977` to `1.027` and its scores to `0.990` to `1.014`, and every large answer the radius would cap is refused by the measured test; the radius moves nothing past `t = 8` at 27 keys (six over-radius moves of `0.105` to `0.228`) and costs 4 percent at `t = 4` |
+| the ledger row | numbers and standing unchanged: `1.00e-2` (task 8) at `t = 4`, `2.59e-2` (recorded) at `t = 8`, `3.80e-2` / `4.82e-2` / `6.35e-2` (ball rule base) at `t = 12` / `16` / `20` with the bands `3.797e-2` to `3.906e-2`, `4.589e-2` to `4.861e-2`, `5.792e-2` to `6.353e-2` (the radius-free base inside each); the rule may be stated without the radius; the Dykstra count is the setting that moves the score past `t = 12` (30 / 60 / 120: `6.353e-2` / `5.792e-2` / `5.784e-2` at `t = 20`) and the cones; the Dykstra-120 member (`5.78e-2`, one run) is the low edge at `t = 20` if adopted |
+| gates | (a) resumes the stored state under task 8's rule (recorded in `seg3`'s summary); (b) `d31 = 0` at `t = 8.0` against the ball base, first difference `t = 8.0025`, `dykstra_iterations 120` recorded in `seg3` to `seg6`; source tree identical to HEAD; energy held to `2.22e-15`; one grid (8,001 samples); ledgers merge to 500; seven sequential segments under `4,500 MB`, longest `1,042.2 s` |
+| files changed | this report (new heading), the worklog block, the plan ledger's row (in place); the task-10 scripts and outputs under `output/local_runs/` listed above.  No module; nothing committed |
+| next | the anchor-free rule without the radius with Dykstra 120 from `t = 0` to `t = 20`; the `(4, 8]` phonon-occupation loss |

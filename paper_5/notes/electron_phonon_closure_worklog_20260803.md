@@ -6663,3 +6663,110 @@ The 27-key ledger row now carries a four-member band at every horizon:
 plan-file row was updated in place.  Next: the anchor-free base from
 `t=8` to `t=20` (`queue_task9_t20.sh measured`); Dykstra 120 on the ball
 base past `t=8`; the `(4, 8]` phonon-occupation loss.
+
+## 2026-09-18: projective route, task 10: the radius-free rule and Dykstra 120 from `t=8` to `t=20` on the 27-key `N=16` drive-power chain
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 10 (2026-09-18)").  Two chains of the
+27-key `N=16` `drive_power` energy-neutral base from a stored `t=8` state
+to `t=20`, `1,000 s` `ram_guard --limit-mb 4500` segments, one at a time,
+`02:13` to `04:01`: (a) task 8's anchor-free rule without the radius
+(`LiftReselectionRule(acceptance_margin=1e-3, candidates="measured",
+anchor_weight=0)`, Dykstra 30) continued from
+`..._measured_base_20260916i_seg2` in three segments (`8.0` to `11.4`,
+`11.4` to `15.4`, `15.4` to `20.0`; `2,901.8 s`; `4,788.1 s` in all);
+(b) the task-9 ball base (`trust_radius=0.1`, `ball`) continued from
+`..._ball_base_20260917k_seg2` with `--dykstra-iterations 120` in four
+(`8.0` to `11.04`, `11.04` to `14.24`, `14.24` to `18.3925` with the
+resume at `18.36`, `18.36` to `20.0`; `3,416.5 s`; `5,393.7 s` in all)
+under the prefix `..._ball_base_dyk120_20260918l_seg` whose `seg1`,
+`seg2` are links to the ball base's own.  Imports from
+`head_src_e3374f6f`, identical to `paper_5/src/paper5` at `HEAD c14bf1bd`
+outside `__pycache__`; drivers unchanged from task 8; no module edited;
+nothing committed; no default changed.  Scores on `exact_t20.npz` (8,001
+samples); physicality minima over `(8,20]` exclude the shared `t=8.0`
+sample (`-1.2218e-3` in both (b) and the ball).
+
+Negative results first.  (1) The radius owns none of the gain past
+`t=8`: (a) scores `3.851781e-2` / `4.848061e-2` / `6.291440e-2` at `t=12`
+/ `16` / `20` (ratios to the ball base `1.014` / `1.006` / `0.990`),
+inside the ball rule's four-member band at every horizon from `t=8`
+(`3.797e-2` to `3.906e-2`, `4.589e-2` to `4.861e-2`, `5.792e-2` to
+`6.353e-2`), with windows `(8,12]`, `(12,16]`, `(16,20]` `4.926e-2` /
+`7.036e-2` / `1.019e-1` against the ball's `4.799e-2` / `7.050e-2` /
+`1.043e-1` (ratios `1.027` / `0.998` / `0.977`; the recorded chain's
+`1.331` / `1.477` / `1.356`); so the gain over the recorded chain is the
+measured-candidate acceptance's; the radius moves six applied
+displacements of `0.105` to `0.228` (excess above `0.1` `0.261` of
+`4.465` applied past `t=8`), every answer above `0.4` (30, `0.56` to
+`0.79`) being `infeasible` on the radius-free chain (the ball's one
+capped `0.793` at `t=11.04` lands `infeasible` on the other side of the
+measured test from a state `3e-2` away); the 15-key finding (12 percent
+at `t=20`) does not carry to 27 keys.  (2) Dykstra 120 does not touch
+the internal energy (identical RMS `5.641305e-3` / `5.776465e-3` /
+`5.856071e-3`: the same pinned reference) and worsens the
+phonon-occupation block (`5.391e-2` against the ball's `4.692e-2` and
+the recorded `3.187e-2` at `t=20`; per window `7.685e-2` / `5.633e-2` /
+`2.680e-2` against `6.762e-2` / `3.658e-2` / `1.917e-2`).
+
+Results.  (b) scores `3.834289e-2` / `4.594082e-2` / `5.784276e-2`
+(ratios `1.010` / `0.953` / `0.910`); the `t=20` number is the best
+27-key number on record, `0.14` percent below the `dykstra60` twin's
+`5.792205e-2` (a tie), `0.450` of the both-cones `0.128607`, ahead of
+the `drive_power` band by `1.473` to `1.571` and the `post_pulse` band
+by `1.209` to `1.308`; windows `4.886e-2` / `6.350e-2` / `9.104e-2`
+(ratios `1.018` / `0.901` / `0.872`); over `(8,20]` retained joint Gram
+`-4.420e-4` at `11.047` and extension `-4.187e-5` at `9.498` against the
+ball's `-2.377e-3` at `10.08` and `-2.202e-4` at `9.545` (`5.4` and `5.3`
+times shallower; mean negative part `-1.635e-4` / `-1.426e-5` against
+`-9.940e-4` / `-8.243e-5`; the `dykstra60` twin `-1.085e-3` /
+`-9.84e-5`), the retained cone still violated at all 4,800 samples past
+`t=8` in every chain; envelope `0.515` (ball `0.573`); first repaired
+sample `-2.939e-5` against `-3.531e-4` from the shared state; the other
+27 coordinates `5.840e-2` against `6.564e-2` at `t=20`; `d31` from the
+ball `4.733e-2` / `8.681e-2` / `7.591e-2` / `9.784e-2` at `t=10` / `12`
+/ `16` / `20` (first difference `t=8.0025`; first differing decision
+`t=8.16`, decisions equal at 257 of 300); past `t=8` accepted 281 (71
+uncertified), cap 5 (`8.28` `0.139u`, `8.32` `0.101`, `10.24` `0.259u`,
+`10.28` `0.151`, `14.28` `0.281u`), `infeasible` 14, refusals 85, 7
+answers above `0.4` all `infeasible` (ball 255 / 11 / 34 / 89 / 30);
+`(16,20]` accepts all 100 in every chain (largest answer `0.0112`);
+repair `549.3 s` past `t=8` against `142.7 s` (`3.85` times; 16.1
+percent of the wall), solves `9.30 s` mean against `8.83 s`; peaks
+`630` to `668 MiB`.  (a): internal-energy RMS `5.035053e-3` /
+`5.157268e-3` / `5.229233e-3`, the ball's scaled by `0.893` (the two
+declared references `5.507e-3` and `6.164e-3` above the exact post-pulse
+energy), held to `2.22e-15` over 23,935 constrained repairs ((b) 23,994),
+0 hyperplane refusals; retained joint Gram `-2.292e-3` at `11.08`,
+extension `-2.145e-4` at `9.547`; past `t=8` accepted 260 (49),
+`infeasible` 40, refusals 89, over-radius moves at `9.08` `0.105u`,
+`9.20` `0.150`, `11.00` `0.124u`, `11.08` `0.228`, `14.24` `0.120u`,
+`14.40` `0.135`; `d31` from the ball `2.012e-2` / `3.357e-2` / `1.719e-2`
+/ `2.523e-2` at `t=8` / `12` / `16` / `20` (3 percent of the distance
+from exact); its `seg4` overran the budget by `38.6 s` (`1,038.6 s`);
+peaks `633` to `649 MiB`.  Gates: (a)'s `seg3` summary records the
+resumed state, task 8's rule and Dykstra 30; (b)'s `d31 = d70 = 0`
+against the ball at `t=8.0`, `dykstra_iterations 120` in `seg3` to
+`seg6`; source tree identical to HEAD; one grid; ledgers merge to 500;
+seven sequential segments, longest `1,042.2 s` plus `18.9 s` build.
+
+The 27-key ledger row's numbers and standing do not change (`1.00e-2` /
+`2.59e-2` / `3.80e-2` / `4.82e-2` / `6.35e-2` at `t=4` / `8` / `12` / `16`
+/ `20`, bands unchanged, the radius-free base inside each from `t=8`);
+its rule may be stated as the anchor-free measured rule without the
+radius (the radius costs 4 percent at `t=4` and moves nothing past
+`t=8`); the Dykstra count is the setting that moves the score past
+`t=12` (30 / 60 / 120: `6.353e-2` / `5.792e-2` / `5.784e-2` at `t=20`)
+and the cones (`-2.38e-3` / `-1.09e-3` / `-4.42e-4` past `t=8`), and the
+Dykstra-120 member is the `t=20` low edge (`5.78e-2`, one run) if
+adopted.  Artifacts: `..._measured_base_20260916i_seg{3,4,5}`,
+`..._ball_base_dyk120_20260918l_seg{3,4,5,6}` (+ `seg1`, `seg2` links),
+each with `reselections.json`; in
+`paper_v_projective_dictionary_energy_20260915e/`: `queue_task10.sh`,
+`tabulate_task10.py`, `crosscheck_task10_caps.py`,
+`update_plan_row_task10.py`, `task9_measured_base_score_t20.json`,
+`task10_ball_base_dyk120_score_t20.json`, `tabulate_task10.log`,
+`crosscheck_task10_caps.log`, `task10_chain.log`, the segment logs.
+Plan-file row updated in place.  Next: the anchor-free rule without the
+radius with Dykstra 120 from `t=0` to `t=20`; the `(4,8]`
+phonon-occupation loss.
