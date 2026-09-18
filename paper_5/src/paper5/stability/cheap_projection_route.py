@@ -61,6 +61,7 @@ from numpy.typing import NDArray
 
 from .adaptive_positive_moment import (
     ENTRANCE_RELATIVE_MOMENT_KEYS,
+    RAW_MOMENT_COORDINATE_NAMES,
     raw_moment_coordinates_to_matrix_state,
     uncentered_joint_moment_matrix,
 )
@@ -98,6 +99,21 @@ CHEAP_PROJECTION_TARGETS = ("extension", "retained", "both")
 CHEAP_PROJECTION_CADENCES = ("stage", "step")
 CHEAP_PROJECTION_COORDINATES = ("state_and_frontier", "frontier_only")
 CHEAP_PROJECTION_ENERGY_REFERENCES = ("none", "post_pulse", "drive_power")
+
+RAW_PHONON_NORMAL_COORDINATE_NAMES = (
+    "raw_normal_00",
+    "raw_normal_11",
+    "raw_normal_01_real",
+    "raw_normal_01_imag",
+)
+"""The four raw phonon normal coordinates among the 29 raw moment ones.
+
+Named here because they are the block the Eq. (22) internal energy reads
+(gradient ``0.5`` on ``raw_normal_00`` and ``0.5`` on ``raw_normal_11``, zero
+on the two off-diagonal ones) and the block the relative-mode population
+``(phonon[0,0] + phonon[1,1]) / 2 - Re phonon[0,1]`` is a quantity of.
+"""
+
 LIFT_RESELECTION_TRUST_POLICIES = ("carried", "ball")
 LIFT_RESELECTION_CANDIDATES = ("certified", "measured")
 
@@ -166,6 +182,46 @@ class CheapProjectionSettings:
         whenever the null space of the affine Gram map lies entirely inside
         one group, which is the case for this dictionary: the 15 directions
         the 24-row Gram cannot see are all propagated-state directions.
+    ``raw_coordinate_motion_scales``
+        A declared per-coordinate scale in the same least-squares map back,
+        as ``((name, scale), ...)`` naming raw moment coordinates of
+        :data:`RAW_MOMENT_COORDINATE_NAMES`.  Each declared factor
+        multiplies ``state_motion_scale`` on that one coordinate, so a
+        factor below one makes that coordinate expensive to move and the
+        weighted minimum-norm map back places the same corrected Gram on the
+        other coordinates instead.  The empty default is the plain per-group
+        scaling of every earlier pass and changes no number.  Unlike the two
+        group scales this is not inert: the directions the affine Gram map
+        cannot see lie inside the propagated-state group, so a weight that
+        distinguishes coordinates *within* that group selects a different
+        member of the same affine preimage.  Where the map is injective
+        -- 126 columns of rank 126 at ``target="both"`` on the 27-key
+        dictionary -- there is no other member to choose and the map back
+        returns the same correction for every positive weight.
+
+        The declared metric acts in one further place, which is the one that
+        reaches the injective case: the direction inside the affine Gram set
+        along which the Eq. (22) energy hyperplane is met.  The committed
+        repair meets it along the hyperplane's own normal in the realified
+        feature space, which is the smallest correction measured in the
+        Frobenius metric of the two moment matrices; with a declared metric
+        it is met along the smallest correction measured in that metric on
+        the propagated coordinates instead.  For an empty declaration that
+        would be the plain coordinate norm, which is not the committed
+        behaviour either, so this -- like the weight itself -- is off until
+        the declaration is non-empty.
+
+        What it leaves alone: the propagated velocity, the cones and their
+        declared floors, the eigenvalue clip that projects onto them, the
+        affine Gram set and its orthogonal projection, the number of Dykstra
+        iterations and their bookkeeping, the declared Eq. (22) reference and
+        the tolerance at which the repair fires.  The energy of the repaired
+        coordinates still lands on that same reference; only the direction it
+        is put there along, and hence which coordinates pay for it, changes.
+        Because the cone is still projected onto in the Frobenius metric
+        while the affine sets are met in the declared one, the alternation is
+        no longer a single-metric Dykstra iteration, and how often it reaches
+        the cones is a measured quantity rather than a guaranteed one.
     """
 
     policy: str = "eigenvalue_clip"
@@ -178,6 +234,7 @@ class CheapProjectionSettings:
     repair_tolerance: float = 0.0
     state_motion_scale: float = 1.0
     frontier_motion_scale: float = 1.0
+    raw_coordinate_motion_scales: tuple[tuple[str, float], ...] = ()
     energy_reference_mode: str = "none"
     energy_tolerance: float = 0.0
 
@@ -224,6 +281,35 @@ class CheapProjectionSettings:
             raise ValueError("state_motion_scale must be positive")
         if self.frontier_motion_scale <= 0.0:
             raise ValueError("frontier_motion_scale must be positive")
+        declared = self.raw_coordinate_motion_scales
+        object.__setattr__(
+            self,
+            "raw_coordinate_motion_scales",
+            tuple(
+                (str(name), float(value))
+                for name, value in (
+                    declared.items()
+                    if isinstance(declared, Mapping)
+                    else declared
+                )
+            ),
+        )
+        named: set[str] = set()
+        for name, value in self.raw_coordinate_motion_scales:
+            if name not in RAW_MOMENT_COORDINATE_NAMES:
+                raise ValueError(
+                    "raw_coordinate_motion_scales must name raw moment "
+                    f"coordinates; {name} is not one of them"
+                )
+            if name in named:
+                raise ValueError(
+                    f"raw_coordinate_motion_scales names {name} twice"
+                )
+            named.add(name)
+            if value <= 0.0:
+                raise ValueError(
+                    "every raw coordinate motion scale must be positive"
+                )
         if self.energy_reference_mode not in CHEAP_PROJECTION_ENERGY_REFERENCES:
             raise ValueError(
                 "energy_reference_mode must be one of "
@@ -682,7 +768,7 @@ class AffineGramCoordinates:
 
         self._verify_affinity()
         self._factorizations: dict[
-            tuple[str, float, float], tuple[FloatArray, FloatArray, FloatArray]
+            tuple[Any, ...], tuple[FloatArray, FloatArray, FloatArray]
         ] = {}
         self.energy = (
             None
@@ -692,6 +778,7 @@ class AffineGramCoordinates:
             )
         )
         self._energy_functionals: dict[tuple[Any, ...], FloatArray] = {}
+        self._energy_directions: dict[tuple[Any, ...], FloatArray] = {}
 
     # -- affine evaluation -------------------------------------------------
 
@@ -822,6 +909,21 @@ class AffineGramCoordinates:
             columns.append(np.concatenate(pieces))
         return np.column_stack(columns)
 
+    def state_coordinate_scales(
+        self, settings: CheapProjectionSettings
+    ) -> FloatArray:
+        """The declared freedom of each propagated coordinate, one entry each.
+
+        ``state_motion_scale`` on all of them, multiplied on every raw moment
+        coordinate the settings name by its declared factor.  The empty
+        declaration returns the plain group vector of every earlier pass.
+        """
+
+        scales = np.full(self.state_count, float(settings.state_motion_scale))
+        for name, value in settings.raw_coordinate_motion_scales:
+            scales[RAW_MOMENT_COORDINATE_NAMES.index(name)] *= float(value)
+        return scales
+
     def factorization(
         self, settings: CheapProjectionSettings
     ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
@@ -831,8 +933,10 @@ class AffineGramCoordinates:
         minimum-norm increment of the movable coordinates; ``range_basis``
         is an orthonormal basis of the affine Gram set's tangent space under
         those same movable coordinates, which the Dykstra policy projects
-        onto; ``scales`` is the declared per-group freedom; ``movable`` is
-        the index set of coordinates the map back may move.
+        onto; ``scales`` is the declared freedom of each movable
+        coordinate, the two group constants with every declared
+        per-coordinate factor already applied; ``movable`` is the index set
+        of coordinates the map back may move.
         """
 
         signature = (
@@ -840,6 +944,7 @@ class AffineGramCoordinates:
             settings.repair_coordinates,
             float(settings.state_motion_scale),
             float(settings.frontier_motion_scale),
+            settings.raw_coordinate_motion_scales,
         )
         cached = self._factorizations.get(signature)
         if cached is not None:
@@ -854,7 +959,7 @@ class AffineGramCoordinates:
         design = design[:, movable]
         scales = np.concatenate(
             (
-                np.full(self.state_count, float(settings.state_motion_scale)),
+                self.state_coordinate_scales(settings),
                 np.full(
                     self.frontier_count, float(settings.frontier_motion_scale)
                 ),
@@ -963,6 +1068,7 @@ class AffineGramCoordinates:
             settings.repair_coordinates,
             float(settings.state_motion_scale),
             float(settings.frontier_motion_scale),
+            settings.raw_coordinate_motion_scales,
         )
         cached = self._energy_functionals.get(signature)
         if cached is not None:
@@ -973,6 +1079,48 @@ class AffineGramCoordinates:
         )
         value = pseudo_inverse.T @ (scales * gradient[movable])
         self._energy_functionals[signature] = value
+        return value
+
+    def energy_correction_direction(
+        self, settings: CheapProjectionSettings
+    ) -> FloatArray | None:
+        """The declared direction the Eq. (22) hyperplane is met along.
+
+        ``None`` when no per-coordinate metric is declared, which is the
+        committed repair: the hyperplane is then met along its own normal in
+        the realified feature space.  With a declared metric the correction
+        is the one of smallest weighted norm on the propagated coordinates
+        that changes the internal energy, ``scales ** 2 * gradient``, carried
+        into the realified feature space by the same affine Gram map so that
+        it lies in the affine Gram set like every other step of the
+        alternation, and reduced onto the range basis the alternation works
+        in.
+        """
+
+        if not settings.raw_coordinate_motion_scales:
+            return None
+        if self.energy is None:
+            raise ValueError(
+                "the internal-energy hyperplane needs the model parameters: "
+                "build AffineGramCoordinates with parameters="
+            )
+        signature = (
+            settings.target,
+            settings.repair_coordinates,
+            float(settings.state_motion_scale),
+            float(settings.frontier_motion_scale),
+            settings.raw_coordinate_motion_scales,
+        )
+        cached = self._energy_directions.get(signature)
+        if cached is not None:
+            return cached
+        _, range_basis, scales, movable = self.factorization(settings)
+        gradient = np.concatenate(
+            (self.energy.gradient, np.zeros(self.frontier_count, dtype=float))
+        )
+        design = self._design(settings.target)[:, movable]
+        value = range_basis.T @ (design @ (scales**2 * gradient[movable]))
+        self._energy_directions[signature] = value
         return value
 
     # -- the repair itself -------------------------------------------------
@@ -1071,6 +1219,11 @@ class AffineGramCoordinates:
                 floors,
                 settings.dykstra_iterations,
                 hyperplane=hyperplane,
+                hyperplane_direction=(
+                    None
+                    if hyperplane is None
+                    else self.energy_correction_direction(settings)
+                ),
             )
         else:
             corrected = self._cone_projection(
@@ -1129,6 +1282,7 @@ class AffineGramCoordinates:
         iterations: int,
         *,
         hyperplane: tuple[FloatArray, float] | None = None,
+        hyperplane_direction: FloatArray | None = None,
     ) -> tuple[FloatArray, int]:
         """Alternate between the affine Gram set and the cone, with memory.
 
@@ -1145,12 +1299,33 @@ class AffineGramCoordinates:
         hyperplane are projected onto together in closed form, which is the
         limit the alternation between those two affine sets converges to and
         leaves the cone as the only set the iteration has to chase.
+
+        ``hyperplane_direction`` is the declared direction, in the reduced
+        coordinates of the range basis, along which that offset is taken up.
+        ``None`` is the committed repair, which takes it up along the
+        hyperplane's own normal and is therefore the smallest correction in
+        the realified feature metric.  A declared direction still meets the
+        constraint exactly, because the energy a correction carries is the
+        normal's pairing with it and the step divides by exactly that
+        pairing; a direction the normal is orthogonal to carries no energy
+        at all and is refused in favour of the normal itself.
         """
 
         projected_normal = None
+        correction_direction = None
         if hyperplane is not None:
             projected_normal = range_basis.T @ hyperplane[0]
             normal_square = float(projected_normal @ projected_normal)
+            correction_direction = projected_normal
+            if hyperplane_direction is not None:
+                pairing = float(projected_normal @ hyperplane_direction)
+                reference_scale = float(
+                    np.linalg.norm(projected_normal)
+                    * np.linalg.norm(hyperplane_direction)
+                )
+                if abs(pairing) > 1e-10 * reference_scale:
+                    correction_direction = hyperplane_direction
+                    normal_square = pairing
         point = features.copy()
         cone_correction = np.zeros_like(features)
         affine_correction = np.zeros_like(features)
@@ -1162,7 +1337,7 @@ class AffineGramCoordinates:
             displacement = shifted - features
             reduced = range_basis.T @ displacement
             if projected_normal is not None:
-                reduced = reduced + projected_normal * (
+                reduced = reduced + correction_direction * (
                     (hyperplane[1] - float(projected_normal @ reduced))
                     / normal_square
                 )
@@ -2287,6 +2462,13 @@ class CarriedWitnessAffineGram:
     ) -> tuple[FloatArray, FloatArray, FloatArray]:
         """Return ``(pseudo_inverse, range_basis, movable)``, built once."""
 
+        if settings.raw_coordinate_motion_scales:
+            raise ValueError(
+                "raw_coordinate_motion_scales names raw moment coordinates "
+                "of the fixed-dictionary state; the carried-witness lane "
+                "propagates its own 384 coordinates and carries no such "
+                "declaration"
+            )
         signature = (
             settings.repair_coordinates,
             float(settings.state_motion_scale),

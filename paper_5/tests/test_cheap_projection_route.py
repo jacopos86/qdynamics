@@ -16,6 +16,7 @@ from paper5.stability.apcm_positive_extension import (
     SymmetryReducedPositiveExtension,
 )
 from paper5.stability.cheap_projection_route import (
+    RAW_PHONON_NORMAL_COORDINATE_NAMES,
     AffineGramCoordinates,
     CarriedWitnessAffineGram,
     CheapProjectionRoute,
@@ -34,6 +35,7 @@ from paper5.stability.matrix_reference import (
     matrix_total_energy,
 )
 from paper5.stability.adaptive_positive_moment import (
+    RAW_MOMENT_COORDINATE_NAMES,
     raw_moment_coordinates_to_matrix_state,
 )
 from paper5.stability.hubbard_dimer import DimerParameters
@@ -1334,3 +1336,168 @@ def test_reselection_rule_flags_reach_the_route() -> None:
     )
     assert route.reselection_rule == rule
     assert route.reselection_rule.evaluates_objective
+
+
+
+def test_raw_coordinate_motion_scales_are_off_and_change_no_number(
+    prepared,
+) -> None:
+    """The declared metric is empty by default and the repair is untouched.
+
+    The empty declaration leaves the map back at its per-group scales and
+    hands the alternation no direction, so the committed branch of the
+    hyperplane step is the one that runs; a short rollout with the Eq. (22)
+    hyperplane on reproduces itself bitwise, and still does after the
+    weighted factorization and the weighted direction have been built on the
+    same coordinates object.
+    """
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    settings = CheapProjectionSettings(
+        policy="dykstra",
+        target="both",
+        dykstra_iterations=30,
+        energy_reference_mode="drive_power",
+    )
+    assert CheapProjectionSettings().raw_coordinate_motion_scales == ()
+    assert settings.raw_coordinate_motion_scales == ()
+    assert np.array_equal(
+        coordinates.state_coordinate_scales(settings),
+        np.full(coordinates.state_count, float(settings.state_motion_scale)),
+    )
+    assert coordinates.energy_correction_direction(settings) is None
+
+    def rollout(declared: CheapProjectionSettings):
+        return integrate_cheap_projection_ssprk3(
+            CheapProjectionRoute(
+                route.model, declared, coordinates=coordinates
+            ),
+            state,
+            frontier,
+            final_time=0.0075,
+            time_step=0.0025,
+        )
+
+    committed = rollout(settings)
+    assert committed.success
+    assert committed.energy_constrained_repairs > 0
+    declared_empty = rollout(
+        replace(settings, raw_coordinate_motion_scales=())
+    )
+    weighted = replace(
+        settings,
+        raw_coordinate_motion_scales=tuple(
+            (name, 0.01) for name in RAW_PHONON_NORMAL_COORDINATE_NAMES
+        ),
+    )
+    coordinates.factorization(weighted)
+    assert coordinates.energy_correction_direction(weighted) is not None
+    again = rollout(settings)
+    for other in (declared_empty, again):
+        assert np.array_equal(committed.states, other.states)
+        assert np.array_equal(
+            committed.frontier_standardized, other.frontier_standardized
+        )
+        assert np.array_equal(
+            committed.retained_minimum_eigenvalues,
+            other.retained_minimum_eigenvalues,
+        )
+        assert np.array_equal(
+            committed.scaled_extension_minimum_eigenvalues,
+            other.scaled_extension_minimum_eigenvalues,
+        )
+        assert np.array_equal(
+            committed.internal_energy, other.internal_energy
+        )
+
+
+def test_raw_coordinate_motion_scales_reject_what_they_cannot_name() -> None:
+    with pytest.raises(ValueError, match="raw moment"):
+        CheapProjectionSettings(
+            raw_coordinate_motion_scales=(("phonon_population", 0.5),)
+        )
+    with pytest.raises(ValueError, match="twice"):
+        CheapProjectionSettings(
+            raw_coordinate_motion_scales=(
+                ("raw_normal_00", 0.5),
+                ("raw_normal_00", 0.25),
+            )
+        )
+    with pytest.raises(ValueError, match="positive"):
+        CheapProjectionSettings(
+            raw_coordinate_motion_scales=(("raw_normal_00", 0.0),)
+        )
+    declared = CheapProjectionSettings(
+        raw_coordinate_motion_scales={"raw_normal_00": 0.5}
+    )
+    assert declared.raw_coordinate_motion_scales == (("raw_normal_00", 0.5),)
+
+
+def test_raw_coordinate_motion_scales_move_the_phonon_normal_block_less(
+    prepared,
+) -> None:
+    """A declared metric makes the named coordinates expensive to move.
+
+    The repair still lands the Eq. (22) internal energy on the same declared
+    reference; what changes is the direction it is put there along, so less
+    of the correction lands on the four raw phonon normal coordinates.
+    """
+
+    route, state, frontier, _ = prepared
+    coordinates = route.coordinates
+    held = CheapProjectionSettings(
+        policy="dykstra",
+        target="both",
+        dykstra_iterations=30,
+        energy_reference_mode="post_pulse",
+    )
+    weighted = replace(
+        held,
+        raw_coordinate_motion_scales=tuple(
+            (name, 0.01) for name in RAW_PHONON_NORMAL_COORDINATE_NAMES
+        ),
+    )
+    reference = coordinates.energy.value(state)
+    generator = np.random.default_rng(41)
+    perturbed = state + 1e-3 * generator.normal(size=state.size)
+    block = [
+        RAW_MOMENT_COORDINATE_NAMES.index(name)
+        for name in RAW_PHONON_NORMAL_COORDINATE_NAMES
+    ]
+    lengths = {}
+    for name, declared in (("committed", held), ("declared", weighted)):
+        result = coordinates.repair(
+            perturbed, frontier, declared, energy_reference=reference
+        )
+        assert result.applied and result.energy_hyperplane_applied
+        assert abs(result.internal_energy_after - reference) < 1e-10
+        assert (
+            result.extension_minimum_after > result.extension_minimum_before
+        )
+        increment = result.state - perturbed
+        lengths[name] = (
+            float(np.linalg.norm(increment[block])),
+            float(np.linalg.norm(increment)),
+        )
+    committed_block, committed_whole = lengths["committed"]
+    declared_block, declared_whole = lengths["declared"]
+    assert declared_block < 0.5 * committed_block
+    assert committed_block / committed_whole > 0.9
+    assert declared_block / declared_whole < 0.8
+
+
+def test_the_carried_witness_lane_refuses_a_declared_metric() -> None:
+    """The 384 carried coordinates are not the raw moment ones."""
+
+    from paper5.stability.apcm_carried_witness import CarriedWitnessGeometry
+
+    gram = CarriedWitnessAffineGram(CarriedWitnessGeometry())
+    with pytest.raises(ValueError, match="carried-witness"):
+        gram.factorization(
+            CheapProjectionSettings(
+                policy="dykstra",
+                target="extension",
+                raw_coordinate_motion_scales=(("raw_normal_00", 0.5),),
+            )
+        )

@@ -3820,3 +3820,317 @@ commits to it, and this route does not commit):
 | ledger row | unchanged: the `ball` row, `0.0272` (0.1 %), `0.0385` (0.2 %), `0.0989` (`0.0989` to `0.1043`; 5.5 %), `0.132` (`0.132` to `0.158`; 19.3 %), `0.133` (`0.133` to `0.207`; 56.2 %; three of four within 23.0; `0.133` to `0.223` across the eight measured-candidate runs) at `t=4`, `8`, `12`, `16`, `20`; the certified-only rule excluded on its band (`0.149` to `0.346` at `t=20`); the sentence for the plan row is under "The 15-key ledger row"; plan file not edited |
 | next | the 27-key chain under the `ball` rule (base to `t=20`); the `infeasible` regime against the Dykstra count |
 | files changed | this report, the worklog block, and the task-11 scripts and artifacts under `output/local_runs/`; no module, test or default; nothing committed |
+
+
+# The declared per-coordinate metric of the map back: implemented, swept, and refused at the running configuration (2026-09-18)
+
+The repair-displacement measurement ended on one instruction: *the
+per-coordinate projection scale, in that order --- module change, free replay
+on the stored `(6, 8]` samples, then the one 15-minute `t = 4` to `8`
+segment*.  This round is the module change and the free replay.  The replay
+refuses the fix, so the segment is not spent.
+
+Configuration and conventions are tasks 11's and 12's: 27 active keys
+(`entrance15_plus_two_spin_boson`), 56 propagated state coordinates, 70
+standardized frontier coordinates, 36 positive-extension rows, 8 retained
+rows, `N = 16`, strong coupling, cutoff 16, the exact-correlated preparation
+at the declared ladder's first rung, time step `0.0025`, `policy="dykstra"`,
+`cadence="stage"`, `target="both"`, `eigenvalue_floor` and `repair_tolerance`
+and `energy_tolerance` all `0`, `dykstra_iterations` 120 on the task-11 base
+and 30 on the recorded `drive_power` chain, 800 stored samples in `(6, 8]`
+per chain after duplicate resume times are dropped, one replayed repair at
+each of them.  The quantity throughout is the relative-mode population
+`(phonon[0,0] + phonon[1,1]) / 2 - Re phonon[0,1]` of the centred phonon
+density, read through the chart the scorer uses.  Stored trajectories and
+affine algebra only: nothing was propagated, no conic solve was run, nothing
+was committed, and no default, rule, radius, Dykstra count, reference mode or
+ladder changed.
+
+## Negative results first
+
+**The recommended fix, taken literally, is exactly inert here --- and for a
+stronger reason than the one the record gave for `state_motion_scale`.**  At
+`target="both"` on the 27-key dictionary the realified affine Gram map has
+126 columns and rank 126: it is injective, so the least-squares map back has
+one exact answer and every positive weight returns it.  The earlier round
+explained `state_motion_scale`'s inertness by the null space lying inside the
+propagated-state group; at this target there is no null space at all.  The
+replay confirms it to every printed digit: with the Eq. (22) hyperplane off,
+a declared metric of `0.001` on the four raw phonon normal coordinates leaves
+the base's displacement at `4.681371e-05` per repair, its correction length at
+`2.096e-04` and its both-cone fraction at `0.134`, all identical to the empty
+declaration; at `target="retained"` (126 columns, rank 29, the 97 unseen
+directions being exactly the 27 entrance and 70 frontier coordinates the
+retained Gram does not read, none of them a raw phonon normal coordinate) the
+displacement stays `8.310995e-08`; and on the recorded chain every one of the
+five declared values `10`, `1`, `0.1`, `0.01`, `0.001` returns `9.368395e-04`
+with correction length `3.790e-03`.
+
+**Where the declared metric *can* act, it moves the coordinate three times
+further, not less.**  The one place a coordinate metric survives an injective
+map back is the direction inside the affine Gram set along which the Eq. (22)
+energy hyperplane is met, which the committed repair takes along the
+hyperplane's own normal in the realified feature space.  Met instead along
+the smallest correction in the declared metric, the base's displacement of
+the relative-mode population rises from `1.502784e-04` to `4.486596e-04` per
+repair in mean absolute value over `(6, 8]` (`2.99` times), and the recorded
+chain's from `5.264001e-04` to `8.756030e-03` (`16.6` times).  The target was
+below the closure's own per-step displacement of `8.421646e-05`.  No declared
+value reaches it; the committed behaviour is the best member of the family,
+and the family is monotone away from it.
+
+**Weighting the coherent coordinates as well does not recover it.**  The
+relative-mode population is a quantity of the centred phonon density
+`N = raw_normal - alpha alpha^dagger`, so it also reads the four coherent
+coordinates, through `-(1/2) |alpha_0 - alpha_1|^2`.  Declaring the metric
+over all eight at `0.01` gives `4.580947e-04` per repair, `1.02` times the
+four-coordinate figure and `3.05` times the committed one.  The coordinate
+set is not what fails.
+
+**A strided subsample of the window is not a uniform sample of it.**  The
+chain carries `lift_reselection_interval` 16, so a stride that divides 16
+lands on one phase of the re-selection cadence.  At stride 16 the base's
+committed setting reads `3.145754e-06` per repair instead of the `1.502784e-04`
+it reads at stride 1 --- a factor `47.8`, and the state correction `3.668e-06`
+instead of `2.131e-04`.  Every figure in this report is at stride 1, all 800
+samples.  The earlier round's Dykstra-count and motion-scale sweeps were taken
+at stride 8, which divides 16; their *comparisons* stand (all settings share
+the phase) but their absolute per-repair figures do not transfer to the
+window.
+
+## (a) What the option is, what it changes, and what it leaves alone
+
+`CheapProjectionSettings.raw_coordinate_motion_scales`, default `()`, an
+empty declaration.  Each entry names one of the 29 raw moment coordinates of
+`RAW_MOMENT_COORDINATE_NAMES` and a positive factor; the factor multiplies
+`state_motion_scale` on that one coordinate.  A mapping is accepted and
+stored as the tuple of pairs, so the declaration is hashable and keys the
+factorization caches.  `RAW_PHONON_NORMAL_COORDINATE_NAMES` names the four
+raw phonon normal coordinates (`raw_normal_00`, `raw_normal_11`,
+`raw_normal_01_real`, `raw_normal_01_imag`) --- the block whose diagonal the
+Eq. (22) gradient reads at `0.5`, `0.5` and whose diagonal the relative-mode
+population reads at the same `0.5`, `0.5`.
+
+It changes exactly two quantities.
+
+1. **The metric of the least-squares map back.**
+   `AffineGramCoordinates.state_coordinate_scales` builds the per-coordinate
+   freedom vector the factorization already carried as two group constants,
+   and the map back stays `increment = scales * (pseudo_inverse @ residual)`
+   with `pseudo_inverse = pinv(design * scales)`, that is the minimum-norm
+   correction in the declared metric.  Measured inert at both targets of this
+   configuration, for the reason above.
+2. **The direction the Eq. (22) energy hyperplane is met along.**
+   `AffineGramCoordinates.energy_correction_direction` returns
+   `scales**2 * gradient` carried through the same affine Gram map and reduced
+   onto the range basis, which is the smallest correction in the declared
+   metric that changes the internal energy; `_dykstra` takes the offset up
+   along it instead of along the hyperplane's own normal, dividing by the
+   normal's pairing with it so that the constraint is still met exactly.  An
+   empty declaration returns `None` and the committed branch runs.
+
+It leaves alone: the propagated velocity, the two cones and their declared
+floors, the eigenvalue clip that projects onto them, the affine Gram set and
+its orthogonal projection (the range basis is built from the unscaled design
+and is the same subspace for every declared metric), the number of Dykstra
+iterations and the Dykstra correction bookkeeping, the declared Eq. (22)
+reference and the tolerance at which a repair fires, the lift re-selection,
+and the internal energy the repaired coordinates carry --- measured on the
+reference to `6.084e-16` to `6.378e-16` per repair on the base and `6.334e-16`
+to `6.783e-16` on the recorded chain at every declared value, against
+`6.3782e-16` and `6.3949e-16` for the committed repair.  Because the cone is
+still projected onto in the Frobenius metric while the affine sets are met in
+the declared one, the alternation is no longer a single-metric Dykstra
+iteration: how often it reaches the cones is a measured quantity below, not a
+guaranteed one.  The carried-witness lane refuses a declared metric outright,
+its 384 coordinates not being the raw moment ones.
+
+Two consequences worth stating.  `dataclasses.asdict` now carries
+`"raw_coordinate_motion_scales": []` into every `summary.json`, so a segment
+resumed from a summary written before this change lists that one field in its
+recorded `projection_settings_changed`; nothing reads or raises on that field.
+And the option is deliberately not exposed on
+`cheap_projection_route_analysis.py`'s command line: it is reachable from
+Python only, because the replay below refuses it.
+
+## (b) The sweep on the stored `(6, 8]` samples
+
+One replayed repair at each of the 800 stored samples of `(6, 8]`, at the
+chain's own stored `frontier_standardized` and stored
+`internal_energy_reference`.  `mean absolute`, `signed mean` and `integrated`
+are of the per-repair displacement of the relative-mode population;
+`correction` is the mean Euclidean length of the repair's correction to the 56
+propagated coordinates and `share` the mean fraction of that length landing on
+this one direction; the three cone columns are the fraction of the 800 repairs
+after which that cone is reached; `dE` is the mean absolute change of the
+Eq. (22) internal energy.  `--` is the empty declaration, that is the
+committed repair.
+
+Task-11 base (`..._measured_dyk120_base_20260918m`, `dykstra_iterations` 120,
+`energy_reference_mode="drive_power"`):
+
+| declared metric | mean absolute | signed mean | integrated | correction | share | both cones | retained | extension | `dE` |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| `--` (committed) | `1.502784e-04` | `-1.502784e-04` | `-1.202227e-01` | `2.131e-04` | `0.771` | `0.010` | `0.010` | `0.161` | `6.378e-16` |
+| `10` | `2.532811e-04` | `-2.532811e-04` | `-2.026249e-01` | `2.964e-04` | `0.933` | `0.086` | `0.089` | `0.159` | `6.251e-16` |
+| `1` | `4.021687e-04` | `+3.999627e-04` | `+3.199701e-01` | `7.997e-04` | `0.348` | `0.095` | `0.149` | `0.163` | `6.212e-16` |
+| `0.1` | `4.481513e-04` | `+4.481325e-04` | `+3.585060e-01` | `8.622e-04` | `0.362` | `0.085` | `0.134` | `0.165` | `6.317e-16` |
+| `0.01` | `4.486544e-04` | `+4.486543e-04` | `+3.589234e-01` | `8.628e-04` | `0.362` | `0.091` | `0.140` | `0.165` | `6.378e-16` |
+| `0.001` | `4.486596e-04` | `+4.486595e-04` | `+3.589276e-01` | `8.628e-04` | `0.362` | `0.080` | `0.126` | `0.166` | `6.084e-16` |
+| `0.01` over eight names | `4.580947e-04` | `+4.580945e-04` | `+3.664756e-01` | `6.813e-04` | `0.480` | `0.100` | `0.547` | `0.171` | `6.112e-16` |
+
+Recorded `drive_power` chain (`..._27key_n16_20260915e`, `dykstra_iterations`
+30):
+
+| declared metric | mean absolute | signed mean | integrated | correction | share | both cones | retained | extension | `dE` |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| `--` (committed) | `5.264001e-04` | `-5.264001e-04` | `-4.211201e-01` | `1.099e-03` | `0.495` | `0.000` | `0.000` | `0.007` | `6.395e-16` |
+| `10` | `4.078098e-03` | `-4.078098e-03` | `-3.262478e+00` | `4.744e-03` | `0.886` | `0.000` | `0.000` | `0.004` | `6.783e-16` |
+| `1` | `7.554921e-03` | `+7.554903e-03` | `+6.043922e+00` | `1.618e-02` | `0.461` | `0.000` | `0.000` | `0.000` | `6.467e-16` |
+| `0.1` | `8.742676e-03` | `+8.742676e-03` | `+6.994141e+00` | `1.784e-02` | `0.485` | `0.000` | `0.000` | `0.000` | `6.334e-16` |
+| `0.01` | `8.755897e-03` | `+8.755897e-03` | `+7.004718e+00` | `1.785e-02` | `0.485` | `0.000` | `0.000` | `0.000` | `6.711e-16` |
+| `0.001` | `8.756030e-03` | `+8.756030e-03` | `+7.004824e+00` | `1.785e-02` | `0.485` | `0.000` | `0.000` | `0.000` | `6.467e-16` |
+
+With the hyperplane off (`energy_reference_mode="none"`), where only the map
+back can act, every declared value reproduces the empty declaration exactly:
+base `target="both"` `4.681371e-05` per repair, correction `2.096e-04`, both
+cones `0.134`; base `target="retained"` `8.310995e-08`, correction
+`1.898e-04`, both cones `0.087`; recorded chain `target="both"`
+`9.368395e-04`, correction `3.790e-03`, both cones `0.000`.
+
+Read plainly.  The declared metric does three things and only one of them is
+wanted.  It cuts the share of the correction landing on this one direction
+from `0.771` to `0.362` on the base --- so it does make the coordinate
+expensive, as designed.  It raises the both-cone fraction from `0.010` to
+`0.080` to `0.100` and the retained-cone fraction from `0.010` to `0.126` to
+`0.149`, which is the alternation no longer spending its budget fighting the
+hyperplane.  And it lengthens the correction from `2.131e-04` to `8.628e-04`,
+`4.05` times, because meeting the energy along a coordinate-cheap direction is
+far in the Frobenius metric the cones are projected in, so the cone chase has
+more to undo.  The product of a smaller share and a much longer correction is
+`2.99` times the displacement the fix was meant to cut by `1.78`.  The
+saturation is complete by `0.1` (`4.481513e-04`, `4.486544e-04`,
+`4.486596e-04` at `0.1`, `0.01`, `0.001`), so no smaller value exists to try;
+and above `1` the family walks back towards the committed behaviour
+(`2.532811e-04` at `10`), which is the Frobenius-metric limit.
+
+## (c) The recommendation, and the test that would decide it
+
+**Adopt no value: keep the empty declaration.**  The replay's pass condition
+was stated in advance --- the per-repair displacement below the closure's own
+`8.421646e-05`, the both-cone fraction not below `0.010`, the energy still on
+the reference to `1e-15`.  Two of the three hold at every declared value (the
+cone fraction improves by `8` to `10` times, the energy lands at `6.1e-16`);
+the one the fix exists for fails by `2.99` on the base and `16.6` on the
+recorded chain.  If a value had to be named for its cone attainment alone it
+would be `0.01` on the four raw phonon normal coordinates --- the saturated
+member, both cones at `0.091` against `0.010` --- and it is not worth
+`4.486544e-04` against `1.502784e-04` on the coordinate that carries the
+`(6, 8]` loss.
+
+**The decisive rollout test, not run.**  Task 12's `t = 4` to `8` rerun from
+the task-11 base's stored `t = 3.92` state
+(`..._measured_dyk120_base_20260918m_seg1`), one segment to `t = 8.0` under
+`ram_guard --limit-mb 4500`, about 15 minutes, scored on the `exact_t8.npz`
+grid; improving means the relative-mode population's RMS over `(6, 8]` below
+`1.907462e-01` and the four phonon-occupation coordinates' block RMS below
+`8.278358e-02`, and closing the gap to the recorded chain means
+`7.513319e-02`.  It would also need one line in
+`cheap_projection_route_analysis.py` to reach the declared metric from the
+driver, which was deliberately not added.  By the record's own rule that
+segment is not spent: the replay it was conditioned on does not pass.
+
+**What the measurement points at instead: a slab rather than a hyperplane,
+which is a module change and not a setting.**  Both ends are now measured over
+the whole horizon.  With the Eq. (22) hyperplane in the alternation at every
+repair the base moves this coordinate `1.502784e-04` per repair at both-cone
+attainment `0.010`; with it off, `4.681371e-05` --- below the `8.421646e-05`
+target --- at `0.134`, at the price of an energy change of `1.8006e-04` per
+repair, and the projective route's task 13 is what a whole chain run that way
+costs: both cones held from `t = 0` to `20` (retained `-1.549433e-12`,
+extension `-1.349691e-09`) at `6.360` times the constrained base's score at
+`t = 20` and `256.9` times its Eq. (22) internal-energy RMS.  What sits
+between them is a slab: the repair corrects the internal energy only when it
+is further than a declared band from the reference, and then only to the
+band's boundary, so a cone correction that costs less energy than the band is
+let through whole and the coordinate pays only the excess.  `energy_tolerance`
+is *not* that setting --- it decides whether a repair runs at all, and since a
+cone is violated at `0.990` of the base's stored samples the repair runs and
+the hyperplane lands the energy exactly on the reference anyway, which is the
+same reading task 13 records.  The change is one place, the hyperplane step of
+`AffineGramCoordinates._dykstra` in the file this round already touches: the
+offset `reference - energy_before` soft-thresholded by the declared band,
+zero inside it.  The pass condition to state in advance, at a band of `1e-3`
+--- `5.6` times the energy one hyperplane-free repair changes, against an
+Eq. (22) internal energy of `0.0332` to `0.0413` over `t = 4` to `20` on the
+task-11 base --- is the same as this round's: the per-repair displacement of
+the relative-mode population below `8.421646e-05` with the both-cone fraction
+not below `0.010`, on the same free replay of the stored `(6, 8]` samples
+(about `100 s` per chain), and only then the same 15-minute `t = 4` to `8`
+segment.  Unlike the metric, this one the replay *can* score: the band acts on
+the offset the stored sample carries (`3.469447e-16`), so every repair in the
+replay falls inside any band worth declaring and the replay reads the
+hyperplane-free rows --- which is the answer, at the cone attainment and
+energy those rows also carry.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the default path is unchanged bitwise | a 4-step rollout (`t = 0` to `0.01`, step `0.0025`, 15 entrance keys, cutoff 16, `policy="dykstra"`, `target="both"`, `cadence="stage"`, `dykstra_iterations` 30, `energy_reference_mode="drive_power"`, 8 repairs applied, all 8 energy-constrained) run under the changed module and under the module at `94cf93b5` --- which is the module at `e990cbb0`, the branch head after the projective route's task 13, unchanged --- agrees in all seven stored arrays --- times, states, standardized frontier, both minimum-eigenvalue series, internal energy and its reference --- at maximum difference `0.000000e+00` |
+| the replay reproduces the record | base `target="both"` at the chain's own mode: `1.502784e-04` mean absolute, `-1.502784e-04` signed mean, `-1.202227e-01` integrated, `5.846746e-04` maximum, `4.916299e-04` p99, negative at `0.990`, both cones after `0.010`; `energy_reference_mode="none"` `4.681371e-05`; `target="retained"` with the hyperplane off `8.310995e-08`; recorded chain `5.264001e-04` and `9.368395e-04` --- every digit of the repair-displacement measurement's tables |
+| the replay reads the record's coordinate | the relative-mode population read from the stored 56 propagated coordinates through the scorer's chart equals the one read from the stored `archive_coordinates` to `0.000000e+00`, and the affine Eq. (22) energy equals the stored `internal_energy` to `0.000000e+00`, at every sample of both chains |
+| the constraint is still met | the replayed repair changes the Eq. (22) internal energy by `6.084e-16` to `6.378e-16` (base) and `6.334e-16` to `6.783e-16` (recorded) in mean absolute value at every declared value, against `6.3782e-16` and `6.3949e-16` committed |
+| the map back has no freedom to weight | the realified design over the 126 movable coordinates has rank 126 at `target="both"`, 29 at `target="retained"` (the 97 unseen directions are the 27 entrance and 70 frontier coordinates) and 111 at `target="extension"` (15 unseen, three of them wholly inside the four raw phonon normal coordinates), so at the chain's own target the correction is unique |
+| the trajectories are the recorded ones | each chain read from its own stored `trajectory.npz` segments, six per chain; sample spacing `0.0025` exactly throughout; 800 samples per chain in `(6, 8]` after duplicate resume times are dropped; stride 1 |
+| the tests | `paper_5/tests/test_cheap_projection_route.py` 48 passed in `22.9 s` (44 before, 4 added), under `ram_guard --limit-mb 2500`, peak `465 MiB` |
+| nothing else changed | no default, rule, radius, Dykstra count, reference mode, tolerance or ladder changed; `projected_apcm.py` and `apcm_projective_event_guard_analysis.py` untouched; tasks 8 to 12's and the recorded chains' artifacts untouched; nothing committed |
+| light compute only | eight processes under `pipelines/shell/ram_guard.py --limit-mb 2500`, one at a time, peaks `1 MiB` to `465 MiB`, each under two minutes |
+
+## Provenance
+
+- Module: `paper_5/src/paper5/stability/cheap_projection_route.py`
+  (`CheapProjectionSettings.raw_coordinate_motion_scales`,
+  `RAW_PHONON_NORMAL_COORDINATE_NAMES`,
+  `AffineGramCoordinates.state_coordinate_scales`,
+  `AffineGramCoordinates.energy_correction_direction`, the
+  `hyperplane_direction` argument of `AffineGramCoordinates._dykstra`, the
+  factorization and energy-functional cache signatures, and the
+  carried-witness refusal).  Tests:
+  `paper_5/tests/test_cheap_projection_route.py`
+  (`test_raw_coordinate_motion_scales_are_off_and_change_no_number`,
+  `test_raw_coordinate_motion_scales_reject_what_they_cannot_name`,
+  `test_raw_coordinate_motion_scales_move_the_phonon_normal_block_less`,
+  `test_the_carried_witness_lane_refuses_a_declared_metric`).
+- Scripts under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `probe_repair_displacement_20260918.py` extended with
+  `--phonon-normal-scale` and `--metric-coordinate` (additive; without them
+  every earlier invocation takes the same path, which the first row of every
+  table above checks), and `tabulate_phonon_scale_20260918.py`.
+- Outputs in the same directory:
+  `repair_displacement_base_phononscale_a_20260918.json` and `.log`,
+  `repair_displacement_base_phononscale_b_20260918.json` and `.log`,
+  `repair_displacement_base_phononscale_mapback_20260918.json` and `.log`,
+  `repair_displacement_base_metricset8_20260918.json` and `.log`,
+  `repair_displacement_recorded_phononscale_20260918.json` and `.log`,
+  `repair_displacement_phonon_scale_tables_20260918.log`.
+- Read but not modified: `adaptive_positive_moment.py`
+  (`RAW_MOMENT_COORDINATE_NAMES`, `raw_moment_coordinates_to_matrix_state`),
+  `apcm_positive_extension.py`, `matrix_reference.py`,
+  `cheap_projection_route_analysis.py`, `run_energy_segment.py`.
+
+## Structured summary of the declared-metric round
+
+| item | value |
+|---|---|
+| (a) what was implemented | `CheapProjectionSettings.raw_coordinate_motion_scales`, default `()`, naming raw moment coordinates and a positive factor each, multiplying `state_motion_scale` on that coordinate.  It sets the metric of the least-squares map back and the direction inside the affine Gram set along which the Eq. (22) hyperplane is met.  It leaves the velocity, the cones and their floors, the clip, the affine Gram set and its range basis, the Dykstra count and bookkeeping, the declared reference and the firing tolerance, and the lift re-selection untouched; the energy still lands on the reference (`6.1e-16`).  The alternation stops being single-metric, so cone attainment becomes a measured quantity.  The default path is bitwise unchanged against the module at `94cf93b5` on a 4-step `drive_power` rollout, maximum difference `0.000000e+00` |
+| (b) the map-back channel | exactly inert at this configuration: the affine Gram map is injective at `target="both"` (126 columns, rank 126), so the weighted minimum-norm correction is the only correction.  With the hyperplane off every declared value reproduces the empty declaration to every printed digit --- base `4.681371e-05` per repair at `target="both"` and `8.310995e-08` at `target="retained"`, recorded chain `9.368395e-04`, correction lengths and cone fractions included |
+| (b) the hyperplane channel, base over `(6, 8]` | `1.502784e-04` per repair committed; `2.532811e-04` at `10`, `4.021687e-04` at `1`, `4.481513e-04` at `0.1`, `4.486544e-04` at `0.01`, `4.486596e-04` at `0.001` (signed means `+3.999627e-04` to `+4.486595e-04` from `1` down, integrated `+3.199701e-01` to `+3.589276e-01`); the share of the correction on this direction falls `0.771` to `0.362`, the correction lengthens `2.131e-04` to `8.628e-04` (`4.05`), both cones rise `0.010` to `0.080`--`0.100` and the retained cone `0.010` to `0.126`--`0.149`; eight names at `0.01` gives `4.580947e-04` |
+| (b) the hyperplane channel, recorded chain | `5.264001e-04` committed; `4.078098e-03`, `7.554921e-03`, `8.742676e-03`, `8.755897e-03`, `8.756030e-03` at `10`, `1`, `0.1`, `0.01`, `0.001`; correction `1.099e-03` to `1.785e-02`; both cones `0.000` throughout, the extension cone `0.007` falling to `0.000` |
+| (c) the recommendation | adopt no value; keep the empty declaration.  The pre-stated pass condition --- below the closure's own `8.421646e-05` per step --- fails at every value by `2.99` (base) and `16.6` (recorded), while the other two conditions hold.  The saturation is complete by `0.1`, so no smaller value exists to try, and above `1` the family returns towards the committed behaviour |
+| (c) the decisive rollout, not run | task 12's `t = 4` to `8` rerun from the base's stored `t = 3.92` state, one segment under `ram_guard --limit-mb 4500`, about 15 minutes on the `exact_t8.npz` grid, improving only below `1.907462e-01` for the relative-mode population's `(6, 8]` RMS and `8.278358e-02` for the four phonon-occupation coordinates' block; plus one line in the analysis driver to reach the option.  Not spent, because the replay it was conditioned on does not pass |
+| what to try next | a slab rather than a hyperplane: correct the Eq. (22) energy only when it is further than a declared band from the reference, and then only to the boundary.  `energy_tolerance` cannot do it --- it gates whether a repair runs, and a cone is violated at `0.990` of the base's samples, so the repair runs and the hyperplane lands the energy exactly on the reference.  One place, the hyperplane step of `_dykstra`: the offset soft-thresholded by the band.  The two ends are measured --- the hyperplane at every repair (`1.502784e-04` per repair, both cones `0.010`) and off (`4.681371e-05`, `0.134`, and task 13's whole-horizon price of `6.360` at `t = 20` and `256.9` in internal-energy RMS).  Free replay first at a band of `1e-3`, about `100 s` per chain, then the same 15-minute `t = 4` to `8` segment |
+| method note | a stride that divides the chain's `lift_reselection_interval` 16 samples one phase of the re-selection cadence: at stride 16 the committed setting reads `3.145754e-06` per repair against `1.502784e-04` at stride 1, a factor `47.8`.  Every figure here is stride 1 over all 800 samples |
+| the ledger row | unchanged; this round produces no horizon score |
+| files changed | the module and its tests (the named option, four tests), the replay script's two additive flags and the tabulation script, the outputs listed above, this report and the worklog block.  `projected_apcm.py` and `apcm_projective_event_guard_analysis.py` untouched; nothing committed |
