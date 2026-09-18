@@ -7066,3 +7066,104 @@ the hyperplane disabled from `t=0` to `t=20` (the first 27-key chain that
 would hold both cones); a dictionary key the extension sees the phonon
 normal moments through; the three twins of the task-11 configuration from
 `t=8` to `t=20` for the `t=20` band.
+
+## 2026-09-18: projective route, dictionary probe: the `(4, 8]` phonon-occupation loss is one coordinate --- the relative-mode population --- and no dictionary can reach the other three
+
+Task 12 ended on the instruction to find *a dictionary key that the positive
+extension sees the phonon normal moments through, in particular
+`raw_normal_01_imag`, whose extension derivative is exactly zero at both 15 and
+27 keys*.  This light probe --- affine algebra, stored trajectories, and three
+conic solves (the preparation's declared completion at three dictionaries),
+eight processes under `ram_guard --limit-mb 2000` one at a time, no module
+edited, nothing committed, no default changed --- answers it, and the answer is
+negative on both halves.  **(a)** `raw_normal_01_imag` has zero derivative
+because of the chart, not a missing row: the extension's online operator
+algebra is the exact spin-symmetric relative-mode reduction (the dimer's centre
+phonon is exactly decoupled in the fixed-particle sector), so the four raw
+phonon normal coordinates reach it only through
+`relative_moments_from_matrix_state`, which forms `v^dagger N v` with the real
+relative-mode vector `v = (1,-1)/sqrt(2)`, that is
+`0.5*(raw_normal_00 + raw_normal_11) - raw_normal_01_real`; the coefficient of
+`Im N[0,1]` in a Hermitian form with a real `v` is identically zero.  Reading
+the block in the phonon density's two normal modes --- the relative-mode
+population `(phonon[0,0]+phonon[1,1])/2 - Re phonon[0,1]`, the centre-mode
+population `(phonon[0,0]+phonon[1,1])/2 + Re phonon[0,1]`, and the two parts of
+the relative--centre coherence `(phonon[0,0]-phonon[1,1])/2` and
+`- Im phonon[0,1]` --- the extension sees exactly one of the four, and the row
+that could carry the other three would have to be a word in a second boson
+mode, which the `MomentKey` form `(spin_up, spin_down, x_power, p_power)`
+cannot express.  **(b)** Eleven sets measured --- the four declared active
+dictionaries (15, 19, 27, 31 keys) and seven with additional declared
+`additional_halfword_keys`, 24 to 45 extension rows, 62 to 139 frontier keys,
+state dimension 44 to 60: the rank of the extension's derivative map over the
+four raw phonon normal coordinates is `1` in every one (second singular value
+at most `3.2e-17`) and over all 29 raw coordinates `14` in every one, and the
+directional derivative along the centre-mode population and along both parts of
+the coherence is exactly `0` in every one.  The best available gain on the one
+seen direction is `1.178` (`raw_normal_01_real` `0.292565` to `0.344586`, 27
+keys plus the boson-quadratic and spin-boson-linear half-words, 45 rows);
+`hidden31` and the four boson-cubic half-words buy `1.0005` while taking the
+frontier from 70 to 129 and 133, which is the measured reason the boson-cubic
+active keys do nothing for this block.  The probe reproduces
+`extension_sensitivity_{15,27}key.json` to every digit printed.  Certification
+at the exact-correlated preparation: `entrance15` directly (`1.28 s`), the
+plain 27-key on the declared ladder's first rung (`20.35 s`), **27 keys plus
+the six spin-boson-linear half-words directly** (`30.07 s`, Newton 11, face
+`41/42`, scaled minimum eigenvalue `-8.47e-16`, state dimension unchanged at
+56, rows 36 to 42, frontier 70 to 74); the boson-quadratic half-words did not
+return inside the four-minute budget (stopped at `5 min 49 s`, peak
+`1,558 MiB`) and are unmeasured.  **(c) The decisive measurement is the
+decomposition, and it contradicts the premise**: the task-11 base's `(4, 8]`
+phonon-occupation block RMS `6.779204e-02` is `6.765951e-02` (`0.9980`) from
+the relative-mode population alone --- the one direction the extension already
+sees --- and `1.883245e-03` (`0.0278`) from the three it cannot see; over
+`(6, 8]`, where the whole loss sits, `8.278358e-02` is `0.9977` from it.  The
+relative-mode population's signed mean error is `-1.472355e-01` with RMS
+`1.562529e-01` against an exact coordinate of RMS `8.430089e-01` (`0.185` of
+its own size), while the centre-mode population's error is `8.774705e-04` and
+the coherence's `2.134963e-03` and `2.119634e-03`.  In the site basis that one
+error of `-0.1472` appears as `-0.0736`, `-0.0736`, `+0.0736`, which is what
+the per-coordinate table was reading as three separate biases.  The `1.494`
+between the task-11 base and the recorded `drive_power` chain in this block is
+`1.513` in that single coordinate over `(4, 8]` (`1.562529e-01` against
+`1.032811e-01`) and `2.539` over `(6, 8]` (`1.907462e-01` against
+`7.513319e-02`); and the recorded chain tracks the three blind directions
+*worse* (`2.853940e-03` against `1.883245e-03`, centre-mode population
+`5.038008e-03` against `8.774705e-04`, `5.7` times), so the dictionary's
+blindness is not costing this chain anything measurable.  The Eq. (22) energy
+hyperplane is cleared too: its normal is `0.5` on `raw_normal_00`, `0.5` on
+`raw_normal_11` and `0` on both off-diagonal coordinates --- `0.5` on each of
+the two populations and `0` on the coherence in the normal modes --- so it
+moves the two populations identically and cannot produce a `178`-fold
+asymmetry; its norm in the block is `0.7071068` of `3.2403703` over all 29 raw
+coordinates and `0` on all 27 entrance coordinates.  **Recommendation**: do not
+spend a rollout on a dictionary enlargement for this block; if two are run,
+27 keys plus the six spin-boson-linear half-words (justified by the direct
+certification, not by the derivative; no module edit needed, since
+`additional_halfword_keys` is an existing declared argument and
+`run_energy_segment.py`'s `prepare_with_ladder` builds the extension itself)
+and `entrance15` under the task-11 configuration as the control, whose
+visibility is *lower* (`0.209933`, `0.718`) while its block is better.
+Cheapest decisive test: task 12's `t=4` to `8` rerun from the task-11 base's
+stored `t=3.92` state, one segment to `t=8.0` under `--limit-mb 4500`, about
+15 minutes, scored on the `exact_t8.npz` grid; improving means the four
+phonon-occupation coordinates below `6.779204e-02` over `(4, 8]` and
+`8.278358e-02` over `(6, 8]` *and* the relative-mode population below
+`1.562529e-01` and `1.907462e-01`, with `1.032811e-01` and `7.513319e-02` the
+recorded chain's line; under `1.10` is inside task 11's own twin spread of
+`9.78` percent and is not a result.  Ledger row unchanged (no horizon score
+this round).  Artifacts in
+`paper_v_projective_dictionary_energy_20260915e/`:
+`probe_dictionary_keys_20260918.py`,
+`probe_extension_dictionary_20260918.py`,
+`sweep_extension_dictionary_20260918.sh`,
+`probe_normal_mode_bias_20260918.py`,
+`probe_energy_normal_direction_20260918.py`,
+`append_dictionary_probe_20260918.py`,
+`extension_dictionary_sweep_20260918.{json,log}`,
+`extension_dictionary_prepare_a_20260918.json`,
+`normal_mode_bias_w48_20260918.{json,log}`,
+`normal_mode_bias_w68_20260918.{json,log}`,
+`energy_normal_direction_20260918.json`.  Next: the loss is in the closed flow
+of the relative-mode population over `(6, 8]`; the next measurement belongs on
+that flow, not on the dictionary.
