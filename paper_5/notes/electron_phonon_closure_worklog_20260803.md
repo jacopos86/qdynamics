@@ -7402,3 +7402,143 @@ row does not move (no rollout this round).  Artifacts in
 `repair_displacement_tables_20260918.log`.  Next: the per-coordinate
 projection scale, in that order --- module change, free replay on the stored
 `(6, 8]` samples, then the one 15-minute `t=4` to `8` segment.
+
+## 2026-09-18: projective route, task 13: the task-11 configuration with the Eq. (22) energy hyperplane disabled, `t=0` to `t=20` --- the first 27-key chain that holds both cones
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 13 (2026-09-18)").  The task-11
+configuration --- `LiftReselectionRule(acceptance_margin=1e-3,
+candidates="measured", anchor_weight=0)` with no trust radius and
+`--dykstra-iterations 120` --- on the 27-key `N=16` chain with
+`--energy-reference-mode none`, base `t=0` to `20` in four `ram_guard
+--limit-mb 4500` segments of `1,000 s` autonomous budget (boundaries
+`4.72`, `10.64`, `17.0`; `3,514.0 s`, longest `1,006.2 s` plus `18.8 s` of
+build) and its re-selection `conic_tolerance 1e-10` twin to `t=8` in two
+(`1,589.1 s`) --- the `energy_tolerance 1e-3` twin measures nothing with
+the hyperplane off --- one heavy process at a time, `11:57` to `13:27`,
+nothing else heavy on the machine.  Smoke gate first (`t=0` to `0.08`):
+`summary.json` records `energy_reference_mode none`, `dykstra_iterations
+120`, ladder rung `0`, the radius-free measured rule, no declared
+reference, 0 constrained repairs and 0 hyperplane refusals.  Imports from
+`head_src_e3374f6f`, identical to `paper_5/src/paper5` at `HEAD 45e2ac0a`
+outside `__pycache__`; `run_chain.py`, `run_energy_segment.py` and
+`score_energy_chain.py` are task 8's unchanged; no module edited, nothing
+committed, no default, rule, radius, Dykstra count, reference mode or
+ladder changed.  The chain uses only its own state and the Hamiltonian's
+declared drive; no exact or classical quantity enters the propagation or
+the repair.  Scores are the all-coordinate scalar RMS of the 31 closed
+scalar coordinates against the exact cutoff-16 driven reference from `t=0`
+on one grid (`exact_t20.npz`, 8,001 samples; `exact_t8.npz`, 3,201).
+
+Result first, because it is the one the round was run for: **a cheap-route
+chain holds both cones over the whole horizon.**  The minimum unshifted
+retained joint Gram eigenvalue over `t<=20` is `-1.549433e-12` at
+`t=16.9575` and the minimum scaled positive-extension eigenvalue
+`-1.349691e-09` at `t=0.0375`, both at the scale of the arithmetic, against
+the shallowest constrained chain on record (the task-11 base, `-4.460e-4`
+at `11.04` and `-3.936e-5` at `9.4975`); the retained cone is held at 5,387
+of 8,001 samples and the extension cone at 5,993 (task-11 base 204 and
+1,493), and past `t=8` at 3,442 and 3,666 of 4,800, where every constrained
+chain on record violates the retained cone at all 4,800; mean negative part
+`-6.535e-15` / `-4.698e-12`.  The twin holds both to `t=8` as well
+(`-6.957e-13` / `-9.832e-08`).
+
+Negative results, which are the price.  (1) **It is the worst 27-key chain
+on record at every horizon from `t=8`**: `1.205891e-2` / `4.852761e-2` /
+`1.142902e-1` / `2.148351e-1` / `3.563862e-1` at `t=4` / `8` / `12` / `16`
+/ `20` (`t=1` `1.427025e-3`, `t=2` `3.159332e-3`, `t=6` `2.893705e-2`,
+`t=10` `7.846593e-2`), behind the same configuration with the hyperplane on
+by 1.298, 1.469, 2.815, 4.660 and 6.360, behind the ball band by 2.93 to
+3.01 at `t=12` and 4.42 to 4.68 at `t=16`, behind the recorded
+`drive_power` band at `t=20` by 3.92 to 4.18 and the `post_pulse` band by
+4.71 to 5.10, and `2.771` times the both-cones `0.128607` at `t=20`: not a
+closure there under any pairing.  At `t=4` it is still inside the recorded
+`drive_power` band `1.143e-2` to `1.292e-2` and `0.959` of cell A's
+`0.01258`, behind the task-11 four by 1.212 to 1.298.  (2) **The
+internal-energy cost over the whole horizon is 257 times, not the 24.6
+times task 12 measured over one window from a constrained state**: Eq. (22)
+internal-energy RMS `4.565370e-2` / `1.440467e-1` / `4.594017e-1` /
+`9.585083e-1` / `1.370935e+0` at the five horizons, `11.3` / `29.5` /
+`89.4` / `182.1` / `256.9` times the hyperplane-on base's and `1,459` times
+the both-cones `0.000939628` at `t=20`; the chain's own Eq. (22) internal
+energy drifts from `-3.775326553` at `t=0` to `-0.621581991` at `t=20`
+(`+3.153745`) where the constrained chains drift `+0.2095` and `+0.2106`.
+(3) **Task 12's `(4, 8]` window result does not carry to a chain run free
+from `t=0`**: the four phonon-occupation coordinates score `1.2926e-1` over
+`(4, 8]` here against `5.1131e-2` for task 12's `b_energy_none` member,
+which entered that window on the constrained chain's `t=3.92` state (2.53
+times), and `2.849` times the recorded chain's `4.5378e-2` where task 12's
+member was at `1.127`; the bias has task 12's sign (`+`, `+`, `-`) and ten
+times its size.
+
+The whole excess is the phonon-occupation block's.  That block scores
+`1.773e-2` / `9.225e-2` / `2.855e-1` / `5.547e-1` / `9.136e-1` at the five
+horizons (hyperplane on `8.425e-3` / `4.830e-2` / `6.531e-2` / `6.462e-2` /
+`5.919e-2`); per window `(0,4]` to `(16,20]` `1.7740e-2`, `1.2926e-1`,
+`4.7699e-1`, `9.9321e-1`, `1.7154e+0` against the exact reference's own RMS
+in those four coordinates `3.8315e-1`, `3.6511e-1`, `3.2926e-1`,
+`2.4762e-1`, `2.0570e-1`, so by `(16, 20]` the error is `8.34` times the
+coordinate it is an error in; the signed means there are `+2.2555`,
+`+1.6962`, `-1.8259`, `+0.5398` and at `t=20` the four coordinate errors
+are `+2.5306`, `+2.2952`, `-2.2247`, `+0.7328` against exact values
+`+0.2399`, `+0.2478`, `-0.2373`, `+0.0018`.  The 27 coordinates outside the
+block are behind the hyperplane-on chain by only 1.166 to 3.158 per window
+(2.816 over `(8, 20]`), and the site-0 occupation at `t=20` is `1.600e-1`
+in the record's `2 rho[0,0]` convention (hyperplane on `1.361e-1`, ball
+`1.624e-1`, recorded `2.252e-1`, both cones `0.205`).
+
+What removing the hyperplane returns, besides the cones: **500 accepted of
+500** re-selections (22 uncertified), no `infeasible`, no decline, no cap,
+22 solver refusals (task-11 base 484 / 16 / 117), no answer anywhere above
+`0.4` (task-11 base 15, of which 11 `infeasible`), three applied moves
+above `0.1` all in `(0, 0.16]`, frontier envelope maximum `0.4541`
+(task-11 base `0.8825`), and `3,514.0 s` to `t=20` against `5,183.6 s`,
+**32.2 percent less wall** (solves `6.19 s` mean against `8.32`, repair
+`355.5 s` against `895.4`).  The median applied frontier displacement rises
+monotonically through the quarters (`0.0030`, `0.0098`, `0.0384`, `0.0419`,
+`0.0498`) where the hyperplane-on chain's peaks at `0.0127` and falls: the
+free flow leaves the completion more to do at every quarter.  The
+two-member band is `1.206e-2` to `1.330e-2` at `t=4` (10.29 percent) and
+`4.853e-2` to `4.946e-2` at `t=8` (1.92), narrowing with the horizon rather
+than widening; the twin accepts all 200 at four times the base's solver
+refusals (72 against 17) and never separates from it by `0.1` in the 31
+coordinates over `t<=8`.
+
+The 27-key ledger row's numbers do not move at any of the five horizons ---
+this chain is behind the standing entry at every one.  What the row gains is
+the measured price of the cones: the hyperplane is the only thing standing
+between the Dykstra repair and its two targets, and buying the cones with
+it costs 6.36 times the all-coordinate score and 257 times the Eq. (22)
+internal-energy RMS at `t=20` while returning 32 percent of the wall and
+every re-selection decision.  Holding the cones and holding the energy are
+not independent settings of this route at 27 keys.  Gates: smoke gate
+records the hyperplane off; imports from the `e3374f6f` snapshot, byte-identical
+to `HEAD 45e2ac0a` and untouched by another session's `13:15` working-tree
+edit to `cheap_projection_route.py`; every
+`resumed_from`, rule, repair depth, reference mode and re-selection
+tolerance recorded; 0 constrained repairs and 0 hyperplane refusals in every
+segment; one grid (8,001 and 3,201 samples); ledgers merge to 500 and 200;
+seven sequential rollouts under `4,500 MB`, longest `1,006.2 s`, peaks `624`
+to `646 MiB`.  Artifacts:
+`paper_v_dictionary_energy_none_measured_dyk120_smoke_20260918o` and
+`paper_v_dictionary_energy_none_27key_n16_measured_dyk120_{base_seg1..4,conic1e10_seg1,conic1e10_seg2}_20260918o`
+(each with `reselections.json`); in
+`paper_v_projective_dictionary_energy_20260915e/`: `smoke_task13.sh`,
+`check_task13_smoke.py`, `queue_task13.sh`, `tabulate_task13.py`,
+`peek_task13_scale.py`, `update_plan_row_task13.py`,
+`task13_base_score_t20.json`, `task13_conic1e10_score_t8.json`,
+`tabulate_task13.log`, `smoke_task13.log`, `smoke_task13_check.log`,
+`peek_task13_scale.log`, `task13_chain.log`, `queue_task13.log`, the
+segment logs.  Plan-file row updated in place.  Next: a declared reference that is a
+slab rather than a point.  The existing `energy_tolerance` cannot supply it
+--- in `cheap_projection_route.py` it gates only whether a repair runs when
+both cones are already satisfied, and the hyperplane handed to `_dykstra` is
+still the equality `reference - energy_before`, which is why task 11
+measured a maximum deviation of `4.44e-15` at `energy_tolerance 1e-3` --- so
+the missing measurement needs the projection target to be
+`|E - reference| <= tau` with `tau` of the size of the cone violation the
+hyperplane now forces (`1e-4` to `1e-2`): a named, default-off option and a
+default-path test on the repair, outside this round's writable surface.
+Then a dictionary key whose extension row carries the phonon normal moments;
+and the three twins of the task-11 configuration from `t=8` to `t=20` for
+the `t=20` band.
