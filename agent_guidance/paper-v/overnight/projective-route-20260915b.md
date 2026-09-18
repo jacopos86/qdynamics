@@ -3998,3 +3998,400 @@ the plan-file row carries the numbers.
 | gates | smoke gate records Dykstra 120 and the radius-free rule with no cap; source tree identical to `HEAD 31136ae9`; four chains complete with recorded resumes and settings; energy held to `1.78e-15` (`4.44e-15` in the `etol1e3` twin); one grid (8,001 and 3,201 samples); ledgers merge to 500 and 200; thirteen sequential rollouts under `4,500 MB`, longest `1,006.6 s` |
 | files changed | this report (new heading), the worklog block, the plan ledger's row (in place); the task-11 scripts and outputs under `output/local_runs/` listed above.  No module; nothing committed |
 | next | the two `t = 4` to `8` reruns that locate the `(4, 8]` phonon-occupation loss; the three twins of this configuration from `t = 8` to `t = 20` for the `t = 20` band |
+
+# projective-route, task 12 (2026-09-18)
+
+Task 11 left the `(4, 8]` phonon-occupation loss of the 27-key `N = 16`
+`drive_power` energy-neutral chain undiagnosed: the four phonon-occupation
+coordinates of the anchor-free measured rule with Dykstra 120 score
+`6.7792e-02` over `(4, 8]` against the recorded `drive_power` chain's
+`4.5378e-02` (a factor `1.494`), the whole loss is in `(6, 8]`
+(`8.2784e-02` against `3.3571e-02`, `2.466`) while `(4, 6]` is ahead
+(`1.131`), it is a bias rather than a spread (per-coordinate signed mean
+errors `-7.348e-02`, `-7.436e-02`, `+7.332e-02`, `-8.343e-04` against
+per-coordinate RMS `7.788e-02`, `7.916e-02`, `7.776e-02`, `2.120e-03`), no
+Dykstra setting moves it, and every completion of the window is accepted at
+a median applied frontier displacement of `0.0093`.  This round runs the
+four `t = 4` to `8` reruns that separate the rule from the candidate test,
+from the trajectory the window is handed, and from the energy constraint,
+each resumed from a stored state and each run to `t = 8.0` in one
+`ram_guard --limit-mb 4500` segment with an `1,100 s` autonomous budget,
+one heavy process at a time, `10:47` to `11:47` on 2026-09-18 with nothing
+else heavy on the machine:
+
+- **`a_rule30_recorded`** --- task 8's rule
+  (`LiftReselectionRule(acceptance_margin=1e-3, candidates="measured",
+  anchor_weight=0)`, no trust radius) at Dykstra 30, continued from the
+  recorded `drive_power` chain's own `t = 3.96` state
+  (`..._20260915e_seg1`), which separates the rule from the trajectory it
+  inherits: everything but the rule is the recorded chain's.
+- **`a_certified_t11`** --- the task-11 base's configuration (the same rule
+  at Dykstra 120) with `certified` candidates in place of `measured`,
+  continued from the task-11 base's `t = 3.92` state
+  (`..._measured_dyk120_base_20260918m_seg1`): task 8's standing proposal.
+- **`b_energy_none`** --- the task-11 base's configuration from the same
+  `t = 3.92` state with the energy hyperplane disabled
+  (`--energy-reference-mode none`).
+- **`b_postpulse`** --- the same with the `post_pulse` reference, the
+  trajectory's own Eq. (22) internal energy at the declared drive end
+  `t = 4`, in place of `drive_power`.
+
+Both `(b)` members use only the trajectory's own state and the
+Hamiltonian's declared drive; no exact or classical quantity enters the
+propagation or the repair.  Imports are from `head_src_e3374f6f`, which
+`diff -rq` shows identical to `paper_5/src/paper5` at `HEAD c3b9de60`
+outside `__pycache__` (recorded at the smoke gate's and the queue's
+start); `run_energy_segment.py`, `run_chain.py` and `compare_chains.py` are
+task 8's unchanged; no module was edited, nothing was committed, no
+default, rule, radius, Dykstra count or ladder changed.  Configuration and
+conventions are task 11's: 27 active keys, 56 state coordinates, 36
+positive-extension rows, 70 standardized frontier coordinates, strong
+coupling, cutoff 16, exact-correlated preparation at the declared ladder's
+first rung, SSPRK(3,3) at `h = 0.0025`, Dykstra on both targets at stage
+cadence, the declared proximal log-det completion re-solved every 16 steps
+warm-started on the carried frontier, the energy-neutral repair in each
+member's own mode with each chain's own declared reference; a window score
+`(a, b]` is the all-coordinate scalar RMS of the 31 closed scalar
+coordinates over the samples in that interval against the exact cutoff-16
+driven reference on one grid (`exact_t8.npz`, 3,201 samples), with the same
+restricted to the four phonon-occupation coordinates and to the 27 outside
+them; the Eq. (22) internal-energy RMS is over the same samples; the
+physicality minima are the sampled (post-repair) minimum unshifted retained
+joint Gram eigenvalue and minimum scaled positive-extension eigenvalue over
+the window.
+
+## Negative results first
+
+**The energy constraint is not the cause the question supposed, and its
+reference's offset accounts for none of the bias.**  The `post_pulse`
+reference sits `+1.345e-02` above the exact post-pulse energy
+`-3.571397982`, `2.40` times the `drive_power` reference's `+5.614e-03`,
+and it gives a *smaller* phonon-occupation bias of the *same* sign
+(per-coordinate signed means `-5.959e-02`, `-6.267e-02`, `+6.066e-02`,
+`-6.917e-04`, that is `0.81` to `0.84` of the task-11 base's), and the
+recorded chain, whose reference sits `+6.710e-03` above --- `1.20` times
+the base's --- carries the smallest bias of all (`-4.963e-02`,
+`-5.219e-02`, `+4.649e-02`).  The offset sets the Eq. (22) internal-energy
+RMS exactly and nothing else: every chain's window energy RMS equals its
+own offset to four digits (`5.6148e-03`, `1.3448e-02`, `6.7113e-03` against
+offsets `5.614e-03`, `1.345e-02`, `6.710e-03`).
+
+**The loss is not what the window's re-selections do.**  The quietest
+window on record --- the task-11 base's 100 accepted completions at a
+maximum applied frontier displacement of `0.0145` --- carries the largest
+loss (`1.494`), while the window with two whole-face answers applied above
+`1.0` (`1.0492` at `t = 6.72`, `1.0769` at `6.80`), 14 `infeasible`
+decisions and 16 answers above `0.4` --- task 8's rule on the recorded
+chain's trajectory --- carries `1.149`.  The candidate test moves 1.7
+percent: `certified` candidates in place of `measured`, from the same
+stored state, score `6.6652e-02` against the base's `6.7792e-02` (`0.983`),
+refusing 11 of 100 completions whose answers were `0.0067` to `0.0119`.
+
+**Disabling the hyperplane does not recover the recorded chain's block; it
+reverses the bias and costs 24.6 times in internal energy.**  With the
+energy hyperplane off the four phonon-occupation coordinates score
+`5.1131e-02` over `(4, 8]` --- still `1.127` times the recorded chain's ---
+the per-coordinate signed means flip to `+5.106e-02`, `+2.322e-02`,
+`-3.612e-02`, `+1.546e-03`, the share of the error carried in the mean
+falls from `0.94` to `0.55`--`0.69`, and the Eq. (22) internal-energy RMS
+rises from `5.6148e-03` to `1.3790e-01` (signed mean `+1.225e-01`), for an
+all-coordinate window score of `4.4003e-02` against `4.5803e-02`, a gain of
+4 percent.
+
+## The window, chain by chain
+
+Window scores over `(4, 8]`, 1,600 samples each; the four reruns above the
+line's four comparators (the task-11 base, task 8's Dykstra-30 base, the
+ball base and the recorded `drive_power` chain, each restricted to the same
+window).
+
+| chain | all 31 | the four phonon-occupation coordinates | the 27 outside them | Eq. (22) internal-energy RMS | declared reference, offset above the exact post-pulse energy |
+|---|---|---|---|---|---|
+| `a_rule30_recorded` | `3.443386e-02` | `5.213841e-02` | `3.096160e-02` | `6.711284e-03` | `-3.5646877687792142`, `+6.710e-03` |
+| `a_certified_t11` | `4.444605e-02` | `6.665237e-02` | `4.012427e-02` | `5.614777e-03` | `-3.5657840615237975`, `+5.614e-03` |
+| `b_energy_none` | `4.400348e-02` | `5.113077e-02` | `4.284687e-02` | `1.379031e-01` | none declared |
+| `b_postpulse` | `4.526223e-02` | `5.678120e-02` | `4.329585e-02` | `1.344759e-02` | `-3.5579513738906527`, `+1.345e-02` |
+| task-11 base | `4.580275e-02` | `6.779204e-02` | `4.156727e-02` | `5.614762e-03` | `-3.565784077173663`, `+5.614e-03` |
+| task 8's base, Dykstra 30 | `4.387146e-02` | `6.690088e-02` | `3.932907e-02` | `5.507911e-03` | `-3.5658908873520327`, `+5.507e-03` |
+| ball base | `4.376593e-02` | `6.809719e-02` | `3.888741e-02` | `6.164452e-03` | `-3.5652343570276206`, `+6.164e-03` |
+| recorded `drive_power` | `3.485069e-02` | `4.537824e-02` | `3.300670e-02` | `6.711294e-03` | `-3.5646877626844815`, `+6.710e-03` |
+
+The two halves of the window, the four phonon-occupation coordinates, with
+the ratio to the recorded chain in the same half:
+
+| chain | `(4, 6]` | ratio | `(6, 8]` | ratio |
+|---|---|---|---|---|
+| `a_rule30_recorded` | `5.406841e-02` | `0.989` | `5.013417e-02` | `1.493` |
+| `a_certified_t11` | `5.066865e-02` | `0.926` | `7.948436e-02` | `2.368` |
+| `b_energy_none` | `1.543374e-02` | `0.282` | `7.064356e-02` | `2.104` |
+| `b_postpulse` | `4.037620e-02` | `0.738` | `6.941162e-02` | `2.068` |
+| task-11 base | `4.835703e-02` | `0.884` | `8.278358e-02` | `2.466` |
+| task 8's base | `5.226779e-02` | `0.956` | `7.886402e-02` | `2.349` |
+| ball base | `5.226938e-02` | `0.956` | `8.088489e-02` | `2.409` |
+| recorded `drive_power` | `5.469327e-02` | --- | `3.357107e-02` | --- |
+
+Per-coordinate signed mean error of the four phonon-occupation coordinates
+over `(4, 8]`, in the order `phonon_density[0,0]`, `phonon_density[1,1]`,
+`phonon_density[0,1]` real, `phonon_density[0,1]` imaginary:
+
+| chain | signed means | per-coordinate RMS |
+|---|---|---|
+| `a_rule30_recorded` | `-5.8862e-02` `-6.1086e-02` `+5.6317e-02` `+1.1381e-03` | `6.0299e-02` `6.2490e-02` `5.7665e-02` `2.7126e-03` |
+| `a_certified_t11` | `-7.3374e-02` `-7.3645e-02` `+7.2838e-02` `-4.9878e-04` | `7.6872e-02` `7.7594e-02` `7.6393e-02` `2.0482e-03` |
+| `b_energy_none` | `+5.1064e-02` `+2.3216e-02` `-3.6120e-02` `+1.5460e-03` | `7.3584e-02` `4.2150e-02` `5.6618e-02` `7.7834e-03` |
+| `b_postpulse` | `-5.9589e-02` `-6.2672e-02` `+6.0656e-02` `-6.9167e-04` | `6.3589e-02` `6.7882e-02` `6.5118e-02` `2.1244e-03` |
+| task-11 base | `-7.3478e-02` `-7.4356e-02` `+7.3318e-02` `-8.3428e-04` | `7.7883e-02` `7.9161e-02` `7.7758e-02` `2.1196e-03` |
+| recorded `drive_power` | `-4.9625e-02` `-5.2193e-02` `+4.6489e-02` `+1.1018e-03` | `5.2253e-02` `5.5050e-02` `4.9691e-02` `2.5894e-03` |
+
+The physicality minima over the window and the decisions of its 100
+re-selections:
+
+| chain | retained joint Gram | extension | decisions | solver refusals | applied frontier displacement, median / maximum | answers above `0.4` |
+|---|---|---|---|---|---|---|
+| `a_rule30_recorded` | `-1.792e-03` | `-1.806e-04` | 86 accepted, 14 `infeasible` | 33 | `0.0100` / `1.0769` | 16 |
+| `a_certified_t11` | `-2.401e-04` | `-2.413e-05` | 89 accepted, 11 refused | 11 | `0.0096` / `0.0197` | 0 |
+| `b_energy_none` | `-1.666e-12` | `-1.498e-09` | 100 accepted | 3 | `0.0116` / `0.0197` | 0 |
+| `b_postpulse` | `-8.560e-05` | `-8.400e-06` | 100 accepted | 11 | `0.0094` / `0.0148` | 0 |
+| task-11 base | `-2.096e-04` | `-2.138e-05` | 100 accepted | 10 | `0.0093` / `0.0145` | 0 |
+| task 8's base | `-1.301e-03` | `-1.404e-04` | 98 accepted, 2 `infeasible` | 17 | `0.0096` / `0.9565` | 4 |
+| ball base | `-1.298e-03` | `-1.369e-04` | 98 accepted, 2 `infeasible` | 20 | `0.0095` / `0.0319` | 2 |
+
+## (a) What the window is handed, and what it does with it
+
+The window's score is set less by the rule acting inside it than by the
+state the window starts from.  The four phonon-occupation coordinates'
+block RMS at `t = 4` and at `t = 8`, and the factor between them:
+
+| chain | at `t = 4` | at `t = 8` | factor |
+|---|---|---|---|
+| recorded `drive_power` | `2.8916e-02` | `3.0562e-02` | `1.06` |
+| `a_rule30_recorded` | `2.8916e-02` (the same state) | `4.6569e-02` | `1.61` |
+| task 8's base, Dykstra 30 | `2.2021e-02` | `9.2727e-02` | `4.21` |
+| ball base | `2.3268e-02` | `9.5453e-02` | `4.10` |
+| `a_certified_t11` | `2.0403e-02` | `9.5412e-02` | `4.68` |
+| task-11 base | `2.0471e-02` | `1.0302e-01` | `5.03` |
+| `b_postpulse` | `1.5670e-02` | `8.9373e-02` | `5.70` |
+| `b_energy_none` | `1.5670e-02` | `1.1908e-01` | `7.60` |
+
+Task 8's rule and the recorded chain's earlier form enter `t = 4` on the
+identical state (`2.8916e-02`, signed errors `-3.3954e-02`, `-3.3537e-02`,
+`+3.2623e-02`, `-1.6111e-03`) and leave `t = 8` at `4.6569e-02` against
+`3.0562e-02`: over `(4, 8]` the rule alone multiplies the block score by
+`1.149` and the growth factor by `1.52`.  That is 1.149 of the 1.494 the
+task-11 base carries; the remaining `1.300` is the state the window is
+handed --- and that state is the *more* accurate of the two in this block
+(`2.0471e-02` against `2.8916e-02`, `0.71`).  So the rule's action over
+`t <= 4` buys a better phonon-occupation block at `t = 4` and a worse one
+at `t = 8`, and the `(6, 8]` growth, not the entering error, is where the
+row is lost.  The candidate test is not implicated: `certified` candidates
+refuse 11 of the window's 100 completions, on answers of `0.0067` to
+`0.0119` whose scaled minimum eigenvalue was `1.1e-05` to `1.0e-03`, and
+move the block score by 1.7 percent (`6.6652e-02` against `6.7792e-02`) and
+the all-coordinate score by 3.0 percent (`4.4446e-02` against
+`4.5803e-02`).
+
+Task 8's rule on the recorded chain's trajectory is not a quiet window:
+14 `infeasible` decisions on answers of `0.5582` to `1.4108` (one diverged
+at 245 iterations at `t = 5.68`), two whole-face answers accepted and
+applied whole (`1.0492` at `t = 6.72`, uncertified, scaled minimum
+eigenvalue `1.338e-08`; `1.0769` at `6.80`, certified, `1.853e-05`) and 33
+solver refusals, against the task-11 base's 100 accepted at a maximum of
+`0.0145` and 10 refusals.  Its window score is nevertheless the better of
+the two in every block: all 31 `3.443386e-02` against `4.580275e-02`, the
+phonon-occupation four `5.213841e-02` against `6.779204e-02`, the 27
+outside `3.096160e-02` against `4.156727e-02`.
+
+## (b) The energy constraint
+
+The two `(b)` members are one chain until `t = 4` --- the `post_pulse`
+constraint is off before the declared drive end --- and their shared state
+at `t = 4` carries a phonon-occupation block RMS of `1.5670e-02` against
+the task-11 base's `2.0471e-02`: removing the hyperplane over the `0.08`
+units from the stored state to the drive end already takes 23 percent off
+the block's error, which is the constraint acting against this block rather
+than for it.
+
+From `t = 4` on they part.  The `post_pulse` member holds the energy at the
+trajectory's own drive-end value, `-3.5579513738906527`, which lies
+`+1.345e-02` above the exact post-pulse energy; the maximum deviation from
+it is `1.78e-15` over 4,795 constrained repairs with 0 hyperplane refusals.
+Its window scores are `4.526223e-02` all 31, `5.678120e-02` on the four
+phonon-occupation coordinates (`0.838` of the base's, `1.251` of the
+recorded chain's), `4.329585e-02` on the 27 outside, and its Eq. (22)
+internal-energy RMS is `1.344759e-02`, its own reference's offset.  The
+bias survives with the same sign at `0.81` to `0.84` of the base's
+magnitude.
+
+The `none` member applies no hyperplane (0 constrained repairs, the
+declared reference absent).  Its window scores are `4.400348e-02` all 31
+(`0.961` of the base's), `5.113077e-02` on the four phonon-occupation
+coordinates (`0.754` of the base's, `1.127` of the recorded chain's) and
+`4.284687e-02` on the 27 outside (`1.031`, so the gain is the
+phonon-occupation block's alone and the rest is worse), with the `A` block
+at `7.193e-02` against the base's `5.966e-02`.  Its Eq. (22)
+internal-energy RMS is `1.379031e-01`, `24.6` times the base's, with signed
+mean `+1.225e-01`: the free flow's energy runs high, and so do its phonon
+occupations (`+5.106e-02`, `+2.322e-02` on the two diagonal coordinates),
+where the constrained flow's run low.  So the hyperplane sets the bias's
+*sign* --- it is the one setting measured that reverses it --- and it is
+trading the internal-energy error against the phonon-occupation error, but
+it does not account for the loss: with the constraint gone the block is
+still `1.127` times the recorded chain's over `(4, 8]` and `2.104` times it
+over `(6, 8]`, and the reference's offset, which does set the
+internal-energy RMS to four digits, is uncorrelated with the bias's size
+across the three references measured on this trajectory (`+5.614e-03` →
+`7.35e-02`; `+6.710e-03` → `4.96e-02`; `+1.345e-02` → `5.96e-02`).
+
+One quantity the hyperplane does own outright is the cones.  With it off
+the Dykstra repair reaches both over the whole window: the minimum
+unshifted retained joint Gram eigenvalue is `-1.666e-12` and the minimum
+scaled positive-extension eigenvalue `-1.498e-09`, against the task-11
+base's `-2.096e-04` / `-2.138e-05`, the `post_pulse` member's `-8.560e-05`
+/ `-8.400e-06` and the recorded chain's `-2.152e-03` / `-1.922e-04`.  It
+also costs: the repair takes `68.9 s` of the `none` member's `722.3 s`
+segment against `180.5 s` of the `post_pulse` member's `890.5 s` and
+`187.3 s` of `a_certified_t11`'s `915.9 s`, so the hyperplane is `2.6` to
+`2.7` times the repair time and 23 percent of the segment's wall.
+
+## (c) The bias and what the positive extension sees
+
+The scaled positive-extension matrix is affine in the state coordinates
+(the route verifies it at construction), so the derivative the probe
+measured at the prepared state is the derivative at every state of the
+window, and `extension_sensitivity_27key.json` applies here unchanged.  For
+the four raw moment coordinates the phonon-occupation block is built from
+--- `phonon_density = raw_normal - outer(coherent, coherent*)`, so closed
+scalar coordinates 7 to 10 are raw coordinates 7 to 10 shifted by the
+coherent displacement:
+
+| closed scalar coordinate | raw moment coordinate | Frobenius norm of the extension's derivative | as a fraction of the three electronic Bloch coordinates' (`4.6915`, `4.4729`, `4.6915`) | the retained Gram's derivative | the task-11 base's signed mean over `(4, 8]` | the exact coordinate's own RMS over `(4, 8]` | error / it |
+|---|---|---|---|---|---|---|---|
+| `phonon_density[0,0]` | `raw_normal_00` | `0.146282` | 3.1 to 3.3 percent | `1.414214` | `-7.348e-02` | `4.2174e-01` | `0.185` |
+| `phonon_density[1,1]` | `raw_normal_11` | `0.146282` | 3.1 to 3.3 percent | `1.414214` | `-7.436e-02` | `4.2180e-01` | `0.188` |
+| `phonon_density[0,1]` real | `raw_normal_01_real` | `0.292565` | 6.2 to 6.5 percent | `2.000000` | `+7.332e-02` | `4.2124e-01` | `0.185` |
+| `phonon_density[0,1]` imaginary | `raw_normal_01_imag` | `0.000000` | 0 | `2.000000` | `-8.343e-04` | `8.4742e-04` | `2.501` |
+
+Plainly: **the three coordinates that carry the whole bias are the three
+the extension sees weakly, at 3.1 to 6.5 percent of what it sees of the
+electronic Bloch coordinates, and the fourth --- the one the extension does
+not see at all --- carries no bias in absolute terms only because the exact
+coordinate is itself 500 times smaller.**  Measured against its own size
+that fourth coordinate is the worst-tracked of the four by a factor 13.5
+(`2.501` against `0.185` to `0.188`), and it is the one coordinate of the
+31 on which the positive extension can place no constraint whatever.  So
+the correct reading is not that the bias is confined to the weakly-seen
+coordinates and spares a well-seen one: all four phonon normal coordinates
+are weakly seen or unseen, the block's absolute error is set by the three
+whose exact values are of order `0.42`, and the extension is not
+constraining this block at all --- the retained Gram, which sees all 29 raw
+coordinates within a factor `1.41` (`1.414214` to `2.000000`), is the only
+cone that touches it, and it is violated at every sample of every
+constrained chain.
+
+What this implies for the dictionary is measured, not inferred.  Enlarging
+from the 15-key dictionary (24 extension rows) to the 27-key one (36 rows)
+raised the extension's derivative with respect to the three coordinates by
+a factor `1.394` --- `0.104966` to `0.146282` and `0.209933` to `0.292565`,
+that is 2.2--4.7 percent of the Bloch coordinates' to 3.1--6.5 percent ---
+and left `raw_normal_01_imag` at exactly zero at both sizes, while the
+record's task-11 measurement is that the phonon-occupation block is worse
+at 27 keys than at 15.  Adding more keys of the entrance kind therefore
+buys a `1.4` factor of visibility on three of the four coordinates, none on
+the fourth, and no improvement in the block: the dictionary needs a key
+whose extension row carries the phonon normal moments --- in particular one
+that sees `raw_normal_01_imag` at all --- rather than more of the same.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the smoke gate records the four members | `t = 3.92` (or `3.96`) to `4.08` under each member's flags: `summary.json` records the resumed time, `dykstra_iterations` `30` / `120` / `120` / `120`, `energy_reference_mode` `drive_power` / `drive_power` / `none` / `post_pulse`, the rule `{anchor_weight 0.0, trust_radius None, trust_policy carried, acceptance_margin 0.001, candidates measured|certified}`, a declared reference in the three constrained members and none in `b_energy_none`, and 0 hyperplane refusals throughout; `SMOKE PASSED` |
+| the source tree is HEAD's | `diff -rq head_src_e3374f6f/paper5 paper_5/src/paper5 -x __pycache__` empty against `HEAD c3b9de60`, recorded at the smoke gate's and the queue's start |
+| each rerun continues the stored state | every `summary.json` records its `resumed_from`; `a_rule30_recorded` resumes the recorded chain's `seg1` at `t = 3.9600` and the other three the task-11 base's `seg1` at `t = 3.9200`; each reaches `t = 8.0` with `completed` and exit `0` in one segment (1,616 or 1,632 steps) |
+| the re-declared reference is the chain's own | `a_rule30_recorded`'s `drive_power` reference `-3.5646877687792142` agrees with the recorded chain's `seg2` reference `-3.564687762684483` to `6.1e-09`; `a_certified_t11`'s `-3.5657840615237975` agrees with the task-11 base's `seg2` reference `-3.565784077173663` to `1.6e-08` |
+| the energy is held where it is declared | maximum deviation from the declared reference `2.22e-15` (`a_rule30_recorded`, 4,848 constrained repairs), `1.33e-15` (`a_certified_t11`, 4,866), `1.78e-15` (`b_postpulse`, 4,795), 0 hyperplane refusals in all three; `b_energy_none` records 0 constrained repairs and no declared reference |
+| the two `(b)` members agree before the drive end | identical closed scalar coordinates at `t = 4.0` (signed phonon-occupation errors `-1.9517e-02`, `-1.6462e-02`, `+1.8080e-02`, `-1.8448e-03` in both), as the `post_pulse` constraint's being off before `t = 4` requires |
+| one grid | `tabulate_task12.py` asserts the `exact_t8.npz` grid against every chain's sample times to `1e-12`; 1,600 samples in `(4, 8]` for every chain |
+| the ledgers merge | 100 re-selections in `(4, 8]` for every chain carrying a ledger; the recorded chain was run without `--record-reselections` and carries none |
+| one heavy process at a time, under 20 minutes | four smoke segments and four full segments under `ram_guard --limit-mb 4500`, sequential, `10:47` to `11:47`; longest `929.7 s` plus `19 s` of build; peaks `622` to `653 MiB`; tabulation under `--limit-mb 2500`, arrays only |
+
+## The 27-key ledger row after task 12
+
+Nothing in the row moves: no rerun is a chain from `t = 0` and none
+produces a horizon score.  What task 12 adds to the row is the loss's
+attribution --- the rule's action over `t <= 4`, not the window's
+re-selections, not the candidate test, and not the energy reference's
+offset --- and one new fact about the repair: the energy hyperplane is why
+the Dykstra repair cannot reach the cones (with it off, `-1.7e-12` and
+`-1.5e-09` over `(4, 8]`, against `-2.1e-04` and `-2.1e-05` with it on),
+at 23 percent of the segment's wall and 24.6 times the Eq. (22)
+internal-energy RMS.
+
+## Provenance
+
+- Eight rollouts under `pipelines/shell/ram_guard.py --limit-mb 4500`, one
+  at a time, `10:47` to `11:47` on 2026-09-18: the four smoke segments
+  `paper_v_dictionary_energy_window48_27key_n16_task12_smoke_{a_rule30_recorded,a_certified_t11,b_energy_none,b_postpulse}_20260918n`
+  and the four full segments
+  `paper_v_dictionary_energy_window48_27key_n16_task12_{a_rule30_recorded,a_certified_t11,b_energy_none,b_postpulse}_20260918n_seg1`,
+  each with `reselections.json`.  Tabulation under `--limit-mb 2500`,
+  arrays only.
+- Scripts under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `smoke_task12.sh` and `check_task12_smoke.py`, `queue_task12.sh` (the
+  four members in order), `tabulate_task12.py` (segments and declared
+  references, the window scores by block, the phonon-occupation block
+  coordinate by coordinate, the ratios against the recorded chain and the
+  task-11 base, the window's decisions, the exact coordinates' own sizes,
+  and the bias beside the extension's measured sensitivity),
+  `peek_task12_states.py`, `peek_task12_resume.py`, `peek_task12_walls.py`,
+  `peek_task12_decisions.py`, `peek_task12_entry.py`.  Outputs:
+  `tabulate_task12.log`, `smoke_task12.log`, `smoke_task12_check.log`,
+  `peek_task12_states.log`, `peek_task12_walls.log`,
+  `peek_task12_decisions.log`, `peek_task12_entry.log`,
+  `task12_chain.log`, `queue_task12.log`, the segment logs
+  `task12_{a_rule30_recorded,a_certified_t11,b_energy_none,b_postpulse}_seg1.log`.
+- No module was edited, nothing was committed, no default, rule, radius,
+  Dykstra count, reference mode or ladder changed; tasks 8 to 11's and the
+  recorded chains' artifacts are untouched.  Wall times were measured with
+  nothing else heavy on the machine.  The worklog carries a matching block;
+  the plan-file row was updated in place.
+
+## What to try next, in order
+
+1. **The energy hyperplane's cost in the cones, measured from `t = 0` to
+   `t = 20`** (one chain, about 80 minutes): the task-11 configuration with
+   `--energy-reference-mode none`, which this round shows reaches both
+   cones to `1e-12` and `1e-09` over `(4, 8]` where every constrained chain
+   on record violates the retained cone at every sample.  That is the first
+   27-key chain that would hold the cones, and the question it answers is
+   what the all-coordinate score and the Eq. (22) internal-energy RMS are
+   at `t = 20` when the constraint that has held the energy to its
+   reference in every chain since task 3 is removed.
+2. **A dictionary key that the positive extension sees the phonon normal
+   moments through**, in particular `raw_normal_01_imag`, whose extension
+   derivative is exactly zero at both 15 and 27 keys: the block's error is
+   `0.185` of the exact coordinates' own size on three coordinates and
+   `2.50` on the fourth, and enlarging the entrance dictionary raised the
+   extension's visibility of the three by only `1.394` while making the
+   block worse.
+3. **The three twins of the task-11 configuration from `t = 8` to
+   `t = 20`** (three chains, about 50 minutes each), still standing from
+   task 11, to give the `t = 20` row's `5.60e-2` a band.
+
+## Structured summary of task 12
+
+| item | value |
+|---|---|
+| the four reruns | each resumed from a stored state and run to `t = 8.0` in one segment: `a_rule30_recorded` (task 8's rule at Dykstra 30 from the recorded `drive_power` chain's `t = 3.96` state, 1,616 steps, `929.7 s`), `a_certified_t11` (the task-11 base's configuration with `certified` candidates from its `t = 3.92` state, 1,632 steps, `915.9 s`), `b_energy_none` (the same with the energy hyperplane disabled, `722.3 s`), `b_postpulse` (the same with the `post_pulse` reference, `890.5 s`); 27 keys, `N = 16`, `e3374f6f` tree identical to `HEAD c3b9de60`; peaks `622` to `653 MiB` |
+| (a) does the loss follow the rule? | partly: from the recorded chain's own `t = 3.96` state, task 8's rule scores `5.213841e-02` on the four phonon-occupation coordinates over `(4, 8]` against the recorded chain's `4.537824e-02` (`1.149`) and the task-11 base's `6.779204e-02` (`0.769`), with `(6, 8]` `5.013417e-02` against `3.357107e-02` (`1.493`) where the base is at `2.466`; signed means `-5.886e-02`, `-6.109e-02`, `+5.632e-02`, `+1.138e-03`; so `1.149` of the `1.494` is the rule acting inside the window and `1.300` is the state the window is handed |
+| (a) does it follow the candidate test? | no: `certified` candidates from the task-11 base's state score `6.665237e-02` against the base's `6.779204e-02` (`0.983`) and `4.444605e-02` against `4.580275e-02` on all 31 (`0.970`), refusing 11 of 100 completions whose answers were `0.0067` to `0.0119`; signed means `-7.337e-02`, `-7.365e-02`, `+7.284e-02`, `-4.988e-04`, the base's to 0.5 percent |
+| (a) does it follow the trajectory? | yes, and through the entering state's history rather than its error: the recorded chain and task 8's rule enter `t = 4` on the identical state (phonon-occupation block RMS `2.8916e-02`) and leave `t = 8` at `3.0562e-02` and `4.6569e-02` (growth `1.06` against `1.61`), while the task-11 base enters the window with the smallest block error of any chain (`2.0471e-02`, `0.71` of the recorded chain's) and leaves with the largest (`1.0302e-01`, growth `5.03`); the quietest window (100 accepted, maximum applied `0.0145`) carries the largest loss and the window with two applied whole-face answers above `1.0` carries the smallest |
+| (b) the hyperplane disabled | the four phonon-occupation coordinates `5.113077e-02` over `(4, 8]` (`0.754` of the base's, `1.127` of the recorded chain's; `(4, 6]` `1.543374e-02`, `0.282` of the recorded chain's; `(6, 8]` `7.064356e-02`, `2.104`), signed means `+5.106e-02`, `+2.322e-02`, `-3.612e-02`, `+1.546e-03` --- the bias reverses sign and its share of the error falls from `0.94` to `0.55`--`0.69`; Eq. (22) internal-energy RMS `1.379031e-01` (`24.6` times the base's, signed mean `+1.225e-01`); all 31 `4.400348e-02` (`0.961`) with the 27 outside the block worse (`1.031`); both cones reached, retained `-1.666e-12` and extension `-1.498e-09` against the base's `-2.096e-04` / `-2.138e-05`; repair `68.9 s` of `722.3 s` against `180.5 s` of `890.5 s` |
+| (b) the `post_pulse` reference | reference `-3.5579513738906527`, `+1.345e-02` above the exact post-pulse energy `-3.571397982` and `2.40` times the `drive_power` offset, held to `1.78e-15` over 4,795 constrained repairs; the four phonon-occupation coordinates `5.678120e-02` (`0.838` of the base's, `1.251` of the recorded chain's), signed means `-5.959e-02`, `-6.267e-02`, `+6.066e-02`, `-6.917e-04` (the base's sign at `0.81` to `0.84`); Eq. (22) internal-energy RMS `1.344759e-02`, its own offset; all 31 `4.526223e-02` (`0.988`); cones `-8.560e-05` / `-8.400e-06` |
+| (b) does the reference's offset account for the bias? | no: across the three references measured on this trajectory the bias moves opposite to the offset --- `+5.614e-03` gives `-7.35e-02`, `+6.710e-03` gives `-4.96e-02`, `+1.345e-02` gives `-5.96e-02` --- while each chain's window Eq. (22) internal-energy RMS equals its own offset to four digits; the hyperplane sets the bias's sign (it is the one setting that reverses it) and not its size, and with it gone the block is still `1.127` times the recorded chain's over `(4, 8]` |
+| (c) the bias against the extension's sensitivity | the extension matrix is affine in the state, so the probe's derivative holds over the window: `raw_normal_00` and `raw_normal_11` `0.146282` (3.1 to 3.3 percent of the electronic Bloch coordinates' `4.4729` to `4.6915`), `raw_normal_01_real` `0.292565` (6.2 to 6.5 percent), `raw_normal_01_imag` exactly `0`; the three biased coordinates are the weakly-seen ones, and the unbiased fourth is the unseen one --- small in absolute terms only because the exact coordinate's own RMS over `(4, 8]` is `8.4742e-04` against the others' `0.4212` to `0.4218`, so relative to its own size its error is `2.501` against `0.185` to `0.188`, the worst-tracked of the four by `13.5`; all four are weakly seen or unseen and the retained Gram, which sees all 29 raw coordinates within a factor `1.41`, is the only cone touching the block |
+| (c) what it implies for the dictionary | 15 to 27 keys (24 to 36 extension rows) raised the extension's derivative with respect to the three coordinates by `1.394` (`0.104966` to `0.146282`; `0.209933` to `0.292565`) and left `raw_normal_01_imag` at exactly zero at both sizes, while the block is worse at 27 keys: more entrance keys buy visibility of the three and none of the fourth, so the dictionary needs a key whose extension row carries the phonon normal moments rather than more of the same |
+| the ledger row | unchanged; no rerun is a chain from `t = 0` and none produces a horizon score.  What is added is the attribution and one new fact about the repair: the energy hyperplane is why the Dykstra repair cannot reach the cones |
+| gates | smoke gate records each member's flags; source tree identical to `HEAD c3b9de60`; every `resumed_from` recorded; the re-declared references agree with the parent chains' to `6.1e-09` and `1.6e-08`; the energy held to `2.22e-15` where declared and 0 constrained repairs where disabled; the two `(b)` members identical at `t = 4`; one grid (1,600 samples in `(4, 8]`); 100 re-selections per window; eight sequential rollouts under `4,500 MB`, longest `929.7 s` |
+| files changed | this report (new heading), the worklog block, the plan ledger's row (in place); the task-12 scripts and outputs under `output/local_runs/` listed above.  No module; nothing committed |
+| next | the task-11 configuration with the hyperplane disabled from `t = 0` to `t = 20` (the first 27-key chain that would hold both cones); a dictionary key the extension sees the phonon normal moments through; the three twins of the task-11 configuration from `t = 8` to `t = 20` for the `t = 20` band |
