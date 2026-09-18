@@ -4478,3 +4478,408 @@ against `0.021`.  The in-rollout displacement per step over the window is
 | the ledger row | unchanged; the banded chain is behind the standing entry at `t = 4` and `t = 8` on all 31 coordinates |
 | files changed | the module, the analysis driver, the tests (five added, 53 pass); under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/` the probe's `--energy-band`, two tabulation scripts, two gate scripts, the queue script, the two run drivers' flag, and the outputs listed above.  `projected_apcm.py`, `apcm_projective_event_guard_analysis.py`, `apcm_carried_witness*.py`, `cone_correction.py` and `matrix_reference.py` untouched; nothing committed |
 | next | record the Eq. (22) offset each repair actually sees in the rollout (a declared, default-off counter), size a band from that distribution, and run one `t = 0` to `8` chain at it |
+
+
+# Whether the repair's displacement of the relative-mode population is the closure's own Eq. (22) energy drift, carried at the measured exchange rate: measured on both chains and refuted (2026-09-18)
+
+The band round ended on one instruction: *record the Eq. (22) offset each
+repair actually sees in the rollout*.  The identity that instruction was
+pointing at, and that this round was asked to test, is
+
+    the energy-neutral Dykstra repair's displacement of the relative-mode
+    population per step is set by how much Eq. (22) internal energy the
+    closure's own flow loses or gains against the declared reference over
+    that step, divided by the measured exchange rate of one unit of
+    coordinate per unit of Eq. (22) energy,
+
+which if it held would close this line of work: no repair-side change could
+reduce the displacement and the remedy would lie in the closure.
+
+It does not hold, and it fails for a reason that also closes the line, in the
+other direction.  The closure's own flow has no Eq. (22) energy drift to lose
+or gain.  Over the whole window and on both chains the repair is asked to move
+no energy at any stage, and every unit of the coordinate it displaces is paid
+for annulling energy that the *cone projections themselves* open inside the
+alternation.
+
+Configuration and conventions are tasks 11's and 12's: 27 active keys
+(`entrance15_plus_two_spin_boson`), 56 propagated state coordinates, 70
+standardized frontier coordinates, 36 positive-extension rows, 8 retained
+rows, `N = 16`, strong coupling, cutoff 16, the exact-correlated preparation
+at the declared ladder's first rung, time step `0.0025`, `policy="dykstra"`,
+`cadence="stage"`, `target="both"`, `eigenvalue_floor`, `repair_tolerance` and
+`energy_tolerance` all `0`, `energy_reference_mode="drive_power"`,
+`energy_reference_band` `0.0` (the declared equality),
+`raw_coordinate_motion_scales` empty, `dykstra_iterations` 120 on the task-11
+base and 30 on the recorded `drive_power` chain, 800 declared steps in
+`(6, 8]` per chain after duplicate resume times are dropped, stride 1.  The
+quantity throughout is the relative-mode population
+`(phonon[0,0] + phonon[1,1]) / 2 - Re phonon[0,1]` of the centred phonon
+density, read through the chart the scorer uses.  The exact trajectory is
+never read in this round.  No module was edited, nothing was propagated beyond
+one declared step from each stored sample, no lift was re-selected, no
+completion was solved, nothing was committed, and no default, rule, radius,
+Dykstra count, reference mode, band or ladder changed.
+
+## Negative results first
+
+**The identity is refuted by eleven to twelve orders of magnitude, because
+the quantity it names is zero.**  Propagating each stored sample of `(6, 8]`
+by one declared SSPRK(3,3) step with the repair disabled, the Eq. (22)
+internal energy the closure's own velocity produces over that step is
+`1.783386e-12` per step in mean absolute value on the task-11 base, and the
+declared `drive_power` reference the rollout advanced over the same step
+changes by `1.783207e-12`: the two agree to `4.091172e-16` per step in mean
+absolute value, maximum `1.776357e-15`.  The recorded `drive_power` chain
+reads `2.049781e-12`, `2.049630e-12` and `4.890532e-16`, maximum
+`2.220446e-15`.  That residual is the arithmetic's own floor on a quantity of
+order `0.04`.  The energy the chain's own repair then actually supplied over
+the step --- the stored next sample's Eq. (22) energy less the unrepaired
+step's --- is `6.145084e-16` and `6.211698e-16` per step, so the displacement
+the exchange rate predicts is `6.202037e-16` and `2.785760e-16` against a
+measured displacement of `1.989131e-04` and `3.825613e-04`: ratios of
+`3.207222e+11` and `1.373274e+12`, at correlations `+0.118448` and
+`+0.045096` and a fitted slope that explains `-0.116248` and `-0.021179` of
+the measured variance, that is none of it.
+
+**The reason is a conservation law of the closure, measured here for the first
+time.**  The declared `drive_power` reference advances by
+`gradient . (velocity at this time - velocity at t = 0)`.  Its exactness needs
+`gradient . velocity(0, x, f)` to vanish, and it does: the closure's own
+drive-free velocity changes the Eq. (22) internal energy at
+`4.352421e-17` per unit time in mean absolute value on the base and
+`5.805252e-17` on the recorded chain, maxima `2.775558e-16` and
+`3.330669e-16`, at every one of the 800 stored samples of the window.  So the
+closure's unrepaired flow carries the Eq. (22) internal energy exactly along
+the declared reference, and the hyperplane has nothing to repay.
+
+**The band round's reading of why its slab saturated is wrong, and the
+correction is measurable.**  That round wrote that in a rollout *"the
+rollout's repair sees a stage state whose stage increment has already opened
+more energy than `3e-4`"*.  Replaying the step with the declared repair at
+each of the three SSPRK(3,3) stages, at the stage reference the rollout
+advanced, the Eq. (22) offset `reference - energy_before` the repair actually
+sees is `4.157785e-16`, `3.652634e-16` and `3.202993e-16` at stages 1, 2 and 3
+on the base and `4.013456e-16`, `3.913536e-16` and `3.924638e-16` on the
+recorded chain, in mean absolute value, maximum `1.776357e-15` at all 2,400
+stage repairs of each chain.  The stage increment opens nothing.  What the
+soft threshold was separating is what that round's own later sentence said:
+the energy the cone projection opens *inside* the alternation, measured
+below.
+
+**The sign of the displacement cannot follow the sign of the closure's own
+energy drift, because there is no drift to have a sign.**  The recorded chain
+displaces the coordinate `+8.755517e-05` per step in signed mean over
+`(6, 8]` and the task-11 base `-8.869670e-05`, while both chains' closure
+drifts sit at `-3.497203e-17` and `+4.052314e-17` --- at the floor, and of the
+wrong sign in both cases to explain either.
+
+**Repair-side remedies on the energy channel are exhausted, and so is the
+closure's energy drift as a place to look.**  What is left is neither: it is
+how far outside the two cones the stage increment puts the state.
+
+## (a) The Eq. (22) internal energy the closure's own unrepaired velocity produces over one declared step
+
+At each of the 800 stored samples of `(6, 8]` the stored state is propagated
+by one declared SSPRK(3,3) step of `0.0025` with the repair disabled --- the
+three stage states are the unrepaired ones and the carried frontier is held,
+which is the rollout's own step had no repair run --- and the Eq. (22)
+internal energy is read at the two ends.  Eq. (22) is affine in the 56
+propagated coordinates, so the change is the gradient against the step.
+`closure energy change` is `E22(x_unrepaired) - E22(x_stored)`;
+`reference change` is `reference[i+1] - reference[i]` as the rollout recorded
+it; `closure drift` is their difference, which is how much Eq. (22) energy the
+closure's own flow loses or gains per step against the declared reference;
+`drive-free power` is `gradient . unguarded_velocity(0, x, f)` at the stored
+sample.  All figures per step, mean absolute value over the 800 steps.
+
+| chain | steps | closure energy change | reference change | closure drift | maximum drift | drive-free power |
+|---|---:|---|---|---|---|---|
+| task-11 base | 800 | `1.783386e-12` | `1.783207e-12` | `4.091172e-16` | `1.776357e-15` | `4.352421e-17` |
+| recorded `drive_power` | 800 | `2.049781e-12` | `2.049630e-12` | `4.890532e-16` | `2.220446e-15` | `5.805252e-17` |
+
+Signed, the base's closure energy change is `-1.783166e-12` per step and
+integrates to `-1.426533e-09` over the window against a reference that
+integrates to `-1.426566e-09`; its drift integrates to `+3.241851e-14`.  The
+recorded chain reads `-2.044240e-12`, `-1.635392e-09`, `-1.635364e-09` and
+`-2.797762e-14`.  In quarter-window bins the drift is
+`+2.176037e-16`, `-9.547918e-17`, `-7.771561e-17` and `+1.176836e-16` on the
+base and `-2.975398e-16`, `-3.330669e-17`, `-5.107026e-17` and `+2.420286e-16`
+on the recorded chain: it does not open anywhere in the window, at any
+horizon.
+
+The distribution has no tail: the maximum single-step drift over all 1,600
+steps of the two chains is `2.220446e-15`, which is the same size as the
+stored samples' own distance from their declared reference (`3.458345e-16` and
+`3.702594e-16` in mean absolute value, maximum `1.776357e-15` on both).
+
+## (b) The identity, step by step
+
+`repair energy correction` is `E22(x_stored[i+1]) - E22(x_unrepaired)`, the
+energy the chain's own repair supplied over that step; `repair displacement`
+is `n_rel(x_stored[i+1]) - n_rel(x_unrepaired)`, what it displaced the
+relative-mode population by over the same step; `predicted` is the correction
+times the exchange rate the repair-displacement replay measured at that
+chain's own target and energy mode (`+1.009268` on the base, `+0.448470` on
+the recorded chain).
+
+| chain | repair energy correction | repair displacement | predicted displacement | measured / predicted | correlation | variance explained |
+|---|---|---|---|---:|---:|---:|
+| task-11 base | `6.145084e-16` | `1.989131e-04` | `6.202037e-16` | `3.207222e+11` | `+0.118448` | `-0.116248` |
+| recorded `drive_power` | `6.211698e-16` | `3.825613e-04` | `2.785760e-16` | `1.373274e+12` | `+0.045096` | `-0.021179` |
+
+**The identity does not hold, and it does not hold to any precision.**  The
+two series share no sign at more than `0.395` and `0.4125` of the 800 steps,
+the least-squares slope through zero is `4.031270e+10` and `7.908277e+10`
+rather than `1`, and the residual about that fitted slope is `9.917928e-01`
+and `9.986988e-01` of the measured series' own RMS.  Predicting the
+displacement from minus the closure's drift instead of from the repair's
+correction changes nothing (`+0.178964` and `+0.051395` correlation).  The
+hypothesis' arithmetic is right --- one unit of coordinate per unit of
+Eq. (22) energy is what the gradient's `0.5`, `0.5` on `raw_normal_00` and
+`raw_normal_11` against the relative-mode population's identical `0.5`, `0.5`
+must give --- and the quantity it multiplies is zero.
+
+Two gates make that reading safe.  The endpoint definition of the repair's
+displacement used here differs from the relative-mode flow measurement's
+trapezoidal-quadrature definition by at most `5.080908e-07` and `5.075371e-07`
+per step, and reproduces that measurement's table to every digit:
+`1.988844e-04` mean absolute, `-8.853883e-05` signed mean, `6.490602e-04`
+maximum and `-7.083106e-02` integrated on the base, `3.826683e-04`,
+`+8.771890e-05`, `3.908262e-03` and `+7.017512e-02` on the recorded chain.
+And the repair energy correction equals minus the closure drift to
+`2.664535e-15` and `2.220446e-15` at every step, which is the arithmetic
+saying that the stored samples sit on their reference.
+
+## (c) The recorded chain, the sign, and what the per-step displacement actually is
+
+The recorded `drive_power` chain answers (b) the same way and the sign
+question negatively: its closure drift is `4.890532e-16` per step in mean
+absolute value and `-3.497203e-17` signed, while its in-rollout displacement
+of the relative-mode population is `+8.755517e-05` per step signed and
+integrates to `+7.004414e-02` over the window, against the base's
+`-8.869670e-05` and `-7.095736e-02`.  **The sign does not follow the sign of
+the closure's own energy drift; there is no drift for it to follow.**
+
+What does set the sign is now measured, and it is the thing the
+repair-displacement replay said it could not say.  Replaying the step with the
+declared repair at each of the three stages, at the stage reference the
+rollout advanced --- which reproduces the chain's own next stored state to
+`1.509903e-14` and `1.421085e-14` in the largest coordinate, and its carried
+frontier to `4.761816e-16` and `5.551115e-16` in the median, differing above
+`1e-9` only at the `0.0625` and `0.0312` of steps where the chain's own lift
+re-selection re-solved the completion, which writes the carried frontier and
+never the state --- each stage's repair sees a zero offset and moves the
+coordinate anyway:
+
+| chain | stage | offset (mean abs) | offset (max) | hyperplane applied | displacement (mean abs) | displacement (signed mean) | energy change |
+|---|---|---|---|---:|---|---|---|
+| task-11 base | 1 | `4.157785e-16` | `1.776357e-15` | `0.9950` | `3.589476e-04` | `+9.233469e-05` | `6.257957e-16` |
+| task-11 base | 2 | `3.652634e-16` | `1.776357e-15` | `0.9975` | `1.982826e-04` | `-1.982742e-04` | `6.257957e-16` |
+| task-11 base | 3 | `3.202993e-16` | `1.776357e-15` | `0.9938` | `1.422647e-04` | `+2.826374e-05` | `6.257957e-16` |
+| recorded `drive_power` | 1 | `4.013456e-16` | `1.776357e-15` | `1.0000` | `1.119119e-03` | `+1.006025e-03` | `6.679842e-16` |
+| recorded `drive_power` | 2 | `3.913536e-16` | `1.776357e-15` | `1.0000` | `5.634084e-04` | `-5.634084e-04` | `6.679842e-16` |
+| recorded `drive_power` | 3 | `3.924638e-16` | `1.776357e-15` | `1.0000` | `3.576153e-04` | `+2.956400e-04` | `6.679842e-16` |
+
+The `energy change` column is the mean absolute change of the Eq. (22)
+internal energy each stage repair makes, over all 2,400 stage repairs of that
+chain: the repair is energy-neutral not by cancellation but because it is
+never asked for anything.
+
+**On both chains the second stage's repair moves the coordinate negatively
+and the first and third positively, and the net sign is which of them wins
+at the SSPRK(3,3) weights.**  A displacement made at stage 1 reaches the
+accepted state through `0.25` at stage 2 and `2/3` at stage 3, that is at
+weight `1/6`; one made at stage 2 at weight `2/3`; one made at stage 3 whole.
+That combination is the per-step displacement, to four digits:
+
+| chain | `1/6, 2/3, 1` combination | in-rollout repair displacement | correlation | slope | residual RMS | residual as a fraction |
+|---|---|---|---:|---:|---|---:|
+| task-11 base | `1.988869e-04` (`-8.852997e-05`) | `1.989131e-04` (`-8.869670e-05`) | `+0.9999998` | `+1.000041` | `2.466784e-07` | `9.584937e-04` |
+| recorded `drive_power` | `3.826816e-04` (`+8.770526e-05`) | `3.825613e-04` (`+8.755517e-05`) | `+0.9999999` | `+1.000143` | `2.431999e-07` | `4.238096e-04` |
+
+So the base's `-8.852997e-05` per step is
+`(1/6)(+9.233469e-05) + (2/3)(-1.982742e-04) + (+2.826374e-05)` and the
+recorded chain's `+8.770526e-05` is
+`(1/6)(+1.006025e-03) + (2/3)(-5.634084e-04) + (+2.956400e-04)`: the recorded
+chain's first-stage motion is `1.79` times its second's while the base's is
+`0.47` times, and that is the whole of the chain-to-chain sign difference the
+repair-displacement replay could not reach.  The replay could not reach it
+because it replayed at the accepted state, which is none of the three stage
+inputs; the three stage inputs are where the rollout's repairs act.
+
+## (d) Are repair-side remedies exhausted, and what is left
+
+**On the energy channel, yes, and definitively: there is no Eq. (22) energy
+offset for any repair-side setting to trade against.**  Every candidate the
+record has spent a round on --- the declared per-coordinate metric of the map
+back, the reference as a slab, the Dykstra count, `state_motion_scale`,
+`repair_tolerance`, `energy_tolerance` --- acts on either the direction the
+hyperplane is met along or the offset it is asked to close.  The offset is
+`3.671137e-16` and `3.950544e-16` in mean absolute value at all 2,400 stage
+repairs of each chain, maximum `1.776357e-15`.  The declared reference's own
+level is equally inert per step: it is met by the closure's own flow, so the
+recorded `+5.614e-3` by which the drive-power reference sits above the exact
+post-pulse energy on this trajectory is a one-time cost at the first repair
+and nothing per step thereafter.
+
+**And the closure's Eq. (22) energy drift is not the place to look either,
+because it is already exactly zero.**  There is nothing to reduce:
+`4.091172e-16` and `4.890532e-16` per step is the arithmetic, and the
+conservation law behind it --- the closure's drive-free velocity changes the
+Eq. (22) energy by `4.352421e-17` and `5.805252e-17` --- is exact, not
+approximate.  The question as posed has no target.
+
+**What the displacement actually is, and therefore where the remaining lever
+sits.**  Running the same repair at the same stage inputs with the Eq. (22)
+hyperplane out of the alternation and discarding it, the cone chase by itself
+opens Eq. (22) energy at every one of the 2,400 stage repairs of each chain,
+and the hyperplane's annulment of that energy is what the coordinate pays for:
+
+| chain | energy the cone chase opens | twin displacement | the hyperplane's cost in the coordinate | correlation of the cost with minus the energy | fitted slope | residual as a fraction |
+|---|---|---|---|---:|---:|---:|
+| task-11 base | `9.731785e-04` | `1.081507e-03` | `1.107399e-03` (`-1.107399e-03`) | `+0.9802659` | `+1.106743` | `1.334053e-01` |
+| recorded `drive_power` | `4.320573e-03` | `2.238899e-03` | `1.992811e-03` (`-1.992811e-03`) | `+0.9125455` | `+0.453826` | `1.264394e-01` |
+
+That is the one-for-one exchange, measured in the rollout at the states the
+rollout's own repairs saw, rather than at accepted samples with a deliberately
+opened offset: the hyperplane's cost in the relative-mode population tracks
+minus the Eq. (22) energy the cone chase opens at correlation `+0.9802659` and
+`+0.9125455`, slope `+1.106743` and `+0.453826` --- the same two slopes the
+offset sweep read at those chains (`+1.009268` and `+0.448470`), now at the
+working point.  Stage by stage:
+
+| chain | stage | energy the cone chase opens | twin displacement | constrained displacement |
+|---|---|---|---|---|
+| task-11 base | 1 | `+1.866246e-03` | `+2.212229e-03` | `+9.233469e-05` |
+| task-11 base | 2 | `+2.532025e-04` | `+1.057975e-04` | `-1.982742e-04` |
+| task-11 base | 3 | `+8.000870e-04` | `+9.264957e-04` | `+2.826374e-05` |
+| recorded `drive_power` | 1 | `+5.388336e-03` | `+3.555083e-03` | `+1.006025e-03` |
+| recorded `drive_power` | 2 | `+3.553635e-03` | `+1.066173e-03` | `-5.634084e-04` |
+| recorded `drive_power` | 3 | `+4.019749e-03` | `+2.095433e-03` | `+2.956400e-04` |
+
+The constrained stage displacement is a near-cancellation of two motions each
+several times larger than it: `+1.081507e-03` from the cone chase against
+`-1.107399e-03` from the annulment on the base, whose net is `2.331650e-04` in
+mean absolute value and `-2.589193e-05` signed --- `4.64` and `4.75` times
+smaller than the two it stands between --- and `+2.238899e-03` against
+`-1.992811e-03` on the recorded chain, net `6.800476e-04` and `+2.460855e-04`,
+`3.29` and `2.93` times smaller.  Reducing either term alone would not reduce
+the net proportionally; they very nearly cancel already.
+
+**So the remaining lever is how far outside the two cones the stage increment
+puts the state**, since that is what sets how large a correction is asked for
+at all.  At the stage inputs:
+
+| chain | scaled retained joint Gram before | below zero | scaled positive extension before | below zero | both cones reached after |
+|---|---|---:|---|---:|---:|
+| task-11 base | `-1.345722e-05` (min `-5.433718e-05`) | `0.9808` | `-2.245342e-04` (min `-1.059994e-03`) | `0.8075` | `0.0083` |
+| recorded `drive_power` | `-2.643057e-04` (min `-4.466120e-04`) | `1.0000` | `-4.335943e-04` (min `-1.138028e-03`) | `0.9846` | `0.0000` |
+
+The recorded chain's stage increments sit `19.6` times deeper below the scaled
+retained joint Gram's floor than the base's and `1.93` times deeper below the
+scaled positive extension's, and its cone chase opens `4.44` times the
+Eq. (22) energy per stage repair --- and it is the chain whose relative-mode
+population error over `(6, 8]` is the smaller of the two, `7.513319e-02`
+against `1.907462e-01`.  A deeper violation is therefore not by itself the
+loss; what the base's shallower, more nearly cancelling stage triple produces
+is a net that happens to point the losing way.
+
+**What the evidence already on file says about closing it.**  Three things
+are settled and bound the search.  The dictionary probe found rank 1 over the
+four raw phonon normal coordinates at every declared key set, so no
+enlargement of the dictionary reaches the other three phonon-occupation
+coordinates, and the dictionary-size round measured the all-coordinate score
+improving with enlargement (`0.0163` at 27 entrance keys against `0.0268` at
+15, over `t = 0` to `4` at `N = 16`) while the phonon-occupation block
+worsened.
+Eq. (14b) is exact on the exact state and the route propagates it unmodified
+in the phonon-density block, so there is no closure defect in the equation
+this coordinate's flow comes from --- the approximation is upstream, in
+`correlation_0_diag_difference_imag` and
+`correlation_1_diag_difference_imag`, the only two of the 31 closed scalar
+coordinates that drive `d n_rel / dt`.  And the drive-power reference's own
+`+5.614e-3` offset above the exact post-pulse energy costs nothing per step,
+as measured above.
+
+## What to try next, in order
+
+1. **Stop spending rounds on the Eq. (22) hyperplane and its offset.**  Three
+   consecutive rounds --- the declared metric, the slab, and this one ---
+   have now measured the same thing from three sides: the offset is zero and
+   the displacement is the cone chase's, redirected.  The named options
+   already implemented (`raw_coordinate_motion_scales`,
+   `energy_reference_band`) stay default-off and need no further sweep.
+2. **The one repair-side lever not yet measured is the direction the cone
+   projection takes, not the direction the hyperplane is met along.**  The
+   twin's own displacement is `+1.081507e-03` and `+2.238899e-03` per stage
+   repair, positive at `0.978` and `0.991` of the 2,400 stage repairs, and it
+   is the larger of the two terms on the recorded chain.  The measurement
+   that would size it: at the same stage inputs, the share of the cone
+   projection's own correction landing on the four raw phonon normal
+   coordinates, and the retained and extension blocks separately --- the
+   repair-displacement replay's `share of the state correction` column taken
+   at the stage inputs rather than at the accepted samples.  Free, about
+   `190 s` and `70 s` per chain with the twin already in the probe.
+3. **Only then the candidate the band round's list still carries**: a
+   dictionary key whose positive-extension row carries the phonon normal
+   moments, which is the one change that would alter how deep below the
+   extension floor a stage increment falls rather than what is done about it
+   afterwards.
+
+## Gates
+
+| gate | result |
+|---|---|
+| the probe reads the record's coordinate and energy | the relative-mode population read from the stored 56 propagated coordinates through the scorer's chart equals the one read from the stored `archive_coordinates` to `0.000000e+00`, and the affine Eq. (22) energy equals the stored `internal_energy` to `0.000000e+00`, at every one of the 800 steps of both chains |
+| the repaired step is the chain's own step | replaying the step with the declared repair at all three stages reproduces the chain's own next stored state to `1.509903e-14` (base, mean `5.331717e-15`) and `1.421085e-14` (recorded, mean `5.614606e-15`) in the largest of the 56 coordinates, and the carried frontier to `4.761816e-16` and `5.551115e-16` in the median, above `1e-9` only at the `0.0625` and `0.0312` of steps carrying a lift re-selection, which writes the carried frontier and never the state |
+| the displacement is the record's | the endpoint definition differs from the relative-mode flow measurement's trapezoidal-quadrature definition by at most `5.080908e-07` and `5.075371e-07` per step, and the quadrature definition reproduces that measurement to every digit: `1.988844e-04` / `-8.853883e-05` / `6.490602e-04` / `-7.083106e-02` (base) and `3.826683e-04` / `+8.771890e-05` / `3.908262e-03` / `+7.017512e-02` (recorded) |
+| the arithmetic of the attribution closes | the repair's energy correction plus the closure's drift is `2.664535e-15` and `2.220446e-15` at every step, and the reference advanced on the unrepaired stage states differs from the stored reference change by at most `8.881784e-16` and `1.776357e-15` |
+| the window is the recorded one | each chain read from its own stored `trajectory.npz` segments, six per chain; sample spacing `2.500000e-03` exactly at every step; 800 steps per chain in `(6, 8]` after duplicate resume times are dropped; stride 1 |
+| the module is the branch head | `paper_5/src/paper5/stability/cheap_projection_route.py` and `cheap_projection_route_analysis.py` at `HEAD 3f51146a`, unedited this round; `git status` clean; `paper_5/tests/test_cheap_projection_route.py` 53 passed in `22.9 s` under `ram_guard --limit-mb 2500`, peak `433 MiB` |
+| nothing else changed | no module edited, no default, rule, radius, Dykstra count, reference mode, band, tolerance or ladder changed; `projected_apcm.py`, `apcm_projective_event_guard_analysis.py`, `apcm_carried_witness*.py`, `cone_correction.py` and `matrix_reference.py` untouched; tasks 8 to 13's and the banded chain's artifacts untouched; nothing committed |
+| light compute only | six probe processes under `pipelines/shell/ram_guard.py --limit-mb 3000`, one at a time, peaks `2 MiB` to `161 MiB`, longest `191.1 s`; plus the test run under `--limit-mb 2500` |
+
+## Provenance
+
+- Scripts under
+  `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `probe_closure_energy_drift_20260918.py` (the unrepaired one-step
+  propagation and its four energy series, the `--drive-free-power` reading,
+  the `--repaired-stages` replay of the step with the declared repair at each
+  stage and the offset it sees, the `--hyperplane-free-twin` at the same
+  stage inputs, and the SSPRK(3,3) stage-weight combination) and
+  `tabulate_closure_energy_drift_20260918.py` (the tables above).
+- Outputs in the same directory:
+  `closure_energy_drift_base_w68_20260918.json` and `.log`,
+  `closure_energy_drift_recorded_w68_20260918.json` and `.log`,
+  `closure_energy_drift_smoke_20260918.json`,
+  `closure_energy_drift_tables_20260918.log`.  Each report carries its
+  per-step series, so the tables can be rebuilt without replaying.
+- Read but not modified: `cheap_projection_route.py`
+  (`AffineGramCoordinates.repair`, `_dykstra`, `energy`,
+  `InternalEnergyFunctional.value` and `.gradient`, `CheapProjectionRoute`,
+  `CheapProjectionRoute.unguarded_velocity`, `carried_completion`,
+  `integrate_cheap_projection_ssprk3` and its stage weights and
+  `drive_power` reference advance), `projected_apcm.py`
+  (`FixedDictionaryProjectedAPCM`), `apcm_positive_extension.py`,
+  `apcm_moment_projection.py`, `matrix_reference.py`,
+  `adaptive_positive_moment.py`, `run_energy_segment.py` (the declared
+  settings each chain was run with).
+- Chains read: `..._measured_dyk120_base_20260918m_seg{1..6}` (task-11 base,
+  `dykstra_iterations` 120) and `..._27key_n16_20260915e_seg{1..6}` (the
+  recorded `drive_power` chain, `dykstra_iterations` 30).
+
+## Structured summary of the closure energy-drift measurement
+
+| item | value |
+|---|---|
+| (a) the closure's own Eq. (22) energy per declared step | propagating each of the 800 stored samples of `(6, 8]` by one declared SSPRK(3,3) step of `0.0025` with the repair disabled, the closure's velocity changes the Eq. (22) internal energy by `1.783386e-12` per step in mean absolute value on the task-11 base and `2.049781e-12` on the recorded `drive_power` chain, against a declared reference that changes by `1.783207e-12` and `2.049630e-12`.  The drift between them --- the quantity the hypothesis names --- is `4.091172e-16` and `4.890532e-16` per step, maximum `1.776357e-15` and `2.220446e-15`, signed means `+4.052314e-17` and `-3.497203e-17`, and it does not open in any quarter-window bin.  The reason is exact: the closure's drive-free velocity changes the Eq. (22) energy by `4.352421e-17` and `5.805252e-17`, maximum `2.775558e-16` and `3.330669e-16`, so the declared `drive_power` reference is the energy the closure's own flow carries |
+| (b) the identity | refuted.  The repair's measured energy correction is `6.145084e-16` and `6.211698e-16` per step, so the displacement the exchange rate predicts is `6.202037e-16` and `2.785760e-16` against a measured `1.989131e-04` and `3.825613e-04`: ratios `3.207222e+11` and `1.373274e+12`, correlations `+0.118448` and `+0.045096`, same sign at `0.395` and `0.4125` of the 800 steps, and a fitted slope through zero that explains `-0.116248` and `-0.021179` of the measured variance.  The arithmetic of the one-for-one exchange is right and the quantity it multiplies is zero |
+| (b) the offset each repair actually sees | `4.157785e-16`, `3.652634e-16`, `3.202993e-16` at stages 1, 2, 3 on the base and `4.013456e-16`, `3.913536e-16`, `3.924638e-16` on the recorded chain, mean absolute value, maximum `1.776357e-15` at all 2,400 stage repairs of each chain, with the hyperplane applied at `0.9950`/`0.9975`/`0.9938` and `1.0000`/`1.0000`/`1.0000` and the energy changed by `6.257957e-16` and `6.679842e-16` per stage repair.  This corrects the band round's reading that the stage increment had already opened more energy than `3e-4` |
+| (c) the sign, on the recorded chain | it does not follow the closure's energy drift, there being none: the recorded chain displaces the coordinate `+8.755517e-05` per step (integrated `+7.004414e-02`) and the base `-8.869670e-05` (`-7.095736e-02`), while both drifts sit at `-3.497203e-17` and `+4.052314e-17`.  What sets it is the balance of the stage repairs at the SSPRK(3,3) weights `1/6`, `2/3`, `1`: stage signed means `+9.233469e-05`, `-1.982742e-04`, `+2.826374e-05` (base) and `+1.006025e-03`, `-5.634084e-04`, `+2.956400e-04` (recorded), whose weighted combination reproduces the in-rollout per-step displacement at correlation `+0.9999998` and `+0.9999999`, slope `+1.000041` and `+1.000143`, residual `2.466784e-07` and `2.431999e-07`, that is `9.584937e-04` and `4.238096e-04` of the series' own RMS.  The repair-displacement replay could not reach this because it replayed at the accepted state, which is none of the three stage inputs |
+| (d) are repair-side remedies exhausted | on the energy channel, yes: there is no Eq. (22) offset for any repair-side setting to trade against, at any stage, on either chain, and the declared reference's level is a one-time cost rather than a per-step one (the drive-power reference's `+5.614e-3` above the exact post-pulse energy).  The closure's own energy drift is not a target either --- it is already exactly zero, and the conservation law behind it is exact.  What the displacement is instead: the cone chase opens `9.731785e-04` and `4.320573e-03` of Eq. (22) energy per stage repair, positive at every one of the 2,400, displacing the coordinate by `+1.081507e-03` and `+2.238899e-03`; the hyperplane's annulment of that energy costs `-1.107399e-03` and `-1.992811e-03`, tracking minus the energy opened at correlation `+0.9802659` and `+0.9125455` and slope `+1.106743` and `+0.453826` --- the offset sweep's `+1.009268` and `+0.448470` at the working point.  The constrained net, `2.331650e-04` and `6.800476e-04` in mean absolute value, is a near-cancellation of two terms `4.64` and `4.75` times larger on the base and `3.29` and `2.93` times larger on the recorded chain |
+| (d) the remaining lever | how far outside the two cones the stage increment puts the state: the scaled retained joint Gram is `-1.345722e-05` before the stage repair on the base (minimum `-5.433718e-05`, below zero at `0.9808`) and `-2.643057e-04` on the recorded chain (`-4.466120e-04`, `1.0000`); the scaled positive extension `-2.245342e-04` (`-1.059994e-03`, `0.8075`) and `-4.335943e-04` (`-1.138028e-03`, `0.9846`); both cones are reached after the repair at `0.0083` and `0.0000` of the 2,400 stage repairs.  Bounded by what is on file: the dictionary probe's rank 1 over the four raw phonon normal coordinates at every declared key set, Eq. (14b) exact on the exact state with the flow driven by two electron--phonon correlation coordinates and no phonon-occupation coordinate, and the phonon-occupation block worsening under dictionary enlargement |
+| the ledger row | unchanged; this round produces no horizon score and changes no module |
+| files changed | under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`: `probe_closure_energy_drift_20260918.py`, `tabulate_closure_energy_drift_20260918.py` and the outputs listed above; this report (new heading) and the worklog block.  No module; nothing committed |
+| next | the share of the cone projection's own correction landing on the four raw phonon normal coordinates, measured at the stage inputs rather than at the accepted samples, free at about `190 s` and `70 s` per chain; then a dictionary key whose positive-extension row carries the phonon normal moments |
