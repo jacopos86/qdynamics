@@ -2699,3 +2699,487 @@ Two readings.
 | gates | driver reproduces the recorded chain bitwise without the flags (161 samples, `0.0`); native tolerance path reproduces the task-5 subclass bitwise; chaining under the rule: exact to round-off (`2.5e-14`) through three re-selections, then a decision flip at the `t = 0.16` feasibility edge (`-1.76e-08` against `-9.78e-09` at the `-1e-08` threshold; `infeasible` against `accepted`, a `0.8926` move), `d31` `3.3e-04` at `t = 0.2`: the members' bands are measured across four different boundaries and include this perturbation; boundary resumes at `96`, `89`, `87`, `93` intervals; energy held to `1.78e-15`; one grid of 3,201 samples |
 | files changed | `compare_chains.py` (boundary-inclusive ledger merge), new `chaingate_task8m.sh` and its outputs, the comparison and tabulation outputs, three gate artifacts; this report; the worklog block; the plan ledger's row.  No module; nothing committed |
 | next | the trust radius (`--reselection-trust-radius 0.1`, `ball` form; the cheap route's `90a3bd60` finds the `carried` form freezes the lift at 15 keys) on the four to `t = 8`, the declared instrument for the `t = 6.6` move, then the base to `t = 20` under the rule and the cap: whether the 27-key chain under the rule keeps a band at `t = 12`, `16`, `20` where the recorded chain's bands are `1.9`, `5.4`, `6.7 %` and the 15-key rule's `3.2`, `18.8`, `48.8 %`; and where the `t = 8` loss against the earlier form comes from (the `t = 0.04` acceptance, or the re-selections of `(4, 8]`) --- a rerun with the margin's scope switched to `certified` candidates from `t = 4` would separate them |
+
+# projective-route, task 9 (2026-09-17)
+
+Task 8 put the cheap route's anchor-free rule (acceptance margin `1e-3`,
+`measured` candidates, anchor weight `0`) on the 27-key `N = 16`
+`drive_power` energy-neutral chain and found the four members one
+trajectory to `t = 6.6`, where the base accepted a `0.9565`
+facial-reduction iterate --- the move the rule's trust radius is declared
+for.  The cheap route's task 10 measured that radius at 15 keys: `0.1`
+under the `ball` policy (the capped point on the segment toward the
+accepted lift) keeps the lift live and buys 12 percent at `t = 20`, first
+binding at `t = 8.68`; under the `carried` policy it freezes the lift from
+`t = 8.68` and is worse.  This round, (a), puts the ball form on the 27-key
+four --- base, `energy_tolerance 1e-3`, Dykstra 60, re-selection
+`conic_tolerance 1e-10` --- from `t = 0` to `8`, and (b) chains the base
+to `t = 20` under the better of the two rules.  The rule is
+`LiftReselectionRule(acceptance_margin=1e-3, candidates="measured",
+anchor_weight=0, trust_radius=0.1, trust_policy="ball")`, every field a
+setting of the committed class (`a81b7ecb`; the `ball` policy since the
+cheap route's `90a3bd60`); the driver passes the five flags to
+`CheapProjectionRoute`'s `reselection_rule` argument and is otherwise
+task 8's driver exactly.  Imports are from `head_src_e3374f6f`, which
+`diff -rq` shows identical to `paper_5/src/paper5` at `HEAD f971a284`
+outside `__pycache__`.  No module was edited; nothing was committed; no
+default changed.  Configuration and conventions are task 8's: 27 active
+keys, 56 state coordinates, 36 positive-extension rows, 70 standardized
+frontier coordinates, strong coupling, cutoff 16, exact-correlated
+preparation at the declared ladder's first rung, SSPRK(3,3) at
+`h = 0.0025`, Dykstra 30 on both targets at stage cadence, the declared
+proximal log-det completion re-solved every 16 steps warm-started on the
+carried frontier, the energy-neutral repair in `drive_power` mode; the
+score is the all-coordinate scalar RMS of the 31 closed scalar
+coordinates against the exact cutoff-16 driven reference from `t = 0` on
+one grid (`exact_t8.npz`, 3,201 samples; `exact_t20.npz`, 8,001); a
+cap-bound re-selection is one whose accepted candidate lay farther than
+`0.1` from the carried lift in the 70 standardized frontier coordinates,
+so that the applied move is `0.1` along the segment toward it; the
+solved move is the candidate's own distance.
+
+## Negative result first
+
+**At 27 keys the radius binds only inside `(0, 0.64]`, changes nothing at
+`t = 8`, and costs 4 percent at `t = 4`; the `t = 6.6` event is not
+capped because it does not occur on the capped trajectories.**  The cap
+bound 3, 5, 5, 4 times of 200 in the base, `etol1e3`, `dykstra60`,
+`conic1e10`, all at `t <= 0.64` --- the first at `t = 0.04` in every
+member, the whole-face `0.3447` answer task 8's members applied whole,
+scaled to `0.1` --- and never again through `t = 8`: from `t = 0.68` on
+every applied move is below `0.032` and every answer above `0.1` is
+`infeasible` (the `0.53` to `0.55` reference-completion refusals of
+`t = 0.36` to `0.64` and of `t = 6.44` to `6.52`) or declined by the
+margin (`1.319` at `t = 0.72` on the base).  On the four capped
+trajectories the `t = 6.6` completion returns a `0.0240`, `0.0128`,
+`0.0105`, `0.0243` answer and the `t = 6.64` completion `0.0145`,
+`0.0148`, `0.0098`, `0.0230`, all accepted; task 8's `0.9565`
+facial-reduction iterate belongs to the anchor-free base's trajectory,
+which the ball chain left at `t = 0.04` (`d70` `0.2447` there).  So the
+radius did not act on the move it was brought for; it acted on the first
+re-selection, and that is the whole difference between the two rules'
+chains to `t = 8`.
+
+At `t = 8` the four ball members score `3.180974e-02` / `3.151679e-02` /
+`3.215530e-02` / `3.143476e-02` (band `3.143e-2` to `3.216e-2`, spread
+2.29 percent) against task 8's `3.181485e-02` / `3.179926e-02` /
+`3.224344e-02` / `3.179926e-02` (band `3.180e-2` to `3.224e-2`, 1.40
+percent): the bases agree to `0.02` percent, the bands overlap, and the
+standing against the recorded chain does not change --- behind its
+`2.593079e-02` to `2.709352e-02` by `1.16` to `1.24`, the bands disjoint
+(the ball's best member is `1.160` times the recorded band's top).  The
+27-key `t = 8` row on record stays the recorded chain's, as after task 8.
+At `t = 4` the ball members score `1.043201e-02` / `1.003847e-02` /
+`1.005305e-02` / `1.024635e-02` (band `1.004e-2` to `1.043e-2`, spread
+3.92 percent), behind task 8's `9.96e-3` to `1.001e-2` (0.52 percent)
+with the bands disjoint --- the ball base is `1.042` times the anchor-free
+base --- and still ahead of the recorded chain's whole band `1.143e-2` to
+`1.292e-2` (the worst ball member is `0.913` of the recorded band's
+bottom) and below cell A's `1.258e-2` in every member (`0.829` on the
+worst).  The 27-key `t = 4` row stays task 8's `1.00e-2`; the ball form
+does not displace it and widens the band it would carry.
+
+**The ball reintroduces the certificate branch the anchor-free rule had
+removed.**  Under task 8's rule the `conic1e10` twin was the base's
+trajectory to `1.04e-8` at `t = 4`; under the ball it parts at `t = 0.36`,
+where its completion at `1e-10` returned an uncertified `0.584` answer
+that passed the measured feasibility test and was capped to `0.1`, while
+the base's completion at `1e-9` returned `0.0099`; `d31` `1.68e-2` at
+`t = 8` (5.8 percent of the members' distance from the exact reference).
+The `etol1e3` twin parts at `t = 0.36` too (base `accepted` `0.0099`,
+twin `infeasible`) and the `dykstra60` twin at `t = 0.12` (base
+`infeasible`, twin `declined_by_margin` on a `1.330` answer); their `d31`
+at `t = 8` are `2.46e-2` and `3.91e-2` (8.5 and 13.1 percent).  The
+capped point at `t = 0.04` is not on any face the completion returns,
+and the members' next completions return different answers from states
+`1e-3` apart; that is the 3.9 percent at `t = 4`.
+
+## The rows side by side, `t = 4` and `t = 8`
+
+Base / `etol1e3` / `dykstra60` / `conic1e10`; the anchor-free members
+are task 8's, the recorded chain is task 4's with its tightened member
+(task 5) as the band; site-0 occupation is `rho[0,0]` sample RMS.
+
+| quantity | ball, `t = 4` | anchor-free (task 8), `t = 4` | recorded / tightened, `t = 4` | ball, `t = 8` | anchor-free (task 8), `t = 8` | recorded / tightened, `t = 8` |
+|---|---:|---:|---:|---:|---:|---:|
+| all-coordinate scalar RMS, 31 coordinates | `1.043201e-02` / `1.003847e-02` / `1.005305e-02` / `1.024635e-02` | `1.001172e-02` / `1.001172e-02` / `9.959755e-03` / `1.001172e-02` | `1.142716e-02` / `1.292283e-02` | `3.180974e-02` / `3.151679e-02` / `3.215530e-02` / `3.143476e-02` | `3.181485e-02` / `3.179926e-02` / `3.224344e-02` / `3.179926e-02` | `2.593079e-02` / `2.709352e-02` |
+| band, spread | `1.004e-2` to `1.043e-2`, `3.92 %` | `9.96e-3` to `1.001e-2`, `0.52 %` | `13.1 %` | `3.143e-2` to `3.216e-2`, `2.29 %` | `3.180e-2` to `3.224e-2`, `1.40 %` | `4.5 %` |
+| the 27 coordinates outside the phonon-occupation block | `1.051990e-02` / `1.013441e-02` / `1.014847e-02` / `1.035656e-02` | `1.007626e-02` / same / `1.001383e-02` / same | `1.164437e-02` / `1.347560e-02` | `2.848211e-02` / `2.844829e-02` / `2.927891e-02` / `2.826397e-02` | `2.870414e-02` / `2.870025e-02` / `2.940513e-02` / `2.870025e-02` | `2.474607e-02` / `2.577152e-02` |
+| the four phonon-occupation coordinates | `9.818198e-03` / `9.365173e-03` / `9.383635e-03` / `9.468975e-03` | `9.564712e-03` / same / `9.586781e-03` / same | `9.836299e-03` / `8.276556e-03` | `4.864260e-02` / `4.727925e-02` / `4.718843e-02` / `4.760114e-02` | `4.777992e-02` / `4.771521e-02` / `4.712475e-02` / `4.771521e-02` | `3.282777e-02` / `3.472464e-02` |
+| blockwise rho / B / N / A / C, base | `1.7915e-02` / `4.0829e-03` / `9.8182e-03` / `1.0144e-02` / `9.7872e-03` | `1.6956e-02` / `3.7215e-03` / `9.5647e-03` / `9.8071e-03` / `9.4354e-03` | recorded `2.0368e-02` / `6.9088e-03` / `9.8363e-03` / `8.9418e-03` / `1.1167e-02` | `3.7381e-02` / `1.9588e-02` / `4.8643e-02` / `4.0018e-02` / `2.1659e-02` | `4.0129e-02` / `2.1811e-02` / `4.7780e-02` / `3.8803e-02` / `2.1511e-02` | recorded `4.0173e-02` / `2.7248e-02` / `3.2828e-02` / `1.9942e-02` / `2.1275e-02` |
+| Eq. (22) internal-energy RMS | `4.413844e-03` / `3.950798e-03` / `4.059184e-03` / `4.090198e-03` | `3.922911e-03` / same / `4.133866e-03` / same | `4.597225e-03` / `3.687212e-03` | `5.360816e-03` / `4.812119e-03` / `4.947228e-03` / `4.977447e-03` | `4.781299e-03` / same / `5.020505e-03` / same | `5.751890e-03` / `4.702571e-03` |
+| site-0 occupation, `rho[0,0]` sample RMS | `1.294667e-02` / `1.244388e-02` / `1.332046e-02` / `1.291543e-02` | `1.221365e-02` / same / `1.271700e-02` / same | `1.430879e-02` / `1.515553e-02` | `2.499928e-02` / `2.703268e-02` / `2.680599e-02` / `2.615586e-02` | `2.705849e-02` / `2.705896e-02` / `2.721459e-02` / `2.705896e-02` | `3.027929e-02` / `3.095132e-02` |
+| minimum unshifted retained joint Gram | `-4.052e-04` / `-4.155e-04` / `-2.219e-04` / `-4.155e-04` | `-4.158e-04` / same / `-2.133e-04` / same | `-4.535e-04` / `-4.511e-04` | `-1.298e-03` / `-1.324e-03` / `-5.212e-04` / `-1.316e-03` | `-1.301e-03` / `-1.300e-03` / `-5.361e-04` / `-1.300e-03` | `-2.152e-03` / `-2.201e-03` |
+| minimum scaled positive-extension eigenvalue | `-4.706e-05` / `-4.670e-05` / `-2.781e-05` / `-4.734e-05` | `-4.672e-05` / same / `-2.734e-05` / same | `-4.852e-05` / `-5.846e-05` | `-1.369e-04` / `-1.384e-04` / `-5.279e-05` / `-1.384e-04` | `-1.404e-04` / `-1.374e-04` / `-5.747e-05` / `-1.374e-04` | `-1.922e-04` / `-1.980e-04` |
+| maximum standardized frontier envelope ratio | `0.3836` / `0.3823` / `0.4211` / `0.4022` | `0.3872` / same / `0.3740` / same | `0.3694` / `0.3605` | `0.3924` / `0.3856` / `0.4211` / `0.4022` | `0.7721` / `0.3872` / `0.3740` / `0.3872` | `0.4518` / `0.4212` |
+| Euclidean coordinate difference from the exact reference at the horizon, all 31 | `1.392894e-01` / `1.354351e-01` / `1.358075e-01` / `1.375191e-01` | `1.358288e-01` / same / `1.356037e-01` / same | `1.551037e-01` / `1.706443e-01` | `2.989438e-01` / `2.910848e-01` / `3.226311e-01` / `2.915194e-01` | `2.957666e-01` / `2.955251e-01` / `3.127335e-01` / `2.955251e-01` | `2.372364e-01` / `2.335909e-01` |
+| completions re-solved; solver refusals (uncertified returns, counted in the merged ledger at `t <= T`) | 100 each; 27, 29, 33, 47 | 100; 31, 30, 31, 46 by the same count (task 8's table printed 41, 39, 38, 55 for this cell by a count this round could not reproduce) | 100 / 33, 100 / 42 | 200; 47, 47, 47, 80 | 200; 48, 42, 42, 78 | 200 / 75, 200 / 97 |
+| cap-bound re-selections to the horizon (uncertified) | 3 (3), 5 (4), 5 (5), 4 (4) | --- | --- | the same: none in `(4, 8]` | --- | --- |
+| autonomous wall to the horizon (first segment plus the second's steps to `t = 4` at its own rate) | about `1,090` / `1,086` / `1,030` / `1,058 s` | about `1,036` / `1,091` / `1,117` / `1,059 s` | about `1,022 s` / `1,070 s` | `1,977.2` / `1,882.8` / `1,835.1` / `1,858.7 s` | `1,886.3` / `1,901.9` / `1,962.8` / `1,883.4 s` | `2,058.0` / `2,114.8 s` |
+
+Cumulative scores at the intermediate horizons, ball members and spread,
+task 8's in brackets: `t = 1` `7.333547e-04` / `7.163885e-04` /
+`7.204588e-04` / `7.074723e-04` (3.66 percent) [`7.235027e-04` /
+`7.235027e-04` / `6.968204e-04` / `7.235027e-04`, 3.83]; `t = 2`
+`2.872654e-03` / `2.659319e-03` / `2.627972e-03` / `2.758222e-03` (9.31)
+[`2.614966e-03` / `2.614965e-03` / `2.589272e-03` / `2.614966e-03`,
+0.99]; `t = 6` `2.012579e-02` / `2.005153e-02` / `1.954067e-02` /
+`2.005381e-02` (2.99) [`2.014536e-02` / `2.014536e-02` / `1.987741e-02` /
+`2.014536e-02`, 1.35]; the recorded chain `2.090571e-02` at `t = 6`.  Score
+per two-unit window `(a, b]`, ball base / `etol1e3` / `dykstra60` /
+`conic1e10` [anchor-free base; recorded chain]: `(0, 2]` `2.874e-03` /
+`2.661e-03` / `2.630e-03` / `2.760e-03` [`2.617e-03`; `2.904e-03`];
+`(2, 4]` `1.448e-02` / `1.395e-02` / `1.398e-02` / `1.423e-02`
+[`1.392e-02`; `1.590e-02`]; `(4, 6]` `3.159e-02` / `3.170e-02` /
+`3.072e-02` / `3.157e-02` [`3.190e-02`; `3.241e-02`]; `(6, 8]`
+`5.323e-02` / `5.261e-02` / `5.469e-02` / `5.241e-02` [`5.322e-02`;
+`3.713e-02`]; `(4, 8]` `4.377e-02` / `4.343e-02` / `4.436e-02` /
+`4.327e-02` [`4.387e-02`; `3.485e-02`].  The loss against the recorded
+chain is the `(6, 8]` window under both rules (`1.41` to `1.47` times),
+in the phonon-occupation block (`4.86e-2` against `3.28e-2` at `t = 8`)
+and the A block (`4.00e-2` against `1.99e-2`), as in task 8; the ball
+moves neither.
+
+## (a) The cap: what it caught, and when
+
+Every cap-bound re-selection of the four members, with the answer's own
+distance from the carried lift (scaled to an applied `0.1`) and its
+certificate; `u` marks an uncertified return:
+
+| member | cap-bound of 200 (uncertified) | the answers capped (time: solved move) | answers above `0.4` and their decisions | declined by the margin | `infeasible` |
+|---|---:|---|---|---:|---:|
+| base | 3 (3) | `0.04`: `0.345u`; `0.16`: `0.244u`; `0.20`: `0.145u` | 8: `0.536` at `0.40` to `0.56` and `0.541` at `0.64` (six `infeasible`), `1.319` at `0.72` (declined), `0.548` at `6.48` (`infeasible`) | 1 | 10 |
+| `etol1e3` | 5 (4) | `0.04`: `0.345` (certified, 12 iterations); `0.16`: `0.244u`; `0.20`: `0.145u`; `0.56`: `0.285u`; `0.60`: `0.115u` | 7, all `infeasible` (`0.527` at `0.36` to `0.48`, `0.539` at `0.64`, `0.548` and `0.555` at `6.44`, `6.52`) | 0 | 10 |
+| `dykstra60` | 5 (5) | `0.04`: `0.345u`; `0.16`: `0.245u`; `0.20`: `0.145u`; `0.60`: `0.881u`; `0.64`: `0.103u` | 6: `1.330` at `0.12` (declined), `0.527` at `0.36` to `0.48` (`infeasible`), `0.881` at `0.60` (capped) | 1 | 6 |
+| `conic1e10` | 4 (4) | `0.04`: `0.345u`; `0.16`: `0.244u`; `0.20`: `0.145u`; `0.36`: `0.584u` | 8: `0.584` at `0.36` (capped), `0.606` at `0.40` to `0.48`, `0.960` at `0.56`, `0.541` at `0.64`, `0.547` and `0.553` at `6.44`, `6.52` (`infeasible`) | 0 | 10 |
+
+Decisions of 200: accepted 186 (36 uncertified) / 185 (37) / 188 (40) /
+186 (70) besides the capped ones; solver refusals 47 / 47 / 47 / 80
+(task 8: 48 / 42 / 42 / 78; recorded 75); by two-unit window the base
+accepts 38, 50, 50, 49 and finds 8, 0, 0, 2 `infeasible`; the median
+applied move is `0.0076` to `0.0081` over the horizon (`0.0032` to
+`0.0034`, `0.0042` to `0.0044`, `0.0085` to `0.0091`, `0.0101` to
+`0.0105` by window), the largest `0.1` (the cap) and, uncapped, `0.0451`
+to `0.0456` at `t = 0.24` in three members and `0.0923` at `t = 0.6` on
+`conic1e10`; past `t = 2` the largest applied move is `0.0319` at
+`t = 6.68` on the base; no applied move exceeds `0.1`.  Two readings.
+
+1. **At 27 keys the answers the radius is for are already refused by the
+   measured feasibility test.**  Of the base's eight answers above
+   `0.4`, seven are `infeasible` and one is declined; the two large
+   answers that were capped rather than refused (`0.881` on `dykstra60`
+   at `t = 0.60`, `0.584` on `conic1e10` at `t = 0.36`) are uncertified
+   iterates that passed the test on the twins' states and not on the
+   base's.  This is the cheap route's task-10 finding at 15 keys (its
+   base's 72 answers above `0.4`: 69 `infeasible`, 3 declined; the cap
+   caught answers of `0.13` to `0.25`) with the one difference that at
+   27 keys the `(0, 0.64]` answers of `0.145` to `0.345` are the ones
+   caught, and they are the first re-selections after the exact
+   preparation, where task 8 showed the earlier form refused the
+   whole-face answer and the anchor-free rule took it whole.
+2. **The `t = 6.6` event was a solver-path branch on one trajectory, and
+   the cap removed it by not being there.**  Task 8's base reached its
+   `t = 6.6` state through the `0.3447` move at `t = 0.04`; the capped
+   base reaches a state `d31` `1.3e-2` away at `t = 6`, and there the
+   completion takes the interior-Newton path to a `0.024` answer.  The
+   radius would have capped the `0.9565` iterate to `0.1` had it
+   appeared; it did not appear, so what the radius bought on this
+   horizon is a `0.39` envelope against `0.77` and nothing in the score.
+
+## (a) Separations
+
+31-coordinate, 56-state and 70-frontier Euclidean distances at equal
+sample times, recomputed from the arrays; task 8's twins in brackets.
+
+| pair | first sample with any difference | first re-selection whose decision differs | first crossing of `d31` `1e-3` / `1e-2` / `1e-1` | `d31` at `t = 4` / `8` | maximum `d31`, when | `d70` maximum, when |
+|---|---|---|---|---|---|---|
+| ball `etol1e3` from ball base | `t = 0.005`, `2.5e-15` | `t = 0.36`: base `accepted` (`0.0099`), twin `infeasible` (`0.527`) | `0.7775` / `4.51` / never [task 8: `6.6425` / never / never] | `8.59e-03` / `2.46e-02` (6.3 and 8.5 percent of the distance from exact) [`8.1e-09` / `1.09e-03`] | `2.67e-02` at `7.27` | `0.105` at `0.56` (the twin's `0.285` cap) |
+| ball `dykstra60` from ball base | `t = 0.0075`, `6.9e-08` | `t = 0.12`: base `infeasible`, twin `declined_by_margin` (`1.330`) | `0.5225` / `3.2` / never [`0.5175` / `3.835` / never] | `1.60e-02` / `3.91e-02` (11.8 and 13.1 percent) [`1.07e-02` / `3.28e-02`] | `5.23e-02` at `6.215` | `0.107` at `0.60` (the twin's `0.881` cap) |
+| ball `conic1e10` from ball base | `t = 0.24`, `3.0e-15` in the frontier | `t = 0.36`: base `accepted` (`0.0099`), twin `cap_bound_ball` (`0.584`) | `0.9475` / `6.41` / never [`6.6425` / never / never] | `4.97e-03` / `1.68e-02` (3.6 and 5.8 percent) [`1.04e-08` / `1.09e-03`] | `1.73e-02` at `7.32` | `0.094` at `0.36` |
+| ball `etol1e3` against ball `conic1e10` | `t = 0.005` | `t = 0.36`: `infeasible` against `cap_bound_ball` | `1.1425` / `6.975` / never [never / never / never] | `4.56e-03` / `8.77e-03` [`3.2e-09` / `4.7e-09`] | `1.07e-02` at `7.24` | `0.156` at `0.56` |
+| ball base from the anchor-free base (the radius alone) | `t = 0.04`, `d70` `0.2447` | `t = 0.04`: `cap_bound_ball` (`0.1`) against `accepted` (`0.3447`) | `0.7225` / `4.6925` / never | `7.96e-03` / `2.01e-02` (5.9 and 6.8 percent) | `2.40e-02` at `7.27` | `0.953` at `6.6` (task 8's excursion) |
+| ball twins from the anchor-free twins (the radius alone) | `t = 0.04` in every pair | `t = 0.04` in every pair | `etol1e3` `1.6875` / never / never; `dykstra60` `1.055` / `4.9725` / never; `conic1e10` `1.025` / `6.8525` / never | `2.03e-03` / `7.61e-03`; `6.46e-03` / `1.76e-02`; `4.58e-03` / `9.34e-03` | `7.61e-03`, `1.76e-02` at `8.0`; `1.15e-02` at `7.18` | `0.2447` at `0.04` in each |
+| ball base from the recorded chain | `t = 0.04`, `d70` `0.1` | --- (the recorded chain's segments carry no re-selection ledger; task 8 established that its `t = 0.04` completion was refused under the earlier form) | `0.56` / `1.825` / `4.94` | `5.33e-02` / `2.76e-01` (38 and 116 percent of the smaller distance from exact) | `3.36e-01` at `7.57` | `0.200` at `0.16` |
+
+Window means of `d31` over `(0, 2]`, `(2, 4]`, `(4, 6]`, `(6, 8]`: ball
+`etol1e3` `1.7e-03`, `5.5e-03`, `1.1e-02`, `2.1e-02`; `dykstra60`
+`2.0e-03`, `8.4e-03`, `2.0e-02`, `3.4e-02`; `conic1e10` `9.9e-04`,
+`3.4e-03`, `6.2e-03`, `1.4e-02`; the ball base from the anchor-free base
+`1.9e-03`, `5.7e-03`, `1.0e-02`, `1.9e-02`.  Under the ball every twin is
+a different trajectory from `t <= 0.36` on, at `4` to `13` percent of
+the distance from the exact reference by `t = 8`, where under the
+anchor-free rule two of the three were the base's to `1e-8` through
+`t = 6.6`; the ball's band is the wider of the two at both horizons
+(3.92 against 0.52 percent at `t = 4`, 2.29 against 1.40 at `t = 8`),
+and every member of both rules lies inside `9.96e-3` to `1.043e-2` at
+`t = 4` and `3.143e-2` to `3.224e-2` at `t = 8` (eight runs, 4.7 and 2.6
+percent).
+
+## (a) Physicality, energy, cost
+
+Over `t = 0` to `8` the minimum unshifted retained joint Gram is
+`-1.298e-03` / `-1.324e-03` / `-5.212e-04` / `-1.316e-03` and the minimum
+scaled positive-extension eigenvalue `-1.369e-04` / `-1.384e-04` /
+`-5.279e-05` / `-1.384e-04`, task 8's to two figures (recorded
+`-2.152e-03` / `-1.922e-04`); nothing is held.  The frontier envelope
+stays below `0.43` in every member (task 8's base `0.77` at its `t = 6.6`
+excursion).  The Eq. (22) internal-energy RMS is `4.413844e-03` /
+`3.950798e-03` / `4.059184e-03` / `4.090198e-03` at `t = 4` and
+`5.360816e-03` / `4.812119e-03` / `4.947228e-03` / `4.977447e-03` at
+`t = 8`: the base is 12 percent above the anchor-free base
+(`4.781299e-03`) because the `drive_power` reference its own capped
+trajectory selects over the pulse, `-3.5652343570276206`, lies
+`6.164e-03` above the exact post-pulse energy `-3.571397982` where the
+anchor-free base's `-3.5658908873520327` lay `5.507e-03` above (recorded
+`6.710e-03`, tightened `5.534e-03`); the three twins' references
+(`5.541e-03`, `5.698e-03`, `5.729e-03` above) put them between.  The
+energy is held to `1.78e-15` over 9,410 to 9,555 constrained repairs, 0
+hyperplane refusals.  Autonomous wall to `t = 8` `1,977.2` / `1,882.8` /
+`1,835.1` / `1,858.7 s` in two segments each (task 8 `1,886.3` to
+`1,962.8 s`; recorded `2,058.0 s`), `0.876` to `0.923` in the 200
+completion solves at `8.04` to `9.12 s` mean; the first segments reached
+`t = 3.6`, `3.6`, `3.88`, `3.72` in their `1,000 s` budget (task 8's
+`3.84`, `3.56`, `3.48`, `3.72`) with a cheap-route job under a `3,000 MB`
+guard sharing the machine throughout; peaks `627` to `636 MiB`; longest
+segment `1,006.9 s` of autonomous wall plus `20.4 s` of build.
+
+## Gates, (a)
+
+| gate | result |
+|---|---|
+| the radius reaches the rule | smoke `paper_v_dictionary_energy_ball_smoke_20260917k`, `t = 0` to `0.08` under the five flags: `summary.json` records `reselection_rule` `{anchor_weight 0.0, trust_radius 0.1, trust_policy ball, acceptance_margin 0.001, candidates measured}` and the `e3374f6f` source tree; the `t = 0.04` re-selection is `cap_bound_ball` with solved move `0.344669` and applied move `0.1` (objective `6.5383` to `4.5076`, 40-iteration cap, uncertified), the `t = 0.08` one `infeasible` (`AlmostPrimalInfeasible` reference completion) --- task 8's `0.3447` acceptance, capped |
+| the driver without the radius is task 8's | the `--reselection-trust-radius` and `--reselection-trust-policy` flags default to not given, in which case `_rule_from_args` builds the rule without them (`trust_radius None`, policy `carried`) as in task 8; task 8's gates (driver bitwise the recorded chain without any flag; native tolerance path bitwise the task-5 subclass) stand unchanged, no driver line having changed |
+| every member's first re-selection under the ball is the same decision | `cap_bound_ball` at `t = 0.04` on a `0.3447` answer in all four, then `infeasible` at `0.08`; the first differing decision is at `t = 0.12` (`dykstra60`) or `0.36` (`etol1e3`, `conic1e10`) |
+| a segment resumes on a re-selection boundary | second segments resume at `t = 3.6`, `3.6`, `3.88`, `3.72` (`90`, `90`, `97`, `93` intervals of 16 steps from `t = 0`); every second segment reached `t = 8.0` and wrote its resume there |
+| the declared reference is set inside the second segment | every first segment stopped before `t = 4`; the second segment's reference is the one held from `t = 4` on (`-3.5652343570276206`, `-3.565857236878324`, `-3.5656998998271225`, `-3.5656694757384906`) |
+| the energy is held where the constraint is on | maximum deviation from the declared reference `1.78e-15` over 9,555, 9,449, 9,410, 9,536 constrained repairs, 0 hyperplane refusals |
+| one grid | 3,201 common samples, `t = 0` to `8`, times equal to `1e-12` across the four ball members, the four task-8 members and the recorded chain; every score hit the `exact_t8.npz` cache |
+| the ledgers merge at the boundary | `compare_chains.py`'s boundary-inclusive merge (task 8) gives 200 entries on one schedule for every member; the `t = 6.6` and `6.64` records above are read from those merged ledgers |
+
+## (b) The base to `t = 20` under the ball rule
+
+**The rule taken to `t = 20`, and why.**  The two rules tie at `t = 8` on
+the base (`3.180974e-02` against `3.181485e-02`, ratio `0.9998`; the
+four-member bands `3.143e-2` to `3.216e-2` and `3.180e-2` to `3.224e-2`
+overlap), so the choice was made on what each rule is for past `t = 8`:
+the ball radius is the declared instrument for the moves the cheap
+route measured past `t = 8.68` at 15 keys (its whole gain there is past
+`t = 8`), it is the rule of the 15-key ledger row, and its base's
+envelope sat at `0.39` where the anchor-free base's `t = 6.6` excursion
+put it at `0.77`; the known cost was 4 percent at `t = 4` and a 12
+percent worse internal-energy RMS on the base.  The ball base was
+chained from its `t = 8` segment (`_seg2`, resume written at `t = 8.0`)
+in three more segments --- `8.0` to `11.8` (1,520 steps, `1,006.3 s`),
+`11.8` to `15.44` (1,456 steps, `1,004.2 s`), `15.44` to `20.0` (1,824
+steps, `856.9 s`) --- under the same flags, and scored at `t = 4`, `8`,
+`10`, `12`, `16`, `20` on the `exact_t20.npz` cache (8,001 samples).  The
+anchor-free base was not continued; a single rollout of each rule past
+`t = 8` would be needed to say which is better there, and this round
+has one.
+
+**The result, first: at `t = 12`, `16` and `20` the ball base is ahead
+of every 27-key chain on record, outside every recorded band, and it is
+one run.**  Cumulative all-coordinate scalar RMS over `t = 0` to `T`:
+
+| `T` | ball base (this round; one run) | recorded `drive_power` chain / tightened member (band) | standing | recorded `post_pulse` chain / tightened member (band) | standing | both cones | 15-key ball base (band) |
+|---:|---|---|---|---|---|---|---|
+| 4 | `1.043201e-02` (four members `1.004e-2` to `1.043e-2`, 3.9 %) | `1.142716e-02` / `1.292283e-02` (13.1 %) | ahead by `1.10` to `1.24`, bands disjoint; behind task 8's `1.00e-2` | `1.630660e-02` / `1.971786e-02` (20.9 %) | ahead by `1.56` to `1.89` | --- | `0.027191` |
+| 8 | `3.180974e-02` (four members `3.143e-2` to `3.216e-2`, 2.3 %) | `2.593079e-02` / `2.709352e-02` (4.5 %) | behind by `1.17` to `1.23`, bands disjoint | `4.537517e-02` / `4.158658e-02` (9.1 %) | ahead by `1.31` to `1.43` | --- | `0.038538` |
+| 10 | `3.608325e-02` | `3.332970e-02` / `3.356926e-02` (0.7 %) | behind by `1.07` to `1.08` | `4.956048e-02` / `4.424362e-02` (12.0 %) | ahead by `1.23` to `1.37` | --- | --- |
+| 12 | `3.797419e-02` | `4.250925e-02` / `4.331967e-02` (1.9 %) | ahead by `1.12` to `1.14` | `6.075829e-02` / `4.611524e-02` (31.8 %) | ahead by `1.21` to `1.60` | --- | `0.098867` (`0.0989` to `0.1043`) |
+| 16 | `4.820897e-02` | `6.377276e-02` / `6.719628e-02` (5.4 %) | ahead by `1.32` to `1.39` | `6.385168e-02` / `5.386180e-02` (18.5 %) | ahead by `1.12` to `1.32` | --- | `0.132318` (`0.132` to `0.158`) |
+| 20 | `6.353308e-02` | `8.519313e-02` / `9.088037e-02` (6.7 %) | ahead by `1.34` to `1.43` | `6.990927e-02` / `7.563847e-02` (8.2 %) | ahead by `1.10` to `1.19` | `0.128607`: the chain is `0.494` of it | `0.132542` (`0.133` to `0.207`): `0.479` |
+
+The crossing of the ball base and the recorded `drive_power` chain lies
+between `t = 10` and `t = 12`: the chain's score per four-unit window
+`(a, b]` is `1.044e-02`, `4.377e-02`, `4.799e-02`, `7.050e-02`,
+`1.043e-01` over `(0, 4]` to `(16, 20]`, against the recorded chain's
+`1.143e-02`, `3.485e-02`, `6.385e-02`, `1.042e-01`, `1.415e-01`
+(tightened `1.293e-02`, `3.608e-02`, `6.452e-02`, `1.115e-01`,
+`1.524e-01`), the `post_pulse` chain's `1.631e-02`, `6.207e-02`,
+`8.341e-02`, `7.234e-02`, `9.016e-02` (tightened `1.972e-02`,
+`5.542e-02`, `5.405e-02`, `7.228e-02`, `1.304e-01`) and the 15-key ball
+base's `0.0272`, `0.0472`, `0.1624`, `0.2018`, `0.1334`: the ball chain
+loses the `(4, 8]` window to the recorded chain by `1.26` and wins every
+later window by `1.33` to `1.48`; the `post_pulse` chain, which the
+`drive_power` chains lose to at `t = 20`, is behind the ball chain in
+every window but `(16, 20]`, where it is ahead by `1.16` (its site-0
+occupation RMS `0.208` there against the ball chain's `0.280`).  Where
+the gain is: at `t = 20` the ball chain's blocks are rho `1.0064e-01`, B
+`1.2518e-01`, N `4.6925e-02`, A `4.2577e-02`, C `2.9735e-02` against the
+recorded chain's `1.3580e-01`, `1.8729e-01`, `3.1870e-02`, `4.3970e-02`,
+`3.1283e-02` and the `post_pulse` chain's `8.0311e-02`, `1.1223e-01`,
+`8.2570e-02`, `7.0619e-02`, `4.1905e-02`; the 27 coordinates outside the
+phonon-occupation block score `6.564e-02` (recorded `9.046e-02`,
+`post_pulse` `6.783e-02`) and the four phonon-occupation coordinates
+`4.692e-02` (recorded `3.187e-02`, `post_pulse` `8.257e-02`).  So the
+ball chain is ahead in the rho and B blocks --- the ones the recorded
+chain lost its `t = 12` to `20` scores in --- and behind the recorded
+chain in the phonon-occupation block at every horizon past `t = 4`
+(`4.86e-2` against `3.28e-2` at `t = 8`, `5.57e-2` against `3.20e-2` at
+`t = 12`, `4.69e-2` against `3.19e-2` at `t = 20`), the `(4, 8]` loss of
+task 8 carried forward and never recovered.  Site-0 occupation
+(`rho[0,0]` sample RMS) at `t = 20`: `8.122e-02` (`2 rho[0,0]`:
+`0.162`), recorded `1.126e-01` (`0.225`), `post_pulse` `6.249e-02`, both
+cones `0.205` in the `2 rho[0,0]` convention.
+
+**The internal energy and the cones are the recorded chain's, and
+nothing is held.**  Eq. (22) internal-energy RMS `5.641305e-03`,
+`5.776465e-03`, `5.856071e-03` at `t = 12`, `16`, `20` (recorded
+`6.088286e-03`, `6.249722e-03`, `6.344620e-03`; tightened `4.995294e-03`,
+`5.135424e-03`, `5.217702e-03`; `post_pulse` `0.153`, `0.161`, `0.165`;
+both cones `0.00094`): inside the `drive_power` band at every horizon, 28
+times better than the `post_pulse` chain, 6.2 times worse than the
+both-cones line, the `drive_power` reference `-3.5652343570276206`
+(`6.164e-03` above the exact post-pulse energy) held to `1.78e-15` over
+23,955 constrained repairs, 0 hyperplane refusals.  Over `t <= 12`, `16`
+and `20` alike the minimum unshifted retained joint Gram is
+`-2.377e-03`, attained at `t = 10.08`, and the minimum scaled
+positive-extension eigenvalue `-2.202e-04`, attained at `t = 9.545`
+(recorded `-2.463e-03` / `-2.040e-04`, tightened `-2.374e-03` /
+`-2.098e-04`, `post_pulse` `-3.124e-03` / `-3.429e-04`; over `t <= 8` the
+chain's own `-1.298e-03` / `-1.369e-04`); the frontier envelope reaches
+`0.573` (at the `t = 11.04` cap), against the recorded `0.452`, and never
+the box.
+
+**The cap did its declared work in `(8, 12]` and was idle after
+`t = 14.36`.**  Decisions of 500: accepted 441 (91 uncertified),
+cap-bound 14, declined by the margin 1, `infeasible` 44; solver refusals
+136 (recorded 144, tightened 226); by four-unit window accepted 88, 98,
+73, 82, 100, `infeasible` 8, 2, 17, 17, 0, cap-bound 3, 0, 10, 1, 0, and
+the median applied move `0.0044`, `0.0095`, `0.0150`, `0.0106`, `0.0074`
+(maximum `0.1`, `0.0319`, `0.1`, `0.1`, `0.0112`).  The eleven caps past
+`t = 8`, with the answer's own distance and certificate: `9.08` `0.134u`,
+`9.20` `0.148`, `9.24` `0.133u`, `10.00` `0.387u`, `10.04` `0.198`,
+`11.00` `0.133u`, `11.04` `0.793u`, `11.24` `0.351`, `11.28` `0.250`,
+`11.32` `0.149`, `14.36` `0.356u`; of the chain's 38 answers above `0.4`,
+36 are `infeasible`, one declined (`1.319` at `t = 0.72`) and one capped
+(the `0.793` uncertified iterate at `t = 11.04`, applied at `0.1`).  This
+is the cheap route's task-10 pattern --- the large answers refused by
+the measured test, the cap catching answers of `0.13` to `0.39` in
+clusters at `t = 9.1` to `9.2`, `10.0`, `11.0` to `11.3` (15 keys: `8.68`,
+`9.64`, `10.08` to `10.32`, `13.48`, `16.88`) --- with one addition, the
+`0.793` at `t = 11.04` that the 15-key base never saw (its counterpart
+there, the `0.894` at `t = 10.04`, was declined).  From `t = 16` on the
+chain accepts all 100 completions, 15 of them uncertified, with no
+answer above `0.0112`: the lift converges.  Against the recorded chain
+the separation `d31` is `0.260`, `0.265`, `0.261` at `t = 12`, `16`, `20`
+(maximum `0.336` at `t = 7.57`) while the two chains' distances from the
+exact reference are `0.290` / `0.503`, `0.440` / `0.656`, `0.767` /
+`0.969`.
+
+**Cost.**  Autonomous wall to `t = 20` `4,844.7 s` in five segments
+(recorded `4,794.4 s`, tightened `4,789.8 s`, `post_pulse` `3,887.0 s`),
+`0.924` in the 500 completion solves at `8.95 s` mean; repairs `243.0 s`,
+velocity `125.0 s`; peaks `631` to `638 MiB`; longest segment `1,006.3 s`
+of autonomous wall plus `18.5 s` of build; the cheap-route job shared
+the machine throughout.
+
+## What the 27-key ledger row is, horizon by horizon
+
+| horizon `t = 0` to `T` | the row | band | ball base (this round) | what changes |
+|---:|---|---|---|---|
+| 4 | task 8's anchor-free rule, `1.00e-2` | four members `9.96e-3` to `1.001e-2`, 0.5 % (task 8) | `1.043e-2`, four members `1.004e-2` to `1.043e-2`, 3.9 % | nothing: the ball is behind, bands disjoint |
+| 8 | the recorded `drive_power` chain, `2.59e-2` | `2.59e-2` to `2.71e-2`, 4.5 % (task 5) | `3.18e-2`, four members `3.143e-2` to `3.216e-2`, 2.3 % | nothing: both rules behind by `1.16` to `1.24` |
+| 12 | this round's ball base, `3.80e-2`, if adopted | **none**: one run; the recorded `drive_power` band it beats is `4.25e-2` to `4.33e-2` (1.9 %), the `post_pulse` band `4.61e-2` to `6.08e-2` | `3.797e-2` | the row moves from the recorded chain (`4.25e-2`) by `1.12` to `1.14`, outside its band, subject to the ball's own band |
+| 16 | this round's ball base, `4.82e-2`, if adopted | **none**: one run; `drive_power` `6.38e-2` to `6.72e-2`, `post_pulse` `5.39e-2` to `6.39e-2` | `4.821e-2` | the row moves from the tied `drive_power` / `post_pulse` pair (`6.38e-2` / `6.39e-2`) by `1.12` to `1.39` |
+| 20 | this round's ball base, `6.35e-2`, if adopted | **none**: one run; `drive_power` `8.52e-2` to `9.09e-2`, `post_pulse` `6.99e-2` to `7.56e-2` | `6.353e-2` | the row moves from the `post_pulse` chain (`6.99e-2`) by `1.10` to `1.19`, outside its 8.2 % band, and stands at `0.494` of the both-cones `0.1286` |
+
+Measured bands exist at `t = 4` and `t = 8` only (four members under
+this rule; four under task 8's; the recorded chains' pairs).  At
+`t = 12`, `16`, `20` the ball row is a single rollout; the three
+one-setting twins were queued from their own `t = 8` segments to
+`t = 20` as this record was written (`queue_task9_t20_twins.sh`; about
+55 minutes each, one at a time), so that the row's band lands in
+`task9_ball_{etol1e3,dykstra60,conic1e10}_score_t20.json`.  What the
+band must be for each standing to survive: at `t = 12` the lead over the
+`drive_power` band is 12 percent of the ball base; at `t = 16` the lead
+over the `post_pulse` band 12 percent; at `t = 20` the lead over the
+`post_pulse` band 10 percent and over the `drive_power` band 34.  At 15
+keys the ball's own bands were 5.5, 19.3 and 56.2 percent at these
+horizons; at 27 keys through `t = 8` they are 3.9 and 2.3.  Adoption of
+the row is the user's call; the plan-file row records the numbers and
+the absence of the band.
+
+## Provenance and gates of the runs themselves
+
+- Thirteen rollouts under `pipelines/shell/ram_guard.py --limit-mb
+  4500`, one at a time, `20:29` to `23:31` on 2026-09-17: the smoke
+  (`paper_v_dictionary_energy_ball_smoke_20260917k`, `t = 0` to `0.08`),
+  the eight (a) segments
+  (`paper_v_dictionary_energy_power_27key_n16_ball_{base,etol1e3,dykstra60,conic1e10}_20260917k_seg{1,2}`)
+  and the three (b) segments (`..._ball_base_20260917k_seg{3,4,5}`), each
+  with `reselections.json`; the three twins' continuations
+  (`..._ball_{etol1e3,dykstra60,conic1e10}_20260917k_seg{3,...}`) were
+  running when this record was written.  Scoring and comparison under
+  `--limit-mb 2000` or `2500`, arrays only.
+- Scripts under `output/local_runs/paper_v_projective_dictionary_energy_20260915e/`:
+  `smoke_task9_ball.sh` and `check_task9_smoke.py` (the flag-reaches-
+  the-rule gate), `queue_task9_ball.sh` (the eight (a) segments and the
+  per-member scores), `score_task9.sh` (the three twin-against-base
+  comparisons, the base against the task-8 base and against the recorded
+  chain, and the tabulation), `tabulate_task9.py` (ledgers, chart,
+  standing, the cap-bound ledger, the `t = 6.6` records of every member
+  under both rules, separations recomputed from the arrays, decision
+  ledgers), `queue_task9_t20.sh` (the (b) chain and its score; takes
+  `ball` or `measured`), `tabulate_task9b.py` and `tabulate_task9b.sh`
+  (the (b) chart, the standing against each recorded band, windows,
+  physicality minima with the times attained, decisions per window, the
+  separation from the recorded chain), `queue_task9_t20_twins.sh` (the
+  twins' continuations); `run_energy_segment.py`, `run_chain.py`,
+  `score_energy_chain.py` and `compare_chains.py` unchanged from task 8.
+  Outputs: `task9_{member}_score_t8.json` and `.log`,
+  `task9_ball_base_score_t20.json` and `.log`,
+  `compare_task9_{etol1e3,dykstra60,conic1e10}.json`,
+  `compare_task9_base_vs_task8_base_t8.json`,
+  `compare_task9_base_vs_recorded_t8.json`, `tabulate_task9.log`,
+  `tabulate_task9b_ball.log`, `smoke_task9_ball.log`, `task9_chain.log`,
+  `task9_t20_chain.log`, `task9_t20_twins_chain.log`, the segment logs
+  `task9_*_seg1.log` and `paper_v_dictionary_energy_power_27key_n16_ball_*_seg{2,3,4,5}.log`.
+- No module was edited, nothing was committed, no default, acceptance
+  rule, radius or ladder changed; the recorded chains' and task 8's
+  artifacts are untouched.  Wall times were measured with the cheap
+  route's `3,000 MB` job on the machine and are upper bounds.  The
+  worklog carries a matching block; the plan-file row was updated in
+  place.
+
+## What to try next, in order
+
+1. **Read the twins' `t = 12`, `16`, `20` scores when they land** and
+   write the band into the ledger row: if the four members stay within
+   the leads above (12, 12 and 10 percent), the ball base is the 27-key
+   row at every horizon from `t = 12` on, outside every recorded band; if
+   the `t = 20` band opens to the 15-key rule's 56 percent, the row past
+   `t = 12` carries the first digit only and the `post_pulse` chain's
+   `t = 20` standing is unresolved.
+2. **The anchor-free base from `t = 8` to `t = 20`** (`queue_task9_t20.sh
+   measured`; three segments): the two rules tie at `t = 8`, and whether
+   the ball's `1.33` to `1.48` per-window gain past `t = 8` is the
+   radius's or the measured acceptance's is one chain away.
+3. **The phonon-occupation block.**  The ball chain is behind the
+   recorded chain in the four phonon-occupation coordinates at every
+   horizon past `t = 4` (`4.69e-2` against `3.19e-2` at `t = 20`) while
+   ahead everywhere else; the loss enters in `(4, 8]` under both
+   rules.  Task 8's proposal stands: a rerun with `certified` candidates
+   from `t = 4` separates the `t = 0.04` acceptance from the `(4, 8]`
+   re-selections.
+
+## Structured summary of task 9
+
+| item | value |
+|---|---|
+| the rule | `LiftReselectionRule(acceptance_margin=1e-3, candidates="measured", anchor_weight=0, trust_radius=0.1, trust_policy="ball")` on the task-4 27-key `N = 16` `drive_power` energy-neutral chain; (a) base plus `etol1e3`, `dykstra60`, `conic1e10` to `t = 8` in two segments each; (b) the base to `t = 20` in three more; imports from `head_src_e3374f6f` (identical to the tree at `f971a284`) |
+| (a) `t = 4`, four members | `1.043201e-02` / `1.003847e-02` / `1.005305e-02` / `1.024635e-02`; band `1.004e-2` to `1.043e-2`, spread `3.92 %` (task 8's anchor-free four: `1.001172e-02` / same / `9.959755e-03` / same, `0.52 %`; disjoint, ball behind by `1.042` on the base); ahead of the recorded band `1.143e-2` to `1.292e-2` (worst member `0.913` of its bottom); every member below cell A (`0.829`); internal energy `4.413844e-03` / `3.950798e-03` / `4.059184e-03` / `4.090198e-03`; retained joint Gram `-4.052e-04` / `-4.155e-04` / `-2.219e-04` / `-4.155e-04`, extension `-4.706e-05` / `-4.670e-05` / `-2.781e-05` / `-4.734e-05` |
+| (a) `t = 8`, four members | `3.180974e-02` / `3.151679e-02` / `3.215530e-02` / `3.143476e-02`; band `3.143e-2` to `3.216e-2`, `2.29 %` (task 8's `3.181485e-02` / `3.179926e-02` / `3.224344e-02` / `3.179926e-02`, `1.40 %`; overlapping, bases equal to `0.02 %`); behind the recorded band `2.593e-2` to `2.709e-2` by `1.16` to `1.24`, disjoint: the standing does not change; internal energy `5.360816e-03` / `4.812119e-03` / `4.947228e-03` / `4.977447e-03` (task-8 base `4.781299e-03`; recorded `5.751890e-03`); retained `-1.298e-03` / `-1.324e-03` / `-5.212e-04` / `-1.316e-03`, extension `-1.369e-04` / `-1.384e-04` / `-5.279e-05` / `-1.384e-04` (recorded `-2.152e-03` / `-1.922e-04`); envelope `0.392` / `0.386` / `0.421` / `0.402` (task-8 base `0.772`) |
+| (a) the capped moves and when | 3 / 5 / 5 / 4 of 200, all at `t <= 0.64`: `0.04` (`0.345`, the whole-face answer task 8 applied whole), `0.16` (`0.244`), `0.20` (`0.145`) in every member; `0.56` `0.285` and `0.60` `0.115` (`etol1e3`); `0.60` `0.881` and `0.64` `0.103` (`dykstra60`); `0.36` `0.584` (`conic1e10`); none in `(0.64, 8]`; every later answer above `0.1` is `infeasible` (`0.53` to `0.55` at `0.36` to `0.64` and `6.44` to `6.52`) or declined (`1.319` at `0.72`, `1.330` at `0.12`) |
+| (a) is the `t = 6.6` move capped | no, because it does not occur: on the four capped trajectories the `t = 6.6` completion returns `0.0240` / `0.0128` / `0.0105` / `0.0243` (accepted) and `t = 6.64` `0.0145` / `0.0148` / `0.0098` / `0.0230`; task 8's `0.9565` facial-reduction iterate is the anchor-free base's, whose trajectory the ball left at `t = 0.04` (`d70` `0.2447`) |
+| (a) separations | ball twins from the ball base: `etol1e3` parts at `t = 0.36` (`accepted` against `infeasible`), `d31` `1e-2` at `4.51`, `2.46e-02` at `t = 8` (8.5 % of the distance from exact); `dykstra60` at `t = 0.12` (`infeasible` against `declined_by_margin`), `1e-2` at `3.2`, `3.91e-02` (13.1 %); `conic1e10` at `t = 0.36` (`accepted` `0.0099` against `cap_bound_ball` of an uncertified `0.584`), `1e-2` at `6.41`, `1.68e-02` (5.8 %) --- the certificate branch is back; ball from anchor-free, same twin: `t = 0.04` in every pair, `d31` `2.0e-02` / `7.6e-03` / `1.8e-02` / `9.3e-03` at `t = 8`; ball base from the recorded chain `0.276` at `t = 8` |
+| (a) refusals and wall | solver refusals 47 / 47 / 47 / 80 of 200 (task 8 48 / 42 / 42 / 78; recorded 75); `infeasible` 10 / 10 / 6 / 10; declined 1 / 0 / 1 / 0; walls `1,977.2` / `1,882.8` / `1,835.1` / `1,858.7 s` to `t = 8` (task 8 `1,886.3` to `1,962.8 s`; recorded `2,058.0 s`), `0.876` to `0.923` in the solves at `8.04` to `9.12 s` mean; peaks `627` to `636 MiB` |
+| (b) the rule chosen | the ball: tie at `t = 8` (`0.9998`; bands overlap), the radius being the declared instrument for the moves past `t = 8` and the 15-key row's rule; the anchor-free base was not continued |
+| (b) `t = 12` / `16` / `20`, base, one run | `3.797419e-02` / `4.820897e-02` / `6.353308e-02`; recorded `drive_power` `4.250925e-02` / `6.377276e-02` / `8.519313e-02` (bands to `4.331967e-02`, `6.719628e-02`, `9.088037e-02`): ahead by `1.12` to `1.14`, `1.32` to `1.39`, `1.34` to `1.43`, outside every band; recorded `post_pulse` `6.075829e-02` / `6.385168e-02` / `6.990927e-02` (bands `4.611524e-02` to `6.075829e-02`, `5.386180e-02` to `6.385168e-02`, `6.990927e-02` to `7.563847e-02`): ahead by `1.21` to `1.60`, `1.12` to `1.32`, `1.10` to `1.19`; both cones `0.128607` at `t = 20`: `0.494`; `t = 10` `3.608325e-02`, behind the recorded `3.332970e-02` to `3.356926e-02` by `1.07` to `1.08` (the crossing is in `(10, 12]`); per window `(8, 12]`, `(12, 16]`, `(16, 20]` `4.80e-2`, `7.05e-2`, `1.04e-1` against the recorded `6.39e-2`, `1.04e-1`, `1.42e-1` and the `post_pulse` `8.34e-2`, `7.23e-2`, `9.02e-2` |
+| (b) internal energy and physicality | Eq. (22) RMS `5.641305e-03` / `5.776465e-03` / `5.856071e-03` at `t = 12` / `16` / `20` (recorded `6.088286e-03` / `6.249722e-03` / `6.344620e-03`, tightened `4.995294e-03` / `5.135424e-03` / `5.217702e-03`, `post_pulse` `0.153` / `0.161` / `0.165`, both cones `0.00094`); retained joint Gram minimum `-2.377e-03` (at `t = 10.08`) and extension `-2.202e-04` (at `t = 9.545`) over `t <= 12`, `16`, `20` alike (recorded `-2.463e-03` / `-2.040e-04`; `post_pulse` `-3.124e-03` / `-3.429e-04`); envelope `0.573`; energy held to `1.78e-15` over 23,955 constrained repairs |
+| (b) the cap past `t = 8` | 11 cap-bound of 300 (`9.08` `0.134`, `9.20` `0.148`, `9.24` `0.133`, `10.00` `0.387`, `10.04` `0.198`, `11.00` `0.133`, `11.04` `0.793`, `11.24` `0.351`, `11.28` `0.250`, `11.32` `0.149`, `14.36` `0.356`), 14 of 500 in all; `infeasible` 44, declined 1, accepted 441 (91 uncertified); solver refusals 136 (recorded 144); `(16, 20]` accepts all 100 with no answer above `0.0112`; wall `4,844.7 s` to `t = 20` (recorded `4,794.4 s`) |
+| the 27-key ledger row | `t = 4`: task 8's `1.00e-2` (band 0.5 %); `t = 8`: the recorded chain's `2.59e-2` (band 4.5 %); `t = 12` / `16` / `20`: this round's ball base `3.80e-2` / `4.82e-2` / `6.35e-2` if adopted, one run each, no band --- the twins' continuations were queued at `23:32` to supply it |
+| gates | the radius reaches the rule (smoke: `cap_bound_ball` at `t = 0.04`, solved `0.344669`, applied `0.1`; the rule recorded in `summary.json`); the driver without the radius is task 8's (flags default to not given); every member's first decision under the ball is the same; boundary resumes at `90`, `90`, `97`, `93` intervals and, for the base past `t = 8`, at `t = 8.0`, `11.8`, `15.44`; energy held to `1.78e-15`; one grid (3,201 samples to `t = 8`, 8,001 to `t = 20`), every score from the caches |
+| files changed | this report (new heading), the worklog block, the plan ledger's row (in place); the task-9 scripts and outputs under `output/local_runs/` listed above.  No module; nothing committed |
+| next | the twins' `t = 12` / `16` / `20` band (running); the anchor-free base from `t = 8` to `t = 20`; the phonon-occupation loss of `(4, 8]` |
