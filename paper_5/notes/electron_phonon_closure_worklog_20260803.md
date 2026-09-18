@@ -7282,3 +7282,123 @@ chain, at each stored state with its stored `frontier_standardized` and
 `energy_reference_mode="none"`, and record the displacement of the
 relative-mode population each produces (about `0.19 s` per repair, no
 solve, no propagation).
+
+## 2026-09-18: projective route, repair displacement: the relative-mode population's motion is the retained joint Gram projection redirected by the Eq. (22) hyperplane, one unit of coordinate per unit of suppressed energy
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, repair displacement (2026-09-18)").  The
+relative-mode flow measurement ended on the instruction to *replay
+`AffineGramCoordinates.repair` on the stored `(6, 8]` samples of the task-11
+base and the recorded `drive_power` chain under `target="both"`, `"retained"`,
+`"extension"` and `energy_reference_mode="none"` beside the chain's own, and
+record the displacement of the relative-mode population each produces*.  This
+light round --- stored trajectories and affine algebra only, five processes
+under `ram_guard --limit-mb 2500` one at a time, peaks `1 MiB` to `172 MiB`,
+nothing propagated, no conic solve, no module edited, nothing committed, no
+default changed --- is that replay, one repair at each of the 800 stored
+samples of the window on each chain (27 keys, 56 state coordinates, 36
+extension rows, 70 frontier keys, `N = 16`, strong coupling, cutoff 16, step
+`0.0025`, `dykstra_iterations` 120 on the base and 30 on the recorded chain,
+`energy_tolerance` and `repair_tolerance` and `eigenvalue_floor` all `0`).  The
+rollout's `stage` cadence applies three repairs per step, so a per-repair
+figure below multiplied by three is the per-step figure it would produce.
+
+Negative results first.  **(1) The replay does not reproduce the
+chain-to-chain sign difference and cannot.**  At each chain's own setting the
+replayed repair moves the coordinate negatively on both chains
+(`-1.502784e-04` and `-5.264001e-04` per repair) while the rollouts ran
+`-8.853883e-05` and `+8.771890e-05` per step: the replay's input is the chain's
+own post-repair sample, whose Eq. (22) energy its own repair drove onto the
+reference to `3.469447e-16` and `3.702594e-16`, while the rollout's repair saw
+a stage state at an offset that is not stored (`reselections.json` records the
+lift re-selection only).  **(2) Raising the Dykstra count does not help**:
+on the base at `target="both"` the signed mean is `-8.853781e-05` at the
+declared 120, `-1.141342e-04` at 480 and `-1.149300e-04` at 2,000, at `0.040`,
+`0.158` and `0.398` seconds per repair, and at `target="retained"` the
+alternation halts by 86.6 iterations and is identical to twelve digits at all
+three --- the displacement is the alternation's limit, not its stopping point.
+**(3) `state_motion_scale` is exactly inert** at `0.1`, `1.0` and `10.0`
+(identical to every printed digit, both chains, all three targets), which
+confirms the module's own claim that the affine Gram map's null space lies
+inside the propagated-state group.  **(4) Repairing only on an actual violation
+buys nothing**: a cone is violated at `0.990` of the base's 800 stored samples
+and `1.000` of the recorded chain's (extension below zero at `0.835` and
+`0.969`, retained at `0.990` and `1.000`).
+
+Results.  **(a)** With the hyperplane in the alternation the retained joint
+Gram is the mover: `2.130842e-04` per repair in mean absolute value on the base
+(signed mean `-2.130842e-04`, maximum `6.090969e-04`, p99 `5.975330e-04`,
+negative at `0.991` of the 800, integrated `-1.704674e-01`), which is `2.53`
+times the closure's own per-step displacement of `8.421646e-05` and `1.07`
+times the rollout's own per-step `1.988844e-04`; and `3.842450e-03` on the
+recorded chain (`63.0` and `10.0` times, negative at `1.000`, integrated
+`-3.073960e+00`), against window RMS errors of `1.907462e-01` and
+`7.513319e-02` on an exact coordinate of RMS `8.372025e-01`.  `0.970` and
+`0.980` of the Euclidean length of that block's correction to the 56
+propagated coordinates lands on this one direction.  The scaled positive
+extension moves it the other way and one tenth as far (`+2.091033e-05`,
+`+4.205861e-04`).  **(b)** Without the hyperplane the retained block is inert
+on this coordinate --- `8.310995e-08` and `9.025583e-07` per repair, `2,564`
+and `4,258` times smaller, negative at only `0.136` and `0.589`, share of the
+state correction `0.0005` and `0.0003` --- the three targets are additive to
+`2.2` and `2.3` percent, and `both` *is* `extension` (correlation `+1.0000` and
+`+0.9997`, ratio of signed means `0.980` and `0.978`).  With it on the residual
+`both - retained - extension` is `28` percent of `both`, `both` correlates with
+`retained` at `+0.9090`, and `retained` and `extension` carry opposite signs at
+`0.809` and `0.966` of the samples.  So it is the alternation, and specifically
+the retained joint Gram alternating with the Eq. (22) hyperplane.  **(c) The
+hyperplane redirects, it does not bound.**  On these samples it demands no
+energy change at all (offset `3.5e-16`, energy change `6.4e-16`), yet it
+reverses the sign of `target="both"` at `0.970` and `0.983` of the samples and
+changes the magnitude by `3.21` --- *larger* --- on the base and `0.562` on the
+recorded chain.  What it suppresses is an energy change of `1.8006e-04` and
+`3.3023e-03` per repair, and the exchange rate is one for one: the signed
+displacement is linear in a deliberately opened energy offset with slope
+`+1.009268` (base, `both`; `+1.333239` retained, `+1.333945` extension) and
+`+0.448470` (recorded; `+1.448553`, `+0.962088`), which is exactly what the
+Eq. (22) gradient's `0.5` on `raw_normal_00` and `0.5` on `raw_normal_11` must
+give against the relative-mode population's identical `0.5`, `0.5` on the same
+diagonal --- the hyperplane and the quantity being lost are the same row of the
+same block.  It costs the cone too: `target="both"` reaches the retained floor
+at `0.010` of samples with it on and `0.388` with it off.  **(d) The cheapest
+change is a declared per-coordinate scale in the least-squares map back**,
+small on the four raw phonon normal coordinates: the correction is already
+effectively one-dimensional along this direction (`0.970`), and `3.1622777` of
+the Eq. (22) gradient's `3.2403703` over the 29 raw coordinates lies outside the
+phonon block, so the energy-neutral constraint has `0.976` of its normal
+available elsewhere.  A smaller step per repair is not available (the repair is
+a projection sized by how far outside the cones the state sits, `-2.096395e-04`
+and `-2.152324e-03`, and the alternation already fails to reach both cones at
+`0.990` and `1.000`), and turning the hyperplane off is already refuted by
+`b_energy_none` (`+2.713256e-01` over `(4, 8]`, one-signed at all 1,600 steps,
+ending `+2.697136e-01` past the exact coordinate).  Cost: one change in
+`cheap_projection_route.py` (`factorization` already builds `scales` as a
+per-coordinate vector; `CheapProjectionSettings` would carry the override and
+the caches key on it), locked to another agent this round; then a free replay
+on the same 800 samples, about `100` s per chain, passing only if the
+per-repair displacement falls below `8.421646e-05` with the both-cones fraction
+not below `0.010` and the energy still on the reference to `1e-15`; then task
+12's `t=4` to `8` rerun from the base's stored `t=3.92` state, one segment
+under `--limit-mb 4500`, about 15 minutes, improving only below `1.907462e-01`
+and closing the gap only at `7.513319e-02`.
+
+Gates: the coordinate read from the stored 56 propagated coordinates through
+the scorer's chart equals the one read from the stored `archive_coordinates` to
+`0.000000e+00` and the affine Eq. (22) energy equals the stored
+`internal_energy` to `0.000000e+00` at every sample; the window reproduces
+`1.907462e-01`, `7.513319e-02`, `8.372025e-01`, `8.421646e-05`, `6.097830e-05`
+and the two in-rollout repair rows to every digit of the relative-mode flow
+measurement's tables; the replayed settings carry each chain's own recorded
+dimensions (36 extension rows, 8 retained rows, 56 state, 70 frontier); sample
+spacing `0.0025` throughout, 800 samples and 800 steps per chain.  The ledger
+row does not move (no rollout this round).  Artifacts in
+`paper_v_projective_dictionary_energy_20260915e/`:
+`probe_repair_displacement_20260918.py`,
+`tabulate_repair_displacement_20260918.py`,
+`append_repair_displacement_20260918.py`,
+`repair_displacement_{base,recorded}_w68_20260918.{json,log}`,
+`repair_displacement_{base,recorded}_sweep_20260918.{json,log}`,
+`repair_displacement_base_dykstra_20260918.{json,log}`,
+`repair_displacement_tables_20260918.log`.  Next: the per-coordinate
+projection scale, in that order --- module change, free replay on the stored
+`(6, 8]` samples, then the one 15-minute `t=4` to `8` segment.
