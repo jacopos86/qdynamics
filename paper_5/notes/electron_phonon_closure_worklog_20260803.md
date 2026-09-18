@@ -6251,3 +6251,111 @@ not re-run (no module changed since the eighth pass's 499-test pass at
 the same contents).  Next: the certified screen's three twins to `t=20`
 (its band); the 27-key `N=16` drive-power chain under the ledger row's
 rule; the `infeasible` regime against the Dykstra iteration count.
+
+## 2026-09-17: projective route, task 8: the anchor-free measured-acceptance rule on the 27-key `N=16` drive-power chain, base and three twins to `t=8`
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, task 8 (2026-09-17)").  The cheap route's
+task-8 rule --- `LiftReselectionRule(acceptance_margin=1e-3,
+candidates="measured", anchor_weight=0)`, every field a setting of the
+committed class at `a81b7ecb`, unchanged through `HEAD 3ea96121`; imports
+from `head_src_e3374f6f`, identical to the tree --- on the task-4 27-key
+`N=16` `drive_power` energy-neutral chain (56 state coordinates, 36
+extension rows, ladder preparation at rung 0, Dykstra 30 on both targets
+at stage cadence, `h=0.0025`, strong coupling, cutoff 16,
+`energy_tolerance 0`), base and the three one-setting twins
+(`energy_tolerance 1e-3`, Dykstra 60, re-selection `conic_tolerance
+1e-10`), `t=0` to `8` in two chained `ram_guard --limit-mb 4500` segments
+each (resumes at `t=3.84`, `3.56`, `3.48`, `3.72`; longest `1,006.8 s`;
+peaks `625` to `651 MiB`; walls `1,886.3`, `1,901.9`, `1,962.8`,
+`1,883.4 s` against the recorded chain's `2,058.0 s`, `88` to `92` percent
+in the completion solves at `8.6` to `8.8 s` mean).  The eight segments
+were run by the previous instance (killed by a network outage after
+scoring them); this instance repeated none, fixed the ledger merge in
+`compare_chains.py` (boundary-inclusive, as `tabulate_task5.py`), ran the
+comparisons, the tabulation and a chaining gate, and wrote the record.
+Scores are the all-coordinate scalar RMS on the 31 closed scalar
+coordinates against the exact cutoff-16 driven reference from `t=0` on one
+grid of 3,201 samples.  No module edited; nothing committed; no default
+changed.
+
+Negative results first.  (1) At `t=8` the rule is behind the recorded
+chain by more than either band: the four members score `3.181485e-2` /
+`3.179926e-2` / `3.224344e-2` / `3.179926e-2` (base / `etol1e3` /
+`dykstra60` / `conic1e10`; band 1.40 percent) against the recorded chain's
+`2.593079e-2` / `2.709352e-2` (task-5 band, 4.5 percent): behind by 1.17
+to 1.24, bands disjoint by 17.4 percent; the loss is the
+phonon-occupation block (`4.778e-2` against `3.283e-2`) and the A block
+(`3.880e-2` against `1.994e-2`), B better and rho, C equal; on the window
+`(4, 8]` alone `4.387e-2` against `3.485e-2`.  The rule that gained 15
+percent at `t=8` at 15 keys loses 17 to 24 percent there at 27 keys, and
+the 27-key `t=8` row on record stays the recorded chain's.  (2) Chaining
+under the rule is not bitwise: the chain (`0` to `0.14`, resume at
+`0.12`, then to `0.2`) agrees with a single rollout to `2.5e-14` through
+three re-selections and flips the fourth (`t=0.16`) from `infeasible` (a
+cone-failure iterate at scaled minimum eigenvalue `-1.76e-8`, below the
+feasibility test's `-1e-8`) to `accepted` (another face's iterate at
+`-9.78e-9`, a `0.8926` move, returned by `0.8923` at `t=0.2`; `d31`
+`3.3e-4` at `t=0.2`); the members' bands are measured across four
+different boundaries and include this perturbation.
+
+Result: a sensitivity-resolved 27-key number exists at both horizons.
+`t=4`: `1.001172e-2` / `1.001172e-2` / `9.959755e-3` / `1.001172e-2`, band
+`9.96e-3` to `1.001e-2` (0.52 percent), every member below cell A's
+`1.258000e-2` (cell A is 1.256 times the worst member) and below the
+recorded chain's whole band `1.143e-2` to `1.292e-2` (ahead by 1.14 to
+1.30, disjoint by 14.1 percent): the first 27-key `t=4` number that beats
+cell A outside every measured band, where the recorded chain only tied
+it.  Ahead of the combined-rule base (`1.891654e-2` / `3.417762e-2`,
+anchor weight 1, superseded) by 1.89 and 1.06, of the 15-key row under
+the same rule (`0.027191` / `0.038538`) by 2.7 and 1.2.  Internal energy
+`3.922911e-3` / `4.781299e-3` (`dykstra60` `4.133866e-3` / `5.020505e-3`)
+between the recorded and tightened members (references
+`-3.5658908873520327`, `5.507e-3` above exact; recorded `6.710e-3`,
+tightened `5.534e-3`).  Physicality over `t<=8`: retained joint Gram
+`-1.301e-3` / `-1.300e-3` / `-5.361e-4` / `-1.300e-3` (recorded
+`-2.152e-3`), scaled extension `-1.404e-4` / `-1.374e-4` / `-5.747e-5` /
+`-1.374e-4` (recorded `-1.922e-4`); nothing held.  Decisions of 200:
+accepted 188 (36 uncertified) / 188 (30) / 193 (35) / 188 (66),
+`infeasible` 12 / 12 / 7 / 12, declined by the margin 0 in every member;
+solver refusals 48 / 42 / 42 / 78 (recorded 75, tightened 97); every
+member accepts the `t=0.04` whole-face answer (`0.3447` move, KKT
+`1.07e-7`) that the earlier form refused, which is where the base and the
+recorded chain part (`d70` `0.1` at `0.04`; `d31` `1e-2` at `1.84`, `0.1`
+at `4.88`, `0.267` at `t=8`).
+
+Separation: `etol1e3` and `conic1e10` are one trajectory with the base to
+`3.2e-8` through `t=6.6` (and with each other to `5.1e-9` to `t=8`); at
+the `t=6.6` re-selection the base's completion took the facial-reduction
+path (`facial reduction removed every frontier direction`) and returned
+an iterate `0.9565` away that passes the feasibility test and improves
+the objective by `1.04`, applied, then `0.9428` back at `6.64`; the twins'
+completions on states `1e-7` away took the interior-Newton path to its
+cap (`0.0117`); cost `1.2e-3` in `d31` at most, `1.1e-3` at `t=8` (0.4
+percent of the distance from exact), 0.05 percent of the score, base
+envelope `0.772` against `0.387` --- the cheap route's task-9 event at
+`t=6.6` and a `0.96` move, the trust radius's job.  `dykstra60` parts at
+`t=0.16` (base `infeasible`, twin accepted `0.0011`), `d31` `1e-2` at
+`3.835`, maximum `0.0349`, never `0.1`; score `-0.5` / `+1.3` percent.
+The certificate tolerance moves nothing under this rule at 27 keys
+either (the `conic1e10` twin accepts 66 uncertified iterates and stays on
+the base).
+
+Gates: driver without the flags bitwise the recorded chain over `t=0` to
+`0.4` (161 samples, `0.0`); native `reselection_extension` path bitwise
+the task-5 subclass; boundary resumes at 96, 89, 87, 93 intervals; energy
+held to `1.78e-15` over 9,426 to 9,550 constrained repairs; one grid.
+Artifacts under `output/local_runs/`:
+`paper_v_dictionary_energy_power_27key_n16_measured_{base,etol1e3,dykstra60,conic1e10}_20260916i_seg{1,2}`
+(each with `reselections.json`),
+`paper_v_dictionary_energy_measured_chaingate{S,A,B}_20260917j`; in
+`paper_v_projective_dictionary_energy_20260915e/`:
+`queue_task8_measured.sh`, `score_task8m.sh`, `compare_task8m_extra.sh`,
+`chaingate_task8m.sh`, `tabulate_task8.py`, `compare_chains.py`
+(boundary-inclusive merge), `task8m_*_score_t8.json`,
+`compare_task8m_*.json`, `chaingate_task8m_compare.json`,
+`tabulate_task8.log`, the segment and gate logs.  Plan-file row updated.
+Next: the trust radius (`0.1`, `ball` and `carried`) on the four to `t=8`,
+then the base to `t=20` under the rule and the cap; and whether the `t=8`
+loss against the earlier form is the `t=0.04` acceptance or the `(4, 8]`
+re-selections.
