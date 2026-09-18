@@ -378,7 +378,14 @@ horizon.
    energy sits at the band in both mean absolute value and maximum at all 800
    samples --- the slab binds at every repair and the route meets an equality
    displaced by the band (`cheap` §"The Eq. (22) reference as a slab rather
-   than a point").
+   than a point"). The band round read that saturation as the stage increment
+   having already opened more Eq. (22) energy than the band; it has not. The
+   offset the repair sees at the three SSPRK(3,3) stages is `4.158e-16`,
+   `3.653e-16` and `3.203e-16` in mean absolute value on the task-11 base over
+   `(6, 8]`, maximum `1.776e-15` at all 2,400 stage repairs, so what the band
+   separates is the energy the cone chase opens inside the alternation
+   (section 5) and nothing the stage increment carries in (`cheap` §"Whether
+   the repair's displacement ... is the closure's own Eq. (22) energy drift").
 
 9. **The drift identity.** The repair's displacement of the relative-mode
    population is not the closure's own Eq. (22) energy drift, because there is
@@ -389,6 +396,42 @@ horizon.
    ratio of `3.2e11`, correlation `+0.118` (`cheap` §"Whether the repair's
    displacement of the relative-mode population is the closure's own Eq. (22)
    energy drift").
+
+10. **The declared step.** Reducing it does not reduce the repair's per-step
+    displacement of the relative-mode population: taking the whole declared
+    step with the three stage repairs chained from each of the 800 stored
+    samples of `(6, 8]`, the displacement is `1.989e-4`, `1.495e-4` and
+    `1.616e-4` per step at `0.0025`, `0.00125` and `0.000625` on the task-11
+    base and rises at every halving on the recorded `drive_power` chain
+    (`3.827e-4`, `4.812e-4`, `7.531e-4`), because the retained joint Gram
+    violation the chase answers does not scale with the step --- observed
+    power `+0.0000` over both halvings on both chains, the minimum scaled
+    eigenvalue reading `-1.468e-5` and `-2.652e-4` at the stored state with no
+    increment added at all, so it is the accepted state's violation and not
+    the stage increment's --- while the scaled positive extension's does
+    (`+1.0628` and `+0.8802` over the first halving), leaving the per-step
+    quantity as the residue of two opposing terms whose cancellation ratio
+    drifts through `1` (`0.958`, `1.030`, `1.161` on the base). No step
+    reaches the closure's own per-step displacement of the same coordinate
+    over the same window, `8.422e-5`: the closest the family comes is `1.77`
+    times it, at `0.00125` on the base, and the sequence turns back up below
+    that step. A `t = 0` to `8` chain would cost `2,073.4 s`, `4,146.9 s` and
+    `8,293.8 s` at the three steps, the wall taken proportional to the
+    declared step count at the task-11 configuration's measured `0.647950 s`
+    per step (`cheap` §"Where the cone chase's own correction lands ...").
+
+11. **The retained cone as the target for this coordinate.** At
+    `target = "retained"` the chase lands `0.9864` of its squared correction
+    length on the four raw phonon normal coordinates --- `0.0136` on the four
+    coherent ones and exactly `0.0000` on the other 21 raw, the 27 dictionary
+    and the 70 frontier coordinates, at every stage on both chains --- and
+    displaces the relative-mode population by `7.526e-8` per stage repair on
+    the task-11 base over `(6, 8]` and `8.989e-7` on the recorded chain, where
+    that correction is `1.60` times longer than the extension cone's and
+    displaces `2,556` times less: the share of a correction landing on the
+    block does not predict what it displaces, the direction of this one being
+    fixed by the affine eight-row Gram of `(1, b, b^dagger, sigma)` (`cheap`,
+    same heading).
 
 ---
 
@@ -416,23 +459,43 @@ horizon it otherwise leads.
 | Why the hyperplane can do this | the Eq. (22) gradient is `0.5` on `raw_normal_00` and `0.5` on `raw_normal_11` and zero on both off-diagonal coordinates --- the same row as the relative-mode population's own `0.5`, `0.5` --- so the exchange rate is one unit of coordinate per unit of suppressed energy (fitted slope `+1.009268` on the base, `+0.448470` on the recorded chain) | `proj` §"projective-route, repair displacement" |
 | What the hyperplane is actually annulling | not a drift (item 9 of section 4): the cone chase itself opens `9.732e-4` of Eq. (22) energy per stage repair on the base, positive at every one of 2,400, displacing the coordinate `+1.082e-3`; the hyperplane's annulment costs `-1.107e-3`; the constrained net `2.332e-4` is a near-cancellation of two terms `4.6` to `4.8` times larger | `cheap` §"Whether the repair's displacement ... is the closure's own Eq. (22) energy drift" |
 | Where the sign comes from | the three SSPRK(3,3) stage repairs at weights `1/6`, `2/3`, `1`: stage signed means `+9.233e-5`, `-1.983e-4`, `+2.826e-5` on the base, whose weighted combination reproduces the in-rollout per-step displacement at correlation `+0.9999998` and slope `+1.000041` | same |
+| Which cone's chase displaces it | at the same stage inputs with the hyperplane out, the positive extension's chase displaces the coordinate `1.113e-3` per stage repair on the base and `2.298e-3` on the recorded chain, `1.03` times the both-cone value on both chains, while the retained cone's chase displaces nothing (section 4, item 11): the whole of the displacement is the extension chase's, and direction rather than block is what separates a correction that moves this coordinate from one that does not | `cheap` §"Where the cone chase's own correction lands ..." |
+| Where the annulment is taken up | with the hyperplane in the alternation the declared repair's correction puts `0.0536` of its squared length on the four raw phonon normal coordinates on the base and `0.2198` on the recorded chain, against the twin's `0.7022` and `0.9336`, and `0.8091` and `0.6872` on the 27 active dictionary coordinates | same |
 
 **Remedies already refused, with their numbers:** turning the hyperplane off
 (section 4, item 6, and `+2.713e-1` of one-signed displacement over `(4, 8]` on
-the window rerun), the per-coordinate metric (item 7), the slab (item 8), a
-dictionary key (item 4).
+the window rerun), the per-coordinate metric (item 7), the slab (item 8), more
+entrance keys (item 4), the declared step (item 10) and the retained cone as
+the target (item 11).
 
-**The lever that remains** is how far outside the two cones the stage increment
-puts the state. Measured at the stage inputs on the base: the scaled retained
-joint Gram before the stage repair is `-1.346e-5` (minimum `-5.434e-5`, below
-zero at `0.9808` of the 2,400 stage repairs) and the scaled positive extension
-`-2.245e-4` (minimum `-1.060e-3`, below zero at `0.8075`), and both cones are
-reached after the repair at only `0.0083` of them. The named next measurement
-is the share of the cone projection's own correction landing on the four raw
-phonon normal coordinates, taken **at the stage inputs** rather than at the
-accepted samples (free, about `190 s` and `70 s` per chain) --- the replay
-could not reach it because it replayed at the accepted state, which is none of
-the three stage inputs (`cheap`, same heading, "What to try next").
+**The repair-side levers are exhausted.** On the energy channel there is no
+Eq. (22) offset for any of them to trade against --- the offset a repair sees
+is at the arithmetic's floor at all 2,400 stage repairs of each chain (item 8)
+and the closure's own flow carries the declared reference exactly (item 9) ---
+so the declared per-coordinate metric of the map back, the reference as a slab,
+the Dykstra count, `state_motion_scale`, `repair_tolerance` and
+`energy_tolerance` each act on a quantity that is zero, and the declared
+reference's own level, `+5.614e-3` above the exact post-pulse energy, is a
+one-time cost at the first repair and nothing per step thereafter. The two
+levers that are not on that channel, the declared step and the retained cone
+the chase answers, are refused in items 10 and 11.
+
+**The one structural option the record supports** is a declared key whose
+positive-extension row carries the phonon normal moments, which acts on how far
+below the extension floor a stage increment falls rather than on what is done
+about it afterwards. It is a change to the key algebra rather than a larger
+dictionary: the extension's derivative map has rank 1 over the four raw phonon
+normal coordinates at every declared key set (item 4), and a row carrying the
+other three would have to be a word in a second boson mode, which the
+`MomentKey` form `(spin_up, spin_down, x_power, p_power)` cannot express. What
+would size it before any rollout, at the same 2,400 stage inputs: the extension
+twin's displacement and its depth below the extension floor under the enlarged
+row, against the `1.113e-3` and `2.298e-3` above and the scaled positive
+extension's `-2.245e-4` on the base and `-4.336e-4` on the recorded chain
+before the stage repair (minima `-1.060e-3` and `-1.138e-3`, below zero at
+`0.8075` and `0.9846` of the stage repairs), both cones being reached after the
+repair at `0.0083` of the base's stage repairs and none of the recorded
+chain's (`cheap`, same heading, "What to try next").
 
 ---
 
@@ -494,7 +557,7 @@ gate is `$DIR/smoke_task11.sh` with `$DIR/check_task11_smoke.py`.
 | task 13, hyperplane disabled | `output/local_runs/paper_v_dictionary_energy_none_27key_n16_measured_dyk120_{base_seg1..4,conic1e10_seg1,conic1e10_seg2}_20260918o` | `$DIR/task13_base_score_t20.json`, `$DIR/task13_conic1e10_score_t8.json` |
 | the recorded `post_pulse` chain | `output/local_runs/paper_v_dictionary_energy_postpulse_27key_n16_20260915e_seg{1..4}`; tightened `..._tightresel_20260916g_seg{0..4}` | `$DIR/postpulse_chain_score_all.json`, `$DIR/tightresel_postpulse_chain_score_t20.json` |
 | the `(4, 8]` window reruns (task 12) | `output/local_runs/paper_v_dictionary_energy_window48_27key_n16_task12_{a_rule30_recorded,a_certified_t11,b_energy_none,b_postpulse}_20260918n_seg1` | `$DIR/tabulate_task12.log` |
-| the relative-mode measurements | `$DIR/relative_mode_flow_{w48,w68,w04,task12_w48}_20260918.json`, `$DIR/repair_displacement_{base,recorded}_w68_20260918.json`, `$DIR/closure_energy_drift_{base,recorded}_w68_20260918.json` | the matching `.log` files |
+| the relative-mode measurements | `$DIR/relative_mode_flow_{w48,w68,w04,task12_w48}_20260918.json`, `$DIR/repair_displacement_{base,recorded}_w68_20260918.json`, `$DIR/closure_energy_drift_{base,recorded}_w68_20260918.json`, `$DIR/cone_correction_share_{base,recorded}_w68_20260918.json`, `$DIR/cone_step_scaling_{base,recorded}_w68_20260918.json`, `$DIR/cone_chained_step_{base,recorded}_w68_20260918.json` | the matching `.log` files |
 | the 15-key ledger row | `output/local_runs/paper_v_cheap_projection_task10_{ball,carried}_{base,etol1e3,dykstra60,conic1e10}_t20_20260916_v1` | `output/local_runs/paper_v_cheap_projection_task10_trust_t20_20260916_v1/` |
 
 ### 6.3 The 15-key rows through the repository driver
