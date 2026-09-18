@@ -3183,3 +3183,118 @@ the absence of the band.
 | gates | the radius reaches the rule (smoke: `cap_bound_ball` at `t = 0.04`, solved `0.344669`, applied `0.1`; the rule recorded in `summary.json`); the driver without the radius is task 8's (flags default to not given); every member's first decision under the ball is the same; boundary resumes at `90`, `90`, `97`, `93` intervals and, for the base past `t = 8`, at `t = 8.0`, `11.8`, `15.44`; energy held to `1.78e-15`; one grid (3,201 samples to `t = 8`, 8,001 to `t = 20`), every score from the caches |
 | files changed | this report (new heading), the worklog block, the plan ledger's row (in place); the task-9 scripts and outputs under `output/local_runs/` listed above.  No module; nothing committed |
 | next | the twins' `t = 12` / `16` / `20` band (running); the anchor-free base from `t = 8` to `t = 20`; the phonon-occupation loss of `(4, 8]` |
+
+## (b) The band, landed 02:06 on 2026-09-18
+
+The three twins' continuations from their own `t = 8` segments reached
+`t = 20` (`etol1e3` in three segments, `8.0` to `11.4`, `11.4` to
+`14.96`, `14.96` to `20.0`; `dykstra60` in four, `8.0` to `11.395`
+(resume `11.36`), `11.36` to `14.96`, `14.96` to `19.32`, `19.32` to
+`20.0`; `conic1e10` in three, `8.0` to `11.64`, `11.64` to `15.8`, `15.8`
+to `20.0`), one at a time, `23:32` to `02:06`; the base's row is the
+one above.  This subsection supersedes the "one run, no band" entries of
+the ledger-row table and the structured summary above (`tabulate_task9_band.py`,
+`tabulate_task9_band.log`).
+
+**Every member of the ball rule is ahead of every recorded 27-key chain
+at `t = 12`, `16` and `20`, outside every recorded band, with the rule's
+own band at 2.9, 5.9 and 9.7 percent.**  Base / `etol1e3` / `dykstra60`
+/ `conic1e10`, cumulative from `t = 0`:
+
+| `T` | four members | band, spread | recorded `drive_power` band | standing | recorded `post_pulse` band | standing | both cones; 15-key ball band |
+|---:|---|---|---|---|---|---|---|
+| 10 | `3.608325e-02` / `3.598880e-02` / `3.736894e-02` / `3.580369e-02` | `3.580e-2` to `3.737e-2`, 4.4 % | `3.333e-2` to `3.357e-2` (0.7 %) | every member behind, by `1.07` to `1.12` | `4.424e-2` to `4.956e-2` (12.0 %) | every member ahead, by `1.18` to `1.38` | --- |
+| 12 | `3.797419e-02` / `3.831339e-02` / `3.906086e-02` / `3.799833e-02` | `3.797e-2` to `3.906e-2`, 2.9 % | `4.251e-2` to `4.332e-2` (1.9 %) | every member ahead, by `1.09` to `1.14` (worst member `0.919` of the band's bottom) | `4.612e-2` to `6.076e-2` (31.8 %) | ahead by `1.18` to `1.60` | 15-key `0.0989` to `0.1043` (5.5 %) |
+| 16 | `4.820897e-02` / `4.860629e-02` / `4.588696e-02` / `4.825014e-02` | `4.589e-2` to `4.861e-2`, 5.9 % | `6.377e-2` to `6.720e-2` (5.4 %) | ahead by `1.31` to `1.46` (worst `0.762`) | `5.386e-2` to `6.385e-2` (18.5 %) | ahead by `1.11` to `1.39` (worst `0.902`) | 15-key `0.132` to `0.158` (19.3 %) |
+| 20 | `6.353308e-02` / `6.330860e-02` / `5.792205e-02` / `6.310984e-02` | `5.792e-2` to `6.353e-2`, 9.7 % | `8.519e-2` to `9.088e-2` (6.7 %) | ahead by `1.34` to `1.57` (worst `0.746`) | `6.991e-2` to `7.564e-2` (8.2 %) | ahead by `1.10` to `1.31` (worst `0.909`) | `0.128607`: worst member `0.494`, best `0.450`; 15-key `0.133` to `0.207` (56.2 %) |
+
+The base is the worst member at `t = 20` and the best at `t = 12`; the
+`dykstra60` twin is the best at `t = 16` and `20` (`4.589e-2`,
+`5.792e-2`) and the worst at `t = 10` and `12`; the `etol1e3` and
+`conic1e10` twins stay within `0.9` percent of the base from `t = 12`
+on.  So the narrowest lead --- the worst member over the `post_pulse`
+band's bottom at `t = 20` --- is `1.10`, and it holds for all four; the
+15-key ball rule's 56 percent band at `t = 20` does not appear at 27
+keys (9.7 percent), nor its 19 percent at `t = 16` (5.9).  What each
+member does past `t = 8`, in the record's terms:
+
+| member | cap-bound past `t = 8` (of 500 in all) | the answers capped past `t = 8` (time: solved move; `u` uncertified) | `infeasible` / declined / accepted (uncertified) of 500 | solver refusals | answers above `0.4` and their decisions | `(16, 20]` |
+|---|---:|---|---|---:|---|---|
+| base | 11 (14) | `9.08` `0.134u`, `9.20` `0.148`, `9.24` `0.133u`, `10.00` `0.387u`, `10.04` `0.198`, `11.00` `0.133u`, `11.04` `0.793u`, `11.24` `0.351`, `11.28` `0.250`, `11.32` `0.149`, `14.36` `0.356u` | 44 / 1 / 441 (91) | 136 | 38: 36 `infeasible`, 1 declined, 1 capped | all 100 accepted, largest answer `0.0112` |
+| `etol1e3` | 9 (14) | `9.08` `0.118u`, `9.20` `0.152u`, `10.00` `0.144u`, `10.04` `0.133`, `11.00` `0.111u`, `11.08` `0.214`, `11.24` `0.154`, `14.40` `0.113u`, `15.40` `0.109u` | 47 / 0 / 439 (100) | 147 | 37, all `infeasible` | all 100, `0.0111` |
+| `dykstra60` | 14 (19) | `10.12` `0.720u`, `10.16` `0.187`, `10.24` `0.437u`, `10.28` `0.107`, `11.16` `0.885u`, `11.20` `0.260`, `11.24` `0.179`, `12.28` `0.131`, `13.08` `0.792u`, `13.24` `1.045u`, `13.28` `0.121u`, `13.40` `1.138u`, `13.44` `0.108`, `15.32` `0.383u` | 25 / 1 / 455 (109) | 135 | 24: 16 `infeasible`, 1 declined, 7 capped | all 100, `0.0115` |
+| `conic1e10` | 12 (16) | `9.08` `0.107u`, `9.20` `0.147u`, `9.24` `0.115u`, `9.28` `0.105u`, `10.08` `0.135u`, `11.00` `0.114u`, `11.08` `0.212`, `11.24` `0.154`, `12.16` `0.114u`, `13.04` `0.119u`, `15.28` `0.922u`, `15.40` `0.249u` | 46 / 0 / 438 (204) | 250 | 43: 41 `infeasible`, 2 capped | all 100, `0.0112` |
+
+Two readings.
+
+1. **The `dykstra60` twin is the one on which the cap does its declared
+   work, and it is the best member past `t = 12`.**  Its repaired states
+   admit seven uncertified answers above `0.4` (`0.720`, `0.437`, `0.885`,
+   `0.792`, `1.045`, `1.138`, `0.922`) that pass the measured test, and
+   the rule applies each at `0.1`; on the other three trajectories the
+   answers above `0.4` are `infeasible` in all but one case each (the
+   base's `0.793` at `11.04`, `conic1e10`'s `0.922` at `15.28`).  With
+   those steps its `(12, 16]` and `(16, 20]` windows are `6.20e-2` and
+   `9.14e-2` against the base's `7.05e-2` and `1.04e-1`, its cones are
+   the tightest of the four (joint Gram `-1.085e-03` at `t = 11.04`,
+   extension `-9.84e-05` at `9.543`; base `-2.377e-03` at `10.08`,
+   `-2.202e-04` at `9.545`), and its distance from the base crosses
+   `0.1` at `t = 13.1` (maximum `0.104` at `13.2`; `9.3e-2` at `t = 20`,
+   12 percent of the base's `0.767` from the exact reference).  This is
+   the cheap route's task-10 pattern with the roles reversed: there the
+   `dykstra60` twin was the outlier that entered the `infeasible` regime
+   (`0.207` at `t = 20`, 56 percent above the base); here it stays out of
+   it (25 `infeasible` of 500 against 44 to 47) and is 9 percent below.
+2. **The certificate tolerance is back to moving nothing.**  The
+   `conic1e10` twin's completions return uncertified 250 times of 500
+   and it accepts 204 of them; it is the base's trajectory to `1.7e-2`
+   at `t = 8`, `2.4e-2` at `12`, `9.4e-3` at `16`, `1.6e-2` at `20`
+   (never `0.1`), and scores within `0.7` percent of the base at every
+   horizon from `t = 8`; the `etol1e3` twin likewise (`3.1e-2` at
+   `t = 12`, `2.0e-2` at `20`; within `0.9` percent).  The band past
+   `t = 12` is the Dykstra count's --- the one setting that changes the
+   repaired state --- and the `(4, 8]` phonon-occupation loss is every
+   member's (`4.7e-2` to `5.4e-2` at `t = 20` against the recorded
+   `3.2e-2`).
+
+Internal-energy RMS at `t = 12` / `16` / `20`: `5.6413e-03` /
+`5.7765e-03` / `5.8561e-03` (base), `5.0668e-03` / `5.1895e-03` /
+`5.2618e-03`, `5.2097e-03` / `5.3362e-03` / `5.4106e-03`, `5.2400e-03` /
+`5.3664e-03` / `5.4409e-03` --- band `5.26e-3` to `5.86e-3` at `t = 20`
+(11 percent), inside the recorded `drive_power` pair's `5.22e-3` to
+`6.34e-3` (both cones `0.00094`); every member's energy held to
+`2.22e-15` or better over 23,849 to 23,955 constrained repairs, 0
+hyperplane refusals.  Physicality over `t <= 20`: joint Gram
+`-2.377e-03` / `-2.282e-03` / `-1.085e-03` / `-2.318e-03`, extension
+`-2.202e-04` / `-2.151e-04` / `-9.837e-05` / `-2.162e-04`, every minimum
+attained in `(9.5, 11.1]` and none after; frontier envelope `0.573` /
+`0.525` / `0.574` / `0.522`, never the box (recorded `0.452`); site-0
+occupation (`rho[0,0]` sample RMS) at `t = 20` `8.12e-2` / `8.15e-2` /
+`7.19e-2` / `8.11e-2` (recorded `1.13e-1`, `post_pulse` `6.25e-2`).
+Walls to `t = 20`: `4,844.7` / `4,897.5` / `4,984.4` / `4,689.5 s` in
+five, five, six, five segments (recorded `4,794.4 s`); peaks `638` /
+`704` / `639` / `698 MiB`; longest segment `1,007.7 s` of autonomous
+wall plus about `19 s` of build.  Every member's `(16, 20]` window
+accepts all 100 completions with no answer above `0.0115`.
+
+## The 27-key ledger row, with the band
+
+| horizon `t = 0` to `T` | the row | band | what moved |
+|---:|---|---|---|
+| 4 | task 8's anchor-free rule, `1.00e-2` | `9.96e-3` to `1.001e-2`, 0.5 % (four members, task 8) | nothing: the ball's `1.004e-2` to `1.043e-2` (3.9 %) is behind, bands disjoint |
+| 8 | the recorded `drive_power` chain, `2.59e-2` | `2.59e-2` to `2.71e-2`, 4.5 % (task 5) | nothing: the ball's `3.143e-2` to `3.216e-2` (2.3 %) and the anchor-free `3.180e-2` to `3.224e-2` are behind by `1.16` to `1.24` |
+| 12 | the ball rule, base `3.80e-2` | `3.797e-2` to `3.906e-2`, 2.9 % (four members) | from the recorded chain's `4.25e-2` (band `4.25e-2` to `4.33e-2`): every member ahead by `1.09` to `1.14`, bands disjoint |
+| 16 | the ball rule, base `4.82e-2` | `4.589e-2` to `4.861e-2`, 5.9 % | from the tied `drive_power` / `post_pulse` pair (`6.38e-2` / `6.39e-2`; bands `6.38e-2` to `6.72e-2` and `5.39e-2` to `6.39e-2`): every member ahead by `1.11` to `1.46` |
+| 20 | the ball rule, base `6.35e-2` | `5.792e-2` to `6.353e-2`, 9.7 % | from the `post_pulse` chain's `6.99e-2` (band `6.99e-2` to `7.56e-2`): every member ahead by `1.10` to `1.31`; over the `drive_power` band `8.52e-2` to `9.09e-2` by `1.34` to `1.57`; `0.450` to `0.494` of the both-cones `0.1286` |
+
+Every horizon now carries a measured four-member band; at `t = 12`,
+`16`, `20` the ball rule's members are the best moment-closure numbers
+on record for the 27-key `N = 16` chain, outside every recorded band,
+with the internal-energy RMS of the `drive_power` chain (`5.3e-3` to
+`5.9e-3`) rather than the `post_pulse` chain's (`0.165`).  Adoption of
+the row is the user's call; the plan-file row carries the numbers and
+the band.  Next, in order: the anchor-free base from `t = 8` to `t = 20`
+(`queue_task9_t20.sh measured`; whether the radius or the measured
+acceptance owns the gain past `t = 8`); the Dykstra count at 120 on the
+ball base past `t = 8` (the `dykstra60` twin is the best member and the
+only one on which the cap acts); the `(4, 8]` phonon-occupation loss.

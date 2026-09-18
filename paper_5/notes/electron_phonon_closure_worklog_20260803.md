@@ -6603,3 +6603,63 @@ boundary resumes at 90, 90, 97, 93 intervals and, past `t=8`, at `8.0`,
 the chain and segment logs.  Plan-file row updated.  Next: the twins'
 `t=12`, `16`, `20` band; the anchor-free base from `t=8` to `t=20`
 (`queue_task9_t20.sh measured`); the phonon-occupation loss of `(4, 8]`.
+
+## 2026-09-18: projective route, task 9, the band: the three ball twins to `t=20`
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(subsection "(b) The band, landed 02:06 on 2026-09-18" under the task-9
+heading; `tabulate_task9_band.py`, `tabulate_task9_band.log`).  The
+`etol1e3`, `dykstra60` and `conic1e10` twins of the 27-key `N=16`
+drive-power chain under the ball rule (margin `1e-3`, `measured`
+candidates, anchor `0`, radius `0.1`, policy `ball`) were chained from
+their own `t=8` segments to `t=20` (`queue_task9_t20_twins.sh`; three,
+four and three `ram_guard --limit-mb 4500` segments of at most
+`1,007.7 s`; walls `4,897.5`, `4,984.4`, `4,689.5 s` to `t=20`; peaks
+`704`, `639`, `698 MiB`), one at a time, `23:32` to `02:06`, and scored
+on `exact_t20.npz`.  No module edited; nothing committed; no default
+changed.
+
+Result: every member is ahead of every recorded 27-key chain at `t=12`,
+`16`, `20`, outside every recorded band, with the rule's own band 2.9,
+5.9, 9.7 percent.  Base / `etol1e3` / `dykstra60` / `conic1e10`:
+`t=12` `3.797419e-2` / `3.831339e-2` / `3.906086e-2` / `3.799833e-2`
+(band `3.797e-2` to `3.906e-2`; recorded `drive_power` `4.251e-2` to
+`4.332e-2`, ahead by 1.09 to 1.14; `post_pulse` `4.612e-2` to
+`6.076e-2`, 1.18 to 1.60); `t=16` `4.820897e-2` / `4.860629e-2` /
+`4.588696e-2` / `4.825014e-2` (`4.589e-2` to `4.861e-2`; `drive_power`
+`6.377e-2` to `6.720e-2`, 1.31 to 1.46; `post_pulse` `5.386e-2` to
+`6.385e-2`, 1.11 to 1.39); `t=20` `6.353308e-2` / `6.330860e-2` /
+`5.792205e-2` / `6.310984e-2` (`5.792e-2` to `6.353e-2`; `drive_power`
+`8.519e-2` to `9.088e-2`, 1.34 to 1.57; `post_pulse` `6.991e-2` to
+`7.564e-2`, 1.10 to 1.31; both cones `0.128607`, worst member `0.494`);
+`t=10` band `3.580e-2` to `3.737e-2`, behind the recorded `3.333e-2` to
+`3.357e-2` by 1.07 to 1.12.  The narrowest lead, the worst member over
+the `post_pulse` band's bottom at `t=20`, is 1.10.  The `dykstra60` twin
+is the best member at `t=16` and `20` and the one on which the cap
+acts: seven uncertified answers above `0.4` (`0.720` to `1.138` at
+`10.12` to `13.40`) pass the measured test on its repaired states and
+are applied at `0.1` (the other members' answers above `0.4` are
+`infeasible` in all but one case each), its `(12,16]` and `(16,20]`
+windows `6.20e-2` and `9.14e-2` against the base's `7.05e-2` and
+`1.04e-1`, its cones the tightest (joint Gram `-1.085e-3`, extension
+`-9.84e-5`; base `-2.377e-3`, `-2.202e-4`), `d31` from the base `0.1` at
+`t=13.1`, `9.3e-2` at `t=20`; the `etol1e3` and `conic1e10` twins stay
+within 0.9 percent of the base from `t=12` on (`d31` at most `3.1e-2`),
+the `conic1e10` twin accepting 204 uncertified iterates of its 250
+refusals.  Cap-bound past `t=8`: 11 / 9 / 14 / 12 (14 / 14 / 19 / 16 of
+500); `infeasible` 44 / 47 / 25 / 46; every member's `(16,20]` accepts
+all 100 with no answer above `0.0115`.  Internal-energy RMS at `t=20`
+`5.856e-3` / `5.262e-3` / `5.411e-3` / `5.441e-3` (recorded `5.22e-3` to
+`6.34e-3`; both cones `0.00094`), held to `2.22e-15`; physicality over
+`t<=20` joint Gram `-2.377e-3` / `-2.282e-3` / `-1.085e-3` / `-2.318e-3`,
+extension `-2.202e-4` / `-2.151e-4` / `-9.84e-5` / `-2.162e-4`, all
+attained in `(9.5, 11.1]`; envelope `0.52` to `0.57`.
+
+The 27-key ledger row now carries a four-member band at every horizon:
+`t=4` task 8's `1.00e-2` (0.5 percent), `t=8` the recorded chain's
+`2.59e-2` (4.5), `t=12` / `16` / `20` the ball rule's base `3.80e-2` /
+`4.82e-2` / `6.35e-2` with bands `3.80e-2` to `3.91e-2`, `4.59e-2` to
+`4.86e-2`, `5.79e-2` to `6.35e-2`.  Adoption is the user's call; the
+plan-file row was updated in place.  Next: the anchor-free base from
+`t=8` to `t=20` (`queue_task9_t20.sh measured`); Dykstra 120 on the ball
+base past `t=8`; the `(4, 8]` phonon-occupation loss.
