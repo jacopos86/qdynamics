@@ -7910,3 +7910,119 @@ correction landing on the four raw phonon normal coordinates, measured at the
 stage inputs rather than at the accepted samples (free, about `190 s` and
 `70 s` per chain); then a dictionary key whose positive-extension row carries
 the phonon normal moments.
+
+## 2026-09-18: cheap projection route: the cone chase's own correction is `0.70` and `0.93` on the four raw phonon normal coordinates but the retained cone's `0.9864` displaces nothing, and reducing the declared step does not reduce the per-step displacement -- the retained violation is the accepted state's and does not scale, and the per-step quantity is a residue whose cancellation does not either
+
+Report: `agent_guidance/paper-v/overnight/cheap-projection-20260915b.md`
+(heading "Where the cone chase's own correction lands, and whether reducing the
+declared step reduces the repair's displacement of the relative-mode
+population: measured at the stage inputs on both chains (2026-09-18)").  The
+closure energy-drift round named two things: the share of the cone projection's
+own correction landing on the four raw phonon normal coordinates, taken at the
+stage inputs rather than at the accepted samples, and the depth of the cone
+violation the stage increment opens as the remaining lever.  This round
+measures both.  Configuration is tasks 11's and 12's: 27 active keys, 56 state
+and 70 frontier coordinates, 36 extension rows, 8 retained rows, `N=16`, strong
+coupling, cutoff 16, `policy="dykstra"`, `cadence="stage"`, `target="both"`,
+`energy_reference_mode="drive_power"`, band `0.0`, metric empty,
+`dykstra_iterations` 120 on the task-11 base and 30 on the recorded chain, 800
+declared steps in `(6, 8]` per chain, stride 1.  Stored trajectories, one
+declared step or one stage increment propagated from each, and affine algebra
+only; no module edited, no lift re-selected, no completion solved, nothing
+committed.
+
+**(a) Where the cone chase's correction lands.**  At the three stage inputs,
+with the Eq. (22) hyperplane out of the alternation, the chase puts `0.7022` of
+its squared correction length on the four raw phonon normal coordinates on the
+task-11 base and `0.9336` on the recorded `drive_power` chain, against `0.0690`
+and `0.0229` on the other 25 raw moment coordinates, `0.2288` and `0.0436` on
+the 27 active dictionary coordinates and `0.0123` and `0.0024` on the 70
+standardized frontier ones (per stage `0.6990`, `0.8952`, `0.6979` and
+`0.9036`, `0.9772`, `0.9430`).  At `target="retained"` the figure is `0.9864`
+with `0.0136` on the four coherent coordinates and exactly `0.0000` elsewhere,
+at every stage on both chains -- the affine eight-row Gram of
+`(1, b, b^dagger, sigma)` reads no other coordinate.  At `target="extension"`,
+`0.6811` and `0.7742`.  With the hyperplane in, the declared repair's
+correction puts only `0.0536` and `0.2198` on that block and `0.8091` and
+`0.6872` on the dictionary coordinates: the annulment is taken up there.
+
+**The share does not predict the displacement.**  The retained chase, `0.9864`
+of it on the four raw phonon normal coordinates and on the recorded chain
+`1.60` times longer than the extension chase's correction, displaces the
+relative-mode population by `7.525961e-08` and `8.989114e-07` per stage repair
+-- `2,556` times less than the extension chase on the recorded chain.  The
+whole displacement is the positive extension's: `1.113000e-03` and
+`2.297563e-03` against the both-cone `1.081507e-03` and `2.238899e-03`, `1.03`
+times it on both chains.  Direction, not block, is what separates a correction
+that moves this coordinate from one that does not.
+
+**(b) The depth of the cone violation, at three declared steps.**  Taking one
+first-stage increment from each stored sample at `0.0025`, `0.00125` and
+`0.000625`, and the stored state itself as the control, the scaled retained
+joint Gram before the stage repair reads `-1.468337e-05`, `-1.468297e-05`,
+`-1.468279e-05` against `-1.468261e-05` with no increment added at all on the
+base and `-2.651646e-04`, `-2.651628e-04`, `-2.651619e-04` against
+`-2.651610e-04` on the recorded chain: observed power `+0.0000` on both chains
+over both halvings.  That violation is the accepted state's, not the stage
+increment's.  The scaled positive extension's is the increment's, at `+1.0628`
+and `+1.0234` (base) and `+0.8802` and `+0.7234` (recorded):
+`-5.216931e-04`, `-2.240551e-04`, `-8.481588e-05` and `-7.704522e-04`,
+`-4.165343e-04`, `-2.506473e-04`.  The energy the chase opens falls at
+`+0.8891`/`+0.7733` and `+0.3254`/`+0.1865`, its displacement at
+`+0.9916`/`+0.9516` and `+0.7037`/`+0.5140`.
+
+**(b) The per-step displacement does not follow.**  Taking the whole declared
+step with the three stage repairs chained from the same stored samples -- which
+at the chain's own `0.0025` reproduces the chain's own next stored state to
+`0.000000e+00` and `8.437695e-15` -- the SSPRK(3,3)-weighted per-step
+displacement is `1.988869e-04`, `1.494577e-04`, `1.616498e-04` on the base
+(power `+0.4122` then `-0.1131`) and `3.826816e-04`, `4.811923e-04`,
+`7.531224e-04` on the recorded chain (`-0.3305` then `-0.6463`), while the
+closure's own per-step displacement is first order in the step at `+1.0002` and
+`+1.0005` (`8.422905e-05`, `4.210889e-05`, `2.105304e-05` and `6.104977e-05`,
+`3.051404e-05`, `1.525431e-05`).  The mechanism: the per-step quantity is the
+residue of a cone chase and an annulment that each scale with the step but
+whose cancellation ratio drifts through `1` (`0.958`, `1.030`, `1.161` on the
+base), so the residue has no power of its own, and on the base the three stage
+repairs stop opposing each other as the step falls (signed stage means `+`,
+`-`, `+` at `0.0025`; all three negative at `0.000625`).
+
+**(c) The step is not a lever.**  One halving buys a factor `1.33` on the base
+where proportionality would buy `2`, the second gives it back, and on the
+recorded chain every halving costs.  The ratio of the repair's per-step
+displacement to the closure's own runs `2.36`, `3.55`, `7.68` and `6.27`,
+`15.77`, `49.37`.  No declared step brings the per-step displacement below
+`8.421646e-05`: the family's minimum is `1.494577e-04` at `0.00125` on the
+base, `1.77` times it.  That step would cost `6,400` declared steps for
+`t = 0` to `8` at the task-11 configuration's measured `0.647950 s` per step
+(`5,183.6 s` for 8,000 steps at `0.0025`), that is `4,146.9 s` (`1.15 h`)
+against `2,073.4 s`, for a displacement `3.55` times the closure's own at that
+step against `2.36` at `0.0025`.  No such chain was run.
+
+Gates: the chained step reproduces the chain's own next stored state to
+`0.000000e+00` and `8.437695e-15` at all 800 steps; the stage-input replay
+reproduces it to `1.509903e-14` and `1.421085e-14` and reproduces the closure
+energy-drift round's stage and twin displacements to every digit; the
+zero-increment control reads the per-coordinate metric round's `4.681371e-05`
+and `9.368395e-04` with the hyperplane off as `4.681370e-05` and
+`9.368393e-04`, and its committed `1.502784e-04` and `5.264001e-04` as
+`1.497421e-04` and `5.255878e-04`, that round having replayed on a strided
+subsample; the weighted per-step displacement is `1.988869e-04` and
+`3.826816e-04`, the previous round's figures; the closure's own per-step
+displacement reads `8.422905e-05` against the relative-mode flow measurement's
+`8.421646e-05`, the difference being the trapezoidal quadrature's; sample
+spacing `2.500000e-03` exactly; 53 tests pass in `22.71 s`; thirteen probe and
+tabulator processes under `ram_guard --limit-mb 3000`, one at a time, peaks to
+`160 MiB`, longest `243.0 s`.  The ledger row does not move.  Files: under
+`paper_v_projective_dictionary_energy_20260915e/`,
+`probe_cone_correction_share_20260918.py`,
+`tabulate_cone_correction_share_20260918.py` and
+`cone_correction_share_{base,recorded}_w68_20260918.{json,log}`,
+`cone_step_scaling_{base,recorded}_w68_20260918.{json,log}`,
+`cone_chained_step_{base,recorded}_w68_20260918.{json,log}`,
+`cone_correction_share_tables_20260918.log`; this report and the worklog block.
+No module; nothing committed.  Next: a dictionary key whose positive-extension
+row carries the phonon normal moments, sized first at the same 2,400 stage
+inputs by the extension twin's displacement and its depth below the extension
+floor, against `1.113000e-03` and `2.297563e-03` and `-2.245342e-04` and
+`-4.335943e-04`.
