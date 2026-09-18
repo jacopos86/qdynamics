@@ -7167,3 +7167,118 @@ this round).  Artifacts in
 `energy_normal_direction_20260918.json`.  Next: the loss is in the closed flow
 of the relative-mode population over `(6, 8]`; the next measurement belongs on
 that flow, not on the dictionary.
+
+## 2026-09-18: projective route, relative-mode flow: the `(6, 8]` relative-mode population gap is the energy-neutral Dykstra repair's displacement of that coordinate, not its closed flow
+
+Report: `agent_guidance/paper-v/overnight/projective-route-20260915b.md`
+(heading "projective-route, relative-mode flow (2026-09-18)").  The
+dictionary probe ended on the instruction that *the loss is in the closed
+flow of the relative-mode population over `(6, 8]`; the next measurement
+belongs on that flow*.  This light round --- stored trajectories and affine
+algebra only, five processes under `ram_guard --limit-mb 2500` one at a
+time, peaks `2 MiB`, nothing propagated, no conic solve, no module edited,
+nothing committed, no default changed --- makes that measurement on the
+task-11 base, the recorded `drive_power` chain and the four task-12
+`t=4` to `8` reruns, at 1,600 samples in `(4, 8]` and 800 in `(6, 8]`.
+The exact cutoff-16 driven reference is used to compute reference
+velocities, which is a reporting diagnostic and never an online controller
+input.
+
+Negative results first.  **(1) There is no closure defect in the equation
+this coordinate's flow comes from.**  The cheap route propagates
+`CheapProjectionRoute.unguarded_velocity`, that is
+`FixedDictionaryProjectedAPCM.targets(...).augmented_retained_velocity`,
+whose phonon-density block is Eq. (14b) at the chain's own matrix state
+with no completion, no frontier and no KPD term in it (the KPD correction
+enters only the electron--phonon correlation block through
+`_with_correlation_increment`).  Eq. (14b) is exact and closed in the
+phonon density and the correlation, and the measurement confirms it: the
+Eq. (14b) velocity at the exact state integrates over `(4, 8]` to the
+exact relative-mode population's own change `2.322816e-02` with residual
+`5.009643e-04`, in a window where the task-11 base's error moves by
+`1.901549e-01`.  **(2) The flow difference is not what separates the two
+chains.**  Over `(6, 8]` the time integral of the signed difference
+between the closure's own velocity of the relative-mode population and the
+exact reference's velocity of the same quantity is `-6.514211e-02` for the
+task-11 base and `-6.126227e-02` for the recorded chain (`1.063`), and the
+RMS of that difference is `4.977392e-02` against `4.726448e-02` (`1.053`),
+on a window where the coordinate's error stands at `1.907462e-01` against
+`7.513319e-02` (`2.539`).  **(3) The entering state is not the gap
+either**: the base enters `t=4` at `-4.710809e-02` and the recorded chain
+at `-6.636815e-02`, so the chain that ends `2.539` times worse enters
+`1.41` times better.
+
+Results.  **(a)** The difference is already open at `t=4` --- over
+`(0, 4]` it integrates to `-1.139146e-02` (base) and `-2.749505e-02`
+(recorded), quiet until `t=2` --- and of the base's `-4.710809e-02` error
+at `t=4`, `-3.570375e-02` was the repair's.  It is negative at 1,139 of
+1,600 samples over `(4, 8]` and 600 of 800 over `(6, 8]`, minimum
+`-9.782983e-02`, maximum `+6.038075e-02`, and it changes sign: positive at
+all 200 samples of `(5.5, 6.0]` on both chains.  It is not one burst: the
+base's running integral from `t=4` is `-5.120606e-02` at `5.5`,
+`-2.664839e-02` at `6.0`, `-8.209275e-02` at `7.0` (of which
+`-4.282017e-02` is the two quarter-unit bins `(6.5, 6.75]` and
+`(6.75, 7.0]`, signed means `-8.256313e-02` and `-9.036871e-02`, negative
+at every sample) and `-9.147453e-02` at `8.0`; the recorded chain's
+largest loss is in `(7.0, 7.5]`, where the base's is over.  **(b)** The
+equation is Eq. (14b), assembled in
+`matrix_reference.py::_phonon_rhs_terms` and summed in `matrix_dimer_rhs`.
+`eq14b_free_rotation` is `-i(omega_q - omega_q') phonon[q,q']` and both
+dimer modes carry `omega_ph = gamma = 0.5`, so it is exactly `0` at every
+sample of both trajectories; the whole velocity is
+`eq14b_correlation_source` and its two halves carry the discrepancy in
+shares `0.47` and `0.53` (`(4, 8]` integrals `-4.327125e-02` and
+`-4.857776e-02` on the base, `-3.887930e-02` and `-4.236393e-02` on the
+recorded chain).  Their sum reduces exactly, the shared trace cancelling,
+to `-2 g (correlation_0_diag_difference_imag -
+correlation_1_diag_difference_imag)` --- reproducing the module's assembly
+to `1.4e-17` at every sample --- so the flow is driven by two
+electron--phonon correlation coordinates and no phonon-occupation
+coordinate, and the two chains' error in that antisymmetric combination
+agrees to `1.053` over `(6, 8]` (`4.064024e-02` against `3.859129e-02`).
+**(c)** It is the repair.  Over `(6, 8]` its displacement of the
+relative-mode population is `-7.083106e-02` on the base and `+7.017512e-02`
+on the recorded chain --- same size, opposite sign, the recorded chain's
+very nearly cancelling its flow difference.  From `t=0` to `8` the
+integrated velocity differences are `-1.032405e-01` and `-1.087383e-01`
+(`0.949`) while the repairs are `-1.343725e-01` and `+4.048406e-02`: of the
+`1.693122e-01` by which the two errors differ at `t=8`, the repair accounts
+for `1.748566e-01` (`1.033`) and the flow difference for `-0.032` of it, the
+base's being `+5.497800e-03` less negative than the recorded chain's.
+Across the six chains the five constrained integrated velocity differences
+lie in `-7.018901e-02` to `-9.482451e-02` (spread `1.35`, over two rules,
+two repair depths, two candidate tests and two references) while the
+repairs run `-1.000373e-01` to `+7.934428e-02`.  On the task-11 base over
+`(6, 8]` the repair displaces the coordinate `1.988844e-04` per step in
+mean absolute value (signed mean `-8.853883e-05`, maximum `6.490602e-04`)
+against the closure's own `8.421646e-05` and the velocity difference's
+`9.156545e-05`: `2.36` and `2.17` times.  `b_energy_none` identifies the
+hyperplane's role --- with it disabled the repair displaces the coordinate
+`+2.713256e-01` in the same direction at all 1,600 steps (per-step signed
+mean `+1.695785e-04`, mean absolute `+1.695786e-04`), ending
+`+2.697136e-01` past the exact coordinate: the cone projections move this
+coordinate and the Eq. (22) hyperplane bounds and can reverse that motion.
+
+Gates: the assembled terms equal `matrix_dimer_rhs`'s phonon block to
+`0.000000e+00`; the closed form to `1.4e-17` and `6.9e-18`; error at `t=4`
+plus the integrated velocity difference plus the repair's displacement
+reproduces the error at `t=8` to `3.2e-04` to `3.6e-04` on every chain; the
+state is written only by the stage increments and `repair(...)`, the
+re-selection writing the carried frontier and never the state; the window
+RMS values reproduce the dictionary probe's `1.562529e-01`,
+`1.032811e-01`, `1.907462e-01`, `7.513319e-02` and the exact coordinate's
+`8.430089e-01` and `8.372025e-01` to every digit; sample spacing `0.0025`
+throughout; the chains' `correlation_shared_trace_*` are `0` at every
+sample.  The ledger row does not move (no rollout this round).  Artifacts
+in `paper_v_projective_dictionary_energy_20260915e/`:
+`probe_relative_mode_flow_20260918.py`,
+`append_relative_mode_flow_20260918.py`,
+`relative_mode_flow_{w48,w68,w04,task12_w48}_20260918.{json,log}`.  Next:
+which block of the repair sets the sign --- replay the declared repair
+(`AffineGramCoordinates.repair`) on the stored `(6, 8]` samples of the task-11 base and the recorded
+chain, at each stored state with its stored `frontier_standardized` and
+`internal_energy_reference`, under the four declared settings
+`target="both"`, `"retained"`, `"extension"` and
+`energy_reference_mode="none"`, and record the displacement of the
+relative-mode population each produces (about `0.19 s` per repair, no
+solve, no propagation).
