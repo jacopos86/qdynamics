@@ -8196,3 +8196,89 @@ equation of motion; closing it restores the quintic count; and the memory
 contract caps the construction three or four sites short of any crossing on
 record.  Nothing further to size before an `L`-site closure, because an
 `L`-site closure of this construction is not worth writing.
+
+## 2026-09-20: the cheap repair on the initialization that actually diverges
+
+Every run of the 2026-09-14 to 2026-09-19 rounds prepared from the exact
+correlated ground-state contractions.  The divergence the repair of the
+archive moment closure exists for is the Hartree--Fock electronic density
+matrix with every other correlation variable zero, which
+`stability_quantum_workflow_working_notes.md` records as losing electronic
+positive semidefiniteness at `t=15.5177` and reaching state magnitude `1e4`
+at `t=130.47`.  This round runs the cheap repair from that initialization.
+Findings, artifacts and reproduction are in
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`;
+drivers and rollouts are under
+`output/local_runs/paper_v_divergence_20260920/` and
+`output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{1..5}`.  Nothing
+here is promoted evidence, no default or acceptance rule changed, and no
+module was edited.
+
+The divergent initialization is a pure product state --- the Hartree--Fock
+determinant times one coherent state per local oscillator at `-g/omega_ph` ---
+and building it as a state vector in the same truncated Fock space the exact
+preparation uses reproduces `hartree_fock_closed_scalar_coordinates` to
+`1.02e-10`.  Propagated unrepaired, the 13-coordinate Fan--Migdal system
+reproduces the record exactly (`15.5177447`, `130.4674620`), and in the 31
+closed scalar coordinates the same initialization loses the retained joint
+Gram below `-1e-8` at `t=0.0124`, the boson-moment cone at `t=1.3227` and the
+electronic cone at `t=27.9634`, reaching `1e4` at `t=54.4613`, where the exact
+correlated initialization never reaches it through `t=140`.  The harness also
+reproduces the record's two Eq. (112) exact-contraction rows to every printed
+digit (`1.8592243`, `0.0251665`, `2.9068e-5`; and `-3.05033e-1`,
+`5.51945e-2`, `1.97874`).
+
+Decisive, and against the route as it stands: **the cheap repair cannot be
+prepared at that initialization.**  Its one conic solve, the declared proximal
+log-det completion at `t=0`, refuses at 15 and at 27 keys and at every rung of
+the declared retry ladder (`logdet_shift` `1e-10`, `1e-8`, `1e-7`, `1e-6`,
+`1e-4`, `1e-2`, `1e-1`; `logdet_weight` `1e-1`) with
+`moment_extension_degeneracy: facial reduction removed every frontier
+direction`.  The preparation is pure, so its retained joint Gram is exactly
+singular --- rank 6 of 8, smallest eigenvalues `-4.44e-16` and `-4.21e-16`
+against a largest of `8.405` --- and facial reduction leaves the completion no
+free frontier direction; the log-determinant shift cannot restore one because
+the reduction acts before the barrier is seen.  Because the preparation is a
+state vector, every frontier moment is an expectation in it, and the
+extension's frontier keys reach degree 5, so `moment_hierarchy(5)` supplies all
+70 exactly; that exact lift is what the rollout below uses at `t=0` and it is
+a genuine positive extension (unshifted retained joint Gram `-4.44e-16`,
+scaled positive extension `-1.58e-15`).  Every re-selection after `t=0` is the
+committed solve and the first one, at step 16, already moves the retained Gram
+from `-4.10e-6` to `-5.79e-8`.
+
+Run that way in the task-11 configuration (27 entrance keys, SSPRK(3,3) at
+`h=0.0025`, re-selection every 16 steps, Dykstra 120 on the affine Gram sets
+and the two cones, the Eq. (22) reference in `drive_power` form, the
+anchor-free measured rule at margin `1e-3`), five chained segments reach
+`t=20` in `4,296.9 s` with 500 re-selections, 44 solver refusals and a peak of
+`654 MiB`.  **The electronic one-body density matrix never loses positive
+semidefiniteness**: `-2.220e-16` at `t=0` and a minimum of `+1.447e-6` over
+`0 < t <= 20`, with maximum `|x_i|` `1.9431`.  Neither Gram cone is held: the
+retained joint Gram reaches `-5.561e-4` and the scaled positive extension
+`-6.352e-5`, against the recorded exact-correlated chain's `-4.460e-4` and
+`-3.936e-5` in the same configuration.  The all-coordinate scalar RMS of the
+31 closed scalar coordinates against the exact driven trajectory started from
+the same Hartree--Fock state is `1.0803e-2` at `t=4`, `3.7209e-2` at `t=8` and
+`1.5368e-1` at `t=20`, with Eq. (22) energy RMS `1.1888e-3`; the recorded
+exact-correlated chain's own figures are `9.290e-3`, `3.304e-2`, `5.604e-2`
+and `5.336e-3` at `5,183.6 s`.
+
+On the same initialization and horizon the unrepaired closure scores
+`1.2957e-1` / `3.3200e-1` at `t=4` / `20` with the retained joint Gram at
+`-0.55727`; the recorded energy-neutral joint electronic--bosonic matrix
+barrier scores `2.0232e-1` / `3.4704e-1` at `793.2 s`, holds its own two cones
+(`0` and `-5.103e-16`) and lets the retained joint Gram reach `-0.36128`; and
+Eq. (112) alone scores `2.2891e-1` at `t=4` and then diverges, reaching `1e4`
+at `t=15.3724` against the unrepaired `t=54.4613`.
+
+Reading.  On the initialization the repair exists for, the cheap repair buys
+exactly what the record asks of it in the electronic sector --- the positivity
+loss at `t=15.5177` does not happen, and neither does the amplitude blow-up
+--- at `12.0` times the unrepaired closure's accuracy at `t=4` and `2.16`
+times at `t=20`, and it costs `2.74` times its accuracy at `t=20` relative to
+the correlated preparation.  What it does not do is hold either Gram cone, and
+that failure starts at the first step and is the Eq. (22) hyperplane's, not
+the initialization's.  Two things are settled negatively and should not be
+retried as stated: the declared log-det completion at a pure preparation, and
+Eq. (112) as a regularization of the uncorrelated initialization.
