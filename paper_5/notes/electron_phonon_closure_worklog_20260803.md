@@ -8122,3 +8122,77 @@ only, at `L=2,3,4,5`, reporting extension rows, frontier keys and whether the
 frontier closes under the full structure-constant product.  Counting only, no
 rollout, no conic solve.  It decides the route either way without the
 rewrite.
+
+## 2026-09-20: can the entrance predicate be restricted to one bond?
+
+The counting the previous block named as next, done (report
+`agent_guidance/paper-v/overnight/scaling-locality-20260920.md`; scripts
+`count_locality_restricted.py`, `summarize_locality.py` and outputs
+`locality_counts_L2_L5.json`, `locality_reading.json` under
+`output/local_runs/paper_v_scaling_20260920/`).  Counting only: nothing
+propagated, prepared, solved or promoted, no module under `paper_5/src`
+edited, no default changed.
+
+The restriction, stated as a restriction of the committed predicate: write
+the electronic one-body Hermitian basis bond-adapted --- identity,
+`S_ij = E_ij + E_ji` and `A_ij = -i E_ij + i E_ji` for `i < j`, and
+`D_q = E_qq - E_{q+1,q+1}` for each bond, which is `(I, X, Y, Z)` at two
+sites --- and keep only the keys `ENTRANCE_RELATIVE_MOMENT_KEYS` admits for
+which one bond carries both spin-species generators and the Weyl monomial
+uses no coordinate of any other mode, interacting mode `q` identified with
+bond `q`.  At `L = 2` the restriction removes nothing: archive-resolved keys
+`14`, entrance keys `15`, two-spin/one-boson promotion keys `12`, the 27-key
+dictionary `27`, hidden keys `31`, base half-words `9`, extension rows
+`24 / 36 / 40`, lower keys `29 / 41 / 45`, frontier keys `62 / 70 / 129`,
+propagated state coordinates `44 / 56 / 60` and realified positive-extension
+cone side `48 / 72 / 80` all equal the committed numbers, with no departure.
+Products carry the full structure constants (an exact linear solve against
+the whole `L**2`-element basis); the maximum number of basis elements in a
+product of two generators is `1`, `3`, `4`, `5` at `L = 2` to `5`, so the
+one-term law of `_pauli_product` is confirmed as the `su(2)` identity
+`d_abc = 0` and is not used above two sites.
+
+Counted, 27-key analogue: active keys `27 (L - 1)` = `27`, `54`, `81`, `108`;
+extension rows `35 L - 34` = `36`, `71`, `106`, `141`; realified
+positive-extension cone side `70 L - 68` = `72`, `142`, `212`, `282`;
+propagated state coordinates `56`, `137`, `260`, `437`; frontier keys `70`,
+`1,011`, `2,418`, `4,334`.  So extension rows *can* be held linear in `L`,
+and the verifier's claim as stated is refuted.
+
+Decisive, and against the route: the restricted dictionary is not invariant
+under the Holstein commutator.  One commutator step with the `8 (L - 1)`
+chain words demands `84`, `173` and `267` moments of degree at most three at
+`L = 3`, `4`, `5` that the restricted dictionary does not carry, and every
+one of them is supported on more than one bond.  The transitive hull of that
+demand is `27`, `228`, `975`, `2,988` keys, successive exponents `5.26`,
+`5.05`, `5.02` --- the declared dictionary's own quintic law --- and a stable
+`81 %` of the whole declared enlargement at `L = 3`, `4`, `5`.  At two sites
+the same iteration on the 15-key entrance dictionary adds exactly the twelve
+two-spin/one-boson keys and stops at `27`, reproducing the committed
+promotion block.  The Gram frontier agrees from the other side: `0 %`,
+`85.4 %`, `91.0 %`, `93.2 %` of it is supported on more than one bond, the
+defect being `541`/`1,336`/`2,397` cross-mode Weyl monomials,
+`207`/`588`/`1,158` electronic factors spanning three or more sites,
+`100`/`246`/`438` generator-and-monomial-on-different-bonds and
+`15`/`30`/`45` two-species-generators-on-different-bonds at `L = 3`/`4`/`5`.
+
+Memory settles it independently.  At `74.8 (n (2 n + 1))**2` bytes the
+`18 GB` aggregate contract admits `87` extension rows (`16.15 GiB`; `88` rows
+is `16.91 GiB`).  The counted linear law fits at three sites (`71` rows,
+`7.18 GiB`) and nowhere above: `106` rows and `35.52 GiB` at four,
+`141` rows and `110.96 GiB` at five.  The modelled crossing under that same
+law moves to `L = 6` (single-power exponent `3.274`) or `L = 7` (two-term
+law), needing `176` and `211` rows, `16x` and `33x` the contract; the
+previous block's `L = 5` or `6` crossing does not survive, and even the
+`18 L` law it was stated for needs `90` rows and `18.49 GiB` at `L = 5`,
+above the ceiling.  At the one runnable site count above two, three sites,
+the modelled closure wall is `4.79e4` to `1.64e5 s` against the measured
+exact three-site driven reference's `137 s` to `t = 20`, `3.5e2` to `1.2e3`
+times behind.
+
+Reading.  The route is dead at this construction and locality does not
+revive it.  A dictionary with linear rows is not a closure but a truncated
+equation of motion; closing it restores the quintic count; and the memory
+contract caps the construction three or four sites short of any crossing on
+record.  Nothing further to size before an `L`-site closure, because an
+`L`-site closure of this construction is not worth writing.
