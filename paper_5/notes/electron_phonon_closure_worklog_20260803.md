@@ -8026,3 +8026,42 @@ row carries the phonon normal moments, sized first at the same 2,400 stage
 inputs by the extension twin's displacement and its depth below the extension
 floor, against `1.113000e-03` and `2.297563e-03` and `-2.245342e-04` and
 `-4.335943e-04`.
+
+### Cluster 10737278 returned: the first complete guarded carried-witness trajectory, t=0 to 0.5
+
+The retry of segment 1 finished on CHTC with `JobStatus 4`, `ExitCode 0`,
+`13,175 s` of remote wall (`3.66 h`), `stop_reason final_time` at `t=0.5`.
+Archive `881c8dec61e692bd443b0b5447dbbb41b6d423db6e14529462f214188319133d`
+(`1,126,507` bytes) fetched by receipt and verified locally at
+`output/local_runs/paper_v_cwrmf_accel_chtc_10737278/`.  Balanced profile,
+event-triggered guard at hard floor `2e-4`, two step subdivisions,
+`max_threads_8`, default bundle seed policy, `h=0.0025`, strong coupling,
+cutoff 16, exact-correlated preparation.
+
+| quantity, `t=0` to `0.5` | value | comparison |
+|---|---:|---|
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference | `3.195379e-5` | the record's strict always-on figure over the same horizon is `3.19169e-5` |
+| dynamic blockwise rho / B / N / A / C | `4.89e-7` / `1.57e-5` / `4.38e-6` / `7.02e-5` / `8.47e-6` | --- |
+| dynamic site-0 occupation RMS | `3.19e-7` | --- |
+| minimum retained joint-Gram eigenvalue | `-7.27e-16` | positive to roundoff |
+| minimum carried unshifted 62-row Gram eigenvalue | `-1.8386e-4` | inside the declared hard floor `2e-4` |
+| maximum completion correction norm / readable-rate residual | `3.857e-3` / `1.540e-2` | --- |
+| autonomous wall / peak resident | `13,154 s` / `4.41 GB` | the local resume needed `14,722 s` for `0.38` time units |
+| tier seconds: Clarabel / retraction / eigendecomposition | `12,957` over 372 calls / `82.1` over 80 / `1.85` over 1,199 | 98.5 percent Clarabel |
+| maximum atom wall / mean active critical modes | `367.5 s` / `25.9` | maximum 62 |
+
+Reading: this is the first guarded carried-witness trajectory to run `t=0` to
+`0.5` in one job from the preparation.  The record's local attempts stopped at
+`t=0.08` (strict) and `t=0.2` (balanced) before the depth bound existed, and
+the local bounded-depth run reached `t=0.5` only as a resume from `t=0.1175`.
+Per time unit the remote job costs `26,309 s` against the local
+`38,742 s`, a factor `1.47` that is the `max_threads_8` profile.
+
+Segment 2 (`accel_s02_t0500_t1000`, `t=0.5` to `1.0`, checkpoint transferred
+from this segment) was generated from the returned receipt, validated, dry
+run and submitted as cluster `10988383` at 2026-09-20T17:07:09Z; receipt
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/submission_receipt_10988383.json`.
+The shipped planned grid `submit_cwrmf_accel_s02.sub` to `s08.sub` was retired
+to `planned_grid_retired/` on both this checkout and the submit node: each
+names the failed planned run id's checkpoint, which never existed, and each
+blocked the generator's run-id reuse check.
