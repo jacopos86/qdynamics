@@ -35,9 +35,9 @@ A reason travels where a bare rule does not:
 > require touching them, stop and report — a conflicting edit costs more than
 > the delay.
 
-Also state shared-resource limits: aggregate RAM ceiling, per-tree RAM-guard
-allocations for concurrent local jobs, and cluster access the executor cannot
-obtain alone.
+State actual machine headroom, planned concurrency, and any cluster access the
+executor cannot obtain alone. Use `memory-budget.md` for the current memory
+policy; handoffs must not reinstate mandatory RAM guards or invented kill caps.
 
 ## 3. Increments — each ends committable and verifiable
 
