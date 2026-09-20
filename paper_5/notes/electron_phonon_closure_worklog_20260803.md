@@ -8065,3 +8065,60 @@ The shipped planned grid `submit_cwrmf_accel_s02.sub` to `s08.sub` was retired
 to `planned_grid_retired/` on both this checkout and the submit node: each
 names the failed planned run id's checkpoint, which never existed, and each
 blocked the generator's run-id reuse check.
+
+## 2026-09-20: does the corrected archive closure ever beat exact propagation?
+
+Four measured studies, a crossover model and three adversarial checks per
+claim (reports `agent_guidance/paper-v/overnight/scaling-{dimension-growth,
+conic-cost-law,exact-cost-law,repair-overhead}-20260920.md`; scripts and
+outputs under `output/local_runs/paper_v_scaling_20260920/`).  The question
+is the one the route's cost raises: at two sites the exact cutoff-16 driven
+reference reaches `t=20` in `3.064 s` measured while the corrected closure
+takes `5,183.6 s`, so the construction earns its cost only if its own cost
+grows slowly in the site count `L` while the exact state grows as
+`L^2 (M+1)^L`.
+
+Measured, and not in dispute: the exact three-site driven reference was built
+and propagated (state dimension `44,217`, `300,840` nonzeros) and reaches
+`t=4` in `19.02 s` end to end, `137 s` to `t=20` under its fitted law; the
+conic program's dense block is `74.8 (n(2n+1))^2` bytes at `n` extension
+rows, which caps the `18 GB` aggregate contract at `87` rows; and the
+two-site closure wall decomposes exactly as `500` completion solves at
+`8.3249 s` over a re-selection share of `0.8030`, reproducing the recorded
+`5,183.569 s`.
+
+Modelled, and explicitly not measured: there is no three-site closure.  Every
+Paper V module is dimer-specific, `MomentKey(spin_up, spin_down, x_power,
+p_power)` cannot name a word in a second boson mode, and the one-term Pauli
+product law is the `su(2)` identity `d_abc = 0`, which fails at `L>=3`.  The
+`L>=3` dimensions are a counting model written this round
+(`count_l_site_construction.py`), whose `L=2` row reproduces sixteen
+committed quantities and whose counted and closed-form blocks agree at
+`L=2,3,4,5`; the conic wall at those dimensions extrapolates a law fitted
+over cone side `32` to `104` whose local exponent rises `3.24` to `4.17` to
+`4.87` inside that window.  Five of the synthesis's six claims were refuted
+on exactly this ground by the verifiers, who upheld the direction and
+rejected the precision: the memory law and its `87`-row cap stand, the
+three-site exact cost stands as measured, and the closure side at `L>=3` is
+extrapolation.
+
+Reading.  Under every cost law on record the corrected closure is `1.8e3` to
+`5.1e4` times more expensive than exact propagation at every site count
+either method can be run, and the earliest crossing any law supports is
+`L=10` at a closure wall of `5.6e12 s`.  The cause is the dictionary, not the
+solver: the entrance predicate pairs every electronic generator across both
+spin species with every degree-two Weyl monomial over all `L-1` modes and
+refers to locality nowhere, so the extension rows go quartic to quintic in
+`L` (`36` at two sites, a counted `281` at three, `1,192` at four).  Holding
+rows linear in `L` instead moves the modelled crossing to `L=5` or `6` with
+the conic block at `2.4`, `7.6` and `18.5 GiB` at three, four and five sites,
+inside or at the edge of the memory contract at exactly the site count where
+the crossing happens; one verifier holds that rows cannot be held linear in
+this construction, which is the open question.
+
+Next, and cheap: re-run the same enumeration with a locality-restricted
+entrance predicate, keys supported on a single site and its chain neighbour
+only, at `L=2,3,4,5`, reporting extension rows, frontier keys and whether the
+frontier closes under the full structure-constant product.  Counting only, no
+rollout, no conic solve.  It decides the route either way without the
+rewrite.
