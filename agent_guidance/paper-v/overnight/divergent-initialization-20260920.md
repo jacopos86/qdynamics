@@ -670,3 +670,246 @@ trajectory files
 `unrepaired_from_exact_horizon.json`, `chain_hf_t60.log`,
 `cone_chain_hf.log`; and the chain segments
 `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{6..14}`.
+
+---
+
+# The basin test at every stored segment boundary
+
+**Round of 2026-09-20 (third), branch `claude/paper-v-routes-20260914`,
+worktree `Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD
+`6590840f`.** Exploratory local work, not promoted evidence; no default,
+acceptance rule or module was changed, and nothing here is manuscript prose.
+
+## 13. Tasks (a) and (b): the same test at all fourteen boundaries, and what it turns out to measure
+
+**Stated first, because it contradicts the reading of section 11.  Section 11
+concluded from one test at one boundary that the repaired chain "has left the
+divergent basin".  That conclusion does not survive the same test run at every
+boundary and carried past 140 time units: propagated 400 time units instead of
+140 from the repaired chain's own `t = 60` state, the unrepaired archive
+closure --- no repair, no lift, no re-selection --- fires the `1e4` magnitude
+event at `t = 410.7827`.  The same closure from the *exact* driven
+trajectory's state at `t = 60` fires it at `t = 433.8964`.  The `140`-unit
+window of section 11 was shorter than the time either state takes to reach the
+event, so what that test measured was the absence of the event inside a
+window, not membership of a bounded set.**
+
+The test run is the one section 11 named.  At each stored segment boundary of
+the repaired chain, the boundary's state is handed to the unrepaired archive
+closure's own vector field in the 31 closed scalar coordinates --- no repair,
+no lift, no re-selection --- and propagated forward from that boundary's own
+time, DOP853 at `rtol 1e-10` and `atol 1e-12`, sampled at `h = 0.0025`, with
+the terminal event at maximum absolute coordinate `1e4`, at
+`lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude `1.0`, phonon cutoff `16`.
+Task (b) is the same propagation from the exact driven trajectory's own state
+at the same fourteen times, the exact trajectory entering only as the initial
+condition of a diagnostic propagation and no rollout.  The fourteen boundaries
+are `t = 4.76`, `9.60`, `13.82`, `18.60`, `20.00`, `24.44`, `29.12`, `34.43`,
+`38.6325`, `43.12`, `48.48`, `52.71`, `56.92` and `60.00`.  At `t = 60` both
+propagations reproduce section 11's numbers to every reported digit
+(`+0.0685331459858005`, `1.8256497701941048`, `-0.5250249500535643` from the
+repaired state; `+0.030208839459928895`, `1.7989460278335916`,
+`-0.9566834718479855` from the exact state).
+
+### 13.1 Task (a) and task (b) at the 140 time units section 11 used
+
+Each row is one boundary; the horizon of every quantity is the boundary time
+to the boundary time plus `140`.
+
+| boundary | `1e4` magnitude event, from the repaired chain's state | minimum electronic eigenvalue | maximum `\|x_i\|` | minimum unshifted retained joint Gram |
+|---:|---|---:|---:|---:|
+| `4.7600` | none in the window | `-4.6266e+01` | `2807.5440` | `-6451.5882` |
+| `9.6000` | none | `+2.4462e-02` | `2.0930` | `-0.7728` |
+| `13.8200` | none | `+1.5342e-02` | `2.3169` | `-0.8919` |
+| `18.6000` | none | `+3.3126e-02` | `2.0591` | `-0.3450` |
+| `20.0000` | none | `+3.0495e-02` | `1.9715` | `-0.8704` |
+| `24.4400` | none | `+5.3987e-02` | `2.1465` | `-0.6880` |
+| `29.1200` | none | `+4.5154e-02` | `2.2008` | `-0.3891` |
+| `34.4300` | none | `-6.6350e-03` | `2.0771` | `-0.8783` |
+| `38.6325` | none | `+5.7659e-02` | `2.1299` | `-0.4810` |
+| `43.1200` | none | `+5.4868e-02` | `1.9744` | `-0.6982` |
+| `48.4800` | none | `+2.3877e-02` | `2.3037` | `-0.2643` |
+| `52.7100` | none | `-4.8626e-02` | `2.2809` | `-1.5469` |
+| `56.9200` | none | `+5.1757e-02` | `2.1919` | `-0.7403` |
+| `60.0000` | none | `+6.8533e-02` | `1.8256` | `-0.5250` |
+
+| boundary | `1e4` magnitude event, from the exact trajectory's state | minimum electronic eigenvalue | maximum `\|x_i\|` | minimum unshifted retained joint Gram |
+|---:|---|---:|---:|---:|
+| `4.7600` | none in the window | `-7.7453e-02` | `3.0688` | `-4.3809` |
+| `9.6000` | none | `-4.2184e-01` | `7.0374` | `-8.8722` |
+| `13.8200` | none | `-8.7058e-03` | `2.7521` | `-1.1408` |
+| `18.6000` | none | `+1.6226e-02` | `1.8312` | `-0.8543` |
+| `20.0000` | **`147.3861`** | `-1.3268e+02` | `9853.3231` | `-21545.4560` |
+| `24.4400` | none | `+3.6605e-02` | `1.9640` | `-0.7842` |
+| `29.1200` | **`74.8594`** | `-2.7005e+02` | `9743.4379` | `-29222.3953` |
+| `34.4300` | none | `-1.3329e-02` | `2.2629` | `-1.0903` |
+| `38.6325` | none | `-3.4694e-02` | `2.5889` | `-1.9627` |
+| `43.1200` | **`152.9483`** | `-1.6062e+02` | `9935.6988` | `-32888.0997` |
+| `48.4800` | none | `+3.1576e-02` | `2.9194` | `-0.6647` |
+| `52.7100` | none | `+2.4161e-02` | `2.2415` | `-1.3868` |
+| `56.9200` | none | `-1.3651e-02` | `1.9948` | `-1.4757` |
+| `60.0000` | none | `+3.0209e-02` | `1.7989` | `-0.9567` |
+
+At `140` time units the event fires at **none** of the fourteen boundaries
+from the repaired chain's state and at **three of the fourteen** from the
+exact driven trajectory's state (`t = 20`, `29.12`, `43.12`).
+
+**The `140`-unit verdict is not boundedness, and the first boundary shows it.**
+From the repaired chain's `t = 4.76` state the maximum absolute coordinate
+reaches `2807.5440`, three orders of magnitude above every other row, and it
+is attained at the last sample of the window, `t = 144.76`; the electronic
+one-body density matrix minimum `-4.6266e+01` is attained at `t = 144.6625`,
+and the retained joint Gram minimum is `-6451.5882`.  That trajectory is
+growing when the window ends: the event did not fire because the window
+stopped, not because the state stayed bounded.  Every other repaired-state row
+has a maximum absolute coordinate between `1.8256` and `2.3169`.
+
+### 13.2 The same test carried to 400 time units
+
+Because the first boundary's continuation was still growing at the end of the
+`140`-unit window, the identical test was repeated at `400` time units from
+every boundary.  The event time is the absolute time; the elapsed column is
+that time minus the boundary time.
+
+| boundary | event, from the repaired chain's state | elapsed | minimum electronic eigenvalue | maximum `\|x_i\|` | minimum unshifted retained joint Gram |
+|---:|---|---:|---:|---:|---:|
+| `4.7600` | **`150.9977`** | `146.2377` | `-4.6266e+01` | `9994.6434` | `-27742.6691` |
+| `9.6000` | **`268.8277`** | `259.2277` | `-5.0105e+02` | `9931.9943` | `-47727.7928` |
+| `13.8200` | **`206.9941`** | `193.1741` | `-7.8101e+01` | `9813.4856` | `-28965.5204` |
+| `18.6000` | **`405.9956`** | `387.3956` | `-2.8657e+02` | `9835.1427` | `-37192.7683` |
+| `20.0000` | none in `400` units | --- | `+5.3292e-03` | `2.1167` | `-1.5415` |
+| `24.4400` | **`380.5341`** | `356.0941` | `-2.6651e+02` | `9570.7276` | `-26749.3146` |
+| `29.1200` | none | --- | `+2.8539e-02` | `2.3077` | `-1.4701` |
+| `34.4300` | none | --- | `-2.4531e-02` | `3.0176` | `-2.1441` |
+| `38.6325` | none | --- | `-4.5847e-01` | `3.2992` | `-5.2436` |
+| `43.1200` | none | --- | `-2.4642e-02` | `2.0425` | `-2.4392` |
+| `48.4800` | none | --- | `-2.6697e-02` | `2.3037` | `-1.6043` |
+| `52.7100` | **`322.3897`** | `269.6797` | `-3.0596e+02` | `9557.0418` | `-27627.2421` |
+| `56.9200` | none | --- | `+4.6510e-02` | `2.1919` | `-1.3620` |
+| `60.0000` | **`410.7827`** | `350.7827` | `-3.0141e+02` | `9966.1412` | `-29205.9989` |
+
+| boundary | event, from the exact trajectory's state | elapsed | minimum electronic eigenvalue | maximum `\|x_i\|` | minimum unshifted retained joint Gram |
+|---:|---|---:|---:|---:|---:|
+| `4.7600` | **`190.9565`** | `186.1965` | `-2.9588e+02` | `9756.3825` | `-32598.4106` |
+| `9.6000` | **`193.6878`** | `184.0878` | `-6.2234e+01` | `9955.4130` | `-26759.7236` |
+| `13.8200` | **`256.9274`** | `243.1074` | `-1.0681e+02` | `9883.2033` | `-35070.4572` |
+| `18.6000` | **`313.7340`** | `295.1340` | `-1.9220e+02` | `8885.0924` | `-42521.6815` |
+| `20.0000` | **`147.3861`** | `127.3861` | `-1.3268e+02` | `9853.3231` | `-21545.4560` |
+| `24.4400` | none in `400` units | --- | `+8.5816e-03` | `2.4304` | `-1.3672` |
+| `29.1200` | **`74.8594`** | `45.7394` | `-2.7005e+02` | `9743.4379` | `-29222.3953` |
+| `34.4300` | **`304.3658`** | `269.9358` | `-3.2200e+02` | `9822.7214` | `-38932.3293` |
+| `38.6325` | **`283.3837`** | `244.7512` | `-3.1114e+02` | `9925.7194` | `-21576.3464` |
+| `43.1200` | **`152.9483`** | `109.8283` | `-1.6062e+02` | `9935.6988` | `-32888.0997` |
+| `48.4800` | **`277.2111`** | `228.7311` | `-2.8930e+02` | `9821.7518` | `-60213.1611` |
+| `52.7100` | **`300.3730`** | `247.6630` | `-8.3711e+01` | `9714.2649` | `-38283.9872` |
+| `56.9200` | **`375.2728`** | `318.3528` | `-2.6872e+02` | `9944.3485` | `-38658.4542` |
+| `60.0000` | **`433.8964`** | `373.8964` | `-3.1772e+02` | `9768.1982` | `-28885.7905` |
+
+At `400` time units the event fires at **seven of the fourteen** boundaries
+from the repaired chain's state and at **thirteen of the fourteen** from the
+exact driven trajectory's state, the sole exception being `t = 24.44`.  The
+three exact-state rows that fired inside the `140`-unit window fire at exactly
+the same times here (`147.3861`, `74.8594`, `152.9483`), so the two sweeps
+agree wherever they overlap.
+
+## 14. Task (c): what the boundary sweep says, plainly
+
+**The repaired chain is not outside a divergent basin at any boundary,
+because the closure has no such basin along this trajectory.** The unrepaired
+archive closure started from the *exact* driven trajectory's own state reaches
+the `1e4` magnitude event within `400` time units at thirteen of the fourteen
+boundaries, including `t = 60`, where it fires at `t = 433.8964`.  A set the
+exact trajectory's own state does not lie in is not a basin whose complement
+the repair could deliver the trajectory into; the quantity the test measures is
+the time from a state to the `1e4` magnitude event under the unrepaired
+closure, and section 11 read a window shorter than that time as membership.
+
+**Membership is not monotone in the boundary time, which is the second way of
+seeing that it is not a basin.** From the repaired chain's state at `400` time
+units the event fires at `t = 4.76`, `9.60`, `13.82`, `18.60`, `24.44`,
+`52.71` and `60.00` and does not fire at `t = 20.00`, `29.12`, `34.43`,
+`38.6325`, `43.12`, `48.48` and `56.92`.  There is no time after which the
+repaired chain stops firing: `t = 52.71` and `t = 60.00` fire while
+`t = 56.92` between them does not.  So the answer to "outside at every
+boundary or only at some, and from which time onward" is neither: the
+test's verdict alternates between adjacent boundaries, at both window lengths
+for which it was run, and carries no onset time.
+
+**What the answer does support.** By count, the repaired chain's state fires
+less often than the exact trajectory's state at both window lengths: none of
+fourteen against three of fourteen at `140` time units, seven of fourteen
+against thirteen of fourteen at `400`.  By the time from the boundary to the
+event, which is the quantity the counts are thresholds of, the two are mixed.
+Of the seven boundaries where the repaired state fires within `400` units, it
+takes longer than the exact state does at `t = 9.60` (`259.2277` against
+`184.0878`), `18.60` (`387.3956` against `295.1340`) and `52.71` (`269.6797`
+against `247.6630`), and less long at `t = 4.76` (`146.2377` against
+`186.1965`), `13.82` (`193.1741` against `243.1074`) and `60.00` (`350.7827`
+against `373.8964`); at `t = 24.44` the repaired state fires at `380.5341`
+and the exact state does not fire at all within `400` units, which is the
+sharpest single reading against the repaired state being the nearer to
+stability.
+
+**What the earliest boundary with no amplitude event implies about when the
+repair does its work.** At `140` time units the earliest boundary with no
+event is the second one, `t = 9.60`, and the first, `t = 4.76`, reaches
+`2807.5440` and fires at `t = 150.9977` once the window is opened to `400`
+units --- so under that window the repair's whole effect on this measurement
+is already delivered between `t = 4.76` and `t = 9.60`, six time units into a
+sixty-unit rollout and long before either unrepaired failure at `t = 27.9634`
+and `t = 54.4613`.  At `400` time units the earliest boundary with no event is
+`t = 20.00`.  Both readings place the change early and neither places it near
+the horizons the chain was extended to reach; the `12,990.1 s` spent carrying
+the chain from `t = 20` to `t = 60` bought no further change in this
+measurement.
+
+**What section 11's claim should now say.** Its measured statements stand
+unaltered: over `t = 0` to `60` the repaired chain's electronic one-body
+density matrix has minimum `+1.4466e-6` and its maximum absolute coordinate is
+`2.1827`, where the unrepaired closure from the same preparation loses the
+electronic cone at `t = 27.9634` and reaches `1e4` at `t = 54.4613`.  What does
+not stand is the third argument offered for calling that prevention rather
+than postponement --- that the repaired state at `t = 60` lies outside the
+divergent basin.  The repair is measured to hold the electronic cone and the
+magnitude over the horizon it was run to; it is not measured to have moved the
+state into a region where the unrepaired closure is stable, because no such
+region is exhibited by this test, not even at the exact trajectory's own
+states.
+
+## 15. Reproduction of this round
+
+Same environment as section 7.  Total cost: `75.9 s` of propagation for the
+`140`-unit sweep at all fourteen boundaries from both starting states and
+`182.3 s` for the two `400`-unit sweeps, with one `1.5 s` propagation of the
+exact driven reference supplying all fourteen of its states; the per-sample
+closed-coordinate diagnostics dominate the wall of each driver.
+
+```bash
+$PY pipelines/shell/ram_guard.py --limit-mb 2500 -- \
+  $PY $DIR/boundary_basin_sweep.py \
+  output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{1..14} \
+  --output $DIR/boundary_basin_sweep.json
+
+$PY pipelines/shell/ram_guard.py --limit-mb 2500 -- \
+  $PY $DIR/boundary_basin_sweep.py \
+  output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{1..14} \
+  --span 400 --start-from repaired \
+  --output $DIR/boundary_basin_span400_repaired.json
+
+$PY pipelines/shell/ram_guard.py --limit-mb 2500 -- \
+  $PY $DIR/boundary_basin_sweep.py \
+  output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{1..14} \
+  --span 400 --start-from exact \
+  --output $DIR/boundary_basin_span400_exact.json
+
+$PY $DIR/tabulate_boundary_basin.py $DIR/boundary_basin_sweep.json
+```
+
+New files this round, all under
+`output/local_runs/paper_v_divergence_20260920/`:
+`boundary_basin_sweep.py`, `tabulate_boundary_basin.py`,
+`probe_diagnostic_cost.py`; reports `boundary_basin_sweep.json`,
+`boundary_basin_span400_repaired.json`,
+`boundary_basin_span400_exact.json`,
+`boundary_basin_sweep_span400.json` (the two-boundary probe that prompted the
+`400`-unit sweep), with the matching `.log` files.

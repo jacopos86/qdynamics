@@ -8365,3 +8365,83 @@ at `t = 60` is.  Electronic positivity remains a measured outcome and not a
 construction, since the electronic one-body density matrix is not one of the
 sets the Dykstra repair projects onto.  The barrier's cost wall at `t ~ 34` is
 new and should be treated as a limit on that route, not a transient.
+
+## 2026-09-20: the basin test at all fourteen stored boundaries --- it measures the time to the `1e4` magnitude event inside a window, not membership of a bounded set, and the repaired `t = 60` state fires at `t = 410.7827`
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `6590840f`.
+Exploratory local work, not promoted evidence; no default, acceptance rule or
+module was changed.  Report
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`
+sections 13 to 15.
+
+The round above ran the basin test at one boundary --- the unrepaired archive
+closure, no repair, no lift, no re-selection, started from the repaired
+chain's own `t = 60` state and propagated 140 further time units with the
+`1e4` terminal event --- found no event, and read that as the repaired chain
+having left the divergent basin.  This round ran the identical test at every
+one of the fourteen stored segment boundaries (`t = 4.76`, `9.60`, `13.82`,
+`18.60`, `20.00`, `24.44`, `29.12`, `34.43`, `38.6325`, `43.12`, `48.48`,
+`52.71`, `56.92`, `60.00`), and from the exact driven trajectory's own state
+at the same fourteen times, on the same DOP853 protocol at `rtol 1e-10`,
+`atol 1e-12`, sample step `0.0025`, `lambda_ep = 1.5`, `gamma = 0.5`, drive
+amplitude `1.0`, phonon cutoff `16`.  At `t = 60` both reproduce the previous
+round's numbers to every reported digit.
+
+**At 140 time units the event fires at none of the fourteen boundaries from
+the repaired chain's state and at three of the fourteen from the exact
+trajectory's state** (`t = 20` at `147.3861`, `t = 29.12` at `74.8594`,
+`t = 43.12` at `152.9483`).  **But the `140`-unit verdict is not
+boundedness**: from the repaired chain's `t = 4.76` state the maximum absolute
+coordinate reaches `2807.5440` at the last sample of the window, the
+electronic one-body density matrix minimum is `-4.6266e+01` and the retained
+joint Gram minimum `-6451.5882`; that continuation is still growing when the
+window ends, and at `400` time units it fires at `t = 150.9977`.
+
+**Carried to 400 time units the test refutes the basin reading.** From the
+repaired chain's `t = 60` state the unrepaired closure fires the `1e4` event
+at `t = 410.7827`; from the exact driven trajectory's `t = 60` state it fires
+at `t = 433.8964`.  Over all fourteen boundaries the event fires at seven from
+the repaired state and at thirteen from the exact state, the sole exception
+being `t = 24.44`.  A set the exact trajectory's own state does not lie in is
+not a basin whose complement the repair could deliver the trajectory into, so
+the quantity the test measures is the time from a state to the `1e4` magnitude
+event under the unrepaired closure, and the previous round read a window
+shorter than that time as membership.  Membership is also not monotone in the
+boundary time --- from the repaired state at `400` units, `t = 52.71` and
+`t = 60.00` fire while `t = 56.92` between them does not --- so there is no
+time from which the chain is outside, at either window length.
+
+**What the repaired state is, by count.** It fires less often than the exact
+trajectory's state at both window lengths (none of fourteen against three at
+`140`, seven of fourteen against thirteen at `400`), but the time from
+boundary to event is mixed row by row: of the seven boundaries where the
+repaired state fires within `400` units it takes longer than the exact state
+at three, less long at three, and at `t = 24.44` it fires at `380.5341` where
+the exact state does not fire at all.
+
+**When the repair does its work, on this measurement.** At `140` units the
+earliest boundary with no event is the second, `t = 9.60`, the first firing
+once the window is opened; at `400` units it is `t = 20.00`.  Both readings
+place the whole of the change early in the rollout, before either unrepaired
+failure at `t = 27.9634` and `t = 54.4613`, and the `12,990.1 s` spent
+carrying the chain from `t = 20` to `t = 60` changed this measurement no
+further.
+
+Cost `75.9 s` of propagation for the `140`-unit sweep at all fourteen
+boundaries from both starting states, `182.3 s` for the two `400`-unit
+sweeps, and one `1.5 s` propagation of the exact driven reference for all
+fourteen of its states; peak resident `259 MB`.
+
+Reading.  The previous round's measured statements about the repaired chain
+over `t = 0` to `60` are untouched --- electronic one-body density matrix
+minimum `+1.4466e-6`, maximum absolute coordinate `2.1827`, against the
+unrepaired closure's electronic loss at `t = 27.9634` and `1e4` at
+`t = 54.4613`.  What is withdrawn is the third argument it offered for calling
+that prevention rather than postponement.  The repair is measured to hold the
+electronic cone and the magnitude over the horizon it was run to; it is not
+measured to have moved the state into a region where the unrepaired closure is
+stable, because this test exhibits no such region, not even at the exact
+trajectory's own states.  Any future use of the basin test must state its
+window, and a window that does not exceed the times reported here decides
+nothing.
