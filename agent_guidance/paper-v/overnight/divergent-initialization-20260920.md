@@ -395,3 +395,278 @@ preparation), `run_unrepaired.py`, `probe_preparation.py`,
 Score files: `hf_chain_score_t20.json`, `cone_route_hf_score.json`,
 `archive_route_scores_t20.json`, `unrepaired_t140.json`,
 `preparation_probe_hf.json`, `cone_route_hf_t20.json` with its `.npz`.
+
+---
+
+# Past the decisive horizons: the same chain carried from `t = 20` to `t = 60`
+
+**Round of 2026-09-20 (second), branch `claude/paper-v-routes-20260914`,
+worktree `Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD
+`fcbd391a`.** Exploratory local work, not promoted evidence; no default,
+acceptance rule or module was changed, and nothing here is manuscript prose.
+
+## 8. What was missing and what this measures
+
+The round above stopped at `t = 20`. In the 31 closed scalar coordinates the
+chain propagates, the only unrepaired failures before `t = 20` are the two
+Gram crossings --- the retained joint Gram below `-1e-8` at `t = 0.0124` and
+the boson-moment cone at `t = 1.3227` --- while the electronic cone is lost at
+`t = 27.9634` and the magnitude reaches `1e4` at `t = 54.4613`, both after it.
+(In the 13-coordinate Fan--Migdal form, which this route does not propagate,
+the electronic cone is lost at `t = 15.5177447` and `1e4` is reached at
+`t = 130.4674620`.) Nothing in that round separated *preventing* the
+divergence from *being measured short of it*.
+
+This round carries the same chain --- same 27 entrance keys, same
+`unguarded_velocity` with SSPRK(3,3) at `h = 0.0025`, same declared proximal
+log-det completion re-selected every 16 accepted steps, same Dykstra repair at
+120 iterations onto the affine Gram sets and the two cones, same Eq. (22)
+drive-power reference, same anchor-free measured-candidate rule at margin
+`1e-3`, same `exact_moments` lift at `t = 0` forced by section 3 --- from the
+stored `t = 20` state of segment 5, in chained segments of at most `1,000 s`
+each, past both decisive horizons. The unrepaired archive closure and the
+energy-neutral joint electronic--bosonic matrix barrier are carried to the
+same horizons from the same preparation, on the same `h = 0.0025` sample grid
+and against the same exact driven reference.
+
+**One quantity is not reported for the last two rows.** The scaled positive
+extension is an eigenvalue of the cheap repair's own 36 extension rows; a
+trajectory propagated directly in the 31 closed scalar coordinates carries no
+such lift, so there is no such quantity for the unrepaired closure or for the
+matrix barrier, and none is invented for them.
+
+## 9. Task (a): the cheap repair carried to `t = 60`
+
+Nine further chained segments, `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{6..14}`
+(reaching `t = 24.44`, `29.12`, `34.43`, `38.6325`, `43.12`, `48.48`,
+`52.71`, `56.92`, `60.0`; walls `1005.9`, `1006.6`, `1000.1`, `1000.1`,
+`1002.9`, `1003.1`, `1000.1`, `1007.2`, `667.3 s`). With the five segments of
+section 4 the rollout is **24,001 samples on one `h = 0.0025` grid from
+`t = 0` to `t = 60`, `12,990.1 s` autonomous wall, 1,500 lift re-selections of
+which 156 were solver refusals, peak resident `656 MiB`**. Score file
+`output/local_runs/paper_v_divergence_20260920/hf_chain_score_t60.json`; the
+rollout's `t = 0` coordinate offset against the reference is exactly `0`.
+
+| horizon | all-coordinate scalar RMS | site-0 occupation RMS, `rho[0,0]` | Eq. (22) energy RMS against the reference | minimum unshifted retained joint Gram | minimum scaled positive extension | minimum boson-moment eigenvalue | maximum `\|x_i\|` |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| `20` | `1.5368e-1` | `0.0736` | `1.1888e-3` | `-5.561e-4` | `-6.352e-5` | `-2.163e-3` | `1.9431` |
+| `28` | `1.9752e-1` | `0.1578` | `1.1978e-3` | `-7.190e-4` | `-7.526e-5` | `-2.656e-3` | `1.9871` |
+| `40` | `2.1606e-1` | `0.1563` | `1.2046e-3` | `-8.152e-4` | `-9.144e-5` | `-3.232e-3` | `2.0501` |
+| `55` | `2.5225e-1` | `0.1619` | `1.2088e-3` | `-8.511e-4` | `-9.532e-5` | `-3.391e-3` | `2.1827` |
+| `60` | `2.5235e-1` | `0.1604` | `1.2098e-3` | `-8.511e-4` | `-9.532e-5` | `-3.391e-3` | `2.1827` |
+
+**The electronic one-body density matrix never loses positive
+semidefiniteness anywhere in `t = 0` to `60`.** Over all 24,001 samples its
+value at `t = 0` is `-2.220e-16` (the preparation is a determinant, exactly on
+the cone), its minimum over `0 < t <= 60` is `+1.4466e-6`, attained at the
+first step `t = 0.0025`, and its largest value is `0.2150`. That minimum is
+the same sample, and the same number, as the one the `t = 20` rollout
+reported: nothing between `t = 20` and `t = 60` comes nearer the cone than the
+first step does. The unrepaired closure's electronic loss at `t = 27.9634` and
+its magnitude crossing at `t = 54.4613` are now both *inside* the measured
+horizon and neither occurs.
+
+**The state magnitude does not grow.** The largest absolute coordinate
+anywhere in `t = 0` to `60` is `2.1827`, attained at `t = 51.0675`, against
+the unrepaired closure's `1e4` at `t = 54.4613`. The running maximum over
+`t <= 20` is `1.9431` and over `t <= 60` is `2.1827`, a growth of `12` percent
+over 40 further time units; the maximum absolute coordinate of the state *at*
+`t = 60` is `1.3080`, below its own value at `t = 20`.
+
+**The two Gram quantities deepen and then stop.** The retained joint Gram
+moves from `-5.561e-4` at `t = 20` to `-8.511e-4`, the scaled positive
+extension from `-6.352e-5` to `-9.532e-5`, and the boson-moment eigenvalue
+from `-2.163e-3` to `-3.391e-3`; all three reach their deepest by `t = 55`
+and none deepens over `t = 55` to `60`. Each is within a factor `1.6` of its
+`t = 20` value after tripling the horizon.
+
+**Accuracy grows sublinearly.** The all-coordinate scalar RMS goes `1.5368e-1`
+at `t = 20`, `2.1606e-1` at `t = 40`, `2.5235e-1` at `t = 60` --- a factor
+`1.64` over a factor `3` in horizon --- while the Eq. (22) energy RMS against
+the reference is flat at `1.19e-3` to `1.21e-3` across all five horizons.
+
+## 10. Task (b): the same horizons for the other two vector fields
+
+**Stated first, because it bounds what this task could deliver: the
+energy-neutral joint electronic--bosonic matrix barrier cannot be carried to
+the magnitude horizon at any affordable cost.** Resumed from its own `t = 20`
+state it covered `t = 20` to `34.13` in `7.3 s`, then `t = 34.13` to `36.14`
+in `315 s`, `t = 36.14` to `38.14` in `589 s`, and `t = 38.5` to `39.0` in a
+whole `1,000 s` segment --- from about `0.5 s` per time unit before `t = 34`
+to about `2,000 s` per time unit after `t = 38.5`, a factor of `4,000`. At
+that rate `t = 54.4613` is roughly `31,000 s` away. The chain was stopped at
+`t = 39.0` after `2,793.2 s` total. The cost wall is the trajectory's: it
+begins inside a segment, not at a resume boundary.
+
+Artifacts: `cone_chain_hf_seg{2,3}.{json,npz,log}`,
+`cone_horizon_t39.json`; the unrepaired closure re-propagated on the same
+`h = 0.0025` grid is `unrepaired_closed_t60.{json,npz}` with
+`unrepaired_horizon_t60.json`.
+
+| `t = 28` | cheap repair, 27 keys, exact lift | unrepaired archive closure | energy-neutral joint matrix barrier |
+|---|---:|---:|---:|
+| minimum electronic eigenvalue over `0 < t <= 28` | `+1.4466e-6` | **`-4.387e-3`** | `+7.525e-14` |
+| has it ever been negative | no | **yes, from `t = 27.9634`** | no |
+| maximum `\|x_i\|` | `1.9871` | `2.3685` | `1.7999` |
+| minimum unshifted retained joint Gram | `-7.190e-4` | `-1.0522` | `-0.36128` |
+| minimum scaled positive extension | `-7.526e-5` | not carried | not carried |
+| minimum boson-moment eigenvalue | `-2.656e-3` | `-0.78039` | `-5.103e-16` |
+| all-coordinate scalar RMS | `1.9752e-1` | `3.8429e-1` | `3.1902e-1` |
+| cumulative autonomous wall | `6,309.4 s` | `4.0 s` | `1,793.2 s` |
+
+| `t = 40` | cheap repair | unrepaired archive closure | energy-neutral joint matrix barrier |
+|---|---:|---:|---:|
+| minimum electronic eigenvalue over `0 < t <= 40` | `+1.4466e-6` | `-1.6647` | `+7.525e-14` at `t = 39.0` |
+| maximum `\|x_i\|` | `2.0501` | `2.9628` | `1.9534` at `t = 39.0` |
+| minimum unshifted retained joint Gram | `-8.152e-4` | `-11.064` | `-0.53867` at `t = 39.0` |
+| minimum scaled positive extension | `-9.144e-5` | not carried | not carried |
+| minimum boson-moment eigenvalue | `-3.232e-3` | `-2.7125` | `-5.103e-16` at `t = 39.0` |
+| all-coordinate scalar RMS | `2.1606e-1` | `4.5096e-1` | `3.2628e-1` at `t = 39.0` |
+| cumulative autonomous wall | `9,312.5 s` | `4.0 s` | `2,793.2 s` to `t = 39.0` |
+
+| `t = 55` and `t = 60` | cheap repair at `t = 55` | cheap repair at `t = 60` | unrepaired archive closure | energy-neutral joint matrix barrier |
+|---|---:|---:|---:|---:|
+| minimum electronic eigenvalue over `0 < t <= horizon` | `+1.4466e-6` | `+1.4466e-6` | `-382.82` at its last sample | not reached |
+| maximum `\|x_i\|` | `2.1827` | `2.1827` | `9877.8`, terminal event at `1e4` at `t = 54.4613` | not reached |
+| minimum unshifted retained joint Gram | `-8.511e-4` | `-8.511e-4` | `-36881.7` | not reached |
+| minimum scaled positive extension | `-9.532e-5` | `-9.532e-5` | not carried | not carried |
+| minimum boson-moment eigenvalue | `-3.391e-3` | `-3.391e-3` | `-1601.49` | not reached |
+| all-coordinate scalar RMS | `2.5225e-1` | `2.5235e-1` | `109.66` at `t = 54.46` | not reached |
+| cumulative autonomous wall | `12,322.9 s` | `12,990.1 s` | `4.0 s` | --- |
+
+The barrier keeps holding exactly the two cones it constrains --- the
+electronic eigenvalue is `0` at `t = 0` and `+7.525e-14` afterwards, the
+boson-moment eigenvalue `-5.103e-16` --- over the whole of `t = 0` to `39`,
+and its retained joint Gram, which is not in its constraint set, goes from
+`-0.36128` to `-0.53867`. At `t = 28` the cheap repair is `1.95` times the
+unrepaired closure's accuracy and `1.62` times the barrier's; at `t = 40` it
+is `2.09` times the unrepaired closure's.
+
+## 11. Task (c): prevent, delay, or measured short of it
+
+**It prevents it, through `t = 60`.** Both unrepaired failures are now
+strictly inside the measured horizon and neither happens: the electronic cone
+is lost at `t = 27.9634` unrepaired and the electronic one-body density matrix
+of the repaired chain has a minimum of `+1.4466e-6` over the whole of
+`0 < t <= 60`; the magnitude reaches `1e4` at `t = 54.4613` unrepaired and the
+repaired chain's maximum absolute coordinate is `2.1827` over the whole of
+`t = 0` to `60`. The measurement is no longer short of the failures; it is
+`1.10` times past the later of them.
+
+Three things say this is prevention and not postponement.
+
+1. **The tightest moment of the rollout is the first step, not the horizon.**
+   The minimum electronic eigenvalue over `0 < t <= 60` is attained at
+   `t = 0.0025` and is the same number the `t = 20` rollout reported. Over
+   `t = 20` to `60` nothing comes nearer the cone than the preparation's own
+   first step does.
+2. **Nothing is still growing at the horizon.** The running maximum absolute
+   coordinate goes `1.9431` at `t = 20`, `2.0501` at `t = 40`, `2.1827` at
+   `t = 55` and `2.1827` at `t = 60`, its largest value falling at
+   `t = 51.0675`, and the state's own maximum absolute coordinate at `t = 60`
+   is `1.3080`, below its `t = 20` value; the retained joint Gram, the scaled
+   positive extension and the boson-moment eigenvalue all reach their deepest
+   values by `t = 55` and none deepens over `t = 55` to `60`. The Eq. (22)
+   energy RMS against the reference is flat at `1.19e-3` to `1.21e-3` across
+   all five horizons.
+3. **The repaired chain has left the divergent basin.** Started from the
+   repaired chain's own `t = 60` state, **the unrepaired archive closure ---
+   no repair, no lift, no re-selection --- stays bounded through `t = 200`**,
+   140 further time units, with minimum electronic eigenvalue `+0.0685`,
+   maximum `\|x_i\|` `1.8256`, retained joint Gram `-0.5250` and no amplitude
+   event (`unrepaired_from_repaired_t60.json`, `2.2 s`). The same closure
+   started from the *exact* driven trajectory's state at `t = 60` is likewise
+   bounded through `t = 200` (`+0.0302`, `1.7989`, `-0.9567`,
+   `unrepaired_from_exact_t60.json`). From the Hartree--Fock preparation at
+   `t = 0` it reaches `1e4` at `t = 54.4613`. So the repair is not holding a
+   divergent flow back step by step: it has delivered the trajectory to a
+   state from which the closure's own flow does not diverge, and by the
+   retained joint Gram the repaired state is the *less* violating of the two
+   `t = 60` states.
+
+**What would have to be true for the claim to fail after `t = 60`.** One of
+the three: the maximum absolute coordinate would have to resume growing after
+`40` time units of `12` percent total growth and `5` units of none; the three
+constrained quantities would have to resume deepening after stopping; or the
+repaired trajectory would have to re-enter the divergent basin it is measured
+to be outside at `t = 60`.
+
+**The cheapest test of that, and it is very cheap.** The basin test of point 3
+propagates 140 time units of the unrepaired closure in `2.2 s`, that is
+`0.0157 s` per time unit, against `217.3 s` per time unit for the repair
+itself over `t = 20` to `60` --- a factor of `13,800` --- and it is exactly
+the discriminating quantity. Continue the chain and, at each stored segment boundary, propagate
+the unrepaired archive closure from that boundary's state for 140 further time
+units with the `1e4` terminal event; the claim fails at the first boundary
+whose continuation fires that event, and the test costs seconds per boundary
+whatever the chain costs. `run_closed_route.py --initial-from <segment>/trajectory.npz`
+is that test as run here.
+
+**What is still not true.** The repair holds neither Gram cone, at `t = 60`
+exactly as at `t = 20`: the retained joint Gram reaches `-8.511e-4`, the
+scaled positive extension `-9.532e-5`, the boson-moment eigenvalue
+`-3.391e-3`, each within a factor `1.6` of its `t = 20` value after tripling
+the horizon. The electronic one-body density matrix is *not* one of the sets
+the Dykstra repair projects onto --- the repair's two cones are the retained
+joint Gram and the scaled positive extension --- so electronic positivity over
+`0 < t <= 60` is a measured outcome of this configuration and not a
+construction of it. Its cost is `12,990.1 s` for `t = 0` to `60` against
+`4.0 s` for the unrepaired closure, and its accuracy at `t = 60` is
+`2.5235e-1`.
+
+## 12. Reproduction of this round
+
+Same environment as section 7.
+
+```bash
+# (a) the chain from its stored t = 20 state to t = 60, nine further segments
+/bin/zsh $DIR/run_chain.sh \
+  output/local_runs/paper_v_divergence_hf_dyk120_20260920 \
+  hartree_fock exact_moments 1 20 60.0 1000
+
+$PY $DIR/score_chain.py <the fourteen segments> \
+  --output $DIR/hf_chain_score_t60.json --horizons 20 28 40 55 60
+$PY $DIR/electron_trace.py <the fourteen segments>
+$PY $DIR/tabulate_chain.py $DIR/hf_chain_score_t60.json <the fourteen segments>
+
+# (b) the matrix barrier resumed from its own t = 20 state
+$PY $DIR/make_resume.py $DIR/cone_route_hf_t20.npz \
+  --output $DIR/cone_chain_hf_seg1_resume.npz
+/bin/zsh $DIR/run_cone_chain.sh $DIR/cone_chain_hf hartree_fock 2 6 60.0 1000
+$PY $DIR/closed_horizon_table.py $DIR/cone_route_hf_t20.npz \
+  $DIR/cone_chain_hf_seg2.npz $DIR/cone_chain_hf_seg3.npz \
+  --output $DIR/cone_horizon_t39.json \
+  --label energy_neutral_joint_matrix_barrier --horizons 20 28 34 38.5 39
+
+# (b) the unrepaired closure on the same grid
+$PY $DIR/run_closed_route.py --output $DIR/unrepaired_closed_t60.json \
+  --route archive --preparation hartree_fock --final-time 60.0
+$PY $DIR/closed_horizon_table.py $DIR/unrepaired_closed_t60.npz \
+  --output $DIR/unrepaired_horizon_t60.json \
+  --label unrepaired_archive_closure --horizons 20 28 40 54.46 55 60
+
+# (c) the basin test, at the repaired t = 60 state and at the exact one
+$PY $DIR/run_closed_route.py --output $DIR/unrepaired_from_repaired_t60.json \
+  --route archive --preparation hartree_fock --final-time 200.0 \
+  --initial-from output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg14/trajectory.npz
+$PY $DIR/exact_state_npz.py --output $DIR/exact_state_t60.npz \
+  --time 60.0 --preparation hartree_fock
+$PY $DIR/run_closed_route.py --output $DIR/unrepaired_from_exact_t60.json \
+  --route archive --preparation hartree_fock --final-time 200.0 \
+  --initial-from $DIR/exact_state_t60.npz
+```
+
+New files this round, all under
+`output/local_runs/paper_v_divergence_20260920/` unless stated:
+`closed_horizon_table.py`, `run_closed_route.py`, `run_cone_chain.sh`,
+`make_resume.py`, `exact_state_npz.py`, `magnitude_argmax.py`; score and
+trajectory files
+`hf_chain_score_t60.json`, `cone_horizon_t39.json`,
+`cone_chain_hf_seg{2,3}.{json,npz,log}`, `cone_chain_hf_seg1_resume.npz`,
+`unrepaired_closed_t60.{json,npz}`, `unrepaired_horizon_t60.json`,
+`unrepaired_from_repaired_t60.{json,npz}`,
+`unrepaired_from_repaired_horizon.json`, `exact_state_t60.npz`,
+`unrepaired_from_exact_t60.{json,npz}`,
+`unrepaired_from_exact_horizon.json`, `chain_hf_t60.log`,
+`cone_chain_hf.log`; and the chain segments
+`output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{6..14}`.

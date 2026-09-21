@@ -8282,3 +8282,86 @@ that failure starts at the first step and is the Eq. (22) hyperplane's, not
 the initialization's.  Two things are settled negatively and should not be
 retried as stated: the declared log-det completion at a pure preparation, and
 Eq. (112) as a regularization of the uncorrelated initialization.
+
+## 2026-09-20: the cheap repair carried past both decisive horizons --- `t = 60` from the divergent initialization, and the basin test that separates prevention from postponement
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `fcbd391a`.
+Exploratory local work, not promoted evidence; no default, acceptance rule or
+module was changed.  Report
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`
+sections 8 to 12.
+
+The round above stopped at `t = 20`, which is before every unrepaired failure
+from the Hartree--Fock/zero-correlation initialization except the two Gram
+crossings, so nothing in it separated preventing the divergence from being
+measured short of it.  The same chain --- 27 entrance keys, SSPRK(3,3) at
+`h = 0.0025`, the declared proximal log-det completion re-selected every 16
+accepted steps, the Dykstra repair at 120 iterations, the Eq. (22) drive-power
+reference, the anchor-free measured rule at margin `1e-3`, the `exact_moments`
+lift at `t = 0` --- was resumed from its stored `t = 20` state and carried in
+nine further segments to `t = 60`: 24,001 samples on one grid, `12,990.1 s`
+autonomous wall, 1,500 lift re-selections of which 156 were solver refusals,
+peak `656 MiB`.
+
+**It prevents both failures.**  The electronic one-body density matrix is
+`-2.220e-16` at `t = 0` and its minimum over `0 < t <= 60` is `+1.4466e-6`,
+attained at the first step `t = 0.0025` --- the same sample and the same
+number the `t = 20` rollout reported, so nothing between `t = 20` and `t = 60`
+comes nearer the cone than the preparation's own first step.  The unrepaired
+closure loses that cone at `t = 27.9634` and reaches magnitude `1e4` at
+`t = 54.4613`; the largest absolute coordinate anywhere in the repaired chain's
+`t = 0` to `60` is `2.1827`, at `t = 51.0675`, and the state's own maximum
+absolute coordinate at `t = 60` is `1.3080`, below its `t = 20` value.  Its all-coordinate scalar RMS against the
+exact driven trajectory from the same product state is `1.9752e-1` at
+`t = 28`, `2.1606e-1` at `t = 40` and `2.5235e-1` at `t = 60`, a factor `1.64`
+over a factor `3` in horizon, with the Eq. (22) energy RMS flat at `1.19e-3`
+to `1.21e-3`.  Neither Gram cone is held, at `t = 60` exactly as at `t = 20`:
+retained joint Gram `-8.511e-4`, scaled positive extension `-9.532e-5`,
+boson-moment eigenvalue `-3.391e-3`, each within a factor `1.6` of its
+`t = 20` value and none deepening over `t = 55` to `60`.
+
+**The basin test, which is what separates prevention from postponement.**
+Started from the repaired chain's own `t = 60` state, the unrepaired archive
+closure --- no repair, no lift, no re-selection --- stays bounded through
+`t = 200`, 140 further time units, with minimum electronic eigenvalue
+`+0.0685`, maximum `|x_i|` `1.8256` and no amplitude event, in `2.2 s`.  The
+same closure from the *exact* trajectory's `t = 60` state is likewise bounded
+(`+0.0302`, `1.7989`), and by the retained joint Gram the repaired state is
+the less violating of the two (`-0.5250` against `-0.9567`).  From the
+Hartree--Fock preparation at `t = 0` the same closure reaches `1e4` at
+`t = 54.4613`.  The repair is therefore not holding a divergent flow back step
+by step; it has delivered the trajectory to a state whose own closed flow does
+not diverge.  That test propagates 140 time units of the unrepaired closure in
+`2.2 s`, that is `0.0157 s` per time unit, against `217.3 s` per time unit for
+the repair over `t = 20` to `60`, a factor of `13,800`, and it is the cheapest test of
+whether the claim fails after `t = 60`: continue the chain and propagate the
+unrepaired closure 140 units from each stored segment boundary; the claim
+fails at the first boundary whose continuation fires the `1e4` event.
+
+**Against the other two vector fields at the same horizons.**  The
+energy-neutral joint electronic--bosonic matrix barrier keeps holding exactly
+the two cones it constrains through `t = 39` (`+7.525e-14` and `-5.103e-16`)
+while its retained joint Gram, not in its constraint set, goes to `-0.53867`
+--- but **it cannot be carried to the magnitude horizon**: resumed from its
+`t = 20` state it covers `t = 20` to `34.13` in `7.3 s`, then `2` units in
+`315 s`, `2` more in `589 s`, and `t = 38.5` to `39.0` in a whole `1,000 s`
+segment, about `0.5 s` per time unit before `t = 34` against about `2,000 s`
+per time unit after `t = 38.5`.  The wall begins inside a segment, so it is
+the trajectory's, not a resume artifact; `t = 54.4613` is roughly `31,000 s`
+away and the chain was stopped at `t = 39.0`.  The unrepaired closure at
+`t = 28` has electronic eigenvalue `-4.387e-3`, retained joint Gram `-1.0522`
+and RMS `3.8429e-1`; at `t = 40`, `-1.6647`, `-11.064` and `4.5096e-1`.  At
+`t = 28` the cheap repair is `1.95` times the unrepaired closure's accuracy
+and `1.62` times the barrier's; at `t = 40`, `2.09` times the unrepaired
+closure's.
+
+Reading.  On the initialization the repair exists for, the question the
+`t = 20` round left open is answered: the cheap repair prevents the
+representability loss and the amplitude divergence rather than postponing the
+horizon at which they are measured, and the basin test says why --- the
+repaired state at `t = 60` is outside the divergent basin, as the exact state
+at `t = 60` is.  Electronic positivity remains a measured outcome and not a
+construction, since the electronic one-body density matrix is not one of the
+sets the Dykstra repair projects onto.  The barrier's cost wall at `t ~ 34` is
+new and should be treated as a limit on that route, not a transient.
