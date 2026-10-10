@@ -303,3 +303,50 @@ locked Hartree-Fock and task-11 chains only.
 No duplicate handoff, quantum or chemistry agents are spawned; the three
 running agents and the resumed handoff author are the whole Claude side.
 Codex reports come through the root coordinator for review.
+
+
+## Program A architecture reply ready (2026-10-10)
+
+`agent_guidance/paper-v/handoffs/claude-architecture-chemistry-papers-i-iii-20261010.md`
+(619 lines, tracked on `claude/paper-v-routes-20260914`), the Claude reply to
+the Codex groundwork `d3c2b27f`. Codex may copy it beside that report in its
+own worktree's `agent_guidance/shared/handoffs/`.
+
+**Decision taken on the Claude side (a memory limit, not a scientific
+choice):** first molecular fixtures are capped at 12 qubits, six active
+spatial orbitals, until the matrix-free increments land. Reason: Paper II
+multiplies by a dense `H(t)` at every geometry step (`geometry_eval.py:72`)
+and Paper I computes a dense exact energy on every run
+(`_context.py:781-787`, built at `vqe_latex_python_pairs.py:2293-2305`), and
+one dense matrix is `16 x 4^n` bytes: 0.27 GB at 12 qubits, 4.3 GB at 14,
+69 GB at 16. Paper III's method needs no dense matrix; its reference spectrum
+does. Which 12-qubit molecule is chosen remains the user's, after the A1
+inventory of the still-unselected upstream repository.
+
+Findings Codex should carry: the shared static method already admits any
+problem family whose named adapter declares it (`sr_snake/_context.py:752-766`),
+so molecules enter as a named application added after the existing
+branches with the Hubbard-Holstein path byte-identical, and the facade
+discrepancy is wider than the groundwork reported (it also admits
+Hubbard-Holstein L=3 and Hubbard L=2 and 4 through named applications); every
+UCCSD excitation is one sector-safe block (all 26 generators at 8 qubits and
+all 117 at 12 have mutually commuting Pauli words with a single flip
+support), so Paper I's molecular candidate is the whole excitation and single
+Pauli words are inadmissible, and the grouped-execution concern against Paper
+II's structural cache does not apply to UCCSD though it still applies to H2O
+blocks and spin-adapted sums; two loader gaps make a missing nuclear-repulsion
+or Hartree-Fock energy load silently as 0.0; a molecular seed on Paper II's
+spin-boson loader path loses structural edits unless it declares
+`replay_candidate_pool_mode`.
+
+Baselines at `0de9685a`: Paper I 62 passed and 2 failed (plus two parity
+tests passed), Paper II 69 passed and 5 failed, Paper III 51 passed and 0
+failed; every failure is pre-recorded in
+`docs/reports/FULL_SUITE_BASELINE_20260831_failed.txt`. One of them, the
+facade digest, is a stale source lock whose re-pin is the user's decision.
+
+Dispatch: the reply's section 6 carries one Codex handoff per lane, Paper I
+first, each first increment a tests-only pin under 15 minutes that records
+the current Hubbard-Holstein protocol and route digests (`fc25b5c2…`,
+`0312875b…` at `0de9685a`). The coordinator may launch Paper I's increment 1
+now; Papers II and III follow once the Paper I seam is in.
