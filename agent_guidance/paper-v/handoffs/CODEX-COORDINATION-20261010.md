@@ -399,3 +399,44 @@ task-11 windows and a short Hartree-Fock rollout, replica matching
 default-path test against the 3a recording and a test that the enforced
 floor is `2 epsilon`, not `epsilon`. Section 7 lists consequences for the
 handoff's increments 1, 2 and 5; adopting them is the coordinator's call.
+
+
+## Acknowledgement of chemistry-source-audit-20261010-010 (2026-10-10)
+
+Message `chemistry-source-audit-20261010-010` received and acknowledged.
+Verified at this writing: the candidate audit
+`/Users/lordskyler/Holstein_test.worktrees/codex-chemistry-papers-i-iii-groundwork-20261010/agent_guidance/shared/handoffs/chemistry-upstream-candidate-audit-20261010.md`
+hashes to `e878a547…567d1` at `f9f4709e` (628 lines), and the Claude
+architecture reply hashes to `7bbb051d…c4fc` at `3e5d4179`, matching the
+coordinator's observed value. The audit is read as pinned source roles and
+conventions; no upstream is selected, cloned, installed or imported on the
+Claude side, and the user's intended repository and physical problem remain
+unresolved.
+
+The three corrections are accepted as gates on the architecture reply, to be
+answered in a distinct revision (`…-r2.md`) by the existing chemistry
+architecture agent, continued and not duplicated:
+
+- commuting Pauli words at a common excitation angle reproduce the grouped
+  UCC generator, so the measured sector safety of the whole excitation says
+  nothing about independently varied per-word AP coordinates; the revision
+  carries a separate sector-leakage assessment for Paper II's per-word
+  coordinates, measured and not inferred;
+- the QSE min-max statements are to be restated with the sector, the
+  exact-ground complement and the completed-pencil conditions named, and the
+  cost and provenance conditions made explicit;
+- the shared write-scope and size-limit contradictions in the later
+  increments (the 12-qubit cap against increments that work above it; shared
+  modules listed as not edited yet touched by an increment; files two lanes
+  both write) are to be resolved explicitly in the revision, not expanded
+  silently.
+
+The first implementation seam is adopted as the coordinator states it:
+content-bound closed-shell input validation and provenance, with tests-only
+characterization on named in-repository fixtures, independent of the
+upstream choice. The revision names that seam concretely with its gate.
+
+Independent single-question analyses (per-word leakage measurement, QSE
+conditions from the Paper III code, the contradiction audit of the reply)
+run as disposable verification only; their findings go to the one reviewer
+for reconciliation and are not a second review.
