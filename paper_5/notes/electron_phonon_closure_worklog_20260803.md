@@ -8528,3 +8528,90 @@ equations as they stand.  The failing property is dissipativity, and the
 failure is structural: the field is divergence-free.  The cubic term the draft
 carries in Eq. (`eq:paper_v_force_polynomial`) and in the lifting layer is
 identically zero.  The manuscript was not edited.
+
+## 2026-10-10: the bare closure's instability, linearized --- converged, volume-preserving, chaotic on an unbounded energy shell, and not along the relative-mode population
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `b9f99271`.
+Exploratory local work, not promoted evidence; no default changed, no module
+under `paper_5/src` edited, nothing committed.  Report
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`; scripts
+and outputs under `output/local_runs/paper_v_instability_20261010/`
+(`summary.json` holds every quoted number).  "The bare closure" is
+`closed_scalar_rhs` at `lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude `1`.
+
+Negative results first.  **The bare closure from the exact correlated
+preparation does fire the `1e4` event, at `t = 141.4057`**, one and a half
+units past the 140-unit window in which the 2026-09-20 report says "never"
+(maximum `24.2421`).  **The record's `433.8964` from the exact trajectory's
+`t = 60` state is the DOP853 `rtol 1e-10` value**; tightened it is
+`434.1811` (`1e-12`) and `434.1878` (`1e-13`).  **The leading unstable
+direction is not the relative-mode population**: it carries a mean `0.074`
+(median `0.022`) of the leading Jacobian eigenvector's squared norm along
+that trajectory, above one half at `1.65` percent of samples; the direction
+that actually grows (the leading forward Lyapunov vector) is `0.355`
+anomalous phonon density, `0.333` electron--phonon correlation and `0.045`
+relative-mode population.
+
+Not numerical, by the record's own criterion.  The `1e4` event converges
+under RK4 at `0.01`, `0.005`, `0.0025`, `0.00125`, DOP853 at four
+tolerances and Radau at all three starts: `54.4612958` from Hartree--Fock
+(last tightening `1.8e-10`), `141.405885` from the exact correlated
+preparation (`1.2e-6`), `434.19` from the exact `t = 60` state (`6.7e-3`).
+What is left at `t = 60` is the trajectory's sensitivity: admissible
+perturbations of `1e-12` and `1e-10` spread the event by `7.1e-3` and
+`1.31`, against `2.2e-9` and `2.2e-7` from the Hartree--Fock preparation.
+The existing Benettin machinery gives a largest finite-time exponent of
+`0.0463`, `0.0467`, `0.0468` over `t = 60` to `400` at steps `0.01`,
+`0.005`, `0.0025`.
+
+What it is.  `Tr J` is zero at every state (at most `6.1e-13`; the
+explicit-polynomial block above finds the same) and the Eq. (22) energy is
+conserved through the event, so the flow is volume-preserving and has no
+attractor; the energy is linear in the phonon density and the diagonal of the
+correlation and does not contain the off-diagonal correlation entries at
+all, and those entries are what reach `1e4` on all four bare starts.  On
+that unbounded shell the motion is chaotic (largest exponent `0.047`, its
+31 exponents summing to `-8.9e-8`), the orbit's amplitude creeps from `1.56`
+to `3.14` over 350 units, and across 64 admissible `1e-4` perturbations of
+the `t = 60` states the time to the event is `293` to `478` units (exact) and
+`296` to `779` (repaired), never below `293`.  Past `1e4` the magnitude
+reaches `1e10` in `0.25` to `0.33` units on three of four starts at both
+tolerances; no single power law fits and the integration stalls past `1e10`
+to `1e12`, so a finite-time singularity is not established.  The leading
+real part is positive at every sample except the Hartree--Fock product state
+at `t = 0` (purely imaginary spectrum), stationary at ten-unit means of
+`0.15` to `0.22` over `t = 60` to `330`, and a poor predictor: `78.0`
+integrated e-foldings over `70` to `425.6` against a realized `20.9`.
+
+The repair, in `t = 0` to `20`.  The bare closure's Jacobian has the same
+unstable mode at the repaired chain's states as at the exact trajectory's
+(leading real part `0.177` against `0.211` averaged over `0` to `20`; bare
+Hartree--Fock `0.206`), and the repaired route's velocity departure from the
+bare field has a median share of at most `0.022` in the plane of the leading
+eigenvector.  What differs is the growing direction: along the bare
+trajectory it moves into the correlation block between `t = 10` and `20`
+(share `0.20` to `0.49`, `0.57` over `20`--`30`) and grows at a mean `0.11`;
+along the repaired chain it stays in the phonon blocks (correlation `0.05`
+to `0.23`) and grows at `0.045`, while the relative-mode population is a
+*larger* share of it there (`0.09` to `0.28`) than along the bare trajectory
+(`0.01` to `0.05`).
+
+For the quantum-feasibility thread, at `dt = 0.0025`: the condition number
+of `I - dt J` is at most `1.038` wherever the maximum absolute coordinate is
+below `5`.  The linearized flow amplifies by `11` to `14` over `T = 4`,
+`17.6` to `51` over `T = 20` and `54` (exact trajectory) to `3,170` (bare
+from the exact correlated preparation) over `T = 60`, supremum over all
+start and end times in the window; from the exact `t = 60` state `5.2e4` over
+200 units and `2.3e9` over 350.  The block system stacking those
+backward-Euler steps has condition number `1.1e4` to `1.2e4`, `7.9e4` to
+`2.0e5` and `5.2e5` to `1.16e7` at `T = 4`, `20`, `60`, against `2,038`,
+`10,187`, `30,559` with `J = 0`.
+
+Reading.  The divergence is a genuine dynamical instability of the closed
+equations: converged, conservative, transiently chaotic on an energy shell
+that the closure's own conservation laws do not bound, ending in unbounded
+growth of the correlation entries the energy does not contain.  Only the
+positivity of the state bounds those entries, and the closure does not carry
+it.  The repair does not act on the bare closure's unstable mode; it keeps
+the state, and with it the growing direction, out of the correlation block.
