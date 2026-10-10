@@ -350,3 +350,52 @@ first, each first increment a tests-only pin under 15 minutes that records
 the current Hubbard-Holstein protocol and route digests (`fc25b5c2…`,
 `0312875b…` at `0de9685a`). The coordinator may launch Paper I's increment 1
 now; Papers II and III follow once the Paper I seam is in.
+
+
+## Electronic-cone architecture receipt ready (2026-10-10, commit `74466441`)
+
+`agent_guidance/paper-v/handoffs/ARCHITECTURE-electronic-cone-projection-claude-20261010.md`
+amends `codex-paper-v-electronic-cone-projection-20261010.md` (snapshot
+SHA-256 `73128739ec2101d684d6d6c8741b037fd1ba1fdbf3ad090ccb4c9cc2084a8fb5`,
+committed at `6b27596e`) and replaces its increment 3 by reference. The
+cone lane's increment 3 is unblocked on the coordinator's reading of it.
+
+The five points, settled from `cheap_projection_route.py` and
+`adaptive_positive_moment.py`:
+
+1. The `(1, sigma_x, sigma_y, sigma_z)` principal block of the retained
+   joint Gram has smallest eigenvalue exactly twice that of `rho`
+   (`adaptive_positive_moment.py:463-493`, `:267`); a 600-vector spot check
+   gives a largest identity error of `3.6e-15`. An error above `1e-10` is a
+   stop to diagnose conversion, ordering, scaling or source. This withdraws
+   the handoff's increment-1 stop clause (lines 358-360).
+2. Every output of the existing cone step already satisfies the electronic
+   set, so the added set can act only on the affine iterates
+   (`cheap_projection_route.py:1403`). The handoff's rule "bitwise equal if
+   no stage input is negative" is withdrawn: the affine projection can push
+   the electronic block outside its cone from an interior stage input. A
+   bitwise prediction requires an audit showing no affine iterate leaves the
+   set; the `None` path is checked separately against outputs recorded from
+   the unmodified module.
+3. The electronic rows have scale exactly `1.0` (`:773-786`), so a `rho`
+   floor `epsilon` is a block floor `2 epsilon`. With the task-11 retained
+   floor of `0`, the option at `epsilon = 0` cannot change the set the
+   alternation converges toward, only the finite-iteration path.
+4. The repair returns at the iteration cap whether or not floors are met
+   (`:1413`), and the returned iteration count is ambiguous at the cap.
+   Three outcomes are reported separately: floors met at return,
+   finite-iteration violation (a result), implementation defect (a stop).
+   The default return policy is unchanged.
+5. Electronic positivity is a principal-submatrix consequence of retained
+   joint-Gram positivity, hence weaker; neither certifies a representable
+   moment sequence. The receipt lists what the lane may and may not claim.
+
+Corrected increment 3: a named option `electronic_density_floor`, default
+`None`, in `rho` units, in three steps each under 20 minutes: (3a) record
+the default path from the unmodified module twice and require bitwise
+equality; (3b) a read-only replica audit of the affine iterates on the
+task-11 windows and a short Hartree-Fock rollout, replica matching
+`_dykstra` bitwise; (3c) the option with seven tests, including a bitwise
+default-path test against the 3a recording and a test that the enforced
+floor is `2 epsilon`, not `epsilon`. Section 7 lists consequences for the
+handoff's increments 1, 2 and 5; adopting them is the coordinator's call.
