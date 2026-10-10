@@ -191,3 +191,51 @@ states, so single-run event times are draws from a distribution. The
 instability agent's task 2 (escape statistics on bare and repaired states,
 the leading-indicator question, and what quantity confines) is running; the
 quantum agent has the final report for tasks 2 and 3.
+
+
+## The four classical handoffs are ready (2026-10-10, commit `6b27596e`)
+
+Paths, identical pairs (gitignored user-facing copy, tracked copy):
+
+| thread | `prompt-exports/` | tracked copy and input lock |
+|---|---|---|
+| repair early then bare | `codex-paper-v-repair-early-then-bare-20261010.md` | `agent_guidance/paper-v/handoffs/` same name, plus `codex-paper-v-repair-early-then-bare-20261010-inputs.sha256` (85 files) |
+| regularized product state | `codex-paper-v-regularized-product-state-20261010.md` | same, lock 49 files |
+| electronic cone as a projected set | `codex-paper-v-electronic-cone-projection-20261010.md` | same, lock 82 files |
+| divergence parameter map | `codex-paper-v-divergence-parameter-map-20261010.md` | same, lock 29 files |
+| index | `codex-paper-v-INDEX-20261010.md` | same |
+
+Every lock verifies with `shasum -a 256 -c` at this writing. Each handoff's
+first increment, under 20 minutes, is its section 0 `export` block, then the
+worktree creation on a branch `codex/paper-v-<topic>-20261010` from
+`b9f99271` followed by the lock check, then the thread's own gate: the
+continuous-versus-segmented parity check (`parity_check.py` on an unbroken
+run against two spliced segments) for the two threads that chain repaired
+runs, the eight retained joint-Gram eigenvalues printed first for the
+product-state thread, one gate per fixed driver for the electronic-cone
+thread, and lock plus readable-input checks only for the parameter map, which
+chains nothing. The exact commands are in each handoff's first increment.
+
+Anchor corrections the author found while writing, now part of the record:
+
+- "rank 6 of 8" for the Hartree-Fock product state's retained joint Gram was
+  inferred from two stored eigenvalues, not measured; the code suggests rank
+  4 (two null directions from the coherent states, two from the idempotent
+  electronic block). The product-state thread's first increment measures it.
+- Two different exact trajectories were being conflated: the `433.8964` and
+  `410.7827` events start from states on the exact trajectory OF THE
+  HARTREE-FOCK PRODUCT STATE at `t=60`, while the exact CORRELATED
+  preparation started at `t=0` reaches 1e4 at `141.4057` (working notes line
+  416; instability report `141.4057436`). The handoffs keep them apart, and
+  the acknowledgement of message 005 above is to be read with that
+  distinction.
+- Not in the record and stated as such in the handoffs: the task-11 chain's
+  electronic minimum; a test count at `b9f99271` (the readiness audit's 508
+  is the measured one); that the electronic cone follows from the retained
+  joint-Gram cone (derived from the code, verified first by the cone thread);
+  that the drive is negligible after `t≈8`; and `217.3 s` per time unit holds
+  only over `t=20` to `60`.
+
+Dispatch is now Codex's: four isolated worktrees from `b9f99271`, reports to
+`agent_guidance/paper-v/handoffs/REPORT-<topic>-codex-20261010.md` on their
+own branches, reviews from the Claude side as `REVIEW-<topic>-claude-20261010.md`.
