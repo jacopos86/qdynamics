@@ -8445,3 +8445,86 @@ stable, because this test exhibits no such region, not even at the exact
 trajectory's own states.  Any future use of the basin test must state its
 window, and a window that does not exceed the times reported here decides
 nothing.
+
+## 2026-10-10: the archive right-hand side as an explicit polynomial, and the Carleman lifting layer measured against it
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `b9f99271`.
+Exploratory local work, not promoted evidence; no default changed, no
+existing module edited, nothing committed.  Report
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`;
+new module `paper_5/src/paper5/stability/quantum_target_form.py`, tests
+`paper_5/tests/test_quantum_target_form.py` (12 passed); scripts and outputs
+under `output/local_runs/paper_v_quantum_target_form_20261010/`.
+
+The committed `closed_scalar_rhs` was interpolated exactly on 5,984 integer
+points (one per monomial of degree at most three) at the declared
+configuration (`lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude `1`).
+
+**The form is exactly quadratic.**  It reconstructs the committed right-hand
+side on 1,500 fresh random states to `1.7e-14` relative.  The form is
+
+`dx/dt = F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)`.
+
+- **No cubic part.**  The normal particle and normal hole sources of
+  Eq. (14d) sum to `-i N [g^T, rho]`, so their `rho g rho` products cancel.
+  `A_3` is zero to `1e-16`.
+- **The drive enters only through a skew-symmetric `D`.**  The drive's
+  constant and quadratic parts are `0.0` exactly.
+- **Nonzero entries:**
+  - `F_0`: 5;
+  - `A_1`: 83;
+  - `D`: 10;
+  - `A_2`: 69 monomials, only in the `rho` equation (`(rho)(B)`) and the `C`
+    equation (`(B)(C)`, `(rho)(N)`, `(rho)(rho)`, `(rho)(A)`).
+- **Spectral norms:** `0.906`, `4.047`, `1` and `1.995`.
+
+**The linear part is conservative, not dissipative.**
+
+- **At the origin of the closed coordinates:**
+  - every eigenvalue of `A_1` has `|Re lambda| <= 2.2e-16`;
+  - `A_1` is semisimple, with eigenvector condition `55.4`;
+  - it is skew-adjoint in a metric of condition `3,066`;
+  - its Euclidean symmetric part is indefinite, from `-1.598` to `+1.598`.
+- **At every state:** the field is exactly divergence-free.  `tr A_1`,
+  `tr D` and the gradient of `tr J` are all `0.0`, so no expansion point and no
+  linear change of coordinates gives every eigenvalue a negative real part.
+
+**The Liu et al. condition fails.**  Their premise needs
+`Re lambda_1 < 0`, and `R < 1` needs `Re lambda_1 < -4.952` at the exact
+correlated preparation (`-4.100` at Hartree--Fock).  The measured value is
+`+1.05e-16`.  Here `R` is
+`(||x_0|| ||A_2|| + ||F_0|| / ||x_0||) / |Re lambda_1|`, the definition checked
+against arXiv:2011.03185.  The paper's authors are Liu, Kolden, Krovi,
+Loureiro, Trivisa and Childs.
+
+**The truncation converges only over a short window.**  Two measurements
+from the exact correlated preparation, integrated by RK4 at `h = 0.0025`
+(step-checked to `1.8e-8`):
+
+- **The dropped term is not small.**  At the stored exact states, the part of
+  block `K`'s lifted velocity that the truncation drops has median `0.72` of
+  that velocity over `t <= 4`.  This holds for `K = 2, 3, 4` alike.
+- **The order-`K` solution error.**  Measured as the maximum absolute
+  coordinate error against the closure's own trajectory:
+
+  | `K` | `t <= 1` | `t <= 4` | `t <= 20` |
+  |---|---|---|---|
+  | 1 | `0.261` | `0.957` | `1.66` |
+  | 2 | `0.0513` | `0.981` | `12.3` |
+  | 3 | `0.0076` | `1.036` | `72.1` |
+  | 4 | `0.0012` | `1.001` | `387` |
+
+  At `K = 4` the lift has dimension `954,304` (Kronecker) or `52,359`
+  (distinct monomials); 276 s, 214 MB.
+
+The truncation converges in `K` up to about `t = 2`, stagnates at about `t = 4`
+and diverges with `K` beyond.  The closure trajectory used as the comparison
+reproduces the record's plain-archive RMS `1.10890e-1`, `1.38174e-1` and
+`1.93196e-1` at `t = 4, 8, 20` to every printed digit.
+
+Reading.  The fault-tolerant lifting layer is not admissible for the archive
+equations as they stand.  The failing property is dissipativity, and the
+failure is structural: the field is divergence-free.  The cubic term the draft
+carries in Eq. (`eq:paper_v_force_polynomial`) and in the lifting layer is
+identically zero.  The manuscript was not edited.
