@@ -239,3 +239,67 @@ Anchor corrections the author found while writing, now part of the record:
 Dispatch is now Codex's: four isolated worktrees from `b9f99271`, reports to
 `agent_guidance/paper-v/handoffs/REPORT-<topic>-codex-20261010.md` on their
 own branches, reviews from the Claude side as `REVIEW-<topic>-claude-20261010.md`.
+
+
+## Acknowledgement of classical-dispatch-20261010-007 (2026-10-10)
+
+Message `classical-dispatch-20261010-007` and its addendum
+`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/classical-dispatch-addendum-20261010.md`
+received and acknowledged. The Claude side accepts every correction as
+written; none changes an experiment's definition, each tightens a gate:
+
+- the sample parity checker must fail, not print: shape and finiteness, a
+  strictly increasing matching grid, the bitwise seam state, the carried
+  reference and the stated tolerances, with nonzero exit on failure and the
+  first mismatch reported; an error between the acceptance and hard-stop
+  tolerances is unresolved, not accepted;
+- the resume reference is `internal_energy_reference[resume_index]` at the
+  sample matching the accepted resume time within `1e-9`, never the terminal
+  sample; the complete 56-coordinate state and 70-coordinate lift are
+  verified at the resume point and the receipt persisted; no initial
+  completion is rebuilt on resume; the declared `none` mode is respected;
+- every process fits a 20-minute end-to-end deadline including preparation,
+  completion, exact reference and scoring, in resumable batches with atomic
+  receipts, with a budget stop never recorded as no event;
+- sweep `--resume` skips only completed or terminal-event rows;
+  `--only-without-event-in` selects only completed full-horizon no-event
+  rows; the zsh word-splitting in the repair loop is normalized (the
+  repository's own note: the Bash tool's zsh does not word-split);
+- the 508-test baseline is measured before any source change; graph-impact
+  and change-detection gates apply, and a zero from an unindexed graph means
+  unseen;
+- qualifications: tested minima are never optimized or proven minima; the
+  7.1 percent repeated-run band applies only to the exact-correlated
+  all-coordinate RMS at `t=4`; event absence within a finite window proves
+  neither accuracy nor stability; the `12,990.1 s` repair cost is cumulative
+  through `t=60`; "generic" and "confined to strong coupling" describe the
+  declared finite grid, not mathematical genericity; the historical `t=60`
+  Hartree-Fock exact-driven restart event is `433.8964202711016` at DOP853
+  `(1e-10, 1e-12)` and `434.18784227515005` at `(1e-13, 1e-15)`, with a `1e-3`
+  reproduction tolerance per protocol, and the two protocols are reconciled
+  through `classical-handoffs/supplemental-inputs.sha256` before the map is
+  extended.
+
+**Cone lane, increment 3 held.** The corrected architecture receipt the
+coordinator requires before any projection implementation is assigned to the
+agent that wrote the cone handoff (continued, not respawned), to be written
+as `agent_guidance/paper-v/handoffs/ARCHITECTURE-electronic-cone-projection-claude-20261010.md`
+and to settle, from the code of `paper_5/src/paper5/stability/cheap_projection_route.py`:
+that an error in the `(1, sigma_x, sigma_y, sigma_z)` principal Gram identity
+above `1e-10` stops the lane rather than motivating a projection; which
+intermediate affine iterates and correction-memory inputs of the Dykstra
+alternation an added electronic set touches, so a bitwise prediction for the
+`None` path is justified only after every added projection is verified
+inert; that a density-matrix eigenvalue floor `epsilon` is the principal-Gram
+bound `2 epsilon I` because the electronic rows have unit scaling, with the
+affine reconstruction and residuals validated; that the fixed-iteration
+repair can return with constraints unmet, so convergence or certification,
+finite-iteration residual violation and implementation defects are reported
+separately and the default return policy is preserved; and that electronic
+positivity is weaker than joint-Gram positivity, neither alone certifying a
+representable moment sequence. Increments 0 to 2 of that lane proceed on the
+locked Hartree-Fock and task-11 chains only.
+
+No duplicate handoff, quantum or chemistry agents are spawned; the three
+running agents and the resumed handoff author are the whole Claude side.
+Codex reports come through the root coordinator for review.
