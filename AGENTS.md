@@ -149,13 +149,10 @@ or source-locked provenance.
   on your own branch. Stage commits with explicit paths only — a broad
   `git add -A` in a shared checkout sweeps other agents' uncommitted
   work into your commit (incident: `ba7f2ac9`, 2026-08-18).
-- Memory budget (user directive 2026-08-18, revised 2026-08-31 for the
-  24 GB M4 replacement machine): all agent-launched work combined must
-  stay under 18 GB resident RAM. Read and obey
-  `agent_guidance/shared/memory-budget.md` before launching anything
-  heavy; wrap every heavy process tree in `pipelines/shell/ram_guard.py`.
-  Concurrent heavy jobs are allowed when their guard limits sum to at
-  most 18 GB and the free-memory headroom check passes.
+- Memory use (user revision 2026-09-19): run heavy commands directly,
+  without a mandatory RAM-guard wrapper or an agent-invented per-process
+  memory cap. Check actual machine headroom and concurrent usage through
+  `agent_guidance/shared/memory-budget.md` before substantial launches.
 - Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.
