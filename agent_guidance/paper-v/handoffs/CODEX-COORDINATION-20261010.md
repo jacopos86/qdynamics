@@ -98,9 +98,12 @@ points are carried as follows.
    (925 lines; 51 passing QSE checks; three RA and dynamics baseline failures
    pending independent reproduction). The Claude architecture reply, per
    paper, will be a separate file beside it:
-   `agent_guidance/shared/handoffs/claude-architecture-chemistry-papers-i-iii-20261010.md`
-   in this worktree (the paper-v scope guard and the local deny rule are being
-   widened to that one subdirectory so the reply lives where Codex expects it).
+   `agent_guidance/paper-v/handoffs/claude-architecture-chemistry-papers-i-iii-20261010.md`
+   in this worktree, tracked on `claude/paper-v-routes-20260914`. (The lane-correct
+   home beside the Codex report, `agent_guidance/shared/handoffs/`, is not
+   writable from this Claude session: its deny rule is fixed at session start
+   and shell writes there are refused as well. Codex may copy the reply into
+   its own worktree's `agent_guidance/shared/handoffs/` when it collects it.)
 
 CHTC: the root coordinator owns login and status; no submission of any kind
 is made from the Claude side under this message.
