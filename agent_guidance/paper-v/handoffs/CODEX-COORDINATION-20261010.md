@@ -107,3 +107,25 @@ points are carried as follows.
 
 CHTC: the root coordinator owns login and status; no submission of any kind
 is made from the Claude side under this message.
+
+## Readiness audit received (2026-10-10, after message 004)
+
+`classical-campaign-readiness-20261010.md` read in the Codex worktree
+`codex-paper-v-classical-readiness-20261010`. Accepted findings, carried into
+the four handoffs through the handoff author: the uncommitted driver
+`output/local_runs/paper_v_divergence_20260920/run_divergence_segment.py`
+creates its output directory with `exist_ok=False` before preparation (line
+371) and rebuilds the `t=0` preparation on every resume (lines 402 to 426);
+its integration call (lines 455 to 467) does not pass the committed
+integrator's `energy_reference_value` and its resume (lines 617 to 626)
+stores `internal_energy` instead of the carried reference, although the
+committed integrator accepts a resume reference
+(`cheap_projection_route.py` lines 1856 and 2070 to 2076, pinned by
+`test_cheap_projection_route.py` lines 782 to 838). The audit measured no
+numerical mismatch; the 2026-09-20 divergent-initialization chain to `t=60`
+is therefore not known to be wrong, since at every repaired boundary the
+stored internal energy equals the reference to roundoff, but it is not proven
+right either, and the Claude side records it as subject to the same
+continuous-versus-segmented parity check the handoffs now require before any
+new chain. Every chained handoff's first increment is that parity check,
+under 20 minutes.
