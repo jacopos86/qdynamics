@@ -24,7 +24,8 @@ Opus agents launched 2026-10-10 from this worktree at `b9f99271`:
 | agent | deliverable path | state at this writing |
 |---|---|---|
 | handoff author | `prompt-exports/codex-paper-v-{repair-early-then-bare, regularized-product-state, electronic-cone-projection, divergence-parameter-map}-20261010.md`, `codex-paper-v-INDEX-20261010.md`, tracked copies in `agent_guidance/paper-v/handoffs/` | writing; amended at the coordinator's request to carry absolute read-only input paths, runnable commands, a sub-30-minute first increment, numeric acceptance and stop criteria, and Codex-owned report files |
-| quantum-integration feasibility, task 1 | `MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`; new module `paper_5/src/paper5/stability/quantum_target_form.py` (untracked until reviewed) | running |
+| quantum-integration feasibility, task 1 | `MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`; module `paper_5/src/paper5/stability/quantum_target_form.py` with 12 tests | landed, committed `d110f2dd`: the equations are exactly quadratic (no cubic term), the linear part is conservative with Jacobian trace exactly zero, so Carleman lifting is structurally inadmissible; truncation error about 1.0 at t=4 for every order |
+| quantum-integration feasibility, task 2 | same report, new dated heading | running: is the flow Hamiltonian or Poisson with respect to the Eq. (22) energy, the Koopman-von Neumann route and its cost, and the Schrödingerization route on the trajectory-linearized flow |
 | closure instability, task 1 | `agent_guidance/paper-v/overnight/closure-instability-20261010.md` | running |
 
 **Inputs Codex worktrees will not contain.** `output/local_runs/` is
@@ -50,3 +51,13 @@ in the form of the record's review files
 **Relay note.** The coordinator reports that a read-only Opus CLI relay failed
 before inference with an expired OAuth session; this Claude app session is the
 usable route, so all coordination is by file, at the paths above.
+
+## Reserved for the user, added 2026-10-10 after task 1
+
+The manuscript's force polynomial and its lifting layer carry a cubic term
+`A_3 x⊗x⊗x`; for the committed archive equations that term is identically
+zero (the `rho g rho` products of Eq. (14d) cancel), verified to 1.7e-14.
+Whether the draft is corrected is the user's decision; nothing in
+`MATH/paper_details/paper_V_high_u_gkba.tex` was edited. The author list the
+plan gave for the Carleman reference was wrong and is corrected in the
+feasibility report: Liu, Kolden, Krovi, Loureiro, Trivisa and Childs, PNAS 2021.
