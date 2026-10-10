@@ -8615,3 +8615,135 @@ growth of the correlation entries the energy does not contain.  Only the
 positivity of the state bounds those entries, and the closure does not carry
 it.  The repair does not act on the bare closure's unstable mode; it keeps
 the state, and with it the growing direction, out of the correlation block.
+
+## 2026-10-10: the archive closure is not Hamiltonian in any affine Poisson structure; Koopman--von Neumann and Schrödingerization priced
+
+Branch `claude/paper-v-routes-20260914`, HEAD `6b27596e`.  Exploratory, not
+promoted, nothing committed by this agent, no manuscript edit.  Report:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`,
+Task 2 heading.  Module additions in `quantum_target_form.py`
+(`closed_internal_energy`, `logarithmic_norm`,
+`integrate_linearized_on_samples`); tests 15 passed.  Scripts under
+`output/local_runs/paper_v_quantum_target_form_20261010/run_task2_*.py`.
+
+**The Eq. (22) energy `H` and its conservation.**
+
+- `H` is quadratic in the 31 closed coordinates.  Its gradient depends only on
+  `electron_delta_n` and `B`, and it has no off-diagonal correlation term.
+- `grad H . F = 0` holds as a polynomial identity on all of R^31: the largest
+  coefficient is `7.4e-17`.
+- The drive's power is exactly `-4 f(t) Im rho_01`.
+
+**What the flow preserves.**
+
+- Exactly one linear first integral:
+  `Re(correlation shared trace) + (g/6)(N00 + N11 + 2 Re N01)`.
+- Constant antisymmetric tensors: the full field preserves only one, of
+  rank 2.  It is the centre-mode coherent pair.  The linear part alone
+  preserves a 39-dimensional family, including `A_1 G^{-1}`.
+- Affine bivectors `J_0 + sum x_k J_k` (14,880 unknowns, 245,520 equations):
+  the full field preserves a 4-dimensional family, all of rank 2 and all on
+  the `B` and `N` coordinates.  `F` lies outside their range (relative
+  residual at least `0.34`).
+
+**So `F` is Hamiltonian for no constant or affine Poisson tensor, whatever
+the Hamiltonian.**
+
+- With `H` itself, 38 of the 69 quadratic monomials cannot be produced by
+  any affine `J`.
+- The natural rank-2 tensor `F ^ grad H / |grad H|^2` fails the Jacobi
+  identity at every sampled exact state (median residual `0.97`).
+- The raw retained operators do not close under commutators:
+  `[E b, E b^+]` produces `E b^+ b`, the moment the archive factorizes.
+  So no Lie-Poisson algebra exists.
+
+**First integrals of degree at most three: nine.**  They are `ell`, its
+square and cube, `H`, the centre-mode coherent energy
+`|B_0 + B_1 + 2g/omega|^2`, two products, and two cubic integrals that are
+linear in `sum_q (C_q,01 + C_q,10)` at leading order.  None bounds the
+off-diagonal correlation entries that escape.  Five survive the drive.
+
+**Koopman--von Neumann needs no Hamiltonian structure.**  The generator is
+`-i F . grad` because `div F = 0`.  For one trajectory at coordinate precision
+`1e-2`, the cost is:
+
+| horizon | qubits | `T ||L||` |
+|---|---|---|
+| `T = 4` | 434 | `4.9e5` |
+| `T = 20` | 496 | `1.7e7` |
+| `T = 60` | 682 | `5.6e9` |
+
+Against the exact model:
+
+- direct simulation needs 12 qubits at two sites and 19 at three;
+- `||H_static||` measures `24.68` and `33.15`;
+- `T ||H||` is about `510` and `680` at `T = 20`.
+
+KvN is dominated on every axis.
+
+**Schrödingerization of the linearized flow.**
+
+- The integrated positive part of the Euclidean logarithmic norm is `7.3`,
+  `35.1` and `107.5` at `T = 4`, `20`, `60` along the exact trajectory.  In
+  the `A_1`-skew metric it is `51`, `251` and `786`.  Against a realized
+  amplification of 12 to 51 to `T = 20`, the recovery overhead `e^{p}` is not
+  priced by the amplification.
+- No positive definite metric makes both `A_1` and `D` skew-adjoint: the
+  largest attainable smallest eigenvalue on the 8-dimensional common space is
+  `1.9e-8`.
+- The driven linear propagator has supremum `12.09` (Euclidean), so the
+  growth to `2,457` by `T = 60` is the quadratic term's.
+- The linearization about the exact trajectory reproduces the closure's
+  departure to `0.17` at `T = 4` and fails by `T = 20` (`1.07`).
+
+**Windowed re-lift, assuming a free and exact 31-coordinate readout at every
+restart.**
+
+- `K = 3`, window `0.25`, 80 restarts: `2.6e-3` at `t <= 4`, `0.30` at
+  `t <= 20`.
+- `K = 4`, window `0.5`, 40 restarts: `1.4e-3` and `0.50`.
+- `K = 2` reaches the magnitude event by `t = 10` to `12`.
+
+**Decision for the user.**  The draft's cubic term
+(`C(x,x,x)` and `A_3`) is identically zero for these equations.
+
+## 2026-10-10: B-Q3 architecture pass --- the propagated Carleman tail measured exactly, and the output contract left to the user
+
+Branch `claude/paper-v-routes-20260914`, HEAD `6b27596e`.  Exploratory; no
+commit by this agent, no manuscript edit.  Architecture file:
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010.md`.
+New module function `carleman_sparse_generator`; tests 18 passed.
+
+**The propagated omitted tail.**  Along the bare closure from the exact
+correlated preparation, `int_0^T P_1 U_K(T,s) tau_K(s) ds` was computed by the
+adjoint at `h = 0.005`.
+
+- It reproduces the measured first-block error to `2.6e-6` to `5.2e-6`
+  relative (`K = 2, 3`; `T = 4, 20`).
+- The norm certificate `int ||P_1 U_K P_K|| ||tau_K|| ds` exceeds the measured
+  error by `22` and `147` times at `K = 2`, and by `109` and `657` times at
+  `K = 3`.
+- The terminal first-block weight is:
+
+  | `K` | `T = 4` | `T = 20` |
+  |---|---|---|
+  | 2 | `0.261` | `0.182` |
+  | 3 | `0.056` | `0.032` |
+  | 4 | `0.0078` | `0.0045` |
+
+  So extracting the first block by postselection succeeds with probability
+  `0.068`, `3.1e-3` and `6.0e-5` at `T = 4`.
+- At order 4, the step refinement to `T = 20` (`h = 0.005` against `0.0025`)
+  is `2.3e-6` against an error of `387`.
+
+**Reductions.**  The only exact ones are the centre-mode coherent field
+`B_0 + B_1`, which obeys `dB_+/dt = -i omega B_+ - 2 i g` exactly, and the
+linear first integral.  On the reduced 28-coordinate system the trace stays
+zero.  Four of the five zero modes of `A_1` receive a nonzero quadratic
+projection, so Jennings Theorem 4.1 still fails.
+
+**Next.**  The certified amplification envelope and the nonlinear-tube
+admissible defect (`4 ||A_2|| Lambda^2 T^2 delta_avg <= 1`).  From the sampled
+`Lambda`, that defect must be below `4.6e-5`, `1.2e-7` and `3.5e-12` per unit
+time at `T = 4`, `20`, `60`.  The output contract (all 31 coordinates, the
+terminal state, selected observables, or invariants) is the user's decision.

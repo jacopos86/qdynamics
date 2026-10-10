@@ -32,7 +32,12 @@ from typing import Callable
 import numpy as np
 
 from .hubbard_dimer import DimerParameters, FloatArray
-from .matrix_reference import CLOSED_SCALAR_STATE_NAMES, closed_scalar_rhs
+from .matrix_reference import (
+    CLOSED_SCALAR_STATE_NAMES,
+    closed_scalar_rhs,
+    closed_scalar_to_matrix_state,
+    matrix_total_energy,
+)
 
 CLOSED_SCALAR_DIMENSION = len(CLOSED_SCALAR_STATE_NAMES)
 
@@ -650,6 +655,55 @@ def carleman_truncation_remainder_norms(
     }
 
 
+def carleman_sparse_generator(form: ClosedPolynomialForm, order: int):
+    """Sparse order-``K`` lifted generator ``dX/dt = (L + f(t) M) X + b``.
+
+    Returns ``(L, M, b)`` with ``L`` the drive-free lifted matrix, ``M`` the
+    lifted drive matrix and ``b`` the constant forcing (``F_0`` in block 1),
+    all in the flattened Kronecker-power ordering of :func:`flatten_blocks`.
+    Block ``k`` receives ``I_{n^m} (x) Op (x) I_{n^{k-1-m}}`` from block
+    ``k + p - 1`` for each position ``m`` and each operator of degree ``p``;
+    sources above ``K`` are dropped (the truncation).
+    """
+
+    import scipy.sparse as sp
+
+    n = form.dimension
+    sizes = [n**k for k in range(1, order + 1)]
+    operators_free = {
+        0: sp.csr_matrix(form.constant.reshape(n, 1)),
+        1: sp.csr_matrix(form.linear_free),
+        2: sp.csr_matrix(form.quadratic_matrix()),
+        3: sp.csr_matrix(form.cubic_matrix()),
+    }
+    operators_drive = {1: sp.csr_matrix(form.linear_drive)}
+
+    def assemble(operators):
+        rows = []
+        for k in range(1, order + 1):
+            row = [None] * order
+            for p, op in operators.items():
+                source = k + p - 1
+                if source < 1 or source > order or op.nnz == 0:
+                    continue
+                total = None
+                for m in range(k):
+                    left = sp.identity(n**m, format="csr")
+                    right = sp.identity(n ** (k - 1 - m), format="csr")
+                    term = sp.kron(left, sp.kron(op, right, format="csr"), format="csr")
+                    total = term if total is None else total + term
+                row[source - 1] = total if row[source - 1] is None else row[source - 1] + total
+            for j in range(order):
+                if row[j] is None and j == k - 1:
+                    row[j] = sp.csr_matrix((sizes[k - 1], sizes[j]))
+            rows.append(row)
+        return sp.bmat(rows, format="csr")
+
+    forcing = np.zeros(sum(sizes))
+    forcing[:n] = form.constant
+    return assemble(operators_free), assemble(operators_drive), forcing
+
+
 def flatten_blocks(blocks: list[FloatArray]) -> FloatArray:
     return np.concatenate([block.reshape(-1) for block in blocks])
 
@@ -735,3 +789,82 @@ def integrate_carleman_rk4(
         steps=steps,
         stopped_at=stopped_at,
     )
+
+
+# ---------------------------------------------------------------------------
+# Eq. (22) internal energy and the trajectory-linearized flow
+# ---------------------------------------------------------------------------
+
+
+def closed_internal_energy(parameters: DimerParameters) -> CubicPolynomialCoefficients:
+    """Eq. (22) internal energy as a polynomial in the 31 closed coordinates.
+
+    Interpolated exactly from :func:`matrix_total_energy`; the output has one
+    component, so ``linear[0]`` is the gradient at the origin and
+    ``2 * quadratic[0]`` the (constant) Hessian.
+    """
+
+    return extract_cubic_polynomial(
+        lambda x: np.array(
+            [matrix_total_energy(closed_scalar_to_matrix_state(x), parameters)]
+        ),
+        CLOSED_SCALAR_DIMENSION,
+    )
+
+
+def logarithmic_norm(matrix: FloatArray, metric_root: FloatArray | None = None) -> float:
+    """Largest eigenvalue of the symmetric part of ``R M R^{-1}``.
+
+    With ``metric_root = None`` this is the Euclidean logarithmic norm; with
+    ``R`` such that ``G = R^T R`` it is the logarithmic norm in ``<x, G y>``.
+    """
+
+    if metric_root is not None:
+        matrix = metric_root @ matrix @ np.linalg.inv(metric_root)
+    return float(np.linalg.eigvalsh(0.5 * (matrix + matrix.T))[-1])
+
+
+def integrate_linearized_on_samples(
+    form: ClosedPolynomialForm,
+    times: FloatArray,
+    states: FloatArray,
+    *,
+    initial: FloatArray,
+    source: FloatArray | None = None,
+) -> tuple[FloatArray, FloatArray]:
+    """RK4 for ``d(xi)/dt = J_F(t, x(t)) xi + s(t)`` on stored samples.
+
+    ``times`` must be uniform; the RK4 step is two sample spacings so the
+    midpoint stage uses the stored middle sample and no interpolation enters.
+    ``initial`` is a vector (``n``) or a matrix (``n x m``, e.g. the identity
+    for the propagator).  ``source`` (same length as ``times``) is added to a
+    vector integration only.  Returns ``(times[::2], solution)``.
+    """
+
+    times = np.asarray(times, dtype=float)
+    spacing = np.diff(times)
+    if not np.allclose(spacing, spacing[0], rtol=0.0, atol=1e-9):
+        raise ValueError("times must be uniform")
+    h = 2.0 * float(spacing[0])
+    current = np.asarray(initial, dtype=float).copy()
+    if source is not None and current.ndim != 1:
+        raise ValueError("a source applies to a vector integration only")
+
+    def velocity(index: int, value: FloatArray) -> FloatArray:
+        out = form.jacobian(float(times[index]), states[index]) @ value
+        if source is not None:
+            out = out + source[index]
+        return out
+
+    steps = (times.size - 1) // 2
+    solution = np.empty((steps + 1,) + current.shape)
+    solution[0] = current
+    for step in range(steps):
+        i0, i1, i2 = 2 * step, 2 * step + 1, 2 * step + 2
+        k1 = velocity(i0, current)
+        k2 = velocity(i1, current + 0.5 * h * k1)
+        k3 = velocity(i1, current + 0.5 * h * k2)
+        k4 = velocity(i2, current + h * k3)
+        current = current + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        solution[step + 1] = current
+    return times[: 2 * steps + 1 : 2], solution

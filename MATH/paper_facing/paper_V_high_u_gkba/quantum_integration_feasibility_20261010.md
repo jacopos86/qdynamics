@@ -17,8 +17,12 @@ amplitude `1`, pulse width `1`, drive `f(t) = 2 sin(pi t/4) exp(-t^2/2)`.
 ## Verdict on Task 1
 
 **The fault-tolerant lifting layer is not admissible for these equations as
-they stand, and the failing property is dissipativity, by a structural
-margin.** The Carleman sufficient condition of Liu et al. needs every
+they stand under the Liu et al. sufficient condition and the tested
+truncations (`K = 1..4`, lifted at the origin of the closed coordinates), and
+the failing property is dissipativity, by a structural margin.** This scope
+was narrowed on 2026-10-10 after the B-Q2 theory dossier: a failed sufficient
+condition is not a proof that no quantum algorithm exists. The Carleman
+sufficient condition of Liu et al. needs every
 eigenvalue of the linear part to have negative real part, and `R < 1` needs
 `Re lambda_1 <= -4.95` at the exact correlated preparation (`-4.10` at the
 Hartree--Fock zero-correlation preparation). The measured value is
@@ -394,3 +398,388 @@ Artifacts in `$DIR`:
   closure trajectory;
 - `carleman_orders_*.json` and `carleman_K*.npz`: the truncation solutions;
 - `check_steps.json`: the integration-step checks.
+
+---
+
+# 2026-10-10, Task 2: is the closure Hamiltonian, and what do Koopman--von Neumann and Schrödingerization cost?
+
+Same branch and worktree; HEAD `6b27596e` at the time of writing (the
+coordinator committed the task-1 files in `d110f2dd`). Exploratory, not
+promoted; nothing committed by this agent; the manuscript is not edited.
+Scripts and outputs are under
+`output/local_runs/paper_v_quantum_target_form_20261010/` (`run_task2_*.py`,
+`task2_*.json`). The closure-instability report
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md` (commit
+`40771435`, SHA-256 `751cab34...a5ae71`) is the authority for amplification
+and conditioning; this section uses its numbers.
+
+## Answer first
+
+1. **The drive-free archive field is not Hamiltonian with respect to the
+   Eq. (22) energy for any constant or affine `J(x)`.** More generally, it is
+   not Hamiltonian with respect to any constant or affine Poisson tensor in the
+   closed coordinates, whatever the Hamiltonian.
+   - The only affine bivectors the flow preserves have rank 2. They are
+     confined to the decoupled centre-mode phonon sector.
+   - Exactly true: energy conservation (as a polynomial identity),
+     volume preservation, a semisimple linear part that is skew-adjoint in a
+     metric, and nine independent polynomial first integrals of degree at
+     most three.
+   - None of those first integrals bounds the off-diagonal electron--phonon
+     correlation entries, which are the coordinates that escape.
+2. **The Koopman--von Neumann embedding does not need Hamiltonian structure.**
+   The half-density Koopman generator is formally Hermitian for any smooth
+   vector field (Joseph 2020; the B-Q2 dossier). Here the divergence is zero,
+   so the generator is simply `-i F . grad`.
+   - Applied to a single trajectory of the 31-coordinate closure, it needs
+     about 430 to 680 logical qubits and a generator-norm-times-time of
+     `5e5` to `6e9` at coordinate precision `1e-2`, depending on the horizon.
+   - The problem the closure approximates is itself a Hamiltonian simulation
+     on 12 qubits (two sites) or 19 (three sites), with `T ||H||` of about
+     `510` and `680` at `T = 20`, and carries no closure error.
+   - The closure route is dominated on every axis.
+3. **Schrödingerization of the trajectory-linearized flow is not priced by
+   the realized amplification.**
+   - The realized amplification is 12 to 51 to `T = 20`.
+   - The published recovery overhead `e^{p}` uses the pointwise logarithmic
+     norm: `e^{7.3}` at `T = 4` and `e^{35}` at `T = 20` in the Euclidean
+     closed coordinates.
+   - The metric in which `A_1` is skew-adjoint makes this worse
+     (`e^{51}`, `e^{251}`).
+   - The linearization itself represents the closure's departure from exact
+     to 17 percent at `T = 4` and not at all by `T = 20`.
+4. **The windowed re-lift is bounded even with free, exact readout.** It
+   reaches `2.6e-3` at `t <= 4` and `0.30` at `t <= 20`, at `K = 3` with 80
+   restarts. Table at the end.
+
+**Decision for the user (manuscript correction).** The draft's cubic term is
+identically zero for these equations:
+
+- the `C(x,x,x)` term in Eq. (`eq:paper_v_force_polynomial`);
+- the `A_3 x^{(x)3}` term of the fault-tolerant lifting layer.
+
+The extracted right-hand side is exactly quadratic: `A_3` is at most
+`1.1e-16`, and the Eq. (14d) normal particle and hole sources combine to
+`-i N [g^T, rho]`.
+
+-> **Recommend** stating the target as
+`F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)` and dropping the cubic layer in
+both places. The manuscript is untouched until you decide.
+
+## (a) The Hamiltonian and Poisson tests
+
+**The energy.** The Eq. (22) energy `H` was interpolated exactly from
+`matrix_total_energy` and reconstructs it to `4.3e-14` on 300 random states.
+
+- It is quadratic in the closed coordinates.
+- Its gradient depends only on `electron_delta_n` and the four `B`
+  coordinates; the Hessian has rank 5.
+- It is linear in `phonon_00` and `phonon_11` and in the real parts of the
+  correlation shared trace and diagonal differences.
+- It contains no off-diagonal correlation entry and no anomalous coordinate.
+
+| test | result | precision |
+|---|---|---|
+| `grad H . F == 0` as a polynomial identity | **holds**, as an identity on all of R^31 | largest coefficient of the cubic polynomial `grad H . F` is `7.4e-17`; relative `1.2e-16` on 2,000 random states (s.d. 0.1, 1, 3) and `1.1e-16` on 801 exact states |
+| the drive's power | `grad H . (D x) = -4 electron_coherence_imag` exactly | -- |
+| divergence | `tr J(t, x) = 0` identically (task 1; the instability report finds at most `6.1e-13`) | exact |
+| antisymmetric `J(x)` with `J grad H = F` exists | **trivially yes**: `J_min = (F grad H^T - grad H F^T)/|grad H|^2`. A Poisson tensor also always exists locally near a point with `F != 0` (flow-box theorem), so only a restricted class of `J` can carry content. | -- |
+| Jacobi identity for `J_min` | **fails** at all 101 sampled exact states: the component of `[F, grad H/|grad H|^2]` outside the plane of the two fields is `0.83` to `1.00` of that bracket (median `0.97`) | -- |
+| linear first integrals | exactly one: `ell = Re(correlation_shared_trace) + (g/6)(N00 + N11 + 2 Re N01)`. It is also drive-invariant. | singular value `1.8e-15`, next `0.458` |
+| constant `J`, any Hamiltonian: test `J_F(x) J + J J_F(x)^T = 0` for all `x` | the linear part alone preserves a 39-dimensional family, including the coordinator's `J_0 = A_1 G^{-1}` (antisymmetric to `1.2e-14`, rank 26, so `A_1 = J_0 G` is a Hamiltonian matrix). The full field preserves **one** tensor, of **rank 2**: the canonical pair of the decoupled centre-mode coherent field `B_0 + B_1`. The quadratic part breaks `J_0`'s invariance at relative `0.31`. Since `F(x)` spans 30 dimensions, **no constant Poisson tensor generates `F`.** | singular value `7.9e-16`, next `0.078` |
+| affine `J(x) = J_0 + sum_k x_k J_k` (Lie-Poisson on any 31-dimensional Lie-algebra dual, with or without a constant cocycle), any Hamiltonian: test `L_F J = 0` | over 14,880 unknowns and 245,520 coefficient equations the nullspace has dimension **4**. Every element has rank 2 and is supported on the `B` and `N` coordinates. `F` lies outside every element's range (relative residual at least `0.34`), and a random combination has rank 2. **No affine Poisson tensor generates `F`.** | relative eigenvalues of `M^T M` at most `4.7e-16`, next `3.8e-4` |
+| affine `J`, Hamiltonian = Eq. (22), by monomials | `J(x) grad H(x)` can contain only quadratic monomials with a factor in {`electron_delta_n`, `B`}. **38 of the 69** quadratic monomials of `F` (65.6 percent of the coefficient norm) cannot be produced, all in the `C` equation: `(rho)(N)` 24 (coherence times `N`, from `-i N [g^T, rho]`), `(rho)(A)` 8 and `(rho)(rho)` 6 (squares of the coherence, from the bare Pauli source). | exact |
+
+**Which Lie algebra.** None. The 31 coordinates are connected moments: `N`,
+`A` and `C` are cumulants. Even the corresponding raw operators
+`{E_ij, b_q, b_q^+ b_q', b_q b_q', E_ij b_q}` do not span a Lie algebra, as
+one commutator shows:
+
+```text
+[E_ij b_q, E_kl b_r^+] = delta_qr E_ij E_kl + [E_ij, E_kl] b_r^+ b_q
+```
+
+The second term is an electron--two-boson operator `E b^+ b`. That is exactly
+the third-order moment the archive factorizes in Eq. (14d), and the
+factorization is where a Lie-Poisson structure would have been lost. The exact
+moments obey the Lie-Poisson flow on the dual of the full, infinite operator
+algebra with the linear Hamiltonian `<H>`. The 31-moment closure is not a
+Poisson reduction of that flow.
+
+**Polynomial first integrals of the drive-free flow.** The degree-two count
+uses 2,500 random points and the degree-three count 9,000. The gap is at
+least `5e12` in singular value.
+
+- Degree at most two: 4. Degree at most three: 9.
+- The nine are spanned by:
+  - `ell`, `ell^2` and `ell^3`;
+  - `H`;
+  - the centre-mode coherent oscillator energy
+    `|B_0 + B_1 + 2g/omega|^2`, with relative drift `2.5e-17`;
+  - the products `ell H` and `ell |B_+ ...|^2`;
+  - two genuinely cubic integrals, whose linear parts are the real and
+    imaginary parts of `sum_q (C_q,01 + C_q,10)`.
+- The span contains Eq. (22) to `5.2e-15`.
+- With the drive on, 5 remain: the powers of `ell`, the centre-mode energy,
+  and its product with `ell`.
+
+**What bounds the correlation off-diagonals: nothing in this list.**
+
+- `H` and the centre-mode energy do not contain them.
+- The two cubic integrals contain them linearly at leading order. They fix
+  only the symmetric sum `C_01 + C_10`, and a polynomial of odd degree is
+  unbounded.
+- This matches the instability report: the coordinates reaching `1e4` are
+  exactly these entries. From the exact correlated preparation the event is at
+  `t = 141.4059` (converged). From the exact `t = 60` state it is at `434.19`
+  converged (the record's `433.8964` was the `rtol 1e-10` value).
+
+**Reading.** The coordinator's inference from the trace identity, the energy
+conservation and the skew-adjoint linear part to a Hamiltonian or Poisson
+system does not survive the tests that can carry content. No constant or
+affine Poisson structure exists, for any Hamiltonian. Volume preservation
+plus one conserved quadratic energy is all the structure there is, together
+with the eight further first integrals listed.
+
+## (b) Koopman--von Neumann
+
+**Generator.** For `dx/dt = F(t, x)` on R^31, `psi(x, t)` with `|psi|^2` the
+Liouville density obeys `i d_t psi = L(t) psi`, where
+
+```text
+L(t) = -(i/2) sum_k { F_k(t, x), d/dx_k }
+     = -i [ F(t, x) . grad + (1/2) div F ]
+```
+
+Here `div F = 0` identically, so
+
+```text
+L(t) = -i (F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)) . grad
+```
+
+This is formally Hermitian for any smooth `F`, and its construction uses no
+Hamiltonian structure. Under the working split, `B(t)` enters as a
+prescribed classical coefficient (27 coordinates).
+
+**Cost model, single trajectory from the exact correlated preparation.**
+
+- **Domain.** On the closure trajectory the largest absolute coordinate is
+  `1.50`, `1.68` and `2.11` and the widest coordinate range is `0.61`, `1.28`
+  and `1.97` (to `t = 4`, `20`, `60`); box width `W ~ 4`.
+  - The closure escapes at `t = 141.41`, so any fixed box fails past that.
+- **Resolution.** A packet must stay within `epsilon` of the characteristic
+  while the linearized flow stretches it by `Lambda(T)`. That needs grid
+  spacing `h <= epsilon / (3 Lambda)` and `M = W/h` points per coordinate.
+  - Instability report, bare trajectory from the exact correlated
+    preparation, supremum over the window: `Lambda = 13.0`, `51.0`, `3,169`
+    at `T = 4`, `20`, `60`.
+  - My recomputation along the same trajectory reproduces the from-`t0`
+    values `12.98`, `39.30` and `2,457`.
+- **Generator norm.** `||L|| ~ sum_k max|F_k| * pi/h`, where
+  `sum_k max|F_k|` along the trajectory is `9.99`, `17.9` and `31.2` (a lower
+  bound over the box).
+
+| horizon `T` | `Lambda` | points per coordinate at `epsilon = 1e-2` | logical qubits `31 ceil(log2 M)` | `T ||L||` | classical cost of the same trajectory |
+|---|---|---|---|---|---|
+| 4 | 13.0 | `1.6e4` | 434 | `4.9e5` | closure ODE, DOP853 `rtol 1e-12`: under 1 s |
+| 20 | 51.0 | `6.1e4` | 496 | `1.7e7` | `1.3` s |
+| 60 | 3,169 | `3.8e6` | 682 | `5.6e9` | `3.7` s |
+
+At `epsilon = 1e-3`, add about 3.3 qubits per coordinate (103 in all) and
+multiply `T ||L||` by 10. Reading out each coordinate's mean by amplitude
+estimation to `epsilon` costs `O(W/epsilon)` repetitions, about `400` per
+coordinate per output time at `1e-2`, times 31 coordinates.
+
+**Representation.**
+
+- On quantum hardware the representation is the `31 log2 M`-qubit grid
+  register; neither a tensor network nor sampling is required.
+- Any classical emulation or benchmark of the KvN route cannot hold the grid:
+  `M^31 ~ 1e130` at `T = 4`. It would have to adopt a tensor-train or MPS
+  representation of `psi` over 31 modes, or a sampled (particle)
+  representation. A sampled representation of a point preparation is
+  integrating the ODE itself.
+- KvN transports a distribution: the mean of a finite packet is not the
+  characteristic (`E F(X) != F(E X)`). The resolution rule above is the
+  sufficient envelope from the B-Q2 dossier, not a necessity proof.
+
+**Against the exact model.**
+
+| | two sites | three sites |
+|---|---|---|
+| exact state dimension, cutoff 16 | 1,156 (= 4 x 17^2) | 44,217 (= 9 x 17^3) |
+| classical exact propagation to `t = 20` | `3.06` s (record) | about `137` s (record, fitted law) |
+| qubits for direct Hamiltonian simulation (one up and one down electron; 5 qubits per 17-level mode) | 12 | 19 |
+| `||H_static||`, measured | `24.68` | `33.15` |
+| drive operator norm | `1` | `1` |
+| `T (||H|| + max|f|)` at `T = 20` | about `510` | about `680` |
+| closure error | none | none |
+
+The closure trajectory itself differs from exact by all-coordinate scalar RMS
+`0.111`, `0.193` and `0.325` at `t = 4`, `20` and `60`.
+
+**Verdict.** KvN is admissible in principle: unitary, with no dissipation or
+Hamiltonian condition. For this target it is dominated on every axis:
+
+- about 30 times the qubits of direct simulation of the exact model;
+- `1e3` to `1e7` times the evolution-time-norm product;
+- it inherits the closure's error and its escape;
+- for a deterministic point preparation it reproduces what classical
+  integration does in seconds.
+
+## (c) Schrödingerization of the trajectory-linearized flow
+
+**The flow.** `d xi/dt = J_F(t, x(t)) xi + s(t)`, with
+`s = F(t, x) - dx/dt` along the chosen trajectory `x(t)`.
+
+**Amplification**, `||Phi(T, 0)||_2` in the Euclidean closed coordinates, with
+the supremum over `0 <= s <= t <= T` in brackets. The authority is the
+instability report, table 5.1:
+
+| trajectory | `T = 4` | `T = 20` | `T = 60` |
+|---|---|---|---|
+| bare closure from the exact correlated preparation | `12.98` | `39.3` (`51.0`) | `2,457` (`3,169`) |
+| exact driven reference from the Hartree--Fock product state | `13.63` | `15.7` (`17.6`) | `34.7` (`54.4`) |
+| exact driven reference from the correlated ground state (this round, not in the report) | `12.11` | `15.77` (`19.25`, 0.5 grid) | `26.30` (`36.91`) |
+
+- My integration along the bare closure from the exact correlated
+  preparation reproduces the report's row: `12.98`, `39.30`, `2,457`.
+- `det Phi = 1` to `8e-9`, as the zero trace requires.
+- The instability report's stacked backward-Euler condition numbers are
+  `1.1e4` to `1.2e4` (`T = 4`), `7.9e4` to `2.0e5` (`T = 20`) and `5.2e5` to
+  `1.16e7` (`T = 60`). Step count alone gives `2,038`, `10,187` and `30,559`.
+  One step's condition number is at most `1.038`.
+
+**Cost factor.** Jin, Liu and Ma (arXiv:2402.14696, Theorem 1) allow a
+Hermitian part `H_1` with positive eigenvalues. Recovery needs the auxiliary
+variable past `p >= T sup_t lambda_max^+(H_1(t))`, and amplitude amplification
+retains `O(e^{p} ||u(0)|| / ||u(T)||)`. I report both that supremum form and
+the integral `int_0^T lambda_max^+(H_1(t)) dt`, which is no larger. The
+integral is my reading for a time-dependent generator, not their theorem.
+
+| trajectory, metric | `int mu^+`, `T = 4` | `T = 20` | `T = 60` | `sup mu` |
+|---|---|---|---|---|
+| exact (correlated), Euclidean | `7.30` | `35.1` | `107.5` | `1.85` to `1.99` |
+| bare closure from exact correlated, Euclidean | `7.11` | `37.3` | `115.8` | `1.85` to `2.45` |
+| exact (correlated), metric `G` with `A_1` skew-adjoint | `51.2` | `250.9` | `786` | `14.3` to `17.1` |
+
+**Reading.**
+
+- **The overhead is far above the realized amplification.** The factor
+  `e^{p}` is at least `e^{7.3} = 1.5e3` at `T = 4` and `e^{35} = 1.8e15` at
+  `T = 20` in the Euclidean coordinates, while the realized amplification is
+  only 12 to 51. The overhead is at least `e^{p} / Lambda`: about `1e2` at
+  `T = 4` and about `1e14` at `T = 20`.
+- **The skew-adjoint metric makes it worse.** The constant metric in which
+  `A_1` is skew-adjoint raises the integral sevenfold.
+- **There is no metric common to `A_1` and `D`**
+  (`run_task2_metric.py`, `task2_metric.json`).
+  - The symmetric `G` with `A_1` skew-adjoint form a 46-dimensional space.
+    Adding `D` skew-adjoint cuts it to 8 dimensions.
+  - At trace 31, the largest attainable smallest eigenvalue on those 8
+    dimensions is `1.9e-8`, zero to SCS tolerance. No positive definite
+    common metric exists.
+  - The task-1 eigenvector metric fails `D` at relative `0.21`.
+  - The driven linear propagator of `A_1 + f(t) D`, without `A_2` and priced
+    directly to `t = 20`, has supremum `||Phi(t,s)||` of `12.09` in the
+    Euclidean coordinates (undriven `exp(A_1 t)`: `12.08`; bound
+    `sqrt(cond G) = 55.4`) and `7.23` in `G` (`1` undriven).
+  - So the drive costs a factor of at most `7.2` in `G`, and almost nothing
+    in Euclidean norm.
+  - The growth from `13` to `2,457` over `T = 4` to `60` comes from the
+    quadratic term, not the drive.
+- **Reaching the realized amplification would need a time-dependent
+  metric.** Only a similarity that tracks the instantaneous growth direction
+  would bring `int mu^+` down toward `log Lambda`, and none is constructed
+  here.
+- **The linearization is an approximation of its own.** Along the exact
+  trajectory, with `xi(0) = 0`, it reproduces the closure's departure from
+  exact to relative `0.17` at `T = 4` (maximum error `0.121` against a
+  maximum departure of `0.82`). At `T = 20` it is `1.07` and at `T = 60` it is
+  `1.61`: the dropped `A_2(xi, xi)` term dominates once the departure is of
+  order one.
+- **Neither choice of base trajectory yields the closure trajectory.**
+  Linearizing about the exact trajectory presupposes the exact trajectory as
+  input. Linearizing about the closure's own trajectory gives `s = 0` and
+  propagates perturbations, not the trajectory.
+
+## The windowed re-lift, one table
+
+Every `window` time units the order-`K` truncation is re-lifted from its own
+first block. This assumes a free and exact readout of all 31 coordinates at
+each restart, so it is a lower bound on any real windowed scheme's error.
+Error is the maximum absolute coordinate error against the closure's own
+trajectory from the exact correlated preparation; RK4 at `0.0025`. A dash
+means the windowed run reached the `1e4` magnitude event before `t = 20`.
+
+| `K` | window | restarts with a 31-coordinate readout (to `t = 20`) | `t <= 1` | `t <= 4` | `t <= 20` |
+|---|---|---|---|---|---|
+| 2 | 0.25 | 43, then event at `t = 11.0` | `3.2e-3` | `9.4e-2` | -- |
+| 2 | 0.5 | 19, event at `10.0` | `1.4e-2` | `0.175` | -- |
+| 2 | 1 | 10, event at `11.0` | `5.1e-2` | `0.344` | -- |
+| 3 | 0.25 | 80 | `5.1e-5` | `2.6e-3` | `0.304` |
+| 3 | 0.5 | 40 | `7.3e-4` | `1.4e-2` | `0.893` |
+| 3 | 1 | 20 | `7.6e-3` | `9.5e-2` | `2.20` |
+| 3 | 2 | 7, event at `16.0` | `7.6e-3` | `0.409` | -- |
+| 4 | 0.5 | 40 | `2.4e-5` | `1.4e-3` | `0.503` |
+| 4 | 1 | 20 | `1.2e-3` | `2.2e-2` | `1.02` |
+
+Re-lifting the order-2 truncation compounds its error into the magnitude event
+by `t = 10` to `12`.
+
+## Reproduction (Task 2)
+
+```bash
+DIR=output/local_runs/paper_v_quantum_target_form_20261010
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_structure.py   # 59 s, 4.0 GB peak: energy, identities, invariants, constant-J test, monomial obstruction, Jacobi
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_identify.py    # names ell, the quadratic integrals and the rank-2 preserved tensor
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_affine.py      # 161 s, 3.8 GB: affine Poisson-tensor invariance nullspace
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_offdiag.py     # cubic integrals, centre-mode energy, off-diagonal involvement
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_dynamics.py    # 166 s, 2.1 GB: exact and closure to t=60, propagators, log-norms, linearized flow, ||H|| at L=2,3
+PYTHONPATH=paper_5/src $PY $DIR/run_task2_metric.py      # common skew-adjoint metric for A_1 and D (SDP), driven linear propagator
+PYTHONPATH=paper_5/src $PY $DIR/run_relift.py --orders 2 3
+PYTHONPATH=paper_5/src $PY $DIR/run_relift.py --orders 4 --windows 0.5 1.0
+```
+
+---
+
+# 2026-10-10, Task 3: B-Q3 architecture pass
+
+The architecture, the source locks, the parity-test specifications, the
+output contracts, the reduction table, the cost ledger and the seams are in
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010.md`.
+Recorded here are only its measured results.
+
+**The propagated omitted tail is the recovered-coordinate error; its norm
+certificate is loose.** `run_task3_tail.py`, `task3_tail_2.json`,
+`task3_tail_3.json`.
+
+The adjoint `W(s) = P_1 U_K(T, s)` was computed backward at `h = 0.005`, along
+the bare closure's own trajectory from the exact correlated preparation.
+
+| order `K` | horizon `T` | measured first-block error `||x(T) - X~_1(T)||` | relative mismatch of `int W tau ds` against it | norm certificate | certificate / measured | `sup_s ||P_1 U_K(T,s) P_K||` | terminal first-block weight |
+|---|---|---|---|---|---|---|---|
+| 2 | 4 | 2.246 | `2.6e-6` | 50.2 | 22 | 17.1 | 0.261 |
+| 2 | 20 | 19.65 | `3.4e-6` | 2,886 | 147 | 142.7 | 0.182 |
+| 3 | 4 | 2.045 | `3.9e-6` | 222.1 | 109 | 37.7 | 0.056 |
+| 3 | 20 | 127.0 | `5.2e-6` | 83,506 | 657 | 2,746 | 0.032 |
+
+- At order 4, from the stored runs, the terminal first-block weight is
+  `0.0078` at `T = 4` and `0.0045` at `T = 20`.
+- The pointwise tail ratio of Task 1 (median `0.72` at every `K`) predicts
+  neither the measured error nor the weight. As the dossier said, it is a
+  diagnostic, not a bound.
+
+**Order-4 step refinement to `T = 20`**, requested by the B-Q2 dossier: RK4 at
+`h = 0.005` against `0.0025` differs by at most `2.3e-6` in the first block,
+against a truncation error of `387` (`check_steps_k4_t20.json`). The task-1
+`K = 4, T = 20` entry stands.
+
+**Reproduction (Task 3).**
+
+```bash
+PYTHONPATH=paper_5/src $PY $DIR/run_carleman.py --orders 4 --sample-stride 2 --tag _h0005_t20   # 140 s
+$PY $DIR/check_steps_k4_t20.py
+PYTHONPATH=paper_5/src $PY $DIR/run_task3_tail.py --orders 2   # 9 s
+PYTHONPATH=paper_5/src $PY $DIR/run_task3_tail.py --orders 3   # 277 s
+```

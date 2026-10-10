@@ -150,3 +150,79 @@ def test_carleman_of_riccati_equation_is_the_taylor_partial_sum(order):
     solution = integrate_carleman_rk4(form, np.array([0.5]), order, sample_times=times)
     expected = sum(0.5 ** (j + 1) * times**j for j in range(order))
     np.testing.assert_allclose(solution.first_block[:, 0], expected, atol=1e-13)
+
+
+@pytest.mark.parametrize("order", [1, 2, 3])
+def test_sparse_lifted_generator_matches_the_block_velocity(order):
+    from paper5.stability.quantum_target_form import (
+        carleman_sparse_generator,
+        flatten_blocks,
+        unflatten_blocks,
+    )
+
+    form = _synthetic_form(4, 31)
+    free, drive, forcing = carleman_sparse_generator(form, order)
+    rng = np.random.default_rng(order)
+    vector = rng.normal(size=free.shape[0])
+    time = 0.9
+    expected = flatten_blocks(
+        carleman_block_derivative(form, time, unflatten_blocks(vector, 4, order), order)
+    )
+    actual = (free + form.drive(time) * drive) @ vector + forcing
+    np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+def test_internal_energy_is_quadratic_and_conserved_identically(form):
+    from paper5.stability.matrix_reference import (
+        closed_scalar_to_matrix_state,
+        matrix_total_energy,
+    )
+    from paper5.stability.quantum_target_form import closed_internal_energy
+
+    energy = closed_internal_energy(form.parameters)
+    assert np.max(np.abs(energy.cubic)) <= 1e-14
+    gradient0 = energy.linear[0]
+    hessian = 2.0 * energy.quadratic[0]
+    rng = np.random.default_rng(23)
+    for x in rng.normal(size=(30, 31)) * 1.5:
+        reference = matrix_total_energy(closed_scalar_to_matrix_state(x), form.parameters)
+        assert abs(reference - energy.evaluate(x)[0]) <= 1e-12 * max(1.0, abs(reference))
+        g = gradient0 + hessian @ x
+        f = form.evaluate(0.0, x)
+        assert abs(g @ f) <= 1e-13 * np.linalg.norm(g) * np.linalg.norm(f)
+        # the drive's power is -4 Im(rho_01) times f(t)
+        assert abs(g @ (form.linear_drive @ x) + 4.0 * x[2]) <= 1e-12
+
+
+def test_logarithmic_norm_of_a_nonnormal_hurwitz_matrix():
+    from paper5.stability.quantum_target_form import logarithmic_norm
+
+    matrix = np.array([[-1.0, 8.0], [0.0, -2.0]])
+    assert abs(logarithmic_norm(matrix) - (-3.0 + np.sqrt(65.0)) / 2.0) <= 1e-12
+    root = np.diag([1.0, 3.0])
+    transformed = root @ matrix @ np.linalg.inv(root)
+    assert abs(logarithmic_norm(matrix, root) - logarithmic_norm(transformed)) <= 1e-12
+
+
+def test_linearized_propagator_on_samples_is_the_matrix_exponential():
+    from scipy.linalg import expm
+
+    from paper5.stability.quantum_target_form import integrate_linearized_on_samples
+
+    reference = _synthetic_form(4, 29)
+    linear = ClosedPolynomialForm(
+        parameters=DimerParameters(drive_amplitude=0.0),
+        constant=np.zeros(4),
+        linear_free=0.3 * reference.linear_free,
+        linear_drive=np.zeros((4, 4)),
+        quadratic=np.zeros((4, 4, 4)),
+        cubic=np.zeros((4, 4, 4, 4)),
+    )
+    times = np.linspace(0.0, 2.0, 801)
+    states = np.zeros((times.size, 4))
+    step_times, propagators = integrate_linearized_on_samples(
+        linear, times, states, initial=np.eye(4)
+    )
+    np.testing.assert_allclose(
+        propagators[-1], expm(linear.linear_free * step_times[-1]), atol=1e-9
+    )
