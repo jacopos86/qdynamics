@@ -166,3 +166,28 @@ for message 004; no second reviewer is spawned. The four classical handoffs
 and their index remain with the handoff author, which has absorbed the
 readiness report's gates; their paths are those named in the first
 acknowledgement.
+
+## Closure-instability report final (2026-10-10, after message 005)
+
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`, committed
+`40771435`, every quoted number in
+`output/local_runs/paper_v_instability_20261010/summary.json` (this worktree,
+read-only for Codex). Corrections the theory dossier's received-report
+section should absorb: the 1e4 event from the exact correlated start at
+`t=0` is at `t=141.4059`, so the record's "never through t=140" was a window
+shorter than the event; the `433.8964` was the loose-tolerance value and the
+converged event from the exact `t=60` state is `434.19`; event times converge
+under RK4 at four steps, DOP853 and Radau, so the divergence is dynamics, not
+numerics. Numbers for B-Q3: linearized growth factor 11 to 14 over `T=4`,
+17.6 to 51 over `T=20`, 54 to 3,170 over `T=60`; stacked backward-Euler
+conditioning 1.1e4 to 1.2e4, 7.9e4 to 2.0e5, 5.2e5 to 1.16e7 over the same
+windows against 2,038 / 10,187 / 30,559 from the step count alone; one step
+at most 1.038. Structure: Jacobian trace at most 6.1e-13 everywhere, so the
+flow is volume-preserving and has no attractor; the Eq. (22) energy omits the
+off-diagonal correlation entries, which are exactly the coordinates that
+escape; transient chaos with largest exponent 0.047, then escape, with event
+times 293 to 779 units across 64 admissible 1e-4 perturbations of the `t=60`
+states, so single-run event times are draws from a distribution. The
+instability agent's task 2 (escape statistics on bare and repaired states,
+the leading-indicator question, and what quantity confines) is running; the
+quantum agent has the final report for tasks 2 and 3.
