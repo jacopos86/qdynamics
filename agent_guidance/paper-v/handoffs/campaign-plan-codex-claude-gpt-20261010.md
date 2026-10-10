@@ -69,9 +69,10 @@ molecular-vibronic H2O problem to the static-construction method: Paper I
 (AP-McLachlan dynamics, `agent_guidance/time-dynamics/`), Paper III
 (cost-weighted operator-selected QSE, `agent_guidance/qse/`).
 
-**The one anchor still missing.** The external repository. The user named its
-author by dictation; a web search on 2026-10-10 did not resolve the name to a
-repository, and no file in this checkout cites it. **First action of the new
+**The one anchor still missing.** The individual repository. The GitHub user
+is verified as `https://github.com/doronwu` (Codex coordinator, 2026-10-10);
+no individual repository under it is selected yet, and no file in this
+checkout cites one. **First action of the new
 chat: get the URL from the user and record it here.** Until then nothing in
 this program can be executed; a Codex research agent given the URL can do
 the inventory in Increment A1 unaided.
