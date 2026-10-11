@@ -651,3 +651,74 @@ unmeasured items (circuits, solver constants, readout-model assumptions,
 sampling uncertainty at the boundary) are in the report. The decision of
 which target the contract is scored against, and whether the quantum thread
 continues, is the user's.
+
+
+## Closure instability, task 2 with corrections after verification (2026-10-11, commits `c1c1f9cc` and `36b686b3`)
+
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`, sections
+8 to 12 (task 2, commit `c1c1f9cc`) and section 13 (corrections after three
+adversarial refuters and a completeness critic, lines 1008-1842, commit
+`36b686b3`); every input and output hashed in
+`output/local_runs/paper_v_instability_20261010/sha256_task2.json` (444
+files, SHA-256 `777ae638…5da0`). Sections 9 to 11 are to be read with
+section 13; the statements below are the corrected ones. This is Claude's
+Jacobian/Lyapunov/escape study that the divergence-map lane was told not to
+duplicate; the repair-handover lane's "reference-relative handover time"
+should be read against the escape statistics here.
+
+Escape statistics (bare closure from the stored state, 64 perturbations of
+size `1e-4` in lifted Frobenius norm, tangent to the Eq. (22) energy and the
+shared trace, no positivity imposed, DOP853 `(1e-10, 1e-12)`, event at
+`max|x| = 1e4`): from the repaired chain's states the mean time to the event
+is `588.7 [557.8, 622.3]`, `482.6 [461.2, 506.1]` and `410.0 [388.8, 433.5]`
+at `t = 20 / 40 / 60`, and falls with the state's time; the bare rows are one
+deterministic trajectory's remaining lifetime (`141.41 - t` exact
+correlated, `54.46 - t` Hartree–Fock) plus a delay of at most `14.6` units;
+the "five times slower" headline compared different preparations, and the
+same-preparation ratio against bare Hartree–Fock is 17 to 33. The repair
+does not remove the instability: every repaired state escapes under the
+bare closure.
+
+Representability as predictor: under the bare closure the retained 8x8
+joint Gram is negative at the start or within 0.5 to 12 units of it in
+every one of the 19 ensembles, and the 41 members of the task-11 `t = 20`
+ensemble that never fire within 1500 units lose it at the same median time
+(543) as the 23 that fire, so the loss discriminates nothing. At a tuned
+threshold (`-2.75` to `-4.5`) the Gram orders the members' events (rank
+correlation `>= 0.9`) a median 18 to 38 units before the event, against 12
+to 26 for the plain coordinate magnitude; neither leads by more than about
+40 units, under 10 percent of the 281 to 577 units to the event.
+
+What confines: holding every second-order positivity bound the clip map
+enforces (the electronic Bloch ball, `N >= 0`, the anomalous-density bounds,
+six correlation Cauchy–Schwarz bounds along the Pauli axes) together with
+`Tr C[q] = 0` gave no `1e4` event in 128 member-runs of 600 units and 0 of 4
+to 3000 units, at `1.18` times a bare RK4 step (the cheap repair costs
+`1.3e3` to `2.1e3` times more). With the Eq. (22) energy fixed the set is
+compact (`E >= -2t + w|B|^2 - 4g|B| + w Tr N - 2g(sqrt N00 + sqrt N11)`,
+every coordinate bounded, the event needing `E >= 4.87e3`); the shared-trace
+pin is necessary (the retained Gram omits it and is not compact with the
+energy alone). With the energy held exactly, dropping any one family of
+bounds still gives 0 of 8 escapes over 600 units from both preparations;
+the trace pin or the phonon diagonal alone lets 8 of 8 fire; without the
+energy the correlation bounds carry confinement. A triggered guard (map on
+above `max|x| > 3` or Gram `< -2.75`) gives 0 of 32 escapes from starts
+that all fire by 566, with thresholds tuned on the same ensembles. The map
+does not hold the retained joint Gram (negative at 77 to 97 percent of
+samples) or the boson moment matrix (minimum `-0.14` / `-0.30`), and the map
+after every step makes the scheme first order in `h`.
+
+Negative result for the guard as a repair: on the record's observables no
+map approaches the cheap repair. RMS over `[0, T]` against the exact
+trajectory, Hartree–Fock preparation, site-0 occupation / Eq. (22) energy /
+all 31 coordinates at `T = 20`: bare `.1682 / .0452 / .3320`, minors with
+exact energy `.1655 / .0487 / .3146`, Gram cone with exact energy
+`.0839 / .0512 / .4595` (not `h`-converged), boson block plus minors with
+exact energy `.1611 / .0439 / .2651`, cheap repair `.0736 / .0012 / .1537`.
+On the energy the best map is 6.6 to 38 times worse than the repair at
+every horizon. The clip is a cheap divergence guard, not a representability
+repair, and it buys no accuracy. Unmeasured: the exact energy hold beyond
+600 units, any map holding the positive extension, a converged map onto
+both the Gram cone and the energy surface, the repaired chain with the
+repair switched off, repaired states of other chains, a held-out test of
+the guard thresholds.
