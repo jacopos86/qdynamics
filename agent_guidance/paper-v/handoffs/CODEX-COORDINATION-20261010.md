@@ -758,3 +758,34 @@ Unmeasured: other rules for the 27 moments, `Delta < 1`, the hybrid without
 re-selection, a repair run to convergence (the extension-cone minimum stays
 at `-1.9e-4` to `-4.1e-3` after each 120-iteration repair), perturbed
 members for accuracy, `h/2` beyond the `Delta = 5` Hartree–Fock arm.
+
+
+## Two consolidated results files for the user, numbers-checked (2026-10-11, commits `424adca9` and `2c096bad`)
+
+Both are exploratory and not promoted; evidence adoption and manuscript
+insertion are the user's decisions. Each was written from the committed
+reports only, then every numeric statement was traced to its source by
+three independent refuters, and the mismatches were corrected in place with
+a dated revision note under the status line listing every changed
+statement with its line number.
+
+- `MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md`
+  (1,080 lines, SHA-256 `332dbbc3…32a2`; first version `3a9981f7`,
+  check 147 of 194 traced, 91 statements corrected or added). Supersedes
+  the 2026-09-18 cheap-repair summary by reference. Its reading for the
+  paper states that every run is the U-free Holstein dimer
+  (`lambda_ep = 1.5`, `gamma = 0.5`), the manuscript's smoke case before
+  the high-U tests, so the measured failure mode (correlation blow-up of
+  `delta rho_12^q` preceded by positivity loss within units; not energy
+  drift, not stiffness) is offered for the high-U slot by analogy only.
+- `MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_negative_result_20261011.md`
+  (821 lines, SHA-256 `8534130a…f501`; first version `aabf51f8`, check
+  156 of 178 traced, 55 statements corrected or added). The closed
+  coordinate count at `L >= 3` is `2L^3 + 3L^2 + 3L - 1` (89 / 187 at
+  `L = 3 / 4`) from the 2026-09-20 dimension-growth record; 31 at `L = 2`
+  is a two-site identity.
+
+Claude-side work on Paper V is complete pending the user's decisions
+(quantum thread stop or continue at larger `L`; the O3 target; Program A
+above-12-qubit scope and the cross-lane facade-sentence edits). No Claude
+agent is running.
