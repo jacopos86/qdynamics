@@ -541,3 +541,79 @@ to authorize correcting the stale facade sentence in
 `AGENTS.md:94-96`, cross-lane edits no lane handoff makes (Claude recommends
 yes). Unmeasured items are r2 section 8. Next step once the user decides: S0
 on the Paper I branch.
+
+
+## B-Q3 quantum architecture reply, with revision 2 (2026-10-11, commits `a23ff642` and `475c47a7`)
+
+Reply to message 005's five requirements:
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010.md`
+(commit `a23ff642`, SHA-256 `85281ce683f382a63804b3e1b80987c3affa2427efc21e5fbc049dc729f1b74f`),
+amended by revision 2
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010-r2.md`
+(commit `475c47a7`, SHA-256 `e8c883567797d5fd7313ae9a386524d8c65ee697e0abdfca64fd7460702583bc`),
+written after four adversarial refuters and a completeness critic; all
+twenty must-change items are addressed in its section 1, each with the
+number relied on, and no refuter was overturned. Findings that are not
+architecture are in
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`
+(Tasks 1 to 3, with a dated corrections section appended 2026-10-11).
+Code: `paper_5/src/paper5/stability/quantum_target_form.py` and
+`conserved_structure.py`, tests `test_quantum_target_form.py`,
+`test_archive_hamiltonian_parity.py`, `test_conserved_structure.py` (35
+pass). Receipts under
+`output/local_runs/paper_v_quantum_target_form_20261010/` (gitignored),
+hashed in r2 section 9.
+
+Negative results first:
+- The output contract the draft needs cannot be met against the physical
+  reference by any route that integrates the closure: the bare closure is
+  itself off from the exact dimer (phonon cutoff 16) by `0.028` at `T = 4`
+  and `0.41` at `T = 20` on the site-0 occupation and by `0.015` on the
+  Eq. (22) energy. A `1e-2` contract on selected observables is therefore
+  either (a) against the closure's own trajectory, an integration-accuracy
+  contract with the closure's error on a separate line — met only by an
+  order-3 lift re-centred at each read-out state (site-0 occupation off by
+  `2.6e-5` and `1.6e-4` at `T = 4` and `20` with 19 re-lifts, assuming free
+  exact readout of all 31 coordinates at every restart; an origin-centred
+  lift never meets it, best `0.0915` at order 4) — or (b) against the exact
+  reference by direct 12-qubit simulation of the dimer,
+  `T(||H|| + max|f|) = 102` and `511`, which drops the archive equations
+  from the quantum claim. The choice is the user's; Claude recommends (a).
+- No constant or affine Poisson tensor in the closed chart generates the
+  drive-free field for any Hamiltonian (41 constant antisymmetric tensors
+  are preserved by the linear part, one by the full field; the affine family
+  is 4-dimensional on the centre-mode subspace); at quadratic order the flow
+  does preserve rank-4 bivectors, so the "no Darboux or Lie-Poisson map"
+  conclusion is qualified to constant and affine tensors, and nonlinear
+  level-set reductions (nine polynomial first integrals of functional rank
+  5) are unassessed.
+- No metric makes both `A_1` and the drive `D` skew-adjoint: proved by a
+  nilpotent element of the 91-dimensional Lie algebra they generate
+  (`||exp(1000 X)|| = 647`), also after the 28-coordinate reduction.
+- Koopman--von Neumann, against the correct baseline (the dimer: 12 qubits,
+  `T(||H|| + max|f|) = 102 / 511 / 1533` at `T = 4 / 20 / 60`), needs 36 to
+  57 times the qubits and `4.8e3` to `3.7e6` times the time-norm product at
+  matched horizons under a heuristic grid (`h = eps / 3 Lambda`), and more
+  with the box generator norm; it is dominated.
+- Schrödingerization's recovery exponent is metric-dependent (`7.3` and
+  `35.1` Euclidean at `T = 4` and `20`; `1.4` and `6.9` in the best constant
+  metric with `sqrt(cond) = 7.7`); the forced-flow recovery factor is
+  `1.2e3` to `1.5e3` at `T = 4` and `8.7e14` to `1.8e15` at `T = 20`.
+- Carleman: the propagated omitted tail equals the recovered-coordinate
+  error by Duhamel's identity to quadrature accuracy; the norm certificate
+  is 22 to 657 times loose; the certified pair supremum
+  `Lambda = sup ||Phi(t, s)||` is `12.98` at `T = 4` and `51.04` at `T = 20`
+  for the bare closure from the exact correlated preparation (the terminal
+  adjoint, `39.30`, is the wrong quantity for the tube).
+- Coefficient parity against Eqs. (14a)--(14e) is now tested independently
+  (`test_archive_hamiltonian_parity.py`, 11 tests against the exact
+  cutoff-16 and cutoff-20 derivative at exact states, `t <= 4`, `1e-13` on
+  the `rho` and shared `C` rows); the tests catch a `0.3 x0 x3` mutation on
+  row 21 (defect `0.159`) that every earlier assertion passed. The draft's
+  cubic term is identically zero for these equations (manuscript change is
+  the user's).
+
+Next bounded calculation on the Claude side (r2 section 8): how readout
+noise at each restart propagates through the re-centred lift, to price
+route (a) end to end. Codex's B-Q2 dossier assessments stand as received;
+no duplicate quantum agent is spawned.
