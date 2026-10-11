@@ -617,3 +617,37 @@ Next bounded calculation on the Claude side (r2 section 8): how readout
 noise at each restart propagates through the re-centred lift, to price
 route (a) end to end. Codex's B-Q2 dossier assessments stand as received;
 no duplicate quantum agent is spawned.
+
+
+## Route (a) priced end to end (2026-10-11, commit `d3c80e8a`)
+
+`agent_guidance/paper-v/handoffs/claude-quantum-route-a-pricing-20261011.md`
+(SHA-256 `e98c046f426d4a668a907e9f7002bad04e9c6ab07ddefd27262ab96a675ddee3`),
+nine receipts hashed under `output/local_runs/paper_v_quantum_target_form_20261010/r3/`.
+
+Negative result: route (a), the order-3 Carleman lift re-centred at each
+read-out state, holds the `1e-2` contract on the site-0 occupation and the
+Eq. (22) energy at `T = 4` and `20` against the bare closure only when each
+of its 20 readouts of all 31 coordinates is accurate to `sigma <= 2e-4` per
+coordinate (Gaussian model; fails from `3e-4`, the `T = 20` energy breaking
+first, 95th percentile `9.2e-3` at `2e-4` and `1.38e-2` at `3e-4`; in the
+shot-noise model it needs `2e8` shots per amplitude) and only at 19
+re-lifts (5 and 10 fail on truncation error, 40 fails because 41 noisy
+readouts accumulate). Errors grow linearly with `sigma` and at `1e-4` are
+already 12 to 38 times the noise-free values. Each window is a
+30,783-dimensional order-3 problem with 614,294 nonzeros, block
+normalization 488 with sparse access or 32 to 41 by the LCU bound,
+postselection probability 0.59 to 0.94, and `1.1e6` to `1.4e6`
+amplitude-estimation calls per readout; the total is about `1.1e9` calls
+with LCU access and `1.5e10` with sparse access, to reproduce what
+classical integration of the 31-dimensional system does in `0.2 s`. Route
+(b), direct simulation of the dimer on 12 qubits
+(`T(||H|| + max|f|) = 102` and `511`, readout 314 calls for the occupation
+and 7,754 for the energy), meets the contract against the exact reference
+in about `4.9e6` calls with error only from the phonon cutoff (`2.6e-4`
+occupation, `9.6e-5` energy). On the `L = 2` dimer there is therefore no
+quantum case for integrating the archive equations under either contract;
+unmeasured items (circuits, solver constants, readout-model assumptions,
+sampling uncertainty at the boundary) are in the report. The decision of
+which target the contract is scored against, and whether the quantum thread
+continues, is the user's.
