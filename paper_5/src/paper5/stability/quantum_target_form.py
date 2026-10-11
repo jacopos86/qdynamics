@@ -2,11 +2,17 @@
 
 The committed archive right-hand side :func:`closed_scalar_rhs` (Eqs.
 (14a)--(14e) of Riva, Simoni and Ping in the 31 closed scalar coordinates of
-``CLOSED_SCALAR_STATE_NAMES``) is a polynomial of degree three in the
+``CLOSED_SCALAR_STATE_NAMES``) is a polynomial of degree two in the
 coordinates whose only time dependence is the declared Gaussian drive
 ``f(t) = DimerParameters.drive_difference(t)``:
 
-``dx/dt = F_0 + (A_1 + f(t) D) x + A_2 (x (x) x) + A_3 (x (x) x (x) x)``.
+``dx/dt = F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)``,
+
+with the cubic slot ``A_3`` kept as a generic interface and measured to be
+zero for this target (the Eq. (14d) normal particle and hole sources combine
+into ``-i N [g^T, rho]``).  ``F_0`` is nonzero only because the closed chart
+is affine (``rho = I/2 + ...``); in the draft's real-doubled vectorization the
+constant term vanishes.
 
 This module extracts every coefficient exactly, by polynomial interpolation of
 the committed right-hand side on integer points (one evaluation per monomial

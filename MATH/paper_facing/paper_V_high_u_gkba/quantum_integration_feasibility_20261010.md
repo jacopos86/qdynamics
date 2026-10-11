@@ -783,3 +783,163 @@ $PY $DIR/check_steps_k4_t20.py
 PYTHONPATH=paper_5/src $PY $DIR/run_task3_tail.py --orders 2   # 9 s
 PYTHONPATH=paper_5/src $PY $DIR/run_task3_tail.py --orders 3   # 277 s
 ```
+
+---
+
+# Corrections after verification (2026-10-11)
+
+**Scope.**
+
+- **What was verified.** This report as committed at `a23ff642` (SHA-256
+  `3c1a9afd...5849`) and the B-Q3 reply. The verifiers were four adversarial
+  refuters (G1 structure, G2 Koopman and Schrödingerization, G3 tail and
+  parity, G4 contract and seams) and a completeness critic. Their artifacts
+  are in `output/local_runs/paper_v_quantum_verify_20261010/`.
+- **How the earlier text is treated.** It is not rewritten. Where it
+  conflicts with this section, this section governs.
+- **Where the details are.** The calculations, receipts and the full
+  correction table are in revision 2 of the reply,
+  `agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010-r2.md`.
+  Receipts are under `output/local_runs/paper_v_quantum_target_form_20261010/r2/`.
+
+## The one decision, restated
+
+O3 at `epsilon = 1e-2` against the physical reference is out of reach for any
+route that integrates the archive closure. The closure's own error against
+the exact cutoff-16 reference is:
+
+- site-0 occupation per spin: `0.028` (`T = 4`) and `0.41` (`T = 20`);
+- Eq. (22) energy: `0.015` at both horizons.
+
+The user's decision is the target O3 is scored against:
+
+- **T-bare:** an integration-accuracy contract for the archive equations,
+  with the model error on its own line. It is attainable at `1e-2` by the
+  re-centred windowed lift (`K = 3`, window 1, 19 re-lifts with free exact
+  readout): `2.6e-5` and `1.6e-4` on the site-0 occupation at `T = 4` and
+  `20`.
+- **T-physical:** attainable only by direct 12-qubit simulation of the exact
+  dimer, `T (||H|| + max|f|) = 102` (`T = 4`) and `511` (`T = 20`), which
+  leaves the archive equations out.
+
+-> **Recommended: T-bare.**
+
+## Corrections to this report's statements
+
+**Task 1.**
+
+- **The verdict.** Narrowed on 2026-10-10 to the Liu et al. condition and the
+  tested origin-centred truncations. The windowed and re-centred results
+  below confirm that the narrowing matters.
+- **The drift on exact data.** "The closure diverges from exact data at
+  `t = 433.8964`" is the `rtol 1e-10` value from the exact `t = 60` state;
+  converged it is `434.19`. From the exact correlated preparation at
+  `t = 0`, the `1e4` event is at `t = 141.4059` (instability report).
+- **The cubic term.** It is zero both in the 31 closed coordinates and in the
+  draft's own 44-real vectorization (`A_3 <= 7.4e-17`). There `F_0 = 0`
+  exactly: the five nonzeros of `F_0` come from the affine closed chart
+  `rho = I/2 + ...`. So the manuscript's constant-free force polynomial is
+  right in its own coordinates, and only its cubic term is wrong. The module
+  docstring is corrected.
+- **The divergence-free statement.** It is stronger than stated: every
+  diagonal entry `dF_i/dx_i` vanishes identically.
+
+**Task 2(a).**
+
+- **The linear part.** It preserves a **41**-dimensional space of constant
+  antisymmetric tensors, not 39; the 39 was a column-scaling artifact.
+- **What the negative results cover.** "No constant or affine Poisson tensor
+  generates `F`" holds in the closed chart and under affine changes of it.
+  The preserved affine family is `span{u^v, ell u^v, R^w, E^w}`, whose ranges
+  lie in the 3-dimensional centre-mode subspace `(Re B_+, Im B_+, N_++)`.
+- **The drive-free field is globally Hamiltonian.** Its Hamiltonian is the
+  Eq. (22) energy, for the **degree-2** Poisson tensor `F^w / (2 omega)`, with
+  `w = e_phonon00 + e_phonon11 + e_phonon01real`. Its Jacobi residual is
+  `4.3e-16` and its generation residual `4.4e-16`. The rank-4 bivector
+  `F^w + u^v` is also preserved.
+- **Withdrawn.** "Volume preservation plus one conserved quadratic energy is
+  all the structure there is" is withdrawn. The structure found has
+  2-dimensional leaves and no evident computational use.
+- **First integrals.** The nine have functional rank 5. They are all
+  invariant under translations in a 6-dimensional subspace of the 8
+  off-diagonal `C` coordinates, which is why none bounds them (this replaces
+  the odd-degree argument).
+- **Commutators.** The commutator non-closure was a hand derivation; G1
+  verified it numerically (92 of 595 pairs leave the span).
+
+**Task 2(b), Koopman--von Neumann.**
+
+- **What the old figures were.** 434 to 682 qubits and `T ||L||` from
+  `4.9e5` to `5.6e9` came from a heuristic (`h = epsilon/(3 Lambda)`,
+  `W = 4`, generator norm sampled on the trajectory). That is neither a lower
+  bound nor a sufficient cost.
+- **Corrected figures:**
+  - with the box generator norm, `T ||L|| >= 2.0e7`, `3.9e8`, `7.3e10`;
+  - resolving the compressed direction needs 558, 682, 1,023 qubits;
+  - the dossier's envelope needs 651, 1,984, 5,518.
+- **The baseline.** The same-problem baseline is the dimer: 12 qubits and
+  `T (||H|| + max|f|) = 102`, `511`, `1,533` at `T = 4, 20, 60`. The 19-qubit,
+  680 figure belongs to the three-site chain.
+- **Readout bias (new, r2 calculation 7).** The packet-mean readout is biased
+  by about `sigma_0^2`. A bias at most `1e-2` needs `sigma_0 <= 0.020`
+  (`T = 4`) and `<= 0.0024` (`T = 20`). At `sigma_0 = 0.1`, 86 of 2,000
+  samples escape by `T = 20`.
+
+**Task 2(c), Schrödingerization.**
+
+- **"Realized amplification 12 to 51" mixed trajectories.** Along the exact
+  trajectory the amplification is `12.1` and `15.8`, supremum `19.2`. Along
+  T-bare the supremum over pairs is `13.0` and `51.0`, or `13.2` and `54.1`
+  with the between-grid inflation and RK4 allowance (r2 calculation 3).
+- **"Overhead at least `e^p/Lambda`" is replaced.** For the forced linearized
+  flow the recovery factor is `1.2e3` to `1.5e3` at `T = 4` and `8.7e14` to
+  `1.8e15` at `T = 20`. The theorem form `T sup mu` is `7.39` and `36.97`
+  along the exact trajectory, and `7.38` and `46.13` along T-bare.
+- **The metric is not unique, and a time-dependent one is not needed.** "The
+  `A_1` metric" is one member of a 46-dimensional family, and the driven
+  supremum in it is at least `7.27`. A **constant** metric fitted along
+  T-bare (`sqrt(cond) = 8.45`) brings the T-bare exponent to `2.09` and
+  `11.8` in the theorem form (r2 calculation 8).
+- **No common metric.** No positive definite metric makes both `A_1` and `D`
+  skew-adjoint. Proof: the Lie algebra they generate (dimension 91) contains a
+  nilpotent `X` with `||exp(1000 X)|| = 647`. The same holds after the
+  28-coordinate reduction (`679`).
+
+**Windowed re-lift.**
+
+- **The re-lift bound.** It is a bound only on **origin-centred** lifts, and
+  "80 restarts" is 79 re-lifts plus the final readout.
+- **The re-centred result.** Re-centred at each read-out state, `K = 3` with
+  79 re-lifts reaches `4.1e-8` (`t <= 4`) and `6.3e-7` (`t <= 20`) in the
+  largest coordinate error. With 19 re-lifts (window 1) it reaches `1.1e-4`
+  and `1.8e-3`.
+
+**Task 3.**
+
+- **The tail identity.** It is Duhamel's formula, exact by construction,
+  evaluated to quadrature accuracy: `2.6e-6` to `5.2e-6` with the trapezoid
+  rule, `1.1e-9` to `4.1e-9` with Simpson. The agreement validates the
+  pipeline.
+- **The first-block errors.** They are `2.0` to `2.2` at `T = 4` and `19.6`
+  to `127` at `T = 20`, not "of order one".
+- **The terminal weights.** They are for the unscaled Kronecker encoding with
+  the constant block excluded. At `gamma = ||x_0||` they are `0.525`, `0.249`,
+  `0.080` at `T = 4`.
+- **The pointwise tail ratio.** Its median along the closure trajectory is
+  `0.547` (`t <= 4`) and `0.474` (`t <= 20`); `0.72` was on the exact states.
+
+## New, measured in revision 2
+
+- **Coefficient parity against Eqs. (14a)-(14e).** It is now tested. The
+  Hamiltonian-exact rows agree with the exact cutoff-16 and cutoff-20
+  derivatives to `<= 1.4e-14`, and a second transcription agrees on all 31
+  rows to `5.9e-16`. Both catch the mutation `0.3 x_0 x_3`, including in row
+  21. Tests: `paper_5/tests/test_archive_hamiltonian_parity.py`.
+- **The reduced 28-coordinate system.** It fails every conserved-system
+  condition:
+  - all 4 zero modes receive the quadratic term;
+  - there are 33 nonzero order-2 resonances;
+  - no sector partition exists;
+  - there is no common metric.
+
+  Tests: `paper_5/tests/test_conserved_structure.py`.

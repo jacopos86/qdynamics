@@ -8819,3 +8819,94 @@ not a representable state on a rising energy shell, but the second-order
 positivity bounds on every block held together with the energy; the
 retained joint Gram implies them and is sufficient with the energy, and the
 positive extension is not needed for confinement on this evidence.
+
+## 2026-10-11: B-Q3 revision 2 --- O3 at 1e-2 against the physical reference is out of reach for any closure-integrating route; the re-centred windowed lift meets it against the bare closure
+
+Branch `claude/paper-v-routes-20260914`, HEAD `840672b4`.  Exploratory; no
+commit by this agent, no manuscript edit.  Revision 2:
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010-r2.md`.
+It answers four refuters and a critic (`output/local_runs/paper_v_quantum_verify_20261010/`).
+A corrections section is appended to the feasibility report.  Receipts are
+under `output/local_runs/paper_v_quantum_target_form_20261010/r2/`.  New
+code: `conserved_structure.py`; new tests: `test_archive_hamiltonian_parity.py`
+(11) and `test_conserved_structure.py` (6).
+
+**The decision that changed.**  The bare closure's own error against exact is
+`0.028`/`0.41` on the site-0 occupation and `0.015` on the Eq. (22) energy at
+`T = 4`/`20`, so O3 at `1e-2` against T-physical is out of reach for any
+route that integrates the closure.  Against T-bare it is met.
+
+**O3 precision against T-bare, by route.**
+
+- **Origin-centred lift.**
+  - Site-0 occupation error `0.29`, `0.13`, `0.092` at `K = 2, 3, 4`, `T = 4`.
+  - The energy read from block 2: `0.178`, `0.029`, `0.0094`.
+- **Re-centred windowed lift** (free exact readout), `K = 3`:
+  - window 1, 19 re-lifts: `2.6e-5`/`1.6e-4` on the site-0 occupation and
+    `8.4e-5`/`1.2e-4` on the energy at `T = 4`/`20`;
+  - window 0.25, 79 re-lifts: below `5e-8`.
+
+**Parity.**  This is the first test against the Hamiltonian.
+
+- The rows that are exact Ehrenfest equations agree with the exact
+  derivative to `1.4e-14`.
+- The B, N and A rows carry only the phonon-cutoff remainder: it falls from
+  `1.2e-4`/`4.3e-5`/`7.3e-4` at cutoff 16 to `1.8e-6`/`1.2e-6`/`1.3e-5` at
+  cutoff 20.
+- A second transcription of Eqs. (14a)-(14e) agrees on all 31 rows to
+  `5.9e-16`.
+- Both catch the mutation `0.3 x_0 x_3`, the transcription in row 21 at
+  `0.16`.
+
+**The tube on T-bare.**  `Lambda` is the supremum over `s <= t` of
+`||Phi(t, s)||`, with between-grid inflation and an RK4 allowance:
+
+| horizon | `Lambda` | admissible `delta_avg` |
+|---|---|---|
+| `T = 4` | 13.22 | `4.48e-5` |
+| `T = 20` | 54.10 | `1.07e-7` |
+
+The terminal supremum used earlier (39.30) was the wrong quantity.
+
+**The reduced 28-coordinate system.**  It fails every conserved-system
+condition:
+
+- ranks 24/24/28, and all 4 left zero modes receive the quadratic term
+  (singular values 1.09 to 0.78);
+- 33 of 79 order-2 resonances carry nonzero coupling;
+- 4 modes fit no sector;
+- the Lie algebra of `{L, D}` has dimension 91 with a nilpotent element, so
+  no common metric exists.
+
+**Ledger.**
+
+- `alpha_LCU T / w` at `T = 4` is `240`, `1,670`, `16,100` at `K = 2, 3, 4`,
+  or `150`, `476`, `1,960` after rescaling by `||x_0||`.
+- kappa_stack for T-bare is `12,071`/`166,189`/`11,558,518`.
+
+**Koopman--von Neumann readout bias.**  It goes as `sigma_0^2`: `2.6e-3` at
+`sigma_0 = 1e-2`, `T = 4`, and `0.18` at `T = 20`.  Keeping it at most `1e-2`
+needs `sigma_0 <= 0.020` and `0.0024`.
+
+**Route-relevant propagator.**  In a constant metric fitted along T-bare
+(`sqrt(cond) = 8.45`):
+
+- supremum `3.73`/`30.1`, against `13.0`/`51.0` in the Euclidean norm;
+- Schrödingerization exponent (theorem form) `2.09`/`11.8`, against
+  `7.38`/`46.1`.
+
+**Refuted and corrected** (each with the refuter's number):
+
+- the 39-dimensional family is 41;
+- "the only preserved tensors are rank 2": the field is Hamiltonian for the
+  degree-2 tensor `F^w/(2 omega)`;
+- the KvN heuristic and its three-site baseline;
+- the overhead factor and the metric claims;
+- the re-lift "lower bound";
+- the tail identity "measured exactly";
+- the weights without an encoding;
+- the "independent verifications", which were self-consistency checks;
+- the retained-Gram linear-map claim;
+- the ledger without target labels.
+
+**Next.**  Readout-noise propagation through the re-centred windowed lift.
