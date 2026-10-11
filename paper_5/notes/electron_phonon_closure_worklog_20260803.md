@@ -9208,3 +9208,102 @@ measured rates and labelled as estimates.
    drift or stiffness;
 7. 28 withdrawn claims with their replacements;
 8. 13 unmeasured items in priority order, each with its estimated bound.
+
+## 2026-10-11: the quantum-integration negative result, revised after the numbers check
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_negative_result_20261011.md`,
+revised in place.
+
+| | committed at `aabf51f8` | revised |
+|---|---|---|
+| SHA-256 | `3bb6411a29eecf88df241f229f144b69b0e3d2cdf5628987002d817fa3e36da5` | `8534130ae1a04489b0979fb63f56ffc66d24d80d595168e3176fe1fa3e35f501` |
+| lines | 620 | 821 |
+
+**The check.** It read 178 statements and found 22 mismatched, 3
+untraceable and 1 refuted new formula. It listed 25 missing items.
+
+**The changes.** 55 statements changed: 31 corrected and 24 added. The
+"Revision note (2026-10-11, after numbers check)" block under the Status
+bullets (lines 16 to 98) lists each one with its line number.
+
+**The refuted formula.** The closed-coordinate count is now the 2026-09-20
+dimension-growth record's `2L^3 + 3L^2 + 3L - 1` at `L >= 3`: 89 at `L = 3`
+and 187 at `L = 4`. At `L = 2` it is 31, by the two-site shared-trace
+identity. This replaces `2L^3 + 3L^2 + L + 1` (85 at `L = 3`, 181 at
+`L = 4`).
+
+**Kept against the check.** Three values are kept, each with the G1 artifact
+line it relies on, under
+`output/local_runs/paper_v_quantum_verify_20261010/G1-structure/`:
+
+- `grad H . F` is exactly 0 by tensor algebra (`s1_results.json` line 15);
+- the union-of-ranges residual is `0.928` at 30 states (`s3_results.json`
+  line 52);
+- the truncation-free block is boson occupations at most 3 in a cutoff-5
+  space (`s5_results.json` line 2; `s5_commutator_closure.py` line 65).
+
+There is no other disagreement with the check.
+
+## 2026-10-11: the classical consolidated results, revised after the numbers check
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md`,
+revised in place. The first version is at `3a9981f7` (SHA-256
+`714d34a899fd3e1f18ac09735365e6ea4c3b0a571e3d5c6546a97ec18fa77e44`). The
+revision has SHA-256
+`332dbbc32c634fabda8bf791ca7f61b0785b386421aa0dd5fda3783256a632a2` and 1080
+lines.
+
+**What the check found.** It traced 147 of 194 statements and found 47
+mismatched, almost all of them dropped qualifiers.
+
+**What the revision does.**
+
+- It applies every fix. Its revision note lists 91 changed or added
+  statements with their line numbers: 58 changed, 33 added.
+- It disagrees with none of the fixes.
+- It resolves four source inconsistencies from the receipts or the tables,
+  and says so at each place:
+
+  | quantity | printed in `R` | used |
+  |---|---|---|
+  | within-ensemble range | `-0.01` (`R §13.3`) | `-0.04`, from `-0.0443` in the `R §10` table and receipts |
+  | equal-skill lead | `1.3` | `1.2` (receipt) |
+  | Dykstra seconds of the `138.7`-s run | `18.8` (the second run's) | `19.0` (receipt) |
+  | exact correlated sparse repair | `R §14.0` item 2: "does not improve on the guard" | the `R §14.3` table, where `Delta = 5`, 10 and 20 beat the guard on site-0 and all 31 |
+
+- It scopes the reading for the paper to the `U`-free Holstein dimer. It
+  addresses self-consistency instability and the quantum encoding slot
+  (tex 350 and 353).
+- It carries back:
+  - the `T = 8` and `h`-to-`h/2` columns and every `R §13.6` variant;
+  - the triggered guard's single activation at `t = 37.26`;
+  - the non-converged drop-one cells;
+  - the converged-intersection item and the `0.31` / `0.17` bounds in the
+    unmeasured list.
+
+**Correction to the earlier block.** The earlier block (this worklog, "the
+classical results on the closure, the cheap repair, the guard and the
+hybrid, consolidated") says every number appears verbatim in the report or
+this worklog "apart from two estimates". That was wrong. The first version
+also carried derived and receipt-only numbers in sections 6 and 8 without
+saying so: `0.13` to `0.14`, `1.2` to `3.1`, `0.017`, `216.5` to `346.8`,
+`0.13` to `0.22`, `159` to `503` s, 3 to 8 minutes, 3 to 6 minutes, 10 to
+20 s and about 1 minute.
+
+**The revision's own number check.** It has 625 numbers in its body. 23 are
+not verbatim in the report, `DI` or this worklog:
+
+- 16 are labelled at their place as receipts or derived. These are
+  `-0.0443`, `-0.233`, `-0.625`, `-0.627`, `-0.633`, the four receipt
+  ratios' inputs, `0.0035`, `0.0084`, `0.0171`, `1.228`, `158.5`, `272.1`
+  and `60.2`.
+- 7 are the report's own values in another notation (`1.9e-3` for
+  `1.9e-03`, `75.0` percent for `0.750`).
