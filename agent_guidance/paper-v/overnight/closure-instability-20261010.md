@@ -523,3 +523,484 @@ Artifacts: `traj_*.{json,npz}`, `spectra_*.npz`, `tangent_*.{json,npz}`,
 `lyapvec_*.npz`, `benettin_*.{json,npz}`, `steps_*.json`, `escape_*.json`,
 `cond_*.json`, `blowup_*.json`, `variational_check_*.json`,
 `verify_batched.json`, `summary.json`.
+
+---
+
+# Task 2 (2026-10-10, second round): escape statistics, the predictor, and what confines
+
+**Same branch and worktree, HEAD `a23ff642` (the Task 1 sections above were
+committed at `40771435` by the coordinating session); exploratory, not
+promoted; no module under `paper_5/src` edited, no default changed, nothing
+committed by this round.**
+Scripts and outputs in the same directory; the SHA-256 of every artifact a
+number below comes from is in `sha256_task2.json` (section 12).
+
+## 8. The answer first
+
+1. **The repaired states escape too, at a rate about five times lower than
+   the bare closure's own states, and the advantage over the exact
+   trajectory's states shrinks with the time of the state.** Handed to the
+   bare closure, 64 admissible `1e-4` perturbations of the repaired chain's
+   state reach the `1e4` event after a mean `588.7`, `482.6`, `410.0` time
+   units from `t = 20`, `40`, `60` (censored maximum-likelihood rates
+   `1.70e-3`, `2.07e-3`, `2.44e-3` per unit); the bare closure's own states
+   from the exact correlated preparation at the same times take `136.0`,
+   `104.8`, `82.7` (rates `7.35e-3` to `1.21e-2`, `4.3` to `5.0` times
+   higher); the exact driven trajectory's states take `128.2`, `291.7`,
+   `361.7` (repaired lower by `4.6`, `1.65`, `1.13` times). The time to the
+   event is not memoryless: every ensemble has a long delay before its first
+   event (no repaired member before `296` to `403` units) and five of
+   nineteen are nearly
+   deterministic (spread below one unit), so the "rate" is an inverse mean
+   time, not a hazard.
+2. **Neither representability measure is a leading indicator.** Every member
+   loses joint representability long before its event (retained joint Gram
+   below `-1` a median `175` to `318` units before), but the time of that
+   loss carries no information about when the event comes (rank correlation
+   `-0.04` to `0.25`, spread of the lead equal to the spread of the event).
+   The crossings that do time the event (rank correlation `0.90` to `0.99`:
+   Gram below `-5`, off-diagonal correlation size above `2`,
+   Cauchy--Schwarz margin below `-5`) come `9` to `24` units before it ---
+   no earlier, and no better, than the maximum absolute coordinate passing
+   `4` (`7.7` to `13.7` units, rank correlation `0.92` to `0.99`).
+3. **The cone-holding chain's states escape too, and faster as that chain
+   heats.** From the task-13 hyperplane-off chain (retained joint Gram held
+   to `-1.5e-12` over `t <= 20`, Eq. (22) energy rising from `-3.425` at
+   `t = 5` to `-0.622` at `t = 20`), all 64 members of every ensemble reach
+   the event: `416.4` units from `t = 5`, then `73.8`, `70.2` and `66.2` from
+   `t = 10`, `15`, `20`, against `143` to `156` absolute for the bare closure
+   from the same preparation. A representable state at high energy is not
+   confined. The same-preparation chain that holds the energy (task 11)
+   hands on the longest-lived state measured: from its `t = 20` state 41 of
+   64 members have no event in 1500 units (censored rate `2.5e-4`).
+4. **Holding the Cauchy--Schwarz bound on the off-diagonal correlations alone
+   does not confine.** It is energy-neutral by construction and cheap, it
+   lowers the escape rate by `5.2` (Hartree--Fock preparation) and `7.6`
+   (exact correlated preparation) times and by `1.3` and `1.0` times from the
+   exact and repaired `t = 60` states, and members escape inside 600 units
+   from every start (32, 15, 31 and 32 of 32). The escape
+   moves to the phonon blocks: the phonon density's diagonal goes negative
+   (`N00 = -1.85` at `t = 100`, `-215.9` at `t = 240`), which forces the
+   off-diagonal bound to zero, and the anomalous phonon density, the shared
+   trace and the diagonal correlation grow until the event at `t = 250.94`.
+5. **Holding every second-order Cauchy--Schwarz minor confines.** With the
+   phonon density non-negative, the anomalous density, all three Pauli
+   components of the correlation and the off-diagonal phonon density each
+   bounded by their variances, the Bloch vector inside the unit ball and the
+   shared trace pinned at zero, no member of 16 escapes within 600 units
+   from any of the four starts, with or without the Eq. (22) energy restored
+   (128 member-runs, 76,800 member-units, against controls whose members
+   fire at a mean `54.4` to `395.2`). The Eq. (22) energy drifts by up to
+   `5.89` without restoration and up to `1.50` with the approximate
+   restoration used here; held exactly together with the energy, these
+   minors make the reachable set compact (section 11.3), so escape is then
+   impossible, not merely slow.
+
+## 9. Task (a): escape statistics
+
+Protocol (`escape_stats.py`): from the stored state at the stated time, 64
+perturbations of size `1e-4` in the lifted Frobenius norm along
+`constrained_initial_direction` (seeds `1` to `64`; tangent to the Eq. (22)
+energy and the correlation shared trace), each propagated by the bare
+closure (`closed_scalar_rhs`, DOP853 at `rtol 1e-10`, `atol 1e-12`) to the
+`1e4` event or `1500` units (members without an event by then are censored; only one
+ensemble has any). Sources
+(`state_sources.py`): `bare_exact_start` (the bare closure from the exact
+correlated preparation, `traj_exact_correlated_t0.npz`), `bare_hartree_fock`
+(from the Hartree--Fock preparation; it has no state at `t = 60`, its event
+being at `54.46`), `repaired_chain` and `exact_reference` (the chain's
+segment files), `hyperplane_on` (the task-11 base) and `hyperplane_off`
+(task 13), both from the exact correlated preparation. "Elapsed" is the time
+from the state to the event; "absolute" is the event time; the rates are
+the censored maximum-likelihood exponential rate (events over total exposure)
+and the same with a delay equal to the earliest event.
+
+| ensemble | fired | mean elapsed | standard deviation | earliest | quartiles and median | latest | mean absolute | rate | rate after the delay |
+|---|---:|---:|---:|---:|---|---:|---:|---:|---:|
+| bare Hartree--Fock, `t = 20` | 64/64 | `34.45` | `0.04` | `34.35` | `34.4`, `34.5`, `34.5` | `34.5` | `54.4` | `2.90e-2` | --- |
+| bare Hartree--Fock, `t = 40` | 64/64 | `14.46` | `0.01` | `14.44` | `14.5`, `14.5`, `14.5` | `14.5` | `54.5` | `6.92e-2` | --- |
+| bare exact start, `t = 20` | 64/64 | `135.99` | `33.21` | `113.43` | `120.4`, `123.8`, `134.8` | `296.2` | `156.0` | `7.35e-3` | `4.43e-2` |
+| bare exact start, `t = 40` | 64/64 | `104.83` | `18.77` | `90.56` | `97.2`, `101.5`, `105.0` | `216.8` | `144.8` | `9.54e-3` | `7.01e-2` |
+| bare exact start, `t = 60` | 64/64 | `82.65` | `2.33` | `80.14` | `81.1`, `81.7`, `84.6` | `90.5` | `142.7` | `1.21e-2` | `3.99e-1` |
+| exact reference, `t = 20` | 64/64 | `128.23` | `5.13` | `122.06` | `123.9`, `128.3`, `131.5` | `150.3` | `148.2` | `7.80e-3` | `1.62e-1` |
+| exact reference, `t = 40` | 64/64 | `291.69` | `68.00` | `169.22` | `244.4`, `281.0`, `326.8` | `466.8` | `331.7` | `3.43e-3` | `8.17e-3` |
+| exact reference, `t = 60` | 64/64 | `361.74` | `45.78` | `293.12` | `326.1`, `351.7`, `382.3` | `478.1` | `421.7` | `2.76e-3` | `1.46e-2` |
+| **repaired chain, `t = 20`** | 64/64 | **`588.69`** | `133.20` | `402.88` | `495.1`, `576.7`, `637.3` | `1115.3` | `608.7` | **`1.70e-3`** | `5.38e-3` |
+| **repaired chain, `t = 40`** | 64/64 | **`482.65`** | `91.93` | `382.59` | `416.6`, `457.6`, `523.8` | `849.8` | `522.6` | **`2.07e-3`** | `9.99e-3` |
+| **repaired chain, `t = 60`** | 64/64 | **`410.04`** | `91.57` | `296.11` | `350.3`, `395.5`, `424.6` | `779.1` | `470.0` | **`2.44e-3`** | `8.78e-3` |
+| hyperplane on, `t = 5` | 64/64 | `413.50` | `69.27` | `327.72` | `363.1`, `392.0`, `439.9` | `674.8` | `418.5` | `2.42e-3` | `1.17e-2` |
+| hyperplane on, `t = 10` | 64/64 | `199.24` | `0.05` | `199.21` | `199.2`, `199.2`, `199.2` | `199.6` | `209.2` | `5.02e-3` | --- |
+| hyperplane on, `t = 15` | 64/64 | `1038.13` | `6.51` | `1028.01` | `1033.8`, `1038.0`, `1040.4` | `1070.9` | `1053.1` | `9.63e-4` | --- |
+| hyperplane on, `t = 20` | **23/64** (41 without an event by `1500`) | `1248.67` (fired) | `209.17` | `722.39` | `1073.5`, `1267.0`, `1429.3` (fired) | `1470.5` | `1268.7` (fired) | **`2.55e-4`** | `5.23e-4` |
+| hyperplane off, `t = 5` | 64/64 | `416.36` | `20.43` | `385.09` | `402.0`, `411.0`, `428.5` | `474.5` | `421.4` | `2.40e-3` | `3.20e-2` |
+| hyperplane off, `t = 10` | 64/64 | `73.80` | `0.24` | `73.40` | `73.6`, `73.7`, `73.9` | `74.9` | `83.8` | `1.36e-2` | --- |
+| hyperplane off, `t = 15` | 64/64 | `70.16` | `1.01` | `68.14` | `69.9`, `70.6`, `70.7` | `73.1` | `85.2` | `1.43e-2` | --- |
+| hyperplane off, `t = 20` | 64/64 | `66.22` | `0.07` | `66.03` | `66.2`, `66.2`, `66.2` | `66.5` | `86.2` | `1.51e-2` | --- |
+
+(Rates after the delay are omitted where the spread is under one unit: the
+event is then effectively deterministic and a rate has no meaning.)
+
+**Is the repaired states' rate lower, by how much, and does it depend on the
+time of the state.** Lower than every bare-closure state at every time:
+against the bare closure from the exact correlated preparation by `4.3`,
+`4.6` and `5.0` times at `t = 20`, `40`, `60`, and against the bare
+Hartree--Fock trajectory by `17` and `33` times at `t = 20` and `40` (that
+trajectory's own event is at `54.46`, deterministic to `0.1`). Against the
+exact driven trajectory's states it is lower by `4.6`, `1.65` and `1.13`
+times. It depends on the time of the state: the repaired chain's own rate
+rises `1.70e-3`, `2.07e-3`, `2.44e-3` and its mean absolute event time falls
+`608.7`, `522.6`, `470.0`, so the later the repaired state, the sooner the
+bare closure escapes from it, while the exact trajectory's states move the
+other way (`148.2`, `331.7`, `421.7`). The ensembles that start on states
+the repair held cones on (task 11, task 13) are erratic in the time of the
+state (`413.5`, `199.2`, `1038.1` and more than half beyond `1500` with the
+hyperplane on; `416.4`, `73.8`, `70.2`, `66.2` with it off), and five of the
+nineteen ensembles have a spread below one unit: from such a state the
+event is fixed to within a unit, and the "rate" is the inverse of that time.
+
+**What this says about the repair.** The coordinator's reading holds in the
+form "the repair changes the time to escape of the state it hands on, it does
+not remove the instability": every repaired state escapes once handed to the
+bare closure. On the horizons the repaired chain has actually been run
+(`t <= 60`), the earliest escape of any perturbed repaired state is `296`
+units after the state, so over `t = 20` to `60` the per-step repair is not
+what keeps the chain bounded --- the state at `t = 20` would have survived
+more than `400` further units of the bare flow --- which is the same
+conclusion the 2026-09-20 boundary sweep reached, now with ensembles.
+
+## 10. Task (b): does the loss of joint representability predict the event?
+
+Along every member, every `0.05` time units (`escape_stats.py`; per-member
+values in `escape2_*.json`, every-`0.5` series in `escape2_*_series.npz`):
+the minimum unshifted retained joint Gram eigenvalue ("Gram"); the size of
+the off-diagonal electron--phonon correlation block,
+`sqrt(sum_q |C[q]_01|^2 + |C[q]_10|^2)` ("off-diagonal size"); the smallest
+off-diagonal Cauchy--Schwarz margin, `min over q and a in {x, y} of
+N_qq (1 - r_a^2) - |Tr(C[q] sigma_a)|^2`, which is the 2-by-2 minor of the
+retained joint Gram on the pair `(b_q, sigma_a)` and agrees with the
+module's `raw_moment_schur_complement` to `1.1e-16` (`verify_cs.json`)
+("CS margin"); and the maximum absolute coordinate. For a threshold, a
+member's lead is its event time minus its first crossing.
+
+**As functions of time before the event** (medians over the 64 members;
+repaired chain from `t = 20`; the first-50-unit median beside it):
+
+| time before the event | `200` | `100` | `50` | `20` | `10` | `5` | `2` | `1` | `0.5` | `0` |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Gram (baseline `-0.047`) | `-0.576` | `-1.12` | `-1.57` | `-2.73` | `-5.33` | `-15.2` | `-71.7` | `-280` | `-1.55e3` | `-2.35e4` |
+| off-diagonal size (baseline `0.204`) | `0.504` | `0.802` | `0.925` | `1.30` | `2.13` | `6.37` | `22.8` | `122` | `557` | `1.11e4` |
+| CS margin (baseline `0.343`) | `0.293` | `0.060` | `-0.138` | `-1.46` | `-5.13` | `-37.1` | `-477` | `-1.07e4` | `-2.45e5` | `-9.96e7` |
+| maximum absolute coordinate (baseline `1.55`) | `1.60` | `1.65` | `1.80` | `2.41` | `3.22` | `6.99` | `27.5` | `99.8` | `384` | `7.1e3` |
+
+All four drift slowly for hundreds of units and then run away in the last
+ten to twenty. The exact reference from `t = 40` and the bare closure from
+`t = 20` show the same shape (Gram `-0.43`/`-1.63` at `200` before, `-5.0`/
+`-7.7` at `10` before; `escape2_analysis.json`).
+
+**Leads at fixed thresholds** --- median lead (interquartile range of the
+lead) and Spearman rank correlation of first crossing with event, against
+the event's own interquartile range:
+
+| threshold | repaired `t = 20` (event IQR `142.2`) | repaired `t = 40` (`107.2`) | repaired `t = 60` (`74.4`) | exact `t = 40` (`82.4`) | exact `t = 60` (`56.2`) |
+|---|---|---|---|---|---|
+| Gram `< -1` | `256.8` (`142.0`), `-0.01` | `318.4` (`107.2`), `-0.04` | `177.1` (`70.1`), `0.24` | `174.5` (`78.7`), `0.22` | `207.9` (`56.2`), `0.25` |
+| Gram `< -2` | `117.2` (`109.6`), `0.63` | `51.9` (`52.1`), `0.55` | `54.7` (`44.4`), `0.77` | `82.9` (`54.8`), `0.69` | `109.5` (`52.1`), `-0.16` |
+| Gram `< -5` | `14.5` (`18.8`), `0.99` | `12.0` (`10.0`), `0.98` | `9.4` (`7.9`), `0.98` | `12.2` (`13.0`), `0.98` | `20.2` (`21.9`), `0.92` |
+| off-diagonal size `> 1` | `129.5` (`133.2`), `0.61` | `63.1` (`63.9`), `0.56` | `55.9` (`76.7`), `0.62` | `67.4` (`62.7`), `0.69` | `85.4` (`29.7`), `0.55` |
+| off-diagonal size `> 2` | `16.9` (`23.5`), `0.98` | `12.2` (`10.4`), `0.97` | `10.1` (`12.2`), `0.97` | `12.9` (`12.6`), `0.97` | `22.9` (`25.8`), `0.93` |
+| CS margin `< -0.1` | `280.0` (`130.9`), `0.12` | `318.3` (`107.2`), --- | `217.0` (`67.9`), `0.42` | `164.2` (`89.6`), `-0.06` | `140.7` (`50.3`), `0.31` |
+| CS margin `< -5` | `16.2` (`25.4`), `0.99` | `12.2` (`11.1`), `0.97` | `10.3` (`13.1`), `0.97` | `13.5` (`14.1`), `0.97` | `24.0` (`27.5`), `0.90` |
+| maximum absolute coordinate `> 3` | `28.2` (`49.9`), `0.90` | `12.0` (`12.7`), `0.98` | `11.9` (`9.2`), `0.97` | `16.0` (`20.0`), `0.91` | `59.0` (`44.1`), `0.77` |
+| maximum absolute coordinate `> 4` | `11.2` (`19.3`), `0.97` | `9.2` (`7.0`), `0.99` | `7.7` (`5.9`), `0.99` | `8.3` (`11.2`), `0.98` | `13.7` (`17.9`), `0.92` |
+
+(`---`: every member crossed at the same sample, so no rank correlation.)
+Every member of every ensemble crosses every listed threshold before its
+event.
+
+**Reading.** Loss of joint representability always precedes the event and
+never times it. The thresholds crossed early (Gram `-1`, CS margin `-0.1`,
+which every member passes long before its event)
+are crossed at times unrelated to when the event comes: the lead's spread
+equals the event's own spread and the rank correlation is `-0.06` to `0.42`
+(medians `141` to `318` units before the event).
+The thresholds that do time the event (rank correlation `0.90` to `0.99`)
+are crossed a median `9` to `24` units before it with a spread of `8` to
+`28`, which is what the maximum absolute coordinate does at `4`: the
+representability measures are not leading indicators beyond the escape's
+own runaway, and are not better indicators than the magnitude. On the
+record's standing question this answers the event half: the loss predicts
+*that* the bare closure will escape (always, from every state measured), not
+*when*. The repaired chain over `t = 0` to `60` never loses the off-diagonal
+Cauchy--Schwarz bound at all (margin at least `0` at all 24,001 samples,
+`cs_along_chains.json`), nor do the task-11 and task-13 chains over
+`t = 0` to `20` (minimum `0.066` and `0.174`); the bare trajectories lose it
+at `t = 10.48` (Hartree--Fock preparation, event `54.46`), `4.37` (exact
+correlated, `141.41`), `262.0` and `221.2` (from the exact and repaired
+`t = 60` states, events `433.90` and `410.78`).
+
+## 11. Task (c): what confines
+
+### 11.1 The cone-holding chain's states, under the bare closure
+
+The task-13 chain holds both cones over `t = 0` to `20` with the Eq. (22)
+hyperplane off, and its energy rises. Its states at the ensemble times
+(`start_states_table.json`):
+
+| `t` | Eq. (22) energy | retained joint Gram minimum | CS margin | `Tr N` | time to the event under the bare closure (mean of 64) |
+|---:|---:|---:|---:|---:|---:|
+| `5` | `-3.42519` | `1.2e-15` | `0.221` | `0.988` | `416.36` |
+| `10` | `-2.93765` | `-6.3e-16` | `0.584` | `1.810` | `73.80` |
+| `15` | `-1.68413` | `-2.3e-15` | `1.036` | `3.205` | `70.16` |
+| `20` | `-0.62158` | `+7.5e-3` | `2.407` | `5.314` | `66.22` |
+
+with the same-preparation chain that holds the energy (task 11:
+`-3.56578` at every time, Gram `-6.9e-6` to `-3.6e-4`) at `413.50`,
+`199.24`, `1038.13` and, at `t = 20`, no event in `1500` units for 41 of 64
+members, and the bare closure from the same preparation at absolute `142.7`
+to `156.0`. **It escapes, at 64 of
+64 members from every one of the four states, and faster the more it has
+heated**: from `t = 10` on, within `66` to `74` units. The escape rate is not
+zero within 400 units. What this test measures is the state, since from the
+handed-on state the flow is the bare closure: a state inside the cone but on
+a higher energy shell is not confined. It does not measure the task-13 flow
+itself past `t = 20`, which was not run.
+
+### 11.2 Holding a bound in the flow
+
+`clip_flow.py`: the bare closure by RK4 at `h = 0.0025` (it reproduces the
+record's bare scores `1.2957e-1`, `2.9372e-1`, `3.3200e-1` at `t = 4`, `8`,
+`20` and Eq. (22) RMS `4.517e-2`, `clip_accuracy_hartree_fock_none.json`),
+and after every step one map:
+
+- `cs_offdiag` --- the off-diagonal Pauli components of each correlation
+  block projected onto the disc their Cauchy--Schwarz bound allows,
+  `|Tr(C[q] sigma_a)|^2 <= N_qq (1 - r_a^2)`, `a = x, y`. It touches only
+  `C[q]_01` and `C[q]_10`, which Eq. (22) does not contain, so it is
+  energy-neutral by construction.
+- `minors` --- every second-order bound: shared trace `Tr C[q] = 0` (an
+  identity on every state), `|r| <= 1`, `N_qq >= 0`, `|N_01|^2 <= N_00 N_11`,
+  `|A_qq|^2 <= N_qq (N_qq + 1)`, `|A_01|^2 <= min(N_00 (N_11 + 1),
+  N_11 (N_00 + 1))`, and the Cauchy--Schwarz bound on all three Pauli
+  components of each correlation block, each held by radial scaling
+  (postconditions verified to `9e-13`, `verify_minors.json`). These are the
+  2-by-2 minors of the retained joint Gram that bound each coordinate; the
+  full 8-by-8 Gram is not projected.
+- `minors_energy` --- the same, then the Eq. (22) energy returned to its
+  pre-map value by moving the coherent field along the energy gradient (the
+  coherent field enters no centred moment, so no bound is disturbed); when
+  the map has raised the energy by more than the coherent field can absorb,
+  the restoration stops at the coherent field's energy minimum and the
+  residual remains.
+
+**Ensembles** (`1e-4` admissible perturbations, `600` units; 32 members for
+`none` and `cs_offdiag`, 16 for the minors):
+
+| start | `none`: fired, mean elapsed | `cs_offdiag`: fired, mean | `minors`: fired | `minors_energy`: fired | energy drift at `600`, `minors` / `minors_energy` |
+|---|---|---|---|---|---|
+| Hartree--Fock preparation, `t = 0` | 32/32, `54.4` | 32/32, `283.2` (`228` to `345`) | 0/16 | 0/16 | `1.29` / `0.82` |
+| exact correlated preparation, `t = 0` | 32/32, `152.7` | 15/32, `481.4` (`411` to `573`) | 0/16 | 0/16 | `5.89` / `0.36` |
+| exact reference, `t = 60` | 32/32, `377.4` | 31/32, `468.6` (`387` to `549`) | 0/16 | 0/16 | `1.38` / `1.50` |
+| repaired chain, `t = 60` | 31/32, `395.2` | 32/32, `405.1` (`316` to `510`) | 0/16 | 0/16 | `0.055` / `0.0044` |
+
+(The `none` column reproduces the DOP853 ensembles of section 9 and
+Task 1: `377.4` against `361.7` and `395.2` against `410.0` from the two
+`t = 60` states, median `142.3` against `142.0` from the exact correlated
+preparation. Ranges in the `cs_offdiag` column are the 10th to 90th
+percentiles of the members that fired. The energy drifts include the pulse's own input, `0.22` and
+`0.24` on the two `t = 0` starts. At `600` units the surviving members'
+maximum absolute coordinate is `1.41` to `3.60` and their retained joint
+Gram minimum `-0.88` to `+0.06`: the minors do not make the full Gram
+positive, and do not need to.)
+
+**What escapes when only the off-diagonal bound is held**
+(`clip_escape_probe_bare_hartree_fock_t0_cs_offdiag.json`, one unperturbed
+member, event at `250.94`): the energy stays at `-3.2606925` throughout;
+the phonon density's diagonal goes negative (`N00 = -1.85` at `t = 100`,
+`-8.99` at `190`, `-215.9` at `240`), at which point the bound forces the
+off-diagonal correlations to zero; the anomalous phonon density
+(`4.94` at `100`, `52.2` at `200`, `2.08e3` at `250`), the shared trace
+(`0.76`, `6.38`, `312`) and the diagonal correlation (`1.18`, `4.31`,
+`231`) carry the growth. Every one of them is held by the `minors` map.
+
+**Accuracy and cost** against the exact driven reference, the record's
+all-coordinate scalar RMS of the 31 closed scalar coordinates, Hartree--Fock
+preparation (`clip_accuracy_hartree_fock_*.json`):
+
+| map | `t = 4` | `t = 8` | `t = 20` | `t = 40` | `t = 60` | Eq. (22) RMS at `t = 20` | wall per unit, one trajectory |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| none (bare closure) | `0.12957` | `0.29372` | `0.33200` | `0.45096` | event at `54.46` | `0.04517` | `0.20 s` |
+| `cs_offdiag` | `0.12957` | `0.29372` | `0.32442` | `0.38659` | `0.41301` | `0.04517` | `0.21 s` |
+| `minors` | `0.13134` | `0.29694` | `0.31450` | `0.34274` | `0.35760` | `0.04802` | `0.46 s` |
+| `minors_energy` | `0.13102` | `0.29604` | `0.31360` | `0.33627` | `0.34584` | `0.04733` | `0.42 s` |
+| the cheap repair (record) | `0.010803` | `0.037209` | `0.15368` | `0.21606` | `0.25235` | `0.0011888` | `217 s` |
+
+From the exact correlated preparation to `t = 20`: `0.19320` bare,
+`0.15739` with `cs_offdiag`, `0.16864` with `minors`, `0.15784` with
+`minors_energy` (`clip_accuracy_exact_correlated_*.json`). The maps hold
+the electronic one-body density matrix positive from the Hartree--Fock
+preparation (minimum `0` to `-2.2e-16` at the sampled times, against
+`-216.4` bare) and confine, but they do not make the closure accurate; that
+is what the cheap repair's dictionary and extension buy, at about 500 times
+the wall.
+
+### 11.3 The quantity that confines
+
+On the evidence, **the confining object is the set of second-order positivity
+bounds on every block --- the phonon density non-negative, the anomalous
+density, the off-diagonal phonon density and all three Pauli components of
+each electron--phonon correlation bounded by the corresponding variances,
+the Bloch vector in the unit ball and the correlation's shared trace at
+zero --- held together with the Eq. (22) energy.** Each part is measured:
+the energy alone does not confine (the bare closure conserves it to six
+decimals and escapes from every state measured, section 9); a state inside
+the cone does not stay confined once the flow stops holding it (the
+task-13 states escape in `66` to `416` units, faster the hotter they are,
+11.1); the Cauchy--Schwarz bound on the off-diagonal correlations alone
+lowers the escape rate by `1.0` to `7.6` times and confines nothing, because
+the energy leaves through the phonon density going negative and the
+anomalous density, which Eq. (22) does not contain (11.2); and with every
+second-order bound held, no member of 128 escapes in 600 units, with or
+without the energy restored. The reason is a short inequality, not a
+measurement: with `Tr C = 0`, `|r| <= 1` and `|Tr(C[q] sigma_z)| <=
+sqrt(N_qq)`, the Eq. (22) energy is at least
+`-2 + omega_ph |B|^2 - 4 sqrt(2) g |B| + omega_ph Tr N - 2 g (sqrt(N_00) + sqrt(N_11))`,
+which diverges as `|B|` or `Tr N` does, so a fixed energy bounds `B` and
+`Tr N`, and the bounds then bound `A` and every correlation entry: the set
+{Eq. (22) energy fixed} intersected with these bounds is compact. Without
+the energy it is a cone and is not compact --- the minors-only runs heat by
+up to `5.89` in 600 units without escaping, which is consistent with but
+does not establish confinement over longer times --- and without the bounds
+the energy shell is not compact (sections 6 and 9). The retained joint
+Gram, which implies every one of these bounds, is therefore sufficient
+with the energy but more than is needed, and the 36-row positive extension
+is not needed for confinement at all on this evidence (it was not tested
+in isolation; every map above confines without it). **The Cauchy--Schwarz
+bound on the off-diagonal correlations alone is not the confining object.**
+The ensembles point the same way without any map: the task-11 chain,
+which holds the energy and keeps the retained joint Gram within `-3.6e-4`,
+hands on at `t = 20` the longest-lived state of all (41 of 64 members
+without an event in 1500 units), and the task-13 chain, which holds the
+Gram exactly and lets the energy rise, hands on the shortest-lived (`66` to
+`74` units from `t >= 10`). What the confining set costs to hold by itself:
+a handful of scalar comparisons and about twenty square roots per state per
+step --- no eigenvalue
+problem, no solve --- measured at `0.42` to `0.46 s` per time unit for one
+trajectory in this unoptimised Python, about twice the bare closure's own
+step and about one five-hundredth of the cheap repair's `217 s` per unit;
+the measured price is in accuracy, `0.314` at `t = 20` against the cheap
+repair's `0.154`, and in the energy, which radial scaling does not hold
+exactly (drift `0.0044` to `1.50` over 600 units with the restoration
+through the coherent field, which fails whenever the map has raised the
+energy beyond the coherent field's minimum).
+
+## 12. Reproduction and artifact hashes
+
+```bash
+$PY $D/verify_cs.py                    # the CS margin against the module's Gram
+$PY $D/verify_minors.py                # energy formula and the minors map
+/bin/zsh $D/run_escape2.sh             # section 9 and 10 ensembles (escape_stats.py)
+$PY $D/analyze_escape2.py              # -> escape2_analysis.json
+$PY $D/cs_along_chains.py              # -> cs_along_chains.json
+$PY $D/start_states_table.py           # -> start_states_table.json
+/bin/zsh $D/run_clip_accuracy.sh       # 11.2 accuracy (none, cs_offdiag, cs_all)
+$PY $D/clip_flow.py accuracy --variant minors --preparation hartree_fock --span 60 --horizons 4 8 20 28 40 55 60
+$PY $D/clip_flow.py accuracy --variant minors_energy --preparation hartree_fock --span 60 --horizons 4 8 20 28 40 55 60
+$PY $D/clip_flow.py accuracy --variant minors --preparation exact_correlated --span 20 --horizons 4 8 12 16 20
+$PY $D/clip_flow.py accuracy --variant minors_energy --preparation exact_correlated --span 20 --horizons 4 8 12 16 20
+/bin/zsh $D/run_clip_ensembles.sh      # 11.2, 32 members, 600 units (none, cs_offdiag)
+/bin/zsh $D/run_minors_ensembles.sh    # 11.2, 16 members, 600 units (minors_energy, minors)
+$PY $D/clip_escape_probe.py --variant cs_offdiag --span 400
+$PY $D/sha256_task2.py                 # -> sha256_task2.json
+```
+
+Every process ran under 20 minutes (the longest, the `minors` ensembles,
+`682` to `687 s`; the 1000-unit clip ensembles first launched were stopped
+under machine load and rerun at 600 units with 32 members). The machine was
+shared with another agent's runs throughout, so walls are upper bounds.
+
+SHA-256 of the artifacts the numbers come from: the input states and every
+JSON output, below; the full list, 137 files including the per-member series,
+the `resume.npz` files used to stitch the chains and the scripts, is in
+`sha256_task2.json` (rendered by `sha256_table.py`). Hashes were taken after
+every run had finished; any later rerun changes them.
+
+| artifact | SHA-256 |
+|---|---|
+| `output/local_runs/paper_v_instability_20261010/traj_exact_correlated_t0.npz` | `9f48c778280aacced3524e586ac30e519c601411db1c1085d9942f3f67f2f91d` |
+| `output/local_runs/paper_v_instability_20261010/traj_hartree_fock_t0.npz` | `5f4e367ebf4b4ff771d51210a0d6906718102c35cbf9d3de16ddf0a37cef61d3` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg1/trajectory.npz` | `9f7eefcf015b8d21929b516ac75a58a759f1dd3ef8fd0157054d96f4a82b8deb` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg10/trajectory.npz` | `d6752cd7c5db4dfba5472a820190e687bd544ef4b6bac2b8d4c516b5bd61bc40` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg11/trajectory.npz` | `ecf20a6e3618278a2bf953e6065049fe8c48b641f966679f0926127fdf21ca9e` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg12/trajectory.npz` | `2c534d515b00dd4d941e9d8dcedba3999dd3384a3017c07efcb9637cbb9d6fce` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg13/trajectory.npz` | `3da423deb5291333345ef573b0920aa54b3468898b26cde2a4b4be8b0639fc6c` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg14/trajectory.npz` | `b9f7f2cc847c4ee5c2315eb6e6167bc97e2e7ceb0b051cdbf4e7ed06c5cbf112` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg2/trajectory.npz` | `5b83103d03566a1094077921ae6db02bc15f7b7d2a2b02ba3435d3c324611062` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg3/trajectory.npz` | `a64012362e1be6024dd5044ce29af5aaf1707a069e1bab9f016813765bb15780` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg4/trajectory.npz` | `6af709eccb04d2dfbd27f9f646c50566ae345bc978649cff2953e496e400c62d` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg5/trajectory.npz` | `ec1d0c3feb73f24e44b9bc7b0efd27a690e4a7e6db0fb2c785048785489149f9` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg6/trajectory.npz` | `4a1949cb21fed530294f1985fed0e24ea19b1f3ed6624e243ad88131c7157f4d` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg7/trajectory.npz` | `ae358252e88d22e8d2f6838746452b419a9e5769088e6e6153a8e18bcc937f47` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg8/trajectory.npz` | `dc0dfa74b605a86d9470f19982d8122b26eadbce7aeabc253b60ea55860171b2` |
+| `output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg9/trajectory.npz` | `1f6cbd76437763ccd60c0e4a628a6665dd67f5b30fd47d3528403f438adf90ac` |
+| `output/local_runs/paper_v_dictionary_energy_none_27key_n16_measured_dyk120_base_20260918o_seg1/trajectory.npz` | `529f40fdcc17c3f40a3233be5f9027a3d4a18ba6fe6a6cb83224ffa12bcb950e` |
+| `output/local_runs/paper_v_dictionary_energy_none_27key_n16_measured_dyk120_base_20260918o_seg2/trajectory.npz` | `5833fd381957d3cf58dec0597a3ddee4f82bc671d079c2c139d152aa253595e5` |
+| `output/local_runs/paper_v_dictionary_energy_none_27key_n16_measured_dyk120_base_20260918o_seg3/trajectory.npz` | `73744618128e79ea6687959dfc5d9502887344c909d3ca09d3d67c3087b33aa6` |
+| `output/local_runs/paper_v_dictionary_energy_none_27key_n16_measured_dyk120_base_20260918o_seg4/trajectory.npz` | `04a74375ce2ba02df2e9e8539d12de6d04e0ecc3cfc8b06f552bc5902fd927bc` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg1/trajectory.npz` | `40637207645cf4079b0510e08c7e316ee48a6d8c7e1b96c734e54cb1f76e9ed0` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg2/trajectory.npz` | `8598f745ca802f77c6c9918d12a86ce2c075d19d25a2d91c2c9d11d6d3e1ef32` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg3/trajectory.npz` | `dc4732197462f65b129c010fa1dfbd4c5f166e718a7a62b2278857f5a0fc0910` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg4/trajectory.npz` | `050a76c3cf4dcac6c2dc0a406167cbb48f758da1fad47865c494d8b78c79a110` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg5/trajectory.npz` | `b9a1d30c6e49e46a24115f4d469f3b92bd3c9e14dee1508ff21bcadad7c1f2c2` |
+| `output/local_runs/paper_v_dictionary_energy_power_27key_n16_measured_dyk120_base_20260918m_seg6/trajectory.npz` | `18be81b3e0f51ac4332d70e22272a1872984d4fb72c1becfdf32072836ef8252` |
+| `output/local_runs/paper_v_instability_20261010/escape2_analysis.json` | `5cd7f59df8c4d62894f0239f2a5cfb40cb7aa1b14c01e7243963eb3a4ca588b5` |
+| `output/local_runs/paper_v_instability_20261010/escape2_bare_exact_start_t20.json` | `8a642b45c55b1446ec0959ca2939465647a89eb36afab1919e1d77ed7be46498` |
+| `output/local_runs/paper_v_instability_20261010/escape2_bare_exact_start_t40.json` | `94b0fcba8c27a65cd8d9c9ef59873a4b28bb9bc47ccf75d3f4e245bc039adda5` |
+| `output/local_runs/paper_v_instability_20261010/escape2_bare_exact_start_t60.json` | `a24ce623bf979b9023a24c3747cdc639ddee7e0ea391006ea4f0c736527ba4fd` |
+| `output/local_runs/paper_v_instability_20261010/escape2_bare_hartree_fock_t20.json` | `79a100ed1448d0b74df7cd4ce1168165d20dac4d689bd4805c8f2069bdd94a91` |
+| `output/local_runs/paper_v_instability_20261010/escape2_bare_hartree_fock_t40.json` | `0e1743d71c0eba7ce735120e09ec2f227145941e9e0e0d04753babdd4600bc10` |
+| `output/local_runs/paper_v_instability_20261010/escape2_exact_reference_t20.json` | `f8d95826ac90784e9fbc67e8c36178846851daa86cbbb62aee41512b01820cef` |
+| `output/local_runs/paper_v_instability_20261010/escape2_exact_reference_t40.json` | `c3744bd064598bdf4b46f5417e77a6bda107e0ed927d25463f5ffd6325f12fc4` |
+| `output/local_runs/paper_v_instability_20261010/escape2_exact_reference_t60.json` | `2e1d19260caccdd6d9a7918f446064515ee64e6f14e0db4b62389d2954e465ef` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_off_t10.json` | `24f2921eccbe045d027f6c413025d1eceecb916118463e84316913d5b09a4710` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_off_t15.json` | `ffa989678c778c5e890f15fead5854b661e54b04e5132ba37ee82628cfe293d6` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_off_t20.json` | `69bb8f62bfeab00c7b7cafcdfb82d32f2d972b53f137993b7ce95ebfb4e83db4` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_off_t5.json` | `0580596c9d113c3381dedf291b08fa2272354ac9d38be1e79b17c3173570282e` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_on_t10.json` | `1cffbe6c84bbbab347ab7fc7c625ea4833642dcae283d56cb52afe07b21a1854` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_on_t15.json` | `9ee7999e4defc33516d5e5911999de83680950b7fb6b3cdf163ecad9d802cc62` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_on_t20.json` | `262a51bc866f27d93fde4f60d4cc7c7f6586050151f9d144b0012e144ba3a897` |
+| `output/local_runs/paper_v_instability_20261010/escape2_hyperplane_on_t5.json` | `f3e62746f90be3dba174008f550d9619363bbcac0e26502f126d461eff35988c` |
+| `output/local_runs/paper_v_instability_20261010/escape2_repaired_chain_t20.json` | `f2ea79306bce5a3e093cbe18e778268bb29775722c42903193e4ceba99e03064` |
+| `output/local_runs/paper_v_instability_20261010/escape2_repaired_chain_t40.json` | `18e50dd01ab4ed8b925f087b0bed0773c935ab3a77bb19ea83ca5e4fb709f0e6` |
+| `output/local_runs/paper_v_instability_20261010/escape2_repaired_chain_t60.json` | `20a969324af2d3bd213e48eb5872f871befa5333c5908c2edd0d241c50c288bb` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_exact_correlated_cs_all.json` | `783f7559e9ab7472b0b48d34501f1c9c7e2aa7a29bad48f866fdd96572c98165` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_exact_correlated_cs_offdiag.json` | `c5ef066065c8ed489daea2d10735549e00b82d76fed426a45804f9a951d262a0` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_exact_correlated_minors.json` | `279bd811c2db8e76d5c2ec7dad3315e7c3d8fbb42cce9415a9810887dbc44a73` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_exact_correlated_minors_energy.json` | `75fc7eb6a2da4fe597f3c50423afdecab26bd23b1faeefc27d93ecedc9bff3c4` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_exact_correlated_none.json` | `40143125091196f1b606c9d959cc10ae811c925f7cdf8e9d03c95c60afa82848` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_hartree_fock_cs_all.json` | `508257d3506559414b28c8842fe848251ea11ce652787c079490104d6fd8d12a` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_hartree_fock_cs_offdiag.json` | `0883d58e0c8d0c1f8f9f7d564e01175a378f9388a94e807bd749f536eb2c7c38` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_hartree_fock_minors.json` | `38fb303a6292529cfc4b2b2b227ab070c434798b0839d6765d1b67f7f2cb9a8d` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_hartree_fock_minors_energy.json` | `9f298948a54543f31446b5139614c3b11eb080e7dc2f3762c17926a8253ac0a3` |
+| `output/local_runs/paper_v_instability_20261010/clip_accuracy_hartree_fock_none.json` | `df2a30a9a0bf9949c5793501c4b7a616e90887c992b480d06ef572b47ba41267` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_exact_start_t0_cs_offdiag.json` | `c71c81e7ba3a0e802324520a6d3b559c0a8b41f92f6840028e1e0cd26188bfb6` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_exact_start_t0_minors.json` | `d3465638ea2f3ff3d4a9f7ecc0cc31bcf30680c53e44f47819af02f5442053e8` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_exact_start_t0_minors_energy.json` | `2ea34732fda6aca70b000a5e37c01df813cda70d8f3471b74ba304c44f79284d` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_exact_start_t0_none.json` | `5e045148b61d7079ed17a5d7cc77b921c76d265f32aef3a6f72431ee4abd62af` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_hartree_fock_t0_cs_offdiag.json` | `d86f9025ecb1d67a532dc7c46de1ca41c791431078c58d20dc3246a4bf62a192` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_hartree_fock_t0_minors.json` | `48954b79b4cd2a02a714d3af20ab26914eb7f0d6ae5b8e3ee47ee2055e78b312` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_hartree_fock_t0_minors_energy.json` | `0b3ace35aab3ed1952cda3984d4f10cdcaa1aa8759828124b8786941c046c45c` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_bare_hartree_fock_t0_none.json` | `e6b1f7a22567425b55ff4a1f40c0ca17017da191b8586cdcfbacdf21c58c9ef1` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_exact_reference_t60_cs_offdiag.json` | `7eb6c501a3bade47e9fee5652ce519cf2676cbdfd68da7df7aafe3aaa828be4b` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_exact_reference_t60_minors.json` | `a35ab8d3d4058f3f012345e7d882b9077ab43c267af54c735d558c3d72ffad55` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_exact_reference_t60_minors_energy.json` | `21cda8b69d581410301c35a39743769f0462fcf5b997b162da275591acc4c8bc` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_exact_reference_t60_none.json` | `e8c494fedf9e56da1c7cb945516170fdb1c584a51773e755852e0edb8df39420` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_repaired_chain_t60_cs_offdiag.json` | `9627699ae798af4c822ea3aeb8f1e7acda5da1289a20ca7964437fc921f9af36` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_repaired_chain_t60_minors.json` | `184e00cc971a3b4e3d035321ca15e63be7952d59824395ecdc2d4168fd57546e` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_repaired_chain_t60_minors_energy.json` | `f34517ba5507d995beb50d9b908b1321af19174d66ca4e188fe32465af138dbd` |
+| `output/local_runs/paper_v_instability_20261010/clip_ensemble_repaired_chain_t60_none.json` | `ef4bb13535377541949f3a86bd625b71ff247375f1038f2d5e63508f3dcf35fa` |
+| `output/local_runs/paper_v_instability_20261010/clip_escape_probe_bare_hartree_fock_t0_cs_offdiag.json` | `a75e18e5d17e42602ee22a9ddb6498aee7a2dfea65594968afff56b741efa446` |
+| `output/local_runs/paper_v_instability_20261010/cs_along_chains.json` | `8f162a3da1f4335f32b0e49d6ee93a49b90b2e5cc0a5357fc1b121791bf435d9` |
+| `output/local_runs/paper_v_instability_20261010/verify_cs.json` | `c2a74677db9bdd590a5531471dbf95d9833866261cf3859f25de94886c939131` |
+| `output/local_runs/paper_v_instability_20261010/verify_minors.json` | `e1ba5b2b9d720275047d6f27273a0f66b7d854ac114a01b684804085e17585e0` |
+| `output/local_runs/paper_v_instability_20261010/verify_batched.json` | `1fdcdae9d2f59e00f99511854ab9a6d78154d435361c34e643b273fa1adbfbfc` |
+| `output/local_runs/paper_v_instability_20261010/start_states_table.json` | `93954ca838f191a608ea76fcdb35cfabd5828ffaa9aaf852087cd06a4885242f` |

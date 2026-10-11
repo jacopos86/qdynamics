@@ -8747,3 +8747,75 @@ admissible defect (`4 ||A_2|| Lambda^2 T^2 delta_avg <= 1`).  From the sampled
 `Lambda`, that defect must be below `4.6e-5`, `1.2e-7` and `3.5e-12` per unit
 time at `T = 4`, `20`, `60`.  The output contract (all 31 coordinates, the
 terminal state, selected observables, or invariants) is the user's decision.
+
+## 2026-10-10: escape statistics, the predictor, and what confines --- the repaired states escape at a fifth of the bare rate, representability loss never times the event, and the second-order Cauchy--Schwarz minors with the energy confine where the off-diagonal bound alone does not
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `a23ff642`.
+Exploratory local work, not promoted evidence; no default changed, no module
+under `paper_5/src` edited, nothing committed by this round.  Report
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md` sections
+8 to 12; scripts and outputs under
+`output/local_runs/paper_v_instability_20261010/`; SHA-256 of every input
+and output in `sha256_task2.json`.
+
+Negative results first.  **The off-diagonal Cauchy--Schwarz bound held alone
+does not confine**: energy-neutral by construction, it lowers the escape
+rate `1.0` to `7.6` times, and members still reach the `1e4` event inside
+600 units from all four starts (32, 15, 31, 32 of 32); the escape moves to
+the phonon density going negative, the anomalous density, the shared trace
+and the diagonal correlation.  **Loss of joint representability is not a
+leading indicator**: every member loses it long before its event (retained
+joint Gram below `-1` a median `175` to `318` units before) at times
+uncorrelated with the event (Spearman `-0.04` to `0.25`), and the crossings
+that do time it (Gram below `-5`, off-diagonal size above `2`,
+Cauchy--Schwarz margin below `-5`; Spearman `0.90` to `0.99`) come `9` to
+`24` units before, no better than the magnitude passing `4`.  **The
+task-13 chain's cone-holding states escape too** --- 64 of 64 at every one
+of `t = 5`, `10`, `15`, `20`, in `416.4`, `73.8`, `70.2`, `66.2` units,
+faster as its energy rises from `-3.425` to `-0.622` --- so its escape rate
+is not zero within 400 units.
+
+Escape statistics (64 admissible `1e-4` perturbations per state, bare
+closure, DOP853 `1e-10`, to the event or 1500 units; mean time to the
+event, censored exponential rate): repaired chain `588.7` / `482.6` /
+`410.0` from `t = 20` / `40` / `60` (`1.70e-3`, `2.07e-3`, `2.44e-3`); bare
+closure from the exact correlated preparation `136.0` / `104.8` / `82.7`
+(`4.3` to `5.0` times the repaired rate); bare Hartree--Fock `34.45` /
+`14.46` from `t = 20` / `40`, deterministic to `0.04`; exact driven
+trajectory's states `128.2` / `291.7` / `361.7` (repaired lower by `4.6`,
+`1.65`, `1.13`).  The repaired rate rises with the time of the state.  The
+time to the event is not memoryless --- long delays before the first event,
+five of nineteen ensembles deterministic to under one unit --- so the rate is
+an inverse mean time.  The task-11 chain's `t = 20` state is the
+longest-lived measured: 41 of 64 members without an event in 1500 units.
+Every repaired state escapes once handed to the bare closure; none does so
+within `296` units, so over `t = 20` to `60` the per-step repair is not what
+keeps the chain bounded.
+
+What confines.  Held after every RK4 step of the bare closure, every
+second-order Cauchy--Schwarz minor --- `N_qq >= 0`, `|N_01|^2 <= N_00 N_11`,
+`|A_qq|^2 <= N_qq (N_qq + 1)`, `|A_01|^2` bounded likewise, all three Pauli
+components of each correlation block bounded by `N_qq (1 - r_a^2)`,
+`|r| <= 1`, `Tr C[q] = 0` --- stops every escape: 0 of 128 members in 600
+units from four starts, with or without the Eq. (22) energy restored
+(energy drift up to `5.89` without, `1.50` with the approximate restoration
+through the coherent field).  With the energy held exactly these bounds make
+the reachable set compact (Eq. (22) is at least
+`-2 + omega |B|^2 - 4 sqrt 2 g |B| + omega Tr N - 2 g sum sqrt(N_qq)` on
+it), so escape is then impossible.  The repaired chain and both task-11 and
+task-13 chains never violate the off-diagonal bound; the bare trajectories
+violate it at `t = 4.37` to `262.0`.  Cost: about twenty square roots per
+state per step, `0.42` to `0.46 s` per unit for one trajectory in
+unoptimised Python against the cheap repair's `217 s`; accuracy `0.314` at
+`t = 20` from the Hartree--Fock preparation against the cheap repair's
+`0.154` and the bare closure's `0.332`.
+
+Reading.  The repair's stabilization is statistical in the coordinator's
+sense: it hands on states the bare closure escapes from about five times
+more slowly, and does not remove the instability.  The confining object is
+not the energy alone, not the off-diagonal Cauchy--Schwarz bound alone, and
+not a representable state on a rising energy shell, but the second-order
+positivity bounds on every block held together with the energy; the
+retained joint Gram implies them and is sufficient with the energy, and the
+positive extension is not needed for confinement on this evidence.
