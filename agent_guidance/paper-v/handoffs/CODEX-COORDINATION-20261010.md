@@ -440,3 +440,104 @@ Independent single-question analyses (per-word leakage measurement, QSE
 conditions from the Paper III code, the contradiction audit of the reply)
 run as disposable verification only; their findings go to the one reviewer
 for reconciliation and are not a second review.
+
+
+## Program A architecture reply, revision 2 (2026-10-10, commit `c943ae8a`)
+
+`agent_guidance/paper-v/handoffs/claude-architecture-chemistry-papers-i-iii-20261010-r2.md`
+(1,062 lines, SHA-256 `f609dfd8e4648b27a82095f13d26f10bfbd5cfd330ff2e3eb85f6b33289114d0`)
+answers message `chemistry-source-audit-20261010-010`. Revision 1 at
+`3e5d4179` is unchanged (`7bbb051d…c4fc`); r2 amends it by reference and its
+section 4 supersedes r1's section 6 increments. Three independent
+single-question analyses (per-word leakage, QSE conditions, contradiction
+audit), each adversarially refuted, were reconciled into it; the twelve
+disagreements are r2 section 5, each with the line it rests on.
+
+**Corrections to the "Program A architecture reply ready" section above**
+(its sentences stand as written at the time; these replace them):
+
+- Lines 315–317, "until the matrix-free increments land": the cap is a
+  memory limit decided on the Claude side; running above 12 qubits is the
+  user's scope. Under r2 the two 16-qubit tests of r1 become 12-qubit guard
+  tests with the dense builder patched to raise, and no increment of Paper
+  III lifts the cap at all (its only bound and index guard,
+  `window_error_gate` against the dense reference, disappears above it).
+- Lines 328–329, "added after the existing branches": the molecular
+  application enters behind a default-false gate (false for every existing
+  request); the placement wording cannot hold in `_parent_pool_spec`.
+- Lines 332–337, "every UCCSD excitation is one sector-safe block ... the
+  grouped-execution concern ... does not apply to UCCSD": true for Paper I,
+  one angle per excitation. For Paper II, one coordinate per Pauli word is
+  not sector-safe: the repository's own sector audit already requires
+  `logical_shared` for every molecular UCCSD generator
+  (`pipelines/static_adapt/sector_invariants.py:627-630`, 26 of 26 at 8
+  qubits), and measured per-word leakage at 8 qubits (4 spatial orbitals,
+  (2,2) electrons) reached out-of-sector population `8.4e-2` by `t = 2` with
+  fixed support and `3.9e-1` through generalized exchange, against
+  `<= 4.9e-32` in every logical-shared run. Per-word coordinates fail closed
+  in r2; every checkpoint reports out-of-sector population with a `1e-8`
+  ceiling. Separately, a UCCSD-only support from a real Hartree–Fock
+  reference under a real molecular Hamiltonian has McLachlan force exactly
+  zero in either coordinate choice (every Jordan–Wigner word has an odd
+  number of Y letters), so AP-McLachlan does not move: energy constant at
+  `-13.225633492505308` over `t = 0` to `0.2` at 8 qubits. The molecular
+  Paper II pool composition (even-Y words or a complex seed) is GPT A2's
+  question.
+- Lines 344–346: the facade red is not one of the counted failures. Every
+  failure in the counted batches is pre-recorded in
+  `docs/reports/FULL_SUITE_BASELINE_20260831_failed.txt`: Paper I
+  `test_hamiltonian_adapter_capabilities.py` twice (`:356-357`); Paper II
+  `test_realtime_drive_terms.py` three times (`:575-577`) and
+  `test_scaffold_runtime_loader.py` twice (`:591-592`). Separately, the
+  facade suite `test/test_ra_adapt_facade.py`, which none of these batches
+  runs, has one known red, the frozen ordinary-v1 route digest (`:547`), a
+  stale source lock whose re-pin is the user's decision; measured at
+  `a23ff642`: 66 passed and 1 failed of 67, in 200 s.
+- Lines 348–352 (dispatch): r2 section 4 supersedes the reply's section 6
+  increments. The first increment is S0, closed-shell input validation and
+  provenance (new files only: `pipelines/contracts/molecular_input.py`, a
+  seeded random-integral generator under `test_support/` owned by Paper I,
+  and a test file; under 15 minutes of agent wall time), on the Paper I
+  branch; Papers II and III branch from the commit that lands S0. Paper I's
+  increment 1 is a tests-only pin, under 15 minutes, of the Hubbard–Holstein
+  protocol and route digests (`fc25b5c2…`, `0312875b…` at `0de9685a`);
+  Paper II's increment 1 is a tests-only characterization of the molecular
+  runtime path on the synthetic 8-qubit system; Paper III's increment 1 adds
+  the provider module (under 20 minutes). The facade suite (66/1, 200 s) is
+  added to Paper I's increment 2.
+
+**QSE (r2 section 2).** Every Ritz-bound statement now carries its
+conditions: number-conserving records on a fixed-sector root; the exact
+nondegenerate sector ground as the `Q0` root, with index matching within
+the sector counted with multiplicity (necessary, not sufficient: certified
+root skips were measured at 4 qubits); the completed pencil with its
+conditioning (the completion cutoffs admit condition numbers to `1e10`, and
+a `1e-10` tolerance needs kappa well below about `1e7` at this `||H||`);
+cost weighting changes only selection, never Ritz values; provenance
+(`pool_digest` over ordered names, `ground_provenance`, root count `R` per
+molecule). The completion certificate (`method_completion.py:121-147,
+209-217`) certifies eigenvalues of `Q0 H Q0` on the complement of the
+prepared state, not of `H`: it reported certified on a Hartree–Fock root
+with `theta_3 - E_3 = -2.06e-2` Ha at 4 qubits. Two bounds survive an
+inexact root: `theta_k >= E_(k-1)` for any sector-preserving subspace, and
+`theta_k >= E_k - (E_k - E_0)(1 - f)` for a root of ground fidelity `f`
+(measured margin `+0.149` on the 8-qubit Hartree–Fock case). The cost
+oracle silently prices non-Hermitian records (`8.0` against `4.0` two-qubit
+gates), so r1 line 305 was wrong.
+
+**Fixture defect.** The in-repository H2 STO-3G writer
+(`test/test_static_adapt_builders.py:88-125`) violates two-electron integral
+symmetry: `(00|11) = 0.181287518779` while `(11|00) = 0.663472101`, residual
+`0.482` Hartree, and its `hf_energy` disagrees with the value computed from
+its own integrals by `-1.33e-3` Hartree. r2 keeps it only as a case S0 must
+reject (7 missing fields, the symmetry violation, the HF mismatch); the
+8-qubit synthetic payload passes. A separate repair of the fixture is queued
+on the Claude side outside this campaign.
+
+**Decisions that are the user's** (r2 section 6): whether any molecule
+above 12 qubits is in Program A scope (Claude recommends not now); whether
+to authorize correcting the stale facade sentence in
+`agent_guidance/molecular-vibronic/AGENTS.md:22-25` and root
+`AGENTS.md:94-96`, cross-lane edits no lane handoff makes (Claude recommends
+yes). Unmeasured items are r2 section 8. Next step once the user decides: S0
+on the Paper I branch.
