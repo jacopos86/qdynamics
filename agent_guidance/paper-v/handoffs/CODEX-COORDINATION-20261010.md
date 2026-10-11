@@ -722,3 +722,39 @@ repair, and it buys no accuracy. Unmeasured: the exact energy hold beyond
 both the Gram cone and the energy surface, the repaired chain with the
 repair switched off, repaired states of other chains, a held-out test of
 the guard thresholds.
+
+
+## Guard-plus-sparse-repair hybrid (2026-10-11, commit `8390a83b`)
+
+Section 14 of `agent_guidance/paper-v/overnight/closure-instability-20261010.md`
+(lines 1844-2152), hashes in `sha256_task2.json` (520 files, SHA-256
+`767f6eec…795f`). The hybrid is the bare closure with the exact-energy
+second-order guard after every RK4 step (`h = 0.0025`) plus one recorded
+cheap-repair step (27 keys, Dykstra 120, energy hyperplane on the
+drive-power reference) every `Delta` units, to `T = 60`. It is not the
+repair-early-then-bare lane's experiment (continuous repair over `[0, t_h]`
+then bare).
+
+Negative: the sparse repair does not approach the repaired chain's accuracy.
+RMS over `[0, T]` against the exact trajectory, site-0 occupation /
+Eq. (22) energy / all 31 coordinates, Hartree–Fock preparation, `T = 60`:
+`Delta = 1` `.2506 / .0289 / .2919` at `3.26 s` per unit; `Delta = 5`
+`.2666 / .0495 / .3211` at `0.78`; guard alone `.2890 / .0495 / .3668` at
+`0.22`; repaired chain `.1604 / .0012 / .2523` at `332.1` (`216.5`
+recorded). The best arm is 1.56x worse than the repaired chain on the
+occupation, 24x on the energy, 1.16x on all coordinates, at 100 to 930 times
+lower cost. From the exact correlated preparation `Delta = 1` and `2` end
+worse than the guard alone at `T = 60`, and `Delta = 5` beats the task-11
+every-stage repair on site-0 at `T = 20` (`.0575` against `.0681`) without a
+trend in `Delta`; those rows depend on the zero-cumulant rule used for the 27
+moments the repair needs and the closure does not carry (exact for
+Hartree–Fock, off by up to `0.378` for the exact correlated ground state).
+The lift re-selection returned infeasible in all 222 repair events and
+costs `2.4` to `3.0 s` of each `2.5` to `3.1 s` event; without it the hybrid
+would run at `0.22` to `0.29 s` per unit (derived from the walls, not run).
+The `T = 60` hand-on state's lifetime under the bare closure does not order
+with `Delta` (0 of 8 escapes by 600 units at `Delta <= 5`, censored).
+Unmeasured: other rules for the 27 moments, `Delta < 1`, the hybrid without
+re-selection, a repair run to convergence (the extension-cone minimum stays
+at `-1.9e-4` to `-4.1e-3` after each 120-iteration repair), perturbed
+members for accuracy, `h/2` beyond the `Delta = 5` Hartree–Fock arm.
