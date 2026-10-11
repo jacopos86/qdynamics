@@ -8962,3 +8962,78 @@ Reading.  Route (a) prices a quantum reproduction of a classical
 integration, not a speedup.  The user's decision on the O3 target is
 therefore a choice between an encoding demonstration of the archive
 equations and a physics simulation that bypasses them.
+
+## 2026-10-11: corrections to the escape-statistics round after three refuters and a critic --- the bare rows were one trajectory's remaining lifetime, representability loss predicts nothing, and with the energy held exactly no single family of bounds is necessary
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `840672b4`.
+Exploratory local work, not promoted evidence. No default changed, no
+module under `paper_5/src` edited, nothing committed by this round. The
+report is `agent_guidance/paper-v/overnight/closure-instability-20261010.md`,
+section 13, which corrects sections 8 to 12. Scripts and outputs are under
+`output/local_runs/paper_v_instability_20261010/task2_corrections/`, and the
+SHA-256 of every input and output is in the rehashed `sha256_task2.json`.
+
+Negative results first.
+
+- **The "five times lower" escape rate is withdrawn.** It compared the
+  repaired chain (Hartree--Fock preparation) with the bare trajectory from
+  the exact correlated preparation. The bare rows measure that one
+  deterministic trajectory's remaining lifetime, `141.41 - t` or
+  `54.46 - t`, plus at most `14.6` units from the `1e-4` perturbation.
+  Against the exact driven trajectory's states from the same preparation,
+  the repaired states live `4.6`, `1.65` and `1.13` times longer at
+  `t = 20`, 40 and 60. Unperturbed, the ratios are `4.1`, `1.3` and `0.94`.
+- **Representability loss predicts nothing.** Under the bare closure the
+  retained joint Gram is negative at, or within 12 units of, the start in
+  all 19 ensembles. Members that never fire cross Gram `< -1` at the same
+  median time (`542.8`) as members that do.
+- **Representable starts escape as before.** Repaired `t = 20` states
+  carried into the minors set or the Gram cone fire under the bare closure
+  at a mean of `420` to `541` units (16 members each). Exact `t = 20`
+  states, already representable, fire at `125.8` and `130.3`.
+- **No map built this round approaches the cheap repair's accuracy.** Its
+  Eq. (22) RMS is `6.6` to `38` times higher at every horizon. The critic's
+  assessment stands verbatim: *the minors clip is a candidate cheap
+  divergence guard, not a representability repair, and it does not improve
+  accuracy.*
+- **Every map after an RK4 step is first order in `h`.** Successive-halving
+  ratios are `1.91` to `2.39`, against `16.0` bare. The Gram-cone map with
+  one exact energy root is not `h`-converged.
+
+Necessity, 8 members per cell, 600 units, from both `t = 0` preparations:
+
+- **With the Eq. (22) energy held exactly** (alternated with the bounds to
+  `1e-12`), dropping any one family still gives 0 fired, with a supremum of
+  at most `3.80`. The energy with the phonon bounds alone
+  does not suffice: keeping only the trace pin, only `N_qq >= 0`, both, or
+  `N_qq >= 0` with the anomalous bounds lets 8 of 8 fire.
+- **With the energy not held,** the correlation Cauchy--Schwarz bounds are
+  necessary. Without them 7 of 8 exact-correlated members fire (`502` to
+  `576`) and the Hartree--Fock members reach `2.3e3`.
+- **The minors map alone heats without bound.** Over 3000 units 0 of 16
+  members fire, but the energy keeps rising (median `+66` and `+3.9`,
+  largest `+339`) and the maximum absolute coordinate reaches `285`.
+- **The Gram-cone map** (one eigenvalue clip per step) confines and holds
+  the Gram to `-1.4e-3`, but heats by `+0.8` to `+1.8`. The boson moment
+  map with exact energy confines from both preparations (0 of 16 fired,
+  supremum `2.45`). It holds the boson matrix to `-1.8e-3` but not the
+  Gram (`-0.73`).
+- **A guard switched on only where the maximum absolute coordinate passes
+  3 or the Gram falls below `-2.75`** prevents every event in 600 units
+  from 32 starts that all fire under the bare closure by `566`. It acts at
+  `8.7e-4` and `9.7e-3` of member-steps. Its thresholds were tuned on the
+  same ensembles.
+
+Cost, one session (minimum of three, one trajectory): bare RK4 `0.140 s`
+per unit, minors `0.165`, exact energy hold `0.216` to `0.426`. The cheap
+repair costs `346.8 s` per unit on `t = 0` to `0.4` in the same session, of
+which `117.2 s` of the `138.7 s` total is lift re-selection. On the recorded
+`t = 0` to 60 wall it costs `216.5`.
+
+Reading. Against the matched reference, section 9's "statistical
+stabilization" shrinks with time. At `t = 60` the repaired state's ensemble
+lives `1.13` times as long as the exact state's, and `0.94` times as long
+unperturbed. With the energy held exactly, any five of the six families
+confine over 600 units. A triggered version is cheap and stops the measured
+events, but its accuracy is the bare closure's.
