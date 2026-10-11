@@ -1840,3 +1840,313 @@ interpreter is `/Users/lordskyler/Holstein_test/.venv/bin/python`, with
   All 78 rows of the section-12 table carry the same digest in the new
   manifest, so no earlier receipt changed. The manifest file itself has
   SHA-256 `777ae638beb3707da344c47cd2b9ca7936e2b8ee580aa98e41940f8ac0615da0`.
+
+---
+
+# 14. The guard at every step with the cheap repair at sparse intervals (2026-10-11)
+
+**Branch `claude/paper-v-routes-20260914`, HEAD `5d0bd578` (section 13 committed
+at `36b686b3`). Exploratory, not promoted. No module under `paper_5/src`
+edited, no default changed, nothing committed by this round.** Receipts are
+under `output/local_runs/paper_v_instability_20261010/task3_hybrid/`, and
+their SHA-256 are in the rehashed `sha256_task2.json` (14.8). This lane is not
+the repair-early-then-bare lane: that lane repairs continuously over
+`[0, t_h]` and then runs bare, while here the guard acts after every step and
+the repair acts once every `Delta` units from `t = 0` to 60.
+
+## 14.0 The answer first
+
+1. **No `Delta` brings the hybrid near the cheap repair's accuracy.** From
+   Hartree--Fock the best arm is `Delta = 1`. Against the repaired chain
+   over `[0, 60]` it is:
+   - `1.56` times worse on the site-0 occupation (`0.2506` against
+     `0.1604`);
+   - `24` times worse on the Eq. (22) energy (`0.0289` against `0.0012`);
+   - `1.16` times worse on all 31 coordinates (`0.2919` against `0.2523`).
+
+   Over `[0, 4]` the same arm is `4.5` and `26` times worse on the site-0
+   occupation and the energy.
+2. **From the exact correlated preparation the sparse repair does not
+   improve on the guard.** The effect of `Delta` is not monotone. At
+   `T = 60`, `Delta = 1` and `2` are worse than the guard alone:
+   - site-0 RMS `0.3788` and `0.3710`, against `0.3004`;
+   - all-coordinate RMS `0.3281` and `0.3240`, against `0.2513`;
+   - Eq. (22) RMS `0.0610` at `Delta = 1`, against `0.0354`.
+
+   One cell beats the reference: `Delta = 5` has site-0 RMS `0.0575` over
+   `[0, 20]`, against task 11's `0.0681`. The neighbouring arms give
+   `0.0918` (`Delta = 2`) and `0.1200` (`Delta = 10`), so this is not a
+   trend.
+3. **Over the guard alone, from Hartree--Fock, the hybrid gains steadily as
+   `Delta` shrinks.** `Delta = 1` lowers the `T = 60` scores by 13 percent
+   (site-0), 42 percent (Eq. (22)) and 20 percent (all 31). It costs
+   `3.26` s per unit against the guard's `0.22`.
+4. **Cost (14.4).** The hybrid costs `0.36` to `3.26` s per unit from
+   Hartree--Fock and `0.53` to `3.08` from exact correlated. The cheap
+   repair costs `332.1` s per unit in the same session. So the hybrid is
+   100 to 930 times cheaper.
+   - The lift re-selection takes `2.4` to `3.0` s of each event's `2.5` to
+     `3.1` s. It returned "infeasible" in all 222 events, so the carried
+     lift was kept every time.
+   - The same trajectories would therefore cost `0.22` to `0.29` s per unit
+     with the re-selection skipped (derived, 14.4).
+5. **Escape (14.2, 14.3).** The hand-on state's lifetime under the bare
+   closure does not order with `Delta`.
+   - From Hartree--Fock, 0 of 8 fire by 600 at `Delta = 1`, 2 and 5. At
+     `Delta = 10` all 8 fire (mean `481.4`), and at `Delta = 20` all 8 fire
+     at `227.9`. The guard alone gives 8 of 8 (`368.8`). The repaired chain,
+     same seeds, gives 8 of 8 (`373.6`; `410.0` over all 64 members to 1500).
+   - From exact correlated, 0 of 8 fire at `Delta = 5`, 10 and 20; 3 of 8 at
+     `Delta = 1`; 4 of 8 at `Delta = 2`; 6 of 8 for the guard alone.
+6. **The Gram is held only at the repair times.** From Hartree--Fock at
+   `Delta = 1`, the retained Gram falls to `-0.20` between repairs and is
+   below `-1e-4` at 7.4 percent of grid samples. The guard alone is below
+   at 75 percent, and the repaired chain at 24 percent (minimum `-8.5e-4`).
+
+## 14.1 What one repair step is on the closure
+
+The flow is the bare closure (`closed_scalar_rhs`), RK4 at `h = 0.0025`,
+with the exact-energy minors guard after every step (`maps2` `minors_exact`,
+section 13.6). At `t = Delta, 2 Delta, ..., 60` the recorded repair step is
+applied once (`hybrid.repair_event`):
+
+1. **The closure state in the repair's coordinates.**
+   - The 29 raw moments come from the exact change of variables. The guard
+     holds the shared trace at 0, which that change requires.
+   - The repair also needs the 27 dictionary moments, which the closure
+     does not carry. They are set by the zero-cumulant rule from the
+     closure's own second-order moments
+     (`moment_hierarchy._zero_terminal_cumulant_moment`): two-spin moments
+     are products of one-spin means, and third-order moments have zero
+     third cumulant.
+   - This is an assumption of this lane. It equals the exact-moment
+     dictionary of the Hartree--Fock product state to `4.4e-16`. It differs
+     from the exact correlated ground state's dictionary by up to `0.378`
+     (`probe_hybrid_*.json`).
+2. **The lift.** The lift is re-selected by the recorded rule: the declared
+   proximal log-det completion, warm-started from the carried lift, with
+   measured candidates and acceptance margin `1e-3`. A refusal keeps the
+   carried lift. The carried lift starts as the exact-moment lift of the
+   preparation's state vector, as in the repaired chain.
+3. **One repair call.** `AffineGramCoordinates.repair` with the recorded
+   settings: Dykstra, 120 iterations, both cones, the Eq. (22) hyperplane.
+   The energy reference is the Eq. (22) energy carried into the repair. On
+   this flow that equals the drive-power reference, because the closure
+   step changes the energy only by the drive's work and the guard holds it.
+4. **Back to the closure.** The repaired raw moments are mapped back to the
+   31 coordinates, the dictionary is dropped, and the guard is applied once.
+
+Every other setting is the repaired chain's (`run_divergence_segment.py`
+flags: 27 keys, `--lift exact_moments`). Checks (`probe_hybrid.py`):
+
+- the closed start equals the stored bare start to `1.0e-10`
+  (Hartree--Fock) and `8.0e-16` (exact correlated);
+- the raw round trip is exact to `5.6e-17`;
+- the route's Eq. (22) functional equals `maps2.energy` to `4.4e-16`;
+- across all 222 events, the energy after the repair and the guard differs
+  from the reference by at most `3.6e-15`.
+
+Accuracy columns give the site-0 occupation / Eq. (22) energy / all 31
+coordinates. Each is the RMS over every `0.0025`-grid sample in `[0, T]`
+against the exact driven trajectory from the same preparation
+(`_accuracy_metrics`; references as in 13.6). "s per unit" is the arm's own
+wall in the serial session (guard segments plus repair events), divided by
+60.
+
+The Gram columns use the retained 8-by-8 joint Gram's minimum eigenvalue,
+taken over all 24,001 grid samples in `[0, 60]`. At a repair time the sample
+is the state after the repair.
+
+The escape column is the bare-closure test from the arm's `t = 60` state:
+8 members `x60 + 1e-4 u` (`u` the admissible direction, seeds 1 to 8),
+DOP853 `rtol 1e-10`, `atol 1e-12`, event `max|x_i| = 1e4`, span 600. It
+gives:
+
+- the number fired by 600;
+- the restricted mean to 600 (the mean of `min(event, 600)`, a lower bound
+  on the mean when members are censored);
+- the unperturbed state's own event time.
+
+## 14.2 Hartree--Fock preparation
+
+Bare RK4 step `0.130` s per unit, guard `0.203` (`timing_bare_guard.json`,
+same session).
+
+| `Delta` | T = 4 | T = 20 | T = 60 | s per unit | Gram minimum | fraction below `-1e-4` | escape: fired by 600 of 8; restricted mean; unperturbed |
+|---|---|---|---|---:|---:|---:|---|
+| 1 | 0.0318 / 0.0277 / 0.1364 | 0.1420 / 0.0288 / 0.2695 | 0.2506 / 0.0289 / 0.2919 | 3.258 | -0.200 | 0.074 | 0; 600.0; none |
+| 2 | 0.0370 / 0.0432 / 0.1392 | 0.1528 / 0.0477 / 0.2906 | 0.2600 / 0.0484 / 0.3063 | 1.711 | -0.354 | 0.216 | 0; 600.0; none |
+| 5 | 0.0356 / 0.0437 / 0.1313 | 0.1603 / 0.0487 / 0.2966 | 0.2666 / 0.0495 / 0.3211 | 0.778 | -0.381 | 0.400 | 0; 600.0; none |
+| 10 | 0.0356 / 0.0437 / 0.1313 | 0.1638 / 0.0487 / 0.3020 | 0.2782 / 0.0495 / 0.3335 | 0.480 | -0.381 | 0.809 | 8; 481.4; none |
+| 20 | 0.0356 / 0.0437 / 0.1313 | 0.1655 / 0.0487 / 0.3146 | 0.2852 / 0.0495 / 0.3570 | 0.357 | -0.381 | 0.863 | 8; 227.9; 223.0 |
+| infinity (guard alone) | 0.0356 / 0.0437 / 0.1313 | 0.1655 / 0.0487 / 0.3146 | 0.2890 / 0.0495 / 0.3668 | 0.224 | -0.381 | 0.750 | 8; 368.8; 405.4 |
+| every stage (repaired chain) | 0.0070 / 0.0011 / 0.0108 | 0.0736 / 0.0012 / 0.1537 | 0.1604 / 0.0012 / 0.2523 | 332.1 (this session, `t = 0` to `0.4`); 216.5 (recorded, `t = 0` to 60) | -0.00085 | 0.242 | 8; 373.6; 350.8 |
+
+Notes on the table:
+
+- **No repair before the first repair time.** Arms with `Delta >= 5` equal
+  the guard alone over `[0, 4]`, and `Delta = 20` equals it over `[0, 20]`.
+- **The guard-alone row reproduces section 13.6's `minors_exact` row** to
+  every printed digit.
+- **The repaired-chain row:**
+  - its accuracy is `cheap_repair_accuracy.json`;
+  - its Gram is computed the same way on its stored coordinates;
+  - its escape is section 9's receipt for seeds 1 to 8 (all fire within
+    1500, so the count by 600 is exact).
+
+## 14.3 Exact correlated preparation
+
+Bare RK4 step `0.132` s per unit, guard `0.408` (same session).
+
+| `Delta` | T = 4 | T = 20 | T = 60 | s per unit | Gram minimum | fraction below `-1e-4` | escape: fired by 600 of 8; restricted mean; unperturbed |
+|---|---|---|---|---:|---:|---:|---|
+| 1 | 0.0225 / 0.0532 / 0.1289 | 0.0927 / 0.0599 / 0.1579 | 0.3788 / 0.0610 / 0.3281 | 3.081 | -0.197 | 0.609 | 3; 584.6; none |
+| 2 | 0.0280 / 0.0377 / 0.0900 | 0.0918 / 0.0407 / 0.1612 | 0.3710 / 0.0412 / 0.3240 | 1.623 | -0.195 | 0.889 | 4; 512.2; 585.9 |
+| 5 | 0.0192 / 0.0352 / 0.1059 | 0.0575 / 0.0353 / 0.1047 | 0.2857 / 0.0354 / 0.2441 | 0.804 | -0.433 | 0.414 | 0; 600.0; none |
+| 10 | 0.0192 / 0.0352 / 0.1059 | 0.1200 / 0.0353 / 0.1463 | 0.2131 / 0.0354 / 0.1975 | 0.529 | -0.749 | 0.997 | 0; 600.0; none |
+| 20 | 0.0192 / 0.0352 / 0.1059 | 0.1347 / 0.0353 / 0.1537 | 0.2725 / 0.0354 / 0.2459 | 0.714 | -0.749 | 0.986 | 0; 600.0; none |
+| infinity (guard alone) | 0.0192 / 0.0352 / 0.1059 | 0.1347 / 0.0353 / 0.1537 | 0.3004 / 0.0354 / 0.2513 | 0.353 | -0.749 | 0.974 | 6; 504.6; 478.5 |
+| every stage (task 11, run to `t = 20`) | 0.0116 / 0.0040 / 0.0093 | 0.0681 / 0.0053 / 0.0560 | not run | not measured | --- | --- | no `t = 60` state |
+
+Notes on the table:
+
+- **The reference is not the same driver.** No every-stage repair from this
+  preparation exists to `t = 60` with the repaired chain's driver. The
+  nearest is task 11: the same 27 keys, Dykstra 120 and hyperplane, but the
+  declared-completion lift with the retry ladder, run only to `t = 20`.
+- **The `Delta = 20` wall** is higher than `Delta = 10`'s. Its guard
+  alternation reached the 200-iteration cap (`0.59` s per unit of guard
+  alone in that arm).
+- **The guard-alone row reproduces section 13.6.**
+- **The pulse work worsens.** Repairs during the pulse (`Delta = 1`, 2)
+  change the work the drive does on the closure. That raises the Eq. (22)
+  RMS above the guard's (`0.0610` and `0.0412` against `0.0354`).
+
+## 14.4 Cost, one session
+
+The arms ran serially in one session (`run_arms.sh`, `session.log`,
+13:58 to 14:16; one-minute load average `2.2` to `6.0`, mostly `3.0` to
+`4.3`, on 14 cores). The session ran in this order:
+
+1. the bare step and the guard (`timing_bare_guard.py`: one trajectory per
+   preparation, `t = 0` to 20, three interleaved rounds, minimum);
+2. the 12 arms and the `h/2` arm, each its own process;
+3. the cheap repair from Hartree--Fock, `t = 0` to `0.4`, with the
+   recorded chain's flags. It took `132.8` s, so `332.1` s per unit:
+   `112.5` s of 10 lift re-selections (8 recorded as
+   `lift_reselection_failures`), `17.9` s of Dykstra repairs and `2.4` s of
+   velocity evaluations.
+
+| `Delta` | Hartree--Fock: s per unit (repair events; mean per event) | exact correlated: s per unit (repair events; mean per event) | with the re-selection skipped (derived), Hartree--Fock / exact correlated |
+|---|---|---|---|
+| 1 | `3.258` (60; `3.05` s) | `3.081` (60; `2.83` s) | `0.249` / `0.288` |
+| 2 | `1.711` (30; `3.00` s) | `1.623` (30; `2.72` s) | `0.229` / `0.283` |
+| 5 | `0.778` (12; `2.85` s) | `0.804` (12; `2.74` s) | `0.217` / `0.264` |
+| 10 | `0.480` (6; `2.67` s) | `0.529` (6; `2.53` s) | `0.218` / `0.281` |
+| 20 | `0.357` (3; `2.69` s) | `0.714` (3; `2.46` s) | `0.224` / `0.594` |
+| infinity | `0.224` (0) | `0.353` (0) | --- |
+
+Each event's wall splits as follows:
+
+- the re-selection takes `2.4` to `3.0` s;
+- the repair call takes `0.039` to `0.044` s;
+- the coordinate maps and the guard take under `1e-3` s.
+
+Every re-selection returned "infeasible", 222 of 222 across both
+preparations. The solved lift failed the measured-candidate check, so the
+carried lift was passed to the repair unchanged. The trajectories are
+therefore exactly those of the same hybrid with the re-selection skipped.
+The last column is the arm's wall minus its re-selection seconds. It is
+derived from the same run, not measured separately.
+
+Ratios at `Delta = 1` from Hartree--Fock:
+
+| compared with | ratio |
+|---|---:|
+| the cheap repair, this session | `1/102` |
+| the cheap repair, recorded wall | `1/66` |
+| the guard | `14.5` times |
+| the guard, with the re-selection skipped | `1.11` times |
+
+## 14.5 What a repair event does
+
+Per event (`arm_*.json`, `records`):
+
+| quantity | Hartree--Fock | exact correlated |
+|---|---|---|
+| largest coordinate change of the closed state, median over arms | `0.04` to `0.16` | `0.06` to `0.22` |
+| largest coordinate change of the closed state, maximum | `0.31` | `0.35` |
+| scaled-extension minimum after the repair | `-1.9e-4` to `-4.1e-3` (both preparations) | |
+| retained Gram, before the event | down to `-0.33` | down to `-0.37` |
+| retained Gram, after the repair and the guard | `-3e-4` to `-9e-3` | down to `-0.20` |
+
+Dykstra at 120 iterations does not reach the extension cone, and the
+extension minimum after the repair is never non-negative. From Hartree--Fock
+the guard applied after the repair brings the Gram back near 0. From exact
+correlated it does not.
+
+## 14.6 Step dependence
+
+The Hartree--Fock `Delta = 5` arm was rerun at `h/2 = 0.00125`, with repairs
+at the same times:
+
+- the largest score change at `T = 4`, 20 and 60 is `1.8e-4`;
+- the largest coordinate difference is `3.8e-4`, `7.9e-4` and `8.8e-4` at
+  `t = 4`, 20 and 60;
+- the escape test gives the same 0 of 8.
+
+The table is `h`-converged to that level for this arm. The other arms were
+run at `h` only.
+
+## 14.7 What remains unmeasured
+
+- **The dictionary rule.** Only the zero-cumulant rule was run. Other rules,
+  such as carrying the repair's own dictionary between events or using
+  exact third moments where available, may change every row from the exact
+  correlated preparation.
+- **`Delta` below 1.** From Hartree--Fock the scores improve monotonically
+  down to `Delta = 1`. Whether they keep improving at `0.5` or `0.25` units
+  is not measured. With the re-selection skipped those arms would cost
+  about `0.29` and `0.37` s per unit.
+- **The hybrid with the re-selection skipped, run directly.** Its cost is
+  derived above. Its trajectories are identical by construction, but no
+  run checks that.
+- **A converged repair.** At 120 iterations the extension minimum stays
+  negative after every event.
+- **Perturbed members.** The accuracy is one unperturbed trajectory per
+  arm.
+- **Escape statistics.** The escape test uses 8 members to 600 units.
+  Restricted means are lower bounds wherever members are censored, and no
+  interval is attached. With 0 of 8 fired, the exact 95 percent upper bound
+  on the per-member probability of an event within 600 is `0.31`.
+- **The exact correlated every-stage reference.** No run with the repaired
+  chain's driver goes to `t = 60` from this preparation, so the T = 60
+  column has no reference.
+- **`h/2` for the other arms**, and for the exact correlated preparation.
+
+## 14.8 Reproduction and hashes
+
+Everything is under
+`output/local_runs/paper_v_instability_20261010/task3_hybrid/`. The
+interpreter is `/Users/lordskyler/Holstein_test/.venv/bin/python`, with
+`PYTHONPATH=paper_5/src` and the worktree as cwd.
+
+- `hybrid.py`: the construction of 14.1.
+- `probe_hybrid.py`: the checks of 14.1.
+- `run_arm.py`: one arm. It is resumable from `arm_<tag>_ck.npz` and stops
+  cleanly at a segment boundary after 18 minutes. No arm needed a resume.
+  The longest took 3.3 minutes.
+- `run_arms.sh`: the serial session.
+- `escape_end.py`: the escape test.
+- `score_arms.py`: writes `hybrid_table.json` and `hybrid_table.md`.
+- `watchdog.sh`: stops any process at 19.5 minutes. It stopped none.
+
+`sha256_task2.py` now also covers `task3_hybrid/` (every `.json`, `.npz`,
+`.log`, `.py`, `.sh`, `.md`, and the cheap-repair segment's `summary.json`
+and `trajectory.npz`). It also now covers `spectra.py` and the three repair-driver
+scripts the hybrid imports (`run_divergence_segment.py`, `exact_lift.py`,
+`hartree_fock_preparation.py`). The manifest has 520 files, 72 of them under
+`task3_hybrid/`. The 78 rows of the section-12 table keep their digests. The
+manifest file itself has SHA-256
+`767f6eec4c5facf11dc9948d88c3a9ad13907db8787bbbe98304ab88918d795f`, and its
+rendering `sha256_task2_table.md` has 369 rows.

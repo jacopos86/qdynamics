@@ -9037,3 +9037,90 @@ lives `1.13` times as long as the exact state's, and `0.94` times as long
 unperturbed. With the energy held exactly, any five of the six families
 confine over 600 units. A triggered version is cheap and stops the measured
 events, but its accuracy is the bare closure's.
+
+## 2026-10-11: the guard at every step with the cheap repair every Delta units --- 100 to 930 times cheaper than the repair, and no Delta comes near the repair's accuracy
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `5d0bd578`.
+Exploratory local work, not promoted. No default changed, no module under
+`paper_5/src` edited, nothing committed by this round. The report is
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`, section
+14. Receipts are under
+`output/local_runs/paper_v_instability_20261010/task3_hybrid/`, and the SHA-256
+of every artifact is in `sha256_task2.json` (520 files).
+
+**The flow.** The bare archive closure, RK4 at `0.0025`, with the
+exact-energy minors guard after every step. At `t = Delta, 2 Delta, ..., 60`
+the recorded repair step is applied once:
+
+- the 29 raw moments are taken from the closure state;
+- the 27 dictionary moments are set by the zero-cumulant rule (an
+  assumption of this lane);
+- the lift is re-selected by the recorded rule;
+- one Dykstra-120 repair onto both cones is applied, with the Eq. (22)
+  hyperplane at the energy carried in;
+- the state is mapped back and the guard applied.
+
+The arms are `Delta` = 1, 2, 5, 10, 20 and infinity (the guard alone), from
+both preparations, one serial session, with all repairs and the guard
+holding the energy to `3.6e-15`.
+
+Negative results first.
+
+- **No `Delta` approaches the repair's accuracy.** The best Hartree--Fock
+  arm (`Delta = 1`) is compared with the repaired chain over `[0, 60]`. The
+  scores are site-0 occupation / Eq. (22) energy / all 31, each the RMS
+  over the 0.0025 grid against exact:
+
+  | | site-0 occupation | Eq. (22) energy | all 31 |
+  |---|---:|---:|---:|
+  | hybrid, `Delta = 1` | `0.2506` | `0.0289` | `0.2919` |
+  | repaired chain | `0.1604` | `0.0012` | `0.2523` |
+  | ratio | `1.56` | `24` | `1.16` |
+
+- **From the exact correlated preparation the sparse repair does not help.**
+  The effect of `Delta` is not monotone. At `T = 60`, `Delta = 1` and `2`
+  are worse than the guard alone (site-0 `0.379` and `0.371` against
+  `0.300`), and the repairs during the pulse raise the Eq. (22) RMS to
+  `0.061` against `0.035`.
+- **The lift re-selection buys nothing.** It returned "infeasible" in all
+  222 events, so the carried lift was always used. Yet it is 2.4 to 3.0 s
+  of each event's 2.5 to 3.1 s.
+
+From Hartree--Fock, the hybrid improves on the guard alone steadily as
+`Delta` shrinks. `Delta = 1` lowers the `T = 60` scores by 13, 42 and 20
+percent.
+
+Cost (same session):
+
+| route | s per unit |
+|---|---:|
+| bare RK4 step | `0.130` |
+| guard alone | `0.20` to `0.22` |
+| hybrid | `0.36` to `3.26` |
+| hybrid with the re-selection skipped (derived; the trajectories are identical because the carried lift was always kept) | `0.22` to `0.29` |
+| cheap repair (`t = 0` to `0.4`) | `332.1` |
+
+The repaired chain's Gram minimum is `-8.5e-4`, below `-1e-4` at 24 percent
+of samples. At `Delta = 1` from Hartree--Fock the hybrid's Gram minimum is
+`-0.20`, below `-1e-4` at 7.4 percent of grid samples. The guard alone is
+below at 75 percent.
+
+The hand-on state's lifetime under the bare closure (8 members, 600 units)
+does not order with `Delta`:
+
+- From Hartree--Fock, 0 of 8 fire at `Delta = 1`, 2 and 5. At `Delta = 10`
+  and 20 all 8 fire (means `481` and `228`), and the guard alone gives 8 of
+  8 (`369`). The repaired chain gives 8 of 8 (`374`) on the same seeds.
+- From exact correlated, 0 of 8 fire at `Delta = 5`, 10 and 20, against 3,
+  4 and 6 of 8 at `Delta = 1`, 2 and infinity.
+
+The `h/2` check on Hartree--Fock `Delta = 5` moves the scores by at most
+`1.8e-4`.
+
+Reading. The sparse repair acts on the closure's state but cannot supply
+what makes the repaired chain accurate. Through the zero-cumulant rule, the
+closure carries no dictionary moments of its own. The Eq. (22) error is set
+by the work the drive does on the closure during the pulse, which only the
+dictionary dynamics corrects. The hybrid is a cheaper guard, not a cheaper
+repair.
