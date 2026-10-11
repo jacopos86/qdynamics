@@ -9124,3 +9124,87 @@ closure carries no dictionary moments of its own. The Eq. (22) error is set
 by the work the drive does on the closure during the pulse, which only the
 dictionary dynamics corrects. The hybrid is a cheaper guard, not a cheaper
 repair.
+
+## 2026-10-11: the quantum-integration negative result, consolidated
+
+Branch `claude/paper-v-routes-20260914`.  Exploratory, not promoted; no new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_negative_result_20261011.md`,
+SHA-256 `3bb6411a29eecf88df241f229f144b69b0e3d2cdf5628987002d817fa3e36da5`,
+620 lines.  It consolidates the feasibility report (`a23ff642`, with its
+corrections in `475c47a7`), revision 2 of the B-Q3 reply (`475c47a7`) and
+the route (a) pricing (`d3c80e8a`), by section, and supersedes none of them.
+
+It states, in order:
+
+1. the archive equations as an ODE: 31 coordinates; an exactly quadratic
+   right-hand side with forcing and a multiplicative drive; a skew-adjoint
+   linear part; zero divergence; the Eq. (22) energy as an exact identity;
+   coefficient parity against Eqs. (14a)-(14e), with mutation sensitivity;
+2. the structural negatives: no constant or affine Poisson tensor in the
+   closed chart, with the quadratic-order and level-set qualifications; no
+   common metric (nilpotent-element proof); nonresonance failing at order
+   two; the dissipative Carleman condition unmeetable;
+3. the route costings side by side;
+4. the output contract: `1e-2` against the physical reference is
+   unreachable by closure routes (closure error `0.028`/`0.41`/`0.015`);
+   route (a) costs `1.1e9` calls at `sigma <= 2e-4` and 19 re-lifts against
+   a `0.19 s` classical integration; route (b) costs `4.9e6` calls on 12
+   qubits;
+5. the conclusion, which is that on the L = 2 dimer there is no quantum
+   case for integrating the archive equations under either contract, and
+   what a larger-L case would have to show;
+6. the 34 withdrawn claims, each with its replacement;
+7. what remains unmeasured.
+
+Manuscript insertion, including dropping the draft's cubic term, is the
+user's decision.
+
+## 2026-10-11: the classical results on the closure, the cheap repair, the guard and the hybrid, consolidated
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit. Evidence adoption and
+manuscript insertion remain the user's decisions.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md`,
+SHA-256 `714d34a899fd3e1f18ac09735365e6ea4c3b0a571e3d5c6546a97ec18fa77e44`,
+669 lines.
+
+**Sources.** It consolidates
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`:
+
+| sections | commit |
+|---|---|
+| 0 to 7 | `40771435` |
+| 8 to 12 | `c1c1f9cc` |
+| 13 | `36b686b3` |
+| 14 | `8390a83b` |
+
+It supersedes `cheap_repair_route_results_20260918.md` by reference, without
+editing it. Every number in it appears verbatim in the report or this
+worklog, apart from two estimates. A string check found 428 numbers, all
+present after two ratios were rounded to the report's `4.1` and `1.3`. The
+two estimates are the walls in its unmeasured list, which are derived from
+measured rates and labelled as estimates.
+
+**Its order:**
+
+1. the divergence (`54.4613`, `141.4057`, `433.8964` to `434.1878`,
+   exponent `0.047`, volume preserved, escape through off-diagonal
+   correlation entries outside Eq. (22));
+2. the cheap repair (accuracy at T = 4, 8, 20, 60; walls `216.5`, `346.8`
+   and `332.1` s per unit with their sessions; escape means `588.7`,
+   `482.6` and `410.0` with intervals);
+3. representability as a predictor;
+4. the guard (what it holds and does not, the compactness bound and its two
+   conditions, the ablation, the triggered guard, cost, the first-order
+   caveat, accuracy);
+5. the hybrid tables;
+6. a reading in the manuscript's vocabulary: correlation blow-up of
+   `delta rho_12^q`, preceded by positivity loss within units; not energy
+   drift or stiffness;
+7. 28 withdrawn claims with their replacements;
+8. 13 unmeasured items in priority order, each with its estimated bound.
