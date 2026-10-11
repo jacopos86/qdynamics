@@ -8910,3 +8910,55 @@ needs `sigma_0 <= 0.020` and `0.0024`.
 - the ledger without target labels.
 
 **Next.**  Readout-noise propagation through the re-centred windowed lift.
+
+## 2026-10-11: route (a) priced end to end --- the re-centred windowed lift holds the 1e-2 contract against the bare closure only for readouts accurate to 2e-4, at about 1.1e9 solver calls against 4.9e6 for direct simulation
+
+Branch `claude/paper-v-routes-20260914`, HEAD `5886455e`.  Exploratory; no
+commit by this agent, no manuscript edit.  Report:
+`agent_guidance/paper-v/handoffs/claude-quantum-route-a-pricing-20261011.md`;
+receipts under `output/local_runs/paper_v_quantum_target_form_20261010/r3/`.
+
+**Setup.**  Order-3 Carleman lift re-centred at each read-out state; 19
+re-lifts (windows of length 1) to `t = 20`; RK4 at `h = 0.01`, which
+reproduces revision 2's noise-free values to four digits.  Every restart
+readout and the final readout get noise.  The scores are the site-0
+occupation and the Eq. (22) energy against the bare closure from the exact
+correlated preparation, 50 draws per row.
+
+**Readout noise.**
+
+- With Gaussian noise of standard deviation `sigma` per coordinate, the
+  95th percentile of the error meets `1e-2` at both `T = 4` and `T = 20` for
+  `sigma <= 2e-4`.  The energy at `T = 20` binds: `9.2e-3` at `2e-4`,
+  `1.38e-2` at `3e-4`.
+- Errors scale linearly in `sigma`; at `sigma = 1e-4` they are already 12 to
+  38 times the noise-free `2.6e-5` to `1.6e-4`.
+- Under shot noise (Hadamard-test amplitudes with the norm known) the
+  contract needs `2e8` shots per amplitude (it fails at `1e8`).
+
+**The re-lift count trade** (order 3, `sigma = 2e-4`):
+
+- 5 and 10 re-lifts fail even without noise: the truncation error is
+  `1.6e-2` on the energy at `T = 4` and `1.1e-2` at `T = 20`.
+- 40 re-lifts fail with noise: 41 readouts drive the energy at `T = 20` to
+  `1.1e-2`.
+- Only 19 holds the contract.
+
+**End-to-end ledger, order 3, 20 windows.**
+
+- Per window:
+  - lifted dimension `30,783` and `614,294` nonzeros;
+  - `alpha_BE` is `488` (sparse access) or `32` to `41` (LCU bound);
+  - the first-block weight at `gamma = ||x_r||` is `0.77` to `0.97`;
+  - the readout is `31 pi ||x_r|| / sigma = 1.1e6` to `1.4e6` calls.
+- Total: about `1.1e9` (LCU) to `1.5e10` (sparse) solver calls.
+- The classical integration of the same closure takes `0.19 s`.
+
+Route (b), direct simulation of the exact cutoff-16 dimer on 12 qubits,
+meets the contract against the physics in about `4.9e6` calls.  Its cutoff
+error (16 against 20) is at most `2.6e-4`.
+
+Reading.  Route (a) prices a quantum reproduction of a classical
+integration, not a speedup.  The user's decision on the O3 target is
+therefore a choice between an encoding demonstration of the archive
+equations and a physics simulation that bypasses them.
