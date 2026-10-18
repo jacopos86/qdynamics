@@ -910,3 +910,39 @@ eigenvalues at or below `1.1e-11`, eigenvector attribution unverified). No
 code edit, test, measurement, repeated source audit, tolerance change,
 fix, new gate, execution or adoption. The author's disposition and the
 final review hash are recorded below when the file is committed.
+
+
+## ACK002 — chemistry-disposition-scope-20261018-002 (2026-10-18)
+
+Message `chemistry-disposition-scope-20261018-002` received at
+`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/chemistry-disposition-scope-followup-20261018-002.md`,
+SHA-256 `38178bc695da645441673d0aa7016119e31cebf3d73e6ff8f0273ff947042e3a`
+(verified). It concerns
+`DISPOSITION-chemistry-026-023-claude-20261010.md` as committed at
+`5554f2c0` (SHA-256 `516b4ff0…`, 547 lines). Delivered once to the
+existing chemistry author `afea8902398da6491`; no agent created, 013 and
+001 not resent; no identical earlier feedback had reached that author, so
+002 maps to this delivery.
+
+Correction to be dispositioned by that author, text only, in row 026-1:
+(1) the sentence "No individual word with X/Y support commutes with
+N̂_alpha, N̂_beta or N̂" is replaced by the total-N / simultaneous
+spin-count statement — a flip word fails to commute with total N̂ by the
+vacuum argument and cannot commute simultaneously with both spin-count
+operators, but may commute with the count of an unaffected species
+(`P = P_alpha ⊗ I_beta` has `[P, N̂_beta] = 0`); (2) "exact full-register
+matrix nullities" is replaced by "reported numerical full-register
+operator-matrix nullities over the stated generator-internal domains at
+the declared NumPy rank thresholds" — `leakage_measure.py:158-167` (SHA-256
+`de95ed8a…`, SVD threshold `1e-9 * max(1, s.max())`) and
+`refute_static.py:161-175` (SHA-256 `ea52cc31…`,
+`numpy.linalg.matrix_rank(..., tol=1e-9)`) — not an exact or certified rank
+proof, with no new exact-rank computation requested; the single-word
+projector count 16 (discrete flip-mask membership,
+`refute_static.py:152-154`) stays separate. Everything else in the
+disposition stands and remains unselected as implementation: no B, no
+source or test edit, no measurement, no repeated audit, no new gate, no
+tolerance change, no execution, no physical admission, no evidence or
+manuscript adoption; all original failed gates and the 1200-second
+whole-increment budgets remain binding. The author's disposition and the
+final file hash are recorded below when committed.
