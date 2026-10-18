@@ -1,5 +1,7 @@
 # Independent review: electronic cone lane — prerequisite report, diagnostic 022, and release 012 against the receipt at `74466441` (Claude, 2026-10-18)
 
+*Revised 2026-10-18, text only, under `classical-review-scope-20261018-003`: Candidate B restated as a descriptive observed-margin diagnostic (see the disposition block at the end).*
+
 **Verdict.**
 1. **The report is accurate.** Its increment 0 is blocked: the strict
    resume-parity gate fails by `1.9395497882168655e-4`, bitwise the same
@@ -200,14 +202,19 @@ I found no unsupported scientific statement.
     prerequisite of section 8.
   - **Owner:** the cone lane, as sole editor of `cheap_projection_route.py`,
     with impact analysis, a bitwise default-path test and root release.
-- **Candidate B — a decision-margin diagnostic at every re-selection.**
-  Record, read-only, how far each decision lies from its boundary: the
-  difference of solved and carried objectives, minus the margin, beside
-  certification and face dimensions. This would flag decisions that
-  `1e-14` input changes could flip. It changes no policy. It is the
-  measurement that would show how close a passing decision lay to its
-  boundary; it would not by itself make a finite pass a longer-horizon
-  guarantee.
+- **Candidate B — a descriptive observed-margin diagnostic at every
+  re-selection.** Record, read-only, each decision's observed distance
+  from its acceptance boundary: the difference of solved and carried
+  objectives, against the margin, beside certification and face
+  dimensions. It changes no policy.
+  - It is descriptive only. An objective distance to the boundary does
+    not by itself establish how sensitive the optimizer and acceptance
+    map are to `1e-14` input perturbations.
+  - So it would not flag which decisions such changes could flip, and it
+    would not decide whether a passing gate was fortunate.
+  - Any perturbation guarantee would need a separately established
+    sensitivity or robustness bound. No such bound or measurement is
+    requested or selected here.
 - **Candidate C — an increment-3 audit that reuses the passive observer
   on exact stage inputs.** The lane's default-path affine outputs had
   electronic principal minima at least `0.124` in every replayed window
@@ -312,3 +319,15 @@ All outputs remain `exploratory_local_not_promoted`.
 addressed to the regularized review. Its section-7 concern applies
 equally here, so the same text-only correction was applied to section 8
 and to the wording of candidate B in section 7. Nothing else changed.
+
+## Disposition of classical-review-scope-20261018-003
+
+Message `classical-review-scope-20261018-003` (SHA-256 `2ebb3296…b4`,
+11 lines, verified before reading). Input version: `77ff56bd…`, 314
+lines. Text-only. No source or test edit, rerun, new gate or tolerance
+change. The 001 corrections are not reapplied.
+
+| correction | disposition | where |
+|---|---|---|
+| Candidate B: remove the claim that the margin measurement would flag `1e-14` flips or decide whether a gate pass was fortunate; restate it as a descriptive observed-margin diagnostic, conditional on a separately established sensitivity or robustness bound for any perturbation guarantee; request or select no such bound | accepted | section 7, Candidate B |
+| preserved unchanged | already present | holds 014–017 and 019; conditional cone increment 3; root 025; the 1200-second whole-increment bounds; every other section |

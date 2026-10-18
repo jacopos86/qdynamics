@@ -1,5 +1,7 @@
 # Independent review: divergence parameter map, and the stopped weak-cutoff increment 024 (Claude, 2026-10-18)
 
+*Revised 2026-10-18, text only, under `classical-review-scope-20261018-003`: cutoff statements qualified as observed finite-cutoff event agreement and sensitivity (see the disposition block at the end).*
+
 **Verdict.**
 1. **The original map is accurate and complete within its scope.** Its
    headline counts recompute exactly from the committed grid files:
@@ -13,7 +15,10 @@
 3. **The cutoff finding is material:**
    - at `lambda_ep = 1.5`, the cutoff-16 exact correlated preparation
      fires at `141.41`;
-   - the cutoff-converged sequence settles near `127.868`;
+   - the observed finite-cutoff event sequence (cutoffs 20 to 32)
+     settles descriptively near `127.868`, but no adjacent pair passed the
+     declared `1e-12` coordinate criterion, so no convergence pair is
+     accepted;
    - this bears on every record number that used that preparation at
      cutoff 16.
 4. **Increment 024 has two parts, judged separately:**
@@ -84,33 +89,43 @@ sorts by drive amplitude rather than scattering.
 At `lambda_ep = 1.5`, `gamma = 0.5`, the exact correlated preparation at
 cutoff 16 has tail probability `7.64e-6`. It differs from cutoff 32 by
 `8.864e-4` in the largest coordinate (report line 274). Its unrepaired
-event, `141.41`, sits `13.54` units above the cutoff-converged sequence.
+event, `141.41`, sits `13.54` units above the observed cutoff-32 event,
+`127.86796`.
 
-The sequence (`127.869 → 127.868 → 127.868` from 24 to 32) suggests
-convergence in the event to about `1e-5`. The handoff's coordinate
-criterion of `1e-12` is not met, because the change from 28 to 32 is
-`1.08e-10`. The convergence reading is descriptive and not certified.
+The raw events are `141.4057`, `128.7277`, `127.86911`, `127.867965` and
+`127.867962` at cutoffs 16, 20, 24, 28 and 32. Adjacent event changes
+fall from `1.15e-3` (24 to 28) to `2.6e-6` (28 to 32). This settling is a
+descriptive observation of finite-cutoff event agreement. It is not an
+accepted convergence pair: no adjacent pair passed the handoff's declared
+`1e-12` coordinate criterion (the change from 28 to 32 is `1.08e-10`).
+It is not an infinite-cutoff event accuracy either.
 
 **What this touches, as a consequence to be dispositioned rather than
 adopted.** Every record quantity that used the exact correlated
 preparation or the exact driven reference at cutoff 16 inherits that
 preparation's cutoff error:
 - the `141.41` event, which the closure-instability report also quotes
-  and converges in integration;
+  and converges in integration tolerance (not in cutoff);
 - the cheap repair's task-11 accuracy rows, scored against a cutoff-16
   exact reference;
 - the boundary sweep's exact states.
 
 Within the record, preparation and reference share the cutoff, so
 internal comparisons are like for like. Statements about the physical
-model at `lambda_ep >= 1.5` are not cutoff-converged at 16.
+model at `lambda_ep >= 1.5` are cutoff-sensitive at 16: the observed
+event shifts by `13.54` units between cutoffs 16 and 32.
 
-At weak coupling the effect is negligible:
+At weak coupling the observed initial-coordinate changes are small:
 - `lambda_ep <= 0.75`: coordinate changes from 16 to 24 are at most
   `7.4e-9` (line 270);
 - `lambda_ep = 0.25`: increment 024 measured `1.39e-14`.
 
-The map's low-coupling count is therefore not a cutoff artifact.
+These are coordinate proximities, not propagated error bounds on any
+event or count, and the review does not conclude that the low-coupling
+count is free of cutoff artifacts. The only propagated weak-coupling
+check is increment 024's single cutoff-16/24 pair for one cell
+(section 7). That establishes neither infinite-cutoff event accuracy nor
+stability of the weak-coupling grid count.
 
 ## 4. Were the handoff's first-increment gates executed as written
 
@@ -175,9 +190,9 @@ None of substance.
 - **Line 3, "including 8/18 at lambda_ep<=0.75".** Exact as stated. It
   would be more informative with the drive structure of section 2.
 - **Line 82, "a cutoff effect, not cutoff independence".** Supported.
-  The report's own table (90–94) also supports the stronger descriptive
-  reading that the event settles by cutoff 24 to 28. The report
-  understates rather than overstates here.
+  The report's own table (90–94) also shows the descriptive
+  finite-cutoff settling of section 3, without an accepted convergence
+  pair. The report does not overstate here.
 
 ## 7. Increment 024: the successful cell, kept separate from the failed whole-increment gate
 
@@ -199,9 +214,11 @@ Accepted as an observation, not as an increment.
 - **Its receipts verify:** input manifest 12 of 12, artifact manifest 18
   of 18, comparator lock and runner hash.
 
-The observation confirms, for this one cell, that the weak-coupling
-event is not a cutoff artifact. It adds nothing that changes the map's
-counts.
+The observation is one finite cutoff pair (16 and 24) for one cell,
+with observed event agreement of `1.18e-11`. It establishes neither that
+cell's infinite-cutoff event accuracy nor the stability of the
+weak-coupling grid count, and it excludes no cutoff artifact. It changes
+none of the map's counts.
 
 ### The whole-increment gate
 
@@ -256,7 +273,8 @@ preparations, and windows of 500 and 2000:
 **It does not establish:**
 - divergence as a finite-time singularity;
 - boundedness for any cell without an event, beyond its window;
-- a cutoff-converged grid at `lambda_ep >= 1.5`;
+- a cutoff-converged event or count at any coupling, including the
+  low-coupling count;
 - physical admissibility of the perturbations;
 - any statement about repaired dynamics.
 
@@ -276,3 +294,21 @@ sensitivity and its censoring are not evidence. The 024 cell is an
 observation preserved separately from its failed increment. This review
 adopts no evidence and releases nothing. All outputs remain
 `exploratory_local_not_promoted`.
+
+## Disposition of classical-review-scope-20261018-003
+
+Message `classical-review-scope-20261018-003`
+(`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/classical-review-scope-followup-20261018-003.md`,
+SHA-256 `2ebb3296cc0fcb2f632eee07a02724a6fb6f4e9bafabfb685543e671ff9291b4`,
+11 lines, verified before reading). Input version: `be7b1b2b…`, 278 lines.
+Text-only. No source or test edit, rerun, new gate or tolerance change.
+The map, the 024 audits and the 024 closure stay closed.
+
+| correction | disposition | where |
+|---|---|---|
+| verdict item 3: "cutoff-converged sequence" | accepted: now the observed finite-cutoff event sequence, settling descriptively, with no adjacent pair passing the declared `1e-12` criterion and no accepted convergence pair | verdict, item 3 |
+| section 3: convergence reading of the event sequence | accepted: raw sequence and adjacent changes kept as a descriptive observation; no accepted convergence pair; no infinite-cutoff accuracy | section 3, second paragraph |
+| section 3: "the map's low-coupling count is therefore not a cutoff artifact" from small coordinate changes | accepted: replaced. Coordinate proximity is not a propagated event or count error bound; no artifact exclusion is claimed | section 3, last paragraphs |
+| section 7: the cutoff-16/24 agreement "confirms … not a cutoff artifact" | accepted: one finite pair for one cell establishes neither infinite-cutoff event accuracy nor grid-count stability; the successful cell observation is preserved | section 7, "The cell observation", closing paragraph |
+| consistency: section 3 bullet on the closure-instability event, section 6 note on line 82, section 8 non-establishment list | accepted, to remove remaining convergence wording | sections 3, 6 and 8 |
+| preserved unchanged | already present | raw sequence; successful cell observation; failed whole-increment gate; root 025; holds 014–017 and 019; conditional cone increment 3; 1200-second whole-increment bounds |

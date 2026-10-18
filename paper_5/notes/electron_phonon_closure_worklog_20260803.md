@@ -9446,8 +9446,11 @@ cutoff 16 with windows of 500 and 2000, the exact-correlated grid fires 41 of
 reading rule gives "mixed". All eight low-coupling exact-correlated events
 fire at drive `>= 1` before `t = 436.11`; that is a reviewer reading, not
 adopted. The cutoff is material at `lambda_ep = 1.5`: the event moves
-`141.41 -> 127.87` from cutoff 16 to 32 and settles by 24 to 28. At weak
-coupling the cutoff change is negligible.
+`141.41 -> 127.87` from cutoff 16 to 32 and settles descriptively by 24 to
+28, but no adjacent pair passes the declared `1e-12` coordinate criterion
+and no convergence pair is accepted. At weak coupling the initial-coordinate
+changes are small; that is coordinate proximity, not an event or count error
+bound (text qualified 2026-10-18 under `classical-review-scope-20261018-003`).
 
 Weak-cutoff increment 024 (`ae98da08`) is kept in two separate parts. Its one
 cutoff-24 cell at `lambda_ep = 0.25` succeeded in `13.57 s`, firing at
