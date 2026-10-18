@@ -1324,3 +1324,87 @@ stall. No reviewer is created, restarted or duplicated; no further
 scientific, source or test check is started. All failed parity gates,
 the conditional cone increment 3, root 025 and every execution and
 adoption hold remain binding.
+
+
+## Existing QA collected: closure disposition traceability check (2026-10-18, recorded against the `286fb368` versions, no further round)
+
+The two-refuter check of `DISPOSITION-closure-028-031-claude-20261010.md`
+(`e08bc128…`, 306 lines), the amended report (`30187293…`) and the
+consolidation (`bc8d3753…`) as committed at `286fb368` — started before
+005, so every line number refers to those versions — completed: rows
+against the four root reviews 42 traced, 20 mismatched, 2 untraceable;
+applied amendments against the receipts 36 traced, 10 mismatched, 3
+untraceable. The four root review hashes, 013, the reviewed-version
+hashes and line counts, the 28 rows (one per numbered finding), the
+counts 25/3/0, the batch-step and 400-step recording facts, the 234
+infeasible re-selections, the negative post-event Gram and extension
+minima, the 117 escape statuses (76 success, 41 terminal event), the
+0-of-8 upper bound 0.31, and the four receipt corrections (-0.04, 1.2,
+19.0, 4.6) all recompute from the stored receipts. Nothing selects an
+implementation, study, policy or default, or waives a parity gate or
+root 025.
+
+Already corrected by 005 at `5004343a` (so these findings are closed by
+that commit): the C02 row's stale `cd5c6b5b…` hash (now `30187293…`); the
+"In this ensemble it does not discriminate escape" heading (now the
+finite equal-median observation); the "changes nothing" heading (now
+"always returned the carried lift"); the "exactly held subset" wording
+(now the capped map to its recorded `1e-12` tolerance); the broad
+attractor sentence (now the compact-set exclusion with assumptions).
+
+Still open in the current files, recorded here for the coordinator and
+not sent back to the author under the minimal-closure instruction:
+- the "regularized preparation hold" that 031:46 names as binding appears
+  in none of the three files; only parity, root 025, cone increment 3
+  and 014–017/019 are carried — the record here binds it explicitly:
+  the regularized-preparation hold remains in force;
+- the report's 13.2 (c) lead "The trace pin is necessary for compactness"
+  contradicts its own amended body (trace control is needed by this
+  certificate, not shown to be the only control); the report does not
+  name the cone increment-3 hold in 14.7 and carries no "no
+  quantum/physical resource advantage follows" sentence in section 14;
+- universal and categorical wordings remain: 14.0 item 1 "No Delta brings
+  the hybrid near the cheap repair's accuracy" (five values tested,
+  `Delta < 1` unmeasured); "This is confinement without accuracy" and
+  13.2 (d) "the maps above confine" (finite-window absence of events to
+  600 units; minors without the hold heats to +339 by 3000); "not an
+  integrator instability" and "stiffness is not the bottleneck" (at the
+  tested step and refinements only); the accuracy heading "the guard does
+  not approach the cheap repair on the observables" while gram_exact
+  Hartree–Fock `T = 60` site-0 is 0.1285 against the cheap repair's
+  0.1604; R10's "0 escapes follows from the measured heating" needs a
+  bound at every point, which a sampled maximum is not;
+- numbers: the consolidation keeps "the energy residual is at most
+  1.0e-12 in every run" (keep-only cells reach `2.18e-11`; the report
+  carries the exception, the consolidation does not); C22 omits the
+  exact-correlated corr+electronic keep-only cell at `3.5e-12`; 13.11
+  mixes run3's 46.9 s per unit with run1's amended 18.976 s (47.4 s per
+  unit, about 288 times); R51's re-selection "2.5 to 3.1 s" should read
+  2.5 to 3.0 s; R33's first-order ratios 1.91 to 2.39 hold at `t = 20`
+  only (2.48 at `t = 4` for one map); the consolidation's revision note 2
+  lists 51 of 52 amendments (L643 missing);
+- scope: closing binding paragraphs of 028, 029 and 031 have no row while
+  030's does; 028-1's "do not waive the campaign fail-on-error rule" and
+  029-3's cone/projection holds have no replacement text in the report;
+  031-5 was paraphrased without its "If"; item 13 of the unmeasured list
+  still frames 25 minutes "in batches under 20 minutes", the
+  process-segmentation framing 031-9 rejects; the earlier worklog
+  statement attributed to the hybrid block is in the report at
+  8390a83b:1901, not the worklog;
+- provenance: the 444-file manifest hash `777ae638…` cannot be recomputed
+  (superseded by the 520-file `767f6eec…`, no copy stored) and reads as
+  current; the receipts `d_threshold_scan.json` (the 1.2 lead) and
+  `compactness_check.json` (the trace witness) under the verify directory
+  are not hash-pinned by any index; the numbers-check counts (147 of 194,
+  47 mismatched) have no surviving artifact and are author-reported; the
+  critic's quoted assessment has no stored receipt; the
+  `spec_exact_reference_t60_*` receipts name the repaired chain's
+  trajectory file as their state artifact, unchecked; the worklog block
+  W01 was committed in `b02a6b82`, not `286fb368`;
+- three sentences are flagged as borderline success wording, each
+  qualified in place as finite, censored and in-sample ("prevents every
+  event in 600 units"; "One cell beats the reference ... so this is not a
+  trend"); the record reads them as finite observations.
+Not sampled by the check: 40 of the 70 report amendments and 28 of the
+52 consolidation amendments were text-checked at their lines only, not
+against receipts. The check is recorded as completed within that scope.
