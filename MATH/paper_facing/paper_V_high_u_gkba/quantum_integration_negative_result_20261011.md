@@ -11,7 +11,9 @@
   written, and each section cites them by section and commit. A few numbers
   come from the closure-instability report, the 2026-09-20 dimension-growth
   and exact cost-law records, or the G1 verification artifacts, each cited
-  where it is used.
+  where it is used. The 2026-10-18 revision adds only arithmetic recounts of
+  stored per-window ledger values and a run of the Codex helper on stored
+  receipts (`r4` below); it runs no trajectory, solver or noise model.
 
 **Revision note (2026-10-11, after numbers check).**
 
@@ -97,6 +99,87 @@ in the three sources. It is in the G1 verification artifacts under
 
 There is no other disagreement with the check.
 
+**Revision note (2026-10-18, after root reviews 027 and 030).**
+
+- **What was reviewed.** Root reviews
+  `quantum-r2-pricing-review-20261011-027.md` (SHA-256 `3e6ecfc0...`) and
+  the quantum part of `consolidated-results-review-20261011-030.md`
+  (SHA-256 `14c14fd4...`). Review 030 read the committed `424adca9` text of
+  this file (821 lines, SHA-256 `8534130a...`). One wording item follows
+  `quantum-review-scope-20261018-004` (SHA-256 `386c7b88...`), item 2.
+- **What changed.** 53 statements: 41 corrected and
+  12 added. Each finding is dispositioned in
+  `agent_guidance/paper-v/handoffs/DISPOSITION-quantum-027-030-claude-20261010.md`.
+  The finding column below names its row there.
+- **What is preserved unchanged.** The closed-coordinate count
+  `2L^3 + 3L^2 + 3L - 1` (89 and 187 at `L = 3, 4`). The `137 s` figure,
+  which stays labelled as a prediction of the fitted cost law.
+- **The new numbers.** They are arithmetic on stored receipts in
+  `output/local_runs/paper_v_quantum_target_form_20261010/r4_flow_budget_review/`:
+  - `r4_ledger_recount.json`, a recount of the per-window ledger values;
+  - `r4_helper_check.json`, the Codex helper run on stored receipts.
+
+  No trajectory, solver or noise model was run.
+- **How to read the line numbers.** In the table below they are in this
+  revised file. Those in the 2026-10-11 note above refer to the `424adca9`
+  text. "Added" marks a statement put in.
+
+| line | section | statement now (was) | finding |
+|---|---|---|---|
+| 14 | Status | This revision adds only recounts and the helper run on stored receipts | -- |
+| 226 | 1 | The right-hand side is quadratic to rounding; rounding-level cubic coefficients do not alone prove an exact identity (was: "exactly quadratic") | review 004 item 2 |
+| 325 | 2.1 | `J_min` needs `grad H != 0` (here `dH/dx_1 = -4 t_hop`) and `F . grad H = 0`; it generates only the drive-free field (was: "always exists") | 030-5 |
+| 378 | 2.1 | Added: every rank and nullspace dimension in the section is numerical | 030-5 |
+| 408 | 2.2 | Numerical obstruction evidence, conditional on an exact nilpotent witness (was: "the proof that none is positive") | 027-6, 030-5 |
+| 417 | 2.2 | The same numerical evidence after reduction, with `||X^2|| = 4.4e-13` (was: "the same holds") | 027-6 |
+| 467 | 2.4 | No strictly stable complement, from the numerical spectrum `|Re lambda| <= 2.2e-16` / `5.4e-16` (was: "trace zero") | 030-5 |
+| 563 | 3.1 | Grid suprema `12.98` / `51.04` are lower bounds on the supremum | 027-5, 030-6 |
+| 566 | 3.1 | Added: `13.22` / `54.10` are conditional estimates on four unbounded premises, including `max |f'| = pi/2` (rigorous `1.906`) | 027-5 |
+| 570 | 3.1 | Admissible defect stated as the scalar supersolution `a + b R^2 <= R` for an L1 norm defect, with `beta = 1.995` an unvalidated estimate and the exact quadratic structure a separate premise; the helper reproduces it as `diagnostic_only` | 027-5, 030-6 |
+| 580 | 3.1 | Added: no verified defect, restart-jump or readout budget, and no verified tube, for route (a) | 027-5 |
+| 608 | 3.2 | Of the lifts tested only the re-centred one reaches the contract (was: "any lift must be re-centred") | 030-1 |
+| 617 | 3.3 | `H = -i (F . grad + (div F)/2)`, which reduces to `-i F . grad` here; frozen coordinate blocks have zero divergence; the reduction's is measured only at linear order (was: "formally Hermitian for any smooth `F`") | 030-6 |
+| 631 | 3.3 | Box-vertex `T ||L||` is a coefficient-wise proxy (was: "a lower bound", with `>=`) | 027-7, 030-6 |
+| 635 | 3.3 | No KvN row is a proved lower bound or a sufficient cost (was: only the heuristic row) | 027-7 |
+| 638 | 3.3 | The packet-width thresholds are one-point quadratic-law extrapolations from rows with all pairs used | 027-7, 030-6 |
+| 642 | 3.3 | Added: the `sigma_0 = 0.1`, `T = 20` bias (`20.7`) is survivor-conditioned, with 916 of 1,000 pairs | 027-7 |
+| 649 | 3.3 | KvN against direct simulation "on these proxies" | 027-7 |
+| 697 | 4 | Against T-physical, accurate closure integration cannot meet it, with the bound `max(0, Delta - epsilon)` to `Delta + epsilon` (was: "unreachable for any route that integrates the closure") | 030-4, 027-4 |
+| 708 | 4 | Added: on site-0 at `T = 20` a route fails unless `epsilon > 0.40`; the limitation is specific to the tested preparation and horizons | 030-4, 030-1 |
+| 726 | 4 (a) | `R = 40` has 42 readout batches (was: 41) | 027-2 |
+| 729 | 4 (a) | Added: the re-lift comparison is finite, not a unique optimum | 027-2 |
+| 731 | 4 (a) | The executed protocol has 21 batches (19 restarts plus two independent outputs) with a Gaussian surrogate (was: "read at every restart") | 027-2, 030-2 |
+| 736 | 4 (a) | Four empirical marginal 95th percentiles at the tested levels; not a necessary or sufficient precision, and not a simultaneous statement | 027-2, 030-2 |
+| 744 | 4 (a) | The shots model is a Gaussian surrogate with the true norm; `8.5e10` window solves over 21 batches (was: "Hadamard-test shots model", `8e10`) | 027-2 |
+| 750 | 4 (a) | Added: a standard deviation is not a tolerance; the deterministic contract is in disposition row 027-2; worst-case errors add linearly | 027-2, 030-2 |
+| 761 | 4 (a) | `beta_j` is frozen at `f_max`; the uniform numerator is 1.13 to 1.62 times larger; neither is bound to a theorem | 027-3, 030-3 |
+| 765 | 4 (a) | Added: sparse `alpha_BE` was measured at `+f_max` only; LCU is a candidate bound with no circuit | 027-3, 030-3 |
+| 771 | 4 (a) | Readout factor `31 pi ||Y_1|| / epsilon_coord`, with `||Y_1||/||x_r||` = `0.235` to `0.692`; `1.20e7` over 21 batches (was: `31 pi ||x_r|| / sigma`) | 027-1, 030-2 |
+| 777 | 4 (a) | Leading-factor proxy: `5.6e8` / `7.7e9`, or `6.8e8` / `9.5e9` with uniform forcing, and `1.1e9` as published, with its exclusions listed (was: "Total about `1.1e9`") | 027-1, 027-3, 030-2 |
+| 792 | 4 (a) | Error against T-physical bounded by `max(0, Delta - epsilon)` and `Delta + epsilon` (was: "adds the closure's own") | 030-4 |
+| 798 | 4 (a) | The classical baseline is one same-target benchmark | 027-3, 030-3 |
+| 809 | 4 (b) | Added: the whole `1e-2` goes to readout; counts scale as `1e-2 / epsilon_read` | 027-4 |
+| 812 | 4 (b) | `4.9e6` is a proxy with its omissions listed | 027-4, 030-2 |
+| 817 | 4 (b) | The ratio is about 230 as published, or 110 to 140 corrected; not an established comparison (was: "230 times fewer") | 027-1, 030-2 |
+| 820 | 4 (b) | The cutoff differences compare two finite models; they are not an infinite-cutoff bound; total error not certified (was: "its only model error is the phonon cutoff") | 027-4, 030-4 |
+| 830 | 5 | No quantum advantage shown by the assessed routes, with those routes named; NISQ and other encodings not assessed (was: "no quantum case ... under either contract") | 030-1 |
+| 841 | 5 | Accurate closure integration has physical error at least `0.412 - epsilon` (was: "no closure-integrating route can meet the contract") | 030-4, 030-1 |
+| 844 | 5 | Direct simulation is the only assessed route without that discrepancy; its total error is not certified; no route selected (was: "the only route that meets it") | 030-1, 030-4 |
+| 856 | 5 | Lifting layer at its leading-factor proxy `5.6e8` to `6.8e8` (was: "costs about `1.1e9`") | 027-1, 030-2 |
+| 885 | 5 | A polynomial count does not prove a polynomial integration cost (was: "so is the classical cost") | 030-7 |
+| 889 | 5 | Full-coordinate readout is not automatically the classical cost times an estimator overhead | 030-7 |
+| 900 | 5 | The direct-simulation qubit count states its assumptions: one electron per spin, no spin compression, local modes, cutoff 16 | 030-7 |
+| 922 | 5 | 87 rows is a historical planning extrapolation from `scaling-locality-20260920.md:259-261`; 18 GB is historical context (was: "the 18 GB memory contract caps") | 030-7 |
+| 955 | 6 | Withdrawn item 11: the box-vertex `T ||L||` is a proxy (was: `>=`) | 027-7 |
+| 961 | 6 | Withdrawn item 17: numerical obstruction evidence (was: "proved") | 027-6, 030-5 |
+| 969 | 6 | Withdrawn item 25: unreachable by accurate integration, with the bound (was: "for any closure-integrating route") | 030-4 |
+| 975 | 6 | Withdrawn item 31: grid maximum and conditional estimate | 027-5 |
+| 1005 | 7 | Union bound over `21 x 31 = 651` estimates, `9.47` or `9.51` (was: 620, `9.4`) | 027-2, 030-2 |
+| 1008 | 7 | Added: a standard deviation is not a tolerance | 027-2 |
+| 1013 | 7 | The conditional estimates' four premises; no defect or jump budget (was: "what the certificates assume", three premises) | 027-5, 030-6 |
+| 1018 | 7 | Added: time-ordered propagator, driven-family access and forcing-state preparation unmeasured | 027-3, 030-3 |
+| 1021 | 7 | Added: the whole increment was not timed | 027 timing |
+
 | short name | file | commit |
 |---|---|---|
 | **feasibility** | `MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md` (Tasks 1 to 3, and "Corrections after verification (2026-10-11)") | `a23ff642`; the corrections section in `475c47a7` |
@@ -140,7 +223,7 @@ Corrections.
   linear terms with coefficients `B(t)`. The quadratic part of the 27
   coordinates is 49 monomials, all in the `C` equation (feasibility (a)).
 
-**The right-hand side is exactly quadratic** (feasibility (a)):
+**The right-hand side is quadratic to rounding** (feasibility (a)):
 
 ```text
 dx/dt = F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)
@@ -239,8 +322,13 @@ and section 2.4.
 
 **Why only restricted classes carry content** (feasibility Task 2(a)).
 
-- An antisymmetric `J` with `J grad H = F` always exists, for instance
-  `J_min = (F grad H^T - grad H F^T) / |grad H|^2`.
+- For the drive-free field an antisymmetric `J` with `J grad H = F` exists
+  wherever `grad H != 0`, for instance
+  `J_min = (F grad H^T - grad H F^T) / |grad H|^2`. It needs
+  `F . grad H = 0`, which holds identically for the drive-free field. Here
+  `grad H` never vanishes, because `dH/dx_1 = -4 t_hop` is constant. Under
+  the drive `F . grad H` is the drive power, so `J_min` generates only the
+  drive-free field.
 - `J_min` fails the Jacobi identity at all 101 sampled exact states: the
   component of `[F, grad H / |grad H|^2]` outside the plane of the two
   fields is `0.83` to `1.00` of that bracket, median `0.97`.
@@ -287,6 +375,9 @@ singular value `1.8e-15`, the next `0.458`, or `0.468` with `D` included
   occupations at most 3 in a cutoff-5 space, per the G1 verification artifact
   `G1-structure/s5_results.json`.
 - **Qualifications.**
+  - Every rank, nullspace dimension and preserved-family dimension in this
+    section is numerical, at the tolerances of the recorded scripts; none is
+    an exact certificate.
   - The negatives above hold for constant and affine tensors **in the closed
     chart** and under affine changes of it.
   - At quadratic order the drive-free field **is** globally Hamiltonian,
@@ -314,14 +405,19 @@ singular value `1.8e-15`, the next `0.458`, or `0.468` with `D` included
 - **The candidates.** The symmetric `G` making `A_1` skew-adjoint form a
   46-dimensional space. Requiring `D` skew-adjoint too cuts it to 8
   dimensions.
-- **The proof that none is positive.** The matrix Lie algebra generated by
-  `A_1` and `D` has dimension 91 and contains a nonzero `X` with
-  `||X^2||_F = 2.4e-13`, nilpotent of index 2. So `||exp(t X)||_2` grows
-  linearly: `647` at `t = 1000`. A positive `G` making `A_1` and `D` skew
-  would bound it by `sqrt(cond G)`.
-- **After reduction.** The same holds on the 28-coordinate system that
-  removes the decoupled centre mode and the linear first integral:
-  dimensions 34 and 4, algebra dimension 91, `||exp(1000 X)|| = 679`.
+- **Numerical obstruction evidence, conditional on an exact witness.** If
+  the Lie algebra generated by `A_1` and `D` contains an exact nonzero
+  nilpotent `X`, no positive `G` makes both skew-adjoint: `G` would make `X`
+  similar to a real skew-symmetric matrix, whose square has strictly
+  negative trace unless it is zero. The floating-point Lie closure and
+  eigendecomposition (`conserved_structure.py:224-275`) give an algebra of
+  dimension 91 containing an `X` with `||X^2||_F = 2.4e-13`, and
+  `||exp(1000 X)||_2 = 647`. These numbers do not prove exact nilpotency,
+  exact membership of the algebra, or unbounded growth.
+- **After reduction.** The same numerical evidence holds on the
+  28-coordinate system that removes the decoupled centre mode and the linear
+  first integral: dimensions 34 and 4, algebra dimension 91,
+  `||X^2|| = 4.4e-13`, `||exp(1000 X)|| = 679`.
 - **How faithful the reduction is.** It fixes `B_+` at `-2g/omega` and
   eliminates `s_r` by `ell`. It reproduces the full T-bare trajectory to
   `1.5e-4` over `t <= 20`, half the `B_+` oscillation amplitude `3.1e-4`
@@ -368,7 +464,7 @@ singular value `1.8e-15`, the next `0.458`, or `0.468` with `D` included
   |---|---|---|
   | rank of the linear part / with forcing / with quadratic term | 26 / 26 / 30 | 24 / 24 / 28 |
   | left zero modes and their quadratic-projection singular values | 5: `1.24`, `1.12`, `1.03`, `0.94`, and the fifth, `ell`, at `3e-16` | 4: `1.09`, `0.84`, `0.82`, `0.78` (all four) |
-  | strictly stable complement | none (trace zero) | none (trace zero) |
+  | strictly stable complement | none: every eigenvalue has `|Re lambda| <= 2.2e-16` (numerical spectrum; trace zero alone would not show this) | none: `|Re lambda| <= 5.4e-16` |
   | modes fitting neither signed sector | 5 | 4 |
   | share of the eigenbasis quadratic tensor outside the allowed sector blocks | `0.89` | `1.00` |
 - **Scope.** These are failures of sufficient conditions, not a proof that
@@ -464,10 +560,25 @@ The origin-centred lift never meets `1e-2` on the site-0 occupation.
 is `Lambda = sup over 0 <= s <= t <= T of ||Phi(t,s)||_2` for
 `J = A_1 + f D + 2 A_2(x(t), .)`.
 
-- Grid supremum: `12.98` (`T = 4`) and `51.04` (`T = 20`).
+- Grid supremum: `12.98` (`T = 4`) and `51.04` (`T = 20`). These are grid
+  maxima, so lower bounds on the supremum.
 - With between-grid inflation and an RK4 allowance: `13.22` and `54.10`.
-- Admissible time-averaged defect for a nonlinear tube: `4.48e-5` and
-  `1.07e-7`.
+  These are conditional estimates resting on four unbounded premises: the
+  DOP853 base trajectory taken as exact, a sampled `max ||F||`, a Richardson
+  RK4 allowance, and `max |f'| = pi/2` (the rigorous bound
+  `pi e^{-1/2} = 1.906` changes the inflation by about `1e-5` relative).
+- Admissible time-averaged defect: `4.48e-5` and `1.07e-7`. This is the
+  largest `D_1/T`, with `D_1` the L1 norm defect of a comparison path and
+  `e_0 = 0`, for which a radius `R` with `a + b R^2 <= R` exists
+  (`a = Lambda D_1`, `b = Lambda T beta`, `beta = ||A_2||_2 = 1.995`, a
+  floating SVD estimate without a validated enclosure). It would hold on all
+  of R^31 if the field is exactly quadratic, which rounding-level cubic
+  coefficients do not alone prove; these two premises are separate from the
+  gain and the L1 defect. The radius is then at most `2 a = 2 Lambda D_1`. The Codex
+  helper (`flow_error_budget.py` at `81710146`) reproduces both thresholds
+  and returns `diagnostic_only` (review, section 5).
+- No verified defect, restart-jump or readout budget, and so no verified
+  trajectory-error tube, exists for route (a).
 - To `T = 60` the sampled supremum is `3,169` (instability report).
 
 **Stacked backward-Euler conditioning** (T-bare, instability report).
@@ -494,16 +605,22 @@ is `Lambda = sup over 0 <= s <= t <= T of ||Phi(t,s)||_2` for
   At 19 re-lifts the observable errors at `T = 4` / `20` are `2.6e-5` /
   `1.6e-4` on the site-0 occupation and `8.4e-5` / `1.2e-4` on the energy.
 - **The origin-centred windowed lift is far worse.** At the same order and
-  79 re-lifts it reaches only `2.6e-3` / `0.30`. **Any lift must be
-  re-centred.**
+  79 re-lifts it reaches only `2.6e-3` / `0.30`. Of the lifts tested
+  (orders 1 to 4, origin-centred or re-centred), only the re-centred one
+  reaches the contract.
 
 ### 3.3 Koopman--von Neumann
 
 **Sources:** feasibility Task 2(b) and Corrections; r2 corrections 21-22 and
 section 2.7.
 
-- **The generator.** It is `-i F . grad`, because `div F = 0`. It is
-  formally Hermitian for any smooth `F`; no Hamiltonian structure is needed.
+- **The generator.** The KvN Hamiltonian is
+  `H = -i (F . grad + (div F)/2)`, formally Hermitian for any smooth `F`
+  under domain and boundary conditions that are not specified here; no
+  Hamiltonian structure is needed. Here `div F = 0` identically (every
+  diagonal Jacobian entry vanishes), so `H = -i F . grad`, and every frozen
+  coordinate sub-block also has zero divergence. For the 28-coordinate
+  reduction only the linear part's trace was measured (`3.8e-17`).
 - **Register and generator norm.** The figures depend on how the grid is
   sized, at coordinate precision `epsilon = 1e-2` and box width `W = 4`:
 
@@ -511,20 +628,26 @@ section 2.7.
   |---|---|---|---|
   | heuristic `h = epsilon/(3 Lambda)`, qubits | 434 | 496 | 682 |
   | same, `T ||L||` with the generator norm sampled on the trajectory | `4.9e5` | `1.7e7` | `5.6e9` |
-  | `T ||L||` with the generator norm over the box (a lower bound) | `>= 2.0e7` | `>= 3.9e8` | `>= 7.3e10` |
+  | `T ||L||` proxy `(pi/h) sum_k max |F_k|` over searched box vertices (coefficient-wise, not a proved operator-norm lower bound) | `2.0e7` | `3.9e8` | `7.3e10` |
   | qubits to resolve the compressed direction | 558 | 682 | 1,023 |
   | qubits from the B-Q2 dossier's Lipschitz envelope | 651 | 1,984 | 5,518 |
 
-  The heuristic is neither a lower bound nor a sufficient cost.
+  No row is a proved lower bound or a sufficient cost; the mesh and register
+  rules are heuristics, and the generator-norm rows are access proxies.
 - **The readout is biased.** A packet-mean readout is biased as
-  `sigma_0^2`. Keeping the bias at most `1e-2` needs a packet width
-  `sigma_0 <= 0.020` at `T = 4` and `<= 0.0024` at `T = 20`. At
-  `sigma_0 = 0.1`, 86 of 2,000 samples escape by `T = 20`.
+  `sigma_0^2` at the tested widths. The widths `sigma_0 <= 0.020` at `T = 4`
+  and `<= 0.0024` at `T = 20` for a bias of at most `1e-2` are one-point
+  quadratic-law extrapolations (`c7_kvn_bias.py:108-115`) from rows where all
+  1,000 antithetic pairs contribute. They are protocol-specific, neither
+  necessary nor sufficient. At `sigma_0 = 0.1`, 86 of 2,000 samples escape
+  by `T = 20` and only 916 of 1,000 pairs contribute
+  (`c7_kvn_bias.py:85-87`), so that row's bias, `20.7`, is a
+  survivor-conditioned mean, not the original packet's.
 - **Against the correct baseline.** The same problem, the dimer at cutoff
   16, is directly simulated on 12 qubits (11 dense) with
-  `T (||H|| + max|f|) = 102`, `511`, `1,533` at `T = 4`, `20`, `60`. KvN
-  therefore needs 36 to 57 times the qubits and `4.8e3` to `3.7e6` times the
-  time-norm product.
+  `T (||H|| + max|f|) = 102`, `511`, `1,533` at `T = 4`, `20`, `60`. On
+  these proxies KvN needs 36 to 57 times the qubits and `4.8e3` to `3.7e6`
+  times the time-norm product.
 
 ### 3.4 Schrödingerization of the trajectory-linearized flow (the fault-tolerant linearization layer)
 
@@ -571,16 +694,22 @@ and section 2.8.
 - **The contract.** O3, from the draft's NISQ and fault-tolerant layers:
   selected observables, here the site-0 occupation per spin and the Eq. (22)
   energy at `T = 4` and `20`, to `epsilon = 1e-2` absolute.
-- **Unreachable against T-physical for any route that integrates the
-  closure.** The closure's own error against the exact cutoff-16 reference,
-  pointwise at `T`:
+- **Against T-physical, accurate integration of the closure cannot meet
+  it.** For a fixed observable, if a route is within `epsilon` of T-bare and
+  the closure discrepancy is `Delta`, its error against T-physical lies
+  between `max(0, Delta - epsilon)` and `Delta + epsilon`. The closure's own
+  error against the exact cutoff-16 reference, pointwise at `T`:
 
   | observable | `T = 4` | `T = 20` |
   |---|---|---|
   | site-0 occupation | `0.028` | `0.41` |
   | energy | `0.015` | `0.015` |
 
-  Every entry exceeds `1e-2`.
+  Every entry exceeds `1e-2`. On the site-0 occupation at `T = 20` a route
+  fails unless `epsilon > 0.40`, that is, unless it does not integrate the
+  closure in any useful sense. This is a limitation at the tested
+  preparation and horizons; it does not exclude corrected or hybrid
+  formulations that were not evaluated.
 - **The two admissible contracts.**
   - **(a) Against T-bare.** An integration-accuracy contract for the archive
     equations, with the closure's model error reported on its own line.
@@ -594,42 +723,80 @@ and section 2.8.
     - With fewer re-lifts the truncation error alone breaks it: the
       noise-free energy error is `1.6e-2` at `T = 4` with 5 re-lifts and
       `1.1e-2` at `T = 20` with 10.
-    - With 40 it holds noise-free, but the 41 noisy readouts accumulate:
-      the 95th-percentile energy error is `1.1e-2` at `T = 20`,
+    - With 40 it holds noise-free, but its 42 noisy readout batches
+      accumulate: the 95th-percentile energy error is `1.1e-2` at `T = 20`,
       `sigma = 2e-4`.
-  - **Readout requirement.** All 31 coordinates are read at every restart,
-    with Gaussian error `sigma <= 2e-4` per coordinate.
-    - The energy at `T = 20` binds: its 95th percentile is `9.2e-3`. The
-      site-0 occupation's is `6.3e-3`.
+    - This is a finite comparison of four counts, not a unique optimum or a
+      monotone law.
+  - **Readout in the executed protocol.** All 31 coordinates are read in 21
+    batches: 19 restarts plus independent output batches at `T = 4` and
+    `T = 20` (driver `r3_route_a.py:156` and `:161`). The noise is an
+    unbiased, independent Gaussian surrogate with standard deviation `sigma`
+    per coordinate.
+    - Of the tested levels, all four empirical marginal 95th percentiles
+      over 50 draws are at most `1e-2` at `sigma = 1e-4` and `2e-4`, and not
+      at `3e-4` or above. The energy at `T = 20` binds: `9.2e-3` at `2e-4`;
+      the site-0 occupation's is `6.3e-3`. This is a finite comparison, not a
+      necessary or sufficient precision and not a simultaneous 95 percent
+      statement for both observables at both horizons.
     - Already at `sigma = 1e-4` the readout noise sets the error: the 95th
       percentiles are 12 to 38 times the noise-free values.
-    - In the Hadamard-test shots model the contract fails narrowly at `1e8`
-      shots per amplitude (about `2.3e-4` per coordinate) and holds at
-      `2e8` (about `1.6e-4`). Linear scaling puts the threshold near
-      `1.3e8` shots per amplitude, `8e10` window solves over the run.
-    - Plain sampling costs `1/sigma^2`, against `pi ||x|| / sigma`
-      amplitude-estimation calls: about `3.7e4` per coordinate at
-      `sigma = 2e-4`. The ledger assumes amplitude estimation.
+    - The "shots" model is a Gaussian surrogate with the variance of a
+      Hadamard-test estimate and the true `||x||`, not executed binomial
+      sampling or amplitude estimation. In it the percentiles fail narrowly
+      at `1e8` shots per amplitude (about `2.3e-4` per coordinate) and pass
+      at `2e8` (about `1.6e-4`); linear interpolation puts the crossing near
+      `1.3e8`, `1.3e8 x 31 x 21 = 8.5e10` window solves.
+    - A standard deviation is not an absolute-error or confidence
+      guarantee. The deterministic contract, with its tolerance, norm,
+      sign and union-bound costs, is written out in the disposition
+      (`DISPOSITION-quantum-027-030-claude-20261010.md`, row 027-2).
+      Whether an absolute tolerance of `2e-4` meets the contract under
+      worst-case errors is not established: worst-case errors add linearly
+      over the 21 batches rather than as a random walk.
   - **Ledger:**
     - order 3 gives `30,783` dimensions and `614,294` nonzeros per window;
     - `alpha_BE` is 488 (sparse access) or 32 to 41 (LCU bound);
     - first-block weight `0.77` to `0.97` at `gamma = ||x_r||`;
-    - inhomogeneous norm ratio `beta_j` is `0.84` to `1.62`;
+    - inhomogeneous norm ratio `beta_j` is `0.84` to `1.62`, with the
+      forcing frozen at `f_max`; the uniform numerator
+      `Delta t (||c_0|| + f_max ||c_1||) / gamma_j` is 1.13 to 1.62 times
+      larger (r4 recount). Neither is bound to a solver theorem;
+    - `alpha_BE` (sparse) was measured on the frozen `+f_max` generator only;
+      a bound for the driven family `|f| <= f_max` needs both endpoints. The
+      LCU value is a candidate triangle bound with no circuit;
     - per-window solver factor `S_j = alpha Delta t beta_j / w_j`: LCU
       `32.2` / `45.5` / `67.1` (min / median / max), summing to 928; sparse
       `464` / `640` / `851`, summing to 12,886;
-    - readout of `31 pi ||x_r|| / sigma = 1.1e6` to `1.4e6` calls per
-      restart.
-  - **Total.** About **`1.1e9`** calls with LCU access, or `1.5e10` with
-    sparse access, excluding polylogarithmic, `C_max` and state-preparation
-    factors. It is `2.4e7` readout window solves, each re-running its
-    window's solver at a cost `S_j` of 32 to 67 calls (LCU) or 464 to 851
-    (sparse).
-  - **Error against T-physical.** Route (a) adds the closure's own `0.41`
-    (site-0 occupation) and `0.015` (energy) at `T = 20`.
+    - readout, as published, `31 pi ||x_r|| / sigma = 1.1e6` to `1.4e6`
+      calls per restart. The postselected first block encodes the increment
+      `Y_1`, so the idealized leading factor is
+      `31 pi ||Y_1|| / epsilon_coord`, with `||Y_1|| / ||x_r||` from `0.235`
+      to `0.692`. Over the 21 batches at `epsilon_coord = 2e-4` that is
+      `1.20e7` calls, against `2.37e7` as published.
+  - **Total, a leading-factor proxy.** As published, about `1.1e9` calls
+    with LCU access, or `1.5e10` with sparse access. With the encoded
+    increment's norm and the 21 batches it is `5.6e8` (LCU) or `7.7e9`
+    (sparse), and `6.8e8` or `9.5e9` with the uniform forcing numerator (r4
+    recount). Every figure excludes:
+    - the time-ordered propagator's growth constant (not
+      `sup ||exp(G_fmax t)||`);
+    - access and normalization for the driven family;
+    - preparation of each window's forcing state;
+    - the solver's discretization and precision;
+    - polylogarithmic factors;
+    - the norm, sign and confidence costs, a factor of about `98.6 / theta`
+      under standard constants (disposition row 027-2).
+
+    None of these figures is a validated gate, runtime or total-error cost.
+  - **Error against T-physical.** It lies between `max(0, Delta - epsilon)`
+    and `Delta + epsilon`, with `Delta` the closure discrepancy (`0.412` on
+    the site-0 occupation and `0.0150` on the energy at `T = 20`) and
+    `epsilon` route (a)'s error against T-bare.
   - **Register.** A 30,783-dimensional lift, about 15 qubits plus ancillas
     per window, against route (b)'s 12.
-  - **Classical baseline, same output and target.**
+  - **Classical baseline, same output and target** (one same-target
+    benchmark, not an asymptotic lower bound):
     - DOP853 on the committed closure reaches `t = 20` in **`0.19 s`** (1,322
       right-hand-side evaluations) at `rtol 1e-8`. Its error at `T = 20` is
       `1.4e-9` on the site-0 occupation and `8.4e-11` on the energy.
@@ -639,29 +806,46 @@ and section 2.8.
   - **12 qubits**; `T (||H|| + max|f|)` is 102 at `T = 4` and 511 at
     `T = 20`.
   - Readout is `pi ||O|| / epsilon`: 314 calls for the site-0 occupation and
-    7,754 for the energy, normalized by `||H|| = 24.68`.
-  - Total about **`4.9e6`** calls. That is about 230 times fewer than route
-    (a), even in route (a)'s cheapest access model, and it has no closure
-    error.
-  - **Its only model error is the phonon cutoff** (16 against 20): at most
+    7,754 for the energy, normalized by `||H|| = 24.68`. This assigns the
+    whole `1e-2` to readout; reserving a share `epsilon_read` for it scales
+    the counts by `1e-2 / epsilon_read`.
+  - Total about `4.9e6` calls, a leading-factor proxy. Omitted: the
+    Hamiltonian block-encoding normalization (`alpha_H >= ||H||`,
+    unmeasured), preparation of the correlated cutoff-16 ground state,
+    coherent simulation error, and total failure probability (four
+    estimates, `ln(4/0.05) = 4.38`).
+  - The published ratio of the two proxies is about 230; with the corrected
+    route (a) leading factor it is about 110 to 140 (LCU). The two omit
+    different costs, so neither ratio is an established cost comparison.
+  - **Its model is the finite cutoff-16 Hamiltonian; it carries no closure
+    discrepancy.** The computed cutoff-16-against-20 differences, at most
     `2.6e-4` on the occupation and `9.6e-5` on the energy over `T = 4` and
-    `20`. Its readout is sized to `epsilon = 1e-2` per observable, and its
-    simulation (Trotter or qubitization) error is not priced.
+    `20`, compare two finite models. They are not an infinite-cutoff bound
+    or the error of an implemented route. Its total error is not certified.
 
 ---
 
 ## 5. Conclusion
 
-**On the L = 2 Holstein dimer there is no quantum case for integrating the
-archive equations, Eqs. (14a)-(14e) with the coherent-field update (14e),
-under either contract.**
+**On the L = 2 Holstein dimer, none of the routes assessed here shows a
+quantum advantage for integrating the archive equations, Eqs. (14a)-(14e)
+with the coherent-field update (14e), under either contract.** The routes
+assessed are the origin-centred and re-centred Carleman lifts (orders 1 to
+4), KvN, and Schrödingerization of the trajectory-linearized flow, from the
+exact correlated preparation, for the site-0 occupation and the Eq. (22)
+energy at `T = 4` and `20`. NISQ costs, other reductions or encodings, and
+complete quantum implementations were not assessed.
 
 **Against the physical reference.**
 
-- No closure-integrating route can meet the contract: the closure is off by
-  `0.015` to `0.41` before any quantum error is added.
-- The only route that meets it, direct simulation of the dimer's own
-  Hamiltonian on 12 qubits, does not integrate the archive equations.
+- A route that integrates the closure accurately cannot meet the contract:
+  on the site-0 occupation at `T = 20` its physical error is at least
+  `0.412 - epsilon`, with `epsilon` its error against T-bare.
+- Direct simulation of the dimer's own Hamiltonian on 12 qubits is the only
+  assessed route without that discrepancy. It does not integrate the
+  archive equations, and its total error is not certified: its readout
+  spends the whole allowance, its simulation error is unpriced, and the
+  cutoff difference is not an infinite-cutoff bound. No route is selected.
 
 **Against the archive equations themselves (T-bare).** Of the three layers
 of the draft's pedagogical solver map:
@@ -669,10 +853,10 @@ of the draft's pedagogical solver map:
 - **The fault-tolerant lifting layer** meets the contract only after it is
   turned into a windowed scheme that is re-centred at a classically read-out
   state 19 times. The origin-centred lift does not converge past `t ~ 2`.
-  That scheme costs about `1.1e9` calls with LCU access (`1.5e10` with
-  sparse access; polylogarithmic, `C_max` and state-preparation factors
-  excluded) to reproduce a `0.19 s` classical integration. Its readout is
-  itself a classical description of the state at every restart.
+  Its leading-factor proxy is `5.6e8` to `6.8e8` calls with LCU access
+  (`1.1e9` as published; section 4 lists what is excluded), set beside one
+  `0.19 s` classical integration of the same target. Its readout is itself a
+  classical description of the state at every restart.
 - **The fault-tolerant linearization layer.**
   - For the forced linearized flow along the exact trajectory, the
     Euclidean recovery factor is `1.2e3` to `1.5e3` (`T = 4`) and `8.7e14`
@@ -698,10 +882,14 @@ of the draft's pedagogical solver map:
   - At `L = 2` it is 31 rather than 33, because there the two modes share
     one complex correlation trace by a two-site identity that fails at
     `L >= 3`. No closure was built beyond `L = 2`.
-  - That count is polynomial, and so is the classical cost of integrating
-    the bare closure.
-  - Reading all coordinates at every restart is that classical cost, times
-    the amplitude-estimation overhead `pi ||x|| / sigma`.
+  - That count is polynomial in `L`, and so is the cost of one evaluation
+    of the bare closure's right-hand side. A polynomial coordinate count
+    does not prove a polynomial integration cost in accuracy, horizon and
+    conditioning.
+  - Reading all coordinates at every restart costs, per batch, the number of
+    coordinates times the amplitude-estimation factor
+    `pi ||Y_1|| / epsilon_coord`. That is not automatically the classical
+    integration cost times an estimator overhead.
   - A case would need re-centring, which the lift requires (section 3.2),
     without a full classical readout. Nothing here supplies one.
 - **That a bounded restart count still holds the contract.** At `L = 2`,
@@ -709,9 +897,11 @@ of the draft's pedagogical solver map:
   re-lift counts tested (5, 10, 19, 40) holds the contract. 5 and 10 fail on
   truncation error alone, and 40 fails on accumulated readout noise.
 - **That it beats direct simulation of the physics.**
-  - Direct simulation needs about `2 log2 L + 4.1 L` qubits (dense: one up
-    and one down electron, a 17-level mode per site) and carries no closure
-    error.
+  - Direct simulation needs about `2 log2 L + 4.1 L` qubits. This assumes a
+    dense encoding of one up and one down electron (one electron per spin)
+    on `L` sites, no spin-symmetry compression, and one local Holstein mode
+    per site at cutoff 16 (17 levels, `log2 17 = 4.09` qubits). It carries no
+    closure discrepancy.
   - The exact state dimension grows as `L^2 17^L`: `1,156` at `L = 2` and
     `44,217` at `L = 3`. That is what makes classical exact propagation
     costly, not the quantum register.
@@ -729,10 +919,18 @@ of the draft's pedagogical solver map:
     and 1,192 at `L = 2, 3, 4`. A locality-restricted dictionary has linear
     rows, but its transitive hull under the Holstein commutator grows at
     exponents `5.26`, `5.05`, `5.02` (2026-09-20 scaling record).
-  - The 18 GB memory contract caps the conic block at 87 extension rows. The
-    declared dictionary exceeds it already at `L = 3` (281 rows). The
-    locality-restricted dictionary (71 and 106 rows at `L = 3, 4`) exceeds
-    it between `L = 3` and `4`, and that dictionary does not close.
+  - The 87-row figure is a historical planning extrapolation. The
+    2026-09-20 locality record
+    (`agent_guidance/paper-v/overnight/scaling-locality-20260920.md`,
+    lines 259-261) applied the memory law `74.8 (n (2 n + 1))^2` bytes of
+    its implementation to the 18 GB aggregate planning allowance then in
+    force. `agent_guidance/shared/memory-budget.md` (SHA-256 `9a9cd10d...`)
+    now treats 18 GB as historical context and sets no fixed cap, so 87 rows
+    is neither an intrinsic limit nor a campaign prohibition. On that
+    historical law, the declared dictionary (281 rows at `L = 3`) and the
+    locality-restricted one (71 and 106 rows at `L = 3, 4`) would exceed it
+    at `L = 3` and between `L = 3` and `4`; the restricted dictionary does
+    not close.
   - No route in this thread addresses that step.
 
 ---
@@ -754,13 +952,13 @@ table, and section 1 (corrections 1 to 28).
 | 8 | "A polynomial of odd degree is unbounded" (why no first integral bounds the off-diagonal `C`) | All nine first integrals are invariant under translations in a 6-dimensional subspace of the 8 off-diagonal `C` coordinates |
 | 9 | The commutator non-closure (a hand derivation) | Verified numerically: 92 of 595 pairs leave the span |
 | 10 | "Trace of the Jacobian is zero" | Stronger: every diagonal entry `dF_i/dx_i` is identically zero |
-| 11 | KvN "430 to 680 qubits, `T ||L||` 5e5 to 6e9" as a cost | A heuristic; box-norm `T ||L|| >= 2.0e7`, `3.9e8`, `7.3e10`; compression-resolved 558, 682, 1,023 qubits; envelope 651, 1,984, 5,518 |
+| 11 | KvN "430 to 680 qubits, `T ||L||` 5e5 to 6e9" as a cost | A heuristic; box-vertex proxy `T ||L||` `2.0e7`, `3.9e8`, `7.3e10` (coefficient-wise, not a proved lower bound); compression-resolved 558, 682, 1,023 qubits; envelope 651, 1,984, 5,518 |
 | 12 | Baseline "12 or 19 qubits, `T ||H||` 510 to 680" | The dimer: 12 qubits, `102`, `511`, `1,533` at matched horizons. The 19-qubit, 680 figure is the three-site chain |
 | 13 | "Realized amplification 12 to 51" | Mixed trajectories and definitions. `||Phi(T,0)||` is `12.1` and `15.8` along the exact trajectory (supremum over pairs at `T = 20`: `19.2`), and `12.98` and `39.30` along T-bare (supremum over pairs `51.04`) |
 | 14 | "Overhead at least `e^p/Lambda`, about `1e2` and `1e14`" | Forced-flow recovery factor `1.2e3` to `1.5e3` (`T = 4`) and `8.7e14` to `1.8e15` (`T = 20`) |
 | 15 | "A time-dependent metric would be needed" | A constant metric gives `2.09` and `11.8` (theorem form along T-bare) |
 | 16 | "The metric in which `A_1` is skew-adjoint", "7.23", "at most 7.2" | Not unique (a 46-dimensional family); the driven supremum is at least `7.27` in the task-1 metric and `6.21` in another member |
-| 17 | "No common metric" from the SCS value `1.9e-8` | Proved by a nilpotent element of the 91-dimensional Lie algebra (`||exp(1000 X)|| = 647`) |
+| 17 | "No common metric" from the SCS value `1.9e-8` | Numerical obstruction evidence: a near-nilpotent element (`||X^2||_F = 2.4e-13`, `||exp(1000 X)|| = 647`) of the numerically closed 91-dimensional algebra; exact only with an exact witness |
 | 18 | Windowed re-lift as "a lower bound on any windowed scheme", "80 restarts" | Holds only for origin-centred lifts (re-centred: `4.1e-8`, `6.3e-7`); 79 re-lifts plus the final readout |
 | 19 | "The propagated tail is measured exactly", "nothing else" | Duhamel's identity, evaluated to quadrature accuracy (Simpson `1.1e-9` to `4.1e-9`); it validates the pipeline |
 | 20 | "Already of order one" | `2.0` to `2.2` (`T = 4`), `19.6` to `127` (`T = 20`) |
@@ -768,13 +966,13 @@ table, and section 1 (corrections 1 to 28).
 | 22 | "Independent verifications" | They were self-consistency checks. Replaced by the Hamiltonian parity, which catches the mutation in its 20 checked rows, and the second transcription. The Hamiltonian parity cannot discriminate the row-21 mutation (it moves the defect from `0.121` to `0.175`); only the second transcription catches it (`0.159`) |
 | 23 | "The draft supports four contracts" | Three are anchored (trajectory diagnostic, selected observables, invariants and residuals); the terminal-state contract was an addition. The contract set missed spectra, a representation claim, the characterization set, solver rejection counts and post-pulse energy, and `M_ij`, `V_i`. `B` is classical in the split, so it is not a quantum output of O1 or O2 |
 | 24 | "O3 is the only contract whose readout does not scale with `31 N_t`" | O2, O3 and O4 all have readout independent of `N_t` |
-| 25 | The recommendation "O3 at `1e-2` against the physical reference" | Unreachable for any closure-integrating route; restated as the choice between contracts (a) and (b) |
+| 25 | The recommendation "O3 at `1e-2` against the physical reference" | Unreachable by accurate integration of the closure (site-0 at `T = 20`: physical error at least `0.412 - epsilon`); restated as the choice between contracts (a) and (b) |
 | 26 | "Phonon occupation `N00 + N11`" | That is the fluctuation part; the total, `|B|^2 + Tr N`, is quadratic (`|B|^2` is 79 to 88 percent) |
 | 27 | "Block 2 of a lift supplies `x (x) x` directly" | False in a truncated lift (Frobenius discrepancy `11.3` to `802`) |
 | 28 | "No linear map from `X_K` evaluates the repair's cones" | Withdrawn for the retained joint Gram, whose entries are exact degree-2 polynomials of the 31 coordinates |
 | 29 | `kappa_stack` "1.1e4 to 1.16e7" | Mixed targets; for T-bare `12,071`, `166,189`, `11,558,518` |
 | 30 | Linearization about the exact trajectory, `0.17` and `1.07`, as a route | Inadmissible (an exact reference as input); a diagnostic only |
-| 31 | "Certified `Lambda`" from the terminal adjoint (`39.30` at `T = 20`) | The tube needs the pair supremum: `51.04`, or `54.10` inflated |
+| 31 | "Certified `Lambda`" from the terminal adjoint (`39.30` at `T = 20`) | The tube needs the pair supremum: grid maximum `51.04`, or the conditional estimate `54.10` inflated |
 | 32 | "Nonresonance fails automatically at order three" | It fails at order two with nonzero coupling (33 of 79) |
 | 33 | Reduced-system status quoted with full-system ranks | Reduced: 24 / 24 / 28; all 4 zero modes receive the quadratic term |
 | 34 | Status "uncommitted"; two hash suffixes | Committed at `a23ff642`; hashes corrected in r2's Status table |
@@ -804,13 +1002,24 @@ table, and section 1 (corrections 1 to 28).
   - Sign recovery is omitted for coordinates near zero: the encoded part
     `x_0/2` of the occupation changes sign 7 times to `t = 20`.
   - The norm `||x||` is assumed known.
-  - There is no union bound over the `20 x 31 = 620` estimates of route
-    (a); it would add a factor `ln(620/0.05) = 9.4`.
+  - There is no union bound over the `21 x 31 = 651` estimates of route
+    (a); it would add a factor `ln(651/0.05) = 9.47`, or `9.51` with the 21
+    norm estimates.
+  - The noise is a standard deviation, not an absolute tolerance; the
+    deterministic tolerance, norm, sign and confidence costs are written out
+    but not measured (disposition row 027-2).
   - 50 draws per row: the 95th percentile at the admissible boundary
     (`9.2e-3` against `1e-2`) carries about 10 percent sampling uncertainty.
-- **What the certificates assume.** The pair supremum `Lambda` takes the
-  base trajectory as exact, uses a sampled `max ||F||` and a Richardson RK4
-  allowance. The order-4 adjoint at `T = 20` was not run.
+- **What the conditional estimates assume.** The inflated pair supremum
+  `Lambda` takes the base trajectory as exact and uses a sampled
+  `max ||F||`, a Richardson RK4 allowance and `max |f'| = pi/2`. No L1
+  defect, restart-jump or readout budget is verified. The order-4 adjoint at
+  `T = 20` was not run.
+- **The driven solver.** The time-ordered propagator's growth constant,
+  access and normalization for the driven family, and forcing-state
+  preparation are unmeasured.
+- **Timing.** Each process's own timer was under 20 minutes; the whole
+  increment was not timed, so no whole-increment bound is established.
 - **Unassessed structure.** Nonlinear level-set reductions, and
   Lie-Poisson structures in non-affine charts (such as raw moments).
 - **KvN.** Boundary flux out of the box, a sufficient grid size, and the
