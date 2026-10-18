@@ -1,5 +1,42 @@
 # The bare closure's instability and its linearized flow
 
+**Revision note (2026-10-18, dispositions of root reviews 028, 029, the
+classical part of 030, and 031).**
+
+- **What changed.** Sections 13 and 14 were amended in place, with no new
+  run. The committed versions stay in history: section 13 at `36b686b3`,
+  section 14 at `8390a83b`.
+- **Where each change is recorded.** Every amendment answers a row of
+  `agent_guidance/paper-v/handoffs/DISPOSITION-closure-028-031-claude-20261010.md`.
+  Each row names the finding, the decision, the line changed and the
+  replacement text.
+- **The kinds of change:**
+  - the conditional compactness statement is separated from the capped map
+    that targets it;
+  - "tight" becomes "sharper", and the trace witness is
+    `x17 = -omega n / (2 g)`;
+  - non-converged counts become batch-step counts;
+  - suprema become sampled maxima, records every 400 steps;
+  - the selected minors and the retained Gram are named as necessary
+    conditions, not physical representability;
+  - finite, in-sample and protocol qualifications are attached to the
+    ablations, predictors, step-halving ratios, projection comparisons and
+    the 3000-unit heating;
+  - the accuracy comparisons are kept metric-specific, including the
+    `T = 4` Hartree--Fock contradiction in 14.0;
+  - the computed-energy target is distinguished from a drive-work
+    reference;
+  - the hybrid is labelled a capped fallback: 234 infeasible
+    re-selections, negative post-event Gram and extension minima, an
+    unrecorded cap residual, and a derived, unverified skipped-selection
+    cost;
+  - the timing protocols are qualified;
+  - the execution-provenance and whole-increment limits are stated.
+- **What did not change.** Sections 0 to 12 are unchanged; where they
+  disagree with 13 or 14, those hold. None of the studies proposed in 13.12
+  or 14.7 is selected. The three current strict resume-parity failures and
+  root 025 stand.
+
 **Round of 2026-10-10, branch `claude/paper-v-routes-20260914`, worktree
 `Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `b9f99271`.**
 Exploratory local work, not promoted evidence; no default, acceptance rule or
@@ -1049,23 +1086,33 @@ and their SHA-256 are in the rehashed `sha256_task2.json` (13.13).
    already violate the electronic, phonon and joint cones and carry a
    nonzero shared trace (`0.020` to `1.23`), and the perturbation keeps those
    values.
-4. **The compactness statement holds for a set, with a tighter constant, and
-   only with the trace pin.** The Gram held positive with the energy alone
-   is not compact, because the retained joint Gram subtracts `Tr C[q]`.
+4. **The compactness statement is conditional: it holds for a set, with a
+   sharper constant than section 11's, and only with trace control.** It
+   bounds every coordinate while a bounded-above Eq. (22) energy, the trace
+   pin and every stated inequality actually hold. It says nothing by itself
+   about what an executed map achieves. The Gram held positive with the
+   energy alone is not compact, because the retained joint Gram subtracts
+   `Tr C[q]`. The certificate needs trace control; an exactly zero trace is
+   not shown to be the only control that would restore compactness.
    Sentences in 11.3 that said otherwise are withdrawn. No run in sections 8
-   to 12 held the energy exactly. This round adds a map that does: it holds
-   the Eq. (22) energy at its pre-map value to `1.0e-12` at every step
-   (13.6).
-5. **Necessity, measured (13.5).** With the energy held exactly, dropping any
-   single family of bounds gives no escape in 600 units from either `t = 0`
-   preparation (8 members each), so no single family is necessary there.
-   Holding the energy is not enough on its own: the trace pin alone, the
-   phonon diagonal alone, both, and the phonon diagonal with the anomalous
-   bounds each let all 8 members fire. With the energy not held, the
-   correlation Cauchy--Schwarz bounds are the necessary family: without them
-   7 of 8 members fire from the exact correlated preparation (`502` to
-   `576` units) and the Hartree--Fock members reach a maximum absolute
-   coordinate of `2.3e3` by 600.
+   to 12 held the energy exactly. This round adds a capped map that targets
+   it: it holds the computed Eq. (22) energy at its post-step, pre-map value
+   to `1.0e-12`, alternating with the bounds for at most 200 iterations, so
+   at some batch steps the bounds or the energy are left unconverged (13.5,
+   13.6).
+5. **A finite ablation of the capped map (13.5).** With the exact-energy hold,
+   dropping any single family of bounds gives no `1e4` event in 600 units
+   from either `t = 0` preparation (8 members each). In this finite test, no
+   single family is needed to avoid the event. Keeping only the trace pin,
+   only the phonon diagonal, both, or the phonon diagonal with the
+   anomalous bounds, every member crosses the threshold. Most of those cells
+   carry non-converged batch steps, so they describe the capped algorithm,
+   not the insufficiency of the exactly enforced intersection; 13.5 gives
+   each row's status. With the energy not held, dropping the correlation
+   Cauchy--Schwarz bounds lets 7 of 8 exact-correlated members cross the
+   threshold (`502` to `576` units) and drives the Hartree--Fock members to
+   a sampled maximum absolute coordinate of `2.3e3` by 600. That is a finite
+   ablation result, not mathematical necessity.
 6. **Cost (13.11).** Measured in one session (minimum of three), the minors
    map costs `1.18` times the bare RK4 step from either preparation
    (`0.165` against `0.140` s per unit, one trajectory, Hartree--Fock). The
@@ -1073,18 +1120,30 @@ and their SHA-256 are in the rehashed `sha256_task2.json` (13.13).
    roots and 22 comparisons per state per step. The cheap repair costs
    `346.8` s per unit in the same session (`t = 0` to `0.4`), or `216.5` on
    the recorded `t = 0` to 60 wall. That is `2.1e3` or `1.3e3` times the
-   minors map.
-7. **Section 10 (R2, 13.3).** Representability loss is not a predictor of
-   escape. Under the bare closure, the retained Gram is negative at the
-   start, or within 12 units of it, in all 19 ensembles. In the task-11
-   `t = 20` ensemble, the members that never fire cross Gram `< -1` at the
-   same median time (`542.8`) as those that do. Representable starts escape
-   the bare closure as before (13.10).
-8. **The maps (critic, 13.4).** The critic's assessment is carried
-   verbatim: *the minors clip is a candidate cheap divergence guard, not a
-   representability repair, and it does not improve accuracy.* The
-   observable-accuracy table (13.6) bears it out for every map built this
-   round:
+   minors map. The cheap repair's timing includes 8 of 10 failed lift
+   re-selections, so the ratios compare the measured protocols, not equally
+   accurate methods.
+7. **Section 10 (R2, 13.3).** In these 19 ensembles, loss of the retained-Gram
+   condition does not discriminate escape. Under the bare closure the
+   retained Gram is negative at the start, or within 12 units of it, in all
+   19 ensembles. In the task-11 `t = 20` ensemble, the members with no event
+   in 1500 units cross Gram `< -1` at the same median time (`542.8`) as those
+   that fire. The selected minors and the retained 8-by-8 Gram are necessary
+   conditions for physical representability, not a complete test of it.
+   This is a finite, in-sample and partly censored observation about that
+   necessary condition, not a proof that no starting-state geometry
+   predicts escape. Starts satisfying the tested necessary constraints
+   escape the bare closure as before (13.10).
+8. **The maps (critic, 13.4).** The critic's assessment, carried verbatim,
+   is: *the minors clip is a candidate cheap divergence guard, not a
+   representability repair, and it does not improve accuracy.* Its "does
+   not improve accuracy" compares the clip with the cheap repair. Against
+   the bare closure some errors do improve (site-0 RMS over `[0, 4]`:
+   `0.0356` against `0.0522` from Hartree--Fock; all-31 RMS over `[0, 20]`:
+   `0.3146` against `0.3320`), while the Eq. (22) RMS worsens from the exact
+   correlated preparation (13.6). Against the cheap repair, the
+   observable-accuracy table (13.6) bears the critic out for every map
+   built this round:
    - against the cheap repair, the best map's Eq. (22) RMS is `6.6` to
      `38` times higher at every horizon, and its site-0 RMS is higher at
      `T = 4` and `8`;
@@ -1096,7 +1155,12 @@ and their SHA-256 are in the rehashed `sha256_task2.json` (13.13).
    exact-energy minors map prevents every event in 600 units from 32 starts
    that all fire under the bare closure by `566`. It acts at `8.7e-4` and
    `9.7e-3` of member-steps. Its thresholds were tuned on the same
-   ensembles.
+   ensembles. Before its first trigger it is the bare closure, so its
+   agreement with bare dynamics is not an accuracy benefit. From
+   Hartree--Fock its single trigger, at `t = 37.26`, reached the
+   200-iteration cap without bound convergence (13.8). Its zero events are
+   finite, censored observations of that capped algorithm, not a
+   certificate of exact constraint preservation.
 
 ## 13.1 Section 9, corrected
 
@@ -1246,7 +1310,10 @@ Corrections to the text of sections 8 and 9:
 - **(c) The compactness statement.**
   - Replaced by R3's corrected statement: fixed (or bounded-above) Eq. (22)
     energy together with `N >= 0`, `|r| <= 1`, the twelve 2-by-2 Gram
-    minors and `Tr C[q] = 0` gives a compact set. The tight lower bound is
+    minors and `Tr C[q] = 0` gives a compact set. This is a conditional
+    statement about the set: it applies to a trajectory only while every one
+    of those conditions holds. The lower bound, sharper than section 11's
+    (its global optimality is not shown), is
     `E >= -2t + omega |B|^2 - 4 g |B| + omega Tr N - 2 g (sqrt N_00 +
     sqrt N_11)`; section 11's `4 sqrt 2 g` is valid but loose. Every
     coordinate is then bounded:
@@ -1260,9 +1327,12 @@ Corrections to the text of sections 8 and 9:
     gives `E = 4871.8`.
   - **The trace pin is necessary for compactness, and the Gram with the
     energy alone is not compact.** The retained joint Gram subtracts
-    `Tr C[q]`. Take `N_00 = N_11 = n`, `x17 = -0.408 n` and every other
-    coordinate zero: the energy is 0, the Gram's minimum eigenvalue is `+1`,
-    and `max|x| = n` (R3). The 11.3 sentence "The retained joint Gram, which
+    `Tr C[q]`. Take `N_00 = N_11 = n`, `x17 = -omega n / (2 g)` (about
+    `-0.408 n` at `omega = 0.5`, `g = 0.6124`) and every other coordinate
+    zero. The energy `2 omega n + 4 g x17` is then exactly 0, the Gram's
+    minimum eigenvalue is `+1`, and `max|x| = n` (R3). This shows that this
+    certificate fails without trace control. It does not show that an
+    exactly zero trace is the only control that would restore compactness. The 11.3 sentence "The retained joint Gram, which
     implies every one of these bounds, is therefore sufficient with the
     energy but more than is needed" is withdrawn. It now reads: the
     retained joint Gram held positive together with `Tr C[q] = 0` and the
@@ -1270,7 +1340,8 @@ Corrections to the text of sections 8 and 9:
   - **"Each part is measured" is withdrawn.** Sections 8 to 12 ran only
     `none`, `cs_offdiag`, `minors` and `minors_energy`, which shows the full
     set sufficient over 600 units and nothing about which parts are needed.
-    13.5 measures that.
+    13.5 tests that in a finite ablation of the capped map, with each
+    row's convergence status.
   - **No run in sections 8 to 12 held the energy exactly.** The
     `minors_energy` restoration through `B` fails whenever the map has
     raised the energy past `B`'s own minimum: the maximum change with
@@ -1278,8 +1349,9 @@ Corrections to the text of sections 8 and 9:
     `t = 60` state the drift with restoration (`1.50`) exceeds the drift
     without it (`1.38`). Minors-only heating continues to `+14.5` by 1800
     units without escape (R3).
-  - Given the measured sup of the energy, the inequality bounds `max|x|` by
-    `14` to `29` on every minors run. So 0 escapes in those runs follows
+  - Given the largest recorded energy (sampled every 400 steps, so not a
+    bound at every point of the interval), the inequality bounds `max|x|` by
+    `14` to `29` at the sampled states of every minors run. So 0 escapes in those runs follows
     from the measured heating and is not an independent finding (R3). The
     informative quantity is the heating rate.
 - **(d) "The maps above confine" and "every map above confines without
@@ -1315,7 +1387,11 @@ Corrections to the text of sections 8 and 9:
 **The quantity, named.** "Gram" in section 10 is the minimum eigenvalue of
 the 8-by-8 affine Gram of `(1, b0, b1, b0^dag, b1^dag, sigma_x, sigma_y,
 sigma_z)`, with the correlation shared trace removed (`run_unrepaired.py`).
-It is not a 16-feature matrix and not the 36-row extension. R2 reproduced
+It is not a 16-feature matrix and not the 36-row extension. Positivity of
+this Gram and of the selected minors are necessary conditions for a
+physical moment state. They are not a complete test of physical
+representability, and "representability" in this section means only the
+tested necessary condition. R2 reproduced
 every tabled cell of section 10 from the stored first crossings, and its
 16-member reruns matched bitwise. Every refuted sentence is replaced:
 
@@ -1336,7 +1412,9 @@ every tabled cell of section 10 from the stored first crossings, and its
 - **"Carries no information about when the event comes"** is replaced.
   - Within one ensemble (64 perturbations of size `1e-4` around one state)
     the first time the Gram falls below `-1` does not order the members'
-    events: rho `-0.01` to `0.25`, `p` `0.047` to `0.95`.
+    events: rho `-0.04` to `0.25`, `p` `0.047` to `0.95`. The section-10
+    table and the receipts give `-0.0443` for the repaired `t = 40`
+    ensemble; this line printed `-0.01` before the 2026-10-18 revision.
   - In two of the five tabled ensembles the members cross within one to
     four `0.05`-unit samples. There the correlation is undefined in
     substance, and "lead spread equals event spread" is an identity.
@@ -1355,10 +1433,14 @@ every tabled cell of section 10 from the stored first crossings, and its
     coordinate it comes `12` to `26` units before (thresholds `2.4` to `4`).
   - At equal predictive skill (`0.8`, skill being one minus the mean
     absolute error of the lead about its median over that of the event
-    about its median) the Gram is `1.3` to `6.2` units earlier.
+    about its median) the Gram is `1.2` to `6.2` units earlier (receipt
+    `d_threshold_scan.json`, low end `1.228`; this line printed `1.3`
+    before the 2026-10-18 revision).
   - Neither leads by more than about 40 units, under 10 percent of the 281
-    to 577 units to the event. The table covers 5 of 19 ensembles and 9 of
-    23 thresholds (6 tried per quantity).
+    to 577 units to the event. These leads are for the five ensembles of
+    section 10's table (of 19), on which the thresholds were tuned, so they
+    are in-sample. Section 10's fixed-threshold table covers 9 of the 23
+    stored thresholds.
 - **"Unrelated"** (the early crossings) is replaced. They order the events
   weakly or not at all (rho `-0.06` to `0.42` within an ensemble). The
   positive values in the repaired `t = 60` and exact `t = 60` ensembles
@@ -1370,8 +1452,11 @@ every tabled cell of section 10 from the stored first crossings, and its
   `t = 20` ensemble, 38 of the 41 members without an event in 1500 units
   cross Gram `< -1`, at a median of `542.8` units; the 23 members that fire
   cross at a median of `542.8`, the same time (my recomputation; R2 reports
-  `543`). Representability loss is a property of the bare flow from every
-  state, not a discriminating predictor of escape.
+  `543`). In these ensembles, loss of the retained-Gram condition is a
+  property of the bare flow from every tested state and does not
+  discriminate escape. That is a finite, in-sample observation with
+  censoring (23 of 64 fired by 1500). It is not a proof that no measure of
+  representability predicts escape from any state.
 - **"The bare `t = 20` value `-1.63` at 200 before"** rests on 4 of 64
   members. The 64-member value at 100 before is `-0.99`, and that ensemble
   starts at Gram `-0.70`.
@@ -1385,7 +1470,12 @@ every tabled cell of section 10 from the stored first crossings, and its
 
 ## 13.4 Section 11's maps, corrected (critic and R3)
 
-- **What the minors map holds, exactly, after every step:**
+- **What the minors map targets after every step.** These are held to the
+  recorded residual: at most `3.6e-12` without the energy hold, and with it
+  `1e-12` except at the non-converged batch steps listed in 13.5. The
+  `maps2` and `run_spec.py` runs (13.6 to 13.9) record the energy residual,
+  and `obs_accuracy` the largest alternation count, but no bound residual.
+  The families are:
   - the Bloch ball, so the electronic `2 x 2` density is positive
     semidefinite;
   - the `2 x 2` phonon density `N`, positive semidefinite (`N_qq >= 0` and
@@ -1407,7 +1497,10 @@ every tabled cell of section 10 from the stored first crossings, and its
 
   "Every second-order bound" and "positivity bounds on every block" in
   section 11 are withdrawn and replaced by this list.
-- **The scheme is first order in `h`.** With a map after every RK4 step,
+- **The tested always-on maps behave as first order in `h`.** This is an
+  observation on one unperturbed trajectory per preparation at three step
+  sizes. It is not an order theorem, a continuum limit, or a statement about
+  the accuracy of the underlying closure. With a map after every RK4 step,
   the state difference between `h` and `h/2`, divided by the difference
   between `h/2` and `h/4`, is `1.91` to `2.39` at `t = 20` for every map,
   against `16.0` for the bare closure (`order_check.json`; Euclidean
@@ -1436,9 +1529,11 @@ every tabled cell of section 10 from the stored first crossings, and its
   closure from the same preparation (`142.7` to `156.0`).
 - **The critic's assessment, carried verbatim:** *the minors clip is a
   candidate cheap divergence guard, not a representability repair, and it
-  does not improve accuracy.*
+  does not improve accuracy.* The critic compared the clip with the cheap
+  repair. Against the bare closure the clip improves some errors and
+  worsens others; 13.6 keeps those comparisons separate.
 
-## 13.5 Which families are necessary (the necessity ablation and run 2)
+## 13.5 A finite ablation of the bound families (the necessity ablation and run 2)
 
 **Protocol.** 8 members per cell: seeds 1 to 8 of the admissible direction
 (`constrained_initial_direction`, size `1e-4`, as in section 11) around the
@@ -1456,8 +1551,10 @@ identical spec in 100-unit batches (`gate_drop_trace.json`: difference `0.0`
 over 5 units on both preparations). That driver records the energy
 residual but not the count of non-converged steps.
 
-Each cell gives the members fired by 600, the maximum absolute coordinate at
-600 over survivors (its supremum over the run in brackets), and, for energy
+Each cell gives the members fired by 600 and the maximum absolute
+coordinate at 600 over survivors. In brackets is its largest value at the
+records taken every 400 steps, one per unit: a sampled maximum, not a bound
+over the whole interval. For energy
 not held, the largest change of the Eq. (22) energy from `t = 10` (after the
 pulse) to 600.
 
@@ -1473,12 +1570,19 @@ pulse) to 600.
 
 With exact energy the Eq. (22) energy changes by at most `4.6e-10` from
 `t = 10` to 600 in every drop-one cell. Three Hartree--Fock cells did not
-converge at every step: drop `a` at 120 member-steps (largest remaining
+converge at every step: drop `a` at 120 batch steps (largest remaining
 bound violation `6.1e-3`), drop `n_diag` at 10 (`5.8e-4`) and drop `trace`
-at 7 (`5.3e-8`). The same map from the exact `t = 60` state and the repaired
+at 7 (`5.3e-8`). These are batch-step counts. `minors_family.py` counts one
+non-converged step whenever the whole batch fails to converge, and the
+number of failing members was not retained. Every other drop-one cell with
+exact energy held the kept bounds to `1e-12` and the energy to `1e-12` at
+every step. The same map from the exact `t = 60` state and the repaired
 `t = 60` state (all families, exact energy, 8 members, 600 units) gives 0
-fired, supremum `2.42` and `1.97`; the exact-state run did not converge at
-305 member-steps (violation `1.2e-7`).
+fired, sampled maxima `2.42` and `1.97`. The exact-state run did not
+converge at 305 batch steps (violation `1.2e-7`). The exact-correlated
+drop-`trace` cell ran through `maps2`, which records neither bound
+residuals nor non-converged steps, so its enforcement is established only
+for the energy residual.
 
 Keep-only cells, exact energy (the families not named are dropped):
 
@@ -1492,25 +1596,52 @@ Keep-only cells, exact energy (the families not named are dropped):
 | `corr` | 0 fired; `169` at 600, still growing | 0 fired; `2.07` (`2.28`) |
 | `corr`, `electronic` | 0 fired; `26.6` (`39.4`) | 0 fired; `2.14` (`2.33`) |
 
-Seven of the nine fired keep-only cells carry non-converged map steps, up
-to `4,583` member-steps in `n_diag`, `a` from the exact correlated
-preparation. In those cells the kept bounds were not held to `1e-12` at
-every step before the event. The cells without an event have at most 2.
+Each keep-only cell's convergence, as non-converged batch steps (the
+number of failing members was not retained) / largest recorded bound
+violation / largest energy residual after the map (`family_*.json`):
+
+| families kept | Hartree--Fock | exact correlated |
+|---|---|---|
+| `trace` | 1964 / `0` / `1.5e-11` | 0 / `0` / `9.1e-13` |
+| `n_diag` | 9 / `1.0e-12` / `1.4e-12` | 846 / `1.0e-12` / `1.1e-11` |
+| `trace`, `n_diag` | 0 / `1.0e-12` / `9.1e-13` | 2 / `1.0e-12` / `1.4e-12` |
+| `n_diag`, `a` | 3487 / `1.0e-12` / `2.2e-11` | 4583 / `1.0e-12` / `2.2e-11` |
+| `trace`, `n_diag`, `a` | 0 / `2.2e-16` / `4.0e-15` | 26 / `1.0e-12` / `3.6e-12` |
+| `corr` | 2 / `2.1e-10` / `1.0e-12` | 0 / `1.0e-12` / `9.9e-13` |
+| `corr`, `electronic` | 2 / `2.1e-10` / `1.0e-12` | 1 / `3.5e-12` / `1.0e-12` |
+
+Seven of the nine fired keep-only cells carry non-converged batch steps. In
+the fired cells the residual left at those steps is in the energy (up to
+`2.2e-11`), while the kept bounds are held to `1e-12`. These rows are a
+finite test of the capped algorithm at those residuals. A capped map that
+leaves kept constraints unconverged cannot establish that the exactly
+enforced intersection is insufficient. Two fired cells converged at every
+step: Hartree--Fock keep `trace`, `n_diag`, and exact correlated keep
+`trace`.
 
 What this measures:
 
-- With the energy held exactly, no single family is necessary over 600
-  units from either `t = 0` preparation: every drop-one cell has 0 fired and
-  a supremum of at most `3.80`.
-- The exact energy is not sufficient with the phonon bounds alone. The trace
-  pin, `N_qq >= 0`, both, and `N_qq >= 0` with the anomalous bounds all let
-  every member fire. The three together suffice from Hartree--Fock but not
-  from the exact correlated preparation.
-- The correlation bounds alone, with exact energy, give no event in 600 but
-  do not confine from Hartree--Fock (`169` at 600).
-- With the energy not held, the correlation bounds are necessary: dropping
-  them fires 7 of 8 exact-correlated members and drives the Hartree--Fock
-  members to `2.3e3`. Dropping the anomalous bounds drives the heating to
+- With the exact-energy hold, in this finite test (8 members per cell, 600
+  units, `1e4` threshold), dropping any single family gives 0 events and a
+  sampled maximum of at most `3.80`. Three Hartree--Fock cells and the exact
+  `t = 60` cell carry non-converged batch steps (above). The
+  exact-correlated drop-`trace` cell has no bound-residual receipt.
+- With the capped alternation, keeping only the trace pin, only `N_qq >= 0`,
+  both, or `N_qq >= 0` with the anomalous bounds lets every member cross the
+  threshold. The three together give no event from Hartree--Fock and 8
+  events from exact correlated. Two cells converged at every step: the
+  Hartree--Fock `trace`, `n_diag` cell and the exact-correlated `trace`
+  cell. Only for those two, for these members and this window, do the
+  rows show that the kept subset held exactly with the energy does not
+  prevent the event.
+- The correlation bounds alone, with the exact-energy hold, give no event in
+  600. They do not keep the coordinates small from Hartree--Fock (`169` at
+  600).
+- With the energy not held (one application of the remaining families per
+  step, residual at most `3.6e-12`), dropping the correlation bounds lets 7
+  of 8 exact-correlated members cross the threshold and drives the
+  Hartree--Fock members to a sampled `2.3e3`. That is a finite ablation
+  result, not mathematical necessity. Dropping the anomalous bounds drives the heating to
   `+190` (exact correlated) and `+7.8` (Hartree--Fock) without an event in
   600. Dropping the trace pin raises it to `+11.1` and `+5.5`.
 - From the exact correlated preparation the Bloch-ball clip is the source of
@@ -1522,9 +1653,13 @@ What this measures:
 **The hold.** `minors_exact` applies the minors families, then the exact
 root of `E(x + s grad E) = E_target` (a quadratic in `s`, since Eq. (22) is
 quadratic), alternating until the bound violation and `|E - E_target|` are
-both at most `1e-12`. `E_target` is the energy after the RK4 step, so the
-pulse still does work on the state and the map does none. Over every run of
-this round the energy residual after the map is at most `1.0e-12`.
+both at most `1e-12`, for at most 200 alternations. `E_target` is the
+computed energy after the RK4 step, before the map; it is not taken from the
+exact reference. The map itself does no work. By changing the state, though,
+it can change the work the pulse does afterwards. Over every run of this
+round the energy residual after the map is at most `1.0e-12`, apart from
+the keep-only cells listed in 13.5 (up to `2.2e-11`). The bounds are not
+always converged (13.5).
 
 **Protocol.** One unperturbed trajectory per preparation, RK4 at
 `h = 0.0025` and at `h/2`, the map after every step, to `t = 60`
@@ -1595,11 +1730,16 @@ column is the largest change of any of the twelve scores between `h` and
   RMS from `0.018` to `0.160` at `T = 20`. The exact hold brings that to
   `0.035`.
 - The Eq. (22) RMS that remains under the exact hold (`0.035` from exact
-  correlated, `0.044` to `0.050` from Hartree--Fock) is the difference
-  between the work the pulse does on the closure and on the exact state.
-  The hold keeps the closure's energy and does not touch that difference:
-  at `t = 1` the closure's energy is `-3.567` with or without the map,
-  against the exact `-3.597`.
+  correlated, `0.044` to `0.050` from Hartree--Fock) is consistent with a
+  difference between the work the pulse does on the closure and on the
+  exact state. At `t = 1` the closure's energy is `-3.567` with or without
+  the map, against the exact `-3.597`. That rounded agreement at one time
+  does not establish equal work histories.
+  - An energy-neutral map changes the state, and so can change the work the
+    drive does later.
+  - The hold targets the computed post-step energy, not an independently
+    accumulated drive-work reference.
+  - So the attribution of the whole RMS to pulse work is not proved.
 
 ## 13.7 The Gram-cone map and the boson moment map (runs 3 and 4)
 
@@ -1619,7 +1759,7 @@ column is the largest change of any of the twelve scores between `h` and
 **Confinement**, 8 members (seeds 1 to 8, `1e-4`) from each `t = 0`
 preparation, 600 units:
 
-| map | preparation | fired | maximum absolute coordinate at 600 (supremum) | Eq. (22) change, `t = 10` to 600 | retained Gram minimum over the run | boson-matrix minimum over the run |
+| map | preparation | fired | maximum absolute coordinate at 600 (in brackets, the largest sampled value; records every 400 steps) | Eq. (22) change, `t = 10` to 600 | smallest sampled retained Gram eigenvalue | smallest sampled boson-matrix eigenvalue |
 |---|---|---|---|---|---|---|
 | `gram` | Hartree--Fock | 0 | `1.54` (`2.01`) | `+0.77` | `-6.2e-4` | `-6.4e-5` |
 | `gram` | exact correlated | 0 | `1.82` (`2.14`) | `+1.81` | `-1.4e-3` | `+2.1e-5` |
@@ -1630,8 +1770,12 @@ preparation, 600 units:
 
 - `gram` holds the retained Gram to `-6.2e-4` (Hartree--Fock) and
   `-1.4e-3` (exact correlated), below `-1e-4` at `1.3` and `2.3` percent of
-  unit records. It heats (`+0.77`, `+1.81`) and confines over 600 units.
-- `gram_exact` holds the energy and confines, but the Gram falls to `-1.76`
+  unit records. It heats (`+0.77`, `+1.81`) and has no event in 600 units
+  (8 members per preparation). It is one clip-and-map-back pass per step,
+  which need not land in the cone, and the retained Gram stays negative.
+- `gram_exact` holds the energy and has no event in 600 units. The energy
+  root after the one-pass clip destroys positivity again: the Gram falls to
+  `-1.76`
   and `-2.20` and is below `-1e-4` at `99.7` and `99.8` percent of unit
   records. It is not `h`-converged: its state moves by `0.05` to `0.47`
   between `h` and `h/2` at `t = 4`, 20 and 60 (largest coordinate
@@ -1639,11 +1783,16 @@ preparation, 600 units:
   It is a map onto the energy surface that passes through the Gram cone, not
   a map onto the intersection.
 - `boson_minors_exact` holds the boson matrix to `-1.8e-3` (Hartree--Fock)
-  and `-1.4e-3` (exact correlated) and confines from both. The retained
+  and `-1.4e-3` (exact correlated, sampled minima) and has no event in 600
+  units from either preparation. The retained
   Gram is not held (`-0.60`, `-0.73`). The exact-correlated cell ran in
   150-unit batches (13.13).
-- Order in `h` (`order_check.json`): every map, `gram` and
-  `boson_minors_exact` included, is first order (ratios `1.91` to `2.39`).
+- Order in `h` (`order_check.json`): every tested map, `gram` and
+  `boson_minors_exact` included, behaves as first order on the tested
+  trajectories (ratios `1.91` to `2.39`). No order theorem is shown.
+- None of these names means a projection onto a fully enforced
+  intersection, or a physical repair. `run_spec.py` records no bound
+  residual or alternation count for these cells.
 
 ## 13.8 A triggered guard (run 5)
 
@@ -1653,7 +1802,7 @@ exceeds 3 or whose retained Gram minimum is below `-2.75`. These are the
 earliest-ordering thresholds of R2's scan (13.3), chosen on the same
 ensembles, so the guard is tuned on the states it is tested on.
 
-| start | members | fired by 600 | fraction of member-steps mapped | maximum absolute coordinate at 600 (supremum) | Eq. (22) change over 600 |
+| start | members | fired by 600 | fraction of member-steps mapped | maximum absolute coordinate at 600 (in brackets, the largest sampled value; records every 400 steps) | Eq. (22) change over 600 |
 |---|---:|---:|---:|---|---:|
 | repaired chain, `t = 60` | 16 | 0 | `8.7e-4` | `2.35` (`3.28`) | `1.5e-10` |
 | exact reference, `t = 60` | 16 | 0 | `9.7e-3` | `3.06` (`3.77`) | `3.9e-9` |
@@ -1673,31 +1822,42 @@ scores equal the bare closure's to `T = 20` (13.6). At `T = 60` its
 all-coordinate RMS is `0.429`, against `0.346` to `0.367` for the always-on
 minors maps. Its scores move by `4.6e-11` between `h` and `h/2`.
 
+Before its first trigger the triggered guard is the bare closure, so its
+agreement with the bare scores to `T = 20` is not an independent accuracy
+benefit. Its zero events over 600 units are finite, censored observations
+of a capped algorithm whose single Hartree--Fock trigger did not converge.
+They do not certify exact constraint preservation. `run_spec.py` records no
+alternation count for the two 16-member ensembles.
+
 ## 13.9 Heating with the minors map alone, to 3000 units (run 6)
 
 `minors` (energy not held), 8 members (`1e-4`), 3000 units, in 600-unit
 batches. Eq. (22) change from `t0 + 10`, median / largest over members:
 
-| start | 600 | 1200 | 1800 | 2400 | 3000 | supremum of the maximum absolute coordinate |
+| start | 600 | 1200 | 1800 | 2400 | 3000 | largest sampled maximum absolute coordinate (records every 400 steps) |
 |---|---|---|---|---|---|---:|
 | bare exact correlated, `t = 0` | `+2.33` / `+5.57` | `+3.46` / `+7.33` | `+6.23` / `+53.6` | `+21.4` / `+323` | `+66.4` / `+319` | `285` |
 | exact reference, `t = 60` | `+0.34` / `+1.38` | `+1.74` / `+3.57` | `+2.54` / `+57.6` | `+3.34` / `+76.5` | `+3.89` / `+95.4` | `124` |
 
-No member fires in 3000 units. The heating does not level off. In both
+No member fires in 3000 units (8 members per start, `1e4` threshold). The
+recorded heating has not levelled off by 3000. That does not show heating
+without bound. In both
 ensembles some members run away in energy between 1200 and 1800 units (largest
-change `+339` exact correlated, `+115` exact `t = 60`) and reach a maximum
-absolute coordinate of `285` and `124`. By the bound of 13.2 (c), the
-`1e4` event needs `E >= 4.87e3`. The minors map alone confines only for as
-long as its heating stays below that. Over 3000 units it does not escape,
+change `+339` exact correlated, `+115` exact `t = 60`, at the records) and
+reach sampled maximum absolute coordinates of `285` and `124`. By the bound
+of 13.2 (c), the `1e4` event needs `E >= 4.87e3`. The energy is sampled, so
+the records do not bound it at every point, and the bound applies only at
+the sampled states. Over 3000 units it does not escape,
 but it does not confine to the `O(1)` set either: at 3000 the
 median maximum absolute coordinate is `73` (exact correlated) and `2.4`
 (exact `t = 60`).
 
-## 13.10 Escape from representable starts (run 7)
+## 13.10 Escape from starts satisfying the tested necessary constraints (run 7)
 
 From the repaired chain's and the exact reference's states at `t = 20`:
-`x0 + eps u` (seeds 1 to 16, `eps = 1e-4` and `1e-3`), carried into a
-representable set, then the bare closure (DOP853 `rtol 1e-10`,
+`x0 + eps u` (seeds 1 to 16, `eps = 1e-4` and `1e-3`), carried into a set
+satisfying a tested necessary condition (not a certificate of physical
+representability), then the bare closure (DOP853 `rtol 1e-10`,
 `atol 1e-12`, event `1e4`, span 1500; `representable_escape.py`). The two
 sets are:
 
@@ -1721,9 +1881,18 @@ All 128 members fire. The perturbed exact states are already inside both
 sets (retained Gram `+3.8e-3`), so their projections move nothing. Their
 events (`125.8`, `130.3`) match section 9's unprojected `128.2`. The
 repaired states, projected, fire at `420` to `541`, against section 9's
-`588.7` (64 members, unprojected). A representable start does not delay the
-bare closure's escape. Under the bare closure the escape is a property of
-the flow, not of where the start sits relative to the cones (with 13.3).
+`588.7` (64 members, unprojected). The comparison does not isolate a
+projection effect:
+
+- the projected ensembles have 16 members, against section 9's 64;
+- the exact stored states and the perturbed moment vectors have different
+  provenance.
+
+Directly: all 128 tested members fire, and the projected unperturbed starts
+fire at `414.8` and `509.1` (repaired) and `127.4` (exact). In these tests,
+satisfying the tested necessary constraints at the start did not prevent
+escape. That is not a proof that escape is independent of starting-state
+geometry.
 
 ## 13.11 Cost, one session (the timing run)
 
@@ -1754,11 +1923,19 @@ minimum gives `346.8` s per unit, made up of:
 
 - `117.2` s for the 10 lift re-selections (8 recorded as
   `lift_reselection_failures`);
-- `18.8` s for the 480 Dykstra repairs (one per SSPRK stage);
+- `19.0` s for the 480 Dykstra repairs (one per SSPRK stage; receipt
+  `cheap_repair_timing_run1/summary.json`; this line printed the second
+  run's `18.8` before the 2026-10-18 revision);
 - `2.5` s for the velocity evaluations.
 
 The recorded chain's wall over `t = 0` to 60 is `12,990.087` s, or `216.5` s
 per unit. That run was in another session, over a different horizon.
+
+These timings measure the protocol as run, including 8 of 10 failed lift
+re-selections. They are not the cost of a successfully accepted repaired
+trajectory. Minimum-of-three walls, a historical 60-unit chain and
+different solvers and horizons are descriptive comparisons, not
+matched-accuracy or general resource guarantees.
 
 Ratios, one Hartree--Fock trajectory each, with both walls:
 
@@ -1776,7 +1953,8 @@ R3's `1.08`. This session's `1.18` replaces both.
 
 - **Long horizons with exact energy.** Every exact-energy run stops at 600
   units. The minors map without the hold keeps heating to 3000 units
-  (13.9). Whether the hold confines beyond 600 is not measured.
+  (13.9). Whether the capped hold keeps the sampled coordinates bounded
+  beyond 600 is not measured.
 - **The positive extension.** No map of this round holds the 36-row scaled
   extension, and none is scored against it. Its role in the cheap repair's
   accuracy is not separated from the retained Gram's or the hyperplane's.
@@ -1802,6 +1980,20 @@ R3's `1.08`. This session's `1.18` replaces both.
   non-converged map steps. For the exact-correlated drop-`trace` cell
   (13.5) only the energy residual (at most `1.0e-12`) is recorded, not the
   remaining bound violation.
+- **Execution provenance.** `run_spec.py` restores a checkpoint without
+  validating saved source, input or settings hashes (its lines 62 to 68).
+  It computes the state-artifact hash after execution (line 112), and the
+  manifest holds no `paper_5/src` file. The final hashes prove artifact
+  integrity, not fixed source, input and settings across resumes. These
+  outputs are protocol-qualified exploratory observations.
+- **The whole-increment gate.** The 19.5-minute process watchdog and the
+  batched reruns kept each process under 20 minutes. They do not establish
+  the 1200-second bound for the complete increment (preparation,
+  reference, scoring, report, review and closure), which is unestablished.
+- **The prerequisite holds stand.** Nothing here repairs the three current
+  strict resume-parity failures (first divergence at `t = 0.1225`, about
+  `1.94e-4` against `1e-12`, as root records them) or changes root 025.
+  None of the studies listed in this section is selected.
 
 ## 13.13 Reproduction and hashes
 
@@ -1829,7 +2021,8 @@ interpreter is `/Users/lordskyler/Holstein_test/.venv/bin/python`, with
   rerun in 150-unit batches. The single-process exact-correlated
   drop-`trace` cell was stopped twice by the same 19.5-minute guard in the
   waiting loop, and rerun through `maps2` in 100-unit batches. No process
-  of this round ran 20 minutes.
+  of this round ran 20 minutes. That is a per-process statement; it does
+  not establish the 1200-second whole-increment gate (13.12).
 - **Hashes:** `sha256_task2.json` and its rendering `sha256_task2_table.md`
   now cover sections 8 to 13. That includes `clip_ens_*.log`,
   `clip_accuracy_*.log`, `escape2.log`, `start_states_table.json`, every
@@ -1840,6 +2033,8 @@ interpreter is `/Users/lordskyler/Holstein_test/.venv/bin/python`, with
   All 78 rows of the section-12 table carry the same digest in the new
   manifest, so no earlier receipt changed. The manifest file itself has
   SHA-256 `777ae638beb3707da344c47cd2b9ca7936e2b8ee580aa98e41940f8ac0615da0`.
+  These hashes bind the current bytes; they do not prove fixed source,
+  input or settings across resumes (13.12).
 
 ---
 
@@ -1864,32 +2059,53 @@ the repair acts once every `Delta` units from `t = 0` to 60.
    - `24` times worse on the Eq. (22) energy (`0.0289` against `0.0012`);
    - `1.16` times worse on all 31 coordinates (`0.2919` against `0.2523`).
 
-   Over `[0, 4]` the same arm is `4.5` and `26` times worse on the site-0
+   Over `[0, 4]` the same arm is `4.6` (receipt values; this line printed
+   `4.5` before the 2026-10-18 revision) and `26` times worse on the site-0
    occupation and the energy.
-2. **From the exact correlated preparation the sparse repair does not
-   improve on the guard.** The effect of `Delta` is not monotone. At
-   `T = 60`, `Delta = 1` and `2` are worse than the guard alone:
+2. **From the exact correlated preparation the effect of the sparse repair
+   is metric-dependent and not monotone in `Delta`.** Before the 2026-10-18
+   revision this item said the sparse repair does not improve on the guard,
+   which the table in 14.3 contradicts. At `T = 60`, `Delta = 5`, 10 and 20
+   are better than the guard alone on site-0 and all-31 RMS at equal
+   Eq. (22) RMS (`Delta = 10`: `0.2131` and `0.1975` against `0.3004` and
+   `0.2513`). `Delta = 1` and `2` are worse:
    - site-0 RMS `0.3788` and `0.3710`, against `0.3004`;
    - all-coordinate RMS `0.3281` and `0.3240`, against `0.2513`;
-   - Eq. (22) RMS `0.0610` at `Delta = 1`, against `0.0354`.
+   - Eq. (22) RMS `0.0610` at `Delta = 1` and `0.0412` at `Delta = 2`,
+     against `0.0354`.
 
    One cell beats the reference: `Delta = 5` has site-0 RMS `0.0575` over
    `[0, 20]`, against task 11's `0.0681`. The neighbouring arms give
    `0.0918` (`Delta = 2`) and `0.1200` (`Delta = 10`), so this is not a
    trend.
-3. **Over the guard alone, from Hartree--Fock, the hybrid gains steadily as
-   `Delta` shrinks.** `Delta = 1` lowers the `T = 60` scores by 13 percent
-   (site-0), 42 percent (Eq. (22)) and 20 percent (all 31). It costs
-   `3.26` s per unit against the guard's `0.22`.
+3. **Over the guard alone, from Hartree--Fock, the `T = 20` and `T = 60`
+   scores improve steadily as `Delta` shrinks.** `Delta = 1` lowers the
+   `T = 60` scores by 13 percent (site-0), 42 percent (Eq. (22)) and 20
+   percent (all 31). It costs `3.26` s per unit against the guard's `0.22`.
+   - At `T = 4` the improvement is metric-dependent. `Delta = 1` improves
+     the site-0 occupation (`0.0318` against `0.0356`) and the energy
+     (`0.0277` against `0.0437`), but worsens all-31 RMS (`0.1364` against
+     `0.1313`). `Delta = 2` slightly improves the energy (`0.0432`) and
+     worsens the other two.
+   - No tested arm improves all three `T = 4` scores.
+   - These are single unperturbed trajectories, and only five values of
+     `Delta` were tested.
 4. **Cost (14.4).** The hybrid costs `0.36` to `3.26` s per unit from
    Hartree--Fock and `0.53` to `3.08` from exact correlated. The cheap
    repair costs `332.1` s per unit in the same session. So the hybrid is
    100 to 930 times cheaper.
-   - The lift re-selection takes `2.4` to `3.0` s of each event's `2.5` to
-     `3.1` s. It returned "infeasible" in all 222 events, so the carried
-     lift was kept every time.
-   - The same trajectories would therefore cost `0.22` to `0.29` s per unit
-     with the re-selection skipped (derived, 14.4).
+   - Averaged per arm, the lift re-selection takes `2.4` to `3.0` s of a
+     mean event wall of `2.5` to `3.1` s. It returned "infeasible" in all
+     222 main-arm events and in the 12 events of the `h/2` arm (234 in all),
+     so the carried lift was kept every time.
+   - With the re-selection skipped, the same repair inputs would cost about
+     `0.22` to `0.29` s per unit (exact correlated `Delta = 20`: `0.594`).
+     This is derived, not measured. The refused branch returns a copy of the
+     carried lift, but solver and RNG side effects were not audited, and no
+     skipped-selection run checked bitwise equality (14.4).
+   - The cheap repair's `332.1` s per unit includes 8 of 10 failed lift
+     re-selections. The ratios compare the measured protocols, not equally
+     accurate, successfully accepted methods.
 5. **Escape (14.2, 14.3).** The hand-on state's lifetime under the bare
    closure does not order with `Delta`.
    - From Hartree--Fock, 0 of 8 fire by 600 at `Delta = 1`, 2 and 5. At
@@ -1898,10 +2114,26 @@ the repair acts once every `Delta` units from `t = 0` to 60.
      same seeds, gives 8 of 8 (`373.6`; `410.0` over all 64 members to 1500).
    - From exact correlated, 0 of 8 fire at `Delta = 5`, 10 and 20; 3 of 8 at
      `Delta = 1`; 4 of 8 at `Delta = 2`; 6 of 8 for the guard alone.
-6. **The Gram is held only at the repair times.** From Hartree--Fock at
-   `Delta = 1`, the retained Gram falls to `-0.20` between repairs and is
-   below `-1e-4` at 7.4 percent of grid samples. The guard alone is below
-   at 75 percent, and the repaired chain at 24 percent (minimum `-8.5e-4`).
+   - These are finite, censored observations (8 members, 600 units). With 0
+     of 8 fired, the exact 95 percent upper bound on the per-member event
+     probability is `0.31`. All 117 escape integrations ended with a
+     nonfailure solver status: 76 reached 600 and 41 stopped at the
+     terminal event.
+6. **The retained Gram is not held, even at the repair times.**
+   - Every recorded post-repair, post-guard Gram minimum in the 234 events
+     is negative (largest `-7.75e-6`, smallest `-0.196`).
+   - Only 99 of the 234 events leave it above its pre-event value: some
+     repairs reduce the violation, and most do not.
+   - Every recorded extension minimum after a repair is negative too (best
+     `-1.85e-4`).
+   - From Hartree--Fock at `Delta = 1` the retained Gram falls to `-0.20`
+     and is below `-1e-4` at 7.4 percent of grid samples. The guard alone is
+     below at 75 percent, and the repaired chain at 24 percent (minimum
+     `-8.5e-4`).
+
+   These are results of the capped fallback hybrid (one Dykstra-120 pass,
+   with a carried lift after every infeasible re-selection), not of an
+   accepted repair.
 
 ## 14.1 What one repair step is on the closure
 
@@ -1922,7 +2154,8 @@ applied once (`hybrid.repair_event`):
    - This is an assumption of this lane. It equals the exact-moment
      dictionary of the Hartree--Fock product state to `4.4e-16`. It differs
      from the exact correlated ground state's dictionary by up to `0.378`
-     (`probe_hybrid_*.json`).
+     (`probe_hybrid_*.json`). Agreement at the initial product state does
+     not establish correctness at later hybrid states.
 2. **The lift.** The lift is re-selected by the recorded rule: the declared
    proximal log-det completion, warm-started from the carried lift, with
    measured candidates and acceptance margin `1e-3`. A refusal keeps the
@@ -1930,9 +2163,12 @@ applied once (`hybrid.repair_event`):
    preparation's state vector, as in the repaired chain.
 3. **One repair call.** `AffineGramCoordinates.repair` with the recorded
    settings: Dykstra, 120 iterations, both cones, the Eq. (22) hyperplane.
-   The energy reference is the Eq. (22) energy carried into the repair. On
-   this flow that equals the drive-power reference, because the closure
-   step changes the energy only by the drive's work and the guard holds it.
+   The energy reference is the computed Eq. (22) energy carried into the
+   repair (`hybrid.repair_event`). The closure step changes the energy only
+   by the drive's work plus integration error, and the guard holds it. So
+   this approximates the chain's drive-power reference; no separate
+   finite-step drive-work accumulator was kept to show that it is the same
+   protocol.
 4. **Back to the closure.** The repaired raw moments are mapped back to the
    31 coordinates, the dictionary is dropped, and the guard is applied once.
 
@@ -1943,15 +2179,17 @@ flags: 27 keys, `--lift exact_moments`). Checks (`probe_hybrid.py`):
   (Hartree--Fock) and `8.0e-16` (exact correlated);
 - the raw round trip is exact to `5.6e-17`;
 - the route's Eq. (22) functional equals `maps2.energy` to `4.4e-16`;
-- across all 222 events, the energy after the repair and the guard differs
-  from the reference by at most `3.6e-15`.
+- across all 234 events (222 main-arm, 12 in the `h/2` arm), the energy
+  after the repair and the guard differs from the reference by at most
+  `3.6e-15`.
 
 Accuracy columns give the site-0 occupation / Eq. (22) energy / all 31
 coordinates. Each is the RMS over every `0.0025`-grid sample in `[0, T]`
 against the exact driven trajectory from the same preparation
 (`_accuracy_metrics`; references as in 13.6). "s per unit" is the arm's own
-wall in the serial session (guard segments plus repair events), divided by
-60.
+wall in the serial session, divided by 60. It counts guard segments and
+repair events only, not the route build, checkpoints, the escape test,
+scoring or the report.
 
 The Gram columns use the retained 8-by-8 joint Gram's minimum eigenvalue,
 taken over all 24,001 grid samples in `[0, 60]`. At a repair time the sample
@@ -2016,17 +2254,21 @@ Notes on the table:
   declared-completion lift with the retry ladder, run only to `t = 20`.
 - **The `Delta = 20` wall** is higher than `Delta = 10`'s. Its guard
   alternation reached the 200-iteration cap (`0.59` s per unit of guard
-  alone in that arm).
+  alone in that arm). `maps2.run` records no bound residual, so there is no
+  receipt of the bounds at those steps.
 - **The guard-alone row reproduces section 13.6.**
-- **The pulse work worsens.** Repairs during the pulse (`Delta = 1`, 2)
-  change the work the drive does on the closure. That raises the Eq. (22)
-  RMS above the guard's (`0.0610` and `0.0412` against `0.0354`).
+- **The pulse work.** Repairs during the pulse (`Delta = 1`, 2) change the
+  state, and so can change the work the drive does on the closure. The
+  Eq. (22) RMS rises above the guard's (`0.0610` and `0.0412` against
+  `0.0354`). The attribution to pulse work is not separately measured.
 
 ## 14.4 Cost, one session
 
 The arms ran serially in one session (`run_arms.sh`, `session.log`,
 13:58 to 14:16; one-minute load average `2.2` to `6.0`, mostly `3.0` to
-`4.3`, on 14 cores). The session ran in this order:
+`4.3`, on 14 cores). It does not establish the 1200-second whole-increment
+gate: the escape test, scoring, the report and its review ran afterwards,
+and no complete-increment receipt exists. The session ran in this order:
 
 1. the bare step and the guard (`timing_bare_guard.py`: one trajectory per
    preparation, `t = 0` to 20, three interleaved rounds, minimum);
@@ -2035,7 +2277,8 @@ The arms ran serially in one session (`run_arms.sh`, `session.log`,
    recorded chain's flags. It took `132.8` s, so `332.1` s per unit:
    `112.5` s of 10 lift re-selections (8 recorded as
    `lift_reselection_failures`), `17.9` s of Dykstra repairs and `2.4` s of
-   velocity evaluations.
+   velocity evaluations. That is the protocol's cost including those
+   failures, not the cost of an accepted repaired trajectory.
 
 | `Delta` | Hartree--Fock: s per unit (repair events; mean per event) | exact correlated: s per unit (repair events; mean per event) | with the re-selection skipped (derived), Hartree--Fock / exact correlated |
 |---|---|---|---|
@@ -2052,12 +2295,15 @@ Each event's wall splits as follows:
 - the repair call takes `0.039` to `0.044` s;
 - the coordinate maps and the guard take under `1e-3` s.
 
-Every re-selection returned "infeasible", 222 of 222 across both
-preparations. The solved lift failed the measured-candidate check, so the
-carried lift was passed to the repair unchanged. The trajectories are
-therefore exactly those of the same hybrid with the re-selection skipped.
-The last column is the arm's wall minus its re-selection seconds. It is
-derived from the same run, not measured separately.
+Every re-selection returned "infeasible": 222 of 222 main-arm events
+across both preparations, and 12 of 12 in the `h/2` arm. The solved lift
+failed the measured-candidate check, and the refused branch returns a copy
+of the carried lift, so the repair received the carried lift unchanged.
+That is source-level support for equal repair inputs if the re-selection
+were skipped. Solver and RNG side effects were not audited, and no
+skipped-selection run checked bitwise trajectory equality. The last column
+is the arm's wall minus its re-selection seconds: derived from the same
+run, not measured.
 
 Ratios at `Delta = 1` from Hartree--Fock:
 
@@ -2080,10 +2326,13 @@ Per event (`arm_*.json`, `records`):
 | retained Gram, before the event | down to `-0.33` | down to `-0.37` |
 | retained Gram, after the repair and the guard | `-3e-4` to `-9e-3` | down to `-0.20` |
 
-Dykstra at 120 iterations does not reach the extension cone, and the
-extension minimum after the repair is never non-negative. From Hartree--Fock
-the guard applied after the repair brings the Gram back near 0. From exact
-correlated it does not.
+Dykstra at 120 iterations does not reach the extension cone: every recorded
+extension minimum after a repair is negative (best `-1.85e-4`). The
+retained Gram is not held at the repair times either. Every post-repair,
+post-guard minimum is negative (largest `-7.75e-6`), and 99 of the 234
+events leave it above its pre-event value. From Hartree--Fock the guard
+applied after the repair brings the Gram near 0 (`-3e-4` to `-9e-3`). From
+exact correlated it does not.
 
 ## 14.6 Step dependence
 
@@ -2095,8 +2344,9 @@ at the same times:
   `t = 4`, 20 and 60;
 - the escape test gives the same 0 of 8.
 
-The table is `h`-converged to that level for this arm. The other arms were
-run at `h` only.
+This is the observed difference for this one arm. It does not show that
+the whole table is converged, or certify a continuum limit. The other arms
+were run at `h` only.
 
 ## 14.7 What remains unmeasured
 
@@ -2104,13 +2354,15 @@ run at `h` only.
   such as carrying the repair's own dictionary between events or using
   exact third moments where available, may change every row from the exact
   correlated preparation.
-- **`Delta` below 1.** From Hartree--Fock the scores improve monotonically
-  down to `Delta = 1`. Whether they keep improving at `0.5` or `0.25` units
+- **`Delta` below 1.** From Hartree--Fock the `T = 20` and `T = 60` scores
+  improve monotonically down to `Delta = 1`; the `T = 4` scores are
+  metric-dependent. Whether they keep improving at `0.5` or `0.25` units
   is not measured. With the re-selection skipped those arms would cost
   about `0.29` and `0.37` s per unit.
 - **The hybrid with the re-selection skipped, run directly.** Its cost is
-  derived above. Its trajectories are identical by construction, but no
-  run checks that.
+  derived above. Equal repair inputs have source-level support (the
+  refused branch returns the carried lift). Solver and RNG side effects
+  were not audited, and no run checks bitwise equality.
 - **A converged repair.** At 120 iterations the extension minimum stays
   negative after every event.
 - **Perturbed members.** The accuracy is one unperturbed trajectory per
@@ -2123,6 +2375,13 @@ run at `h` only.
   chain's driver goes to `t = 60` from this preparation, so the T = 60
   column has no reference.
 - **`h/2` for the other arms**, and for the exact correlated preparation.
+- **The whole-increment gate.** Per-process timers and the serial session
+  do not establish the 1200-second whole-increment bound, which is
+  unestablished.
+- **The prerequisite holds stand.** Nothing here repairs the three current
+  strict resume-parity failures or changes root 025. None of the studies
+  listed in this section, or in the consolidated results' unmeasured list,
+  is selected.
 
 ## 14.8 Reproduction and hashes
 
@@ -2134,12 +2393,17 @@ interpreter is `/Users/lordskyler/Holstein_test/.venv/bin/python`, with
 - `hybrid.py`: the construction of 14.1.
 - `probe_hybrid.py`: the checks of 14.1.
 - `run_arm.py`: one arm. It is resumable from `arm_<tag>_ck.npz` and stops
-  cleanly at a segment boundary after 18 minutes. No arm needed a resume.
-  The longest took 3.3 minutes.
+  cleanly at a segment boundary after 18 minutes. All 13 arms (12 main, one
+  at `h/2`) reached `t = 60` with no resume (`resumes = 0` in every
+  `arm_*.json`). Had a resume occurred, `run_arm.py` would have restored the
+  checkpoint without validating saved inputs. The longest arm took 3.3
+  minutes. All 117 escape integrations ended with a nonfailure solver
+  status.
 - `run_arms.sh`: the serial session.
 - `escape_end.py`: the escape test.
 - `score_arms.py`: writes `hybrid_table.json` and `hybrid_table.md`.
-- `watchdog.sh`: stops any process at 19.5 minutes. It stopped none.
+- `watchdog.sh`: stops any process at 19.5 minutes. It stopped none. A
+  per-process limit does not establish the whole-increment gate (14.7).
 
 `sha256_task2.py` now also covers `task3_hybrid/` (every `.json`, `.npz`,
 `.log`, `.py`, `.sh`, `.md`, and the cheap-repair segment's `summary.json`
