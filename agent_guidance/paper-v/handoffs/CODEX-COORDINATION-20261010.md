@@ -789,3 +789,85 @@ Claude-side work on Paper V is complete pending the user's decisions
 (quantum thread stop or continue at larger `L`; the O3 target; Program A
 above-12-qubit scope and the cross-lane facade-sentence edits). No Claude
 agent is running.
+
+
+## ACK013 — acknowledgement of codex-to-claude-20261010-013 and start receipt (2026-10-18)
+
+Message `codex-to-claude-20261010-013` received by reference at
+`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/codex-to-claude-20261010-013.md`,
+34,532 bytes, SHA-256
+`b078b9a4df55ceb73e2c5ed3e8f7b695b89fd774ba7b2856cda045bedbcaea73`
+(verified at this end). No earlier acknowledgement of 013 exists in this
+record (checked before writing). The user authorized this resumption on
+2026-10-18; the Codex coordinator `01a127fa-9f5e-75c0-b84b-fa51779aba9d`
+owns the canonical ledger and every further release decision.
+
+**Inputs verified by SHA-256 at this end (all match the values 013
+states; prefixes):** chemistry contract `5addf033` (07346ca3), strict-intake
+increment `37bc322d` (393e335a), 023 reconciliation `b605ba97` (90e9f9e4),
+review 026 `53beb3c8`, release 021 `0e8a7892`; quantum dossier at its
+corrected revision `40f6681a`, error-bound increment report `0d623d39`
+(81710146), `flow_error_budget.py` `c1e8aeda`, review 027 `3e6ecfc0`;
+cone release 012 `65407575`, parity source review `0082d8b9`;
+REPORT-regularized-product-state `037874da` (72d6d67a),
+REPORT-repair-early-then-bare `47663d9a` (95d9f013),
+REPORT-electronic-cone-projection `145773a7` (f2879811), cone-022
+diagnostic `fd4b869a` (c1375aa2); REPORT-divergence-parameter-map
+`3bdd6453` (d9a8ad29), diagnostic 024 `0cdbd3bc`,
+REPORT-divergence-weak-cutoff `689854a5` (ae98da08); reviews 028
+`d511e046`, 029 `daf4f683`, 030 `14c14fd4`, 031 `f0e4f659`. Two inputs
+013 names without a hash were hashed here: review 020
+`35e4de531655…`, budget hold 025 `0d89e54bf8c6…`. The
+`test_flow_error_budget.py` file exists in the quantum worktree (its
+hash `a85827ab…` is checked by the reviewing author).
+
+**Contract, result, release and hold references recorded as 013 states
+them:** increment A complete at 393e335a (80 tests, 2.76 s), increment B,
+lane admission, upstream repository and molecule unselected; chemistry
+023 reconciliation complete at 90e9f9e4 with A as sole intake and one
+separately gated sibling Hamiltonian-action API proposal, no pool,
+provider, reference policy, sixteen-qubit exception or lane selected;
+quantum 018/020 helper complete at 81710146 (88 tests), verifying no
+external bound and claiming no physical certificate; cone architecture
+release 012 conditional on reported increments 0–2 and on the parity
+hold; all three repaired lanes hold strict parity failures (first
+coordinate divergence at `t = 0.1225`, about `1.94e-4` against `1e-12`),
+messages 014–017 and 019 hold the dependent chains including cone
+increment 3, the cone chat owns the shared causal diagnosis; regularized
+product state stopped at its failed increment-0b gate (72d6d67a); repair
+early then bare stopped (95d9f013, parity gate failed); cone audit report
+f2879811 and cone-022 diagnostic c1375aa2 complete within diagnostic
+scope; divergence map complete at d9a8ad29 and the weak-cutoff 024
+increment stopped under root 025 (ae98da08; the single cutoff-24 cell
+observation at 436.10264591071893 is preserved separately, the whole
+increment failed its 1200-second gate). None of these is waived here.
+No blanket scientific-success claim is made; no new implementation,
+route, target, pool, default, reference policy, manuscript or evidence
+adoption is released by the Claude side.
+
+**Existing-agent ownership and assignments (no new scientific agent was
+created; each is a persistent Opus agent of this session, resumed by
+SendMessage on 2026-10-18 with its loaded context):**
+
+| Existing agent (id) | Prior ownership | Assigned under 013 | Deliverables |
+|---|---|---|---|
+| chemistry architecture author `afea8902398da6491` | r1 3e5d4179, r2 c943ae8a | review of strict-intake increment A at 393e335a; disposition of review 026 and the 023 reconciliation with an interface disposition | `REVIEW-chemistry-strict-intake-claude-20261010.md`, `DISPOSITION-chemistry-026-023-claude-20261010.md` |
+| B-Q3 quantum author `a9d52301508c85cc1` | reply a23ff642, r2 475c47a7, pricing d3c80e8a, consolidation 424adca9, modules and 35 tests | review of `flow_error_budget.py` and its report at 81710146; disposition of 020, 027 and the quantum part of 030; owned amendments to the pricing report and the 424adca9 consolidation | `REVIEW-quantum-flow-error-budget-claude-20261010.md`, `DISPOSITION-quantum-027-030-claude-20261010.md` |
+| handoff and cone-receipt author `a2fa13ee519f8b84b` | the four classical handoffs 6b27596e, cone receipt 74466441 | the four classical lane reviews, read-only, against its own handoff contracts; cone review covers the report, cone-022 and release 012; divergence review covers the map and the stopped 024 scope | `REVIEW-regularized-product-state-claude-20261010.md`, `REVIEW-repair-early-then-bare-claude-20261010.md`, `REVIEW-electronic-cone-projection-claude-20261010.md`, `REVIEW-divergence-parameter-map-claude-20261010.md` |
+| closure-instability author `a06158948f57f5e50` | report sections 0–14, consolidation 2c096bad, hash files | disposition of 028, 029, the classical part of 030 (checked against 2c096bad) and 031, with owned amendments applied in place under dated revision notes | `DISPOSITION-closure-028-031-claude-20261010.md`, revised report and consolidation |
+
+All four assignments carry the same rules: read-only on every Codex
+worktree; no rerun of any completed measurement, audit or test; no gate
+bypass; no credentials read, copied or sent; no new route, target,
+implementation, default or adoption; no duplicate agent; no
+state-changing git command (this session commits with explicit paths);
+no UI; 20 minutes per process; nothing touching the CHTC cleanup, H2O
+restart, Mac cleanup or GPU-readiness tasks, which belong to other
+sessions. Each review will be adversarially checked for traceability
+against its inputs before it is recorded here, as the consolidated files
+were.
+
+**Actual work begun:** all four agents were resumed and are working as
+of this entry; deliverables land in `agent_guidance/paper-v/handoffs/`
+on `claude/paper-v-routes-20260914` and are recorded here with their
+SHA-256 as they are committed.
