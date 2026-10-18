@@ -9307,3 +9307,167 @@ not verbatim in the report, `DI` or this worklog:
   and `60.2`.
 - 7 are the report's own values in another notation (`1.9e-3` for
   `1.9e-03`, `75.0` percent for `0.750`).
+
+## 2026-10-18: dispositions of root reviews 028, 029, 030 (classical) and 031 --- every finding accepted, three with a measured amendment; sections 13 and 14 and the consolidation amended in place
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No run,
+test, new agent, source edit, default, tolerance or execution. No commit by
+this agent, and no manuscript edit.
+
+**Files.**
+
+| file | SHA-256 | lines |
+|---|---|---:|
+| `agent_guidance/paper-v/handoffs/DISPOSITION-closure-028-031-claude-20261010.md` | `e08bc128025e8b356381a356d1a96e5f2fc1e308c752fb9aac862e10a8507b67` | 306 |
+| `agent_guidance/paper-v/overnight/closure-instability-20261010.md` | `30187293aeb89b3e355599560930ba26c5a79cd4bd263413d61cdbcb0fe0c710` | 2416 |
+| `MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md` (revision 2) | `bc8d37530c98856dd035bfd14dbe8cad2b5797cd9b2b89ede7548601c750882f` | 1344 |
+
+The report's sections 13 and 14 were previously `13e9f8ff...`, and the
+consolidation was `332dbbc3...` at `2c096bad`. The four reviews were
+verified by SHA-256 before reading.
+
+**Decisions.** Of 28 findings, 25 are accepted and 3 accepted with
+amendment; none is contested. They are applied as 70 report amendments and
+52 consolidation amendments, plus this block. The three amendments add
+measured qualifications from the receipts:
+
+- the fired keep-only cells fail only on the energy residual (at most
+  `2.2e-11`), with the kept bounds held to `1e-12`, and two of them
+  converged at every step;
+- the exact divergence-free identity exists (`QF`, `475c47a7`), so the
+  volume statement follows from it, separately from the floating-point
+  traces;
+- the numbers-check artifact was not preserved, so the consolidation's
+  numbers-check counts are author-reported.
+
+**Corrections to the earlier blocks of this worklog.** These blocks are
+preserved unedited; this list supersedes their wording.
+
+- The 2026-10-11 corrections block, heading and body:
+  - "representability loss predicts nothing" → loss of the tested
+    retained-Gram necessary condition does not discriminate escape in the
+    tested, partly censored ensembles;
+  - "no single family of bounds is necessary" and "the correlation
+    Cauchy--Schwarz bounds are necessary" → finite ablation results of the
+    capped map (8 members per cell, 600 units, `1e4` threshold);
+  - "the minors map alone heats without bound" → its recorded heating has
+    not levelled off by 3000 units, which is not heating without bound;
+  - "confines" for the Gram-cone and boson maps → no event in 600 units, 8
+    members per preparation, one-pass maps whose Gram and boson eigenvalues
+    stay negative;
+  - "with the energy held exactly, any five of the six families confine
+    over 600 units" → with the capped exact-energy hold, dropping any one
+    family gave no event in that finite test. Three Hartree--Fock cells and
+    the exact `t = 60` cell had non-converged batch steps, and the
+    exact-correlated drop-`trace` cell has no bound-residual receipt;
+  - non-converged "member-steps" → batch steps;
+  - "supremum" → largest sampled value, records every 400 steps;
+  - `x17 = -0.408 n` → `x17 = -omega n / (2 g)`.
+- The 2026-10-11 hybrid block:
+  - "from the exact correlated preparation the sparse repair does not help"
+    → metric-dependent and nonmonotone: `Delta = 5`, 10 and 20 beat the
+    guard on site-0 and all-31 RMS at `T = 60`, and `Delta = 1`, 2 are
+    worse;
+  - "infeasible in all 222 events" → 222 main-arm events plus 12 in the
+    `h/2` arm, 234 in all;
+  - "the trajectories are identical because the carried lift was always
+    kept" → source-level support for equal repair inputs only; solver and
+    RNG effects and bitwise equality were not verified, so the skipped cost
+    is derived;
+  - the hybrid "holds the Gram" at repair times → it does not. Every
+    post-event minimum is negative, and 99 of 234 events reduce the
+    violation.
+- The 2026-10-11 revision block: the "verbatim apart from two estimates"
+  correction stands.
+
+**What stays binding.**
+
+- The three current strict resume-parity failures, root 025, the cone
+  increment-3 hold and root messages 014 to 017 and 019.
+- Whole-increment (1200-second) compliance of the classical rounds is
+  unestablished.
+- `run_spec.py` provenance limits apply: no resume validation, and the
+  input hash is computed after execution.
+- No guard, hybrid, chain or skipped-selection study is selected.
+
+## 2026-10-18: independent reviews of the four Codex classical lanes --- three repaired lanes stopped at one bitwise-identical strict parity failure (1.94e-4 against 1e-12), the unrepaired divergence map complete and mixed (41 of 54), all holds kept
+
+Read-only reviews requested by root message `codex-to-claude-20261010-013`
+(SHA-256 `b078b9a4…`, paragraphs 7 to 11) and written by the author of the
+four handoffs and of the cone architecture receipt (`74466441`). No
+propagation, re-selection, audit, comparator or test was rerun; no Codex
+worktree or shared code was edited. Every reviewed artifact was hash-checked
+before reading, and the manifests were recomputed: regularized 75 of 75,
+repair-early 25 of 25 and 85 of 85, cone 107, 26 and 134 in full, divergence
+209 of 209. Reviews, in `agent_guidance/paper-v/handoffs/`:
+`REVIEW-regularized-product-state-claude-20261010.md`,
+`REVIEW-repair-early-then-bare-claude-20261010.md`,
+`REVIEW-electronic-cone-projection-claude-20261010.md` and
+`REVIEW-divergence-parameter-map-claude-20261010.md`.
+
+The negative result first: the three repaired lanes (regularized
+`72d6d67a`, repair-early `95d9f013`, cone `f2879811`) each fail their strict
+resume-parity gate. The configuration is the HF task-11 repair at
+`lambda_ep = 1.5`, `gamma = 0.5`, drive 1, cutoff 16, 27 keys, SSPRK(3,3) at
+`h = 0.0025`, Dykstra 120, re-selection every 16 steps at margin `1e-3`, with
+the `drive_power` reference. Each lane spliced two segments at `t = 0.08`
+against an unbroken run over `t <= 0.2`. The seam is bitwise in 56/70/31 and
+the carried reference is exact. The 31 closed scalar coordinates first
+exceed `1e-12` at `t = 0.1225` (`1.57266010158974e-7`), and the maximum is
+`1.9395497882168655e-4` at `t = 0.17`. The first breach follows a different
+decision at the uncertified re-selection near `t = 0.12`: one run declines,
+the other accepts.
+
+The three lanes' parity trajectories are byte-identical across three
+independently fixed drivers; this does not establish unrestricted run-to-run
+determinism. The failure belongs to the record's documented family of
+non-bitwise chaining, a re-selection decision flipping after a segment
+boundary (`cheap_repair_route_results_20260918.md:645-650`). Cone diagnostics establish
+two facts by intervention. Diagnostic 014 shows the first roundoff difference
+at `t = 0.09` is caused by the native clock. Diagnostic 022 (`c1375aa2`)
+shows the differing pre-selection bundle (state `1.44e-14`, warm lift
+`1.06e-15`) suffices for the split. Neither establishes the split's origin, a
+source defect or a fix.
+
+The cone lane's independent audits stand as scoped. The principal-Gram
+identity holds on 16,034 stored samples to `3.11e-15`. All 7,200
+reconstructed task-11 stage repairs are electronically positive; these are
+replay observations, not inertness certificates. The task-11 electronic
+minimum is `0.0621` at `t = 7.21`. Release 012's seven corrections to the
+receipt are valid: three correct real receipt defects (a printed rather than
+asserted golden comparison, a stage-schema test without captured stage
+records, a vacuous positive-floor test) and two correct over-statements
+(activation on `w = a + e`, convergence toward the intersection).
+
+The divergence map (`d9a8ad29`) recounts exactly from its grid files. At
+cutoff 16 with windows of 500 and 2000, the exact-correlated grid fires 41 of
+54 cells (34 by 500) and the HF grid 44 of 54 (42 by 500). At
+`lambda_ep <= 0.75` the counts are 8 of 18 and 10 of 18, so the declared
+reading rule gives "mixed". All eight low-coupling exact-correlated events
+fire at drive `>= 1` before `t = 436.11`; that is a reviewer reading, not
+adopted. The cutoff is material at `lambda_ep = 1.5`: the event moves
+`141.41 -> 127.87` from cutoff 16 to 32 and settles by 24 to 28. At weak
+coupling the cutoff change is negligible.
+
+Weak-cutoff increment 024 (`ae98da08`) is kept in two separate parts. Its one
+cutoff-24 cell at `lambda_ep = 0.25` succeeded in `13.57 s`, firing at
+`436.10264591071893`, a signed difference of `-1.18e-11` from the cutoff-16
+comparator. The increment failed its `1200 s` whole-increment gate: the first
+over-bound check read `1529.11 s` and the final closure `1636.84 s`.
+
+Reading. Partial and held states are preserved:
+- regularized: preparation module, probes, comparisons and chains not started;
+- repair-early: handover sweeps, resolution, maps, cost reading and variants
+  not run;
+- cone: increment 3 (option implementation) and increments 4 to 7 held;
+- divergence map: complete within its exploratory scope; 024 stopped by root
+  025.
+
+Every hold remains binding: root messages 014 to 017 and 019, cone increment
+3, root 025, and the three failed strict parity gates. A corrected
+prerequisite acceptance must pass the unchanged strict gate and its separate
+carried-reference receipt, and root must review it. Bitwise selector-input
+identity is one possible sufficient strategy, not a necessary condition or a
+gate, and would need root selection. No evidence is adopted.
+
+Next: root reviews the four reviews; no execution is selected.
