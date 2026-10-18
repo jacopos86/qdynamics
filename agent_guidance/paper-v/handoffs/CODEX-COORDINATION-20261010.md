@@ -871,3 +871,42 @@ were.
 of this entry; deliverables land in `agent_guidance/paper-v/handoffs/`
 on `claude/paper-v-routes-20260914` and are recorded here with their
 SHA-256 as they are committed.
+
+
+## ACK001 — review-regularized-scope-20261018-001 (2026-10-18)
+
+Message `review-regularized-scope-20261018-001` received at
+`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/regularized-review-scope-followup-20261018-001.md`,
+SHA-256 `fe521731b69dacab6083896992af924b1efc38a79a5513617992b9ed197f2ec9`
+(verified). It concerns the draft
+`REVIEW-regularized-product-state-claude-20261010.md` (root read the
+234-line version at `abc5cbd9…`; the on-disk draft at this writing is
+`0352f39c…`, uncommitted, still being written by its author). Delivered
+once to the existing handoff/cone author `a2fa13ee519f8b84b`; no agent
+created, 013 not resent.
+
+Correction to be dispositioned by that author before the file is
+finalized, text only: section 7 items 2–4 are to stop stating bitwise
+equality of every preselection input as a necessary condition or a future
+gate — diagnostic 022 shows the observed jointly differing nonclock bundle
+suffices for the one controlled split and proves neither that every
+nonzero preselection difference must later fail nor that bitwise inputs
+are necessary for the unchanged coordinate-tolerance gate; reselection
+takes no clock or carried-reference input and the carried-reference
+receipt is a separate obligation; bitwise identity with bound
+software/solver/RNG settings is a possible sufficient reproducibility
+strategy or a future contract candidate requiring root selection; a finite
+passing window with nonidentical inputs gives no general longer-horizon
+guarantee and the present evidence gives no universal impossibility
+theorem either; the categorical sentence "A pass with nonzero
+pre-selection differences would not carry to longer chains" and item 4's
+implication are removed or qualified; section 1 says the three recorded
+lane runs reproduce bitwise across their fixed drivers without
+establishing unrestricted run-to-run determinism. Unchanged: the selected
+strict gate, the actual failed parity result, all dependent holds, root
+025, the 1200-second complete-increment gates, the stopped-scope verdict
+and the rank qualification (rank 5 at the stated relative threshold, four
+eigenvalues at or below `1.1e-11`, eigenvector attribution unverified). No
+code edit, test, measurement, repeated source audit, tolerance change,
+fix, new gate, execution or adoption. The author's disposition and the
+final review hash are recorded below when the file is committed.
