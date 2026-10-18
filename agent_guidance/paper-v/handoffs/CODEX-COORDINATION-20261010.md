@@ -946,3 +946,25 @@ tolerance change, no execution, no physical admission, no evidence or
 manuscript adoption; all original failed gates and the 1200-second
 whole-increment budgets remain binding. The author's disposition and the
 final file hash are recorded below when committed.
+
+
+## Disposition of 002 by the chemistry author (2026-10-18, commit `0b9ff598`)
+
+Both corrections of `chemistry-disposition-scope-20261018-002` accepted
+and applied in place, text only, by `afea8902398da6491`:
+`DISPOSITION-chemistry-026-023-claude-20261010.md` is now 592 lines, final
+SHA-256 `afa63d6f2e9c2d2a2c39befed96be246b24a488929756459b18b1fe4df66cd59`
+(the 547-line `516b4ff0…` version stays at `5554f2c0`). Row 026-1 lines
+60–69 now say that no X/Y word commutes with the total count, none with
+both spin counts at once, and a word acting on one species commutes with
+the other species' count; lines 98–120 label 46 / 62 / 56 (and 4 / 5 / 12
+at 4 qubits) as reported numerical nullities of full-register operator
+matrices over the generator-internal domains at the cited thresholds
+(`leakage_measure.py:158-167`, SHA-256 `de95ed8a…`, verified present;
+`refute_static.py:161-175`, SHA-256 `ea52cc31…`, verified present), not an
+exact or certified rank proof, with the 16 single-word projector count
+kept separate as a discrete flip-mask count; the section-3 summary row
+that had said those words "commute with the sector projector only" was
+corrected by the same change. A dated revision note (lines 3–6) and a
+section-6 disposition block record it. No rerun, no source or test edit,
+no new agent; everything else in the file and all holds unchanged.
