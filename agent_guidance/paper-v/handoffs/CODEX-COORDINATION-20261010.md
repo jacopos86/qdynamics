@@ -1021,3 +1021,29 @@ carried the same over-statement, and is noted at the end of each.
 Every hold remains binding: 014–017, 019, cone increment 3, root 025, the
 three strict parity gates and the 1200-second whole-increment budgets. No
 evidence is adopted, no fix selected, no execution released.
+
+
+## ACK003, ACK004, ACK005 — three unique text-only follow-ups (2026-10-18, dispatched 19:40:58 UTC)
+
+Each file was read in full and its SHA-256 verified before routing; each
+was routed once to its same existing author by SendMessage at
+2026-10-18T19:40:58Z; no scientific agent was created, 013/001/002 were
+not resent, and no equivalent feedback had reached these authors before,
+so each ID maps to this delivery. The existing traceability checks on the
+parent files continue unchanged; no duplicate reviewer was started and no
+old check rerun. Dispositions, final hashes, commits and completion times
+are recorded in the follow-up blocks below as each author returns.
+
+| ID | file (`/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/`) | SHA-256 | author | scope |
+|---|---|---|---|---|
+| `classical-review-scope-20261018-003` | `classical-review-scope-followup-20261018-003.md` (11 lines) | `2ebb3296cc0fcb2f632eee07a02724a6fb6f4e9bafabfb685543e671ff9291b4` | handoff/cone author `a2fa13ee519f8b84b` | divergence review: finite-cutoff event agreement/sensitivity in verdict item 3, section 3 and section 7, no accepted convergence pair or artifact exclusion claimed; cone review section 7 Candidate B: observed-margin diagnostic only, conditional on a separately established sensitivity bound; 001 already applied, not redone |
+| `quantum-review-scope-20261018-004` | `quantum-review-scope-followup-20261018-004.md` (13 lines) | `386c7b88964d0a6dd1b77820e6c71d4b48cbdc15717e6a1011519518098f663d` | B-Q3 author `a9d52301508c85cc1` | flow-error-budget review (on-disk `c14ece20…`, 305 lines, not yet committed): failed sufficient scalar criterion on the supplied inputs, not tube absence or universal impossibility; beta = 1.995 an external numerical estimate needing a validated enclosure, rounding-level cubic coefficients not an exactness proof, premises kept distinct; Fraction/Decimal example a conversion limitation under the normalized binary-float contract, no fix selected; the repetition of the historical 88 Codex tests on byte-identical scratch copies (0.04 s) recorded plainly as an operational deviation from the no-repeat instruction in 013 and ACK013 — it establishes no fresh execution acceptance, waives no hold, the historical 88-test result is preserved, no further rerun, and the 0.04 s process timer is not whole-increment timing; delivered together with the still-open 020/027/030 disposition |
+| `closure-disposition-scope-20261018-005` | `closure-disposition-scope-followup-20261018-005.md` (14 lines) | closure author `a06158948f57f5e50` | disposition `e08bc128…`, amended report `30187293…`, consolidation `bc8d3753…` at 286fb368: compact/bounded attracting-set exclusion with assumptions or divergence identity only (C05); equal median crossing times without an absence-of-information conclusion (C11); "always returns the carried lift" instead of "changes nothing" (C32); C02 quotation aligned to the bound hash `30187293…` instead of the intermediate `cd5c6b5b…`; finite residual tolerance is not exact set membership, the tested capped algorithm described with tolerance, members and window and the conditional exact-set algebra preserved (028-1 / C04) |
+
+Binding throughout: parity 014–017 and 019, conditional cone increment 3,
+root 025, and the 1200-second bound on the whole increment including
+preparation, scoring, report, review and closure — not a process timer.
+Nothing in these messages selects new scientific work; no source or test
+edit, measurement, repeated audit, tolerance change, fix, new gate,
+route/target/output/default/reference/policy, scientific execution or
+evidence/manuscript adoption follows.
