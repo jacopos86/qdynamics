@@ -1408,3 +1408,107 @@ not sent back to the author under the minimal-closure instruction:
 Not sampled by the check: 40 of the 70 report amendments and 28 of the
 52 consolidation amendments were text-checked at their lines only, not
 against receipts. The check is recorded as completed within that scope.
+
+
+## Existing QA collected: four classical reviews traceability check (2026-10-18, recorded against the `b02a6b82` versions, no further round)
+
+The four-refuter check (read-only, no reruns) completed on the reviews as
+committed at `b02a6b82`: regularized (`c40b8b2e…`) 63 traced, 10
+mismatched, 3 untraceable; repair early then bare (`b8829832…`) 72 / 8 /
+3; electronic cone (`77ff56bd…`, before 003) 72 / 13 / 3; divergence map
+(`be7b1b2b…`, before 003) 42 / 15 / 1. All stated input hashes recompute;
+the nine parity `trajectory.npz` files of the three repaired lanes hash to
+`48fe68ef…` / `99e3edaf…` / `f6224b86…` in every lane (the review named
+the segment-A identity for the cone lane only; it holds for all three);
+the 75 regularized manifest entries, 107 cone manifest entries (against
+source hashes) and 35 divergence manifest entries verify; the grid counts
+41/54, 44/54 and 8/18 recompute. No sentence waives a tolerance, resets
+the 1200-second gate, selects a fix or adopts evidence; every hold is
+named binding in each review's closing section. This check is recorded
+as completed within its sampled scope.
+
+Already corrected by 003 at `f805f169` (closed by that commit): the
+divergence review's "cutoff-converged sequence", "the map's low-coupling
+count is therefore not a cutoff artifact" and "the observation confirms,
+for this one cell, that the weak-coupling event is not a cutoff
+artifact" (now observed finite-cutoff agreement, one finite pair for one
+cell); the cone review's Candidate B "would flag decisions that 1e-14
+input changes could flip" (now a descriptive observed-margin diagnostic).
+
+Correction to this record: the "Four classical lane reviews" block above
+says "every input hash matched 013". That is true of the hashes 013
+states (reports, drivers, checker, parity source review, diagnostics,
+releases); the handoff, lock, input-manifest and trajectory hashes the
+reviews verified came from the Codex reports and `result_manifest.json`
+files, not from 013. The regularized review's line 21–22 sentence carries
+the same overstatement.
+
+Still open in the current files, recorded for the coordinator and not
+sent back to the author under the minimal-closure instruction:
+- regularized review: lines 76–78 attribute the `1.94e-4` coordinate
+  difference causally to the optimizer split ("the returned candidate
+  changes ... so the decision changes too"), which the review's own line
+  189–190 disclaims and which the parity source review states as evidence
+  not cause — the record reads the split as an observed branch, cause
+  not established; the "30 seeded-random entries of input_manifest.json"
+  sample is not reproducible (a full recomputation finds all 49 locked
+  inputs and 21 copy sources consistent); the "only computations" scope
+  sentence omits the read-only driver and git diffs it also reports; the
+  001 disposition table omits the final-hash requirement (the hash is in
+  this record) and the manuscript/evidence/physical/projection gates
+  named in 001:15; the 1200-second complete-increment gates are not
+  named binding in the review body;
+- repair early then bare: the segment-B hash is abbreviated with the
+  wrong last two characters (`…6c` for `…16`); the `parity_chronology.json`
+  sentence says 12 inputs were hashed before and after inspection while
+  the JSON stores one hash per input (the report, not the JSON, states
+  before-and-after); the "cumulative through t = 60" clarification comes
+  from addendum 007 line 49 without saying so; the three parity commands
+  are the handoff's with `/usr/bin/time -l` and `--max-wall-seconds 1150`
+  added; the gate range is lines 1199–1212; the C10 increment bound is met
+  per process and at increment level only through the disclosed
+  sub-increment split; the checker also lacks the handoff's reference
+  hard stop (`> 1e-12`); `parity_task11_receipt.json` and its `_final`
+  copy are byte-identical, so the first outcome survives only in the
+  initial-comparison file; the inputs-lock hash (`61218486…`) and the
+  addendum hash (`dfb55b9c…`) are not stated; the pre-correction version
+  hash (`e51d526f…`) is cited nowhere, so "nothing else changed" is
+  uncheckable;
+- electronic cone: the 7,200 "stage repairs" are repair opportunities
+  (6,987 applied, 213 skipped as feasible); the three "real defects" in
+  the Claude receipt are tagged inconsistently (items 2, 3 and 6 in the
+  table; 3 and 6 in the summary); the stage-spectrum test compares the
+  ordered principal spectrum to `(2 lambda_-, 2 lambda_-, 2 lambda_+,
+  2 lambda_+)`, stronger than the receipt's minimum-only identity; the
+  bundle recovery timing at `t = 0.1175` and the "106.86 s numerical
+  batch within its declared 1200 s" sentence need the report's own
+  qualifiers; 3 of 25 initial-copy manifest entries no longer match their
+  copy paths (edited drivers recorded separately), so "107 OK" holds
+  against source hashes only; the report labels increment 7 "skipped",
+  not "held"; diagnostic 022's other disclosed limitations and deviations
+  (its lines 11, 36, 43, 51) and the scan's third exclusion class are not
+  mentioned; release item 6's one-iteration cap-test clause is already met
+  by receipt test 6;
+- divergence map: "accepted as an observation" uses an acceptance verb
+  where 025 and 013 say "preserve separately"; the cutoff-32 difference
+  `8.864e-4` and the restart-start description need the report's exact
+  wording; the final `1636.84 s` lives in `closure_receipt.json` and 013
+  line 33 while the committed `validation.json` carries the earlier
+  `1586.16 s` (025 line 9 required the report to record the actual final
+  closure timing); the 528 = 508 + 20 suite count is in the gitignored
+  logs (hash `fafb771b…`), not in `final_test_receipt.json`; the C10
+  per-sub-increment claim rests on file mtimes and commit timestamps
+  only; the hash table omits the index snapshot (`e1c178d9…`), the
+  dispatch addendum (`dfb55b9c…`) and the supplemental lock (`28986f3f…`)
+  from report lines 19–22; the four-decimal drive-0 event times at map
+  report line 105 exceed the handoff's digits-versus-spread standard;
+  "Eq. (112): all nine lose positivity" reads as boson-moment and
+  retained-Gram positivity.
+
+With this block every traceability check launched on the Claude side is
+collected; none is in progress, none was restarted or duplicated, and no
+further check, author round, measurement or selection follows. All failed
+parity gates, the conditional cone increment 3, root 025, the
+regularized-preparation hold and every execution and adoption hold remain
+binding; all four 013 increments remain FAILED/STOPPED for whole-budget
+acceptance.
