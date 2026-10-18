@@ -1160,3 +1160,167 @@ All failed parity gates, the conditional cone increment 3, root 025, and
 every execution and adoption hold remain binding. Final author-hash and
 closure receipts for the quantum author and for 005 follow in the next
 block when their authentic transcript entries exist.
+
+
+## Final author-hash, timing and status closure receipts (2026-10-18, recorded after commits `2599f655` and `5004343a`)
+
+**Receipt-format clarification (coordinator, 2026-10-18), applied to the
+timing table above and to this block.** In the earlier table the column
+"first overrun (start + 1200 s)" is a DERIVED DEADLINE computed from the
+dispatch timestamp, not an observed first-overrun check; no overrun was
+observed as an event. The actual observations are: root's read of the
+authentic-receipt claim at 19:45 UTC, and the author clocks already
+unaccepted at 19:40 UTC. Machine timestamps at raw transcript precision,
+preserved as recorded and not reconciled against rounded values
+elsewhere: dispatches 19:12:55.068Z (chemistry), 19:13:25.209Z
+(quantum), 19:14:11.914Z (handoff/cone), 19:14:41.394Z (closure);
+derived deadlines 19:32:55.068Z, 19:33:25.209Z, 19:34:11.914Z,
+19:34:41.394Z; last transcript entries of the 013 segments 19:33:43.993Z
+(chemistry, the instant 002 resumed it), 19:44:46.553Z (quantum),
+19:40:36.356Z (handoff/cone, the instant 003 resumed it), 19:40:57.767Z
+(closure, the instant 005 resumed it); follow-up dispatches 002
+19:33:43.993Z, 003 19:40:36.356Z, 005 19:40:57.767Z; follow-up last
+entries 002 19:35:07.220Z, 003 19:42:16.477Z, 005 19:45:15.695Z. The
+003 self-timer (78 s, author-reported 19:40:46Z to 19:42:04Z) and the
+003 transcript span (100 s, dispatch to last entry) are separate
+measurements of different intervals; neither resets the parent 013
+increment, and the 1-second-level differences between author-reported
+and transcript values are left as they are. ALL FOUR 013 increments
+remain FAILED/STOPPED for whole-budget acceptance (1,249 s, 1,881 s,
+1,584 s, 1,576 s against 1200 s). Primary inventory delivered under 013:
+SIX reviews (chemistry strict intake, quantum flow error budget,
+regularized product state, repair early then bare, electronic cone
+projection, divergence parameter map) + THREE dispositions (quantum
+020/027/030, closure 028–031, and the chemistry 026/023 reconciliation)
+= NINE files; the chemistry 026/023 file is counted as the third
+disposition on the explicit basis of 013 paragraph 2, which asked the
+existing author to "reconcile this replacement with completed A/023 and
+record an interface disposition" — it is that interface disposition,
+written as a separate file rather than inside r2, so there are three
+dispositions, not four. The ACK003/004/005 table above omitted the
+SHA-256 cell of the 005 row; it is bound here, unchanged:
+`closure-disposition-scope-followup-20261018-005.md` SHA-256
+`4ac9c98f8c9245e30a2cd6d62870ce492bc6208dd5a6f2c30aec2b143649f36e`.
+
+All four existing authors are now closed. Timestamps are authentic
+(agent transcripts and git commit metadata, UTC); none is estimated.
+
+**Quantum author `a9d52301508c85cc1` — 013 increment and 004.** Start
+19:13:25Z (dispatch); first overrun 19:33:25Z; closure 19:44:46Z (last
+transcript entry); elapsed 1,881 s, exceeds the 1200-second whole-increment
+bound: classification failed/stopped for whole-increment acceptance,
+files retained as minimal honest text closure. The author did not record
+its own clocks; the three values above are taken from the transcript as
+instructed. Committed at `2599f655` (19:45:20Z):
+`REVIEW-quantum-flow-error-budget-claude-20261010.md` SHA-256
+`cb334f029e3f435a184177e40ae3cdf07f543efcaf2ce300fd676aa01aaa8d7d`
+(354 lines); `DISPOSITION-quantum-027-030-claude-20261010.md` SHA-256
+`db107bf1a4ca814a57401f9f635554952708c8b634ec16f2f039bbe9cf13e8ed`
+(379 lines; the 355-line on-disk version root read at `d42258e8…` is
+superseded by this one); the 424adca9 consolidation amended in place,
+SHA-256 `339949cc5a1c91dad40eecc19b6ccdc1ebdf7986bbc554b11a213d707294d707`
+(1,030 lines, two dated revision notes); the route (a) pricing amended in
+place, SHA-256
+`0ecf86f3ca9996c01ce1716501289c58062cca0c3f690b5770790ac400897b39`
+(442 lines). Disposition of 004 and its addendum: all four items and
+both addendum items accepted — case D is failure of a sufficient scalar
+criterion on the supplied inputs, never "no tube exists" or "no actual
+tube"; beta = 1.995 and the exact-quadratic claim listed as unverified
+numerical premises kept separate from the gain and defect bounds in the
+review, disposition section E and the consolidation; the Fraction case a
+float-input contract limitation with no fix selected; the author's
+repetition of the 88 Codex tests on byte-identical copies recorded as a
+deviation from the no-repeat instruction that establishes no acceptance,
+the historical 88-test result preserved, nothing run since; root's
+supported 030 amendment (1000/1000 pairs for `sigma = 0.1 / T = 4` and
+`0.01 / T = 20`, survivor-conditioned 916/1000 for `0.1 / T = 20`, largest
+`sigma` with bias `> 3 SE`) recorded in disposition section L with
+extrapolation, finite-sample and no-guarantee limits. Hash verifications
+reported by the author: Codex report `0d623d39…`, module `c1e8aeda…`, tests
+`a85827ab…`, dossier `40f6681a…` (on disk and at 81710146); 013, 027, 030,
+004; 020 recorded as `35e4de53…` (no hash in 013; matches the Codex
+report's lock). No check left incomplete by that author. No traceability
+check was run on these two files and none is started.
+
+**Closure author `a06158948f57f5e50` — 005.** Dispatched 19:40:57Z;
+author-reported wall 19:41:15Z to 19:45:01Z (3 min 46 s, hash check to
+last edit); last transcript entry 19:45:15Z; committed at `5004343a`
+(19:45:38Z). All five corrections accepted, none contested, text only:
+`DISPOSITION-closure-028-031-claude-20261010.md` SHA-256
+`5ff77dfc061cfa6e4eb52e0e5ab6082ce540f2c5c3819afed238f39a10b8c1c9`
+(350 lines); `closure-instability-20261010.md` SHA-256
+`12a0ffb2b1d29ad79c3087b64d457a673ed98158ed8654ce10dbeefb5f03d0f3`
+(2,433 lines); `classical_repair_and_guard_results_20261011.md` SHA-256
+`bb024fa81afcd12e89f7a12c8ee869a8a2142cc5454f9843bcf4af2dea081640`
+(1,373 lines). C05: the flow map preserves volume under stated existence
+assumptions and no compact set can uniformly attract a bounded open
+neighbourhood of larger volume; noncompact invariant sets not excluded.
+C11: fired and censored members cross at the same median time, stated as
+the finite observation only. C32: "always returned the carried lift".
+C02: the row quotes the binding `30187293…`. 028-1: the capped map held
+bounds and energy to its recorded `1e-12` tolerance for 8 members over
+600 units and the event still occurred; finite-tolerance enforcement is
+not exact set membership; the conditional compactness algebra unchanged.
+Line references recomputed; the consolidation records the report hash
+before (`30187293…`) and after (`12a0ffb2…`). The parent 013 increment of
+this author (1,576 s) keeps its failed/stopped budget classification; the
+3 min 46 s is this disposition's own wall time and does not reset it.
+
+**Existing QA collected, recorded honestly against the versions read, no
+further round opened.** The chemistry traceability check (two refuters,
+read-only, no reruns) completed on the strict-intake review (`38d7a19e…`,
+as committed at `5554f2c0`) and on the 026/023 disposition in its 547-line
+`516b4ff0…` version (before the 002 revision): review 44 traced, 15
+mismatched, 3 untraceable; disposition 66 traced, 10 mismatched, 2
+untraceable. Nothing found contradicts the verdicts; the mismatches are
+citation and scope precision, and the check adds test-sensitivity gaps
+the review did not list. Review: the "paragraphs 1–3" citation should be
+paragraph 1; "all hashes match 013" is true of six, the rest match A's
+report lines 174–178, the contract line 475, the ACK013 record, or were
+computed only (`de1e37eb…`); the ordinary-route gate test resolves a
+value-identical copy of the payload written by its own module-local
+writer (`test_adapt_vqe_integration.py:136-178`), so the legacy writer is
+linked to that test only by value equality; the fixture recheck took its
+metadata strings, charge, `n_spin_orbitals` and key order from A's test
+file, not only from contract lines 479–483; `operator_sha256` bytes are
+exact up to signed-zero canonicalization; several "isolated" rejection
+cases are backstopped by the shared parser or by other checks
+(complex-string, multiplicity 3, uhf, `n_beta = 0`, boolean
+`n_spatial_orbitals`, `num_sites`, negative `atol`, malformed hash,
+frozen-core under `nuclear_only`), and only the pair-exchange symmetry
+check has an isolating case — the first-pair and second-pair checks do
+not, a fourth test-sensitivity gap; no case covers a missing `reference`
+field; the signed-zero digest path is not exercised; the T1 proposal's
+`E_det` is `1.1e-16`, within `atol`, not exactly 0. Disposition
+(`516b4ff0…`): the count "13 outright, 2 with amendment" should read 12
+and 3 of 15 findings (026-1, 023-1, 023-4 amended); the 026-1 sentence on
+commutation was wrong as written and has since been corrected under 002;
+several r2 line ranges are imprecise (125–134 not 127–134; 1008–1019;
+line 580 missing from 026-2; the 026-4 range also covers the lanes
+paragraph and gate item 3); the per-word leakage "up to 8.4e-2" holds for
+RK4 at ridge `1e-7` with 0.65 under Euler; the conservation-gate
+replacement must say that `execution_preserves_fixed_counts` is computed
+from the execution mode only and that per-word failure comes from
+`requires_logical_shared_parameterization`; "is not zero" should be "not
+automatically zero"; the I-2b interface row should read amended under
+026-7c; some 023 gates (023:336-343, 307-310, 321-326), the 023 S0
+extensions (charge, verified decomposition, defect lists), the
+multiplicity/invariant-sector/unique-ground assumptions (023:72-76), the
+full-register fallback (023:86-89) and the positive non-Hermitian gate
+(023:230-232) are not carried into rows; r2 lines 47, 910, 912, 45 and
+1032–1033 still carry withdrawn framings not listed. Four sentences were
+flagged as readable as release language; each restates a selection
+already made by release 021 or A's contract, and none selects B, a
+provider, a witness beyond A's own fixture, or evidence — the record
+reads them so. These findings are recorded here for the coordinator; no
+author round is opened on them under the minimal-closure instruction.
+
+The two remaining traceability checks (closure disposition against
+028–031 and its amendments, started before 005; the four classical
+reviews, started before 003) are still running at this writing and are
+recorded as in progress; their findings will be appended against the
+versions they read when they land, or recorded as incomplete if they
+stall. No reviewer is created, restarted or duplicated; no further
+scientific, source or test check is started. All failed parity gates,
+the conditional cone increment 3, root 025 and every execution and
+adoption hold remain binding.
