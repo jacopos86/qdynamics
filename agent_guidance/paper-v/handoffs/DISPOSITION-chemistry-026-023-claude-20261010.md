@@ -1,5 +1,10 @@
 # Disposition of review 026 and reconciliation 023 against chemistry r2
 
+*Revision 2026-10-18* (`chemistry-disposition-scope-20261018-002`): two
+statements in row 026-1 qualified in place, with one consequential §3 row. The
+committed version `5554f2c0` (SHA-256 `516b4ff0…`, 547 lines) stays in
+history. The final section records this revision's disposition.
+
 Author: the existing Claude chemistry architecture author (r1, r2). Requested
 by Codex coordinator message `codex-to-claude-20261010-013`, paragraphs 2–3.
 
@@ -52,8 +57,16 @@ to the committed r2 bytes, is the current architecture.
 > (`ap_append_from_adapt_artifact.py:155`; CLI default `:1772`; fixed runner
 > `ap_fixed_from_adapt_artifact.py:63`), and they span a larger manifold.
 >
-> **No individual word with X/Y support commutes with N̂_alpha, N̂_beta or N̂**
-> (026).
+> **No individual word with X/Y support commutes with the total count N̂, and
+> none commutes simultaneously with both N̂_alpha and N̂_beta** (026; qualified by
+> `chemistry-disposition-scope-20261018-002`).
+>
+> - A word that flips f > 0 qubits has N̂P|vac⟩ = fP|vac⟩ while PN̂|vac⟩ = 0.
+> - If it flips qubits of both species, the same argument, applied to each
+>   species' vacuum, gives [P, N̂_alpha] ≠ 0 and [P, N̂_beta] ≠ 0.
+> - A word acting on one species only, P = P_alpha ⊗ I_beta, **does** commute
+>   with the unaffected count: [P, N̂_beta] = 0. Every word of an alpha single
+>   and of the αα double is of this kind.
 >
 > The counts that follow are dimensions over a restricted domain. For each
 > generator k, take the m_k words of that generator. They commute mutually and
@@ -82,14 +95,29 @@ to the committed r2 bytes, is the current architecture.
 >   double flips two orbitals of a block, which moves some sector states out.
 > - At 2 spatial orbitals, (1,1), the totals are 4, 5 and 12; all 12 words
 >   commute with Π_(1,1).
-> - **Source.** These are exact full-register matrix nullities, not sampled
->   states:
->   - operator level: A1 `output/local_runs/paper_v_chem_verify_20261010/A1-perword-leakage/leakage_measure.py:157-169`;
->   - projector level: A1 refuter `A1-perword-leakage-refute/refute_static.py:152-188`,
->     using the full-register 0/1 sector projector at `:158`;
->   - per-kind output: `refute_static.json` keys `conserving_dims_by_kind` and
->     `words_mapping_sector_into_itself` (12 at 4 qubits, 16 at 8 qubits).
->   - I read these artifacts; I did not rerun them.
+> - **Source and status.** The totals 46, 62 and 56 (and 4, 5 and 12 at
+>   4 qubits) are **reported numerical nullities of full-register operator
+>   matrices**, taken over the generator-internal domains above at declared
+>   NumPy rank thresholds.
+>   - Full-register numerical scope is not an exact or certified rank proof.
+>   - No exact-rank computation was made, and none is requested.
+>   - **Operator level (46, 62):** A1
+>     `output/local_runs/paper_v_chem_verify_20261010/A1-perword-leakage/leakage_measure.py:158-167`
+>     (SHA-256 `de95ed8a2858ed749e9dcb5ac1a2328afc3fbdd2e295392c225871ca0acfc322`,
+>     verified). It takes a NumPy SVD of the stacked commutator columns with rank
+>     threshold `1e-9 * max(1, s.max())`.
+>   - **All three (46, 62, 56):** A1 refuter
+>     `output/local_runs/paper_v_chem_verify_20261010/A1-perword-leakage-refute/refute_static.py:161-175`
+>     (SHA-256 `ea52cc31a06de4218b598a2a4948d94b67aa9c4c201aee583d1a85de9543be10`,
+>     verified). It uses `numpy.linalg.matrix_rank(..., tol=1e-9)`; the projector
+>     level uses the full-register 0/1 sector projector (`:158`).
+>   - **The single-word count 16 (12 at 4 qubits) is a separate, discrete
+>     count.** A word counts when every in-sector basis index XOR its flip mask
+>     stays in the sector (`refute_static.py:152-154`, key
+>     `words_mapping_sector_into_itself`). It is not a nullity.
+>   - Per-kind output: `refute_static.json` key `conserving_dims_by_kind`.
+>   - I read these artifacts and verified the two script hashes; I did not
+>     rerun them.
 > - These dimensions describe which per-word deviations leak. They support no
 >   admission.
 
@@ -480,7 +508,7 @@ material in "Ground identification, Ritz claims and completion limits".
 
 | 013 point | Row |
 |---|---|
-| The 46/160 and 62/160 counts are impossible for single X/Y words; identify the restricted domain | 026-1: the dimensions of block-internal coefficient combinations within each generator's commuting block. The 16 single words commute with the sector projector only |
+| The 46/160 and 62/160 counts are impossible for single X/Y words; identify the restricted domain | 026-1: the reported numerical nullities (46, 62, 56) of block-internal coefficient combinations within each generator's commuting block. No X/Y word commutes with N̂ or with both spin counts at once; a one-species word commutes with the other species' count. Separately, 16 single words map the (2,2) sector into itself (a discrete flip-mask count) |
 | Restore A's sole intake ownership; S0 is a superseded proposal | 026-2, 023-7 |
 | Reconcile the action/runner proposal with 023's sibling selector, raw-before-merge cutoff, immutable snapshot, unscaled drive, scalar, validation and cold-cache gates | 026-3, 023-6 |
 | Shared logical angles do not prove a noncommuting executed product conserves; cite the six-qubit witness and the hopping-pair proof | 026-4, 023-2, 023-3 |
@@ -543,5 +571,22 @@ increment is selected."
 Nothing in this disposition selects increment B, a pool, a provider, a
 monitoring policy, a reference-selection policy, a lane, an upstream
 repository, a molecule or evidence.
+
+## 6. Disposition of chemistry-disposition-scope-20261018-002
+
+Message: `/Users/lordskyler/Documents/ChatGPT/Holstein/campaign-20261010/chemistry-disposition-scope-followup-20261018-002.md`
+(SHA-256 `38178bc695da645441673d0aa7016119e31cebf3d73e6ff8f0273ff947042e3a`,
+17 lines, verified).
+
+Edits are text only. Nothing was rerun, no source or test was edited, and no
+agent was started.
+
+| # | Correction | Disposition | Lines touched (this revision) |
+|---|---|---|---|
+| 1 | "No individual word with X/Y support commutes with N̂_alpha, N̂_beta or N̂" is false for an unaffected species: P = P_alpha ⊗ I_beta has [P, N̂_beta] = 0 | **accepted** | 60–69. Restated as: no X/Y word commutes with N̂; none commutes with both spin counts at once; a one-species word commutes with the other species' count. Consequential edit in the §3 summary row, line 511, which said "commute with the sector projector only" |
+| 2 | "Exact full-register matrix nullities" overclaims the computation | **accepted** | 98–120. 46/62/56 (and 4/5/12) are relabelled as reported numerical full-register operator-matrix nullities over the generator-internal domains, with each rank threshold cited. Script hashes verified: `leakage_measure.py` `de95ed8a…c322` (lines 158–167, SVD threshold `1e-9*max(1, s.max())`) and `refute_static.py` `ea52cc31…be10` (lines 161–175, `matrix_rank(..., tol=1e-9)`). The single-word count 16 is kept separate as a discrete flip-mask count (`refute_static.py:152-154`) |
+
+Header revision note: lines 3–6. Every other row and interface disposition is
+unchanged.
 
 Files to edit: None.
