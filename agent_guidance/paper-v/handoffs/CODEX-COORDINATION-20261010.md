@@ -968,3 +968,56 @@ that had said those words "commute with the sector projector only" was
 corrected by the same change. A dated revision note (lines 3–6) and a
 section-6 disposition block record it. No rerun, no source or test edit,
 no new agent; everything else in the file and all holds unchanged.
+
+
+## Four classical lane reviews and the disposition of 001 (2026-10-18, commit `b02a6b82`)
+
+By the existing handoff and cone-receipt author `a2fa13ee519f8b84b`,
+read-only against the Codex reports, receipts and drivers (every input
+hash matched 013), no rerun, no Codex worktree or shared code touched;
+each is under an independent traceability check at this writing and any
+correction will be recorded here as a revision.
+
+| file (`agent_guidance/paper-v/handoffs/`) | SHA-256 | lines |
+|---|---|---|
+| `REVIEW-regularized-product-state-claude-20261010.md` | `c40b8b2e1a03d6d89f1609a28184604f68a4dd0bcc9d22a5225f9b113c7dea15` | 269 |
+| `REVIEW-repair-early-then-bare-claude-20261010.md` | `b8829832e6a3d22191e4a702ccaf6091ea1996fd360b1406c12650959581d538` | 219 |
+| `REVIEW-electronic-cone-projection-claude-20261010.md` | `77ff56bd80497ade72b2b6be8408fa7cd8a85f2a44e25d85362c0f9e4975aeed` | 314 |
+| `REVIEW-divergence-parameter-map-claude-20261010.md` | `be7b1b2b3736841c46c1d77ec0f6ea8fbbf38d715c8081b60e097625db4716b1` | 278 |
+
+Verdicts, one sentence each: regularized product state (72d6d67a) — the
+report is accurate and the lane stopped correctly at increment 0b; seam
+and reference exact, strict gate failed by `1.94e-4`; "rank 5" is a
+tolerance placement (four eigenvalues at or below `1.1e-11`, eigenvector
+attribution unverified). Repair early then bare (95d9f013) — the report
+is accurate, the driver and checker are sound and tested (552 = 508 +
+44); the checker does not label the unresolved and hard-stop tolerance
+tiers; the smallest handover time, its cost and the cheaper variants are
+unmeasured. Electronic cone (f2879811, cone-022 c1375aa2, release 012) —
+the identity over 16,034 samples and the 7,200 replay stage audits stand
+as scoped; diagnostic 014 establishes the cause of the first `t = 0.09`
+roundoff only; 022 shows the differing pre-selection bundle is sufficient
+for the `t ≈ 0.12` split without finding its origin or a fix; all seven
+corrections in release 012 are valid and three fix real defects in the
+Claude receipt at 74466441; increment 3 stays held. Divergence map
+(d9a8ad29, stopped 024 at ae98da08) — the headline counts recompute
+exactly (41/54 and 44/54; 8/18 at low coupling, all at drive `>= 1`, so
+"mixed"); the cutoff finding is material: at `lambda = 1.5` the event
+moves from `141.41` to about `127.87` by cutoff 32, which touches every
+cutoff-16 number in the record; the cutoff-24 cell succeeded
+(`436.10264591071893`, a `-1.18e-11` shift) while the increment failed its
+1200-second gate at `1636.84 s`, kept separate. Cross-lane: the three
+repaired lanes' parity trajectories are byte-identical across three
+different fixed drivers.
+
+**Disposition of `review-regularized-scope-20261018-001` by the same
+author:** verified (`fe521731…`, 15 lines) and every required change
+accepted; the "keep unchanged" items were already present; the
+disposition table is at the end of the regularized review, whose final
+hash is `c40b8b2e…` above. The same text-only qualification was applied
+to the parallel passages of the repair-early and cone reviews, which
+carried the same over-statement, and is noted at the end of each.
+
+Every hold remains binding: 014–017, 019, cone increment 3, root 025, the
+three strict parity gates and the 1200-second whole-increment budgets. No
+evidence is adopted, no fix selected, no execution released.
