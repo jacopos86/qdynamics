@@ -1082,3 +1082,81 @@ marked as revised under 003. Each file carries a dated revision line and
 a "Disposition of classical-review-scope-20261018-003" block. 001 was not
 redone. Every hold binding; the map, the 024 audits and the 024 closure
 stay closed; no evidence adopted.
+
+
+## Timing and minimal-closure clarification, attached to ACK003/004/005 at `755ab676` (recorded 2026-10-18T19:43:36Z)
+
+Acknowledged: the 1200-second bound applies to the WHOLE increment —
+preparation, review, existing QA, report and closure — with no per-process
+waiver and no reset for the focused corrections 001–005. Root's
+observation at 19:16:08 UTC had all four authors started; by 19:40 more
+than 1200 s had elapsed from that observation. Nothing was redispatched,
+no reviewer created or restarted, no check rerun, no clock reset.
+
+**Authentic receipts.** Every timestamp below is a machine timestamp
+taken from the agents' own transcripts (the `timestamp` field of the
+dispatch message that resumed each author and of its last transcript
+entry) or from git commit metadata (`%cI`, converted to UTC). None is
+estimated. "Closure" is the last transcript entry of the author's run
+for that assignment; where an author is still running, the entry is
+marked pending and its clock stays unaccepted until its authentic
+receipt arrives.
+
+| author | 013 dispatch (start) | first overrun (start + 1200 s) | 013 closure (last transcript entry) | elapsed | deliverables committed |
+|---|---|---|---|---|---|
+| chemistry `afea8902398da6491` | 19:12:55Z | 19:32:55Z | 19:33:43Z (resumed by 002 at that instant) | 1,249 s | `5554f2c0` at 19:30:11Z |
+| quantum `a9d52301508c85cc1` | 19:13:25Z | 19:33:25Z | pending (still running at 19:43:32Z, the last entry at this writing) | > 1,807 s | none yet; two files on disk uncommitted |
+| handoff/cone `a2fa13ee519f8b84b` | 19:14:11Z | 19:34:11Z | 19:40:36Z (resumed by 003 at that instant) | 1,584 s | `b02a6b82` at 19:35:58Z |
+| closure `a06158948f57f5e50` | 19:14:41Z | 19:34:41Z | 19:40:57Z (resumed by 005 at that instant) | 1,576 s | `286fb368` at 19:31:12Z |
+
+Focused corrections, measured from their own dispatch but counted inside
+the parent increment (no reset): 002 chemistry 19:33:43Z → 19:35:07Z,
+83 s, committed `0b9ff598` at 19:35:13Z; 003 handoff/cone 19:40:36Z →
+19:42:16Z, 100 s, committed `f805f169` at 19:42:30Z; 005 closure
+dispatched 19:40:57Z, pending; 004 quantum queued behind its open 013
+work, pending; 001 handoff/cone was dispositioned inside the 013 run and
+is counted in its 1,584 s. ACK013 was committed at 19:15:25Z, after the
+four dispatches.
+
+**Classification.** Every one of the four 013 increments exceeded the
+1200-second whole-increment bound (1,249 s, > 1,807 s, 1,584 s and
+1,576 s). Their budget classification is therefore failed/stopped for
+whole-increment acceptance, and the delivered files stand only as
+minimal honest text dispositions and closures: the six reviews and four
+dispositions are recorded with their hashes as written, none is offered
+as a budget-passing increment, none establishes fresh execution
+acceptance, and no acceptance is rescued by further audit. No further
+optional scientific, source or test check is started.
+
+**Existing QA at this closure, recorded honestly.** Three traceability
+checks launched earlier on the Claude side are in progress and are not
+extended, restarted or duplicated: (i) chemistry strict-intake review and
+026/023 disposition (two refuters, started before the 002 revision, so
+its disposition findings refer to the `516b4ff0…` version); (ii) closure
+disposition 028–031 and its in-place amendments (two refuters, started
+before 005); (iii) the four classical reviews (four refuters, started
+before 003, so the divergence and cone findings refer to `be7b1b2b…` and
+`77ff56bd…`). Their results, when they land, are recorded as findings
+against the versions they read; any that stalls is recorded as
+incomplete. The quantum review and disposition have no traceability
+check and none will be started.
+
+**Quantum 004 context (same author, no new dispatch).** The 004
+qualifications were extended to section E of the quantum 027/030
+disposition (beta = 1.995 and the exact-quadratic premise are external
+numerical estimates and rounding-level evidence, not certified; a failed
+sufficient scalar criterion is "no verified tube", never "no actual
+tube"), and root's supported root-scope amendment of one contested 030
+detail is recorded for that author to carry with extrapolation,
+finite-sample and no-guarantee limits: in the KvN-bias threshold source
+the rows `sigma = 0.1 / T = 4` and `sigma = 0.01 / T = 20` each use 1000
+of 1000 pairs, the `sigma = 0.1 / T = 20` bias remains
+survivor-conditioned at 916 of 1000, and the code selected the largest
+`sigma` with bias `> 3 SE`, not an all-survivors rule. No further source
+check or rerun. The author's 88-test repetition stays recorded as an
+operational deviation.
+
+All failed parity gates, the conditional cone increment 3, root 025, and
+every execution and adoption hold remain binding. Final author-hash and
+closure receipts for the quantum author and for 005 follow in the next
+block when their authentic transcript entries exist.
