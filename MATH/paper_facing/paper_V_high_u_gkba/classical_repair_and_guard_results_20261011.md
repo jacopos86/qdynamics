@@ -20,6 +20,17 @@
   which it places before the high-`U` stress tests (tex line 344). No
   high-`U` case was run.
 
+**Revision line (2026-10-18, closure-disposition-scope-20261018-005).**
+Text-only wording corrections, with no new run:
+
+- section 1, item 3: the volume consequence is stated with its existence
+  and compact-set assumptions;
+- section 3, item 3 and section 6: equal medians are given as a finite
+  observation;
+- section 4, item 2: tolerance, not exact membership;
+- section 5, item 4: the heading says the re-selection "always returned the
+  carried lift".
+
 **Revision note 2 (2026-10-18, dispositions of root review 030 (classical
 part) and review 031, with the persisting points of reviews 028 and 029).**
 
@@ -34,57 +45,57 @@ part) and review 031, with the persisting points of reviews 028 and 029).**
   exact-correlated hybrid gains, which review 031 records as resolved, are
   preserved.
 
-- L94: first revision note: its line numbers refer to `2c096bad`; the numbers-check artifact was not preserved
-- L202: sources: `DI` pinned; the exact divergence-free identity's source and the amended report added
-- L292: the convergence statement scoped to the tested refinements
-- L300: volume preservation cited to the exact identity; the floating-point traces and Lyapunov sum kept separate; the attractor statement qualified
-- L324: 'no attractor' tied to the exact identity
-- L327: 'transient chaos' stated as finite-time stretching; no global attractor or unboundedness claimed
-- L354: 'nothing in the closed equations confines' scoped to the energy
-- L456: section 3 heading: the retained-Gram necessary condition, not representability
-- L458: the Gram and minors defined as necessary conditions, not physical representability
-- L470: 'lost within units, from every state' scoped to the tested condition and states
-- L490: 'discriminates nothing' replaced by a finite, censored, in-sample association
-- L496: within-ensemble ordering stated as weak or absent in a finite, in-sample test
-- L534: the clip's targets separated from what the capped map achieves, with residuals and receipt gaps
-- L575: the energy-hold target: computed post-RK4 energy, not an accumulated drive-work reference
-- L586: compactness stated as a conditional set bound, separate from the capped map; 'tight' becomes 'sharper'
-- L603: the exact zero-energy trace witness `x17 = -omega n / (2 g)`; trace control needed, not uniquely
-- L614: heating table: the largest recorded sampled value (records every 400 steps), not a supremum
-- L619: heating: rising, not shown unbounded
-- L625: 'which families are necessary' replaced by a finite ablation of the capped map
-- L648: 'the correlation bounds are necessary' replaced by a finite ablation result
-- L658: non-converged counts are batch-step counts; per-row keep-only status added
-- L671: keep-only counts as batch steps, with the per-row residuals
-- L695: triggered guard: bare before the first trigger; zero events are finite, censored, capped-algorithm observations
-- L722: first order stated as an observation of the tested always-on maps
-- L730: accuracy comparisons stated metric by metric
-- L781: pulse-work attribution qualified
-- L792: the critic's quotation attributed and its comparison limited
-- L799: the Gram-cone and boson maps: no event in 600 units, not 'confine'; not projections onto an enforced intersection
-- L811: starts satisfying the tested necessary constraints; 16 against 64 members; no independence claim
-- L822: the projection comparison qualified (unmatched ensembles, provenance); 'a property of the flow' scoped
-- L915: the `T = 4` Hartree--Fock contradiction corrected: improvement is metric-dependent, no arm improves all three
-- L925: re-selection counts: 222 main-arm plus 12 refinement, all infeasible
-- L932: skipped-selection cost: source-level support only; solver and RNG effects and bitwise equality not verified
-- L941: cheap-repair ratio scoped to the measured protocols (8 of 10 failed re-selections)
-- L950: the hybrid's failed gates: negative post-event Gram, 99 of 234 events reduce the violation, the exact-correlated `Delta = 20` cap without a residual receipt
-- L961: what the hybrid receipts prove: 13 arms to 60 with no resume, 117 nonfailure escape statuses; one refinement; whole-increment gate unestablished
-- L996: reading: stiffness and energy drift scoped to the diagnostics
-- L1003: reading: backward-Euler conditioning is not a general nonstiffness certificate
-- L1006: reading: 'unbounded growth' replaced by finite growth past the threshold; finite-time stretching
-- L1030: reading: positivity stated as the tested necessary condition
-- L1035: reading: the joint loss 'does not predict' scoped to the tested, censored ensembles
-- L1038: reading: energy drift and stiffness not excluded in general
-- L1047: reading: what the capped clip achieves, separated from the conditional compact-set bound
-- L1053: reading: compactness conditional; capped enforcement and the 600-unit horizon stated
-- L1093: reading: 'volume-preserving' cited to the exact identity
-- L1152: withdrawn-claim 14: 'tight' becomes 'sharper'
-- L1223: withdrawn claims 35 to 43 added (revision 2)
-- L1252: unmeasured list: per-process limits are not the 1200-second whole-increment gate; nothing is selected
-- L1279: the exact correlated estimates labelled as extrapolations of the Hartree--Fock profiles
-- L1275: item 2's hours stated as many bounded subincrements
-- L1332: unmeasured items 15 and 16: execution provenance and the binding prerequisite holds
+- L105: first revision note: its line numbers refer to `2c096bad`; the numbers-check artifact was not preserved
+- L213: sources: `DI` pinned; the exact divergence-free identity's source and the amended report added
+- L303: the convergence statement scoped to the tested refinements
+- L311: volume preservation cited to the exact identity; the floating-point traces and Lyapunov sum kept separate; the attractor statement qualified
+- L335: 'no attractor' tied to the exact identity
+- L350: 'transient chaos' stated as finite-time stretching; no global attractor or unboundedness claimed
+- L377: 'nothing in the closed equations confines' scoped to the energy
+- L479: section 3 heading: the retained-Gram necessary condition, not representability
+- L481: the Gram and minors defined as necessary conditions, not physical representability
+- L493: 'lost within units, from every state' scoped to the tested condition and states
+- L513: 'discriminates nothing' replaced by a finite, censored, in-sample association
+- L519: within-ensemble ordering stated as weak or absent in a finite, in-sample test
+- L557: the clip's targets separated from what the capped map achieves, with residuals and receipt gaps
+- L598: the energy-hold target: computed post-RK4 energy, not an accumulated drive-work reference
+- L609: compactness stated as a conditional set bound, separate from the capped map; 'tight' becomes 'sharper'
+- L626: the exact zero-energy trace witness `x17 = -omega n / (2 g)`; trace control needed, not uniquely
+- L637: heating table: the largest recorded sampled value (records every 400 steps), not a supremum
+- L642: heating: rising, not shown unbounded
+- L648: 'which families are necessary' replaced by a finite ablation of the capped map
+- L673: 'the correlation bounds are necessary' replaced by a finite ablation result
+- L683: non-converged counts are batch-step counts; per-row keep-only status added
+- L696: keep-only counts as batch steps, with the per-row residuals
+- L720: triggered guard: bare before the first trigger; zero events are finite, censored, capped-algorithm observations
+- L747: first order stated as an observation of the tested always-on maps
+- L755: accuracy comparisons stated metric by metric
+- L806: pulse-work attribution qualified
+- L817: the critic's quotation attributed and its comparison limited
+- L824: the Gram-cone and boson maps: no event in 600 units, not 'confine'; not projections onto an enforced intersection
+- L836: starts satisfying the tested necessary constraints; 16 against 64 members; no independence claim
+- L847: the projection comparison qualified (unmatched ensembles, provenance); 'a property of the flow' scoped
+- L940: the `T = 4` Hartree--Fock contradiction corrected: improvement is metric-dependent, no arm improves all three
+- L950: re-selection counts: 222 main-arm plus 12 refinement, all infeasible
+- L958: skipped-selection cost: source-level support only; solver and RNG effects and bitwise equality not verified
+- L967: cheap-repair ratio scoped to the measured protocols (8 of 10 failed re-selections)
+- L976: the hybrid's failed gates: negative post-event Gram, 99 of 234 events reduce the violation, the exact-correlated `Delta = 20` cap without a residual receipt
+- L987: what the hybrid receipts prove: 13 arms to 60 with no resume, 117 nonfailure escape statuses; one refinement; whole-increment gate unestablished
+- L1022: reading: stiffness and energy drift scoped to the diagnostics
+- L1029: reading: backward-Euler conditioning is not a general nonstiffness certificate
+- L1032: reading: 'unbounded growth' replaced by finite growth past the threshold; finite-time stretching
+- L1056: reading: positivity stated as the tested necessary condition
+- L1061: reading: the joint loss 'does not predict' scoped to the tested, censored ensembles
+- L1067: reading: energy drift and stiffness not excluded in general
+- L1076: reading: what the capped clip achieves, separated from the conditional compact-set bound
+- L1082: reading: compactness conditional; capped enforcement and the 600-unit horizon stated
+- L1122: reading: 'volume-preserving' cited to the exact identity
+- L1181: withdrawn-claim 14: 'tight' becomes 'sharper'
+- L1252: withdrawn claims 35 to 43 added (revision 2)
+- L1281: unmeasured list: per-process limits are not the 1200-second whole-increment gate; nothing is selected
+- L1308: the exact correlated estimates labelled as extrapolations of the Hartree--Fock profiles
+- L1304: item 2's hours stated as many bounded subincrements
+- L1361: unmeasured items 15 and 16: execution provenance and the binding prerequisite holds
 
 **Revision note (2026-10-11, after numbers check).** The first version is
 commit `3a9981f7` (SHA-256 `714d34a8...`). A numbers check traced 147 of its
@@ -199,7 +210,7 @@ receipt, or is derived, the text says so.
 | `R §8`--`§12` | the same report, sections 8 to 12 (escape statistics, predictor, confinement) | `c1c1f9cc` |
 | `R §13` | the same report, section 13 (corrections after three refuters and a critic, and the ablations) | `36b686b3` |
 | `R §14` | the same report, section 14 (the guard plus sparse repair hybrid) | `8390a83b` |
-| `R §13`, `§14` (amended) | the same report after the 2026-10-18 amendments of sections 13 and 14 (dispositions of reviews 028 to 031), SHA-256 `30187293aeb89b3e355599560930ba26c5a79cd4bd263413d61cdbcb0fe0c710` | uncommitted at this writing |
+| `R §13`, `§14` (amended) | the same report after the 2026-10-18 amendments of sections 13 and 14 (dispositions of reviews 028 to 031), SHA-256 `30187293aeb89b3e355599560930ba26c5a79cd4bd263413d61cdbcb0fe0c710` at `286fb368`, then `12a0ffb2b1d29ad79c3087b64d457a673ed98158ed8654ce10dbeefb5f03d0f3` after the text-only corrections of closure-disposition-scope-20261018-005 | `286fb368` |
 | `DI` | `agent_guidance/paper-v/overnight/divergent-initialization-20260920.md` (the repaired chain's own record), SHA-256 `87508b2c4e7ebf7d82b98fc2076c01a14090d1b79d3d8fe565d4c6737cf94e7e` | `37e4067d` |
 | `QF` | `MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md` (the exact divergence-free identity), SHA-256 `72d3414c425948351a29af06ce2b74e2b313519eee6d42f2cdd5f6827961a1a1` | `475c47a7` |
 | `W` | `paper_5/notes/electron_phonon_closure_worklog_20260803.md`, blocks dated 2026-10-10 and 2026-10-11 | as above |
@@ -321,9 +332,21 @@ it is `0.17` (`R §13.12`, `§14.7`).
 
      During the pulse the drive does work. Past the event the energy was not
      recorded (`R §0` item 3, `§6`).
-   - By the exact identity the smooth flow cannot contract volume, so it
-     has no attracting set of lower dimension. That follows from the
-     identity, not from the floating-point traces.
+   - **What the identity gives.** Wherever the flow map exists, the exact
+     identity makes it preserve the volume of every measurable set. Here
+     that means for initial states whose solutions exist over the time
+     considered, since solutions can leave every bounded set and the
+     closure's growth is not shown to stay finite.
+   - **The consequence.** No compact set can uniformly attract a bounded open
+     neighbourhood of strictly larger volume: the neighbourhood keeps its
+     volume, while the shrinking neighbourhoods of a compact set approach
+     its own volume.
+   - **What it does not exclude.** On the noncompact phase space, solutions
+     approaching an unbounded invariant set in distance. For example,
+     `x' = x`, `y' = -y` preserves area and approaches the `x`-axis.
+   - **What it rests on.** These statements follow from the identity and its
+     smooth-flow and existence assumptions, not from the floating-point
+     traces.
 4. **Positive finite-time stretching from the exact `t = 60` state
    (transient chaos on these diagnostics).** Positive finite-time exponents
    and finite coordinate growth are observations. They do not prove a
@@ -487,12 +510,12 @@ measured by its minimum eigenvalue, "the Gram" (`R §13.3`).
    - `14.5` to `51` units in the bare Hartree--Fock, task-11 `t = 10` and
      task-13 `t >= 10` ensembles;
    - `14.5` to `724.2` units across all 19 ensembles.
-3. **In this ensemble it does not discriminate escape.** In the task-11
-   `t = 20` ensemble, 38 of the 41 members with no event in 1500 units cross
-   Gram `< -1`, at a median `542.8` units. The 23 members that fire cross at
-   the same median `542.8`. This is a finite, in-sample association, with 41
-   of 64 members censored at 1500. Equal medians do not prove that the
-   condition carries no information about escape.
+3. **In this ensemble the fired and censored groups cross at the same
+   median time.** In the task-11 `t = 20` ensemble, 38 of the 41 members with
+   no event in 1500 units cross Gram `< -1`, at a median `542.8` units. The
+   23 members that fire cross at the same median, `542.8`. This is a finite,
+   in-sample observation, with 41 of 64 members censored at 1500. It does
+   not establish an absence of predictive information.
 4. **Within one ensemble it orders the events weakly or not at all**
    (finite, in-sample).
    - In each of the five tabled ensembles (64 members each), the first time
@@ -635,10 +658,12 @@ the step is counted as not converged (item 2).
      `N_qq >= 0`, both, or `N_qq >= 0` with the anomalous bounds lets 8 of 8
      cross the threshold from both preparations. Most of those cells carry
      non-converged batch steps (table below). Only the Hartree--Fock
-     `trace`, `n_diag` cell and the exact-correlated `trace` cell converged
-     at every step. A capped map that leaves kept constraints unconverged
-     cannot establish that the exactly enforced intersection is
-     insufficient.
+     `trace`, `n_diag` cell and the exact-correlated `trace` cell converged,
+     to the recorded tolerance (`1e-12`), at every step. Finite-tolerance
+     enforcement by a capped map, converged or not, is not exact set
+     membership. These rows therefore do not establish that the exactly
+     enforced intersection is insufficient. The conditional compactness
+     algebra of item 1 is unaffected.
    - Keeping the trace pin, `N_qq >= 0` and the anomalous bounds together
      gives no event from Hartree--Fock (0 fired) but 8 from exact correlated
      in the 600-unit window.
@@ -922,7 +947,8 @@ energy hold `0.408`):
      `0.1313`). `Delta = 2` slightly improves the energy (`0.0432`) and
      worsens the other two (`0.0370`, `0.1392`).
    - No tested arm improves all three `T = 4` scores.
-4. **The lift re-selection costs most of the wall and changes nothing.** It
+4. **The lift re-selection costs most of the wall and always returned the
+   carried lift.** It
    returned "infeasible" in all 222 main-arm events and in the 12 events of
    the `h/2` arm, 234 in all, so the carried lift was always used.
    - Averaged over each arm's events, it takes `2.4` to `3.0` s of a mean
@@ -1032,8 +1058,11 @@ covariance, `B` and `delta rho_12^q`.
     not timed. The bare closure takes its lowest eigenvalue to `-216.4`
     from Hartree--Fock at the sampled times, against `0` to `-2.2e-16`
     under the clip (`R §11`).
-  - In the tested, partly censored ensembles the joint loss does not
-    discriminate which states blow up.
+  - In the tested, partly censored ensembles the timing of the joint loss
+    showed no observed separation of the states that blew up. In the task-11
+    ensemble the fired and censored groups cross at equal medians, and the
+    within-ensemble rank correlations are weak. That is a finite
+    observation, not an absence of predictive information.
 - **The other options.** In the manuscript's list:
   - Energy drift is not observed at the sampled times, and stiffness is not
     indicated at the tested step on sampled bounded states. Neither is

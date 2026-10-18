@@ -1,5 +1,15 @@
 # The bare closure's instability and its linearized flow
 
+**Revision line (2026-10-18, closure-disposition-scope-20261018-005).**
+Text-only wording corrections:
+
+- 13.0 item 7 and 13.3: equal medians of the fired and censored groups are
+  reported as a finite observation, not as "does not discriminate".
+- 13.5: the two converged keep-only cells are held to a recorded tolerance,
+  not exactly.
+- The "no attractor" wording of sections 0 and 6 is read with the
+  qualification of the consolidation's section 1, item 3.
+
 **Revision note (2026-10-18, dispositions of root reviews 028, 029, the
 classical part of 030, and 031).**
 
@@ -1123,12 +1133,15 @@ and their SHA-256 are in the rehashed `sha256_task2.json` (13.13).
    minors map. The cheap repair's timing includes 8 of 10 failed lift
    re-selections, so the ratios compare the measured protocols, not equally
    accurate methods.
-7. **Section 10 (R2, 13.3).** In these 19 ensembles, loss of the retained-Gram
-   condition does not discriminate escape. Under the bare closure the
+7. **Section 10 (R2, 13.3).** In these 19 ensembles, the timing of the
+   retained-Gram loss showed no observed separation of escaping members.
+   Under the bare closure the
    retained Gram is negative at the start, or within 12 units of it, in all
    19 ensembles. In the task-11 `t = 20` ensemble, the members with no event
    in 1500 units cross Gram `< -1` at the same median time (`542.8`) as those
-   that fire. The selected minors and the retained 8-by-8 Gram are necessary
+   that fire: the fired and censored groups cross at equal medians. That
+   finite observation does not establish an absence of predictive
+   information. The selected minors and the retained 8-by-8 Gram are necessary
    conditions for physical representability, not a complete test of it.
    This is a finite, in-sample and partly censored observation about that
    necessary condition, not a proof that no starting-state geometry
@@ -1453,8 +1466,9 @@ every tabled cell of section 10 from the stored first crossings, and its
   cross Gram `< -1`, at a median of `542.8` units; the 23 members that fire
   cross at a median of `542.8`, the same time (my recomputation; R2 reports
   `543`). In these ensembles, loss of the retained-Gram condition is a
-  property of the bare flow from every tested state and does not
-  discriminate escape. That is a finite, in-sample observation with
+  property of the bare flow from every tested state. In the task-11
+  ensemble the fired and censored groups cross at equal medians. That is a
+  finite, in-sample observation with
   censoring (23 of 64 fired by 1500). It is not a proof that no measure of
   representability predicts escape from any state.
 - **"The bare `t = 20` value `-1.63` at 200 before"** rests on 4 of 64
@@ -1631,9 +1645,12 @@ What this measures:
   threshold. The three together give no event from Hartree--Fock and 8
   events from exact correlated. Two cells converged at every step: the
   Hartree--Fock `trace`, `n_diag` cell and the exact-correlated `trace`
-  cell. Only for those two, for these members and this window, do the
-  rows show that the kept subset held exactly with the energy does not
-  prevent the event.
+  cell. In those two the capped algorithm held the kept bounds and the
+  energy to its recorded tolerance (`1e-12`) at every step, for the 8
+  members and the 600-unit window, and the event still occurred.
+  Finite-tolerance enforcement is not exact set membership, so this does
+  not establish insufficiency of the exactly enforced set. The conditional
+  compactness algebra of 13.2 (c) is unaffected.
 - The correlation bounds alone, with the exact-energy hold, give no event in
   600. They do not keep the coordinates small from Hartree--Fock (`169` at
   600).
