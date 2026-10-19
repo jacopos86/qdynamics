@@ -37,6 +37,8 @@ def _parser() -> argparse.ArgumentParser:
     export.add_argument("--h5", required=True)
     export.add_argument("--out", required=True)
     export.add_argument("--frozen-core", type=int, default=0, help="freeze the lowest N occupied orbitals (declared nuclear_plus_frozen_core)")
+    export.add_argument("--declared-origin", choices=("unknown", "synthetic", "simulated"), default="unknown", help="origin of the file's data as declared by you; 'unknown' unless you made it synthetic")
+    export.add_argument("--claimed-producer", default=None, help="who is claimed to have produced the file (recorded as a claim, never as established origin)")
     synthetic = sub.add_parser("export-synthetic", help="write a labelled synthetic witness in the producer's schema (not a molecule)")
     synthetic.add_argument("--kind", choices=SYNTHETIC_KINDS, default="contract4")
     synthetic.add_argument("--out", required=True)
@@ -66,16 +68,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in {"export-qdynamics", "export-synthetic"}:
         try:
             if args.command == "export-qdynamics":
-                elements = load_qdynamics_matrix_elements_h5(args.h5)
+                elements = load_qdynamics_matrix_elements_h5(args.h5, declared_origin=str(args.declared_origin), declared_producer=args.claimed_producer)
             else:
-                elements = qdynamics_matrix_elements_from_mapping(synthetic_qdynamics_mapping(args.kind, seed=int(args.seed)), source={"payload_kind": "synthetic_witness", "kind": str(args.kind), "seed": int(args.seed)})
+                elements = qdynamics_matrix_elements_from_mapping(
+                    synthetic_qdynamics_mapping(args.kind, seed=int(args.seed)),
+                    source={"kind": str(args.kind), "seed": int(args.seed), "simulation": True, "producer_generated": False},
+                    declared_origin="synthetic",
+                )
             reduction = FrozenCoreReduction(int(args.frozen_core)) if int(args.frozen_core) > 0 else None
             bridge_problem = bridge_problem_from_qdynamics(elements, frozen_core=reduction)
         except (BridgeDependencyUnavailable, QdynamicsConventionError) as exc:
             print(f"export refused: {exc}", file=sys.stderr)
             return 2
         manifest = write_bridge_problem_json(bridge_problem, args.out)
-        print(json.dumps({k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, indent=2))
+        print(json.dumps({**{k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, "origin": bridge_problem.provenance["origin"], "container_schema": bridge_problem.provenance["container_schema"]}, indent=2))
         return 0
     if args.command == "run":
         times = [float(v) for v in str(args.apm_times).split(",") if v.strip()]

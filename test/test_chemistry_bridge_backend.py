@@ -125,7 +125,7 @@ def test_sector_indices_and_spectrum_match_repository():
 
 def _contract_context(tmp_path):
     mapping = synthetic_qdynamics_mapping("contract4")
-    bridge_problem = bridge_problem_from_qdynamics(qdynamics_matrix_elements_from_mapping(mapping, source={"payload_kind": "synthetic_witness"}))
+    bridge_problem = bridge_problem_from_qdynamics(qdynamics_matrix_elements_from_mapping(mapping, source={"kind": "synthetic_witness"}, declared_origin="synthetic"))
     manifest = write_bridge_problem_json(bridge_problem, tmp_path / "problem.json")
     request = ProblemRequest(problem_key="molecular_restricted_closed_shell", num_sites=2, t=0.0, u=0.0, dv=0.0, omega0=0.0, g_ep=0.0, n_ph_max=0, boson_encoding="binary", ordering="blocked", boundary="open", molecular_problem_json=manifest["problem_json_path"])
     return resolve_molecular_diagnostic_intake(request, expected_raw_sha256=manifest["raw_sha256"], declaration=declaration_from_mapping(manifest["declaration"]))

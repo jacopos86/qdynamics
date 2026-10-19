@@ -42,7 +42,7 @@ def _backend_or_skip(spec: str):
 
 def _manifest(tmp_path: Path, kind: str):
     mapping = synthetic_qdynamics_mapping(kind)
-    elements = qdynamics_matrix_elements_from_mapping(mapping, source={"payload_kind": "synthetic_witness", "kind": kind})
+    elements = qdynamics_matrix_elements_from_mapping(mapping, source={"kind": kind, "simulation": True, "producer_generated": False}, declared_origin="synthetic")
     return write_bridge_problem_json(bridge_problem_from_qdynamics(elements), tmp_path / f"{kind}.json")
 
 

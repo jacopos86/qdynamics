@@ -186,8 +186,13 @@ class BridgeContext:
             "operator_sha256": receipt.get("operator_sha256"),
             "diagnostic_atol": receipt.get("diagnostic_atol"),
             "data_role": self.data_role,
+            "origin": self.provenance.get("origin", "unknown"),
+            "container_schema": self.provenance.get("container_schema"),
+            "claimed_producer": self.provenance.get("claimed_producer"),
+            "origin_attestation": self.provenance.get("origin_attestation"),
+            "producer_origin_established": bool(self.provenance.get("producer_origin_established", False)),
             "source": self.provenance.get("source", {}),
-            "producer": self.provenance.get("producer", {}),
+            "schema_reference_producer": self.provenance.get("schema_reference_producer", {}),
             "reduction": self.provenance.get("reduction", {}),
             "n_qubits": self.nq,
             "num_particles": list(self.num_particles),
@@ -216,11 +221,14 @@ def resolve_bridge_context(manifest_path: str | Path, *, atol: float = 1.0e-12) 
         atol=float(atol),
     )
     receipt = dict(context.runtime_data["molecular_diagnostic_intake_receipt"])
-    source_kind = str(provenance.get("source", {}).get("payload_kind", "unknown"))
-    # The schema says how the bytes are laid out, not who produced them: a file
-    # in the producer's schema counts as Doron's data only once its sha256 is
-    # pinned to a delivery he made.  No such pin exists yet.
-    data_role = "ele_h5_file_input_origin_unverified" if source_kind == "qdynamics_matrix_elements_ele_h5" else "synthetic_or_non_file_input"
+    # Three separate facts travel with every receipt: the observed container
+    # (what the bytes look like), the claimed producer (a claim), and the
+    # declared origin (synthetic / simulated / unknown / attested).  The data
+    # role is origin:container; neither a hash nor a recognized schema can
+    # turn an unknown origin into a producer export.
+    origin = str(provenance.get("origin", "unknown"))
+    container = str(provenance.get("container_schema", provenance.get("source", {}).get("container_schema", "unknown_container")))
+    data_role = f"{origin}:{container}"
     return BridgeContext(context=context, intake_receipt=receipt, declaration=declaration, manifest=manifest, provenance=provenance, data_role=data_role)
 
 

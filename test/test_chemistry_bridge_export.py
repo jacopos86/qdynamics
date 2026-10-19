@@ -42,7 +42,7 @@ from pipelines.static_adapt.builders.molecular_diagnostic_intake import resolve_
 
 
 def _elements(mapping, **source):
-    return qx.qdynamics_matrix_elements_from_mapping(mapping, source={"payload_kind": "synthetic_witness", **source})
+    return qx.qdynamics_matrix_elements_from_mapping(mapping, source={"kind": "synthetic_witness", **source}, declared_origin="synthetic")
 
 
 def _intake(bridge_problem: qx.BridgeProblem, tmp_path: Path, name: str = "problem.json"):
@@ -82,6 +82,9 @@ def test_converter_output_passes_strict_intake_with_zero_witness_defect(kind, tm
     assert context.layout.total_qubits == 2 * int(mapping["metadata"]["nmo"])
     assert bridge_problem.declaration.scalar_semantics == "nuclear_only"
     assert bridge_problem.provenance["notation_binding"].startswith("declared_by_producer_metadata")
+    assert bridge_problem.provenance["origin"] == "synthetic"
+    assert bridge_problem.provenance["container_schema"] == qx.CONTAINER_IN_MEMORY
+    assert bridge_problem.provenance["producer_origin_established"] is False
     document = json.loads(Path(manifest["problem_json_path"]).read_text())
     assert document["schema"] == qx.BRIDGE_PROBLEM_SCHEMA
     assert "n_spatial_orbitals" in document["problem"] and "n_spatial_orbitals" not in document
@@ -244,6 +247,121 @@ def test_fcidump_rejects_wrong_declaration_and_complex_entries():
     assert excinfo.value.code == "fcidump_complex"
 
 
+# ---------------------------------------------------------------------------
+# Corrections for independent review findings 2, 3 and 6 (2026-10-19-002)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value, code",
+    [
+        (np.array([0.3, np.nan]), "nuclear_repulsion_shape"),   # the review's probe: previously truncated to 0.3
+        (np.array([0.3]), "nuclear_repulsion_shape"),           # length-one compatibility is NOT intended
+        (np.array([[0.3]]), "nuclear_repulsion_shape"),
+        (np.float64("nan"), "nuclear_repulsion_nonfinite"),
+        (float("inf"), "nuclear_repulsion_nonfinite"),
+        ("0.3", "nuclear_repulsion_type"),
+        (True, "nuclear_repulsion_type"),
+        (np.array(0.3 + 1.0e-9j), "complex_tensor"),
+    ],
+)
+def test_finding2_malformed_nuclear_scalar_is_rejected_before_extraction(value, code):
+    mapping = _base_mapping()
+    mapping["nuclear_repulsion"] = value
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="synthetic")
+    assert excinfo.value.code == code
+
+
+def test_finding2_zero_dimensional_numpy_scalar_is_the_only_accepted_shape():
+    mapping = _base_mapping()
+    for value in (np.float64(0.25), np.array(0.25), 0.25, np.float32(0.25), 1):
+        mapping["nuclear_repulsion"] = value
+        elements = qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="synthetic")
+        assert elements.nuclear_repulsion == float(value)
+
+
+REVIEW_CONTRADICTORY_FCIDUMP = (
+    " &FCI NORB=2,NELEC=2,MS2=0,\n ORBSYM=1,1,\n ISYM=1,\n &END\n"
+    " .4 1 1 1 1\n .2 2 2 2 2\n .9 2 2 2 2\n -1.0 1 1 0 0\n .5 2 2 0 0\n .3 0 0 0 0\n"
+)
+
+
+def test_finding3_review_contradictory_fcidump_is_rejected():
+    # The review's probe input (sha256 3b6a6ce3...): (22|22)=0.2 then 0.9 used to
+    # survive the symmetry and HF checks because orbital 2 is virtual.
+    import hashlib
+
+    assert hashlib.sha256(REVIEW_CONTRADICTORY_FCIDUMP.encode()).hexdigest() == "3b6a6ce301387d5b8fdcd7856090fb08c0da3c0c9332c8123834be05ca245ebc"
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.read_fcidump(REVIEW_CONTRADICTORY_FCIDUMP)
+    assert excinfo.value.code == "fcidump_conflict"
+    assert "(1, 1, 1, 1)" in str(excinfo.value)
+
+
+def test_finding3_symmetry_equivalent_conflicts_and_identical_repeats():
+    h, g, scalar, hf = contract_four_qubit_tensors()
+    base = _fcidump_text(h, g, scalar, 2)
+    # (11|22)=0.1 is present; written again as (22|11)=0.7: same canonical key, different value -> conflict
+    conflicting = base.replace(" 0 0 0 0", " 0 0 0 0\n 7.0e-01 2 2 1 1", 1)
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.read_fcidump(conflicting)
+    assert excinfo.value.code == "fcidump_conflict"
+    # one-body symmetry-equivalent conflict: h(2,1) vs h(1,2)
+    one_body_conflict = base.replace(" 0 0 0 0", " 0 0 0 0\n 9.9e-01 2 1 0 0\n 1.1e-01 1 2 0 0", 1)
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.read_fcidump(one_body_conflict)
+    assert excinfo.value.code == "fcidump_conflict"
+    # identical repetition of an existing unique entry is allowed, counted, and does not change unique counts
+    reference = qx.read_fcidump(base)
+    repeated = base.replace(" 0 0 0 0", " 0 0 0 0\n" + base.splitlines()[4] + "\n", 1)
+    data = qx.read_fcidump(repeated)
+    assert data.repeated_identical_entries == 1 and reference.repeated_identical_entries == 0
+    assert data.unique_two_body_entries == reference.unique_two_body_entries
+    assert np.array_equal(data.g, reference.g) and np.array_equal(data.h, reference.h)
+    # a declared tolerance admits a tiny repeat difference, and reports it as repeated, not unique
+    nearly = base.replace(" 0 0 0 0", " 0 0 0 0\n 4.00000000001e-01 1 1 1 1", 1)
+    with pytest.raises(qx.QdynamicsConventionError):
+        qx.read_fcidump(nearly)
+    tolerant = qx.read_fcidump(nearly, duplicate_atol=1.0e-9)
+    assert tolerant.repeated_identical_entries == 1 and tolerant.duplicate_atol == 1.0e-9 and tolerant.g[0, 0, 0, 0] == 0.4
+
+
+def test_finding6_schema_label_and_hash_never_establish_producer_origin(tmp_path):
+    # The review's probe: a mapping claiming the producer schema with simulation=True
+    # and producer_generated=False was reported as a producer export.
+    mapping = synthetic_qdynamics_mapping("contract4")
+    elements = qx.qdynamics_matrix_elements_from_mapping(
+        mapping,
+        source={"payload_kind": "qdynamics_matrix_elements_ele_h5", "simulation": True, "producer_generated": False},
+    )
+    assert elements.source["container_schema"] == qx.CONTAINER_IN_MEMORY  # caller cannot claim a file container
+    assert elements.source["origin"] == "simulated"
+    assert elements.source["origin_forced_by"] is not None
+    assert elements.source["caller_source"]["payload_kind"] == "qdynamics_matrix_elements_ele_h5"
+    bridge_problem = qx.bridge_problem_from_qdynamics(elements)
+    manifest = qx.write_bridge_problem_json(bridge_problem, tmp_path / "simulated.json")
+    bridge = resolve_bridge_context(manifest["manifest_path"])
+    identity = bridge.input_identity()
+    assert identity["data_role"] == "simulated:in_memory_mapping"
+    assert identity["origin"] == "simulated" and identity["producer_origin_established"] is False
+    assert "producer_export" not in identity["data_role"]
+    # an undeclared mapping stays unknown; a claimed producer is recorded as a claim only
+    plain = qx.qdynamics_matrix_elements_from_mapping(mapping, declared_producer="doronwu")
+    assert plain.source["origin"] == "unknown" and plain.source["claimed_producer"] == "doronwu"
+    assert plain.source["producer_origin_established"] is False
+    # 'attested' without an attestation, or on an in-memory mapping, is refused
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="attested")
+    assert excinfo.value.code == "origin_attestation"
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="attested", attestation={"attested_by": "x", "file_sha256": "0" * 64})
+    assert excinfo.value.code == "origin_attestation"
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="producer")
+    assert excinfo.value.code == "origin_declaration"
+
+
 def test_h5_loader_is_explicit_about_its_dependency(tmp_path):
     try:
         import h5py  # type: ignore
@@ -264,7 +382,17 @@ def test_h5_loader_is_explicit_about_its_dependency(tmp_path):
         handle.create_dataset("nuclear_repulsion", data=float(mapping["nuclear_repulsion"]))
         handle.create_dataset("mo_occ", data=np.asarray(mapping["mo_occ"]))
     elements = qx.load_qdynamics_matrix_elements_h5(path)
-    assert elements.source["payload_kind"] == qx.QDYNAMICS_ELE_H5_SCHEMA
-    assert len(elements.source["file_sha256"]) == 64
+    assert elements.source["container_schema"] == qx.QDYNAMICS_ELE_H5_SCHEMA
+    assert elements.source["origin"] == "unknown"  # a file in the producer's schema has no origin until declared
+    assert len(elements.source["caller_source"]["file_sha256"]) == 64
     bridge_problem = qx.bridge_problem_from_qdynamics(elements)
     assert np.array_equal(bridge_problem.problem.two_body_integrals_mo, contract_four_qubit_tensors()[1])
+    assert bridge_problem.provenance["origin"] == "unknown" and bridge_problem.provenance["producer_origin_established"] is False
+    declared = qx.load_qdynamics_matrix_elements_h5(path, declared_origin="synthetic")
+    assert declared.source["origin"] == "synthetic" and declared.source["container_schema"] == qx.QDYNAMICS_ELE_H5_SCHEMA
+    file_sha = elements.source["caller_source"]["file_sha256"]
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.load_qdynamics_matrix_elements_h5(path, declared_origin="attested", attestation={"attested_by": "test", "file_sha256": "0" * 64})
+    assert excinfo.value.code == "origin_attestation"
+    attested = qx.load_qdynamics_matrix_elements_h5(path, declared_origin="attested", attestation={"attested_by": "test", "file_sha256": file_sha})
+    assert attested.source["origin"] == "attested" and attested.source["producer_origin_established"] is False

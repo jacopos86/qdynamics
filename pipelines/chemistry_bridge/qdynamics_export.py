@@ -82,6 +82,12 @@ PINNED_PRODUCER: dict[str, Any] = {
 }
 
 QDYNAMICS_ELE_H5_SCHEMA = "qdynamics_matrix_elements_ele_h5"
+CONTAINER_IN_MEMORY = "in_memory_mapping"
+ORIGIN_SYNTHETIC = "synthetic"
+ORIGIN_SIMULATED = "simulated"
+ORIGIN_UNKNOWN = "unknown"
+ORIGIN_ATTESTED = "attested"
+ORIGIN_CHOICES = (ORIGIN_SYNTHETIC, ORIGIN_SIMULATED, ORIGIN_UNKNOWN, ORIGIN_ATTESTED)
 BRIDGE_PROBLEM_SCHEMA = "doron_qdynamics_bridge_problem_v1"
 BRIDGE_MANIFEST_SCHEMA = "doron_qdynamics_bridge_manifest_v1"
 
@@ -179,6 +185,37 @@ def _as_float(value: Any, label: str) -> float:
     return result
 
 
+def _scalar_dataset(value: Any, label: str) -> float:
+    """Strict scalar dataset: a real, finite, zero-dimensional number.
+
+    The pinned producer writes ``nuclear_repulsion`` as a scalar dataset
+    (``create_dataset(..., data=float(...))``).  Anything with a shape, a
+    string, a boolean or a nonfinite value is rejected before a value is
+    extracted; nothing is truncated or coerced.
+    """
+
+    if isinstance(value, (bool, np.bool_)):
+        raise QdynamicsConventionError("nuclear_repulsion_type", f"{label} must be a real number, not a boolean.")
+    if isinstance(value, (str, bytes)):
+        raise QdynamicsConventionError("nuclear_repulsion_type", f"{label} must be a numeric scalar dataset, not text.")
+    try:
+        array = np.asarray(value)
+    except Exception as exc:
+        raise QdynamicsConventionError("nuclear_repulsion_type", f"{label} is not numeric: {exc}") from exc
+    if array.ndim != 0:
+        raise QdynamicsConventionError("nuclear_repulsion_shape", f"{label} must be a scalar dataset; got shape {array.shape}.")
+    if array.dtype.kind == "c":
+        if float(np.abs(array.imag)) != 0.0:
+            raise QdynamicsConventionError("complex_tensor", f"{label} has a nonzero imaginary part.")
+        array = array.real
+    if array.dtype.kind not in {"f", "i", "u"}:
+        raise QdynamicsConventionError("nuclear_repulsion_type", f"{label} must be a real numeric scalar; got dtype {array.dtype}.")
+    result = float(array)
+    if not math.isfinite(result):
+        raise QdynamicsConventionError("nuclear_repulsion_nonfinite", f"{label} must be finite; got {result!r}.")
+    return result
+
+
 def _real_array(value: Any, label: str) -> np.ndarray:
     array = np.asarray(value)
     if array.dtype.kind == "c":
@@ -206,16 +243,84 @@ class QdynamicsMatrixElements:
     source: dict[str, Any] = field(default_factory=dict)
 
 
+def _origin_record(
+    *,
+    container_schema: str,
+    declared_origin: str | None,
+    declared_producer: str | None,
+    attestation: Mapping[str, Any] | None,
+    caller_source: Mapping[str, Any],
+    file_sha256: str | None,
+) -> dict[str, Any]:
+    """Keep three things apart: observed container, claimed producer, established origin.
+
+    * ``container_schema`` is what the bytes look like (set by the loader that
+      produced them, never by the caller).
+    * ``claimed_producer`` is a claim made by whoever supplied the data.
+    * ``origin`` is ``synthetic`` / ``simulated`` / ``unknown`` / ``attested``.
+      It defaults to ``unknown``; a hash or a recognized schema never promotes
+      it.  ``attested`` requires an attestation record naming who attests and
+      the file hash it covers, and is still a recorded claim, not proof.
+    * Caller flags ``simulation=True`` or ``producer_generated=False`` force a
+      non-producer origin even if a producer schema or name is present.
+    """
+
+    origin = ORIGIN_UNKNOWN if declared_origin in {None, ""} else str(declared_origin).strip().lower()
+    if origin not in ORIGIN_CHOICES:
+        raise QdynamicsConventionError("origin_declaration", f"declared_origin must be one of {ORIGIN_CHOICES}; got {declared_origin!r}.")
+    simulation = caller_source.get("simulation")
+    producer_generated = caller_source.get("producer_generated")
+    forced_reason = None
+    if simulation is True or (isinstance(simulation, str) and simulation.strip().lower() in {"true", "yes", "1"}):
+        forced_reason = "caller_source.simulation=True"
+        origin = ORIGIN_SIMULATED if origin in {ORIGIN_UNKNOWN, ORIGIN_ATTESTED, ORIGIN_SIMULATED} else origin
+    if producer_generated is False or (isinstance(producer_generated, str) and producer_generated.strip().lower() in {"false", "no", "0"}):
+        forced_reason = (forced_reason + "; " if forced_reason else "") + "caller_source.producer_generated=False"
+        if origin == ORIGIN_ATTESTED:
+            origin = ORIGIN_SIMULATED
+        if origin == ORIGIN_UNKNOWN:
+            origin = ORIGIN_SIMULATED
+    attestation_record: dict[str, Any] | None = None
+    if origin == ORIGIN_ATTESTED:
+        if not isinstance(attestation, Mapping) or not str(attestation.get("attested_by", "")).strip() or not str(attestation.get("file_sha256", "")).strip():
+            raise QdynamicsConventionError("origin_attestation", "origin='attested' requires attestation={'attested_by': <who>, 'file_sha256': <sha256>, ...}.")
+        if file_sha256 is None:
+            raise QdynamicsConventionError("origin_attestation", "an attested origin needs a file whose sha256 the attestation covers; in-memory mappings cannot be attested.")
+        if str(attestation["file_sha256"]).lower() != str(file_sha256).lower():
+            raise QdynamicsConventionError("origin_attestation", "attestation.file_sha256 does not match the loaded file.")
+        attestation_record = {str(k): v for k, v in attestation.items()}
+    elif attestation:
+        raise QdynamicsConventionError("origin_attestation", f"attestation supplied but declared_origin is {origin!r}; declare origin='attested' explicitly.")
+    return {
+        "container_schema": str(container_schema),
+        "schema_reference_producer": dict(PINNED_PRODUCER),
+        "claimed_producer": None if declared_producer in {None, ""} else str(declared_producer),
+        "origin": origin,
+        "origin_attestation": attestation_record,
+        "origin_forced_by": forced_reason,
+        "producer_origin_established": False,
+        "origin_note": "schema recognition and content hashes identify bytes, not who produced them",
+    }
+
+
 def qdynamics_matrix_elements_from_mapping(
     mapping: Mapping[str, Any],
     *,
     source: Mapping[str, Any] | None = None,
+    declared_origin: str | None = None,
+    declared_producer: str | None = None,
+    attestation: Mapping[str, Any] | None = None,
+    _container_schema: str = CONTAINER_IN_MEMORY,
+    _file_sha256: str | None = None,
 ) -> QdynamicsMatrixElements:
     """Build the in-memory record from a ``load_h5``-shaped mapping.
 
     ``mapping`` carries ``metadata`` (attrs), ``h1``, ``h2``, ``nuclear_repulsion``
     and optionally ``mo_occ``/``mo_energy``/``mo_coeff``.  Extra keys are recorded
-    in ``source['extra_datasets']`` and otherwise ignored.
+    in ``source['extra_datasets']`` and otherwise ignored.  ``source`` is the
+    caller's description of where the mapping came from; it is recorded under
+    ``caller_source`` and cannot set the container schema.  Origin is declared
+    (``declared_origin``) and defaults to ``unknown``.
     """
 
     if not isinstance(mapping, Mapping):
@@ -229,12 +334,20 @@ def qdynamics_matrix_elements_from_mapping(
     metadata = {str(key): _decode_attr(value) for key, value in metadata_raw.items()}
     h1 = _real_array(mapping["h1"], "h1")
     h2 = _real_array(mapping["h2"], "h2")
-    nuclear = _as_float(_decode_attr(np.asarray(mapping["nuclear_repulsion"]).reshape(-1)[0]) if np.ndim(mapping["nuclear_repulsion"]) else mapping["nuclear_repulsion"], "nuclear_repulsion")
+    nuclear = _scalar_dataset(mapping["nuclear_repulsion"], "nuclear_repulsion")
     mo_occ = None if mapping.get("mo_occ") is None else _real_array(mapping["mo_occ"], "mo_occ").reshape(-1)
     mo_energy = None if mapping.get("mo_energy") is None else _real_array(mapping["mo_energy"], "mo_energy").reshape(-1)
     extra = sorted(str(key) for key in mapping if key not in {"metadata", "h1", "h2", "nuclear_repulsion", "mo_occ", "mo_energy", "mo_coeff"})
-    source_record = dict(source or {})
-    source_record.setdefault("payload_kind", "in_memory_mapping")
+    caller_source = {str(k): v for k, v in dict(source or {}).items()}
+    source_record: dict[str, Any] = {"caller_source": caller_source}
+    source_record.update(_origin_record(
+        container_schema=_container_schema,
+        declared_origin=declared_origin,
+        declared_producer=declared_producer,
+        attestation=attestation,
+        caller_source=caller_source,
+        file_sha256=_file_sha256,
+    ))
     source_record["datasets"] = {
         "h1": {"shape": list(h1.shape), "sha256": _array_sha256(h1)},
         "h2": {"shape": list(h2.shape), "sha256": _array_sha256(h2)},
@@ -255,12 +368,21 @@ def qdynamics_matrix_elements_from_mapping(
     )
 
 
-def load_qdynamics_matrix_elements_h5(path: str | Path) -> QdynamicsMatrixElements:
-    """Read a ``<prefix>_ele.h5`` file written by the pinned producer.
+def load_qdynamics_matrix_elements_h5(
+    path: str | Path,
+    *,
+    declared_origin: str | None = None,
+    declared_producer: str | None = None,
+    attestation: Mapping[str, Any] | None = None,
+) -> QdynamicsMatrixElements:
+    """Read a ``<prefix>_ele.h5`` file in the pinned producer's schema.
 
     Requires ``h5py`` (not a repository dependency); raises
     ``BridgeDependencyUnavailable`` with the exact missing module otherwise.
-    The whole file is hashed before any dataset is read.
+    The whole file is hashed before any dataset is read.  Reading a file in
+    this schema establishes the container only; its origin stays ``unknown``
+    unless declared, and ``attested`` needs an attestation covering the file's
+    sha256.
     """
 
     file_path = Path(path)
@@ -292,13 +414,16 @@ def load_qdynamics_matrix_elements_h5(path: str | Path) -> QdynamicsMatrixElemen
     return qdynamics_matrix_elements_from_mapping(
         payload,
         source={
-            "payload_kind": QDYNAMICS_ELE_H5_SCHEMA,
             "path": str(file_path),
             "file_sha256": file_sha256,
             "file_size_bytes": int(file_path.stat().st_size),
             "dataset_dtypes": dataset_dtypes,
-            "producer": dict(PINNED_PRODUCER),
         },
+        declared_origin=declared_origin,
+        declared_producer=declared_producer,
+        attestation=attestation,
+        _container_schema=QDYNAMICS_ELE_H5_SCHEMA,
+        _file_sha256=file_sha256,
     )
 
 
@@ -580,8 +705,13 @@ def bridge_problem_from_qdynamics(
     )
     provenance = {
         "schema": BRIDGE_SCHEMA_VERSION,
-        "producer": dict(PINNED_PRODUCER),
+        "schema_reference_producer": dict(PINNED_PRODUCER),
         "source": dict(elements.source),
+        "origin": str(elements.source.get("origin", ORIGIN_UNKNOWN)),
+        "container_schema": str(elements.source.get("container_schema", CONTAINER_IN_MEMORY)),
+        "claimed_producer": elements.source.get("claimed_producer"),
+        "origin_attestation": elements.source.get("origin_attestation"),
+        "producer_origin_established": False,
         "metadata": {key: _decode_attr(value) for key, value in meta.items()},
         "geometry_units_as_exported": unit,
         "spin_orbital_order_as_exported": EXPECTED_H1_CONVENTION,
@@ -620,20 +750,43 @@ class FcidumpData:
     unique_two_body_entries: int
     unique_one_body_entries: int
     text_sha256: str
+    repeated_identical_entries: int = 0
+    duplicate_atol: float = 0.0
 
 
 _FCIDUMP_HEADER_INT = re.compile(r"(NORB|NELEC|MS2|ISYM)\s*=\s*([+-]?\d+)", re.IGNORECASE)
 _FCIDUMP_ORBSYM = re.compile(r"ORBSYM\s*=\s*([0-9,\s]+)", re.IGNORECASE)
 
 
-def read_fcidump(text: str) -> FcidumpData:
+def _canonical_two_body_key(p: int, q: int, r: int, s: int) -> tuple[int, int, int, int]:
+    """Representative of the eightfold real chemists' orbit of (pq|rs)."""
+
+    pq = (max(p, q), min(p, q))
+    rs = (max(r, s), min(r, s))
+    first, second = (pq, rs) if pq >= rs else (rs, pq)
+    return (first[0], first[1], second[0], second[1])
+
+
+def _canonical_one_body_key(p: int, q: int) -> tuple[int, int]:
+    return (max(p, q), min(p, q))
+
+
+def read_fcidump(text: str, *, duplicate_atol: float = 0.0) -> FcidumpData:
     """Parse an FCIDUMP text in PySCF/Molpro layout (chemists' (ij|kl), 1-based).
 
     Lines ``value i j k l`` with ``k = l = 0`` are one-body entries, ``i = j = k
-    = l = 0`` is the core/scalar energy, and the two-body unique entries are
-    expanded with the eightfold real symmetry.  ``[re, im]`` complex entries are
-    rejected.  The reader records how many unique entries it saw.
+    = l = 0`` is the core/scalar energy, and the two-body entries are expanded
+    with the eightfold real symmetry.  Every entry is keyed by its canonical
+    symmetry representative: a repeated key with a value differing by more
+    than ``duplicate_atol`` (default 0.0, exact repetition only) is a
+    contradiction and is rejected; an identical repetition is counted in
+    ``repeated_identical_entries``.  ``unique_*_entries`` count distinct
+    canonical keys, not input lines.  ``[re, im]`` complex entries are rejected.
     """
+
+    tolerance = float(duplicate_atol)
+    if not math.isfinite(tolerance) or tolerance < 0.0:
+        raise ValueError("duplicate_atol must be finite and non-negative")
 
     raw = str(text)
     header_end = None
@@ -657,12 +810,23 @@ def read_fcidump(text: str) -> FcidumpData:
     orbsym = tuple(int(v) for v in re.findall(r"\d+", orbsym_match.group(1))) if orbsym_match else tuple([1] * norb)
     if norb <= 0:
         raise QdynamicsConventionError("fcidump_header", "NORB must be positive.")
-    h = np.zeros((norb, norb), dtype=np.float64)
-    g = np.zeros((norb, norb, norb, norb), dtype=np.float64)
+    one_body: dict[tuple[int, int], float] = {}
+    two_body: dict[tuple[int, int, int, int], float] = {}
     ecore = 0.0
     seen_core = False
-    unique_two = 0
-    unique_one = 0
+    repeated = 0
+
+    def _record(table: dict, key: tuple, value: float, line_text: str) -> None:
+        nonlocal repeated
+        if key in table:
+            if abs(table[key] - value) > tolerance:
+                raise QdynamicsConventionError(
+                    "fcidump_conflict",
+                    f"contradictory FCIDUMP entries for canonical key {key}: {table[key]!r} then {value!r} (line {line_text!r}; duplicate_atol={tolerance!r}).",
+                )
+            repeated += 1
+            return
+        table[key] = value
     for line in lines[header_end + 1 :]:
         stripped = line.strip()
         if not stripped:
@@ -688,16 +852,21 @@ def read_fcidump(text: str) -> FcidumpData:
         if k == 0 and l == 0:
             if not (1 <= i <= norb and 1 <= j <= norb):
                 raise QdynamicsConventionError("fcidump_index", f"one-body index out of range: {stripped!r}.")
-            h[i - 1, j - 1] = value
-            h[j - 1, i - 1] = value
-            unique_one += 1
+            _record(one_body, _canonical_one_body_key(i - 1, j - 1), value, stripped)
             continue
         if not all(1 <= idx <= norb for idx in (i, j, k, l)):
             raise QdynamicsConventionError("fcidump_index", f"two-body index out of range: {stripped!r}.")
-        p, q, r, s = i - 1, j - 1, k - 1, l - 1
+        _record(two_body, _canonical_two_body_key(i - 1, j - 1, k - 1, l - 1), value, stripped)
+    h = np.zeros((norb, norb), dtype=np.float64)
+    g = np.zeros((norb, norb, norb, norb), dtype=np.float64)
+    for (p, q), value in one_body.items():
+        h[p, q] = value
+        h[q, p] = value
+    for (p, q, r, s), value in two_body.items():
         for a, b, c, d in ((p, q, r, s), (q, p, r, s), (p, q, s, r), (q, p, s, r), (r, s, p, q), (s, r, p, q), (r, s, q, p), (s, r, q, p)):
             g[a, b, c, d] = value
-        unique_two += 1
+    unique_two = len(two_body)
+    unique_one = len(one_body)
     return FcidumpData(
         norb=norb,
         nelec=nelec,
@@ -710,6 +879,8 @@ def read_fcidump(text: str) -> FcidumpData:
         unique_two_body_entries=int(unique_two),
         unique_one_body_entries=int(unique_one),
         text_sha256=_sha256_bytes(raw.encode("utf-8")),
+        repeated_identical_entries=int(repeated),
+        duplicate_atol=tolerance,
     )
 
 
@@ -727,6 +898,11 @@ class FcidumpSidecar:
     charge: int = 0
     units: str = "angstrom"
     producer: Mapping[str, Any] = field(default_factory=dict)
+    origin: str = ORIGIN_UNKNOWN
+
+    def __post_init__(self) -> None:
+        if str(self.origin) not in ORIGIN_CHOICES:
+            raise ValueError(f"origin must be one of {ORIGIN_CHOICES}; got {self.origin!r}")
 
 
 def bridge_problem_from_fcidump(
@@ -801,8 +977,13 @@ def bridge_problem_from_fcidump(
     )
     provenance = {
         "schema": BRIDGE_SCHEMA_VERSION,
-        "source": {"payload_kind": "fcidump_text", "text_sha256": data.text_sha256, "unique_two_body_entries": data.unique_two_body_entries, "unique_one_body_entries": data.unique_one_body_entries, "orbsym": list(data.orbsym), "isym": data.isym},
-        "producer": dict(sidecar.producer),
+        "source": {"container_schema": "fcidump_text", "text_sha256": data.text_sha256, "unique_two_body_entries": data.unique_two_body_entries, "unique_one_body_entries": data.unique_one_body_entries, "repeated_identical_entries": data.repeated_identical_entries, "duplicate_atol": data.duplicate_atol, "orbsym": list(data.orbsym), "isym": data.isym, "origin": str(sidecar.origin)},
+        "schema_reference_producer": dict(PINNED_PRODUCER),
+        "claimed_producer": (dict(sidecar.producer).get("claimed_producer") if sidecar.producer else None),
+        "origin": str(sidecar.origin),
+        "container_schema": "fcidump_text",
+        "origin_attestation": None,
+        "producer_origin_established": False,
         "notation_binding": "declared_by_sidecar_not_inferred_from_symmetry",
         "geometry_units_as_declared": str(sidecar.units),
         "reduction": {"kind": "none_declared_by_sidecar", "scalar_semantics": semantics},
@@ -892,6 +1073,12 @@ __all__ = [
     "BRIDGE_PROBLEM_SCHEMA",
     "BridgeDependencyUnavailable",
     "BridgeProblem",
+    "CONTAINER_IN_MEMORY",
+    "ORIGIN_ATTESTED",
+    "ORIGIN_CHOICES",
+    "ORIGIN_SIMULATED",
+    "ORIGIN_SYNTHETIC",
+    "ORIGIN_UNKNOWN",
     "EXPECTED_H1_CONVENTION",
     "EXPECTED_H2_CONVENTION",
     "FcidumpData",

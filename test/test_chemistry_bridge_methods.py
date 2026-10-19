@@ -25,7 +25,7 @@ from pipelines.chemistry_bridge.synthetic_witnesses import CONTRACT_FOUR_QUBIT_R
 
 def _manifest(tmp_path: Path, kind: str, frozen: int = 0):
     mapping = synthetic_qdynamics_mapping(kind)
-    elements = qdynamics_matrix_elements_from_mapping(mapping, source={"payload_kind": "synthetic_witness", "kind": kind})
+    elements = qdynamics_matrix_elements_from_mapping(mapping, source={"kind": kind, "simulation": True, "producer_generated": False}, declared_origin="synthetic")
     bridge_problem = bridge_problem_from_qdynamics(elements, frozen_core=FrozenCoreReduction(frozen) if frozen else None)
     return write_bridge_problem_json(bridge_problem, tmp_path / f"{kind}.json")
 
@@ -42,7 +42,8 @@ def test_contract_fixture_all_methods_cpu(tmp_path):
     assert set(statuses) == {"mapping_witness", "exact_sector_reference", "qse", "static_adapt_selection_gradients", "ap_mclachlan"}
     assert all(status == bm.STATUS_CPU_VERIFIED for status in statuses.values()), statuses
     receipts = {receipt["method"]: receipt for receipt in summary["receipts"]}
-    assert summary["inputs"]["data_role"] == "synthetic_or_non_file_input"
+    assert summary["inputs"]["data_role"] == "synthetic:in_memory_mapping"
+    assert summary["inputs"]["origin"] == "synthetic" and summary["inputs"]["producer_origin_established"] is False
     assert summary["inputs"]["raw_sha256"] == manifest["raw_sha256"]
     exact = receipts["exact_sector_reference"]
     np.testing.assert_allclose(exact["results"]["low_roots"], np.sort(np.asarray(CONTRACT_FOUR_QUBIT_ROOTS)), atol=1.0e-12, rtol=0.0)
