@@ -423,3 +423,4 @@ that a synthetic file in the producer's schema is never read as Doron's data.
 |---|---|
 | `2e876e7d` | cherry-pick of `393e335a` (strict intake A) onto `d1436ab1` |
 | `5b5b26c96098ce84ec885472136423525c57e3d3` | bridge package, tests, this handoff |
+| `82fe6bc3ed215e444b9b7b51c2c951ff93cdb591` | GPU parity receipts (MPS float32), handoff §5.5/§7, data-role rename |
