@@ -217,7 +217,10 @@ def resolve_bridge_context(manifest_path: str | Path, *, atol: float = 1.0e-12) 
     )
     receipt = dict(context.runtime_data["molecular_diagnostic_intake_receipt"])
     source_kind = str(provenance.get("source", {}).get("payload_kind", "unknown"))
-    data_role = "producer_export_h5" if source_kind == "qdynamics_matrix_elements_ele_h5" else "synthetic_or_non_file_input"
+    # The schema says how the bytes are laid out, not who produced them: a file
+    # in the producer's schema counts as Doron's data only once its sha256 is
+    # pinned to a delivery he made.  No such pin exists yet.
+    data_role = "ele_h5_file_input_origin_unverified" if source_kind == "qdynamics_matrix_elements_ele_h5" else "synthetic_or_non_file_input"
     return BridgeContext(context=context, intake_receipt=receipt, declaration=declaration, manifest=manifest, provenance=provenance, data_role=data_role)
 
 

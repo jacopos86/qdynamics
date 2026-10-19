@@ -31,12 +31,13 @@ this document. Nothing here is self-certified as independently verified.
    `adapt_pipeline` CLI is retired at HEAD (`adapt_pipeline.py:30520` raises).
    Paper I status is **blocked**; the bridge delivers the repository pool plan
    and the ADAPT selection gradients only.
-4. **No GPU execution happened.** The venv (`/Users/lordskyler/Holstein_test/.venv`,
-   Python 3.12.14) has no torch, jax, cupy or mlx; the machine's only GPU is the
-   M4 Pro Metal device. The torch backend is implemented and probed honestly,
-   but every GPU case is reported `skipped_unsupported` with the reason
-   `torch is not importable in this environment`. §7 is the bounded request
-   that unblocks it.
+4. **GPU execution happened only after the §7 install, in an isolated venv,
+   on Apple Metal (`torch:mps:float32`).** The repository venv
+   (`/Users/lordskyler/Holstein_test/.venv`) still has no torch/h5py and its
+   GPU cases skip with the recorded reason. In the isolated venv the MPS cases
+   ran and passed at float32 tolerances (§5.5); `mps:float64` is refused by the
+   device itself and `cuda` does not exist on this machine. No GPU result is
+   float64, and no CUDA parity exists.
 5. **Full H2O/STO-3G (7 orbitals, 14 qubits) exceeds the strict intake's
    12-qubit scope cap.** The bridge offers a *declared* frozen-core contraction
    (`scalar_semantics="nuclear_plus_frozen_core"`, `already_contracted`) so a
@@ -130,10 +131,10 @@ test/test_chemistry_bridge_gpu_parity.py          20 cases   2 run without torch
 
 | lane | route executed | status | GPU |
 |---|---|---|---|
-| Shared input | strict intake A (`resolve_molecular_diagnostic_intake`) from the bridge document | CPU verified on 4 synthetic witnesses (HF defect 0.0) | n/a |
-| Paper III (QSE) | `pipelines.qse_spectra.core.compute_qse_spectra` on the HF reference with identity + UCC generators | **cpu_verified**; Ritz roots equal exact sector roots when the basis spans the sector (4 qubits: 4.4e-16; 6 qubits: 2.9e-15); backend pencil parity ≤ 4.9e-15 | implemented (pencil on backend); **skipped_unsupported** here (no torch) |
+| Shared input | strict intake A (`resolve_molecular_diagnostic_intake`) from the bridge document; mapping witness and exact sector reference on the backend | CPU verified on 4 synthetic witnesses (HF defect 0.0); a producer-schema `_ele.h5` file went through the real loader (§5.5) | mapping witness and exact reference **gpu_verified** on `torch:mps:float32` |
+| Paper III (QSE) | `pipelines.qse_spectra.core.compute_qse_spectra` on the HF reference with identity + UCC generators | **cpu_verified**; Ritz roots equal exact sector roots when the basis spans the sector (4 qubits: 4.4e-16; 6 qubits: 2.9e-15); backend pencil parity ≤ 4.9e-15 | **gpu_verified** on `torch:mps:float32` (pencil parity ≤ 1.6e-6 abs on the 8-qubit witness, §5.5); skipped in the repository venv (no torch) |
 | Paper II (AP-McLachlan) | `run_append_mclachlan_trajectory` (generalized exchange, zero drive, rk4, logical_shared, repository `full_meta` molecular pool, seed `ham_block::molecular_one_body` at θ=0) | **cpu_verified**; 4-qubit witness: fidelity vs exact sector propagation ≥ 0.9999999999992 to t=0.1, energy drift 8.7e-8, leakage 0; 6-qubit: fidelity 0.99937 to t=0.02 | **unsupported by construction** (dense numpy geometry; not attempted) |
-| Paper I (RA-ADAPT/SNAKE) | `resolve_pool_plan` (phase3_v1, `full_meta`) + ADAPT selection gradients `g_k = 2 Im⟨Hψ|A_kψ⟩`; `run_ra_adapt` called once to record the gate | gradients **cpu_verified** (parity with the repository formula 0.0); full route **blocked** by the facade gate (named lane-owned application required: r2 I-2b) | gradients implemented on backend; **skipped_unsupported** here |
+| Paper I (RA-ADAPT/SNAKE) | `resolve_pool_plan` (phase3_v1, `full_meta`) + ADAPT selection gradients `g_k = 2 Im⟨Hψ|A_kψ⟩`; `run_ra_adapt` called once to record the gate | gradients **cpu_verified** (parity with the repository formula 0.0); full route **blocked** by the facade gate (named lane-owned application required: r2 I-2b) | gradients **gpu_verified** on `torch:mps:float32` (parity ≤ 9.2e-7 over a 388-generator pool); the blocked route has no GPU meaning |
 | Real Doron data | — | **blocked**: no pinned `_ele.h5` export, no declarations (geometry/basis/units/thresholds), no data license statement | — |
 
 ## 5. Evidence
@@ -156,6 +157,22 @@ PYTHONPATH=. PYTHONDONTWRITEBYTECODE=1 PYDEPHASING_TESTING=1 /Users/lordskyler/H
 
 Skip reasons are the backend's own (`torch:mps:float32 unsupported here: torch
 is not importable in this environment`); none is a silent pass.
+
+Same suite in the isolated GPU venv (§7, executed 2026-10-19):
+
+```sh
+PYTHONPATH=. STATIC_ADAPT_HH_POOL_CACHE=off PYTHONDONTWRITEBYTECODE=1 PYDEPHASING_TESTING=1 \
+/Users/lordskyler/.venvs/doron-bridge-gpu/bin/python -m pytest -q -p no:randomly -rs \
+  test/test_chemistry_bridge_export.py test/test_chemistry_bridge_backend.py \
+  test/test_chemistry_bridge_methods.py test/test_chemistry_bridge_gpu_parity.py
+# 56 passed, 9 skipped in 21.64s
+# skipped: torch:mps:float64 (mps rejected dtype float64: TypeError ... MPS framework doesn't support float64),
+#          torch:cuda:float64 and torch:cuda:float32 (torch.cuda.is_available() is False)
+```
+
+The 9 extra passes are the `torch:cpu:float64`, `torch:cpu:float32` and
+`torch:mps:float32` parity cases plus the h5py round-trip branch of
+`test_h5_loader_is_explicit_about_its_dependency`.
 
 ### 5.2 Receipts on the four synthetic witnesses (CPU, numpy float64)
 
@@ -213,6 +230,49 @@ HIGH (12). None of these is edited; the bridge adds callers. `detect_changes`
 over the in-place worktree index is recorded in the commit message of the
 implementation commit.
 
+### 5.5 GPU parity receipts (isolated venv, `torch:mps:float32`, control `torch:cpu:float64`)
+
+Receipts are committed under `agent_guidance/shared/handoffs/doron-bridge-receipts-20261019/`
+(`<witness>_torch_mps_float32.json`, `<witness>_torch_cpu_float64.json`,
+`probe_backends_gpu_venv.json`, `synthetic_ele_h5_*.json`). Every MPS receipt
+carries `backend.exercised_device = "mps"`, `real_dtype = "float32"`,
+`library_version = "2.14.1"`; every CPU-control receipt `exercised_device = "cpu"`,
+`float64`. Status rule: `gpu_verified` only from a live `mps`/`cuda` tensor
+(§3.2).
+
+| witness (qubits) | method | MPS float32 vs reference | torch CPU float64 vs reference |
+|---|---|---|---|
+| contract4 (4) | mapped HF − tensor witness | 1.9e-7 | 2.2e-16 |
+| contract4 (4) | exact E0 − repository target | 1.9e-7 | 0.0 |
+| contract4 (4) | QSE pencil H / S − core | 1.9e-7 / 0.0 | 2.2e-16 / 0.0 |
+| contract4 (4) | ADAPT gradients − repository (19 generators) | 1.5e-9 | 0.0 |
+| random6 (6) | mapped HF − tensor witness; Hermiticity; sector leakage | 2.7e-7; 1.9e-8; 1.7e-8 | 2.2e-16; 7.9e-17; 6.9e-18 |
+| random6 (6) | exact E0 − repository target | 4.6e-9 | 3.1e-15 |
+| random6 (6) | QSE pencil H − core | 2.7e-7 | 4.4e-16 |
+| random6 (6) | ADAPT gradients − repository (127 generators) | 8.3e-8 | 0.0 |
+| random8 (8), E0 ≈ −14.76 | mapped HF − tensor witness; Hermiticity; leakage | 1.6e-6; 1.5e-7; 6.8e-8 | 0.0; 9.7e-16; 2.7e-16 |
+| random8 (8) | exact E0 − repository target | 3.6e-7 | 5.3e-15 |
+| random8 (8) | QSE pencil H − core | 1.6e-6 | 4.9e-15 |
+| random8 (8) | ADAPT gradients − repository (388 generators) | 9.2e-7 | 0.0 |
+
+Declared float32 tolerances: 5e-5 (scalar/vector, scaled by max(1, |value|)),
+2e-4 (matrix); float64: 1e-11 / 1e-10. Wall time per MPS `run` (4 methods):
+1.9 s (4 qubits), 2.1 s (6), 4.7 s (8); CPU float64 control 1.4 / 1.6 / 2.5 s —
+at these sizes the device transfer dominates, as the 2026-08-25 runtime profile
+predicted for nq ≪ 20. AP-McLachlan is not in these receipts: its route is CPU
+only (§4).
+
+HDF5 end to end: a synthetic `_ele.h5` was written with the producer's writer
+logic (h5py `metadata` attrs, gzip `h1`/`h2`, scalar `nuclear_repulsion`,
+`mo_occ`, `mo_energy`; file sha256
+`e6fe97b0debd8e40033ea79a60be7fed14672d54a0102692cfce31593b7047b9`, 17040 bytes),
+read by `load_qdynamics_matrix_elements_h5` through the CLI
+(`export-qdynamics`), accepted by the strict intake (raw `134dad11…`, operator
+`1a34a8f2…`, identical to the mapping-input operator digest for the same
+tensors), and run on MPS: four methods `gpu_verified`. Its receipt records
+`data_role = "ele_h5_file_input_origin_unverified"`: the schema is Doron's,
+the bytes are not.
+
 ## 6. Reproduction for the verifier
 
 ```sh
@@ -232,11 +292,16 @@ grep `compute_qse_spectra`, `run_append_mclachlan_trajectory`,
 `resolve_pool_plan` in `methods.py`); (v) the notation-binding caveat in
 `qdynamics_export.py` (symmetry is necessary, not sufficient).
 
-## 7. Bounded request: GPU parity and HDF5 reading (needs the user)
+## 7. Bounded request: GPU parity and HDF5 reading — **approved and executed 2026-10-19**
 
-Both need packages that are not in the repository venv and would be new
-downloads. Proposed isolated environment (does not touch `.venv` or any
-campaign):
+Approved by Jake in the thread ("Approved: create the isolated venv at
+~/.venvs/doron-bridge-gpu per handoff section 7 …"). Executed as proposed; the
+repository `.venv` and every campaign were untouched. Recorded versions
+(`probe_backends_gpu_venv.json`): Python 3.12.14 (arm64), pip 26.2.1,
+torch 2.14.1 (`mps_available=True`, `mps_built=True`, `cuda=False`), h5py 3.16.0,
+numpy 2.3.5, scipy 1.16.3, qiskit 2.3.1, qiskit-aer 0.17.2; venv size 910 MB;
+install exit 0 (not wall-timed). Results: §5.1 (56 passed / 9 skipped) and §5.5.
+The commands below are the ones that ran.
 
 ```sh
 /Users/lordskyler/Holstein_test/.venv/bin/python -m venv /Users/lordskyler/.venvs/doron-bridge-gpu
@@ -284,9 +349,12 @@ PYTHONPATH=. STATIC_ADAPT_HH_POOL_CACHE=off /Users/lordskyler/.venvs/doron-bridg
 * The HDF5 loader is exercised only when `h5py` is importable (the test writes
   a file with the producer's writer logic and round-trips it); without `h5py`
   the test asserts the explicit `BridgeDependencyUnavailable`.
-* The torch backend code is untested on this machine beyond import-absence
-  handling; its arithmetic mirrors the numpy backend exactly (real-pair form)
-  and the parity tests are written, but they have not run.
+* GPU evidence is Apple Metal float32 only (`torch:mps:float32`, torch 2.14.1,
+  isolated venv); `mps:float64` is refused by the device and CUDA is absent, so
+  there is no float64 GPU result and no CUDA parity. The repository venv still
+  has no torch, so the GPU tests skip there by design.
+* At 4–8 qubits the MPS runs are slower than CPU (device transfer dominates);
+  the backend is a correctness/parity path at this scale, not a speed-up.
 * The APM run is a diagnostic trajectory (controller defaults,
   `max_structural_pool_size=8`, rk4, no drive); fidelity against exact sector
   propagation is reported, not certified, and the large-coefficient random
@@ -334,6 +402,20 @@ leak particle number on the 8-qubit witness, confirming DISPOSITION 026-4.
 Files to edit: None further in this increment. Next increments (each needs the
 named input): §7 GPU parity run; §8 item 1 real-data receipt; a named Paper-I
 application (separate, gated, CRITICAL).
+
+### Increment 4 — GPU parity (approved §7)
+Status: done (MPS float32 verified; mps float64 and cuda unsupported here)
+Commands run: §7 install; `probe-backends --json`; §5.1 GPU-venv gate; six
+`run` invocations (3 witnesses × {torch:mps:float32, torch:cpu:float64}); the
+HDF5 write/export/run chain of §5.5.
+Result: 56 passed / 9 skipped; receipts under
+`agent_guidance/shared/handoffs/doron-bridge-receipts-20261019/`.
+Verification: every MPS receipt reads `exercised_device = mps`; parity numbers
+in §5.5 are all inside the declared float32 tolerances; CPU-float64 torch
+control at 1e-15.
+Deviations: `data_role` for a file input was renamed to
+`ele_h5_file_input_origin_unverified` before the receipts were committed, so
+that a synthetic file in the producer's schema is never read as Doron's data.
 
 ### Commits
 
