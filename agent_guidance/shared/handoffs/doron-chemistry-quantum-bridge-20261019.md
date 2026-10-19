@@ -133,7 +133,7 @@ test/test_chemistry_bridge_gpu_parity.py          20 cases   2 run without torch
 |---|---|---|---|
 | Shared input | strict intake A (`resolve_molecular_diagnostic_intake`) from the bridge document; mapping witness and exact sector reference on the backend | CPU verified on 4 synthetic witnesses (HF defect 0.0); a producer-schema `_ele.h5` file went through the real loader (§5.5) | mapping witness and exact reference **gpu_verified** on `torch:mps:float32` |
 | Paper III (QSE) | `pipelines.qse_spectra.core.compute_qse_spectra` on the HF reference with identity + UCC generators | **cpu_verified**; Ritz roots equal exact sector roots when the basis spans the sector (4 qubits: 4.4e-16; 6 qubits: 2.9e-15); backend pencil parity ≤ 4.9e-15 | **gpu_verified** on `torch:mps:float32` (pencil parity ≤ 1.6e-6 abs on the 8-qubit witness, §5.5); skipped in the repository venv (no torch) |
-| Paper II (AP-McLachlan) | `run_append_mclachlan_trajectory` (generalized exchange, zero drive, rk4, logical_shared, repository `full_meta` molecular pool, seed `ham_block::molecular_one_body` at θ=0) | **cpu_verified**; 4-qubit witness: fidelity vs exact sector propagation ≥ 0.9999999999992 to t=0.1, energy drift 8.7e-8, leakage 0; 6-qubit: fidelity 0.99937 to t=0.02 | **unsupported by construction** (dense numpy geometry; not attempted) |
+| Paper II (AP-McLachlan) | `run_append_mclachlan_trajectory` (generalized exchange, zero drive, rk4, logical_shared, repository `full_meta` molecular pool **restricted to generators whose executed unitary passes the repository sector audit** — corrections 002, finding 1) | **cpu_verified** as a diagnostic run only: with the audited pool no execution-safe even-Y multi-word generator exists, so the trajectory does not leave HF (`trajectory_moved=False`); the fidelity trace is the exact state's departure (4 qubits 0.99997516 at t=0.1; 6 qubits 0.99937 at t=0.02). The unaudited pool reproduces the review's leakage (1.236e-4) and is `failed`. The molecular Paper II pool is an unselected scientific decision (§8). | **unsupported by construction** (dense numpy geometry; not attempted) |
 | Paper I (RA-ADAPT/SNAKE) | `resolve_pool_plan` (phase3_v1, `full_meta`) + ADAPT selection gradients `g_k = 2 Im⟨Hψ|A_kψ⟩`; `run_ra_adapt` called once to record the gate | gradients **cpu_verified** (parity with the repository formula 0.0); full route **blocked** by the facade gate (named lane-owned application required: r2 I-2b) | gradients **gpu_verified** on `torch:mps:float32` (parity ≤ 9.2e-7 over a 388-generator pool); the blocked route has no GPU meaning |
 | Real Doron data | — | **blocked**: no pinned `_ele.h5` export, no declarations (geometry/basis/units/thresholds), no data license statement | — |
 
@@ -366,6 +366,15 @@ PYTHONPATH=. STATIC_ADAPT_HH_POOL_CACHE=off /Users/lordskyler/.venvs/doron-bridg
   the repository routes.
 * `d81c5481` is not applied; the legacy H2-labelled fixture is unchanged and
   still rejected by the strict intake (test_molecular_diagnostic_intake.py:137).
+* Corrections 2026-10-19-002 (independent review, six P2 findings) are
+  dispositioned in `doron-bridge-corrections-20261019-002.md`; receipts
+  regenerated under the corrected code are in
+  `doron-bridge-receipts-20261019-002/`. The receipts in
+  `doron-bridge-receipts-20261019/` are the earlier evidence at `82fe6bc3` and
+  are kept unchanged. `logical_shared` is not a conservation proof by itself;
+  the APM candidate pool is now gated by the repository's executed-unitary
+  audit, and `data_role` is `origin:container` with origin never promoted by a
+  schema or a hash.
 
 ## 10. Execution record (one block per increment)
 
