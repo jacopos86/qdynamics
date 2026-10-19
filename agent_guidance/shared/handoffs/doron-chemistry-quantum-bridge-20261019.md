@@ -334,3 +334,10 @@ leak particle number on the 8-qubit witness, confirming DISPOSITION 026-4.
 Files to edit: None further in this increment. Next increments (each needs the
 named input): §7 GPU parity run; §8 item 1 real-data receipt; a named Paper-I
 application (separate, gated, CRITICAL).
+
+### Commits
+
+| commit | content |
+|---|---|
+| `2e876e7d` | cherry-pick of `393e335a` (strict intake A) onto `d1436ab1` |
+| `5b5b26c96098ce84ec885472136423525c57e3d3` | bridge package, tests, this handoff |
