@@ -88,3 +88,15 @@ def test_cli_exit_two_when_the_strict_intake_refuses_the_input(tmp_path):
     path.write_bytes(path.read_bytes() + b"\n")
     proc = _run(tmp_path, manifest, "--methods", "mapping")
     assert proc.returncode == bm.EXIT_USAGE and "SHA256 mismatch" in proc.stderr
+
+
+def test_cli_exit_two_when_the_manifest_is_missing(tmp_path):
+    # Recheck 1: a nonexistent manifest used to escape as an uncaught FileNotFoundError (exit 1).
+    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT), "STATIC_ADAPT_HH_POOL_CACHE": "off", "PYTHONDONTWRITEBYTECODE": "1", "PYDEPHASING_TESTING": "1"}
+    out_dir = tmp_path / "out_missing"
+    argv = [sys.executable, "-m", "pipelines.chemistry_bridge", "run", "--manifest", str(tmp_path / "does_not_exist.manifest.json"), "--out-dir", str(out_dir), "--methods", "mapping"]
+    proc = subprocess.run(argv, cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=300)
+    assert proc.returncode == bm.EXIT_USAGE, proc.stdout + proc.stderr
+    assert "FileNotFoundError" in proc.stderr and not out_dir.exists()
+    export = subprocess.run([sys.executable, "-m", "pipelines.chemistry_bridge", "export-qdynamics", "--h5", str(tmp_path / "missing_ele.h5"), "--out", str(tmp_path / "p.json")], cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=300)
+    assert export.returncode == 2 and "export refused" in export.stderr

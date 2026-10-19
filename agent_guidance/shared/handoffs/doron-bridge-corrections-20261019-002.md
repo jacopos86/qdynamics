@@ -125,3 +125,19 @@ e9468d5c590528ce7db574f86e0b0cc446fbeb9c2c80d3ae4b66e74257e68802  doron-bridge-r
 ```
 
 Main handoff `doron-chemistry-quantum-bridge-20261019.md` at `f0892355beec17dc8c4ffae836e42c7ccdc0c0ee`: sha256 855a2aadc92af509e14d82634286fad1fedf53e8cb71c0b9d9d04872ffe80091
+
+## 8. Recheck 1 response — increment 002-D (2026-10-19)
+
+The existing reviewer rechecked HEAD `00a9c844` and reported: findings 1–5 **resolved** for the reported failures, item g (Metal receipts) **supported**, finding 6 **partially resolved**, and one low-severity CLI discrepancy. The statement "all six corrected" in §2 was therefore overstated at `00a9c844`; the residuals are closed here and finding 6 is now claimed complete *pending the reviewer's recheck*, not self-certified.
+
+| residual (reviewer) | disposition in 002-D | regression |
+|---|---|---|
+| **[P2] FCIDUMP public API**: `FcidumpSidecar(origin="attested")` was accepted without an attestation and propagated to `attested:fcidump_text` with `origin_attestation=None`. | **Closed.** `FcidumpSidecar` gains `attestation`; `origin="attested"` requires `{"attested_by": <who>, "text_sha256": <64-hex>}` and `bridge_problem_from_fcidump` refuses an attestation whose `text_sha256` differs from the parsed text's sha256 (`origin_attestation`); an attestation without `origin="attested"` is refused; the record is carried into provenance and receipts; `producer_origin_established` stays `False`. | `test_finding6_fcidump_attested_origin_requires_an_attestation_over_the_text` (refused without attestation, refused with wrong hash, accepted with matching hash and carried end to end: `attested:fcidump_text`; undeclared stays `unknown`) |
+| **Exposed loader hooks**: `qdynamics_matrix_elements_from_mapping(_container_schema=…, _file_sha256=…)` let a caller fabricate a file container and self-attest without reading a file. | **Closed.** The public function's signature is now `(mapping, *, source, declared_origin, declared_producer)`: no container, no file hash, no attestation (an in-memory mapping can never be attested). The loader and the mapping path share a private constructor `_matrix_elements_from_payload` that refuses a file container without the loader-computed sha256 and a file sha256 without a file container (`container_claim`). | `test_finding6_public_mapping_api_cannot_name_a_file_container_or_attest` (signature asserted; the forged-container and attestation calls raise `TypeError`; the private constructor refuses both inconsistent combinations) |
+| **CLI**: a nonexistent manifest escaped as an uncaught `FileNotFoundError` (exit 1, no receipt), contradicting the usage-error/failed-check distinction. | **Closed.** `run` and `export-qdynamics` classify `FileNotFoundError`/`OSError`/`KeyError`/`ValueError` as usage errors (exit 2, no receipt); the docstring says so. | `test_cli_exit_two_when_the_manifest_is_missing` (run → 2 with `FileNotFoundError` named, no out dir; export → 2) |
+
+Reviewer's scope statements retained: GPU evidence supports kernel/pencil parity only; authoritative QSE roots remain CPU; APM remains diagnostic; a useful moving molecular APM pool, real Doron data, named RA application, dipoles, QSE roots/sectors, CUDA/float64 GPU/GPU APM all remain blocked or unselected as in §6.
+
+Gates after 002-D (same commands as §3): repository venv **69 passed, 18 skipped**; GPU venv **78 passed, 9 skipped**; intake gate **80 passed**. Probe receipts for the three residuals (attested FCIDUMP without/with wrong/with matching hash, public-API forgery attempts, missing manifest and missing HDF5 exits) are in `doron-bridge-receipts-20261019-002/recheck1_residual_probes.json`.
+
+002-D clock: start 2026-10-19T18:17:58Z; end and commit recorded below after the commit.

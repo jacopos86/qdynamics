@@ -309,9 +309,6 @@ def qdynamics_matrix_elements_from_mapping(
     source: Mapping[str, Any] | None = None,
     declared_origin: str | None = None,
     declared_producer: str | None = None,
-    attestation: Mapping[str, Any] | None = None,
-    _container_schema: str = CONTAINER_IN_MEMORY,
-    _file_sha256: str | None = None,
 ) -> QdynamicsMatrixElements:
     """Build the in-memory record from a ``load_h5``-shaped mapping.
 
@@ -320,8 +317,39 @@ def qdynamics_matrix_elements_from_mapping(
     in ``source['extra_datasets']`` and otherwise ignored.  ``source`` is the
     caller's description of where the mapping came from; it is recorded under
     ``caller_source`` and cannot set the container schema.  Origin is declared
-    (``declared_origin``) and defaults to ``unknown``.
+    (``declared_origin``) and defaults to ``unknown``; an in-memory mapping can
+    never be ``attested`` because there is no file for an attestation to cover,
+    so this public entry point takes no attestation and no container argument.
     """
+
+    return _matrix_elements_from_payload(
+        mapping,
+        caller_source=source,
+        declared_origin=declared_origin,
+        declared_producer=declared_producer,
+        attestation=None,
+        container_schema=CONTAINER_IN_MEMORY,
+        file_sha256=None,
+    )
+
+
+def _matrix_elements_from_payload(
+    mapping: Mapping[str, Any],
+    *,
+    caller_source: Mapping[str, Any] | None,
+    declared_origin: str | None,
+    declared_producer: str | None,
+    attestation: Mapping[str, Any] | None,
+    container_schema: str,
+    file_sha256: str | None,
+) -> QdynamicsMatrixElements:
+    """Shared constructor.  Only ``load_qdynamics_matrix_elements_h5`` may name a
+    file container, and it must pass the sha256 it computed over the file bytes."""
+
+    if container_schema == QDYNAMICS_ELE_H5_SCHEMA and not (isinstance(file_sha256, str) and re.fullmatch(r"[0-9a-f]{64}", file_sha256)):
+        raise QdynamicsConventionError("container_claim", "a file container requires the loader's sha256 over the file bytes.")
+    if container_schema != QDYNAMICS_ELE_H5_SCHEMA and file_sha256 is not None:
+        raise QdynamicsConventionError("container_claim", "a file sha256 without a file container is not admissible.")
 
     if not isinstance(mapping, Mapping):
         raise QdynamicsConventionError("payload_type", "qdynamics payload must be a mapping.")
@@ -338,15 +366,15 @@ def qdynamics_matrix_elements_from_mapping(
     mo_occ = None if mapping.get("mo_occ") is None else _real_array(mapping["mo_occ"], "mo_occ").reshape(-1)
     mo_energy = None if mapping.get("mo_energy") is None else _real_array(mapping["mo_energy"], "mo_energy").reshape(-1)
     extra = sorted(str(key) for key in mapping if key not in {"metadata", "h1", "h2", "nuclear_repulsion", "mo_occ", "mo_energy", "mo_coeff"})
-    caller_source = {str(k): v for k, v in dict(source or {}).items()}
-    source_record: dict[str, Any] = {"caller_source": caller_source}
+    caller_record = {str(k): v for k, v in dict(caller_source or {}).items()}
+    source_record: dict[str, Any] = {"caller_source": caller_record}
     source_record.update(_origin_record(
-        container_schema=_container_schema,
+        container_schema=container_schema,
         declared_origin=declared_origin,
         declared_producer=declared_producer,
         attestation=attestation,
-        caller_source=caller_source,
-        file_sha256=_file_sha256,
+        caller_source=caller_record,
+        file_sha256=file_sha256,
     ))
     source_record["datasets"] = {
         "h1": {"shape": list(h1.shape), "sha256": _array_sha256(h1)},
@@ -411,9 +439,9 @@ def load_qdynamics_matrix_elements_h5(
             dataset = handle[key]
             dataset_dtypes[str(key)] = str(dataset.dtype)
             payload[str(key)] = dataset[()]
-    return qdynamics_matrix_elements_from_mapping(
+    return _matrix_elements_from_payload(
         payload,
-        source={
+        caller_source={
             "path": str(file_path),
             "file_sha256": file_sha256,
             "file_size_bytes": int(file_path.stat().st_size),
@@ -422,8 +450,8 @@ def load_qdynamics_matrix_elements_h5(
         declared_origin=declared_origin,
         declared_producer=declared_producer,
         attestation=attestation,
-        _container_schema=QDYNAMICS_ELE_H5_SCHEMA,
-        _file_sha256=file_sha256,
+        container_schema=QDYNAMICS_ELE_H5_SCHEMA,
+        file_sha256=file_sha256,
     )
 
 
@@ -899,10 +927,16 @@ class FcidumpSidecar:
     units: str = "angstrom"
     producer: Mapping[str, Any] = field(default_factory=dict)
     origin: str = ORIGIN_UNKNOWN
+    attestation: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if str(self.origin) not in ORIGIN_CHOICES:
             raise ValueError(f"origin must be one of {ORIGIN_CHOICES}; got {self.origin!r}")
+        if str(self.origin) == ORIGIN_ATTESTED:
+            if not isinstance(self.attestation, Mapping) or not str(self.attestation.get("attested_by", "")).strip() or not re.fullmatch(r"[0-9a-fA-F]{64}", str(self.attestation.get("text_sha256", ""))):
+                raise ValueError("origin='attested' requires attestation={'attested_by': <who>, 'text_sha256': <sha256 of the FCIDUMP text>, ...}")
+        elif self.attestation:
+            raise ValueError(f"attestation supplied but origin is {self.origin!r}; declare origin='attested' explicitly")
 
 
 def bridge_problem_from_fcidump(
@@ -951,6 +985,11 @@ def bridge_problem_from_fcidump(
     checks["hf_witness_abs_defect"] = abs(witness - float(sidecar.e_scf))
     if abs(witness - float(sidecar.e_scf)) > float(witness_atol):
         raise QdynamicsConventionError("hf_witness", f"E_det={witness!r} disagrees with declared e_scf={sidecar.e_scf!r} by {abs(witness - float(sidecar.e_scf)):.3e}.")
+    attestation_record: dict[str, Any] | None = None
+    if str(sidecar.origin) == ORIGIN_ATTESTED:
+        if str(sidecar.attestation["text_sha256"]).lower() != str(data.text_sha256).lower():  # type: ignore[index]
+            raise QdynamicsConventionError("origin_attestation", "attestation.text_sha256 does not match the parsed FCIDUMP text.")
+        attestation_record = {str(k): v for k, v in sidecar.attestation.items()}  # type: ignore[union-attr]
     problem = RestrictedClosedShellMolecularProblem(
         geometry_spec=str(sidecar.geometry_spec),
         basis=str(sidecar.basis),
@@ -982,7 +1021,7 @@ def bridge_problem_from_fcidump(
         "claimed_producer": (dict(sidecar.producer).get("claimed_producer") if sidecar.producer else None),
         "origin": str(sidecar.origin),
         "container_schema": "fcidump_text",
-        "origin_attestation": None,
+        "origin_attestation": attestation_record,
         "producer_origin_established": False,
         "notation_binding": "declared_by_sidecar_not_inferred_from_symmetry",
         "geometry_units_as_declared": str(sidecar.units),

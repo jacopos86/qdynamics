@@ -354,9 +354,8 @@ def test_finding6_schema_label_and_hash_never_establish_producer_origin(tmp_path
     with pytest.raises(qx.QdynamicsConventionError) as excinfo:
         qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="attested")
     assert excinfo.value.code == "origin_attestation"
-    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
-        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="attested", attestation={"attested_by": "x", "file_sha256": "0" * 64})
-    assert excinfo.value.code == "origin_attestation"
+    with pytest.raises(TypeError):  # the public mapping API has no attestation parameter at all (recheck 1)
+        qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="attested", attestation={"attested_by": "x", "file_sha256": "0" * 64})  # type: ignore[call-arg]
     with pytest.raises(qx.QdynamicsConventionError) as excinfo:
         qx.qdynamics_matrix_elements_from_mapping(mapping, declared_origin="producer")
     assert excinfo.value.code == "origin_declaration"
@@ -396,3 +395,54 @@ def test_h5_loader_is_explicit_about_its_dependency(tmp_path):
     assert excinfo.value.code == "origin_attestation"
     attested = qx.load_qdynamics_matrix_elements_h5(path, declared_origin="attested", attestation={"attested_by": "test", "file_sha256": file_sha})
     assert attested.source["origin"] == "attested" and attested.source["producer_origin_established"] is False
+
+
+# ---------------------------------------------------------------------------
+# Recheck 1 (2026-10-19) residuals of finding 6
+# ---------------------------------------------------------------------------
+
+
+def test_finding6_public_mapping_api_cannot_name_a_file_container_or_attest():
+    import inspect
+
+    params = inspect.signature(qx.qdynamics_matrix_elements_from_mapping).parameters
+    assert set(params) == {"mapping", "source", "declared_origin", "declared_producer"}
+    mapping = synthetic_qdynamics_mapping("contract4")
+    with pytest.raises(TypeError):
+        qx.qdynamics_matrix_elements_from_mapping(mapping, _container_schema=qx.QDYNAMICS_ELE_H5_SCHEMA, _file_sha256="0" * 64)  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        qx.qdynamics_matrix_elements_from_mapping(mapping, attestation={"attested_by": "x", "file_sha256": "0" * 64})  # type: ignore[call-arg]
+    # the shared private constructor refuses a file container without the loader's file hash,
+    # and a file hash without a file container
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx._matrix_elements_from_payload(mapping, caller_source=None, declared_origin="attested", declared_producer=None, attestation={"attested_by": "x", "file_sha256": "0" * 64}, container_schema=qx.QDYNAMICS_ELE_H5_SCHEMA, file_sha256=None)
+    assert excinfo.value.code == "container_claim"
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx._matrix_elements_from_payload(mapping, caller_source=None, declared_origin=None, declared_producer=None, attestation=None, container_schema=qx.CONTAINER_IN_MEMORY, file_sha256="0" * 64)
+    assert excinfo.value.code == "container_claim"
+
+
+def test_finding6_fcidump_attested_origin_requires_an_attestation_over_the_text(tmp_path):
+    import hashlib
+
+    h, g, scalar, hf = contract_four_qubit_tensors()
+    text = _fcidump_text(h, g, scalar, 2)
+    data = qx.read_fcidump(text)
+    with pytest.raises(ValueError, match="requires attestation"):
+        qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested")
+    with pytest.raises(ValueError, match="declare origin='attested'"):
+        qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, attestation={"attested_by": "x", "text_sha256": data.text_sha256})
+    wrong = qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": "x", "text_sha256": "0" * 64})
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.bridge_problem_from_fcidump(data, wrong)
+    assert excinfo.value.code == "origin_attestation"
+    right = qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": "test", "text_sha256": data.text_sha256})
+    bridge_problem = qx.bridge_problem_from_fcidump(data, right)
+    assert bridge_problem.provenance["origin"] == "attested"
+    assert bridge_problem.provenance["origin_attestation"]["text_sha256"] == hashlib.sha256(text.encode()).hexdigest()
+    assert bridge_problem.provenance["producer_origin_established"] is False
+    manifest = qx.write_bridge_problem_json(bridge_problem, tmp_path / "attested.json")
+    identity = resolve_bridge_context(manifest["manifest_path"]).input_identity()
+    assert identity["data_role"] == "attested:fcidump_text" and identity["origin_attestation"]["attested_by"] == "test"
+    plain = qx.bridge_problem_from_fcidump(data, qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf))
+    assert plain.provenance["origin"] == "unknown" and plain.provenance["origin_attestation"] is None

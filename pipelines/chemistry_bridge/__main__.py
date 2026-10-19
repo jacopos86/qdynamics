@@ -8,7 +8,8 @@
 Exit codes of ``run`` (receipts are written before the code is decided):
     0  every requested method ended cpu_verified or gpu_verified
     1  at least one requested method ended failed
-    2  usage error: unknown or empty --methods, bad arguments, or the strict intake refused the input
+    2  usage error: unknown or empty --methods, bad arguments, a missing or unreadable
+       manifest/document, or the strict intake refused the input (no receipt written)
     3  nothing failed, but a requested method was skipped_unsupported or blocked
        (e.g. an unavailable accelerator); this is never GPU evidence
 """
@@ -85,8 +86,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             reduction = FrozenCoreReduction(int(args.frozen_core)) if int(args.frozen_core) > 0 else None
             bridge_problem = bridge_problem_from_qdynamics(elements, frozen_core=reduction)
-        except (BridgeDependencyUnavailable, QdynamicsConventionError) as exc:
-            print(f"export refused: {exc}", file=sys.stderr)
+        except (BridgeDependencyUnavailable, QdynamicsConventionError, FileNotFoundError, OSError, ValueError) as exc:
+            print(f"export refused: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 2
         manifest = write_bridge_problem_json(bridge_problem, args.out)
         print(json.dumps({**{k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, "origin": bridge_problem.provenance["origin"], "container_schema": bridge_problem.provenance["container_schema"]}, indent=2))
@@ -105,8 +106,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 apm_parameterization_mode=str(args.apm_parameterization),
                 apm_candidate_filter=str(args.apm_candidate_filter),
             )
-        except ValueError as exc:
-            print(f"run refused: {exc}", file=sys.stderr)
+        except (ValueError, FileNotFoundError, OSError, KeyError) as exc:
+            # Usage error: the request could not be turned into a calculation
+            # (bad methods/arguments, missing or unreadable manifest/document,
+            # strict-intake refusal).  No receipt exists for such a run.
+            print(f"run refused: {type(exc).__name__}: {exc}", file=sys.stderr)
             return EXIT_USAGE
         code = exit_code_for_statuses(summary["status_by_method"])
         print(json.dumps({"status_by_method": summary["status_by_method"], "out_path": summary.get("out_path"), "backend": summary["backend_spec"], "exit_code": code, "exit_policy": summary["exit_policy"].get(str(code))}, indent=2))
