@@ -141,3 +141,12 @@ Reviewer's scope statements retained: GPU evidence supports kernel/pencil parity
 Gates after 002-D (same commands as §3): repository venv **69 passed, 18 skipped**; GPU venv **78 passed, 9 skipped**; intake gate **80 passed**. Probe receipts for the three residuals (attested FCIDUMP without/with wrong/with matching hash, public-API forgery attempts, missing manifest and missing HDF5 exits) are in `doron-bridge-receipts-20261019-002/recheck1_residual_probes.json`.
 
 002-D clock: start 2026-10-19T18:17:58Z; end and commit recorded below after the commit.
+
+### 002-D record (appended after the commit)
+
+| item | value |
+|---|---|
+| 002-D commit | `44e689122a9bf2e3a9587dc327a96d37702c948b` |
+| 002-D clock | start 2026-10-19T18:17:58Z, end 2026-10-19T18:20:55Z |
+| recheck1_residual_probes.json sha256 | c1c6cbedae75e2ea6201ce2206ed724cab5ee648e317de326024789f95a28508 |
+| Correction commits, in order | `404454ac` → `16e12761` → `f0892355` → `00a9c844` → `44e689122a9bf2e3a9587dc327a96d37702c948b` (→ this record commit) |
