@@ -93,3 +93,35 @@ Computed at commit time by `shasum -a 256` over `agent_guidance/shared/handoffs/
 6. GPU: Metal float32 only; no CUDA, no float64 GPU, no GPU APM.
 
 Files edited in 002: `pipelines/chemistry_bridge/{qdynamics_export.py, methods.py, __main__.py}`, `test/test_chemistry_bridge_{export,backend,methods,gpu_parity}.py`, new `test/test_chemistry_bridge_cli.py`, this file, `doron-chemistry-quantum-bridge-20261019.md` (§4 Paper II row, §9), new `doron-bridge-receipts-20261019-002/`.
+
+## 7. 002-C record (appended after the commit)
+
+| item | value |
+|---|---|
+| 002-C commit | `f0892355beec17dc8c4ffae836e42c7ccdc0c0ee` |
+| 002-C clock | start 2026-10-19T17:22:05Z, end 2026-10-19T17:26:55Z |
+| Correction commits, in order | `404454ac` → `16e12761` → `f0892355beec17dc8c4ffae836e42c7ccdc0c0ee` (→ this record commit) |
+
+Receipt and manifest SHA-256 (`shasum -a 256`), as committed in `f0892355beec17dc8c4ffae836e42c7ccdc0c0ee`:
+
+```text
+a61ebf8a36d2b4ca293336c1d05cba7f7fb5adda71e3c4d5af58c544c8f28d28  doron-bridge-receipts-20261019-002/cli_apm_per_pauli_term_unfiltered_exit1.json
+24a289a842f63b5b04ab47e52b57a132b2c682e6ae5e1ad905f878479c71ec46  doron-bridge-receipts-20261019-002/cli_cuda_unavailable_exit3.json
+8e2c20488725fcba6d2b354cbc055420a46ba2aa61c4bdf7fad1b24419cd9fba  doron-bridge-receipts-20261019-002/command_log.json
+c781e13830a442256fd0a6f71926868fa45dd88af90d96ac346ffd768d08b71c  doron-bridge-receipts-20261019-002/contract4_numpy_float64_all_methods.json
+05a233114cfa7a16a2e071aacffa5d1bb527ff19a17e27defc9e1d53706895fa  doron-bridge-receipts-20261019-002/contract4_torch_cpu_float64.json
+d9ee8bb80d3d405e86637f8ff995e4bd2cde2f8a07d746a07bbbdf9726a0a7d5  doron-bridge-receipts-20261019-002/contract4_torch_mps_float32.json
+129ff176749c2f6093f323c754fd8f195278d0ee3696539b51771b11da58899c  doron-bridge-receipts-20261019-002/probe_backends_gpu_venv.json
+29d63e81687b976aafa2880f12305646127a5952894c380b06b84a346777b287  doron-bridge-receipts-20261019-002/random6_numpy_float64_all_methods.json
+fdc5576fcb1630471fcad057cdb86e3dbd459563dd15539d69cef8a1da5e3ba0  doron-bridge-receipts-20261019-002/random6_torch_cpu_float64.json
+579a33c8dcc1782835a86558f8bd05e1a7d2e281cd106fffe89ffa5dd60c518a  doron-bridge-receipts-20261019-002/random6_torch_mps_float32.json
+b6fec127db381e74416341b34d15c3a1198f26ded35b9213277c63af95444342  doron-bridge-receipts-20261019-002/random6_two_occupied_numpy_float64_all_methods.json
+ac08a8fb134fad3c8e4dda3b363dcba3b25b974a35416e8c923ba945929c7a23  doron-bridge-receipts-20261019-002/random8_torch_cpu_float64.json
+7370da11c6b00755f1b0ea08c5d4b1bb2fb5065711b090747ba68623c3e11b9c  doron-bridge-receipts-20261019-002/random8_torch_mps_float32.json
+e9468d5c590528ce7db574f86e0b0cc446fbeb9c2c80d3ae4b66e74257e68802  doron-bridge-receipts-20261019-002/review_case_random6_logical_shared.json
+884575d56f451c2897008f4648051f3698b1aca8c9006f3a540171a8e0089fd1  doron-bridge-receipts-20261019-002/synthetic_ele_h5_declared_synthetic.manifest.json
+8d7eef246e06950c4cbfb39babf909c4367ab44f361c33d3c2c07ffd3ca3abf7  doron-bridge-receipts-20261019-002/synthetic_ele_h5_declared_synthetic_torch_mps_float32.json
+3d79f3f4a97de2da42af9f7dac8e465418fa303e2b41c2bf6d669712a6fd9557  doron-bridge-receipts-20261019-002/synthetic_ele_h5_undeclared.manifest.json
+```
+
+Main handoff `doron-chemistry-quantum-bridge-20261019.md` at `f0892355beec17dc8c4ffae836e42c7ccdc0c0ee`: sha256 855a2aadc92af509e14d82634286fad1fedf53e8cb71c0b9d9d04872ffe80091
