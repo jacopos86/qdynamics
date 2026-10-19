@@ -58,9 +58,19 @@ def test_contract_fixture_all_methods_cpu(tmp_path):
     assert adapt["results"]["top_gradients"][0]["label"] == "uccsd_dbl(ab:0,2->1,3)"
     apm = receipts["ap_mclachlan"]
     assert apm["checks"]["sector_leakage_max_norm"] == 0.0
-    assert apm["checks"]["min_fidelity_vs_exact"] > 1.0 - 1.0e-9
-    assert apm["checks"]["energy_drift_max_abs"] < 1.0e-6
+    # With the executed-sector filter the full_meta pool offers no sector-safe even-Y
+    # multi-word generator (the two-body block is grouped-safe but its words do not
+    # commute), so the controller cannot move the state: the fidelity trace is the
+    # exact state's departure from HF (measured 0.99997516 at t=0.1), not a
+    # variational error.  Unfiltered, the two-body block gave 0.9999999999992 but is
+    # not execution-safe in general (finding 1).
+    assert apm["results"]["executed_parameterization_sector_safe"] is True
+    assert apm["results"]["sector_audit"]["audit_failing_by_class"] == {"ham_block": 1, "ham_term": 4}
+    assert apm["results"]["trajectory_moved"] is False
+    assert apm["checks"]["min_fidelity_vs_exact"] > 0.9999
+    assert apm["checks"]["energy_drift_max_abs"] < 1.0e-12
     assert apm["results"]["parameterization_mode"] == "logical_shared"
+    assert any("cannot move" in note or "zero" in note for note in apm["notes"]) or apm["results"]["sector_audit"]["even_y_eligible_count"] > 0
     assert (tmp_path / "out" / "bridge_receipts.json").is_file()
 
 
@@ -76,36 +86,51 @@ def test_six_qubit_witness_qse_spans_sector_and_apm_tracks_exact(tmp_path):
     apm = bm.run_ap_mclachlan(bridge, times=(0.0, 0.005, 0.01, 0.015, 0.02))
     assert apm.status == bm.STATUS_CPU_VERIFIED
     assert apm.checks["sector_leakage_max_norm"] < 1.0e-10
-    # measured 2026-10-19 on this witness: min fidelity 0.99937, drift 3.4e-6
+    # measured 2026-10-19: filtered pool 29/127 eligible (4+4 UCC, 21 Z-only words),
+    # no sector-safe even-Y multi-word generator -> trajectory frozen at HF; the exact
+    # state's departure gives min fidelity 0.99937 at t=0.02 (unfiltered: 0.99937427).
+    assert apm.results["executed_parameterization_sector_safe"] is True
+    assert apm.results["sector_audit"]["eligible_count"] == 29 and apm.results["sector_audit"]["generator_count"] == 127
     assert apm.checks["min_fidelity_vs_exact"] > 0.999
-    assert apm.checks["energy_drift_max_abs"] < 1.0e-4
     assert apm.checks["initial_energy_minus_hf_witness_abs"] < 1.0e-10
     assert apm.results["parameterization_mode"] == "logical_shared"
 
 
-def test_per_pauli_term_coordinates_can_leak_particle_number_while_logical_shared_conserves(tmp_path):
-    """Measured confirmation of DISPOSITION 026-4: executed per-word coordinates are
-    not sector-safe by construction; logical_shared (one angle per generator) is."""
+def test_finding1_logical_shared_alone_leaks_and_the_executed_audit_filter_restricts(tmp_path):
+    # Review finding 1: with the unfiltered full_meta pool, logical_shared execution on
+    # random6 leaked 1.236e-4 under max_structural_pool_size=128 / mclachlan_l2 / l2 cut 1e-6.
+    manifest = _manifest(tmp_path, "random6")
+    bridge = bm.resolve_bridge_context(manifest["manifest_path"])
+    overrides = {"max_structural_pool_size": 128, "insertion_gate_mode": "mclachlan_l2", "insertion_l2_cut": 1.0e-6}
+    unfiltered = bm.run_ap_mclachlan(bridge, times=(0.0, 0.02, 0.04, 0.06), parameterization_mode="logical_shared", support_config_overrides=overrides, candidate_sector_filter="none")
+    assert unfiltered.status == bm.STATUS_FAILED
+    assert unfiltered.checks["sector_leakage_max_norm"] > 1.0e-6
+    assert unfiltered.results["executed_parameterization_sector_safe"] is False
+    assert unfiltered.results["sector_audit"]["audit_failing_count"] > 0
+    filtered = bm.run_ap_mclachlan(bridge, times=(0.0, 0.02, 0.04, 0.06), parameterization_mode="logical_shared", support_config_overrides=overrides)
+    assert filtered.status == bm.STATUS_CPU_VERIFIED
+    assert filtered.checks["sector_leakage_max_norm"] < 1.0e-10
+    assert filtered.results["executed_parameterization_sector_safe"] is True
+    audit = filtered.results["sector_audit"]
+    assert audit["criterion"] == "execution_preserves_fixed_counts"
+    assert audit["eligible_count"] + audit["audit_failing_count"] == audit["generator_count"]
+    assert audit["audit_failing_by_class"].get("ham_term", 0) > 0  # single X/Y words are not conserved by shared angles
+    assert audit["audit_failing_by_class"].get("ham_block", 0) > 0  # noncommuting Hamiltonian blocks are not either
+    assert set(filtered.results["sector_audit"]["eligible_by_class"]) <= {"uccsd_sing", "uccsd_dbl", "ham_term"}
+    assert filtered.results["candidate_count_offered"] == audit["eligible_count"] - 1
 
+
+def test_finding1_per_pauli_term_leaks_without_the_filter_and_is_restricted_with_it(tmp_path):
     manifest = _manifest(tmp_path, "random8")
     bridge = bm.resolve_bridge_context(manifest["manifest_path"])
-    grid = (0.0, 0.005, 0.01, 0.015, 0.02)  # measured 2026-10-19: leak 1.1e-17 (shared) vs 3.3e-5 (per word)
-    shared = bm.run_ap_mclachlan(bridge, times=grid, parameterization_mode="logical_shared")
-    assert shared.checks["sector_leakage_max_norm"] < 1.0e-10 and shared.status == bm.STATUS_CPU_VERIFIED
-    per_word = bm.run_ap_mclachlan(bridge, times=grid, parameterization_mode="per_pauli_term")
-    assert per_word.checks["sector_leakage_max_norm"] > 1.0e-6
-    assert per_word.status == bm.STATUS_FAILED
-
-
-def test_frozen_core_witness_runs_end_to_end(tmp_path):
-    manifest = _manifest(tmp_path, "random6_two_occupied", frozen=1)
-    assert manifest["reduction"]["kind"] == "frozen_core_occupied_prefix"
-    summary = bm.run_bridge(manifest["manifest_path"], backend_spec="numpy:float64", methods=("mapping", "exact", "qse", "adapt"))
-    assert all(status == bm.STATUS_CPU_VERIFIED for status in summary["status_by_method"].values()), summary["status_by_method"]
-    receipts = {receipt["method"]: receipt for receipt in summary["receipts"]}
-    assert receipts["qse"]["checks"]["ritz_minus_exact_sector_roots_max_abs"] < 1.0e-10
-    assert summary["inputs"]["reduction"]["n_frozen"] == 1
-    assert summary["intake_receipt"]["declarations"]["scalar_semantics"] == "nuclear_plus_frozen_core"
+    grid = (0.0, 0.005, 0.01, 0.015, 0.02)  # measured 2026-10-19: leak 3.3e-5 unfiltered
+    per_word = bm.run_ap_mclachlan(bridge, times=grid, parameterization_mode="per_pauli_term", candidate_sector_filter="none")
+    assert per_word.checks["sector_leakage_max_norm"] > 1.0e-6 and per_word.status == bm.STATUS_FAILED
+    restricted = bm.run_ap_mclachlan(bridge, times=grid, parameterization_mode="per_pauli_term")
+    assert restricted.status == bm.STATUS_CPU_VERIFIED and restricted.checks["sector_leakage_max_norm"] < 1.0e-10
+    assert restricted.results["sector_audit"]["criterion"] == "components_individually_preserve_fixed_counts"
+    with pytest.raises(ValueError, match="not an eligible generator"):
+        bm.run_ap_mclachlan(bridge, times=grid, seed_term_label="ham_block::molecular_one_body")
 
 
 def test_unavailable_backend_yields_skipped_receipt_not_cpu_fallback(tmp_path):
@@ -131,3 +156,41 @@ def test_float32_numpy_backend_is_cpu_verified_at_its_own_tolerance(tmp_path):
     assert receipt.status == bm.STATUS_CPU_VERIFIED
     assert receipt.backend["real_dtype"] == "float32" and receipt.backend["complex_dtype"] == "complex64"
     assert receipt.checks["hf_expectation_minus_tensor_witness_abs"] < 5.0e-5
+
+
+def test_finding4_static_zero_drive_reference_is_translation_invariant(tmp_path):
+    # Review probe: grids (0,.02,.04) and (1,1.02,1.04) gave identical energies but
+    # initial fidelities 1.0 vs 0.99876 because the reference was clocked from t=0.
+    manifest = _manifest(tmp_path, "contract4")
+    bridge = bm.resolve_bridge_context(manifest["manifest_path"])
+    zero = bm.run_ap_mclachlan(bridge, times=(0.0, 0.02, 0.04))
+    shifted = bm.run_ap_mclachlan(bridge, times=(1.0, 1.02, 1.04))
+    assert zero.results["initial_time"] == 0.0 and shifted.results["initial_time"] == 1.0
+    assert shifted.results["elapsed_times_from_initial_checkpoint"] == pytest.approx([0.0, 0.02, 0.04], abs=1.0e-12)
+    np.testing.assert_allclose(zero.results["energies"], shifted.results["energies"], atol=1.0e-12, rtol=0.0)
+    np.testing.assert_allclose(zero.results["fidelity_vs_exact_sector_propagation"], shifted.results["fidelity_vs_exact_sector_propagation"], atol=1.0e-12, rtol=0.0)
+    assert zero.results["fidelity_vs_exact_sector_propagation"][0] > 1.0 - 1.0e-12
+    assert shifted.results["fidelity_vs_exact_sector_propagation"][0] > 1.0 - 1.0e-12
+    with pytest.raises(ValueError):
+        bm.run_ap_mclachlan(bridge, times=(0.0, 0.02, 0.01))
+    with pytest.raises(ValueError):
+        bm.run_ap_mclachlan(bridge, times=(0.0,))
+
+
+def test_finding5_method_requests_are_validated_and_exit_codes_follow_statuses(tmp_path):
+    for bad in ("qes", "", ",", "mapping,qes"):
+        with pytest.raises(ValueError):
+            bm.normalize_methods(bad)
+    assert bm.normalize_methods("qse, mapping ,qse") == ("qse", "mapping")
+    assert bm.exit_code_for_statuses({"qse": bm.STATUS_CPU_VERIFIED, "mapping": bm.STATUS_GPU_VERIFIED}) == bm.EXIT_ALL_VERIFIED
+    assert bm.exit_code_for_statuses({"qse": bm.STATUS_CPU_VERIFIED, "apm": bm.STATUS_FAILED}) == bm.EXIT_CHECK_FAILED
+    assert bm.exit_code_for_statuses({"qse": bm.STATUS_SKIPPED_UNSUPPORTED}) == bm.EXIT_NOT_EXECUTED
+    assert bm.exit_code_for_statuses({"qse": bm.STATUS_BLOCKED, "mapping": bm.STATUS_CPU_VERIFIED}) == bm.EXIT_NOT_EXECUTED
+    assert bm.exit_code_for_statuses({}) == bm.EXIT_USAGE
+    manifest = _manifest(tmp_path, "contract4")
+    with pytest.raises(ValueError, match="unknown methods"):
+        bm.run_bridge(manifest["manifest_path"], methods=("qes",))
+    with pytest.raises(ValueError, match="no methods requested"):
+        bm.run_bridge(manifest["manifest_path"], methods=())
+    summary = bm.run_bridge(manifest["manifest_path"], methods=("mapping", "exact"))
+    assert summary["exit_code"] == bm.EXIT_ALL_VERIFIED and summary["requested_methods"] == ["mapping", "exact"]

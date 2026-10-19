@@ -4,6 +4,13 @@
     python -m pipelines.chemistry_bridge export-qdynamics --h5 <prefix>_ele.h5 --out problem.json [--frozen-core 1]
     python -m pipelines.chemistry_bridge export-synthetic --kind contract4 --out problem.json [--frozen-core 0]
     python -m pipelines.chemistry_bridge run --manifest problem.manifest.json --out-dir out/ [--backend torch:mps:float32] [--methods mapping,exact,qse,adapt,apm]
+
+Exit codes of ``run`` (receipts are written before the code is decided):
+    0  every requested method ended cpu_verified or gpu_verified
+    1  at least one requested method ended failed
+    2  usage error: unknown or empty --methods, bad arguments, or the strict intake refused the input
+    3  nothing failed, but a requested method was skipped_unsupported or blocked
+       (e.g. an unavailable accelerator); this is never GPU evidence
 """
 
 from __future__ import annotations
@@ -15,7 +22,7 @@ import sys
 from typing import Sequence
 
 from pipelines.chemistry_bridge.array_backend import probe_backends
-from pipelines.chemistry_bridge.methods import DEFAULT_METHODS, run_bridge
+from pipelines.chemistry_bridge.methods import DEFAULT_METHODS, EXIT_USAGE, exit_code_for_statuses, normalize_methods, run_bridge
 from pipelines.chemistry_bridge.qdynamics_export import (
     BridgeDependencyUnavailable,
     FrozenCoreReduction,
@@ -52,6 +59,7 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--apm-times", default="0,0.02,0.04,0.06,0.08,0.10")
     run.add_argument("--apm-pool", default="full_meta")
     run.add_argument("--apm-parameterization", default="logical_shared", choices=("logical_shared", "per_pauli_term"))
+    run.add_argument("--apm-candidate-filter", default="executed_fixed_counts", choices=("executed_fixed_counts", "none"), help="'none' offers the unaudited pool and exists only to reproduce particle-number leakage")
     return parser
 
 
@@ -84,19 +92,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({**{k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, "origin": bridge_problem.provenance["origin"], "container_schema": bridge_problem.provenance["container_schema"]}, indent=2))
         return 0
     if args.command == "run":
-        times = [float(v) for v in str(args.apm_times).split(",") if v.strip()]
-        summary = run_bridge(
-            args.manifest,
-            backend_spec=str(args.backend),
-            methods=[m for m in str(args.methods).split(",") if m.strip()],
-            out_dir=Path(args.out_dir),
-            apm_times=times,
-            apm_pool_key=str(args.apm_pool),
-            apm_parameterization_mode=str(args.apm_parameterization),
-        )
-        print(json.dumps({"status_by_method": summary["status_by_method"], "out_path": summary.get("out_path"), "backend": summary["backend_spec"]}, indent=2))
-        return 0
-    return 1
+        try:
+            methods = normalize_methods(str(args.methods))
+            times = [float(v) for v in str(args.apm_times).split(",") if v.strip()]
+            summary = run_bridge(
+                args.manifest,
+                backend_spec=str(args.backend),
+                methods=methods,
+                out_dir=Path(args.out_dir),
+                apm_times=times,
+                apm_pool_key=str(args.apm_pool),
+                apm_parameterization_mode=str(args.apm_parameterization),
+                apm_candidate_filter=str(args.apm_candidate_filter),
+            )
+        except ValueError as exc:
+            print(f"run refused: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        code = exit_code_for_statuses(summary["status_by_method"])
+        print(json.dumps({"status_by_method": summary["status_by_method"], "out_path": summary.get("out_path"), "backend": summary["backend_spec"], "exit_code": code, "exit_policy": summary["exit_policy"].get(str(code))}, indent=2))
+        return code
+    return EXIT_USAGE
 
 
 if __name__ == "__main__":
