@@ -51,6 +51,7 @@ from .apcm_projective_guard import (
     unified_glued_moment_matrix,
     unified_to_relative_restriction,
 )
+from .cwrmf_solver_instances import ConicInstanceRecorder
 from .exact_reference import exact_holstein_joint_moment_initial_state
 from .hubbard_dimer import DimerParameters, FloatArray
 from .matrix_reference import MatrixDimerState, matrix_dimer_rhs
@@ -70,6 +71,139 @@ _ENTRANCE_COUNT = len(ENTRANCE_RELATIVE_MOMENT_KEYS)
 
 class CarriedWitnessError(RuntimeError):
     """The declared carried-witness numerical contract could not be met."""
+
+
+_TIER_NAMES = (
+    "gram_eigendecomposition",
+    "coefficient_assembly_and_svec",
+    "clarabel_solve",
+    "retraction",
+    "unguarded_velocity",
+)
+
+
+class _TierClock:
+    """Wall-time accumulator for the named stages below the radial atom.
+
+    The model carries ``None`` unless a caller asks for the accumulation, so
+    an uninstrumented rollout pays one attribute read per instrumented stage
+    and never calls ``perf_counter``.  The tiers are the 62-row
+    eigendecomposition, the coefficient assembly and svec packing, the
+    Clarabel solve, the minimum-norm completion retraction, and the
+    unguarded retained-plus-completion velocity evaluation.
+    """
+
+    __slots__ = ("seconds", "calls")
+
+    def __init__(self) -> None:
+        self.seconds = dict.fromkeys(_TIER_NAMES, 0.0)
+        self.calls = dict.fromkeys(_TIER_NAMES, 0)
+
+    def add(self, tier: str, started: float) -> None:
+        self.seconds[tier] += perf_counter() - started
+        self.calls[tier] += 1
+
+    def report(self) -> dict[str, dict[str, float]]:
+        return {
+            "seconds": {name: float(self.seconds[name]) for name in _TIER_NAMES},
+            "calls": {name: int(self.calls[name]) for name in _TIER_NAMES},
+        }
+
+
+#: Named Clarabel setting sets for the four guarded conic solves.  The
+#: default applies no override at all, so the guarded path is exactly the
+#: pinned single-threaded contract the anchors were measured under.  Every
+#: other entry is a declared experiment whose effect on the recorded
+#: instances is measured by ``cwrmf_solver_replay``: the setting set is
+#: applied on top of the tier's own settings, immediately before the solve.
+DEFAULT_SOLVER_SETTING_PROFILE = "pinned_single_thread"
+
+CWRMF_SOLVER_SETTING_PROFILES: dict[str, dict[str, object]] = {
+    "pinned_single_thread": {},
+    # Best candidate that passes the strict full-Gram acceptance test on all
+    # 36 recorded instances of the t=0 to 0.01, h=0.0025 strict rollout: the
+    # returned solution is bitwise identical to the pinned one on all 36.
+    # It buys no time -- 135.711 s against a 135.669 s and 135.746 s
+    # bracketing pair in the same bench pass -- and is declared because it is
+    # the strict-passing candidate of record, not because it is faster.
+    "presolve_off": {"presolve_enable": False},
+    # Best candidate that passes the balanced full-Gram acceptance test on
+    # all 36 (29 of 29 accepts, 36/36 verdict agreement): 82.623 s against
+    # 135.669 s on the same instances.  Multithreaded factorization is not
+    # bitwise: 6 of 36 solutions agree exactly with the pinned ones and the
+    # worst completion-velocity difference is 2.255e-04.  The strict
+    # acceptance test fails on one of the seven instances the pinned run
+    # accepts, which is why this is the balanced entry and not the strict
+    # one.
+    "max_threads_8": {"max_threads": 8},
+}
+
+#: Named starting-working-set rules for the adaptive spectral bundle tier.
+#: The default is the recorded one: the working set starts at the larger of
+#: the spectral entry count and the monotone rank hint, and the hint starts
+#: at zero.  Every other entry is a declared experiment, off by default.
+#:
+#: ``monotone_hint``
+#:     the recorded rule, ``max(spectral_rank, bundle_rank_hint)``;
+#: ``spectral_threshold``
+#:     the larger of the recorded rule and the number of endpoint unshifted
+#:     62-row Gram eigenvalues below ``bundle_seed_spectral_threshold``;
+#: ``previous_accepted_rank``
+#:     the rank at which the previous bundle atom's accepted solve ran,
+#:     without the monotone maximum over back-offs and polish ranks;
+#: ``previous_accepted_rank_margin``
+#:     that rank plus ``bundle_seed_rank_margin``;
+#: ``carried_accepted_basis``
+#:     the previous accepted working set itself, orthonormalised together
+#:     with the current predictor's leading ``spectral_rank`` eigenvectors,
+#:     so the directions the enlargement discovered are carried across the
+#:     radial atom instead of only their count.  A positive
+#:     ``bundle_seed_rank_margin`` trims the result to the
+#:     ``previous accepted rank + margin`` lowest modes of its own compressed
+#:     block, which bounds how fast the carried working set inflates;
+#: ``carried_accepted_basis_exit``
+#:     the same, after dropping the carried modes that the new endpoint no
+#:     longer holds critical -- the eigenvectors of the carried working set's
+#:     own compressed block whose unshifted eigenvalue has risen to or above
+#:     ``bundle_seed_spectral_threshold``.  That one declared threshold on
+#:     the unshifted 62-row Gram spectrum serves both policies: it counts the
+#:     seed rank for ``spectral_threshold`` and it is the exit criterion for
+#:     a carried mode here.
+DEFAULT_BUNDLE_SEED_POLICY = "monotone_hint"
+
+CWRMF_BUNDLE_SEED_POLICIES = (
+    "monotone_hint",
+    "spectral_threshold",
+    "previous_accepted_rank",
+    "previous_accepted_rank_margin",
+    "carried_accepted_basis",
+    "carried_accepted_basis_exit",
+)
+
+#: The seed policies whose starting working set is the previous accepted
+#: working set itself rather than a rank.  A checkpoint written by a rollout
+#: under one of these carries the accepted 62-row block, so that a resumed
+#: rollout continues from the directions the enlargement discovered instead
+#: of rebuilding them at its first atom.  Every other policy reads only the
+#: rank hint and the accepted rank, both of which are scalars.
+CWRMF_BASIS_CARRYING_SEED_POLICIES = (
+    "carried_accepted_basis",
+    "carried_accepted_basis_exit",
+)
+
+
+def _bundle_growth_target(factor: float, rank: int, limit: int) -> int:
+    """Return the working-set rank a declared growth factor asks for.
+
+    The adaptive bundle tier's recorded enlargement adds only the eigenvectors
+    of the full candidate Gram that sit below the safety margin, which is
+    about one direction per iteration once the working set is large.  A
+    declared ``factor`` above one asks for ``ceil(factor * rank)`` directions
+    instead, capped at the critical mode limit; at the default ``1.0`` the
+    caller never reaches this function.
+    """
+
+    return min(int(limit), int(np.ceil(float(factor) * int(rank))))
 
 
 @dataclass(frozen=True)
@@ -99,8 +233,37 @@ class CWRMFSettings:
     schur_safety_margin: float = 2e-12
     schur_maximum_iterations: int = 600
     maximum_cutting_plane_iterations: int = 256
+    batched_mode_gradients: bool = False
+    solver_setting_profile: str = DEFAULT_SOLVER_SETTING_PROFILE
+    bundle_seed_policy: str = DEFAULT_BUNDLE_SEED_POLICY
+    bundle_seed_spectral_threshold: float = 1e-6
+    bundle_seed_rank_margin: int = 0
+    bundle_growth_factor: float = 1.0
+    bundle_growth_trigger: float = 0.0
+    bundle_interior_overshoot: float = 1.0
 
     def __post_init__(self) -> None:
+        if self.bundle_seed_policy not in CWRMF_BUNDLE_SEED_POLICIES:
+            raise ValueError(
+                f"unknown CWRMF bundle seed policy: {self.bundle_seed_policy}"
+            )
+        if self.bundle_seed_spectral_threshold <= 0.0:
+            raise ValueError(
+                "bundle_seed_spectral_threshold must be positive"
+            )
+        if self.bundle_seed_rank_margin < 0:
+            raise ValueError("bundle_seed_rank_margin must be nonnegative")
+        if self.bundle_growth_factor < 1.0:
+            raise ValueError("bundle_growth_factor must be at least one")
+        if self.bundle_growth_trigger < 0.0:
+            raise ValueError("bundle_growth_trigger must be nonnegative")
+        if self.bundle_interior_overshoot < 1.0:
+            raise ValueError("bundle_interior_overshoot must be at least one")
+        if self.solver_setting_profile not in CWRMF_SOLVER_SETTING_PROFILES:
+            raise ValueError(
+                "unknown CWRMF solver setting profile: "
+                f"{self.solver_setting_profile}"
+            )
         if self.guard_policy not in {"always", "event_triggered"}:
             raise ValueError(
                 f"unknown CWRMF guard policy: {self.guard_policy}"
@@ -261,6 +424,45 @@ class CWRMFTrajectory:
     message: str
 
 
+def _mode_eigenvalue_gradients(
+    coefficients: ComplexArray,
+    vectors: ComplexArray,
+    *,
+    batched: bool,
+) -> FloatArray:
+    """Return ``v^dagger (dG/dz_j) v`` for each column of ``vectors``.
+
+    The per-mode form is the literal one: one ``a,jab,b->j`` contraction per
+    mode.  ``batched`` replaces the whole set by one ``ra,jab,rb->rj``
+    contraction; that is a different BLAS blocking, so it agrees with the
+    per-mode form only to roundoff and is therefore off by default.
+    """
+
+    count = int(vectors.shape[1])
+    if batched:
+        return np.asarray(
+            np.einsum(
+                "ra,jab,rb->rj",
+                vectors.conjugate().T,
+                coefficients,
+                vectors.T,
+                optimize=True,
+            ).real,
+            dtype=float,
+        )
+    gradients = np.empty((count, coefficients.shape[0]), dtype=float)
+    for row in range(count):
+        vector = vectors[:, row]
+        gradients[row] = np.einsum(
+            "a,jab,b->j",
+            vector.conjugate(),
+            coefficients,
+            vector,
+            optimize=True,
+        ).real
+    return gradients
+
+
 def _minimum_norm_inequality_step(
     gradients: FloatArray, offsets: FloatArray
 ) -> FloatArray | None:
@@ -305,26 +507,92 @@ def _project_correlation_trace_velocity(
     )
 
 
+_COMMUTATOR_ROW_TABLES: dict[
+    tuple[object, ...],
+    dict[MomentKey, tuple[tuple[int, MomentKey, complex], ...]],
+] = {}
+
+
+def _commutator_row_table(
+    words: tuple[object, ...],
+) -> dict[MomentKey, tuple[tuple[int, MomentKey, complex], ...]]:
+    """Return the compiled commutator table for one Hamiltonian word tuple.
+
+    Only the term coefficients of ``_hamiltonian_terms`` are time dependent;
+    its operator words are literals, so the commutator of a word with a
+    moment key is immutable.  The table is keyed on the word tuple so a
+    changed Hamiltonian basis compiles its own rows rather than reusing
+    these.
+    """
+
+    table = _COMMUTATOR_ROW_TABLES.get(words)
+    if table is None:
+        table = {}
+        _COMMUTATOR_ROW_TABLES[words] = table
+    return table
+
+
+def _commutator_rows(
+    table: dict[MomentKey, tuple[tuple[int, MomentKey, complex], ...]],
+    words: tuple[object, ...],
+    key: MomentKey,
+) -> tuple[tuple[int, MomentKey, complex], ...]:
+    """Return ``(term index, generated moment, coefficient)`` in loop order."""
+
+    rows = table.get(key)
+    if rows is None:
+        rows = tuple(
+            (index, generated, commutator_coefficient)
+            for index, hamiltonian_word in enumerate(words)
+            for generated, commutator_coefficient in _commutator(
+                hamiltonian_word, key
+            ).items()
+        )
+        table[key] = rows
+    return rows
+
+
+def _moment_derivative_from_terms(
+    key: MomentKey,
+    terms: tuple[tuple[float, object], ...],
+    table: dict[MomentKey, tuple[tuple[int, MomentKey, complex], ...]],
+    words: tuple[object, ...],
+    moments: Mapping[MomentKey, float],
+) -> float:
+    """Evaluate one moment rate against an already-built Hamiltonian term list.
+
+    The accumulation order is the compiled row order, which is the nested
+    term-then-commutator order of ``_moment_derivative``, so the sum is
+    bitwise the same.
+    """
+
+    derivative = 0.0j
+    for index, generated, commutator_coefficient in _commutator_rows(
+        table, words, key
+    ):
+        coefficient = terms[index][0]
+        value = 1.0 if generated.degree == 0 else moments[generated]
+        derivative += (
+            1j * coefficient * commutator_coefficient * float(value)
+        )
+    if abs(derivative.imag) > 5e-9:
+        raise FloatingPointError(
+            f"Hermitian moment {key} acquired complex rate {derivative}"
+        )
+    return float(derivative.real)
+
+
 def _moment_derivative(
     key: MomentKey,
     time: float,
     parameters: DimerParameters,
     moments: Mapping[MomentKey, float],
 ) -> float:
-    derivative = 0.0j
-    for coefficient, hamiltonian_word in _hamiltonian_terms(time, parameters):
-        for generated, commutator_coefficient in _commutator(
-            hamiltonian_word, key
-        ).items():
-            value = 1.0 if generated.degree == 0 else moments[generated]
-            derivative += (
-                1j * coefficient * commutator_coefficient * float(value)
-            )
-    if abs(derivative.imag) > 5e-9:
-        raise FloatingPointError(
-            f"Hermitian moment {key} acquired complex rate {derivative}"
-        )
-    return float(derivative.real)
+    terms = _hamiltonian_terms(time, parameters)
+    words = tuple(word for _, word in terms)
+    return _moment_derivative_from_terms(
+        key, terms, _commutator_row_table(words), words, moments
+    )
 
 
 class CarriedWitnessGeometry:
@@ -577,11 +845,16 @@ class CarriedWitnessGeometry:
         )
 
     def _center_row_lookup(self) -> Mapping[MomentKey, int]:
+        cached = getattr(self, "_center_row_lookup_cache", None)
+        if cached is not None:
+            return cached
         result: dict[MomentKey, int] = {}
         for row in range(9):
             key = self._relative_row_key(row)
             result.setdefault(key, row)
-        return MappingProxyType(result)
+        cached = MappingProxyType(result)
+        self._center_row_lookup_cache = cached
+        return cached
 
     def _compile_readable_center_cross(
         self,
@@ -619,6 +892,65 @@ class CarriedWitnessGeometry:
         )
         return expanded, tuple(generated_rows)
 
+    def _extra_row_lookup(self) -> Mapping[MomentKey, int]:
+        cached = getattr(self, "_extra_row_lookup_cache", None)
+        if cached is not None:
+            return cached
+        cached = MappingProxyType(
+            {
+                self._relative_row_key(9 + index): index
+                for index in range(self.extra_count)
+            }
+        )
+        self._extra_row_lookup_cache = cached
+        return cached
+
+    def center_cross_evaluator(
+        self,
+        retained: FloatArray,
+        completion: FloatArray,
+    ) -> Callable[[int, MomentKey], float]:
+        """Return the center-cross moment reader for one fixed state pair.
+
+        Same arithmetic as ``center_cross_value``: the core overlap product
+        and the two row lookups depend only on ``retained`` and
+        ``completion``, so they are formed once here instead of once per
+        lookup, and the returned values are bitwise those of the one-shot
+        form.
+        """
+
+        core_lookup = self._center_row_lookup()
+        extra_lookup = self._extra_row_lookup()
+        overlap = (
+            self._center_directions.conjugate().T
+            @ self.core_matrix(retained)
+            @ self._relative_restriction.T
+        )
+        _, center = self.split_completion(completion)
+        scales = self.center_cross_scales
+
+        def read(center_index: int, key: MomentKey) -> float:
+            if key in core_lookup:
+                value = overlap[center_index, core_lookup[key]]
+            else:
+                try:
+                    extra_index = extra_lookup[key]
+                except KeyError as error:
+                    raise KeyError(
+                        f"center cross moment {key} is not carried"
+                    ) from error
+                value = (
+                    center[center_index, extra_index]
+                    * scales[center_index, extra_index]
+                )
+            if abs(complex(value).imag) > 5e-9:
+                raise FloatingPointError(
+                    f"Hermitian center-cross moment became complex: {value}"
+                )
+            return float(complex(value).real)
+
+        return read
+
     def center_cross_value(
         self,
         center_index: int,
@@ -626,34 +958,9 @@ class CarriedWitnessGeometry:
         retained: FloatArray,
         completion: FloatArray,
     ) -> float:
-        core_lookup = self._center_row_lookup()
-        if key in core_lookup:
-            core = self.core_matrix(retained)
-            overlap = (
-                self._center_directions.conjugate().T
-                @ core
-                @ self._relative_restriction.T
-            )
-            value = overlap[center_index, core_lookup[key]]
-        else:
-            extra_lookup = {
-                self._relative_row_key(9 + index): index
-                for index in range(self.extra_count)
-            }
-            try:
-                extra_index = extra_lookup[key]
-            except KeyError as error:
-                raise KeyError(f"center cross moment {key} is not carried") from error
-            _, center = self.split_completion(completion)
-            value = (
-                center[center_index, extra_index]
-                * self.center_cross_scales[center_index, extra_index]
-            )
-        if abs(complex(value).imag) > 5e-9:
-            raise FloatingPointError(
-                f"Hermitian center-cross moment became complex: {value}"
-            )
-        return float(complex(value).real)
+        return self.center_cross_evaluator(retained, completion)(
+            center_index, key
+        )
 
 
 class CarriedWitnessModel:
@@ -673,6 +980,80 @@ class CarriedWitnessModel:
         )
         self._retained_scales: FloatArray | None = None
         self._bundle_rank_hint = 0
+        self._bundle_accepted_rank = 0
+        self._bundle_accepted_basis: ComplexArray | None = None
+        self._tier_clock: _TierClock | None = None
+        self._step_scaled_coefficients: tuple[float, ComplexArray] | None = None
+        self._instance_recorder: ConicInstanceRecorder | None = None
+
+    def enable_tier_timing(self) -> None:
+        """Begin accumulating the named per-tier wall times (off by default)."""
+
+        self._tier_clock = _TierClock()
+
+    @property
+    def tier_timing(self) -> dict[str, dict[str, float]] | None:
+        """Return the accumulated per-tier seconds and call counts, or None."""
+
+        if self._tier_clock is None:
+            return None
+        return self._tier_clock.report()
+
+    def enable_instance_recording(
+        self, recorder: ConicInstanceRecorder
+    ) -> None:
+        """Save every guarded conic problem and its solution (off by default).
+
+        The recorder stores the exact operands of each Clarabel call -- the
+        objective matrix and vector, the cone matrix and right-hand side, the
+        cone specification, the solver settings, the tier name and the radial
+        atom index -- together with the returned solution.  An uninstrumented
+        rollout pays one attribute read per solver-tier iteration and writes
+        nothing.
+        """
+
+        self._instance_recorder = recorder
+
+    @property
+    def instance_recorder(self) -> ConicInstanceRecorder | None:
+        """Return the installed conic instance recorder, or ``None``."""
+
+        return self._instance_recorder
+
+    def _apply_solver_setting_profile(
+        self, solver_settings: clarabel.DefaultSettings
+    ) -> None:
+        """Overlay the named Clarabel setting set, if one is declared.
+
+        At the default ``pinned_single_thread`` nothing is touched, so the
+        guarded path is bit for bit the one the parity anchors were measured
+        under.
+        """
+
+        name = self.settings.solver_setting_profile
+        if name == DEFAULT_SOLVER_SETTING_PROFILE:
+            return
+        for field_name, value in CWRMF_SOLVER_SETTING_PROFILES[name].items():
+            setattr(solver_settings, field_name, value)
+
+    def _step_scaled_completion_coefficients(
+        self, step_size: float
+    ) -> ComplexArray:
+        """Return ``step_size`` times the compiled completion coefficients.
+
+        The compiled (340, 62, 62) tensor is immutable, so the step-scaled
+        product depends only on the step size.  Caching it on the exact
+        ``float`` avoids rebuilding about 20.9 MB on every solver-tier entry
+        while returning the identical product.
+        """
+
+        cached = self._step_scaled_coefficients
+        if cached is not None and cached[0] == step_size:
+            return cached[1]
+        scaled = step_size * self.geometry.scaled_completion_coefficients()
+        scaled.flags.writeable = False
+        self._step_scaled_coefficients = (step_size, scaled)
+        return scaled
 
     @property
     def bundle_rank_hint(self) -> int:
@@ -686,6 +1067,161 @@ class CarriedWitnessModel:
         if value < 0 or value > 61:
             raise ValueError("bundle rank hint must lie between zero and 61")
         self._bundle_rank_hint = int(value)
+
+    @property
+    def bundle_accepted_rank(self) -> int:
+        """Return the rank of the last accepted bundle solve, or zero."""
+
+        return self._bundle_accepted_rank
+
+    @property
+    def bundle_accepted_basis(self) -> ComplexArray | None:
+        """Return the working set of the last accepted bundle solve.
+
+        This is the orthonormal 62-row block the adaptive bundle tier
+        accepted on, the continuation quantity the carried seed policies
+        read.  It is ``None`` until a bundle solve has been accepted.
+        """
+
+        return self._bundle_accepted_basis
+
+    def restore_bundle_accepted_rank(self, value: int) -> None:
+        """Restore the previous accepted bundle rank for a continuation.
+
+        The scalar the ``previous_accepted_rank`` and
+        ``previous_accepted_rank_margin`` seed policies read.  It carries no
+        directions; :meth:`restore_bundle_accepted_basis` carries those.
+        """
+
+        if value < 0 or value > 61:
+            raise ValueError(
+                "bundle accepted rank must lie between zero and 61"
+            )
+        self._bundle_accepted_rank = int(value)
+
+    def restore_bundle_accepted_basis(
+        self,
+        basis: ComplexArray,
+        rank: int | None = None,
+    ) -> None:
+        """Restore the accepted working set without changing the state.
+
+        The companion of :meth:`restore_bundle_rank_hint`: the rank hint
+        alone tells a resumed rollout how wide its first working set must
+        be, not which directions it contained, so a resume under a carried
+        seed policy that restores only the hint starts its first atom from
+        the recorded rule.  ``basis`` is the 62-row orthonormal block; the
+        optional ``rank`` is the accepted rank the trimming cap
+        ``bundle_seed_rank_margin`` is measured against, and defaults to
+        the block's own column count.
+        """
+
+        array = np.asarray(basis, dtype=complex)
+        if array.ndim != 2 or array.shape[0] != 62:
+            raise ValueError(
+                "bundle accepted basis must be a 62-row complex block"
+            )
+        columns = int(array.shape[1])
+        if columns < 1 or columns > 61:
+            raise ValueError(
+                "bundle accepted basis must carry between one and 61 columns"
+            )
+        accepted = columns if rank is None else int(rank)
+        if accepted < 0 or accepted > 61:
+            raise ValueError(
+                "bundle accepted rank must lie between zero and 61"
+            )
+        self._bundle_accepted_basis = array
+        self._bundle_accepted_rank = accepted
+
+    def _bundle_seed_working_set(
+        self,
+        predictor_values: FloatArray,
+        predictor_vectors: ComplexArray,
+        spectral_rank: int,
+        shifted_predictor: ComplexArray,
+    ) -> ComplexArray:
+        """Return the starting working set of the adaptive bundle tier.
+
+        At the default ``monotone_hint`` policy this is exactly the recorded
+        construction: the ``max(spectral_rank, bundle_rank_hint)`` lowest
+        eigenvectors of the shifted 62-row predictor Gram, capped at
+        ``critical_mode_limit``.  Every other policy is a declared
+        experiment; the compressed problem built on the returned working set
+        is formed by the same code either way.
+        """
+
+        settings = self.settings
+        limit = settings.critical_mode_limit
+        policy = settings.bundle_seed_policy
+        if policy in {"carried_accepted_basis", "carried_accepted_basis_exit"}:
+            carried = self._bundle_accepted_basis
+            if carried is not None:
+                if policy == "carried_accepted_basis_exit":
+                    compressed = (
+                        carried.conjugate().T @ shifted_predictor @ carried
+                    )
+                    carried_values, carried_vectors = np.linalg.eigh(
+                        0.5 * (compressed + compressed.conjugate().T)
+                    )
+                    retained_modes = np.flatnonzero(
+                        carried_values - settings.psd_inflation
+                        < settings.bundle_seed_spectral_threshold
+                    )
+                    carried = carried @ carried_vectors[:, retained_modes]
+                    if carried.shape[1] == 0:
+                        seed = self._bundle_rank_hint
+                        required_rank = min(limit, max(spectral_rank, seed))
+                        selected = np.arange(required_rank, dtype=np.int64)
+                        return predictor_vectors[:, selected]
+                augmented = np.column_stack(
+                    (predictor_vectors[:, :spectral_rank], carried)
+                )
+                left, singular_values, _ = np.linalg.svd(
+                    augmented, full_matrices=False
+                )
+                rank = int(np.count_nonzero(singular_values > 1e-10))
+                working = left[:, : min(rank, limit)]
+                cap = (
+                    self._bundle_accepted_rank
+                    + settings.bundle_seed_rank_margin
+                )
+                if (
+                    settings.bundle_seed_rank_margin > 0
+                    and working.shape[1] > cap
+                ):
+                    compressed = (
+                        working.conjugate().T @ shifted_predictor @ working
+                    )
+                    _, working_vectors = np.linalg.eigh(
+                        0.5 * (compressed + compressed.conjugate().T)
+                    )
+                    working = working @ working_vectors[:, :cap]
+                return working
+            seed = self._bundle_rank_hint
+        elif policy == "spectral_threshold":
+            unshifted = predictor_values - settings.psd_inflation
+            seed = max(
+                self._bundle_rank_hint,
+                int(
+                    np.count_nonzero(
+                        unshifted < settings.bundle_seed_spectral_threshold
+                    )
+                ),
+            )
+        elif policy == "previous_accepted_rank":
+            seed = self._bundle_accepted_rank
+        elif policy == "previous_accepted_rank_margin":
+            seed = (
+                self._bundle_accepted_rank + settings.bundle_seed_rank_margin
+                if self._bundle_accepted_rank > 0
+                else 0
+            )
+        else:
+            seed = self._bundle_rank_hint
+        required_rank = min(limit, max(spectral_rank, seed))
+        selected = np.arange(required_rank, dtype=np.int64)
+        return predictor_vectors[:, selected]
 
     def prepare(self, *, phonon_cutoff: int = 16) -> CWRMFPreparation:
         geometry = self.geometry
@@ -783,6 +1319,8 @@ class CarriedWitnessModel:
     def spectral_enclosure(
         self, matrix: ComplexArray, *, shifted: bool
     ) -> SpectralEnclosure:
+        clock = self._tier_clock
+        tier_started = perf_counter() if clock is not None else 0.0
         value = np.asarray(matrix, dtype=complex)
         if shifted:
             value = value + self.settings.psd_inflation * np.eye(
@@ -811,7 +1349,7 @@ class CarriedWitnessModel:
         error = residual + orthogonality * max(
             1.0, float(np.max(np.abs(eigenvalues)))
         ) + rounding
-        return SpectralEnclosure(
+        enclosure = SpectralEnclosure(
             eigenvalues=np.asarray(eigenvalues, dtype=float),
             lower_bounds=np.asarray(eigenvalues - error, dtype=float),
             upper_bounds=np.asarray(eigenvalues + error, dtype=float),
@@ -819,6 +1357,9 @@ class CarriedWitnessModel:
             backward_error=error,
             orthogonality_error=orthogonality,
         )
+        if clock is not None:
+            clock.add("gram_eigendecomposition", tier_started)
+        return enclosure
 
     def retained_velocity(
         self, time: float, retained: FloatArray, completion: FloatArray
@@ -847,10 +1388,13 @@ class CarriedWitnessModel:
         raw_velocity = matrix_derivative_to_raw_moment_velocity(
             matrix_state, augmented
         )
+        terms = _hamiltonian_terms(time, self.parameters)
+        words = tuple(word for _, word in terms)
+        table = _commutator_row_table(words)
         entrance_velocity = np.asarray(
             [
-                _moment_derivative(
-                    key, time, self.parameters, moments
+                _moment_derivative_from_terms(
+                    key, terms, table, words, moments
                 )
                 for key in ENTRANCE_RELATIVE_MOMENT_KEYS
             ],
@@ -863,11 +1407,14 @@ class CarriedWitnessModel:
     ) -> FloatArray:
         geometry = self.geometry
         moments = geometry.moment_mapping(retained, completion)
+        terms = _hamiltonian_terms(time, self.parameters)
+        words = tuple(word for _, word in terms)
+        table = _commutator_row_table(words)
         result = np.zeros(geometry.completion_count, dtype=float)
         for index in geometry.readable_frontier_indices:
             key = geometry.outer_extension.frontier_keys[int(index)]
-            result[index] = _moment_derivative(
-                key, time, self.parameters, moments
+            result[index] = _moment_derivative_from_terms(
+                key, terms, table, words, moments
             ) / geometry.outer_extension.frontier_scales[index]
 
         _, center_standardized = geometry.split_completion(completion)
@@ -891,29 +1438,26 @@ class CarriedWitnessModel:
                 for index in geometry.readable_center_indices
             }
         )
+        center_cross_at = geometry.center_cross_evaluator(retained, completion)
         for extra_index in readable_extra:
             key = geometry._relative_row_key(9 + extra_index)
-            relative_terms = _hamiltonian_terms(time, self.parameters)
+            relative_terms = terms
+            relative_rows = _commutator_rows(table, words, key)
             for center_index in range(2):
                 derivative = float(center_rates[center_index][extra_index])
-                for coefficient, hamiltonian_word in relative_terms:
-                    for generated, commutator_coefficient in _commutator(
-                        hamiltonian_word, key
-                    ).items():
-                        cross = geometry.center_cross_value(
-                            center_index,
-                            generated,
-                            retained,
-                            completion,
-                        )
-                        derivative += float(
-                            (
-                                1j
-                                * coefficient
-                                * commutator_coefficient
-                                * cross
-                            ).real
-                        )
+                for row_index, generated, commutator_coefficient in (
+                    relative_rows
+                ):
+                    coefficient = relative_terms[row_index][0]
+                    cross = center_cross_at(center_index, generated)
+                    derivative += float(
+                        (
+                            1j
+                            * coefficient
+                            * commutator_coefficient
+                            * cross
+                        ).real
+                    )
                 local_index = center_index * geometry.extra_count + extra_index
                 result[geometry.frontier_count + local_index] = (
                     derivative
@@ -1035,6 +1579,7 @@ class CarriedWitnessModel:
         """
 
         geometry = self.geometry
+        clock = self._tier_clock
         readable = geometry.readable_completion_indices
         free = np.setdiff1d(
             np.arange(geometry.completion_count, dtype=np.int64),
@@ -1048,7 +1593,10 @@ class CarriedWitnessModel:
             )
             + self.settings.psd_inflation * np.eye(62, dtype=complex)
         )
+        eigen_started = perf_counter() if clock is not None else 0.0
         eigenvalues, eigenvectors = np.linalg.eigh(shifted_predictor)
+        if clock is not None:
+            clock.add("gram_eigendecomposition", eigen_started)
         critical_count = max(
             int(minimum_critical_modes),
             int(
@@ -1082,10 +1630,9 @@ class CarriedWitnessModel:
                 critical_count,
             )
 
-        free_coefficients = (
+        free_coefficients = self._step_scaled_completion_coefficients(
             step_size
-            * geometry.scaled_completion_coefficients()[free]
-        )
+        )[free]
         positive_base = (
             positive_basis.conjugate().T
             @ shifted_predictor
@@ -1237,6 +1784,7 @@ class CarriedWitnessModel:
             schur_cone_scale = 1e5
             linear_base *= schur_cone_scale
             derivatives = derivatives * schur_cone_scale
+            assembly_started = perf_counter() if clock is not None else 0.0
             real_base = _realify_hermitian(linear_base)
             coefficient_vectors = np.column_stack(
                 [
@@ -1263,6 +1811,8 @@ class CarriedWitnessModel:
                 )
             )
             cones.append(clarabel.SecondOrderConeT(free.size + 1))
+            if clock is not None:
+                clock.add("coefficient_assembly_and_svec", assembly_started)
             solver_settings = clarabel.DefaultSettings()
             solver_settings.verbose = False
             solver_settings.max_threads = 1
@@ -1274,14 +1824,45 @@ class CarriedWitnessModel:
             solver_settings.iterative_refinement_max_iter = 10
             solver_settings.iterative_refinement_abstol = 1e-12
             solver_settings.iterative_refinement_reltol = 1e-12
+            objective_matrix = sparse.eye(free.size, format="csc")
+            objective_vector = np.zeros(free.size)
+            assembled_cone_matrix = sparse.vstack(cone_blocks, format="csc")
+            assembled_cone_rhs = np.concatenate(cone_rhs)
+            self._apply_solver_setting_profile(solver_settings)
+            solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.eye(free.size, format="csc"),
-                np.zeros(free.size),
-                sparse.vstack(cone_blocks, format="csc"),
-                np.concatenate(cone_rhs),
+                objective_matrix,
+                objective_vector,
+                assembled_cone_matrix,
+                assembled_cone_rhs,
                 cones,
                 solver_settings,
             ).solve()
+            if clock is not None:
+                clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="critical_schur",
+                    iteration=sqp_iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=assembled_cone_matrix,
+                    cone_rhs=assembled_cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=desired,
+                    correction_indices=free,
+                    gram_predictor=shifted_predictor,
+                    desired_velocity=desired,
+                    completion_radius_squared=(
+                        ceiling**2 - retained_norm**2
+                    ),
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = f"SQP{1 + sqp_iteration}:{solution.status}"
             if solution.x is None or str(solution.status) not in {
                 "Solved",
@@ -1711,7 +2292,7 @@ class CarriedWitnessModel:
             )
             + self.settings.psd_inflation * np.eye(62, dtype=complex)
         )
-        coefficients = step_size * geometry.scaled_completion_coefficients()
+        coefficients = self._step_scaled_completion_coefficients(step_size)
         ceiling = self._velocity_ceiling(retained_velocity, desired)
         retained_norm = self._retained_scaled_norm(retained_velocity)
         completion_radius_squared = ceiling**2 - retained_norm**2
@@ -1922,6 +2503,7 @@ class CarriedWitnessModel:
         """Solve the relaxed tier with an adaptively enlarged PSD bundle."""
 
         geometry = self.geometry
+        clock = self._tier_clock
         readable = geometry.readable_completion_indices
         shifted_predictor = (
             geometry.scaled_unified_matrix(
@@ -1930,23 +2512,32 @@ class CarriedWitnessModel:
             )
             + self.settings.psd_inflation * np.eye(62, dtype=complex)
         )
-        coefficients = step_size * geometry.scaled_completion_coefficients()
+        coefficients = self._step_scaled_completion_coefficients(step_size)
+        eigen_started = perf_counter() if clock is not None else 0.0
         predictor_values, predictor_vectors = np.linalg.eigh(
             shifted_predictor
         )
+        if clock is not None:
+            clock.add("gram_eigendecomposition", eigen_started)
         selected = np.flatnonzero(
             predictor_values < self.settings.spectral_entry_threshold
         )
         if selected.size == 0:
             selected = np.asarray([0], dtype=np.int64)
         spectral_rank = int(selected.size)
-        required_rank = min(
-            self.settings.critical_mode_limit,
-            max(spectral_rank, self._bundle_rank_hint),
+        basis = self._bundle_seed_working_set(
+            predictor_values,
+            predictor_vectors,
+            spectral_rank,
+            shifted_predictor,
         )
-        selected = np.arange(required_rank, dtype=np.int64)
-        basis = predictor_vectors[:, selected]
+        seeded_rank = basis.shape[1]
+        padding_cursor = seeded_rank
         maximum_bundle = basis.shape[1]
+        compressed_margin = (
+            self.settings.schur_safety_margin
+            * self.settings.bundle_interior_overshoot
+        )
         backed_off_hint = False
         correction = np.zeros(geometry.completion_count, dtype=float)
         ceiling = self._velocity_ceiling(retained_velocity, desired)
@@ -1968,9 +2559,10 @@ class CarriedWitnessModel:
         normalized_residual = np.inf
 
         for iteration in range(self.settings.maximum_cutting_plane_iterations):
+            assembly_started = perf_counter() if clock is not None else 0.0
             compressed_base = (
                 basis.conjugate().T @ shifted_predictor @ basis
-                - self.settings.schur_safety_margin
+                - compressed_margin
                 * np.eye(basis.shape[1], dtype=complex)
             )
             compressed_coefficients = np.einsum(
@@ -2016,6 +2608,8 @@ class CarriedWitnessModel:
                 clarabel.PSDTriangleConeT(real_base.shape[0]),
                 clarabel.SecondOrderConeT(geometry.completion_count + 1),
             ]
+            if clock is not None:
+                clock.add("coefficient_assembly_and_svec", assembly_started)
             solver_settings = clarabel.DefaultSettings()
             solver_settings.verbose = False
             solver_settings.max_threads = 1
@@ -2028,14 +2622,43 @@ class CarriedWitnessModel:
             solver_settings.iterative_refinement_max_iter = 10
             solver_settings.iterative_refinement_abstol = 1e-13
             solver_settings.iterative_refinement_reltol = 1e-13
+            objective_matrix = sparse.diags(weights, format="csc")
+            objective_vector = regularization * desired
+            self._apply_solver_setting_profile(solver_settings)
+            solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.diags(weights, format="csc"),
-                regularization * desired,
+                objective_matrix,
+                objective_vector,
                 cone_matrix,
                 cone_rhs,
                 cones,
                 solver_settings,
             ).solve()
+            if clock is not None:
+                clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="bundle_cone",
+                    iteration=iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=cone_matrix,
+                    cone_rhs=cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=desired,
+                    correction_indices=np.arange(
+                        geometry.completion_count, dtype=np.int64
+                    ),
+                    gram_predictor=shifted_predictor,
+                    desired_velocity=desired,
+                    completion_radius_squared=completion_radius_squared,
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = (
                 f"bundle_cone:{solution.status}:iteration={iteration + 1}:"
                 f"rank={basis.shape[1]}"
@@ -2050,6 +2673,7 @@ class CarriedWitnessModel:
                     self._bundle_rank_hint = retry_rank
                     basis = predictor_vectors[:, :retry_rank]
                     maximum_bundle = basis.shape[1]
+                    padding_cursor = retry_rank
                     status += f":retry_with_rank={retry_rank}"
                     continue
                 break
@@ -2060,7 +2684,10 @@ class CarriedWitnessModel:
             candidate_matrix = 0.5 * (
                 candidate_matrix + candidate_matrix.conjugate().T
             )
+            eigen_started = perf_counter() if clock is not None else 0.0
             eigenvalues, eigenvectors = np.linalg.eigh(candidate_matrix)
+            if clock is not None:
+                clock.add("gram_eigendecomposition", eigen_started)
             readable_error = float(
                 np.linalg.norm(correction[readable])
                 / (1.0 + np.linalg.norm(desired[readable]))
@@ -2092,6 +2719,8 @@ class CarriedWitnessModel:
                         self._bundle_rank_hint,
                         maximum_bundle,
                     )
+                self._bundle_accepted_rank = int(basis.shape[1])
+                self._bundle_accepted_basis = basis
                 return (
                     True,
                     candidate,
@@ -2107,6 +2736,29 @@ class CarriedWitnessModel:
             augmented = np.column_stack(
                 (basis, eigenvectors[:, new_indices])
             )
+            if (
+                self.settings.bundle_growth_factor > 1.0
+                and normalized_residual > self.settings.bundle_growth_trigger
+            ):
+                target = _bundle_growth_target(
+                    self.settings.bundle_growth_factor,
+                    basis.shape[1],
+                    self.settings.critical_mode_limit,
+                )
+                extra = min(
+                    target - augmented.shape[1],
+                    predictor_vectors.shape[1] - padding_cursor,
+                )
+                if extra > 0:
+                    augmented = np.column_stack(
+                        (
+                            augmented,
+                            predictor_vectors[
+                                :, padding_cursor : padding_cursor + extra
+                            ],
+                        )
+                    )
+                    padding_cursor += extra
             left, singular_values, _ = np.linalg.svd(
                 augmented, full_matrices=False
             )
@@ -2166,8 +2818,9 @@ class CarriedWitnessModel:
         """Repair cone defects while retaining the readable-rate tolerance."""
 
         geometry = self.geometry
+        clock = self._tier_clock
         readable = geometry.readable_completion_indices
-        coefficients = step_size * geometry.scaled_completion_coefficients()
+        coefficients = self._step_scaled_completion_coefficients(step_size)
         candidate = np.asarray(candidate_velocity, dtype=float).copy()
         ceiling = self._velocity_ceiling(retained_velocity, desired)
         retained_norm = self._retained_scaled_norm(retained_velocity)
@@ -2311,14 +2964,50 @@ class CarriedWitnessModel:
             solver_settings.tol_feas = 1e-12
             polish_weights = np.full(geometry.completion_count, 1e-6)
             polish_weights[readable] = 1.0
+            objective_matrix = sparse.diags(polish_weights, format="csc")
+            objective_vector = np.zeros(geometry.completion_count)
+            self._apply_solver_setting_profile(solver_settings)
+            solve_started = perf_counter() if clock is not None else 0.0
             solution = clarabel.DefaultSolver(
-                sparse.diags(polish_weights, format="csc"),
-                np.zeros(geometry.completion_count),
+                objective_matrix,
+                objective_vector,
                 cone_matrix,
                 cone_rhs,
                 cones,
                 solver_settings,
             ).solve()
+            if clock is not None:
+                clock.add("clarabel_solve", solve_started)
+            if self._instance_recorder is not None:
+                self._instance_recorder.record(
+                    tier="terminal_polish",
+                    iteration=iteration + 1,
+                    step_size=step_size,
+                    objective_matrix=objective_matrix,
+                    objective_vector=objective_vector,
+                    cone_matrix=cone_matrix,
+                    cone_rhs=cone_rhs,
+                    cones=cones,
+                    solver_settings=solver_settings,
+                    base_velocity=candidate,
+                    correction_indices=np.arange(
+                        geometry.completion_count, dtype=np.int64
+                    ),
+                    gram_predictor=(
+                        geometry.scaled_unified_matrix(
+                            endpoint_retained,
+                            completion + step_size * desired,
+                        )
+                        + self.settings.psd_inflation
+                        * np.eye(62, dtype=complex)
+                    ),
+                    desired_velocity=desired,
+                    completion_radius_squared=completion_radius_squared,
+                    retained_scaled_norm=retained_norm,
+                    velocity_ceiling=ceiling,
+                    solution=solution,
+                    clarabel_solve_time=solution.solve_time,
+                )
             status = (
                 f"terminal_polish:{solution.status}:iteration={iteration + 1}"
             )
@@ -2352,6 +3041,7 @@ class CarriedWitnessModel:
         """Solve the relaxed-rate tier over the literal full Gram PSD cone."""
 
         geometry = self.geometry
+        clock = self._tier_clock
         readable = geometry.readable_completion_indices
         shifted_predictor = (
             geometry.scaled_unified_matrix(
@@ -2361,8 +3051,9 @@ class CarriedWitnessModel:
             + self.settings.psd_inflation * np.eye(62, dtype=complex)
             - self.settings.schur_safety_margin * np.eye(62, dtype=complex)
         )
-        coefficients = step_size * geometry.scaled_completion_coefficients()
+        coefficients = self._step_scaled_completion_coefficients(step_size)
         cone_scale = 1e5
+        assembly_started = perf_counter() if clock is not None else 0.0
         real_base = _realify_hermitian(shifted_predictor) * cone_scale
         base_vector = _clarabel_svec_upper(real_base)
         coefficient_vectors = np.column_stack(
@@ -2373,6 +3064,8 @@ class CarriedWitnessModel:
                 for coefficient in coefficients
             ]
         )
+        if clock is not None:
+            clock.add("coefficient_assembly_and_svec", assembly_started)
         ceiling = self._velocity_ceiling(retained_velocity, desired)
         retained_norm = self._retained_scaled_norm(retained_velocity)
         completion_radius_squared = ceiling**2 - retained_norm**2
@@ -2424,14 +3117,49 @@ class CarriedWitnessModel:
         solver_settings.iterative_refinement_max_iter = 10
         solver_settings.iterative_refinement_abstol = 1e-12
         solver_settings.iterative_refinement_reltol = 1e-12
+        objective_matrix = sparse.diags(weights, format="csc")
+        objective_vector = regularization * desired
+        self._apply_solver_setting_profile(solver_settings)
+        solve_started = perf_counter() if clock is not None else 0.0
         solution = clarabel.DefaultSolver(
-            sparse.diags(weights, format="csc"),
-            regularization * desired,
+            objective_matrix,
+            objective_vector,
             cone_matrix,
             cone_rhs,
             cones,
             solver_settings,
         ).solve()
+        if clock is not None:
+            clock.add("clarabel_solve", solve_started)
+        if self._instance_recorder is not None:
+            self._instance_recorder.record(
+                tier="full_cone",
+                iteration=1,
+                step_size=step_size,
+                objective_matrix=objective_matrix,
+                objective_vector=objective_vector,
+                cone_matrix=cone_matrix,
+                cone_rhs=cone_rhs,
+                cones=cones,
+                solver_settings=solver_settings,
+                base_velocity=desired,
+                correction_indices=np.arange(
+                    geometry.completion_count, dtype=np.int64
+                ),
+                gram_predictor=(
+                    geometry.scaled_unified_matrix(
+                        endpoint_retained,
+                        completion + step_size * desired,
+                    )
+                    + self.settings.psd_inflation * np.eye(62, dtype=complex)
+                ),
+                desired_velocity=desired,
+                completion_radius_squared=completion_radius_squared,
+                retained_scaled_norm=retained_norm,
+                velocity_ceiling=ceiling,
+                solution=solution,
+                clarabel_solve_time=solution.solve_time,
+            )
         status = f"full_cone:{solution.status}:iterations={solution.iterations}"
         if solution.x is None:
             return False, desired.copy(), status, np.inf, -np.inf, 62
@@ -2540,6 +3268,8 @@ class CarriedWitnessModel:
 
         geometry = self.geometry
         settings = self.settings
+        clock = self._tier_clock
+        tier_started = perf_counter() if clock is not None else 0.0
         floor = settings.event_gram_floor
         coefficients: ComplexArray | None = None
         current = np.asarray(completion, dtype=float).copy()
@@ -2552,31 +3282,31 @@ class CarriedWitnessModel:
             working = np.flatnonzero(eigenvalues < floor)
             if coefficients is None:
                 coefficients = geometry.scaled_completion_coefficients()
-            gradients = np.empty(
-                (working.size, current.size), dtype=float
+            gradients = _mode_eigenvalue_gradients(
+                coefficients,
+                eigenvectors[:, working],
+                batched=settings.batched_mode_gradients,
             )
             offsets = np.empty(working.size, dtype=float)
             for row, index in enumerate(working):
                 value = float(eigenvalues[int(index)])
-                vector = eigenvectors[:, int(index)]
-                gradients[row] = np.einsum(
-                    "a,jab,b->j",
-                    vector.conjugate(),
-                    coefficients,
-                    vector,
-                    optimize=True,
-                ).real
                 offsets[row] = (
                     (floor - value) if value < -floor else (-floor - value)
                 )
             update = _minimum_norm_inequality_step(gradients, offsets)
             if update is None or not np.all(np.isfinite(update)):
+                if clock is not None:
+                    clock.add("retraction", tier_started)
                 return None
             current = current + update
             iterations += 1
         matrix = geometry.scaled_unified_matrix(retained, current)
         if float(np.linalg.eigvalsh(matrix)[0]) < -floor:
+            if clock is not None:
+                clock.add("retraction", tier_started)
             return None
+        if clock is not None:
+            clock.add("retraction", tier_started)
         return current, iterations
 
     def _event_guard_fast_path(
@@ -2728,9 +3458,15 @@ class CarriedWitnessModel:
     ) -> RadialAtomResult:
         started = perf_counter()
         geometry = self.geometry
+        clock = self._tier_clock
+        if self._instance_recorder is not None:
+            self._instance_recorder.begin_atom(time)
+        tier_started = perf_counter() if clock is not None else 0.0
         retained, completion = geometry.unpack_state(state)
         retained_velocity = self.retained_velocity(time, retained, completion)
         desired = self.desired_completion_velocity(time, retained, completion)
+        if clock is not None:
+            clock.add("unguarded_velocity", tier_started)
         endpoint_retained = retained + step_size * retained_velocity
         candidate_velocity = desired.copy()
         correction_iterations = 0
@@ -3045,18 +3781,21 @@ def negative_mode_coupling(
         if negative_indices.size
         else np.asarray([weakest_index], dtype=int)
     )
-    for index in audited_indices:
-        vector = eigenvectors[:, int(index)]
-        gradient = np.asarray(
-            np.einsum(
-                "a,jab,b->j",
-                vector.conjugate(),
-                coefficients,
-                vector,
-                optimize=True,
-            ).real,
-            dtype=float,
-        )
+    # The duck-typed adapter the fixed-dictionary route passes here carries
+    # no CWRMF settings, so the named batching option defaults off for it.
+    audited_gradients = _mode_eigenvalue_gradients(
+        coefficients,
+        eigenvectors[:, audited_indices],
+        batched=bool(
+            getattr(
+                getattr(model, "settings", None),
+                "batched_mode_gradients",
+                False,
+            )
+        ),
+    )
+    for row, index in enumerate(audited_indices):
+        gradient = audited_gradients[row]
         gradient_norm = float(np.linalg.norm(gradient))
         if gradient_norm <= 1e-15:
             continue
@@ -3130,6 +3869,138 @@ def negative_mode_coupling(
     }
 
 
+@dataclass(frozen=True)
+class _StepAttempt:
+    """One attempted SSPRK2 step and the diagnostics it produced."""
+
+    success: bool
+    state: FloatArray
+    node_minimum: float
+    node_lower_bound: float
+    maximum_atom_seconds: float
+    correction_iterations: int
+    readable_rate_residual: float
+    completion_correction_norm: float
+    velocity_margin: float
+    critical_modes: int
+    atom_evaluations: int
+    first_message: str
+    second_message: str
+    message: str
+
+
+def _cwrmf_ssprk2_step(
+    model: CarriedWitnessModel,
+    time: float,
+    node_time: float,
+    state: FloatArray,
+    step_size: float,
+) -> _StepAttempt:
+    """Take one SSPRK2 step of ``step_size`` and report its convex node."""
+
+    geometry = model.geometry
+    first = model.radial_atom(time, state, step_size)
+    if not first.success:
+        return _StepAttempt(
+            success=False,
+            state=state,
+            node_minimum=float("nan"),
+            node_lower_bound=float("nan"),
+            maximum_atom_seconds=first.elapsed_seconds,
+            correction_iterations=first.correction_iterations,
+            readable_rate_residual=first.readable_rate_residual,
+            completion_correction_norm=first.completion_correction_norm,
+            velocity_margin=first.velocity_margin,
+            critical_modes=first.critical_modes,
+            atom_evaluations=1,
+            first_message=first.message,
+            second_message="",
+            message=f"first atom at t={time:.6f}: {first.message}",
+        )
+    second = model.radial_atom(time + step_size, first.endpoint, step_size)
+    if not second.success:
+        return _StepAttempt(
+            success=False,
+            state=state,
+            node_minimum=float("nan"),
+            node_lower_bound=float("nan"),
+            maximum_atom_seconds=max(
+                first.elapsed_seconds, second.elapsed_seconds
+            ),
+            correction_iterations=max(
+                first.correction_iterations, second.correction_iterations
+            ),
+            readable_rate_residual=max(
+                first.readable_rate_residual, second.readable_rate_residual
+            ),
+            completion_correction_norm=max(
+                first.completion_correction_norm,
+                second.completion_correction_norm,
+            ),
+            velocity_margin=min(
+                first.velocity_margin, second.velocity_margin
+            ),
+            critical_modes=max(first.critical_modes, second.critical_modes),
+            atom_evaluations=2,
+            first_message=first.message,
+            second_message=second.message,
+            message=(
+                f"second atom at t={time + step_size:.6f}: {second.message}"
+            ),
+        )
+    node = 0.5 * state + 0.5 * second.endpoint
+    retained, completion = geometry.unpack_state(node)
+    matrix = geometry.scaled_unified_matrix(retained, completion)
+    enclosure = model.spectral_enclosure(matrix, shifted=True)
+    node_minimum = float(np.linalg.eigvalsh(matrix)[0])
+    # The Gram is affine in the state, so the convex SSPRK node cannot be
+    # below the weaker of the two accepted endpoint contracts; the
+    # event-triggered policy therefore checks its declared hard floor
+    # rather than the always-on shifted cone.
+    node_unresolved = (
+        node_minimum < -model.settings.event_gram_hard_floor
+        if model.settings.guard_policy == "event_triggered"
+        else enclosure.minimum_lower_bound < 0.0
+    )
+    common = {
+        "maximum_atom_seconds": max(
+            first.elapsed_seconds, second.elapsed_seconds
+        ),
+        "correction_iterations": max(
+            first.correction_iterations, second.correction_iterations
+        ),
+        "readable_rate_residual": max(
+            first.readable_rate_residual, second.readable_rate_residual
+        ),
+        "completion_correction_norm": max(
+            first.completion_correction_norm,
+            second.completion_correction_norm,
+        ),
+        "velocity_margin": min(first.velocity_margin, second.velocity_margin),
+        "critical_modes": max(first.critical_modes, second.critical_modes),
+        "atom_evaluations": 2,
+        "first_message": first.message,
+        "second_message": second.message,
+    }
+    if model.settings.enforce_gram_guard and node_unresolved:
+        return _StepAttempt(
+            success=False,
+            state=state,
+            node_minimum=node_minimum,
+            node_lower_bound=enclosure.minimum_lower_bound,
+            message=f"SSPRK convex node unresolved at t={node_time:.6f}",
+            **common,
+        )
+    return _StepAttempt(
+        success=True,
+        state=node,
+        node_minimum=node_minimum,
+        node_lower_bound=enclosure.minimum_lower_bound,
+        message="accepted",
+        **common,
+    )
+
+
 def integrate_cwrmf_ssprk2(
     model: CarriedWitnessModel,
     initial_state: FloatArray,
@@ -3137,13 +4008,37 @@ def integrate_cwrmf_ssprk2(
     initial_time: float = 0.0,
     final_time: float,
     time_step: float,
+    maximum_step_subdivisions: int = 0,
     progress: Callable[[str], None] | None = None,
     checkpoint: Callable[[int, float, FloatArray], None] | None = None,
+    stop_requested: Callable[[int, float], bool] | None = None,
 ) -> CWRMFTrajectory:
-    """Integrate the direct fixed-archive CWRMF branch with SSPRK2."""
+    """Integrate the direct fixed-archive CWRMF branch with SSPRK2.
+
+    ``maximum_step_subdivisions`` is the declared bound on local step
+    halving.  At the default zero a failed radial atom or an unresolved
+    convex node ends the trajectory, which is the recorded behaviour.  At
+    depth ``d`` the failed interval is retried from the last accepted state
+    as ``2**k`` steps of ``time_step / 2**k`` for ``k = 1 .. d``, and the
+    reported grid, the guard policy, and the acceptance contract are
+    unchanged: only the local step size is.
+
+    ``stop_requested`` is the caller's own early stop, off at the default
+    ``None`` and never consulted then.  When it is given it is called after
+    every accepted step other than the last, with the number of completed
+    steps and the time that step reached, and after the checkpoint callback
+    has already recorded that state; returning ``True`` ends the rollout at
+    that accepted step.  The returned trajectory carries the steps taken,
+    ``success`` is ``True`` because every step it reports was accepted, and
+    ``message`` says the rollout stopped on the caller's request.  Nothing
+    about the grid, the step size or the acceptance contract changes: the
+    caller is choosing where to stop, not how to integrate.
+    """
 
     if initial_time < 0.0 or final_time <= initial_time or time_step <= 0.0:
         raise ValueError("times must be ordered and time_step must be positive")
+    if maximum_step_subdivisions < 0:
+        raise ValueError("maximum_step_subdivisions must be nonnegative")
     duration = final_time - initial_time
     intervals = int(round(duration / time_step))
     if not np.isclose(intervals * time_step, duration, atol=1e-12):
@@ -3169,107 +4064,102 @@ def integrate_cwrmf_ssprk2(
     lower_bounds[0] = initial_enclosure.minimum_lower_bound
     atom_evaluations = 0
 
+    def _truncated(
+        step: int, message: str, *, success: bool = False
+    ) -> CWRMFTrajectory:
+        return CWRMFTrajectory(
+            times=times[: step + 1],
+            states=states[: step + 1],
+            minimum_unshifted_eigenvalues=minima[: step + 1],
+            minimum_shifted_lower_bounds=lower_bounds[: step + 1],
+            maximum_atom_seconds=maximum_atom_seconds[: step + 1],
+            correction_iterations=iterations[: step + 1],
+            readable_rate_residuals=readable[: step + 1],
+            completion_correction_norms=corrections[: step + 1],
+            velocity_margins=velocity_margins[: step + 1],
+            critical_modes=critical_modes[: step + 1],
+            completed_steps=step,
+            atom_evaluations=atom_evaluations,
+            success=success,
+            message=message,
+        )
+
     for step in range(intervals):
         time = float(times[step])
-        first = model.radial_atom(
-            time,
-            state,
-            time_step,
-        )
-        atom_evaluations += 1
-        if not first.success:
-            return CWRMFTrajectory(
-                times=times[: step + 1],
-                states=states[: step + 1],
-                minimum_unshifted_eigenvalues=minima[: step + 1],
-                minimum_shifted_lower_bounds=lower_bounds[: step + 1],
-                maximum_atom_seconds=maximum_atom_seconds[: step + 1],
-                correction_iterations=iterations[: step + 1],
-                readable_rate_residuals=readable[: step + 1],
-                completion_correction_norms=corrections[: step + 1],
-                velocity_margins=velocity_margins[: step + 1],
-                critical_modes=critical_modes[: step + 1],
-                completed_steps=step,
-                atom_evaluations=atom_evaluations,
-                success=False,
-                message=f"first atom at t={time:.6f}: {first.message}",
+        node_time = float(times[step + 1])
+        attempt = _cwrmf_ssprk2_step(model, time, node_time, state, time_step)
+        atom_evaluations += attempt.atom_evaluations
+        depth = 0
+        while not attempt.success and depth < maximum_step_subdivisions:
+            depth += 1
+            substeps = 2**depth
+            sub_size = time_step / substeps
+            sub_state = state
+            accepted: list[_StepAttempt] = []
+            failure: _StepAttempt | None = None
+            for index in range(substeps):
+                sub = _cwrmf_ssprk2_step(
+                    model,
+                    time + index * sub_size,
+                    time + (index + 1) * sub_size,
+                    sub_state,
+                    sub_size,
+                )
+                atom_evaluations += sub.atom_evaluations
+                if not sub.success:
+                    failure = sub
+                    break
+                accepted.append(sub)
+                sub_state = sub.state
+            if failure is None:
+                last = accepted[-1]
+                attempt = _StepAttempt(
+                    success=True,
+                    state=last.state,
+                    node_minimum=last.node_minimum,
+                    node_lower_bound=last.node_lower_bound,
+                    maximum_atom_seconds=max(
+                        item.maximum_atom_seconds for item in accepted
+                    ),
+                    correction_iterations=max(
+                        item.correction_iterations for item in accepted
+                    ),
+                    readable_rate_residual=max(
+                        item.readable_rate_residual for item in accepted
+                    ),
+                    completion_correction_norm=max(
+                        item.completion_correction_norm for item in accepted
+                    ),
+                    velocity_margin=min(
+                        item.velocity_margin for item in accepted
+                    ),
+                    critical_modes=max(
+                        item.critical_modes for item in accepted
+                    ),
+                    atom_evaluations=sum(
+                        item.atom_evaluations for item in accepted
+                    ),
+                    first_message=last.first_message,
+                    second_message=last.second_message,
+                    message=f"subdivision_depth={depth}",
+                )
+            else:
+                attempt = failure
+        if not attempt.success:
+            suffix = (
+                "" if depth == 0 else f" at subdivision depth {depth}"
             )
-        second = model.radial_atom(
-            time + time_step,
-            first.endpoint,
-            time_step,
-        )
-        atom_evaluations += 1
-        if not second.success:
-            return CWRMFTrajectory(
-                times=times[: step + 1],
-                states=states[: step + 1],
-                minimum_unshifted_eigenvalues=minima[: step + 1],
-                minimum_shifted_lower_bounds=lower_bounds[: step + 1],
-                maximum_atom_seconds=maximum_atom_seconds[: step + 1],
-                correction_iterations=iterations[: step + 1],
-                readable_rate_residuals=readable[: step + 1],
-                completion_correction_norms=corrections[: step + 1],
-                velocity_margins=velocity_margins[: step + 1],
-                critical_modes=critical_modes[: step + 1],
-                completed_steps=step,
-                atom_evaluations=atom_evaluations,
-                success=False,
-                message=f"second atom at t={time + time_step:.6f}: {second.message}",
-            )
-        state = 0.5 * state + 0.5 * second.endpoint
-        retained, completion = geometry.unpack_state(state)
-        matrix = geometry.scaled_unified_matrix(retained, completion)
-        enclosure = model.spectral_enclosure(matrix, shifted=True)
-        node_minimum = float(np.linalg.eigvalsh(matrix)[0])
-        # The Gram is affine in the state, so the convex SSPRK node cannot be
-        # below the weaker of the two accepted endpoint contracts; the
-        # event-triggered policy therefore checks its declared hard floor
-        # rather than the always-on shifted cone.
-        node_unresolved = (
-            node_minimum < -model.settings.event_gram_hard_floor
-            if model.settings.guard_policy == "event_triggered"
-            else enclosure.minimum_lower_bound < 0.0
-        )
-        if model.settings.enforce_gram_guard and node_unresolved:
-            return CWRMFTrajectory(
-                times=times[: step + 1],
-                states=states[: step + 1],
-                minimum_unshifted_eigenvalues=minima[: step + 1],
-                minimum_shifted_lower_bounds=lower_bounds[: step + 1],
-                maximum_atom_seconds=maximum_atom_seconds[: step + 1],
-                correction_iterations=iterations[: step + 1],
-                readable_rate_residuals=readable[: step + 1],
-                completion_correction_norms=corrections[: step + 1],
-                velocity_margins=velocity_margins[: step + 1],
-                critical_modes=critical_modes[: step + 1],
-                completed_steps=step,
-                atom_evaluations=atom_evaluations,
-                success=False,
-                message=f"SSPRK convex node unresolved at t={times[step + 1]:.6f}",
-            )
+            return _truncated(step, f"{attempt.message}{suffix}")
+        state = attempt.state
         states[step + 1] = state
-        minima[step + 1] = node_minimum
-        lower_bounds[step + 1] = enclosure.minimum_lower_bound
-        maximum_atom_seconds[step + 1] = max(
-            first.elapsed_seconds, second.elapsed_seconds
-        )
-        iterations[step + 1] = max(
-            first.correction_iterations, second.correction_iterations
-        )
-        readable[step + 1] = max(
-            first.readable_rate_residual, second.readable_rate_residual
-        )
-        corrections[step + 1] = max(
-            first.completion_correction_norm,
-            second.completion_correction_norm,
-        )
-        velocity_margins[step + 1] = min(
-            first.velocity_margin, second.velocity_margin
-        )
-        critical_modes[step + 1] = max(
-            first.critical_modes, second.critical_modes
-        )
+        minima[step + 1] = attempt.node_minimum
+        lower_bounds[step + 1] = attempt.node_lower_bound
+        maximum_atom_seconds[step + 1] = attempt.maximum_atom_seconds
+        iterations[step + 1] = attempt.correction_iterations
+        readable[step + 1] = attempt.readable_rate_residual
+        corrections[step + 1] = attempt.completion_correction_norm
+        velocity_margins[step + 1] = attempt.velocity_margin
+        critical_modes[step + 1] = attempt.critical_modes
         if checkpoint is not None:
             checkpoint(step + 1, float(times[step + 1]), state.copy())
         if progress is not None and (
@@ -3277,6 +4167,7 @@ def integrate_cwrmf_ssprk2(
             or step + 1 == intervals
             or (step + 1) % max(1, intervals // 10) == 0
         ):
+            subdivided = "" if depth == 0 else f" subdivision_depth={depth}"
             progress(
                 f"t={times[step + 1]:.5f}/{final_time:.5f} "
                 f"lambda_shifted_lo={lower_bounds[step + 1]:.3e} "
@@ -3284,7 +4175,23 @@ def integrate_cwrmf_ssprk2(
                 f"local_it={iterations[step + 1]} "
                 f"critical={critical_modes[step + 1]} "
                 f"atom_s={maximum_atom_seconds[step + 1]:.3f} "
-                f"solver_1={first.message} solver_2={second.message}"
+                f"solver_1={attempt.first_message} "
+                f"solver_2={attempt.second_message}"
+                f"{subdivided}"
+            )
+        # The caller's own stop, after the checkpoint has recorded this
+        # accepted step.  It is not consulted on the last step, which ends
+        # the rollout at final_time on the ordinary path.
+        if (
+            stop_requested is not None
+            and step + 1 < intervals
+            and stop_requested(step + 1, float(times[step + 1]))
+        ):
+            return _truncated(
+                step + 1,
+                "stopped on the caller's declared stop request after "
+                f"{step + 1} accepted steps",
+                success=True,
             )
 
     return CWRMFTrajectory(

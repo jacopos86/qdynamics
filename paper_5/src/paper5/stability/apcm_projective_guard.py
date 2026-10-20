@@ -21,7 +21,7 @@ from fractions import Fraction
 from hashlib import sha256
 import json
 from types import MappingProxyType
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 import clarabel
 import numpy as np
@@ -678,14 +678,64 @@ def _independent_kkt_diagnostics(
     )
 
 
+def _exploratory_acceptance_tolerance(value: float | None) -> float:
+    """Resolve the exploratory acceptance tolerance of one solve.
+
+    ``None`` is the default everywhere and selects the module constant
+    ``_EXPLORATORY_ACCEPTANCE_TOLERANCE``.  A positive float is a named
+    exploratory option: it changes only the solve it is passed to, and the
+    recorded acceptance rule is unchanged for every caller that does not
+    pass it.
+    """
+
+    if value is None:
+        return _EXPLORATORY_ACCEPTANCE_TOLERANCE
+    tolerance = float(value)
+    if not tolerance > 0.0:
+        raise ValueError("exploratory acceptance tolerance must be positive")
+    return tolerance
+
+
+def _original_relative_duality_gap(
+    quadratic: sparse.spmatrix | FloatArray,
+    cone_rhs: FloatArray,
+    variables: FloatArray,
+    dual: FloatArray,
+) -> float:
+    """Relative duality gap of ``min 0.5 x^T P x`` from ``(x, z)`` directly.
+
+    Used only when a named warm-refinement pass has been run: the second
+    Clarabel pass solves a problem whose objective differs from the first by
+    a constant, so the solver's own ``obj_val``/``obj_val_dual`` pair is not
+    a gap on the original problem.  The primal value is ``0.5 x^T P x`` and
+    the dual value is ``-0.5 x^T P x - b^T z``; the normalization matches
+    ``_independent_kkt_diagnostics``.
+    """
+
+    x = np.asarray(variables, dtype=float)
+    z = np.asarray(dual, dtype=float)
+    b = np.asarray(cone_rhs, dtype=float)
+    quadratic_form = 0.5 * float(np.dot(x, np.asarray(quadratic @ x, dtype=float)))
+    primal_objective = quadratic_form
+    dual_objective = -quadratic_form - float(np.dot(b, z))
+    return float(
+        abs(primal_objective - dual_objective)
+        / (1.0 + abs(primal_objective) + abs(dual_objective))
+    )
+
+
 def _guard_acceptance(
     status: str,
     *,
     strict_success: bool,
     diagnostics: _IndependentKKTDiagnostics,
+    exploratory_acceptance_tolerance: float | None = None,
 ) -> tuple[bool, bool, bool, str]:
     """Separate certified solves from exploratory numerical acceptance."""
 
+    tolerance = _exploratory_acceptance_tolerance(
+        exploratory_acceptance_tolerance
+    )
     certified = bool(strict_success)
     provisional = bool(
         not certified
@@ -696,7 +746,7 @@ def _guard_acceptance(
             diagnostics.complementarity,
             diagnostics.relative_gap,
         )
-        <= _EXPLORATORY_ACCEPTANCE_TOLERANCE
+        <= tolerance
     )
     if certified:
         acceptance = "certified"
@@ -1150,8 +1200,44 @@ def _solve_explicit_target_qp(
     boxed: bool,
     retry_profile: int = 0,
     accept_first_provisional: bool = False,
+    frontier_weight: float = 0.0,
+    frontier_metric: str = "identity",
+    warm_refinement_passes: int = 0,
+    exploratory_acceptance_tolerance: float | None = None,
 ) -> GuardConicResult:
-    """Solve the target stage with ``q`` as an explicit decision variable."""
+    """Solve the target stage with ``q`` as an explicit decision variable.
+
+    ``frontier_weight`` is a named, declared model parameter and is ``0.0`` by
+    default, which reproduces the recorded lexicographic target stage bitwise:
+    the objective is then the invariant target image quadratic
+    ``0.5 q^T M q`` alone, it is constant on the exact 47-dimensional lift
+    nullspace, and the declared canonical tie-break is the separate
+    minimum-norm lift under ``R_D y = q*``.  A positive ``frontier_weight``
+    ``w`` adds the fixed positive-definite frontier term ``0.5 w ||z||^2`` in
+    the standardized frontier coordinates, making the combined quadratic
+    ``0.5 q^T M q + 0.5 w ||z||^2`` strictly convex in every variable, so the
+    solve has a unique minimizer and needs no tie-break.  The reported
+    ``objective`` stays the invariant target image quadratic in both cases so
+    the two selectors are compared on the same quantity.  The relative-face
+    retry below is a tie-break repair for the lexicographic objective, so it
+    is skipped while ``frontier_weight`` is positive.
+
+    Three further keywords are named options whose defaults reproduce the
+    recorded path.  ``frontier_metric="readout_diagonal"`` replaces the
+    identity in the frontier term by the declared Jacobi scaling of the
+    invariant target image quadratic in the standardized frontier
+    coordinates, so the added term is commensurate with the image term
+    coordinate by coordinate instead of being an unscaled identity;
+    ``"identity"``, the default, is the recorded ``w I``.
+    ``warm_refinement_passes`` ``n`` positive runs ``n`` further Clarabel
+    passes on the same cone in the displacement variable ``dx``, each with
+    the linear term ``P x`` and the cone right-hand side ``b - A x`` of the
+    accumulated point ``x``, which is the only warm start this backend
+    admits; the reported point is the accumulated ``x`` and the reported
+    relative duality gap is then recomputed on the original problem.
+    ``exploratory_acceptance_tolerance`` overrides the exploratory
+    acceptance threshold for this solve only.
+    """
 
     count = len(extension.frontier_keys)
     target_count = scaled_readout.shape[0]
@@ -1205,8 +1291,39 @@ def _solve_explicit_target_qp(
     cones.append(clarabel.ZeroConeT(target_count))
 
     variable_count = count + target_count
+    if frontier_weight < 0.0:
+        raise ValueError("frontier_weight must be nonnegative")
+    if frontier_metric not in {"identity", "readout_diagonal"}:
+        raise ValueError(
+            "frontier_metric must be 'identity' or 'readout_diagonal'"
+        )
+    if warm_refinement_passes < 0:
+        raise ValueError("warm_refinement_passes must be nonnegative")
+    if frontier_weight == 0.0:
+        frontier_block = sparse.csc_matrix((count, count))
+    elif frontier_metric == "identity":
+        frontier_block = sparse.csc_matrix(
+            float(frontier_weight) * np.eye(count, dtype=float)
+        )
+    else:
+        image_quadratic = (
+            np.asarray(scaled_readout, dtype=float).T
+            @ np.asarray(target_metric, dtype=float)
+            @ np.asarray(scaled_readout, dtype=float)
+        )
+        diagonal = np.abs(np.diag(image_quadratic))
+        mean_diagonal = float(np.mean(diagonal))
+        if not mean_diagonal > 0.0:
+            raise ValueError(
+                "readout_diagonal frontier metric needs a nonzero image "
+                "quadratic diagonal"
+            )
+        scaling = np.maximum(diagonal, 1e-3 * mean_diagonal) / mean_diagonal
+        frontier_block = sparse.csc_matrix(
+            float(frontier_weight) * np.diag(scaling)
+        )
     quadratic = sparse.block_diag(
-        (sparse.csc_matrix((count, count)), sparse.csc_matrix(target_metric)),
+        (frontier_block, sparse.csc_matrix(target_metric)),
         format="csc",
     )
     settings = clarabel.DefaultSettings()
@@ -1243,15 +1360,44 @@ def _solve_explicit_target_qp(
         cones,
         settings,
     ).solve()
+    refinement_statuses: list[str] = []
+    accumulated = (
+        np.asarray(solution.x, dtype=float)
+        if solution.x is not None
+        else None
+    )
+    if warm_refinement_passes > 0 and accumulated is not None:
+        for _ in range(int(warm_refinement_passes)):
+            linear_term = np.asarray(
+                quadratic @ accumulated, dtype=float
+            )
+            shifted_rhs = cone_rhs - np.asarray(
+                cone_matrix @ accumulated, dtype=float
+            )
+            refinement = clarabel.DefaultSolver(
+                quadratic,
+                linear_term,
+                cone_matrix,
+                shifted_rhs,
+                cones,
+                settings,
+            ).solve()
+            refinement_statuses.append(str(refinement.status))
+            if refinement.x is None:
+                break
+            accumulated = accumulated + np.asarray(
+                refinement.x, dtype=float
+            )
+            solution = refinement
     status = str(solution.status)
     values = (
-        np.asarray(solution.x[:count], dtype=float)
-        if solution.x is not None
+        np.asarray(accumulated[:count], dtype=float)
+        if accumulated is not None
         else np.zeros(count, dtype=float)
     )
     target = (
-        np.asarray(solution.x[count:], dtype=float)
-        if solution.x is not None
+        np.asarray(accumulated[count:], dtype=float)
+        if accumulated is not None
         else np.full(target_count, np.nan)
     )
     frontier_values = values * extension.frontier_scales
@@ -1298,14 +1444,34 @@ def _solve_explicit_target_qp(
             max(0.0, -minimum), box_error, image_error
         ),
     )
+    if refinement_statuses:
+        dual_vector = getattr(solution, "z", None)
+        if dual_vector is not None:
+            diagnostics = _IndependentKKTDiagnostics(
+                feasibility=diagnostics.feasibility,
+                stationarity=diagnostics.stationarity,
+                complementarity=diagnostics.complementarity,
+                relative_gap=_original_relative_duality_gap(
+                    quadratic,
+                    cone_rhs,
+                    variables,
+                    np.asarray(dual_vector, dtype=float),
+                ),
+            )
     success, certified, provisional, acceptance = _guard_acceptance(
         status,
         strict_success=strict_success,
         diagnostics=diagnostics,
+        exploratory_acceptance_tolerance=exploratory_acceptance_tolerance,
+    )
+    status_label = (
+        status
+        if not refinement_statuses
+        else status + "+warm" + "+".join(refinement_statuses)
     )
     result = GuardConicResult(
         success=success,
-        status=f"explicit_target:{status}",
+        status=f"explicit_target:{status_label}",
         boxed=boxed,
         conditioned=False,
         standardized_values=values,
@@ -1336,11 +1502,18 @@ def _solve_explicit_target_qp(
             boxed=boxed,
             retry_profile=2,
             accept_first_provisional=accept_first_provisional,
+            frontier_weight=frontier_weight,
+            frontier_metric=frontier_metric,
+            warm_refinement_passes=warm_refinement_passes,
+            exploratory_acceptance_tolerance=(
+                exploratory_acceptance_tolerance
+            ),
         )
     if (
         retry_profile == 2
         and status == "AlmostSolved"
         and boxed
+        and frontier_weight == 0.0
         and not (accept_first_provisional and result.provisional)
     ):
         reduced = _solve_explicit_target_on_relative_face(
@@ -1350,6 +1523,9 @@ def _solve_explicit_target_qp(
             target_metric,
             scaled_base=scaled_base,
             scaled_coefficients=scaled_coefficients,
+            exploratory_acceptance_tolerance=(
+                exploratory_acceptance_tolerance
+            ),
         )
         if reduced is not None:
             return reduced
@@ -1364,6 +1540,7 @@ def _solve_explicit_target_on_relative_face(
     *,
     scaled_base: ComplexArray,
     scaled_coefficients: ComplexArray,
+    exploratory_acceptance_tolerance: float | None = None,
 ) -> GuardConicResult | None:
     """R3 explicit-target solve after relative-face qualification."""
 
@@ -1526,6 +1703,7 @@ def _solve_explicit_target_on_relative_face(
         status,
         strict_success=strict_success,
         diagnostics=diagnostics,
+        exploratory_acceptance_tolerance=exploratory_acceptance_tolerance,
     )
     return GuardConicResult(
         success=success,
@@ -2420,6 +2598,11 @@ def select_outer_feasible_projective_guard(
     boxed: bool = True,
     canonicalize: bool = True,
     accept_first_provisional: bool = False,
+    frontier_weight: float = 0.0,
+    frontier_metric: str = "identity",
+    warm_refinement_passes: int = 0,
+    exploratory_acceptance_tolerance: float | None = None,
+    target_solver: Callable[..., GuardConicResult] | None = None,
 ) -> OuterFeasibleProjectiveGuardSelection:
     """Select the invariant image only from witnesses feasible on one shell.
 
@@ -2428,6 +2611,36 @@ def select_outer_feasible_projective_guard(
     that failure mode: both image selection and the minimum-norm lift occur on
     the same outer cone, and the current values are a literal restriction of
     the resulting feasible witness.
+
+    Two keywords are named options with the recorded path as their default.
+    ``accept_first_provisional=True`` is the kept gate reorder: a first-pass
+    ``AlmostSolved`` point is used as soon as the independent KKT audit
+    accepts it, ahead of the tighter retry ladder.  ``frontier_weight`` ``w``
+    positive replaces the two-solve selector (target image, then the unique
+    minimum-norm lift under ``R_D y = q*``) by the single strictly convex
+    solve of ``0.5 q^T M q + 0.5 w ||z||^2`` on the same outer cone; the lift
+    equality is then never formed, the witness is the target stage's own
+    unique minimizer, and ``witness_source`` records
+    ``strictly_convex_outer_target_stage``.
+
+    ``frontier_metric``, ``warm_refinement_passes`` and
+    ``exploratory_acceptance_tolerance`` are the three further named options
+    of ``_solve_explicit_target_qp``; their defaults
+    (``"identity"``, ``0`` and ``None``) are the recorded path.
+
+    ``target_solver`` is a named seam, ``None`` by default, which is the
+    recorded ``_solve_explicit_target_qp``.  A supplied callable is handed
+    the same four operands (the one-shell outer extension, the stage's own
+    lower moments, the invariant target image readout embedded in the outer
+    frontier, and the whitened target metric) with ``boxed`` and
+    ``frontier_weight``, and must return the ``GuardConicResult`` shape with
+    the acceptance already decided; everything downstream of the target
+    stage --- the minimum-norm lift, the restriction to the current frontier
+    and the invariant-image agreement test --- is unchanged.  The four
+    named options of the recorded solve that a supplied callable does not
+    take (``accept_first_provisional``, ``frontier_metric``,
+    ``warm_refinement_passes``, ``exploratory_acceptance_tolerance``) are
+    refused rather than silently dropped.
     """
 
     target_readout = (
@@ -2447,14 +2660,40 @@ def select_outer_feasible_projective_guard(
     )
     covariance = covariance @ covariance.T
     target_metric = np.linalg.inv(covariance)
-    target_stage = _solve_explicit_target_qp(
-        outer,
-        lower_moments,
-        scaled_outer_image,
-        target_metric,
-        boxed=boxed,
-        accept_first_provisional=accept_first_provisional,
-    )
+    if target_solver is None:
+        target_stage = _solve_explicit_target_qp(
+            outer,
+            lower_moments,
+            scaled_outer_image,
+            target_metric,
+            boxed=boxed,
+            accept_first_provisional=accept_first_provisional,
+            frontier_weight=frontier_weight,
+            frontier_metric=frontier_metric,
+            warm_refinement_passes=warm_refinement_passes,
+            exploratory_acceptance_tolerance=(
+                exploratory_acceptance_tolerance
+            ),
+        )
+    else:
+        if (
+            accept_first_provisional
+            or frontier_metric != "identity"
+            or warm_refinement_passes != 0
+            or exploratory_acceptance_tolerance is not None
+        ):
+            raise ValueError(
+                "a supplied target_solver does not carry the named options "
+                "of the recorded target stage"
+            )
+        target_stage = target_solver(
+            outer,
+            lower_moments,
+            scaled_outer_image,
+            target_metric,
+            boxed=boxed,
+            frontier_weight=frontier_weight,
+        )
     current_count = len(current.frontier_keys)
     empty_values = np.full(current_count, np.nan)
     empty_matrix = np.full((current.dimension, current.dimension), np.nan + 0j)
@@ -2475,8 +2714,12 @@ def select_outer_feasible_projective_guard(
     outer_count = len(outer.frontier_keys)
     lift_stage = target_stage
     witness_stage = target_stage
-    witness_source = "outer_target_stage"
-    if canonicalize:
+    witness_source = (
+        "strictly_convex_outer_target_stage"
+        if frontier_weight > 0.0
+        else "outer_target_stage"
+    )
+    if canonicalize and frontier_weight == 0.0:
         lift_stage = _solve_guard_qp(
             outer,
             lower_moments,

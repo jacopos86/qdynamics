@@ -15,10 +15,16 @@ import numpy as np
 
 from .adaptive_positive_moment import raw_moment_coordinates_to_matrix_state
 from .apcm_carried_witness import (
+    CWRMF_BASIS_CARRYING_SEED_POLICIES,
+    CWRMF_BUNDLE_SEED_POLICIES,
+    CWRMF_SOLVER_SETTING_PROFILES,
+    DEFAULT_BUNDLE_SEED_POLICY,
+    DEFAULT_SOLVER_SETTING_PROFILE,
     CarriedWitnessModel,
     cwrmf_settings_for_profile,
     integrate_cwrmf_ssprk2,
 )
+from .cwrmf_solver_instances import ConicInstanceRecorder
 from .exact_reference import exact_holstein_driven_trajectory
 from .hubbard_dimer import DimerParameters
 from .matrix_reference import (
@@ -89,6 +95,151 @@ def _parser() -> argparse.ArgumentParser:
             "Repairs fire unconditionally once the endpoint Gram minimum "
             "falls below its negation, bounding how deep the conic repair "
             "problem can become."
+        ),
+    )
+    parser.add_argument(
+        "--maximum-step-subdivisions",
+        type=int,
+        default=0,
+        help=(
+            "Declared bound on local step halving.  At the default zero a "
+            "failed radial atom or an unresolved convex node ends the "
+            "trajectory.  At depth d the failed interval is retried from the "
+            "last accepted state as 2**k steps of time_step / 2**k for "
+            "k = 1 .. d; the reported time grid and the guard policy are "
+            "unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--batched-mode-gradients",
+        action="store_true",
+        help=(
+            "Named experiment, off by default: form the eigenvalue gradients "
+            "of all working modes in one contraction instead of one per "
+            "mode, in the completion retraction and the negative-mode "
+            "coupling measure.  Different BLAS blocking, so it agrees with "
+            "the default to roundoff only."
+        ),
+    )
+    parser.add_argument(
+        "--tier-timing",
+        action="store_true",
+        help=(
+            "Accumulate wall time below the radial atom by named tier (the "
+            "62-row eigendecomposition, coefficient assembly and svec "
+            "packing, the Clarabel solve, the completion retraction, and the "
+            "unguarded velocity evaluation) and report it next to "
+            "maximum_atom_seconds.  Off by default and free when off."
+        ),
+    )
+    parser.add_argument(
+        "--solver-setting-profile",
+        choices=tuple(CWRMF_SOLVER_SETTING_PROFILES),
+        default=DEFAULT_SOLVER_SETTING_PROFILE,
+        help=(
+            "Named Clarabel setting set applied to the four guarded conic "
+            "solves.  The default applies no override, so the guarded path "
+            "is the pinned single-threaded contract the parity anchors were "
+            "measured under; every other entry is a declared experiment "
+            "measured on the recorded instances by cwrmf_solver_replay."
+        ),
+    )
+    parser.add_argument(
+        "--record-conic-instances",
+        action="store_true",
+        help=(
+            "Named experiment, off by default: save every conic problem the "
+            "guard hands Clarabel -- the objective matrix and vector, the "
+            "cone matrix and right-hand side, the cone specification, the "
+            "solver settings, the tier name and the radial atom index -- "
+            "with the solution Clarabel returned, under "
+            "conic_instances/ in the run directory.  The rollout is "
+            "unchanged; the recorder only reads finished operands."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-policy",
+        choices=tuple(CWRMF_BUNDLE_SEED_POLICIES),
+        default=DEFAULT_BUNDLE_SEED_POLICY,
+        help=(
+            "Named starting-working-set rule for the adaptive spectral "
+            "bundle tier.  The default monotone_hint is the recorded rule "
+            "(the larger of the spectral entry count and the monotone rank "
+            "hint, which starts at zero).  The others are declared "
+            "experiments aimed at the enlargement iterations whose solution "
+            "is discarded."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-spectral-threshold",
+        type=float,
+        default=None,
+        help=(
+            "Declared threshold for the spectral_threshold seed policy: the "
+            "working set starts at the number of endpoint unshifted 62-row "
+            "Gram eigenvalues below it.  Unused by every other policy."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-seed-rank-margin",
+        type=int,
+        default=None,
+        help=(
+            "Declared margin added to the previous accepted bundle rank by "
+            "the previous_accepted_rank_margin seed policy.  Unused by "
+            "every other policy."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-growth-factor",
+        type=float,
+        default=None,
+        help=(
+            "Named experiment, default 1.0 which is the recorded rule: when "
+            "the full-Gram acceptance test fails with a normalized residual "
+            "above --bundle-growth-trigger, pad the enlarged working set "
+            "with further predictor eigenvectors until its rank reaches this "
+            "factor times the current rank, capped at the critical mode "
+            "limit."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-growth-trigger",
+        type=float,
+        default=None,
+        help=(
+            "Normalized residual above which --bundle-growth-factor applies. "
+            "The default 0.0 makes every rejection a bad one."
+        ),
+    )
+    parser.add_argument(
+        "--bundle-interior-overshoot",
+        type=float,
+        default=None,
+        help=(
+            "Named experiment, default 1.0 which is the recorded rule: "
+            "multiply the compressed problem's own interior margin by this "
+            "factor, so a solve aims further inside the cone than the "
+            "acceptance test demands.  The acceptance test itself is "
+            "unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--maximum-wall-seconds",
+        type=float,
+        default=None,
+        help=(
+            "Declared wall-clock budget for the rollout, off by default.  "
+            "When it is set the rollout stops at the first accepted step "
+            "that ends past the budget, measured on the same clock as "
+            "autonomous_wall_seconds, which starts before the preparation.  "
+            "The stop is clean: checkpoint.npz holds that accepted step, "
+            "the trajectory arrays and summary.json are written for the "
+            "steps taken, summary.json records stop_reason wall_budget "
+            "beside maximum_wall_seconds, and the process exits 0.  The "
+            "budget never changes a step, so a run that reaches "
+            "--final-time before it is unaffected; a run that does not "
+            "resumes from checkpoint.npz with the same --final-time."
         ),
     )
     parser.add_argument("--compact-output", action="store_true")
@@ -206,6 +357,11 @@ def _accuracy_metrics(
 
 def main() -> int:
     args = _parser().parse_args()
+    if (
+        args.maximum_wall_seconds is not None
+        and args.maximum_wall_seconds <= 0.0
+    ):
+        raise ValueError("--maximum-wall-seconds must be positive")
     output_directory = args.output_directory.resolve()
     output_directory.mkdir(parents=True, exist_ok=False)
     progress_path = output_directory / "progress.jsonl"
@@ -236,6 +392,40 @@ def main() -> int:
     elif args.event_gram_hard_floor is not None:
         raise ValueError(
             "--event-gram-hard-floor requires --event-triggered-guard"
+        )
+    if args.batched_mode_gradients:
+        settings = replace(settings, batched_mode_gradients=True)
+    if args.solver_setting_profile != DEFAULT_SOLVER_SETTING_PROFILE:
+        settings = replace(
+            settings, solver_setting_profile=args.solver_setting_profile
+        )
+    if args.bundle_seed_policy != DEFAULT_BUNDLE_SEED_POLICY:
+        settings = replace(
+            settings, bundle_seed_policy=args.bundle_seed_policy
+        )
+    if args.bundle_seed_spectral_threshold is not None:
+        settings = replace(
+            settings,
+            bundle_seed_spectral_threshold=(
+                args.bundle_seed_spectral_threshold
+            ),
+        )
+    if args.bundle_seed_rank_margin is not None:
+        settings = replace(
+            settings, bundle_seed_rank_margin=args.bundle_seed_rank_margin
+        )
+    if args.bundle_growth_factor is not None:
+        settings = replace(
+            settings, bundle_growth_factor=args.bundle_growth_factor
+        )
+    if args.bundle_growth_trigger is not None:
+        settings = replace(
+            settings, bundle_growth_trigger=args.bundle_growth_trigger
+        )
+    if args.bundle_interior_overshoot is not None:
+        settings = replace(
+            settings,
+            bundle_interior_overshoot=args.bundle_interior_overshoot,
         )
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)
@@ -270,6 +460,21 @@ def main() -> int:
             model.restore_bundle_rank_hint(
                 int(np.asarray(initial_arrays["bundle_rank_hint"]))
             )
+        if "bundle_accepted_rank" in initial_arrays:
+            model.restore_bundle_accepted_rank(
+                int(np.asarray(initial_arrays["bundle_accepted_rank"]))
+            )
+        if "bundle_accepted_basis" in initial_arrays:
+            model.restore_bundle_accepted_basis(
+                np.asarray(
+                    initial_arrays["bundle_accepted_basis"], dtype=complex
+                ),
+                rank=(
+                    int(np.asarray(initial_arrays["bundle_accepted_rank"]))
+                    if "bundle_accepted_rank" in initial_arrays
+                    else None
+                ),
+            )
         model.geometry.unpack_state(initial_state)
         initialization_source = str(args.initial_state_file.resolve())
     progress(
@@ -281,7 +486,23 @@ def main() -> int:
     )
     checkpoint_path = output_directory / "checkpoint.npz"
 
+    carries_basis = (
+        settings.bundle_seed_policy in CWRMF_BASIS_CARRYING_SEED_POLICIES
+    )
+
     def checkpoint(step: int, current_time: float, state: np.ndarray) -> None:
+        # Continuation metadata beside the physical state: the monotone rank
+        # hint and the accepted rank are scalars and always recorded; the
+        # accepted working set is a 62-row complex block and is recorded only
+        # when the active seed policy is one that reads it, so a default-path
+        # checkpoint gains no array.
+        continuation: dict[str, np.ndarray] = {
+            "bundle_rank_hint": np.asarray(model.bundle_rank_hint),
+            "bundle_accepted_rank": np.asarray(model.bundle_accepted_rank),
+        }
+        accepted_basis = model.bundle_accepted_basis
+        if carries_basis and accepted_basis is not None:
+            continuation["bundle_accepted_basis"] = accepted_basis
         temporary = checkpoint_path.with_suffix(".npz.tmp")
         with temporary.open("wb") as stream:
             np.savez_compressed(
@@ -289,20 +510,84 @@ def main() -> int:
                 step=np.asarray(step),
                 time=np.asarray(current_time),
                 state=state,
-                bundle_rank_hint=np.asarray(model.bundle_rank_hint),
+                **continuation,
             )
         os.replace(temporary, checkpoint_path)
 
+    if args.tier_timing:
+        # Enabled after the preparation so the accumulators account only for
+        # the rollout, next to maximum_atom_seconds.
+        model.enable_tier_timing()
+    instance_recorder = None
+    if args.record_conic_instances:
+        instance_recorder = ConicInstanceRecorder(
+            output_directory / "conic_instances"
+        )
+        instance_recorder.write_context(
+            step_scaled_completion_coefficients=(
+                args.time_step
+                * model.geometry.scaled_completion_coefficients()
+            ),
+            readable_completion_indices=(
+                model.geometry.readable_completion_indices
+            ),
+            completion_count=model.geometry.completion_count,
+            numerical_profile=args.numerical_profile,
+            schur_safety_margin=settings.schur_safety_margin,
+            solver_tolerance=settings.solver_tolerance,
+            psd_inflation=settings.psd_inflation,
+        )
+        model.enable_instance_recording(instance_recorder)
+    # The declared wall-clock budget, off unless --maximum-wall-seconds is
+    # given.  The deadline is measured from ``started``, the same clock
+    # autonomous_wall_seconds reports, so the budget covers the preparation
+    # as well as the rollout; the scoring against the exact reference and
+    # the writing of the artifacts happen after it and are the caller's
+    # headroom.  The times at which the budget stopped the rollout are
+    # collected so the summary can say why the rollout ended.
+    wall_deadline = (
+        None
+        if args.maximum_wall_seconds is None
+        else started + args.maximum_wall_seconds
+    )
+    wall_budget_stop_times: list[float] = []
+
+    def wall_budget_reached(completed_steps: int, current_time: float) -> bool:
+        assert wall_deadline is not None
+        if time.perf_counter() < wall_deadline:
+            return False
+        wall_budget_stop_times.append(current_time)
+        progress(
+            "declared wall budget of "
+            f"{args.maximum_wall_seconds:g} s reached after "
+            f"{completed_steps} accepted steps at t={current_time:.6f}; "
+            "stopping at that step, checkpoint.npz is the resume point"
+        )
+        return True
+
+    rollout_started = time.perf_counter()
     trajectory = integrate_cwrmf_ssprk2(
         model,
         initial_state,
         initial_time=initial_time,
         final_time=args.final_time,
         time_step=args.time_step,
+        maximum_step_subdivisions=args.maximum_step_subdivisions,
         progress=progress,
         checkpoint=checkpoint,
+        stop_requested=(
+            None if wall_deadline is None else wall_budget_reached
+        ),
     )
+    stopped_on_wall_budget = bool(wall_budget_stop_times)
+    rollout_elapsed = time.perf_counter() - rollout_started
     autonomous_elapsed = time.perf_counter() - started
+    tier_timing = model.tier_timing
+    if tier_timing is not None:
+        tier_timing["rollout_wall_seconds"] = float(rollout_elapsed)
+        tier_timing["unaccounted_seconds"] = float(
+            rollout_elapsed - sum(tier_timing["seconds"].values())
+        )
     approximate_coordinates = _archive_coordinates(model, trajectory.states)
 
     # Freeze the autonomous output before constructing the offline reference.
@@ -324,7 +609,11 @@ def main() -> int:
     )
 
     exact_started = time.perf_counter()
-    if np.isclose(trajectory.times[0], 0.0):
+    # The same zero test the exact reference itself applies to its sample
+    # times.  ``np.isclose`` defaults to an absolute tolerance of 1e-8, which
+    # calls a resume that starts at or below 1e-8 a rollout from zero and then
+    # hands the reference a first sample time it rejects at its own 1e-15.
+    if abs(float(trajectory.times[0])) <= 1e-15:
         exact_sample_times = trajectory.times
         exact_offset = 0
     else:
@@ -412,6 +701,29 @@ def main() -> int:
             "time_step": args.time_step,
             "completed_steps": trajectory.completed_steps,
             "atom_evaluations": trajectory.atom_evaluations,
+            "maximum_step_subdivisions": args.maximum_step_subdivisions,
+            # Recorded only when a wall budget was declared, so a run
+            # without --maximum-wall-seconds writes exactly the summary it
+            # wrote before.  wall_budget says the rollout stopped at an
+            # accepted step short of --final-time and checkpoint.npz is the
+            # resume point; final_time says it reached --final-time;
+            # step_failure says an atom or a convex node ended it.
+            **(
+                {}
+                if args.maximum_wall_seconds is None
+                else {
+                    "maximum_wall_seconds": args.maximum_wall_seconds,
+                    "stop_reason": (
+                        "wall_budget"
+                        if stopped_on_wall_budget
+                        else (
+                            "final_time"
+                            if trajectory.success
+                            else "step_failure"
+                        )
+                    ),
+                }
+            ),
             "success": trajectory.success,
             "message": trajectory.message,
             "maximum_critical_modes": args.maximum_critical_modes,
@@ -427,6 +739,15 @@ def main() -> int:
                 np.mean(trajectory.critical_modes)
             ),
             "autonomous_wall_seconds": autonomous_elapsed,
+            "maximum_atom_seconds": float(
+                np.max(trajectory.maximum_atom_seconds)
+            ),
+            "tier_seconds": tier_timing,
+            "recorded_conic_instances": (
+                None
+                if instance_recorder is None
+                else int(instance_recorder.instance_count)
+            ),
             "exact_reference_wall_seconds": exact_elapsed,
             "peak_resident_bytes": int(
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -507,6 +828,15 @@ def main() -> int:
                         np.max(trajectory.readable_rate_residuals)
                     ),
                     "autonomous_wall_seconds": autonomous_elapsed,
+                    **(
+                        {}
+                        if args.maximum_wall_seconds is None
+                        else {
+                            "stop_reason": summary["integration"][
+                                "stop_reason"
+                            ]
+                        }
+                    ),
                 },
                 sort_keys=True,
             ),

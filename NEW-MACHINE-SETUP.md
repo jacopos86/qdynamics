@@ -68,6 +68,18 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd ~/Holstein_test && ~/.local/bin/uv python install 3.12 && ~/.local/bin/uv venv --python 3.12 .venv && ~/.local/bin/uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
+Paper V (`paper_5/`) is a src-layout workspace that is not installed into
+the venv. Its tests spawn `python -m paper5.stability...` subprocesses, which
+only see `paper_5/src` through the environment, so run every Paper V command
+with `PYTHONPATH=paper_5/src` (or `PYTHONPATH=src` from inside `paper_5/`).
+Verified 2026-09-14: the `paper_5` suite is 301 passed with it, 300 passed and
+1 failed without it. Do not install a `.pth`; it would pin one checkout's
+`paper_5/src` for every worktree.
+
+```bash
+cd ~/Holstein_test/paper_5 && PYTHONPATH=src ../.venv/bin/python -m pytest -q
+```
+
 ## 4. Verify
 
 From the repo root (imports require cwd = root):

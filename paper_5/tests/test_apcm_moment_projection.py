@@ -10,7 +10,10 @@ from paper5.stability.adaptive_positive_moment import (
     raw_moment_velocity_to_matrix_derivative,
 )
 from paper5.stability.apcm_moment_projection import (
+    APCMProjectionError,
+    APCMProjectionSettings,
     SymmetryReducedAPCMGeometry,
+    _kernel_basis,
     state_lower_moments,
 )
 from paper5.stability.apcm_positive_extension import (
@@ -238,3 +241,135 @@ def test_nested_diagnostic_appends_every_candidate_descendant_as_a_halfword() ->
         for key in descendants
     )
     assert diagnostic.dimension > len(extension.words) + len(candidates)
+
+
+def _ambiguous_face_matrix(tolerance: float) -> np.ndarray:
+    """One scaled matrix whose smallest eigenvalue sits in the refinement band.
+
+    The declared refinement counts eigenvalues at or below 0.5, 1 and 2 null
+    tolerances; an eigenvalue at exactly one tolerance is counted by two of
+    the three, which is the refusal the committed path raises.
+    """
+
+    return np.diag(
+        np.asarray([tolerance, 1.0, 2.0, 3.0], dtype=float)
+    ).astype(complex)
+
+
+def test_the_default_face_policy_refuses_an_unstable_numerical_face() -> None:
+    tolerance = 1e-8
+    matrix = _ambiguous_face_matrix(tolerance)
+    try:
+        _kernel_basis(matrix, tolerance, name="extended operator moment matrix")
+    except APCMProjectionError as error:
+        assert "numerical face is unstable" in str(error)
+    else:  # pragma: no cover - the committed path must refuse
+        raise AssertionError("the default face policy must refuse")
+
+
+def test_a_stable_face_is_identified_identically_under_every_policy() -> None:
+    """A face that survives the refinement does not depend on the policy."""
+
+    tolerance = 1e-8
+    matrix = np.diag(np.asarray([0.0, 1.0, 2.0, 3.0])).astype(complex)
+    recorded, rank, source = _kernel_basis(
+        matrix, tolerance, name="extended operator moment matrix"
+    )
+    assert rank == 1 and source == "identified"
+    for policy in ("continuation", "inflated"):
+        basis, other_rank, other_source = _kernel_basis(
+            matrix,
+            tolerance,
+            name="extended operator moment matrix",
+            policy=policy,
+            inflation=1e-7 if policy == "inflated" else 0.0,
+        )
+        if policy == "inflated":
+            assert other_rank == 0
+        else:
+            assert other_rank == rank
+            np.testing.assert_array_equal(basis, recorded)
+        assert other_source == "identified"
+
+
+def test_continuation_reuses_a_consistent_face_and_refuses_an_inconsistent_one() -> None:
+    tolerance = 1e-8
+    matrix = _ambiguous_face_matrix(tolerance)
+    carried = (1, np.asarray([[1.0], [0.0], [0.0], [0.0]], dtype=complex))
+    basis, rank, source = _kernel_basis(
+        matrix,
+        tolerance,
+        name="extended operator moment matrix",
+        policy="continuation",
+        carried=carried,
+    )
+    assert rank == 1 and source == "continued"
+    np.testing.assert_allclose(np.abs(basis[0, 0]), 1.0)
+
+    stale = (1, np.asarray([[0.0], [0.0], [0.0], [1.0]], dtype=complex))
+    try:
+        _kernel_basis(
+            matrix,
+            tolerance,
+            name="extended operator moment matrix",
+            policy="continuation",
+            carried=stale,
+        )
+    except APCMProjectionError as error:
+        assert "numerical face is unstable" in str(error)
+    else:  # pragma: no cover - an inconsistent face must not be carried
+        raise AssertionError("an inconsistent carried face must be refused")
+
+
+def test_the_inflated_cone_exposes_no_face_inside_its_declared_margin() -> None:
+    tolerance = 1e-8
+    matrix = _ambiguous_face_matrix(tolerance)
+    basis, rank, source = _kernel_basis(
+        matrix,
+        tolerance,
+        name="extended operator moment matrix",
+        policy="inflated",
+        inflation=100.0 * 1e-9,
+    )
+    assert rank == 0 and source == "identified"
+    assert basis.shape == (4, 0)
+
+
+def test_face_policy_counters_start_at_zero_and_count_identifications() -> None:
+    extension = SymmetryReducedPositiveExtension()
+    geometry = SymmetryReducedAPCMGeometry(
+        extension, APCMProjectionSettings(face_policy="continuation")
+    )
+    assert geometry.face_policy_counters == {
+        "identified": 0,
+        "continued": 0,
+        "refused": 0,
+    }
+    geometry._identify_face(
+        np.diag(np.asarray([1.0, 2.0])).astype(complex),
+        1e-8,
+        "extended operator moment matrix",
+    )
+    assert geometry.face_policy_counters["identified"] == 1
+    assert "extended operator moment matrix" in geometry._carried_faces
+
+
+def test_the_default_face_policy_carries_nothing() -> None:
+    extension = SymmetryReducedPositiveExtension()
+    geometry = SymmetryReducedAPCMGeometry(extension)
+    assert geometry.settings.face_policy == "refuse"
+    geometry._identify_face(
+        np.diag(np.asarray([1.0, 2.0])).astype(complex),
+        1e-8,
+        "extended operator moment matrix",
+    )
+    assert geometry._carried_faces == {}
+
+
+def test_projection_settings_reject_an_unknown_face_policy() -> None:
+    try:
+        APCMProjectionSettings(face_policy="carry")
+    except ValueError as error:
+        assert "face_policy" in str(error)
+    else:  # pragma: no cover - the policy set is declared
+        raise AssertionError("an unknown face policy must be refused")

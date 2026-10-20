@@ -13,6 +13,7 @@ invariant manifold of the complete matrix equations.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import numpy as np
@@ -73,6 +74,12 @@ _MATRIX_STATE_SHAPES = ((2, 2), (2,), (2, 2), (2, 2), (2, 2, 2))
 _MATRIX_STATE_COMPLEX_SIZE = sum(
     int(np.prod(shape)) for shape in _MATRIX_STATE_SHAPES
 )
+# The field-name/shape pairing is fixed, so the ``zip`` is done once at import
+# rather than on every validation call.
+_MATRIX_STATE_FIELD_SHAPES = tuple(
+    zip(_MATRIX_STATE_FIELDS, _MATRIX_STATE_SHAPES, strict=True)
+)
+_TWO_BY_TWO_IDENTITY = np.eye(2, dtype=complex)
 
 
 @dataclass(frozen=True)
@@ -87,10 +94,14 @@ class MatrixDimerState:
 
 
 def _validate_matrix_state(state: MatrixDimerState) -> None:
-    for name, shape in zip(
-        _MATRIX_STATE_FIELDS, _MATRIX_STATE_SHAPES, strict=True
-    ):
-        value = np.asarray(getattr(state, name))
+    for name, shape in _MATRIX_STATE_FIELD_SHAPES:
+        value = getattr(state, name)
+        # An array that already carries the declared shape needs no
+        # conversion; the ``np.asarray`` path is kept for every other input so
+        # the raised message is unchanged.
+        if getattr(value, "shape", None) == shape:
+            continue
+        value = np.asarray(value)
         if value.shape != shape:
             raise ValueError(f"{name} must have shape {shape}, got {value.shape}")
 
@@ -1040,12 +1051,16 @@ def boson_moment_matrix(state: MatrixDimerState) -> ComplexArray:
     _validate_matrix_state(state)
     phonon = np.asarray(state.phonon_density, dtype=complex)
     anomalous = np.asarray(state.anomalous_phonon_density, dtype=complex)
-    return np.block(
-        [
-            [phonon.T, anomalous.conjugate()],
-            [anomalous, np.eye(2, dtype=complex) + phonon],
-        ]
-    )
+    # ``np.block`` copies the four two-by-two blocks into one four-by-four
+    # array after a recursive depth and shape check.  The copy is exact and
+    # the shapes are fixed here, so the assembly is written as slice
+    # assignment into a preallocated array instead.
+    moment = np.empty((4, 4), dtype=complex)
+    moment[0:2, 0:2] = phonon.T
+    moment[0:2, 2:4] = anomalous.conjugate()
+    moment[2:4, 0:2] = anomalous
+    moment[2:4, 2:4] = _TWO_BY_TWO_IDENTITY + phonon
+    return moment
 
 
 _ELECTRON_FLUCTUATION_BASIS = np.asarray(
@@ -1058,26 +1073,126 @@ _ELECTRON_FLUCTUATION_BASIS = np.asarray(
 )
 
 
+def _monomial_diagonal_terms(
+    operator: ComplexArray,
+) -> tuple[tuple[int, complex], ...]:
+    """Return ``(k, operator[k, i])`` for each diagonal index ``i``.
+
+    ``operator`` must be monomial: exactly one nonzero entry in every column.
+    For such an operator ``(A @ operator)[i, i]`` is the single product
+    ``A[i, k] * operator[k, i]`` in IEEE arithmetic, because the other term of
+    that inner product is an exact zero and adding an exact zero changes
+    nothing.  ``numpy.trace`` then sums the two diagonal entries in ascending
+    index order, which is the order the tables below reproduce.
+    """
+
+    operator = np.asarray(operator, dtype=complex)
+    terms: list[tuple[int, complex]] = []
+    for index in range(operator.shape[1]):
+        column = operator[:, index]
+        nonzero = np.flatnonzero(column)
+        if nonzero.size != 1:
+            raise ValueError(
+                "monomial operator columns must carry exactly one nonzero "
+                f"entry, column {index} carries {int(nonzero.size)}"
+            )
+        row = int(nonzero[0])
+        terms.append((row, complex(column[row])))
+    return tuple(terms)
+
+
+_PAULI_TERMS = tuple(
+    _monomial_diagonal_terms(operator)
+    for operator in _ELECTRON_FLUCTUATION_BASIS
+)
+_PAULI_TRACE_ROWS = np.asarray(
+    [[terms[index][0] for terms in _PAULI_TERMS] for index in range(2)],
+    dtype=int,
+)
+_PAULI_TRACE_COEFFICIENTS = np.asarray(
+    [[terms[index][1] for terms in _PAULI_TERMS] for index in range(2)],
+    dtype=complex,
+)
+_PAULI_PRODUCT_TERMS = tuple(
+    tuple(
+        _monomial_diagonal_terms(first @ second)
+        for second in _ELECTRON_FLUCTUATION_BASIS
+    )
+    for first in _ELECTRON_FLUCTUATION_BASIS
+)
+_PAULI_PRODUCT_TRACE_ROWS = np.asarray(
+    [
+        [[terms[index][0] for terms in row] for row in _PAULI_PRODUCT_TERMS]
+        for index in range(2)
+    ],
+    dtype=int,
+)
+_PAULI_PRODUCT_TRACE_COEFFICIENTS = np.asarray(
+    [
+        [[terms[index][1] for terms in row] for row in _PAULI_PRODUCT_TERMS]
+        for index in range(2)
+    ],
+    dtype=complex,
+)
+
+
+def _pauli_traces(matrix: ComplexArray) -> ComplexArray:
+    """Return ``trace(matrix @ sigma_a)`` for the three Pauli operators."""
+
+    return (
+        matrix[0, _PAULI_TRACE_ROWS[0]] * _PAULI_TRACE_COEFFICIENTS[0]
+        + matrix[1, _PAULI_TRACE_ROWS[1]] * _PAULI_TRACE_COEFFICIENTS[1]
+    )
+
+
+_PAULI_MEAN_CACHE: "OrderedDict[bytes, FloatArray]" = OrderedDict()
+_PAULI_MEAN_CACHE_LIMIT = 8
+
+
+def _pauli_trace_means(matrix: ComplexArray) -> FloatArray:
+    """Return the real parts of ``trace(matrix @ sigma_a)``.
+
+    The joint-Gram basis applies the derivative map to one matrix state and to
+    thirty-one fixed velocity directions, so within a single correction this is
+    asked for thirty-two times with only a handful of distinct operands: the
+    state's electronic block, the zero block that twenty-eight of the velocity
+    directions carry, and the three electronic unit directions.  The result is
+    therefore cached on the exact bytes of ``matrix``; equal bytes are equal
+    floating-point values, so a cache hit returns the array the uncached path
+    would have built.  The cached array is made read-only because it is shared.
+    """
+
+    key = matrix.tobytes()
+    cached = _PAULI_MEAN_CACHE.get(key)
+    if cached is not None:
+        return cached
+    means = _pauli_traces(matrix).real
+    means.flags.writeable = False
+    _PAULI_MEAN_CACHE[key] = means
+    if len(_PAULI_MEAN_CACHE) > _PAULI_MEAN_CACHE_LIMIT:
+        _PAULI_MEAN_CACHE.popitem(last=False)
+    return means
+
+
+def _pauli_product_traces(matrix: ComplexArray) -> ComplexArray:
+    """Return ``trace(matrix @ sigma_a @ sigma_b)`` for the nine pairs."""
+
+    return (
+        matrix[0, _PAULI_PRODUCT_TRACE_ROWS[0]]
+        * _PAULI_PRODUCT_TRACE_COEFFICIENTS[0]
+        + matrix[1, _PAULI_PRODUCT_TRACE_ROWS[1]]
+        * _PAULI_PRODUCT_TRACE_COEFFICIENTS[1]
+    )
+
+
 def _electron_fluctuation_moment_matrix(
     electron_density: ComplexArray,
 ) -> ComplexArray:
     """Return ``<delta sigma_a delta sigma_b>`` for the Pauli basis."""
 
     electron = np.asarray(electron_density, dtype=complex)
-    means = np.asarray(
-        [
-            np.trace(electron @ operator).real
-            for operator in _ELECTRON_FLUCTUATION_BASIS
-        ],
-        dtype=float,
-    )
-    moment = np.empty((3, 3), dtype=complex)
-    for row, first in enumerate(_ELECTRON_FLUCTUATION_BASIS):
-        for column, second in enumerate(_ELECTRON_FLUCTUATION_BASIS):
-            moment[row, column] = (
-                np.trace(electron @ first @ second)
-                - means[row] * means[column]
-            )
+    means = _pauli_trace_means(electron)
+    moment = _pauli_product_traces(electron) - means[:, None] * means[None, :]
     return 0.5 * (moment + moment.conjugate().T)
 
 
@@ -1089,28 +1204,13 @@ def _electron_fluctuation_moment_derivative(
 
     electron = np.asarray(electron_density, dtype=complex)
     derivative = np.asarray(electron_derivative, dtype=complex)
-    means = np.asarray(
-        [
-            np.trace(electron @ operator).real
-            for operator in _ELECTRON_FLUCTUATION_BASIS
-        ],
-        dtype=float,
+    means = _pauli_trace_means(electron)
+    mean_derivatives = _pauli_trace_means(derivative)
+    moment_derivative = (
+        _pauli_product_traces(derivative)
+        - mean_derivatives[:, None] * means[None, :]
+        - means[:, None] * mean_derivatives[None, :]
     )
-    mean_derivatives = np.asarray(
-        [
-            np.trace(derivative @ operator).real
-            for operator in _ELECTRON_FLUCTUATION_BASIS
-        ],
-        dtype=float,
-    )
-    moment_derivative = np.empty((3, 3), dtype=complex)
-    for row, first in enumerate(_ELECTRON_FLUCTUATION_BASIS):
-        for column, second in enumerate(_ELECTRON_FLUCTUATION_BASIS):
-            moment_derivative[row, column] = (
-                np.trace(derivative @ first @ second)
-                - mean_derivatives[row] * means[column]
-                - means[row] * mean_derivatives[column]
-            )
     return 0.5 * (
         moment_derivative + moment_derivative.conjugate().T
     )
@@ -1119,15 +1219,12 @@ def _electron_fluctuation_moment_derivative(
 def _correlation_pauli_block(correlation: ComplexArray) -> ComplexArray:
     """Contract the two correlation matrices against the Pauli basis."""
 
-    values = np.empty((2, 3), dtype=complex)
-    for phonon_index in range(2):
-        for operator_index, operator in enumerate(
-            _ELECTRON_FLUCTUATION_BASIS
-        ):
-            values[phonon_index, operator_index] = np.trace(
-                correlation[phonon_index] @ operator
-            )
-    return values
+    correlation = np.asarray(correlation, dtype=complex)
+    return (
+        correlation[:, 0, _PAULI_TRACE_ROWS[0]] * _PAULI_TRACE_COEFFICIENTS[0]
+        + correlation[:, 1, _PAULI_TRACE_ROWS[1]]
+        * _PAULI_TRACE_COEFFICIENTS[1]
+    )
 
 
 def electron_phonon_moment_matrix(state: MatrixDimerState) -> ComplexArray:
@@ -1149,13 +1246,12 @@ def electron_phonon_moment_matrix(state: MatrixDimerState) -> ComplexArray:
     correlation = _correlation_pauli_block(
         state.electron_phonon_correlation
     )
-    cross = np.vstack([correlation.conjugate(), correlation])
-    moment = np.block(
-        [
-            [boson, cross],
-            [cross.conjugate().T, electron],
-        ]
-    )
+    moment = np.empty((7, 7), dtype=complex)
+    moment[0:4, 0:4] = boson
+    moment[0:2, 4:7] = correlation.conjugate()
+    moment[2:4, 4:7] = correlation
+    moment[4:7, 0:4] = moment[0:4, 4:7].conjugate().T
+    moment[4:7, 4:7] = electron
     return 0.5 * (moment + moment.conjugate().T)
 
 
@@ -1167,10 +1263,6 @@ def electron_phonon_moment_derivative(
 
     _validate_matrix_state(state)
     _validate_matrix_state(derivative)
-    boson_derivative = _boson_moment_derivative_from_blocks(
-        derivative.phonon_density,
-        derivative.anomalous_phonon_density,
-    )
     electron_derivative = _electron_fluctuation_moment_derivative(
         state.electron_density,
         derivative.electron_density,
@@ -1178,15 +1270,20 @@ def electron_phonon_moment_derivative(
     correlation_derivative = _correlation_pauli_block(
         derivative.electron_phonon_correlation
     )
-    cross_derivative = np.vstack(
-        [correlation_derivative.conjugate(), correlation_derivative]
+    moment_derivative = np.empty((7, 7), dtype=complex)
+    # The boson block is written straight into the seven-by-seven array
+    # instead of being assembled into a separate four-by-four and copied.
+    _fill_boson_moment_derivative(
+        moment_derivative[0:4, 0:4],
+        derivative.phonon_density,
+        derivative.anomalous_phonon_density,
     )
-    moment_derivative = np.block(
-        [
-            [boson_derivative, cross_derivative],
-            [cross_derivative.conjugate().T, electron_derivative],
-        ]
+    moment_derivative[0:2, 4:7] = correlation_derivative.conjugate()
+    moment_derivative[2:4, 4:7] = correlation_derivative
+    moment_derivative[4:7, 0:4] = (
+        moment_derivative[0:4, 4:7].conjugate().T
     )
+    moment_derivative[4:7, 4:7] = electron_derivative
     return 0.5 * (
         moment_derivative + moment_derivative.conjugate().T
     )
@@ -1198,12 +1295,26 @@ def _boson_moment_derivative_from_blocks(
 ) -> ComplexArray:
     """Lift normal/anomalous phonon derivatives to the moment matrix."""
 
-    return np.block(
-        [
-            [normal_derivative.T, anomalous_derivative.conjugate()],
-            [anomalous_derivative, normal_derivative],
-        ]
+    derivative = np.empty((4, 4), dtype=complex)
+    _fill_boson_moment_derivative(
+        derivative,
+        normal_derivative,
+        anomalous_derivative,
     )
+    return derivative
+
+
+def _fill_boson_moment_derivative(
+    block: ComplexArray,
+    normal_derivative: ComplexArray,
+    anomalous_derivative: ComplexArray,
+) -> None:
+    """Write the four-by-four boson block of the moment derivative in place."""
+
+    block[0:2, 0:2] = normal_derivative.T
+    block[0:2, 2:4] = anomalous_derivative.conjugate()
+    block[2:4, 0:2] = anomalous_derivative
+    block[2:4, 2:4] = normal_derivative
 
 
 def _closed_scalar_boson_derivative_blocks(
