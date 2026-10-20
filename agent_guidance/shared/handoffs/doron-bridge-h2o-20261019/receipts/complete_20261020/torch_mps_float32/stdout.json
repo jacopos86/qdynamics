@@ -1,0 +1,12 @@
+{
+  "status_by_method": {
+    "mapping_witness": "gpu_verified",
+    "exact_sector_reference": "gpu_verified",
+    "qse": "gpu_verified",
+    "static_adapt_selection_gradients": "gpu_verified"
+  },
+  "out_path": "agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/receipts/complete_20261020/torch_mps_float32/bridge_receipts.json",
+  "backend": "torch:mps:float32",
+  "exit_code": 0,
+  "exit_policy": "all requested methods verified on the requested backend"
+}
