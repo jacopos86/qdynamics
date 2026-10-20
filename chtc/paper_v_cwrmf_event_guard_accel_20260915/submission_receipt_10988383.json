@@ -1,0 +1,29 @@
+{
+  "campaign": "paper_v_cwrmf_event_guard_accel_20260915_v1",
+  "segment": "accel_s02_t0500_t1000",
+  "cluster_id": 10988383,
+  "submitted_utc": "2026-09-20T17:07:09Z",
+  "generated_from": "archives_by_receipt/881c8dec61e692bd443b0b5447dbbb41b6d423db6e14529462f214188319133d/receipt.json (segment accel_s01_t0000_t0500_r01, stop_reason final_time)",
+  "submit_file": "chtc/paper_v_cwrmf_event_guard_accel_20260915/submit_cwrmf_accel_accel_s02_t0500_t1000_20260920.sub",
+  "arguments": "accel_s02_t0500_t1000 1 0.0025 2e-4 raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s01_t0000_t0500_r01/checkpoint.npz 0.5",
+  "argument_contract": "run_id final_time time_step event_gram_hard_floor initial_state_file expected_initial_time",
+  "job_batch_name": "paper_v_cwrmf_event_guard_accel_20260915_v1-accel_s02_t0500_t1000",
+  "request_cpus": 8,
+  "request_memory_mb": 12288,
+  "max_runtime_seconds": 172800,
+  "wall_budget_seconds": 138240,
+  "lifecycle_validator": "exit 0, remote",
+  "dry_run": "/tmp/paper_v_accel_s02.ad on ap2001, 1 job",
+  "predecessor": {
+    "cluster_id": 10737278,
+    "run_id": "accel_s01_t0000_t0500_r01",
+    "job_status": 4,
+    "exit_code": 0,
+    "remote_wall_clock_seconds": 13175.0,
+    "archive_sha256": "881c8dec61e692bd443b0b5447dbbb41b6d423db6e14529462f214188319133d",
+    "archive_bytes": 1126507
+  },
+  "planned_grid": "submit_cwrmf_accel_s02.sub through s08.sub were retired to planned_grid_retired/ on both this checkout and the submit node; they name the failed planned run id's checkpoint and blocked the generator's reuse check",
+  "collect": "archives_by_receipt/<sha>/ on the remote root; the next segment is generated from this one's returned receipt.json",
+  "monitor": "condor_watch_q -clusters 10988383 (one query per check)"
+}

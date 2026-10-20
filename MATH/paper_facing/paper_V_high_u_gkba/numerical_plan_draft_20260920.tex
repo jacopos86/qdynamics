@@ -1,0 +1,361 @@
+% MANUSCRIPT-IDENTITY: not-active | paper_v | active source is MATH/paper_details/paper_V_high_u_gkba.tex | agent_guidance/paper-registry.yaml
+%
+% ============================================================================
+% Draft replacement text for the two red placeholder slots of the "Numerical
+% plan" section of MATH/paper_details/paper_V_high_u_gkba.tex, plus the short
+% results section they imply.  Written to be read first and inserted second:
+% nothing here has been put into the manuscript, and inserting it is the
+% user's decision.
+%
+% WHAT THE NUMBERS BELOW ARE.  They are exploratory local measurements taken
+% on branch claude/paper-v-routes-20260914 between 2026-09-14 and 2026-09-18
+% and consolidated in
+%   MATH/paper_facing/paper_V_high_u_gkba/cheap_repair_route_results_20260918.md
+% (called "the results summary" in the comments below), with the long-horizon
+% adaptive-integrator figures used in Block B taken from
+%   agent_guidance/paper-v/overnight/joint-gram-t20-20260915.md
+% (called "the long-horizon record").  Each number carries its definition, its
+% configuration and its horizon where it is used.
+%
+% WHAT THEY ARE NOT.  They are not adopted evidence.  Every rollout that
+% produced them writes classification = exploratory_local_not_promoted; the
+% plan of record lists this route as "adoption pending"; the t = 20 entries of
+% the standing configuration are one run with no band of their own; and
+% adoption, promotion and demotion remain the user's decisions.  For that
+% reason every quantitative claim below is wrapped in the draft's own
+% \tentative macro, which is what the manuscript already uses to mark a figure
+% that has not been adopted.  A band in parentheses is a measured one-setting
+% sensitivity, not a statistical error bar.
+%
+% ONE CONSEQUENTIAL SIDE EFFECT OF INSERTING BLOCK A.  The abstract currently
+% ends "No stability, complexity, or quantum-advantage result is claimed in
+% this draft."  Block A reports stability diagnostics.  That sentence should
+% be re-read before Block A is inserted; it is not edited here.
+%
+% Three blocks, in the order they would be inserted:
+%   Block A  a new \section, to go immediately before \section{Numerical plan}
+%   Block B  replacement for the \placeholder under
+%            \paragraph*{Regularization slot.}
+%   Block C  replacement for the \placeholder under
+%            \paragraph*{Quantum encoding slot.}
+% Block A defines \label{sec:paper_v_l2_results}, which Blocks B and C cite.
+%
+% Macros used are already defined in the manuscript preamble: \tentative,
+% \GKBA is unused here, \EOM is used as the manuscript defines it.  booktabs
+% and revtex's ruledtabular are already available.
+% ============================================================================
+
+
+% ============================================================================
+% BLOCK A --- new section, inserted immediately before \section{Numerical plan}
+% ============================================================================
+
+\section{Classical \(L=2\) diagnostics}
+\label{sec:paper_v_l2_results}
+
+The classical \(L=2\) solve called for in Sec.~\ref{sec:baseline_needed} has
+been carried out for the driven Hubbard--Holstein dimer at strong coupling
+\(\lambda=\tentative{1.5}\), \(\gamma=\tentative{0.5}\), drive amplitude
+\(\tentative{1}\), phonon cutoff \(\tentative{16}\), from an exact correlated
+preparation, with SSPRK(3,3) at \(h=\tentative{0.0025}\).  The reference is
+the exact cutoff-\(\tentative{16}\) driven trajectory (DOP853,
+\(\mathrm{rtol}=\tentative{10^{-9}}\), \(\mathrm{atol}=\tentative{10^{-11}}\),
+maximum step \(\tentative{0.01}\)), which is a reporting input only and never
+enters any propagation.  The error measure reported here is the
+all-coordinate scalar RMS of the \(\tentative{31}\) closed scalar coordinates
+against that reference, \(\sqrt{\operatorname{mean}(d^{2})}\) over samples and
+coordinates on the \(h=\tentative{0.0025}\) grid, cumulative from \(t=0\).
+
+The propagated object is a fixed-dictionary moment closure of
+Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q}, carried
+together with the classical coherent field of Eq.~\eqref{eq:paper_v_B}.  At
+its largest declared dictionary it has \(\tentative{27}\) entrance keys,
+\(\tentative{56}\) propagated state coordinates and \(\tentative{36}\)
+positive-extension rows over \(\tentative{70}\) frontier keys.  Physicality is
+enforced by projection onto two cones --- the retained joint Gram of the raw
+moment coordinates and the positive extension --- together with the hyperplane
+on which the internal energy of Eq.~(22) of Ref.~\cite{RivaSimoniPing2026}
+equals a reference advanced by the closure's own drive power.
+Table~\ref{tab:paper_v_l2_scores} collects the result at the horizons the
+record carries, beside the previously recorded routes and beside the
+uncorrected archive equations of motion.
+
+% ---------------------------------------------------------------------------
+% Source for every entry of the table: the results summary, section 3.1 (the
+% scores and the bands) and section 3.2 (the wall times and the machine note).
+% Scores are the all-coordinate scalar RMS of the 31 closed scalar
+% coordinates; the t = 0 coordinate offset of every route in the table is
+% 8.08e-16, so raw and offset-subtracted figures agree to every printed digit.
+% ---------------------------------------------------------------------------
+\begin{table*}
+\caption{Classical \(L=2\) trajectory error at strong coupling, in units of
+\(10^{-2}\): all-coordinate scalar RMS of the \(31\) closed scalar
+coordinates against the exact cutoff-\(16\) driven reference, cumulative from
+\(t=0\) to each stated horizon.  The second line of a cell gives the number of
+members of the measured band and its spread in percent; a band is the spread
+of the run and its one-setting twins and is a measured sensitivity, not a
+statistical error bar, so any ordering closer than the band is unresolved.
+``1 run'' marks an entry with no band.  Common configuration:
+\(\lambda=1.5\), \(\gamma=0.5\), drive amplitude \(1\), phonon cutoff \(16\),
+exact correlated preparation, SSPRK(3,3) at \(h=0.0025\), lift re-selection
+every \(16\) accepted steps.  The exact reference itself propagates to
+\(t=4\) in \(0.7\,\mathrm{s}\).  Every figure is \tentative{tentative}: none
+of it is adopted evidence.}
+\label{tab:paper_v_l2_scores}
+\begin{ruledtabular}
+\footnotesize
+\begin{tabular}{p{1.45in}cccccc}
+configuration
+ & \(t=4\) & \(t=8\) & \(t=12\) & \(t=16\) & \(t=20\)
+ & wall (s) \\
+\colrule
+\(27\)-key dictionary, anchor-free measured re-selection rule, no trust
+  radius, \(120\) Dykstra iterations, from \(t=0\)
+ & \shortstack{\tentative{\(0.9290\)}\\{\scriptsize\tentative{\((4;\,7.1)\)}}}
+ & \shortstack{\tentative{\(3.304\)}\\{\scriptsize\tentative{\((4;\,9.8)\)}}}
+ & \shortstack{\tentative{\(4.060\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \shortstack{\tentative{\(4.610\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \shortstack{\tentative{\(5.604\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \tentative{\(5{,}183.6\)} \\
+the same rule with the ball trust radius \(0.1\), \(30\) Dykstra iterations
+ & \shortstack{\tentative{\(1.043\)}\\{\scriptsize\tentative{\((4;\,3.9)\)}}}
+ & \shortstack{\tentative{\(3.181\)}\\{\scriptsize\tentative{\((4;\,2.3)\)}}}
+ & \shortstack{\tentative{\(3.797\)}\\{\scriptsize\tentative{\((4;\,2.9)\)}}}
+ & \shortstack{\tentative{\(4.821\)}\\{\scriptsize\tentative{\((4;\,5.9)\)}}}
+ & \shortstack{\tentative{\(6.353\)}\\{\scriptsize\tentative{\((4;\,9.7)\)}}}
+ & \tentative{\(4{,}844.7\)} \\
+\(27\)-key dictionary, earlier re-selection form, \(30\) Dykstra iterations
+ & \shortstack{\tentative{\(1.143\)}\\{\scriptsize\tentative{\((2;\,13.1)\)}}}
+ & \shortstack{\tentative{\(2.593\)}\\{\scriptsize\tentative{\((2;\,4.5)\)}}}
+ & \shortstack{\tentative{\(4.251\)}\\{\scriptsize\tentative{\((2;\,1.9)\)}}}
+ & \shortstack{\tentative{\(6.377\)}\\{\scriptsize\tentative{\((2;\,5.4)\)}}}
+ & \shortstack{\tentative{\(8.519\)}\\{\scriptsize\tentative{\((2;\,6.7)\)}}}
+ & \tentative{\(4{,}794.4\)} \\
+the first row with the Eq.~(22) hyperplane removed from the projection
+ & \shortstack{\tentative{\(1.206\)}\\{\scriptsize\tentative{\((2;\,10.3)\)}}}
+ & \shortstack{\tentative{\(4.853\)}\\{\scriptsize\tentative{\((2;\,1.9)\)}}}
+ & \shortstack{\tentative{\(11.43\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \shortstack{\tentative{\(21.48\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \shortstack{\tentative{\(35.64\)}\\{\scriptsize\tentative{(1 run)}}}
+ & \tentative{\(3{,}514.0\)} \\
+\(15\)-key dictionary, ball rule, \(30\) Dykstra iterations
+ & \shortstack{\tentative{\(2.72\)}\\{\scriptsize\tentative{\((4;\,0.1)\)}}}
+ & \shortstack{\tentative{\(3.85\)}\\{\scriptsize\tentative{\((4;\,0.2)\)}}}
+ & \shortstack{\tentative{\(9.89\)}\\{\scriptsize\tentative{\((4;\,5.5)\)}}}
+ & \shortstack{\tentative{\(13.2\)}\\{\scriptsize\tentative{\((4;\,19.3)\)}}}
+ & \shortstack{\tentative{\(13.3\)}\\{\scriptsize\tentative{\((4;\,56.2)\)}}}
+ & \tentative{\(762\)--\(847\)} \\
+\colrule
+\(60\)-coordinate fixed-dictionary closure, full cone and retained joint-Gram
+  controller
+ & \tentative{\(1.2580\)} & --- & --- & --- & ---
+ & \tentative{\(3{,}399.6\)}\footnotemark[1] \\
+\(60\)-coordinate fixed-dictionary closure, both cones
+ & --- & --- & --- & ---
+ & \tentative{\(12.8607\)}
+ & \tentative{\(5{,}832.34\)}\footnotemark[1] \\
+plain archive \(\EOM\), no physicality enforcement
+ & \tentative{\(11.0890\)} & \tentative{\(13.8174\)} & --- & ---
+ & \tentative{\(19.3196\)}
+ & \tentative{under \(1\)} \\
+\end{tabular}
+\footnotetext[1]{Measured on a different machine from every other wall in this
+column; the ratio between the two machines is unmeasured, so these two entries
+are not comparable with the rest of the column.}
+\end{ruledtabular}
+\end{table*}
+
+Read across the table, no single configuration leads at every horizon: the
+first row leads at \(t=\tentative{4}\) and \(t=\tentative{20}\), the third at
+\(t=\tentative{8}\), and the second at \(t=\tentative{12}\) and
+\(t=\tentative{16}\).
+
+\paragraph*{Internal energy.}
+The internal energy of Eq.~(22) of Ref.~\cite{RivaSimoniPing2026} is an
+exactly linear functional of the raw moment coordinates, and enforcing it as a
+third projection holds it on the declared reference to
+\tentative{\(1.78\times10^{-15}\)} over \tentative{\(23{,}802\)} constrained
+projections to \(t=\tentative{20}\) with no refusals; the sample RMS of that
+energy over \(t=0\) to \(\tentative{20}\) is then
+\tentative{\(5.336\times10^{-3}\)} for the first row of
+Table~\ref{tab:paper_v_l2_scores}, against
+\tentative{\(6.345\times10^{-3}\)} for the third,
+\tentative{\(1.371\)} for the row with the hyperplane removed,
+\tentative{\(9.396\times10^{-4}\)} for the both-cones line and
+\tentative{\(1.824\times10^{-2}\)} for the uncorrected archive \(\EOM\), that
+column measuring the level at which the reference itself sits
+(\tentative{\(5.614\times10^{-3}\)} above the exact post-pulse energy
+\tentative{\(-3.571397982\)}) rather than a drift.
+
+\paragraph*{Physicality.}
+Over \(t=0\) to \(\tentative{20}\) the first row of
+Table~\ref{tab:paper_v_l2_scores} reaches a minimum unshifted retained
+joint-Gram eigenvalue of \tentative{\(-4.460\times10^{-4}\)} (at
+\(t=\tentative{11.04}\)) and a minimum scaled positive-extension eigenvalue of
+\tentative{\(-3.936\times10^{-5}\)} (at \(t=\tentative{9.4975}\)), the
+shallowest pair of any constrained chain on record, while no chain carrying
+the Eq.~(22) hyperplane holds either cone past \(t=\tentative{8}\), the one
+chain that does hold both (\tentative{\(-1.549\times10^{-12}\)} and
+\tentative{\(-1.350\times10^{-9}\)}, both at the scale of the arithmetic) being
+the one with that hyperplane removed and the worst in the table from
+\(t=\tentative{8}\) onward.
+
+\paragraph*{Wall and machine.}
+Every wall in Table~\ref{tab:paper_v_l2_scores} except the two marked entries
+was measured on one 24\,GB workstation, one heavy process at a time, each
+rollout capped at \(\tentative{4500}\,\mathrm{MB}\) with measured peaks of
+\tentative{\(624\)} to \tentative{\(699\)}\,MiB; the two marked entries come
+from a different machine and are not comparable with the others.  None of the
+figures in this section is adopted evidence.
+
+
+% ============================================================================
+% BLOCK B --- replaces the \placeholder line under
+%             \paragraph*{Regularization slot.}  in \section{Numerical plan}
+% ============================================================================
+
+\paragraph*{Regularization slot.}
+Of the five candidate high-\(U\) failure modes, the classical \(L=2\) case
+exhibits density-matrix positivity loss: the uncorrected system leaves the
+joint moment cone while every other listed defect stays at or near the
+arithmetic floor.  The evidence excluding the other four is as follows.
+\emph{Energy drift is not an intrinsic defect of the closure.}  The drive-free
+velocity of the closed system changes the internal energy of Eq.~(22) of
+Ref.~\cite{RivaSimoniPing2026} by \tentative{\(4.35\times10^{-17}\)} per step,
+and the drift against the reference advanced by the closure's own drive power
+is \tentative{\(4.09\times10^{-16}\)} per step; the uncorrected archive
+\(\EOM\) carries a sample RMS of that energy of
+\tentative{\(2.759\times10^{-2}\)} at \(t=\tentative{4}\) and
+\tentative{\(1.824\times10^{-2}\)} at \(t=\tentative{20}\), which does not
+accumulate with the horizon.  \emph{Correlation blow-up is not observed.}  The
+uncorrected trajectory stays bounded over the whole horizon, its
+all-coordinate scalar RMS against the exact cutoff-\(\tentative{16}\) driven
+reference reading \tentative{\(1.109\times10^{-1}\)},
+\tentative{\(1.382\times10^{-1}\)} and \tentative{\(1.932\times10^{-1}\)} at
+\(t=\tentative{4}\), \(\tentative{8}\) and \(\tentative{20}\), while over the
+same horizon its minimum unshifted retained joint-Gram eigenvalue falls to
+\tentative{\(-5.173\times10^{-1}\)} by \(t=\tentative{4}\): the amplitudes
+remain finite and it is representability that is lost.  \emph{The source
+equations are not the defect, and are not themselves stiff.}  On the exact
+state the archive equations of motion reproduce the exact flow --- the
+residual-subtracted form scores \tentative{\(5.46\times10^{-7}\)} over
+\(t=0\) to \(\tentative{0.05}\), and the phonon-covariance equation, Eq.~(14b)
+of Ref.~\cite{RivaSimoniPing2026}, here Eq.~\eqref{eq:paper_v_delta_rho},
+integrates at the exact state to the exact change of its own coordinate over
+\(t=\tentative{4}\) to \(\tentative{8}\),
+\tentative{\(2.323\times10^{-2}\)}, with residual
+\tentative{\(5.010\times10^{-4}\)} --- and the uncorrected system reaches
+\(t=\tentative{20}\) under a fixed step \(h=\tentative{0.0025}\) in
+\tentative{under one second}.  \emph{Self-consistency instability is not
+observed}: the coupled loop through \(\tilde h(t)\) and
+Eq.~\eqref{eq:paper_v_B} runs the whole horizon at strong coupling without an
+integrator failure.
+
+\emph{Stiffness is real, but it is a property of the regularization and not of
+Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q}.}  This
+is what the solver-step rejection counts and the adaptive integrator's step
+history settle.  Under an adaptive integrator a containment-corrected velocity
+built to hold the joint moment cone took \tentative{\(46{,}034\)} accepted
+steps and \tentative{\(650{,}243\)} right-hand-side evaluations in
+\tentative{\(9{,}000\)} seconds and reached \(t=\tentative{0.30}\); its first
+\tentative{\(554\)} accepted steps carry the trajectory to
+\(t=\tentative{0.1898}\) at a mean accepted step of
+\tentative{\(3.4\times10^{-4}\)} and the remaining \tentative{\(45{,}480\)}
+steps carry it \tentative{\(0.151\)} further at a mean accepted step of
+\tentative{\(3.3\times10^{-6}\)}, a hundredfold collapse, while the projection
+count per right-hand-side evaluation is flat at \tentative{\(40.5\)}, so the
+loss is in the accepted step size and not in the price of one correction.  The
+same uncorrected velocity is not stiff.  What limits a long horizon is
+therefore not the target ODE but the step rejection induced by whatever
+enforces its representability, and a regularization for this system is to be
+judged on the stiffness it adds.
+Section~\ref{sec:paper_v_l2_results} reports what a fixed-step projection
+route achieves once that is accepted.
+
+
+% ============================================================================
+% BLOCK C --- replaces the \placeholder line under
+%             \paragraph*{Quantum encoding slot.}  in \section{Numerical plan}
+% ============================================================================
+
+\paragraph*{Quantum encoding slot.}
+The classical diagnostics of Sec.~\ref{sec:paper_v_l2_results} identify the
+dominant bottleneck as invariant preservation rather than state dimension,
+stiffness of the target, nonlinearity or measurement burden, and they localize
+it further: what costs is one semidefinite projection, acting through one
+coordinate of the phonon sector.  Of the wall of the first row of
+Table~\ref{tab:paper_v_l2_scores}, \tentative{\(0.803\)} is spent in the
+\tentative{\(500\)} positive-extension completion solves that keep the lift
+representable, at \tentative{\(8.32\)} seconds each; the same share is
+\tentative{\(0.838\)} for the earlier projective route
+(\tentative{\(2{,}706.8\)} of \tentative{\(3{,}229.8\)} seconds, on
+\tentative{\(1{,}068\)} of \tentative{\(5{,}559\)} stages) and
+\tentative{\(0.981\)} for the strictly guarded route
+(\tentative{\(142.350\)} of \tentative{\(145.172\)} seconds in
+\tentative{\(36\)} conic solves).  Evaluating
+Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} and
+Eq.~\eqref{eq:paper_v_B} without that enforcement reaches \(t=\tentative{20}\)
+in \tentative{under one second}.  The residual error the route does carry is
+concentrated in the same place: of the phonon-occupation error over
+\(t=\tentative{4}\) to \(\tentative{8}\), \tentative{\(0.998\)} is the
+relative-mode phonon population \(v^{\dagger}\delta\rho\,v\) with
+\(v=(1,-1)/\sqrt{2}\) alone, and it is the positive-extension projection that
+moves it (\tentative{\(1.113\times10^{-3}\)} per stage repair, against
+\tentative{\(7.5\times10^{-8}\)} for the retained joint-Gram projection).  At
+fixed configuration the price of that enforcement is measurable in both
+directions: deepening the projection from \(\tentative{30}\) to
+\(\tentative{120}\) alternations moves the minimum retained joint-Gram
+eigenvalue from \tentative{\(-2.38\times10^{-3}\)} to
+\tentative{\(-4.42\times10^{-4}\)} and the \(t=\tentative{20}\) score from
+\tentative{\(6.353\times10^{-2}\)} to \tentative{\(5.784\times10^{-2}\)} for
+\tentative{\(11\)} percent more wall, while removing the energy hyperplane
+returns \tentative{\(32.2\)} percent of the wall and costs \tentative{\(6.36\)}
+times the score and \tentative{\(257\)} times the internal-energy RMS at
+\(t=\tentative{20}\).
+
+This reorders the three routes of Sec.~\ref{sec:pedagogical_solver_map}
+without yet deciding among them.  The NISQ residual layer becomes \emph{less}
+attractive: its object is the projected propagation of \(x\), which is the
+part already measured to cost \tentative{under one second} of a
+\tentative{\(5{,}183.6\)}-second wall, and
+Eqs.~\eqref{eq:paper_v_sector_scale_eq}
+and~\eqref{eq:paper_v_sector_theta_eq} carry no mechanism that keeps the
+represented moment state inside either cone.  The fault-tolerant linearization
+layer becomes less attractive for the same reason, since block-encoding
+\(J_Q\) accelerates the same cheap object.  The fault-tolerant lifting layer
+is the one whose object is the right one, because the lifted vector \(X_K\)
+\emph{is} a moment vector and the constraint that costs is a semidefinite
+condition on its Gram; and that condition is measured to be exactly affine in
+the propagated coordinates (reconstruction errors
+\tentative{\(1.1\times10^{-16}\)}, \tentative{\(1.1\times10^{-16}\)} and
+\tentative{\(2.8\times10^{-17}\)} for the retained joint Gram, the positive
+extension and the unified Gram, and at most \tentative{\(1.8\times10^{-15}\)}
+at independent probes four times larger in scale), so the repair is a fixed
+linear map, a spectral clip, and one least-squares map back whose design has
+full rank \tentative{\(126\)} over the \tentative{\(126\)} movable
+coordinates.  That triple is a matrix-function and linear-system object, which
+is what the LCU/QSP and quantum-linear-system items of
+Sec.~\ref{sec:ft_ideas} address; it is not a linear-ODE object, and the
+lifting layer's own cost model in Sec.~\ref{sec:pedagogical_solver_map} does
+not yet carry it.
+
+Two measurements would settle the choice, and neither has been made.  First,
+how the wall divides between velocity evaluation and the semidefinite step as
+the dictionary grows: the share is measured at one dictionary
+(\tentative{\(0.803\)} at \tentative{\(27\)} entrance keys and
+\tentative{\(36\)} extension rows), and the derivative map of the extension
+has been measured to have rank \tentative{\(1\)} over the four raw phonon
+normal coordinates at all \tentative{\(11\)} dictionaries examined
+(\tentative{\(24\)} to \tentative{\(45\)} extension rows), so the scaling of
+the two shares with dictionary size and with \(L\) is the open quantity.  At
+\(L=2\) it cannot be read off, because \(\dim x\) is only
+\tentative{\(56\)} propagated real coordinates and no encoding claim can rest
+on a dimension that small.  Second, the conditioning of the repair itself: the
+amplification factor of the least-squares map back, together with the number
+of alternations the cone actually requires --- which is measured to matter,
+the projection running \tentative{three} times per accepted step and
+\tentative{\(23{,}802\)} times to \(t=\tentative{20}\).  Until both exist,
+item~4 of the decision rule in Sec.~\ref{sec:pedagogical_solver_map} stands:
+none of the three layers currently prices the operation that dominates the
+classical cost, so no route may be selected on the strength of a cost model
+that omits it.

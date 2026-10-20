@@ -8026,3 +8026,1451 @@ row carries the phonon normal moments, sized first at the same 2,400 stage
 inputs by the extension twin's displacement and its depth below the extension
 floor, against `1.113000e-03` and `2.297563e-03` and `-2.245342e-04` and
 `-4.335943e-04`.
+
+### Cluster 10737278 returned: the first complete guarded carried-witness trajectory, t=0 to 0.5
+
+The retry of segment 1 finished on CHTC with `JobStatus 4`, `ExitCode 0`,
+`13,175 s` of remote wall (`3.66 h`), `stop_reason final_time` at `t=0.5`.
+Archive `881c8dec61e692bd443b0b5447dbbb41b6d423db6e14529462f214188319133d`
+(`1,126,507` bytes) fetched by receipt and verified locally at
+`output/local_runs/paper_v_cwrmf_accel_chtc_10737278/`.  Balanced profile,
+event-triggered guard at hard floor `2e-4`, two step subdivisions,
+`max_threads_8`, default bundle seed policy, `h=0.0025`, strong coupling,
+cutoff 16, exact-correlated preparation.
+
+| quantity, `t=0` to `0.5` | value | comparison |
+|---|---:|---|
+| dynamic all-coordinate scalar RMS against the exact cutoff-16 reference | `3.195379e-5` | the record's strict always-on figure over the same horizon is `3.19169e-5` |
+| dynamic blockwise rho / B / N / A / C | `4.89e-7` / `1.57e-5` / `4.38e-6` / `7.02e-5` / `8.47e-6` | --- |
+| dynamic site-0 occupation RMS | `3.19e-7` | --- |
+| minimum retained joint-Gram eigenvalue | `-7.27e-16` | positive to roundoff |
+| minimum carried unshifted 62-row Gram eigenvalue | `-1.8386e-4` | inside the declared hard floor `2e-4` |
+| maximum completion correction norm / readable-rate residual | `3.857e-3` / `1.540e-2` | --- |
+| autonomous wall / peak resident | `13,154 s` / `4.41 GB` | the local resume needed `14,722 s` for `0.38` time units |
+| tier seconds: Clarabel / retraction / eigendecomposition | `12,957` over 372 calls / `82.1` over 80 / `1.85` over 1,199 | 98.5 percent Clarabel |
+| maximum atom wall / mean active critical modes | `367.5 s` / `25.9` | maximum 62 |
+
+Reading: this is the first guarded carried-witness trajectory to run `t=0` to
+`0.5` in one job from the preparation.  The record's local attempts stopped at
+`t=0.08` (strict) and `t=0.2` (balanced) before the depth bound existed, and
+the local bounded-depth run reached `t=0.5` only as a resume from `t=0.1175`.
+Per time unit the remote job costs `26,309 s` against the local
+`38,742 s`, a factor `1.47` that is the `max_threads_8` profile.
+
+Segment 2 (`accel_s02_t0500_t1000`, `t=0.5` to `1.0`, checkpoint transferred
+from this segment) was generated from the returned receipt, validated, dry
+run and submitted as cluster `10988383` at 2026-09-20T17:07:09Z; receipt
+`chtc/paper_v_cwrmf_event_guard_accel_20260915/submission_receipt_10988383.json`.
+The shipped planned grid `submit_cwrmf_accel_s02.sub` to `s08.sub` was retired
+to `planned_grid_retired/` on both this checkout and the submit node: each
+names the failed planned run id's checkpoint, which never existed, and each
+blocked the generator's run-id reuse check.
+
+## 2026-09-20: does the corrected archive closure ever beat exact propagation?
+
+Four measured studies, a crossover model and three adversarial checks per
+claim (reports `agent_guidance/paper-v/overnight/scaling-{dimension-growth,
+conic-cost-law,exact-cost-law,repair-overhead}-20260920.md`; scripts and
+outputs under `output/local_runs/paper_v_scaling_20260920/`).  The question
+is the one the route's cost raises: at two sites the exact cutoff-16 driven
+reference reaches `t=20` in `3.064 s` measured while the corrected closure
+takes `5,183.6 s`, so the construction earns its cost only if its own cost
+grows slowly in the site count `L` while the exact state grows as
+`L^2 (M+1)^L`.
+
+Measured, and not in dispute: the exact three-site driven reference was built
+and propagated (state dimension `44,217`, `300,840` nonzeros) and reaches
+`t=4` in `19.02 s` end to end, `137 s` to `t=20` under its fitted law; the
+conic program's dense block is `74.8 (n(2n+1))^2` bytes at `n` extension
+rows, which caps the `18 GB` aggregate contract at `87` rows; and the
+two-site closure wall decomposes exactly as `500` completion solves at
+`8.3249 s` over a re-selection share of `0.8030`, reproducing the recorded
+`5,183.569 s`.
+
+Modelled, and explicitly not measured: there is no three-site closure.  Every
+Paper V module is dimer-specific, `MomentKey(spin_up, spin_down, x_power,
+p_power)` cannot name a word in a second boson mode, and the one-term Pauli
+product law is the `su(2)` identity `d_abc = 0`, which fails at `L>=3`.  The
+`L>=3` dimensions are a counting model written this round
+(`count_l_site_construction.py`), whose `L=2` row reproduces sixteen
+committed quantities and whose counted and closed-form blocks agree at
+`L=2,3,4,5`; the conic wall at those dimensions extrapolates a law fitted
+over cone side `32` to `104` whose local exponent rises `3.24` to `4.17` to
+`4.87` inside that window.  Five of the synthesis's six claims were refuted
+on exactly this ground by the verifiers, who upheld the direction and
+rejected the precision: the memory law and its `87`-row cap stand, the
+three-site exact cost stands as measured, and the closure side at `L>=3` is
+extrapolation.
+
+Reading.  Under every cost law on record the corrected closure is `1.8e3` to
+`5.1e4` times more expensive than exact propagation at every site count
+either method can be run, and the earliest crossing any law supports is
+`L=10` at a closure wall of `5.6e12 s`.  The cause is the dictionary, not the
+solver: the entrance predicate pairs every electronic generator across both
+spin species with every degree-two Weyl monomial over all `L-1` modes and
+refers to locality nowhere, so the extension rows go quartic to quintic in
+`L` (`36` at two sites, a counted `281` at three, `1,192` at four).  Holding
+rows linear in `L` instead moves the modelled crossing to `L=5` or `6` with
+the conic block at `2.4`, `7.6` and `18.5 GiB` at three, four and five sites,
+inside or at the edge of the memory contract at exactly the site count where
+the crossing happens; one verifier holds that rows cannot be held linear in
+this construction, which is the open question.
+
+Next, and cheap: re-run the same enumeration with a locality-restricted
+entrance predicate, keys supported on a single site and its chain neighbour
+only, at `L=2,3,4,5`, reporting extension rows, frontier keys and whether the
+frontier closes under the full structure-constant product.  Counting only, no
+rollout, no conic solve.  It decides the route either way without the
+rewrite.
+
+## 2026-09-20: can the entrance predicate be restricted to one bond?
+
+The counting the previous block named as next, done (report
+`agent_guidance/paper-v/overnight/scaling-locality-20260920.md`; scripts
+`count_locality_restricted.py`, `summarize_locality.py` and outputs
+`locality_counts_L2_L5.json`, `locality_reading.json` under
+`output/local_runs/paper_v_scaling_20260920/`).  Counting only: nothing
+propagated, prepared, solved or promoted, no module under `paper_5/src`
+edited, no default changed.
+
+The restriction, stated as a restriction of the committed predicate: write
+the electronic one-body Hermitian basis bond-adapted --- identity,
+`S_ij = E_ij + E_ji` and `A_ij = -i E_ij + i E_ji` for `i < j`, and
+`D_q = E_qq - E_{q+1,q+1}` for each bond, which is `(I, X, Y, Z)` at two
+sites --- and keep only the keys `ENTRANCE_RELATIVE_MOMENT_KEYS` admits for
+which one bond carries both spin-species generators and the Weyl monomial
+uses no coordinate of any other mode, interacting mode `q` identified with
+bond `q`.  At `L = 2` the restriction removes nothing: archive-resolved keys
+`14`, entrance keys `15`, two-spin/one-boson promotion keys `12`, the 27-key
+dictionary `27`, hidden keys `31`, base half-words `9`, extension rows
+`24 / 36 / 40`, lower keys `29 / 41 / 45`, frontier keys `62 / 70 / 129`,
+propagated state coordinates `44 / 56 / 60` and realified positive-extension
+cone side `48 / 72 / 80` all equal the committed numbers, with no departure.
+Products carry the full structure constants (an exact linear solve against
+the whole `L**2`-element basis); the maximum number of basis elements in a
+product of two generators is `1`, `3`, `4`, `5` at `L = 2` to `5`, so the
+one-term law of `_pauli_product` is confirmed as the `su(2)` identity
+`d_abc = 0` and is not used above two sites.
+
+Counted, 27-key analogue: active keys `27 (L - 1)` = `27`, `54`, `81`, `108`;
+extension rows `35 L - 34` = `36`, `71`, `106`, `141`; realified
+positive-extension cone side `70 L - 68` = `72`, `142`, `212`, `282`;
+propagated state coordinates `56`, `137`, `260`, `437`; frontier keys `70`,
+`1,011`, `2,418`, `4,334`.  So extension rows *can* be held linear in `L`,
+and the verifier's claim as stated is refuted.
+
+Decisive, and against the route: the restricted dictionary is not invariant
+under the Holstein commutator.  One commutator step with the `8 (L - 1)`
+chain words demands `84`, `173` and `267` moments of degree at most three at
+`L = 3`, `4`, `5` that the restricted dictionary does not carry, and every
+one of them is supported on more than one bond.  The transitive hull of that
+demand is `27`, `228`, `975`, `2,988` keys, successive exponents `5.26`,
+`5.05`, `5.02` --- the declared dictionary's own quintic law --- and a stable
+`81 %` of the whole declared enlargement at `L = 3`, `4`, `5`.  At two sites
+the same iteration on the 15-key entrance dictionary adds exactly the twelve
+two-spin/one-boson keys and stops at `27`, reproducing the committed
+promotion block.  The Gram frontier agrees from the other side: `0 %`,
+`85.4 %`, `91.0 %`, `93.2 %` of it is supported on more than one bond, the
+defect being `541`/`1,336`/`2,397` cross-mode Weyl monomials,
+`207`/`588`/`1,158` electronic factors spanning three or more sites,
+`100`/`246`/`438` generator-and-monomial-on-different-bonds and
+`15`/`30`/`45` two-species-generators-on-different-bonds at `L = 3`/`4`/`5`.
+
+Memory settles it independently.  At `74.8 (n (2 n + 1))**2` bytes the
+`18 GB` aggregate contract admits `87` extension rows (`16.15 GiB`; `88` rows
+is `16.91 GiB`).  The counted linear law fits at three sites (`71` rows,
+`7.18 GiB`) and nowhere above: `106` rows and `35.52 GiB` at four,
+`141` rows and `110.96 GiB` at five.  The modelled crossing under that same
+law moves to `L = 6` (single-power exponent `3.274`) or `L = 7` (two-term
+law), needing `176` and `211` rows, `16x` and `33x` the contract; the
+previous block's `L = 5` or `6` crossing does not survive, and even the
+`18 L` law it was stated for needs `90` rows and `18.49 GiB` at `L = 5`,
+above the ceiling.  At the one runnable site count above two, three sites,
+the modelled closure wall is `4.79e4` to `1.64e5 s` against the measured
+exact three-site driven reference's `137 s` to `t = 20`, `3.5e2` to `1.2e3`
+times behind.
+
+Reading.  The route is dead at this construction and locality does not
+revive it.  A dictionary with linear rows is not a closure but a truncated
+equation of motion; closing it restores the quintic count; and the memory
+contract caps the construction three or four sites short of any crossing on
+record.  Nothing further to size before an `L`-site closure, because an
+`L`-site closure of this construction is not worth writing.
+
+## 2026-09-20: the cheap repair on the initialization that actually diverges
+
+Every run of the 2026-09-14 to 2026-09-19 rounds prepared from the exact
+correlated ground-state contractions.  The divergence the repair of the
+archive moment closure exists for is the Hartree--Fock electronic density
+matrix with every other correlation variable zero, which
+`stability_quantum_workflow_working_notes.md` records as losing electronic
+positive semidefiniteness at `t=15.5177` and reaching state magnitude `1e4`
+at `t=130.47`.  This round runs the cheap repair from that initialization.
+Findings, artifacts and reproduction are in
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`;
+drivers and rollouts are under
+`output/local_runs/paper_v_divergence_20260920/` and
+`output/local_runs/paper_v_divergence_hf_dyk120_20260920_seg{1..5}`.  Nothing
+here is promoted evidence, no default or acceptance rule changed, and no
+module was edited.
+
+The divergent initialization is a pure product state --- the Hartree--Fock
+determinant times one coherent state per local oscillator at `-g/omega_ph` ---
+and building it as a state vector in the same truncated Fock space the exact
+preparation uses reproduces `hartree_fock_closed_scalar_coordinates` to
+`1.02e-10`.  Propagated unrepaired, the 13-coordinate Fan--Migdal system
+reproduces the record exactly (`15.5177447`, `130.4674620`), and in the 31
+closed scalar coordinates the same initialization loses the retained joint
+Gram below `-1e-8` at `t=0.0124`, the boson-moment cone at `t=1.3227` and the
+electronic cone at `t=27.9634`, reaching `1e4` at `t=54.4613`, where the exact
+correlated initialization never reaches it through `t=140`.  The harness also
+reproduces the record's two Eq. (112) exact-contraction rows to every printed
+digit (`1.8592243`, `0.0251665`, `2.9068e-5`; and `-3.05033e-1`,
+`5.51945e-2`, `1.97874`).
+
+Decisive, and against the route as it stands: **the cheap repair cannot be
+prepared at that initialization.**  Its one conic solve, the declared proximal
+log-det completion at `t=0`, refuses at 15 and at 27 keys and at every rung of
+the declared retry ladder (`logdet_shift` `1e-10`, `1e-8`, `1e-7`, `1e-6`,
+`1e-4`, `1e-2`, `1e-1`; `logdet_weight` `1e-1`) with
+`moment_extension_degeneracy: facial reduction removed every frontier
+direction`.  The preparation is pure, so its retained joint Gram is exactly
+singular --- rank 6 of 8, smallest eigenvalues `-4.44e-16` and `-4.21e-16`
+against a largest of `8.405` --- and facial reduction leaves the completion no
+free frontier direction; the log-determinant shift cannot restore one because
+the reduction acts before the barrier is seen.  Because the preparation is a
+state vector, every frontier moment is an expectation in it, and the
+extension's frontier keys reach degree 5, so `moment_hierarchy(5)` supplies all
+70 exactly; that exact lift is what the rollout below uses at `t=0` and it is
+a genuine positive extension (unshifted retained joint Gram `-4.44e-16`,
+scaled positive extension `-1.58e-15`).  Every re-selection after `t=0` is the
+committed solve and the first one, at step 16, already moves the retained Gram
+from `-4.10e-6` to `-5.79e-8`.
+
+Run that way in the task-11 configuration (27 entrance keys, SSPRK(3,3) at
+`h=0.0025`, re-selection every 16 steps, Dykstra 120 on the affine Gram sets
+and the two cones, the Eq. (22) reference in `drive_power` form, the
+anchor-free measured rule at margin `1e-3`), five chained segments reach
+`t=20` in `4,296.9 s` with 500 re-selections, 44 solver refusals and a peak of
+`654 MiB`.  **The electronic one-body density matrix never loses positive
+semidefiniteness**: `-2.220e-16` at `t=0` and a minimum of `+1.447e-6` over
+`0 < t <= 20`, with maximum `|x_i|` `1.9431`.  Neither Gram cone is held: the
+retained joint Gram reaches `-5.561e-4` and the scaled positive extension
+`-6.352e-5`, against the recorded exact-correlated chain's `-4.460e-4` and
+`-3.936e-5` in the same configuration.  The all-coordinate scalar RMS of the
+31 closed scalar coordinates against the exact driven trajectory started from
+the same Hartree--Fock state is `1.0803e-2` at `t=4`, `3.7209e-2` at `t=8` and
+`1.5368e-1` at `t=20`, with Eq. (22) energy RMS `1.1888e-3`; the recorded
+exact-correlated chain's own figures are `9.290e-3`, `3.304e-2`, `5.604e-2`
+and `5.336e-3` at `5,183.6 s`.
+
+On the same initialization and horizon the unrepaired closure scores
+`1.2957e-1` / `3.3200e-1` at `t=4` / `20` with the retained joint Gram at
+`-0.55727`; the recorded energy-neutral joint electronic--bosonic matrix
+barrier scores `2.0232e-1` / `3.4704e-1` at `793.2 s`, holds its own two cones
+(`0` and `-5.103e-16`) and lets the retained joint Gram reach `-0.36128`; and
+Eq. (112) alone scores `2.2891e-1` at `t=4` and then diverges, reaching `1e4`
+at `t=15.3724` against the unrepaired `t=54.4613`.
+
+Reading.  On the initialization the repair exists for, the cheap repair buys
+exactly what the record asks of it in the electronic sector --- the positivity
+loss at `t=15.5177` does not happen, and neither does the amplitude blow-up
+--- at `12.0` times the unrepaired closure's accuracy at `t=4` and `2.16`
+times at `t=20`, and it costs `2.74` times its accuracy at `t=20` relative to
+the correlated preparation.  What it does not do is hold either Gram cone, and
+that failure starts at the first step and is the Eq. (22) hyperplane's, not
+the initialization's.  Two things are settled negatively and should not be
+retried as stated: the declared log-det completion at a pure preparation, and
+Eq. (112) as a regularization of the uncorrelated initialization.
+
+## 2026-09-20: the cheap repair carried past both decisive horizons --- `t = 60` from the divergent initialization, and the basin test that separates prevention from postponement
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `fcbd391a`.
+Exploratory local work, not promoted evidence; no default, acceptance rule or
+module was changed.  Report
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`
+sections 8 to 12.
+
+The round above stopped at `t = 20`, which is before every unrepaired failure
+from the Hartree--Fock/zero-correlation initialization except the two Gram
+crossings, so nothing in it separated preventing the divergence from being
+measured short of it.  The same chain --- 27 entrance keys, SSPRK(3,3) at
+`h = 0.0025`, the declared proximal log-det completion re-selected every 16
+accepted steps, the Dykstra repair at 120 iterations, the Eq. (22) drive-power
+reference, the anchor-free measured rule at margin `1e-3`, the `exact_moments`
+lift at `t = 0` --- was resumed from its stored `t = 20` state and carried in
+nine further segments to `t = 60`: 24,001 samples on one grid, `12,990.1 s`
+autonomous wall, 1,500 lift re-selections of which 156 were solver refusals,
+peak `656 MiB`.
+
+**It prevents both failures.**  The electronic one-body density matrix is
+`-2.220e-16` at `t = 0` and its minimum over `0 < t <= 60` is `+1.4466e-6`,
+attained at the first step `t = 0.0025` --- the same sample and the same
+number the `t = 20` rollout reported, so nothing between `t = 20` and `t = 60`
+comes nearer the cone than the preparation's own first step.  The unrepaired
+closure loses that cone at `t = 27.9634` and reaches magnitude `1e4` at
+`t = 54.4613`; the largest absolute coordinate anywhere in the repaired chain's
+`t = 0` to `60` is `2.1827`, at `t = 51.0675`, and the state's own maximum
+absolute coordinate at `t = 60` is `1.3080`, below its `t = 20` value.  Its all-coordinate scalar RMS against the
+exact driven trajectory from the same product state is `1.9752e-1` at
+`t = 28`, `2.1606e-1` at `t = 40` and `2.5235e-1` at `t = 60`, a factor `1.64`
+over a factor `3` in horizon, with the Eq. (22) energy RMS flat at `1.19e-3`
+to `1.21e-3`.  Neither Gram cone is held, at `t = 60` exactly as at `t = 20`:
+retained joint Gram `-8.511e-4`, scaled positive extension `-9.532e-5`,
+boson-moment eigenvalue `-3.391e-3`, each within a factor `1.6` of its
+`t = 20` value and none deepening over `t = 55` to `60`.
+
+**The basin test, which is what separates prevention from postponement.**
+Started from the repaired chain's own `t = 60` state, the unrepaired archive
+closure --- no repair, no lift, no re-selection --- stays bounded through
+`t = 200`, 140 further time units, with minimum electronic eigenvalue
+`+0.0685`, maximum `|x_i|` `1.8256` and no amplitude event, in `2.2 s`.  The
+same closure from the *exact* trajectory's `t = 60` state is likewise bounded
+(`+0.0302`, `1.7989`), and by the retained joint Gram the repaired state is
+the less violating of the two (`-0.5250` against `-0.9567`).  From the
+Hartree--Fock preparation at `t = 0` the same closure reaches `1e4` at
+`t = 54.4613`.  The repair is therefore not holding a divergent flow back step
+by step; it has delivered the trajectory to a state whose own closed flow does
+not diverge.  That test propagates 140 time units of the unrepaired closure in
+`2.2 s`, that is `0.0157 s` per time unit, against `217.3 s` per time unit for
+the repair over `t = 20` to `60`, a factor of `13,800`, and it is the cheapest test of
+whether the claim fails after `t = 60`: continue the chain and propagate the
+unrepaired closure 140 units from each stored segment boundary; the claim
+fails at the first boundary whose continuation fires the `1e4` event.
+
+**Against the other two vector fields at the same horizons.**  The
+energy-neutral joint electronic--bosonic matrix barrier keeps holding exactly
+the two cones it constrains through `t = 39` (`+7.525e-14` and `-5.103e-16`)
+while its retained joint Gram, not in its constraint set, goes to `-0.53867`
+--- but **it cannot be carried to the magnitude horizon**: resumed from its
+`t = 20` state it covers `t = 20` to `34.13` in `7.3 s`, then `2` units in
+`315 s`, `2` more in `589 s`, and `t = 38.5` to `39.0` in a whole `1,000 s`
+segment, about `0.5 s` per time unit before `t = 34` against about `2,000 s`
+per time unit after `t = 38.5`.  The wall begins inside a segment, so it is
+the trajectory's, not a resume artifact; `t = 54.4613` is roughly `31,000 s`
+away and the chain was stopped at `t = 39.0`.  The unrepaired closure at
+`t = 28` has electronic eigenvalue `-4.387e-3`, retained joint Gram `-1.0522`
+and RMS `3.8429e-1`; at `t = 40`, `-1.6647`, `-11.064` and `4.5096e-1`.  At
+`t = 28` the cheap repair is `1.95` times the unrepaired closure's accuracy
+and `1.62` times the barrier's; at `t = 40`, `2.09` times the unrepaired
+closure's.
+
+Reading.  On the initialization the repair exists for, the question the
+`t = 20` round left open is answered: the cheap repair prevents the
+representability loss and the amplitude divergence rather than postponing the
+horizon at which they are measured, and the basin test says why --- the
+repaired state at `t = 60` is outside the divergent basin, as the exact state
+at `t = 60` is.  Electronic positivity remains a measured outcome and not a
+construction, since the electronic one-body density matrix is not one of the
+sets the Dykstra repair projects onto.  The barrier's cost wall at `t ~ 34` is
+new and should be treated as a limit on that route, not a transient.
+
+## 2026-09-20: the basin test at all fourteen stored boundaries --- it measures the time to the `1e4` magnitude event inside a window, not membership of a bounded set, and the repaired `t = 60` state fires at `t = 410.7827`
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `6590840f`.
+Exploratory local work, not promoted evidence; no default, acceptance rule or
+module was changed.  Report
+`agent_guidance/paper-v/overnight/divergent-initialization-20260920.md`
+sections 13 to 15.
+
+The round above ran the basin test at one boundary --- the unrepaired archive
+closure, no repair, no lift, no re-selection, started from the repaired
+chain's own `t = 60` state and propagated 140 further time units with the
+`1e4` terminal event --- found no event, and read that as the repaired chain
+having left the divergent basin.  This round ran the identical test at every
+one of the fourteen stored segment boundaries (`t = 4.76`, `9.60`, `13.82`,
+`18.60`, `20.00`, `24.44`, `29.12`, `34.43`, `38.6325`, `43.12`, `48.48`,
+`52.71`, `56.92`, `60.00`), and from the exact driven trajectory's own state
+at the same fourteen times, on the same DOP853 protocol at `rtol 1e-10`,
+`atol 1e-12`, sample step `0.0025`, `lambda_ep = 1.5`, `gamma = 0.5`, drive
+amplitude `1.0`, phonon cutoff `16`.  At `t = 60` both reproduce the previous
+round's numbers to every reported digit.
+
+**At 140 time units the event fires at none of the fourteen boundaries from
+the repaired chain's state and at three of the fourteen from the exact
+trajectory's state** (`t = 20` at `147.3861`, `t = 29.12` at `74.8594`,
+`t = 43.12` at `152.9483`).  **But the `140`-unit verdict is not
+boundedness**: from the repaired chain's `t = 4.76` state the maximum absolute
+coordinate reaches `2807.5440` at the last sample of the window, the
+electronic one-body density matrix minimum is `-4.6266e+01` and the retained
+joint Gram minimum `-6451.5882`; that continuation is still growing when the
+window ends, and at `400` time units it fires at `t = 150.9977`.
+
+**Carried to 400 time units the test refutes the basin reading.** From the
+repaired chain's `t = 60` state the unrepaired closure fires the `1e4` event
+at `t = 410.7827`; from the exact driven trajectory's `t = 60` state it fires
+at `t = 433.8964`.  Over all fourteen boundaries the event fires at seven from
+the repaired state and at thirteen from the exact state, the sole exception
+being `t = 24.44`.  A set the exact trajectory's own state does not lie in is
+not a basin whose complement the repair could deliver the trajectory into, so
+the quantity the test measures is the time from a state to the `1e4` magnitude
+event under the unrepaired closure, and the previous round read a window
+shorter than that time as membership.  Membership is also not monotone in the
+boundary time --- from the repaired state at `400` units, `t = 52.71` and
+`t = 60.00` fire while `t = 56.92` between them does not --- so there is no
+time from which the chain is outside, at either window length.
+
+**What the repaired state is, by count.** It fires less often than the exact
+trajectory's state at both window lengths (none of fourteen against three at
+`140`, seven of fourteen against thirteen at `400`), but the time from
+boundary to event is mixed row by row: of the seven boundaries where the
+repaired state fires within `400` units it takes longer than the exact state
+at three, less long at three, and at `t = 24.44` it fires at `380.5341` where
+the exact state does not fire at all.
+
+**When the repair does its work, on this measurement.** At `140` units the
+earliest boundary with no event is the second, `t = 9.60`, the first firing
+once the window is opened; at `400` units it is `t = 20.00`.  Both readings
+place the whole of the change early in the rollout, before either unrepaired
+failure at `t = 27.9634` and `t = 54.4613`, and the `12,990.1 s` spent
+carrying the chain from `t = 20` to `t = 60` changed this measurement no
+further.
+
+Cost `75.9 s` of propagation for the `140`-unit sweep at all fourteen
+boundaries from both starting states, `182.3 s` for the two `400`-unit
+sweeps, and one `1.5 s` propagation of the exact driven reference for all
+fourteen of its states; peak resident `259 MB`.
+
+Reading.  The previous round's measured statements about the repaired chain
+over `t = 0` to `60` are untouched --- electronic one-body density matrix
+minimum `+1.4466e-6`, maximum absolute coordinate `2.1827`, against the
+unrepaired closure's electronic loss at `t = 27.9634` and `1e4` at
+`t = 54.4613`.  What is withdrawn is the third argument it offered for calling
+that prevention rather than postponement.  The repair is measured to hold the
+electronic cone and the magnitude over the horizon it was run to; it is not
+measured to have moved the state into a region where the unrepaired closure is
+stable, because this test exhibits no such region, not even at the exact
+trajectory's own states.  Any future use of the basin test must state its
+window, and a window that does not exceed the times reported here decides
+nothing.
+
+## 2026-10-10: the archive right-hand side as an explicit polynomial, and the Carleman lifting layer measured against it
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `b9f99271`.
+Exploratory local work, not promoted evidence; no default changed, no
+existing module edited, nothing committed.  Report
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`;
+new module `paper_5/src/paper5/stability/quantum_target_form.py`, tests
+`paper_5/tests/test_quantum_target_form.py` (12 passed); scripts and outputs
+under `output/local_runs/paper_v_quantum_target_form_20261010/`.
+
+The committed `closed_scalar_rhs` was interpolated exactly on 5,984 integer
+points (one per monomial of degree at most three) at the declared
+configuration (`lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude `1`).
+
+**The form is exactly quadratic.**  It reconstructs the committed right-hand
+side on 1,500 fresh random states to `1.7e-14` relative.  The form is
+
+`dx/dt = F_0 + (A_1 + f(t) D) x + A_2 (x (x) x)`.
+
+- **No cubic part.**  The normal particle and normal hole sources of
+  Eq. (14d) sum to `-i N [g^T, rho]`, so their `rho g rho` products cancel.
+  `A_3` is zero to `1e-16`.
+- **The drive enters only through a skew-symmetric `D`.**  The drive's
+  constant and quadratic parts are `0.0` exactly.
+- **Nonzero entries:**
+  - `F_0`: 5;
+  - `A_1`: 83;
+  - `D`: 10;
+  - `A_2`: 69 monomials, only in the `rho` equation (`(rho)(B)`) and the `C`
+    equation (`(B)(C)`, `(rho)(N)`, `(rho)(rho)`, `(rho)(A)`).
+- **Spectral norms:** `0.906`, `4.047`, `1` and `1.995`.
+
+**The linear part is conservative, not dissipative.**
+
+- **At the origin of the closed coordinates:**
+  - every eigenvalue of `A_1` has `|Re lambda| <= 2.2e-16`;
+  - `A_1` is semisimple, with eigenvector condition `55.4`;
+  - it is skew-adjoint in a metric of condition `3,066`;
+  - its Euclidean symmetric part is indefinite, from `-1.598` to `+1.598`.
+- **At every state:** the field is exactly divergence-free.  `tr A_1`,
+  `tr D` and the gradient of `tr J` are all `0.0`, so no expansion point and no
+  linear change of coordinates gives every eigenvalue a negative real part.
+
+**The Liu et al. condition fails.**  Their premise needs
+`Re lambda_1 < 0`, and `R < 1` needs `Re lambda_1 < -4.952` at the exact
+correlated preparation (`-4.100` at Hartree--Fock).  The measured value is
+`+1.05e-16`.  Here `R` is
+`(||x_0|| ||A_2|| + ||F_0|| / ||x_0||) / |Re lambda_1|`, the definition checked
+against arXiv:2011.03185.  The paper's authors are Liu, Kolden, Krovi,
+Loureiro, Trivisa and Childs.
+
+**The truncation converges only over a short window.**  Two measurements
+from the exact correlated preparation, integrated by RK4 at `h = 0.0025`
+(step-checked to `1.8e-8`):
+
+- **The dropped term is not small.**  At the stored exact states, the part of
+  block `K`'s lifted velocity that the truncation drops has median `0.72` of
+  that velocity over `t <= 4`.  This holds for `K = 2, 3, 4` alike.
+- **The order-`K` solution error.**  Measured as the maximum absolute
+  coordinate error against the closure's own trajectory:
+
+  | `K` | `t <= 1` | `t <= 4` | `t <= 20` |
+  |---|---|---|---|
+  | 1 | `0.261` | `0.957` | `1.66` |
+  | 2 | `0.0513` | `0.981` | `12.3` |
+  | 3 | `0.0076` | `1.036` | `72.1` |
+  | 4 | `0.0012` | `1.001` | `387` |
+
+  At `K = 4` the lift has dimension `954,304` (Kronecker) or `52,359`
+  (distinct monomials); 276 s, 214 MB.
+
+The truncation converges in `K` up to about `t = 2`, stagnates at about `t = 4`
+and diverges with `K` beyond.  The closure trajectory used as the comparison
+reproduces the record's plain-archive RMS `1.10890e-1`, `1.38174e-1` and
+`1.93196e-1` at `t = 4, 8, 20` to every printed digit.
+
+Reading.  The fault-tolerant lifting layer is not admissible for the archive
+equations as they stand.  The failing property is dissipativity, and the
+failure is structural: the field is divergence-free.  The cubic term the draft
+carries in Eq. (`eq:paper_v_force_polynomial`) and in the lifting layer is
+identically zero.  The manuscript was not edited.
+
+## 2026-10-10: the bare closure's instability, linearized --- converged, volume-preserving, chaotic on an unbounded energy shell, and not along the relative-mode population
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `b9f99271`.
+Exploratory local work, not promoted evidence; no default changed, no module
+under `paper_5/src` edited, nothing committed.  Report
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`; scripts
+and outputs under `output/local_runs/paper_v_instability_20261010/`
+(`summary.json` holds every quoted number).  "The bare closure" is
+`closed_scalar_rhs` at `lambda_ep = 1.5`, `gamma = 0.5`, drive amplitude `1`.
+
+Negative results first.  **The bare closure from the exact correlated
+preparation does fire the `1e4` event, at `t = 141.4057`**, one and a half
+units past the 140-unit window in which the 2026-09-20 report says "never"
+(maximum `24.2421`).  **The record's `433.8964` from the exact trajectory's
+`t = 60` state is the DOP853 `rtol 1e-10` value**; tightened it is
+`434.1811` (`1e-12`) and `434.1878` (`1e-13`).  **The leading unstable
+direction is not the relative-mode population**: it carries a mean `0.074`
+(median `0.022`) of the leading Jacobian eigenvector's squared norm along
+that trajectory, above one half at `1.65` percent of samples; the direction
+that actually grows (the leading forward Lyapunov vector) is `0.355`
+anomalous phonon density, `0.333` electron--phonon correlation and `0.045`
+relative-mode population.
+
+Not numerical, by the record's own criterion.  The `1e4` event converges
+under RK4 at `0.01`, `0.005`, `0.0025`, `0.00125`, DOP853 at four
+tolerances and Radau at all three starts: `54.4612958` from Hartree--Fock
+(last tightening `1.8e-10`), `141.405885` from the exact correlated
+preparation (`1.2e-6`), `434.19` from the exact `t = 60` state (`6.7e-3`).
+What is left at `t = 60` is the trajectory's sensitivity: admissible
+perturbations of `1e-12` and `1e-10` spread the event by `7.1e-3` and
+`1.31`, against `2.2e-9` and `2.2e-7` from the Hartree--Fock preparation.
+The existing Benettin machinery gives a largest finite-time exponent of
+`0.0463`, `0.0467`, `0.0468` over `t = 60` to `400` at steps `0.01`,
+`0.005`, `0.0025`.
+
+What it is.  `Tr J` is zero at every state (at most `6.1e-13`; the
+explicit-polynomial block above finds the same) and the Eq. (22) energy is
+conserved through the event, so the flow is volume-preserving and has no
+attractor; the energy is linear in the phonon density and the diagonal of the
+correlation and does not contain the off-diagonal correlation entries at
+all, and those entries are what reach `1e4` on all four bare starts.  On
+that unbounded shell the motion is chaotic (largest exponent `0.047`, its
+31 exponents summing to `-8.9e-8`), the orbit's amplitude creeps from `1.56`
+to `3.14` over 350 units, and across 64 admissible `1e-4` perturbations of
+the `t = 60` states the time to the event is `293` to `478` units (exact) and
+`296` to `779` (repaired), never below `293`.  Past `1e4` the magnitude
+reaches `1e10` in `0.25` to `0.33` units on three of four starts at both
+tolerances; no single power law fits and the integration stalls past `1e10`
+to `1e12`, so a finite-time singularity is not established.  The leading
+real part is positive at every sample except the Hartree--Fock product state
+at `t = 0` (purely imaginary spectrum), stationary at ten-unit means of
+`0.15` to `0.22` over `t = 60` to `330`, and a poor predictor: `78.0`
+integrated e-foldings over `70` to `425.6` against a realized `20.9`.
+
+The repair, in `t = 0` to `20`.  The bare closure's Jacobian has the same
+unstable mode at the repaired chain's states as at the exact trajectory's
+(leading real part `0.177` against `0.211` averaged over `0` to `20`; bare
+Hartree--Fock `0.206`), and the repaired route's velocity departure from the
+bare field has a median share of at most `0.022` in the plane of the leading
+eigenvector.  What differs is the growing direction: along the bare
+trajectory it moves into the correlation block between `t = 10` and `20`
+(share `0.20` to `0.49`, `0.57` over `20`--`30`) and grows at a mean `0.11`;
+along the repaired chain it stays in the phonon blocks (correlation `0.05`
+to `0.23`) and grows at `0.045`, while the relative-mode population is a
+*larger* share of it there (`0.09` to `0.28`) than along the bare trajectory
+(`0.01` to `0.05`).
+
+For the quantum-feasibility thread, at `dt = 0.0025`: the condition number
+of `I - dt J` is at most `1.038` wherever the maximum absolute coordinate is
+below `5`.  The linearized flow amplifies by `11` to `14` over `T = 4`,
+`17.6` to `51` over `T = 20` and `54` (exact trajectory) to `3,170` (bare
+from the exact correlated preparation) over `T = 60`, supremum over all
+start and end times in the window; from the exact `t = 60` state `5.2e4` over
+200 units and `2.3e9` over 350.  The block system stacking those
+backward-Euler steps has condition number `1.1e4` to `1.2e4`, `7.9e4` to
+`2.0e5` and `5.2e5` to `1.16e7` at `T = 4`, `20`, `60`, against `2,038`,
+`10,187`, `30,559` with `J = 0`.
+
+Reading.  The divergence is a genuine dynamical instability of the closed
+equations: converged, conservative, transiently chaotic on an energy shell
+that the closure's own conservation laws do not bound, ending in unbounded
+growth of the correlation entries the energy does not contain.  Only the
+positivity of the state bounds those entries, and the closure does not carry
+it.  The repair does not act on the bare closure's unstable mode; it keeps
+the state, and with it the growing direction, out of the correlation block.
+
+## 2026-10-10: the archive closure is not Hamiltonian in any affine Poisson structure; Koopman--von Neumann and Schrödingerization priced
+
+Branch `claude/paper-v-routes-20260914`, HEAD `6b27596e`.  Exploratory, not
+promoted, nothing committed by this agent, no manuscript edit.  Report:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_feasibility_20261010.md`,
+Task 2 heading.  Module additions in `quantum_target_form.py`
+(`closed_internal_energy`, `logarithmic_norm`,
+`integrate_linearized_on_samples`); tests 15 passed.  Scripts under
+`output/local_runs/paper_v_quantum_target_form_20261010/run_task2_*.py`.
+
+**The Eq. (22) energy `H` and its conservation.**
+
+- `H` is quadratic in the 31 closed coordinates.  Its gradient depends only on
+  `electron_delta_n` and `B`, and it has no off-diagonal correlation term.
+- `grad H . F = 0` holds as a polynomial identity on all of R^31: the largest
+  coefficient is `7.4e-17`.
+- The drive's power is exactly `-4 f(t) Im rho_01`.
+
+**What the flow preserves.**
+
+- Exactly one linear first integral:
+  `Re(correlation shared trace) + (g/6)(N00 + N11 + 2 Re N01)`.
+- Constant antisymmetric tensors: the full field preserves only one, of
+  rank 2.  It is the centre-mode coherent pair.  The linear part alone
+  preserves a 39-dimensional family, including `A_1 G^{-1}`.
+- Affine bivectors `J_0 + sum x_k J_k` (14,880 unknowns, 245,520 equations):
+  the full field preserves a 4-dimensional family, all of rank 2 and all on
+  the `B` and `N` coordinates.  `F` lies outside their range (relative
+  residual at least `0.34`).
+
+**So `F` is Hamiltonian for no constant or affine Poisson tensor, whatever
+the Hamiltonian.**
+
+- With `H` itself, 38 of the 69 quadratic monomials cannot be produced by
+  any affine `J`.
+- The natural rank-2 tensor `F ^ grad H / |grad H|^2` fails the Jacobi
+  identity at every sampled exact state (median residual `0.97`).
+- The raw retained operators do not close under commutators:
+  `[E b, E b^+]` produces `E b^+ b`, the moment the archive factorizes.
+  So no Lie-Poisson algebra exists.
+
+**First integrals of degree at most three: nine.**  They are `ell`, its
+square and cube, `H`, the centre-mode coherent energy
+`|B_0 + B_1 + 2g/omega|^2`, two products, and two cubic integrals that are
+linear in `sum_q (C_q,01 + C_q,10)` at leading order.  None bounds the
+off-diagonal correlation entries that escape.  Five survive the drive.
+
+**Koopman--von Neumann needs no Hamiltonian structure.**  The generator is
+`-i F . grad` because `div F = 0`.  For one trajectory at coordinate precision
+`1e-2`, the cost is:
+
+| horizon | qubits | `T ||L||` |
+|---|---|---|
+| `T = 4` | 434 | `4.9e5` |
+| `T = 20` | 496 | `1.7e7` |
+| `T = 60` | 682 | `5.6e9` |
+
+Against the exact model:
+
+- direct simulation needs 12 qubits at two sites and 19 at three;
+- `||H_static||` measures `24.68` and `33.15`;
+- `T ||H||` is about `510` and `680` at `T = 20`.
+
+KvN is dominated on every axis.
+
+**Schrödingerization of the linearized flow.**
+
+- The integrated positive part of the Euclidean logarithmic norm is `7.3`,
+  `35.1` and `107.5` at `T = 4`, `20`, `60` along the exact trajectory.  In
+  the `A_1`-skew metric it is `51`, `251` and `786`.  Against a realized
+  amplification of 12 to 51 to `T = 20`, the recovery overhead `e^{p}` is not
+  priced by the amplification.
+- No positive definite metric makes both `A_1` and `D` skew-adjoint: the
+  largest attainable smallest eigenvalue on the 8-dimensional common space is
+  `1.9e-8`.
+- The driven linear propagator has supremum `12.09` (Euclidean), so the
+  growth to `2,457` by `T = 60` is the quadratic term's.
+- The linearization about the exact trajectory reproduces the closure's
+  departure to `0.17` at `T = 4` and fails by `T = 20` (`1.07`).
+
+**Windowed re-lift, assuming a free and exact 31-coordinate readout at every
+restart.**
+
+- `K = 3`, window `0.25`, 80 restarts: `2.6e-3` at `t <= 4`, `0.30` at
+  `t <= 20`.
+- `K = 4`, window `0.5`, 40 restarts: `1.4e-3` and `0.50`.
+- `K = 2` reaches the magnitude event by `t = 10` to `12`.
+
+**Decision for the user.**  The draft's cubic term
+(`C(x,x,x)` and `A_3`) is identically zero for these equations.
+
+## 2026-10-10: B-Q3 architecture pass --- the propagated Carleman tail measured exactly, and the output contract left to the user
+
+Branch `claude/paper-v-routes-20260914`, HEAD `6b27596e`.  Exploratory; no
+commit by this agent, no manuscript edit.  Architecture file:
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010.md`.
+New module function `carleman_sparse_generator`; tests 18 passed.
+
+**The propagated omitted tail.**  Along the bare closure from the exact
+correlated preparation, `int_0^T P_1 U_K(T,s) tau_K(s) ds` was computed by the
+adjoint at `h = 0.005`.
+
+- It reproduces the measured first-block error to `2.6e-6` to `5.2e-6`
+  relative (`K = 2, 3`; `T = 4, 20`).
+- The norm certificate `int ||P_1 U_K P_K|| ||tau_K|| ds` exceeds the measured
+  error by `22` and `147` times at `K = 2`, and by `109` and `657` times at
+  `K = 3`.
+- The terminal first-block weight is:
+
+  | `K` | `T = 4` | `T = 20` |
+  |---|---|---|
+  | 2 | `0.261` | `0.182` |
+  | 3 | `0.056` | `0.032` |
+  | 4 | `0.0078` | `0.0045` |
+
+  So extracting the first block by postselection succeeds with probability
+  `0.068`, `3.1e-3` and `6.0e-5` at `T = 4`.
+- At order 4, the step refinement to `T = 20` (`h = 0.005` against `0.0025`)
+  is `2.3e-6` against an error of `387`.
+
+**Reductions.**  The only exact ones are the centre-mode coherent field
+`B_0 + B_1`, which obeys `dB_+/dt = -i omega B_+ - 2 i g` exactly, and the
+linear first integral.  On the reduced 28-coordinate system the trace stays
+zero.  Four of the five zero modes of `A_1` receive a nonzero quadratic
+projection, so Jennings Theorem 4.1 still fails.
+
+**Next.**  The certified amplification envelope and the nonlinear-tube
+admissible defect (`4 ||A_2|| Lambda^2 T^2 delta_avg <= 1`).  From the sampled
+`Lambda`, that defect must be below `4.6e-5`, `1.2e-7` and `3.5e-12` per unit
+time at `T = 4`, `20`, `60`.  The output contract (all 31 coordinates, the
+terminal state, selected observables, or invariants) is the user's decision.
+
+## 2026-10-10: escape statistics, the predictor, and what confines --- the repaired states escape at a fifth of the bare rate, representability loss never times the event, and the second-order Cauchy--Schwarz minors with the energy confine where the off-diagonal bound alone does not
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `a23ff642`.
+Exploratory local work, not promoted evidence; no default changed, no module
+under `paper_5/src` edited, nothing committed by this round.  Report
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md` sections
+8 to 12; scripts and outputs under
+`output/local_runs/paper_v_instability_20261010/`; SHA-256 of every input
+and output in `sha256_task2.json`.
+
+Negative results first.  **The off-diagonal Cauchy--Schwarz bound held alone
+does not confine**: energy-neutral by construction, it lowers the escape
+rate `1.0` to `7.6` times, and members still reach the `1e4` event inside
+600 units from all four starts (32, 15, 31, 32 of 32); the escape moves to
+the phonon density going negative, the anomalous density, the shared trace
+and the diagonal correlation.  **Loss of joint representability is not a
+leading indicator**: every member loses it long before its event (retained
+joint Gram below `-1` a median `175` to `318` units before) at times
+uncorrelated with the event (Spearman `-0.04` to `0.25`), and the crossings
+that do time it (Gram below `-5`, off-diagonal size above `2`,
+Cauchy--Schwarz margin below `-5`; Spearman `0.90` to `0.99`) come `9` to
+`24` units before, no better than the magnitude passing `4`.  **The
+task-13 chain's cone-holding states escape too** --- 64 of 64 at every one
+of `t = 5`, `10`, `15`, `20`, in `416.4`, `73.8`, `70.2`, `66.2` units,
+faster as its energy rises from `-3.425` to `-0.622` --- so its escape rate
+is not zero within 400 units.
+
+Escape statistics (64 admissible `1e-4` perturbations per state, bare
+closure, DOP853 `1e-10`, to the event or 1500 units; mean time to the
+event, censored exponential rate): repaired chain `588.7` / `482.6` /
+`410.0` from `t = 20` / `40` / `60` (`1.70e-3`, `2.07e-3`, `2.44e-3`); bare
+closure from the exact correlated preparation `136.0` / `104.8` / `82.7`
+(`4.3` to `5.0` times the repaired rate); bare Hartree--Fock `34.45` /
+`14.46` from `t = 20` / `40`, deterministic to `0.04`; exact driven
+trajectory's states `128.2` / `291.7` / `361.7` (repaired lower by `4.6`,
+`1.65`, `1.13`).  The repaired rate rises with the time of the state.  The
+time to the event is not memoryless --- long delays before the first event,
+five of nineteen ensembles deterministic to under one unit --- so the rate is
+an inverse mean time.  The task-11 chain's `t = 20` state is the
+longest-lived measured: 41 of 64 members without an event in 1500 units.
+Every repaired state escapes once handed to the bare closure; none does so
+within `296` units, so over `t = 20` to `60` the per-step repair is not what
+keeps the chain bounded.
+
+What confines.  Held after every RK4 step of the bare closure, every
+second-order Cauchy--Schwarz minor --- `N_qq >= 0`, `|N_01|^2 <= N_00 N_11`,
+`|A_qq|^2 <= N_qq (N_qq + 1)`, `|A_01|^2` bounded likewise, all three Pauli
+components of each correlation block bounded by `N_qq (1 - r_a^2)`,
+`|r| <= 1`, `Tr C[q] = 0` --- stops every escape: 0 of 128 members in 600
+units from four starts, with or without the Eq. (22) energy restored
+(energy drift up to `5.89` without, `1.50` with the approximate restoration
+through the coherent field).  With the energy held exactly these bounds make
+the reachable set compact (Eq. (22) is at least
+`-2 + omega |B|^2 - 4 sqrt 2 g |B| + omega Tr N - 2 g sum sqrt(N_qq)` on
+it), so escape is then impossible.  The repaired chain and both task-11 and
+task-13 chains never violate the off-diagonal bound; the bare trajectories
+violate it at `t = 4.37` to `262.0`.  Cost: about twenty square roots per
+state per step, `0.42` to `0.46 s` per unit for one trajectory in
+unoptimised Python against the cheap repair's `217 s`; accuracy `0.314` at
+`t = 20` from the Hartree--Fock preparation against the cheap repair's
+`0.154` and the bare closure's `0.332`.
+
+Reading.  The repair's stabilization is statistical in the coordinator's
+sense: it hands on states the bare closure escapes from about five times
+more slowly, and does not remove the instability.  The confining object is
+not the energy alone, not the off-diagonal Cauchy--Schwarz bound alone, and
+not a representable state on a rising energy shell, but the second-order
+positivity bounds on every block held together with the energy; the
+retained joint Gram implies them and is sufficient with the energy, and the
+positive extension is not needed for confinement on this evidence.
+
+## 2026-10-11: B-Q3 revision 2 --- O3 at 1e-2 against the physical reference is out of reach for any closure-integrating route; the re-centred windowed lift meets it against the bare closure
+
+Branch `claude/paper-v-routes-20260914`, HEAD `840672b4`.  Exploratory; no
+commit by this agent, no manuscript edit.  Revision 2:
+`agent_guidance/paper-v/handoffs/claude-architecture-quantum-integration-20261010-r2.md`.
+It answers four refuters and a critic (`output/local_runs/paper_v_quantum_verify_20261010/`).
+A corrections section is appended to the feasibility report.  Receipts are
+under `output/local_runs/paper_v_quantum_target_form_20261010/r2/`.  New
+code: `conserved_structure.py`; new tests: `test_archive_hamiltonian_parity.py`
+(11) and `test_conserved_structure.py` (6).
+
+**The decision that changed.**  The bare closure's own error against exact is
+`0.028`/`0.41` on the site-0 occupation and `0.015` on the Eq. (22) energy at
+`T = 4`/`20`, so O3 at `1e-2` against T-physical is out of reach for any
+route that integrates the closure.  Against T-bare it is met.
+
+**O3 precision against T-bare, by route.**
+
+- **Origin-centred lift.**
+  - Site-0 occupation error `0.29`, `0.13`, `0.092` at `K = 2, 3, 4`, `T = 4`.
+  - The energy read from block 2: `0.178`, `0.029`, `0.0094`.
+- **Re-centred windowed lift** (free exact readout), `K = 3`:
+  - window 1, 19 re-lifts: `2.6e-5`/`1.6e-4` on the site-0 occupation and
+    `8.4e-5`/`1.2e-4` on the energy at `T = 4`/`20`;
+  - window 0.25, 79 re-lifts: below `5e-8`.
+
+**Parity.**  This is the first test against the Hamiltonian.
+
+- The rows that are exact Ehrenfest equations agree with the exact
+  derivative to `1.4e-14`.
+- The B, N and A rows carry only the phonon-cutoff remainder: it falls from
+  `1.2e-4`/`4.3e-5`/`7.3e-4` at cutoff 16 to `1.8e-6`/`1.2e-6`/`1.3e-5` at
+  cutoff 20.
+- A second transcription of Eqs. (14a)-(14e) agrees on all 31 rows to
+  `5.9e-16`.
+- Both catch the mutation `0.3 x_0 x_3`, the transcription in row 21 at
+  `0.16`.
+
+**The tube on T-bare.**  `Lambda` is the supremum over `s <= t` of
+`||Phi(t, s)||`, with between-grid inflation and an RK4 allowance:
+
+| horizon | `Lambda` | admissible `delta_avg` |
+|---|---|---|
+| `T = 4` | 13.22 | `4.48e-5` |
+| `T = 20` | 54.10 | `1.07e-7` |
+
+The terminal supremum used earlier (39.30) was the wrong quantity.
+
+**The reduced 28-coordinate system.**  It fails every conserved-system
+condition:
+
+- ranks 24/24/28, and all 4 left zero modes receive the quadratic term
+  (singular values 1.09 to 0.78);
+- 33 of 79 order-2 resonances carry nonzero coupling;
+- 4 modes fit no sector;
+- the Lie algebra of `{L, D}` has dimension 91 with a nilpotent element, so
+  no common metric exists.
+
+**Ledger.**
+
+- `alpha_LCU T / w` at `T = 4` is `240`, `1,670`, `16,100` at `K = 2, 3, 4`,
+  or `150`, `476`, `1,960` after rescaling by `||x_0||`.
+- kappa_stack for T-bare is `12,071`/`166,189`/`11,558,518`.
+
+**Koopman--von Neumann readout bias.**  It goes as `sigma_0^2`: `2.6e-3` at
+`sigma_0 = 1e-2`, `T = 4`, and `0.18` at `T = 20`.  Keeping it at most `1e-2`
+needs `sigma_0 <= 0.020` and `0.0024`.
+
+**Route-relevant propagator.**  In a constant metric fitted along T-bare
+(`sqrt(cond) = 8.45`):
+
+- supremum `3.73`/`30.1`, against `13.0`/`51.0` in the Euclidean norm;
+- Schrödingerization exponent (theorem form) `2.09`/`11.8`, against
+  `7.38`/`46.1`.
+
+**Refuted and corrected** (each with the refuter's number):
+
+- the 39-dimensional family is 41;
+- "the only preserved tensors are rank 2": the field is Hamiltonian for the
+  degree-2 tensor `F^w/(2 omega)`;
+- the KvN heuristic and its three-site baseline;
+- the overhead factor and the metric claims;
+- the re-lift "lower bound";
+- the tail identity "measured exactly";
+- the weights without an encoding;
+- the "independent verifications", which were self-consistency checks;
+- the retained-Gram linear-map claim;
+- the ledger without target labels.
+
+**Next.**  Readout-noise propagation through the re-centred windowed lift.
+
+## 2026-10-11: route (a) priced end to end --- the re-centred windowed lift holds the 1e-2 contract against the bare closure only for readouts accurate to 2e-4, at about 1.1e9 solver calls against 4.9e6 for direct simulation
+
+Branch `claude/paper-v-routes-20260914`, HEAD `5886455e`.  Exploratory; no
+commit by this agent, no manuscript edit.  Report:
+`agent_guidance/paper-v/handoffs/claude-quantum-route-a-pricing-20261011.md`;
+receipts under `output/local_runs/paper_v_quantum_target_form_20261010/r3/`.
+
+**Setup.**  Order-3 Carleman lift re-centred at each read-out state; 19
+re-lifts (windows of length 1) to `t = 20`; RK4 at `h = 0.01`, which
+reproduces revision 2's noise-free values to four digits.  Every restart
+readout and the final readout get noise.  The scores are the site-0
+occupation and the Eq. (22) energy against the bare closure from the exact
+correlated preparation, 50 draws per row.
+
+**Readout noise.**
+
+- With Gaussian noise of standard deviation `sigma` per coordinate, the
+  95th percentile of the error meets `1e-2` at both `T = 4` and `T = 20` for
+  `sigma <= 2e-4`.  The energy at `T = 20` binds: `9.2e-3` at `2e-4`,
+  `1.38e-2` at `3e-4`.
+- Errors scale linearly in `sigma`; at `sigma = 1e-4` they are already 12 to
+  38 times the noise-free `2.6e-5` to `1.6e-4`.
+- Under shot noise (Hadamard-test amplitudes with the norm known) the
+  contract needs `2e8` shots per amplitude (it fails at `1e8`).
+
+**The re-lift count trade** (order 3, `sigma = 2e-4`):
+
+- 5 and 10 re-lifts fail even without noise: the truncation error is
+  `1.6e-2` on the energy at `T = 4` and `1.1e-2` at `T = 20`.
+- 40 re-lifts fail with noise: 41 readouts drive the energy at `T = 20` to
+  `1.1e-2`.
+- Only 19 holds the contract.
+
+**End-to-end ledger, order 3, 20 windows.**
+
+- Per window:
+  - lifted dimension `30,783` and `614,294` nonzeros;
+  - `alpha_BE` is `488` (sparse access) or `32` to `41` (LCU bound);
+  - the first-block weight at `gamma = ||x_r||` is `0.77` to `0.97`;
+  - the readout is `31 pi ||x_r|| / sigma = 1.1e6` to `1.4e6` calls.
+- Total: about `1.1e9` (LCU) to `1.5e10` (sparse) solver calls.
+- The classical integration of the same closure takes `0.19 s`.
+
+Route (b), direct simulation of the exact cutoff-16 dimer on 12 qubits,
+meets the contract against the physics in about `4.9e6` calls.  Its cutoff
+error (16 against 20) is at most `2.6e-4`.
+
+Reading.  Route (a) prices a quantum reproduction of a classical
+integration, not a speedup.  The user's decision on the O3 target is
+therefore a choice between an encoding demonstration of the archive
+equations and a physics simulation that bypasses them.
+
+## 2026-10-11: corrections to the escape-statistics round after three refuters and a critic --- the bare rows were one trajectory's remaining lifetime, representability loss predicts nothing, and with the energy held exactly no single family of bounds is necessary
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `840672b4`.
+Exploratory local work, not promoted evidence. No default changed, no
+module under `paper_5/src` edited, nothing committed by this round. The
+report is `agent_guidance/paper-v/overnight/closure-instability-20261010.md`,
+section 13, which corrects sections 8 to 12. Scripts and outputs are under
+`output/local_runs/paper_v_instability_20261010/task2_corrections/`, and the
+SHA-256 of every input and output is in the rehashed `sha256_task2.json`.
+
+Negative results first.
+
+- **The "five times lower" escape rate is withdrawn.** It compared the
+  repaired chain (Hartree--Fock preparation) with the bare trajectory from
+  the exact correlated preparation. The bare rows measure that one
+  deterministic trajectory's remaining lifetime, `141.41 - t` or
+  `54.46 - t`, plus at most `14.6` units from the `1e-4` perturbation.
+  Against the exact driven trajectory's states from the same preparation,
+  the repaired states live `4.6`, `1.65` and `1.13` times longer at
+  `t = 20`, 40 and 60. Unperturbed, the ratios are `4.1`, `1.3` and `0.94`.
+- **Representability loss predicts nothing.** Under the bare closure the
+  retained joint Gram is negative at, or within 12 units of, the start in
+  all 19 ensembles. Members that never fire cross Gram `< -1` at the same
+  median time (`542.8`) as members that do.
+- **Representable starts escape as before.** Repaired `t = 20` states
+  carried into the minors set or the Gram cone fire under the bare closure
+  at a mean of `420` to `541` units (16 members each). Exact `t = 20`
+  states, already representable, fire at `125.8` and `130.3`.
+- **No map built this round approaches the cheap repair's accuracy.** Its
+  Eq. (22) RMS is `6.6` to `38` times higher at every horizon. The critic's
+  assessment stands verbatim: *the minors clip is a candidate cheap
+  divergence guard, not a representability repair, and it does not improve
+  accuracy.*
+- **Every map after an RK4 step is first order in `h`.** Successive-halving
+  ratios are `1.91` to `2.39`, against `16.0` bare. The Gram-cone map with
+  one exact energy root is not `h`-converged.
+
+Necessity, 8 members per cell, 600 units, from both `t = 0` preparations:
+
+- **With the Eq. (22) energy held exactly** (alternated with the bounds to
+  `1e-12`), dropping any one family still gives 0 fired, with a supremum of
+  at most `3.80`. The energy with the phonon bounds alone
+  does not suffice: keeping only the trace pin, only `N_qq >= 0`, both, or
+  `N_qq >= 0` with the anomalous bounds lets 8 of 8 fire.
+- **With the energy not held,** the correlation Cauchy--Schwarz bounds are
+  necessary. Without them 7 of 8 exact-correlated members fire (`502` to
+  `576`) and the Hartree--Fock members reach `2.3e3`.
+- **The minors map alone heats without bound.** Over 3000 units 0 of 16
+  members fire, but the energy keeps rising (median `+66` and `+3.9`,
+  largest `+339`) and the maximum absolute coordinate reaches `285`.
+- **The Gram-cone map** (one eigenvalue clip per step) confines and holds
+  the Gram to `-1.4e-3`, but heats by `+0.8` to `+1.8`. The boson moment
+  map with exact energy confines from both preparations (0 of 16 fired,
+  supremum `2.45`). It holds the boson matrix to `-1.8e-3` but not the
+  Gram (`-0.73`).
+- **A guard switched on only where the maximum absolute coordinate passes
+  3 or the Gram falls below `-2.75`** prevents every event in 600 units
+  from 32 starts that all fire under the bare closure by `566`. It acts at
+  `8.7e-4` and `9.7e-3` of member-steps. Its thresholds were tuned on the
+  same ensembles.
+
+Cost, one session (minimum of three, one trajectory): bare RK4 `0.140 s`
+per unit, minors `0.165`, exact energy hold `0.216` to `0.426`. The cheap
+repair costs `346.8 s` per unit on `t = 0` to `0.4` in the same session, of
+which `117.2 s` of the `138.7 s` total is lift re-selection. On the recorded
+`t = 0` to 60 wall it costs `216.5`.
+
+Reading. Against the matched reference, section 9's "statistical
+stabilization" shrinks with time. At `t = 60` the repaired state's ensemble
+lives `1.13` times as long as the exact state's, and `0.94` times as long
+unperturbed. With the energy held exactly, any five of the six families
+confine over 600 units. A triggered version is cheap and stops the measured
+events, but its accuracy is the bare closure's.
+
+## 2026-10-11: the guard at every step with the cheap repair every Delta units --- 100 to 930 times cheaper than the repair, and no Delta comes near the repair's accuracy
+
+Branch `claude/paper-v-routes-20260914`, worktree
+`Holstein_test.worktrees/claude-paper-v-routes-20260914`, HEAD `5d0bd578`.
+Exploratory local work, not promoted. No default changed, no module under
+`paper_5/src` edited, nothing committed by this round. The report is
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`, section
+14. Receipts are under
+`output/local_runs/paper_v_instability_20261010/task3_hybrid/`, and the SHA-256
+of every artifact is in `sha256_task2.json` (520 files).
+
+**The flow.** The bare archive closure, RK4 at `0.0025`, with the
+exact-energy minors guard after every step. At `t = Delta, 2 Delta, ..., 60`
+the recorded repair step is applied once:
+
+- the 29 raw moments are taken from the closure state;
+- the 27 dictionary moments are set by the zero-cumulant rule (an
+  assumption of this lane);
+- the lift is re-selected by the recorded rule;
+- one Dykstra-120 repair onto both cones is applied, with the Eq. (22)
+  hyperplane at the energy carried in;
+- the state is mapped back and the guard applied.
+
+The arms are `Delta` = 1, 2, 5, 10, 20 and infinity (the guard alone), from
+both preparations, one serial session, with all repairs and the guard
+holding the energy to `3.6e-15`.
+
+Negative results first.
+
+- **No `Delta` approaches the repair's accuracy.** The best Hartree--Fock
+  arm (`Delta = 1`) is compared with the repaired chain over `[0, 60]`. The
+  scores are site-0 occupation / Eq. (22) energy / all 31, each the RMS
+  over the 0.0025 grid against exact:
+
+  | | site-0 occupation | Eq. (22) energy | all 31 |
+  |---|---:|---:|---:|
+  | hybrid, `Delta = 1` | `0.2506` | `0.0289` | `0.2919` |
+  | repaired chain | `0.1604` | `0.0012` | `0.2523` |
+  | ratio | `1.56` | `24` | `1.16` |
+
+- **From the exact correlated preparation the sparse repair does not help.**
+  The effect of `Delta` is not monotone. At `T = 60`, `Delta = 1` and `2`
+  are worse than the guard alone (site-0 `0.379` and `0.371` against
+  `0.300`), and the repairs during the pulse raise the Eq. (22) RMS to
+  `0.061` against `0.035`.
+- **The lift re-selection buys nothing.** It returned "infeasible" in all
+  222 events, so the carried lift was always used. Yet it is 2.4 to 3.0 s
+  of each event's 2.5 to 3.1 s.
+
+From Hartree--Fock, the hybrid improves on the guard alone steadily as
+`Delta` shrinks. `Delta = 1` lowers the `T = 60` scores by 13, 42 and 20
+percent.
+
+Cost (same session):
+
+| route | s per unit |
+|---|---:|
+| bare RK4 step | `0.130` |
+| guard alone | `0.20` to `0.22` |
+| hybrid | `0.36` to `3.26` |
+| hybrid with the re-selection skipped (derived; the trajectories are identical because the carried lift was always kept) | `0.22` to `0.29` |
+| cheap repair (`t = 0` to `0.4`) | `332.1` |
+
+The repaired chain's Gram minimum is `-8.5e-4`, below `-1e-4` at 24 percent
+of samples. At `Delta = 1` from Hartree--Fock the hybrid's Gram minimum is
+`-0.20`, below `-1e-4` at 7.4 percent of grid samples. The guard alone is
+below at 75 percent.
+
+The hand-on state's lifetime under the bare closure (8 members, 600 units)
+does not order with `Delta`:
+
+- From Hartree--Fock, 0 of 8 fire at `Delta = 1`, 2 and 5. At `Delta = 10`
+  and 20 all 8 fire (means `481` and `228`), and the guard alone gives 8 of
+  8 (`369`). The repaired chain gives 8 of 8 (`374`) on the same seeds.
+- From exact correlated, 0 of 8 fire at `Delta = 5`, 10 and 20, against 3,
+  4 and 6 of 8 at `Delta = 1`, 2 and infinity.
+
+The `h/2` check on Hartree--Fock `Delta = 5` moves the scores by at most
+`1.8e-4`.
+
+Reading. The sparse repair acts on the closure's state but cannot supply
+what makes the repaired chain accurate. Through the zero-cumulant rule, the
+closure carries no dictionary moments of its own. The Eq. (22) error is set
+by the work the drive does on the closure during the pulse, which only the
+dictionary dynamics corrects. The hybrid is a cheaper guard, not a cheaper
+repair.
+
+## 2026-10-11: the quantum-integration negative result, consolidated
+
+Branch `claude/paper-v-routes-20260914`.  Exploratory, not promoted; no new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_negative_result_20261011.md`,
+SHA-256 `3bb6411a29eecf88df241f229f144b69b0e3d2cdf5628987002d817fa3e36da5`,
+620 lines.  It consolidates the feasibility report (`a23ff642`, with its
+corrections in `475c47a7`), revision 2 of the B-Q3 reply (`475c47a7`) and
+the route (a) pricing (`d3c80e8a`), by section, and supersedes none of them.
+
+It states, in order:
+
+1. the archive equations as an ODE: 31 coordinates; an exactly quadratic
+   right-hand side with forcing and a multiplicative drive; a skew-adjoint
+   linear part; zero divergence; the Eq. (22) energy as an exact identity;
+   coefficient parity against Eqs. (14a)-(14e), with mutation sensitivity;
+2. the structural negatives: no constant or affine Poisson tensor in the
+   closed chart, with the quadratic-order and level-set qualifications; no
+   common metric (nilpotent-element proof); nonresonance failing at order
+   two; the dissipative Carleman condition unmeetable;
+3. the route costings side by side;
+4. the output contract: `1e-2` against the physical reference is
+   unreachable by closure routes (closure error `0.028`/`0.41`/`0.015`);
+   route (a) costs `1.1e9` calls at `sigma <= 2e-4` and 19 re-lifts against
+   a `0.19 s` classical integration; route (b) costs `4.9e6` calls on 12
+   qubits;
+5. the conclusion, which is that on the L = 2 dimer there is no quantum
+   case for integrating the archive equations under either contract, and
+   what a larger-L case would have to show;
+6. the 34 withdrawn claims, each with its replacement;
+7. what remains unmeasured.
+
+Manuscript insertion, including dropping the draft's cubic term, is the
+user's decision.
+
+## 2026-10-11: the classical results on the closure, the cheap repair, the guard and the hybrid, consolidated
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit. Evidence adoption and
+manuscript insertion remain the user's decisions.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md`,
+SHA-256 `714d34a899fd3e1f18ac09735365e6ea4c3b0a571e3d5c6546a97ec18fa77e44`,
+669 lines.
+
+**Sources.** It consolidates
+`agent_guidance/paper-v/overnight/closure-instability-20261010.md`:
+
+| sections | commit |
+|---|---|
+| 0 to 7 | `40771435` |
+| 8 to 12 | `c1c1f9cc` |
+| 13 | `36b686b3` |
+| 14 | `8390a83b` |
+
+It supersedes `cheap_repair_route_results_20260918.md` by reference, without
+editing it. Every number in it appears verbatim in the report or this
+worklog, apart from two estimates. A string check found 428 numbers, all
+present after two ratios were rounded to the report's `4.1` and `1.3`. The
+two estimates are the walls in its unmeasured list, which are derived from
+measured rates and labelled as estimates.
+
+**Its order:**
+
+1. the divergence (`54.4613`, `141.4057`, `433.8964` to `434.1878`,
+   exponent `0.047`, volume preserved, escape through off-diagonal
+   correlation entries outside Eq. (22));
+2. the cheap repair (accuracy at T = 4, 8, 20, 60; walls `216.5`, `346.8`
+   and `332.1` s per unit with their sessions; escape means `588.7`,
+   `482.6` and `410.0` with intervals);
+3. representability as a predictor;
+4. the guard (what it holds and does not, the compactness bound and its two
+   conditions, the ablation, the triggered guard, cost, the first-order
+   caveat, accuracy);
+5. the hybrid tables;
+6. a reading in the manuscript's vocabulary: correlation blow-up of
+   `delta rho_12^q`, preceded by positivity loss within units; not energy
+   drift or stiffness;
+7. 28 withdrawn claims with their replacements;
+8. 13 unmeasured items in priority order, each with its estimated bound.
+
+## 2026-10-11: the quantum-integration negative result, revised after the numbers check
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/quantum_integration_negative_result_20261011.md`,
+revised in place.
+
+| | committed at `aabf51f8` | revised |
+|---|---|---|
+| SHA-256 | `3bb6411a29eecf88df241f229f144b69b0e3d2cdf5628987002d817fa3e36da5` | `8534130ae1a04489b0979fb63f56ffc66d24d80d595168e3176fe1fa3e35f501` |
+| lines | 620 | 821 |
+
+**The check.** It read 178 statements and found 22 mismatched, 3
+untraceable and 1 refuted new formula. It listed 25 missing items.
+
+**The changes.** 55 statements changed: 31 corrected and 24 added. The
+"Revision note (2026-10-11, after numbers check)" block under the Status
+bullets (lines 16 to 98) lists each one with its line number.
+
+**The refuted formula.** The closed-coordinate count is now the 2026-09-20
+dimension-growth record's `2L^3 + 3L^2 + 3L - 1` at `L >= 3`: 89 at `L = 3`
+and 187 at `L = 4`. At `L = 2` it is 31, by the two-site shared-trace
+identity. This replaces `2L^3 + 3L^2 + L + 1` (85 at `L = 3`, 181 at
+`L = 4`).
+
+**Kept against the check.** Three values are kept, each with the G1 artifact
+line it relies on, under
+`output/local_runs/paper_v_quantum_verify_20261010/G1-structure/`:
+
+- `grad H . F` is exactly 0 by tensor algebra (`s1_results.json` line 15);
+- the union-of-ranges residual is `0.928` at 30 states (`s3_results.json`
+  line 52);
+- the truncation-free block is boson occupations at most 3 in a cutoff-5
+  space (`s5_results.json` line 2; `s5_commutator_closure.py` line 65).
+
+There is no other disagreement with the check.
+
+## 2026-10-11: the classical consolidated results, revised after the numbers check
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No new
+runs, no commit by this agent, no manuscript edit.
+
+File:
+`MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md`,
+revised in place. The first version is at `3a9981f7` (SHA-256
+`714d34a899fd3e1f18ac09735365e6ea4c3b0a571e3d5c6546a97ec18fa77e44`). The
+revision has SHA-256
+`332dbbc32c634fabda8bf791ca7f61b0785b386421aa0dd5fda3783256a632a2` and 1080
+lines.
+
+**What the check found.** It traced 147 of 194 statements and found 47
+mismatched, almost all of them dropped qualifiers.
+
+**What the revision does.**
+
+- It applies every fix. Its revision note lists 91 changed or added
+  statements with their line numbers: 58 changed, 33 added.
+- It disagrees with none of the fixes.
+- It resolves four source inconsistencies from the receipts or the tables,
+  and says so at each place:
+
+  | quantity | printed in `R` | used |
+  |---|---|---|
+  | within-ensemble range | `-0.01` (`R §13.3`) | `-0.04`, from `-0.0443` in the `R §10` table and receipts |
+  | equal-skill lead | `1.3` | `1.2` (receipt) |
+  | Dykstra seconds of the `138.7`-s run | `18.8` (the second run's) | `19.0` (receipt) |
+  | exact correlated sparse repair | `R §14.0` item 2: "does not improve on the guard" | the `R §14.3` table, where `Delta = 5`, 10 and 20 beat the guard on site-0 and all 31 |
+
+- It scopes the reading for the paper to the `U`-free Holstein dimer. It
+  addresses self-consistency instability and the quantum encoding slot
+  (tex 350 and 353).
+- It carries back:
+  - the `T = 8` and `h`-to-`h/2` columns and every `R §13.6` variant;
+  - the triggered guard's single activation at `t = 37.26`;
+  - the non-converged drop-one cells;
+  - the converged-intersection item and the `0.31` / `0.17` bounds in the
+    unmeasured list.
+
+**Correction to the earlier block.** The earlier block (this worklog, "the
+classical results on the closure, the cheap repair, the guard and the
+hybrid, consolidated") says every number appears verbatim in the report or
+this worklog "apart from two estimates". That was wrong. The first version
+also carried derived and receipt-only numbers in sections 6 and 8 without
+saying so: `0.13` to `0.14`, `1.2` to `3.1`, `0.017`, `216.5` to `346.8`,
+`0.13` to `0.22`, `159` to `503` s, 3 to 8 minutes, 3 to 6 minutes, 10 to
+20 s and about 1 minute.
+
+**The revision's own number check.** It has 625 numbers in its body. 23 are
+not verbatim in the report, `DI` or this worklog:
+
+- 16 are labelled at their place as receipts or derived. These are
+  `-0.0443`, `-0.233`, `-0.625`, `-0.627`, `-0.633`, the four receipt
+  ratios' inputs, `0.0035`, `0.0084`, `0.0171`, `1.228`, `158.5`, `272.1`
+  and `60.2`.
+- 7 are the report's own values in another notation (`1.9e-3` for
+  `1.9e-03`, `75.0` percent for `0.750`).
+
+## 2026-10-18: dispositions of root reviews 028, 029, 030 (classical) and 031 --- every finding accepted, three with a measured amendment; sections 13 and 14 and the consolidation amended in place
+
+Branch `claude/paper-v-routes-20260914`. Exploratory, not promoted. No run,
+test, new agent, source edit, default, tolerance or execution. No commit by
+this agent, and no manuscript edit.
+
+**Files.**
+
+| file | SHA-256 | lines |
+|---|---|---:|
+| `agent_guidance/paper-v/handoffs/DISPOSITION-closure-028-031-claude-20261010.md` | `e08bc128025e8b356381a356d1a96e5f2fc1e308c752fb9aac862e10a8507b67` | 306 |
+| `agent_guidance/paper-v/overnight/closure-instability-20261010.md` | `30187293aeb89b3e355599560930ba26c5a79cd4bd263413d61cdbcb0fe0c710` | 2416 |
+| `MATH/paper_facing/paper_V_high_u_gkba/classical_repair_and_guard_results_20261011.md` (revision 2) | `bc8d37530c98856dd035bfd14dbe8cad2b5797cd9b2b89ede7548601c750882f` | 1344 |
+
+The report's sections 13 and 14 were previously `13e9f8ff...`, and the
+consolidation was `332dbbc3...` at `2c096bad`. The four reviews were
+verified by SHA-256 before reading.
+
+**Decisions.** Of 28 findings, 25 are accepted and 3 accepted with
+amendment; none is contested. They are applied as 70 report amendments and
+52 consolidation amendments, plus this block. The three amendments add
+measured qualifications from the receipts:
+
+- the fired keep-only cells fail only on the energy residual (at most
+  `2.2e-11`), with the kept bounds held to `1e-12`, and two of them
+  converged at every step;
+- the exact divergence-free identity exists (`QF`, `475c47a7`), so the
+  volume statement follows from it, separately from the floating-point
+  traces;
+- the numbers-check artifact was not preserved, so the consolidation's
+  numbers-check counts are author-reported.
+
+**Corrections to the earlier blocks of this worklog.** These blocks are
+preserved unedited; this list supersedes their wording.
+
+- The 2026-10-11 corrections block, heading and body:
+  - "representability loss predicts nothing" → loss of the tested
+    retained-Gram necessary condition does not discriminate escape in the
+    tested, partly censored ensembles;
+  - "no single family of bounds is necessary" and "the correlation
+    Cauchy--Schwarz bounds are necessary" → finite ablation results of the
+    capped map (8 members per cell, 600 units, `1e4` threshold);
+  - "the minors map alone heats without bound" → its recorded heating has
+    not levelled off by 3000 units, which is not heating without bound;
+  - "confines" for the Gram-cone and boson maps → no event in 600 units, 8
+    members per preparation, one-pass maps whose Gram and boson eigenvalues
+    stay negative;
+  - "with the energy held exactly, any five of the six families confine
+    over 600 units" → with the capped exact-energy hold, dropping any one
+    family gave no event in that finite test. Three Hartree--Fock cells and
+    the exact `t = 60` cell had non-converged batch steps, and the
+    exact-correlated drop-`trace` cell has no bound-residual receipt;
+  - non-converged "member-steps" → batch steps;
+  - "supremum" → largest sampled value, records every 400 steps;
+  - `x17 = -0.408 n` → `x17 = -omega n / (2 g)`.
+- The 2026-10-11 hybrid block:
+  - "from the exact correlated preparation the sparse repair does not help"
+    → metric-dependent and nonmonotone: `Delta = 5`, 10 and 20 beat the
+    guard on site-0 and all-31 RMS at `T = 60`, and `Delta = 1`, 2 are
+    worse;
+  - "infeasible in all 222 events" → 222 main-arm events plus 12 in the
+    `h/2` arm, 234 in all;
+  - "the trajectories are identical because the carried lift was always
+    kept" → source-level support for equal repair inputs only; solver and
+    RNG effects and bitwise equality were not verified, so the skipped cost
+    is derived;
+  - the hybrid "holds the Gram" at repair times → it does not. Every
+    post-event minimum is negative, and 99 of 234 events reduce the
+    violation.
+- The 2026-10-11 revision block: the "verbatim apart from two estimates"
+  correction stands.
+
+**What stays binding.**
+
+- The three current strict resume-parity failures, root 025, the cone
+  increment-3 hold and root messages 014 to 017 and 019.
+- Whole-increment (1200-second) compliance of the classical rounds is
+  unestablished.
+- `run_spec.py` provenance limits apply: no resume validation, and the
+  input hash is computed after execution.
+- No guard, hybrid, chain or skipped-selection study is selected.
+
+## 2026-10-18: independent reviews of the four Codex classical lanes --- three repaired lanes stopped at one bitwise-identical strict parity failure (1.94e-4 against 1e-12), the unrepaired divergence map complete and mixed (41 of 54), all holds kept
+
+Read-only reviews requested by root message `codex-to-claude-20261010-013`
+(SHA-256 `b078b9a4…`, paragraphs 7 to 11) and written by the author of the
+four handoffs and of the cone architecture receipt (`74466441`). No
+propagation, re-selection, audit, comparator or test was rerun; no Codex
+worktree or shared code was edited. Every reviewed artifact was hash-checked
+before reading, and the manifests were recomputed: regularized 75 of 75,
+repair-early 25 of 25 and 85 of 85, cone 107, 26 and 134 in full, divergence
+209 of 209. Reviews, in `agent_guidance/paper-v/handoffs/`:
+`REVIEW-regularized-product-state-claude-20261010.md`,
+`REVIEW-repair-early-then-bare-claude-20261010.md`,
+`REVIEW-electronic-cone-projection-claude-20261010.md` and
+`REVIEW-divergence-parameter-map-claude-20261010.md`.
+
+The negative result first: the three repaired lanes (regularized
+`72d6d67a`, repair-early `95d9f013`, cone `f2879811`) each fail their strict
+resume-parity gate. The configuration is the HF task-11 repair at
+`lambda_ep = 1.5`, `gamma = 0.5`, drive 1, cutoff 16, 27 keys, SSPRK(3,3) at
+`h = 0.0025`, Dykstra 120, re-selection every 16 steps at margin `1e-3`, with
+the `drive_power` reference. Each lane spliced two segments at `t = 0.08`
+against an unbroken run over `t <= 0.2`. The seam is bitwise in 56/70/31 and
+the carried reference is exact. The 31 closed scalar coordinates first
+exceed `1e-12` at `t = 0.1225` (`1.57266010158974e-7`), and the maximum is
+`1.9395497882168655e-4` at `t = 0.17`. The first breach follows a different
+decision at the uncertified re-selection near `t = 0.12`: one run declines,
+the other accepts.
+
+The three lanes' parity trajectories are byte-identical across three
+independently fixed drivers; this does not establish unrestricted run-to-run
+determinism. The failure belongs to the record's documented family of
+non-bitwise chaining, a re-selection decision flipping after a segment
+boundary (`cheap_repair_route_results_20260918.md:645-650`). Cone diagnostics establish
+two facts by intervention. Diagnostic 014 shows the first roundoff difference
+at `t = 0.09` is caused by the native clock. Diagnostic 022 (`c1375aa2`)
+shows the differing pre-selection bundle (state `1.44e-14`, warm lift
+`1.06e-15`) suffices for the split. Neither establishes the split's origin, a
+source defect or a fix.
+
+The cone lane's independent audits stand as scoped. The principal-Gram
+identity holds on 16,034 stored samples to `3.11e-15`. All 7,200
+reconstructed task-11 stage repairs are electronically positive; these are
+replay observations, not inertness certificates. The task-11 electronic
+minimum is `0.0621` at `t = 7.21`. Release 012's seven corrections to the
+receipt are valid: three correct real receipt defects (a printed rather than
+asserted golden comparison, a stage-schema test without captured stage
+records, a vacuous positive-floor test) and two correct over-statements
+(activation on `w = a + e`, convergence toward the intersection).
+
+The divergence map (`d9a8ad29`) recounts exactly from its grid files. At
+cutoff 16 with windows of 500 and 2000, the exact-correlated grid fires 41 of
+54 cells (34 by 500) and the HF grid 44 of 54 (42 by 500). At
+`lambda_ep <= 0.75` the counts are 8 of 18 and 10 of 18, so the declared
+reading rule gives "mixed". All eight low-coupling exact-correlated events
+fire at drive `>= 1` before `t = 436.11`; that is a reviewer reading, not
+adopted. The cutoff is material at `lambda_ep = 1.5`: the event moves
+`141.41 -> 127.87` from cutoff 16 to 32 and settles descriptively by 24 to
+28, but no adjacent pair passes the declared `1e-12` coordinate criterion
+and no convergence pair is accepted. At weak coupling the initial-coordinate
+changes are small; that is coordinate proximity, not an event or count error
+bound (text qualified 2026-10-18 under `classical-review-scope-20261018-003`).
+
+Weak-cutoff increment 024 (`ae98da08`) is kept in two separate parts. Its one
+cutoff-24 cell at `lambda_ep = 0.25` succeeded in `13.57 s`, firing at
+`436.10264591071893`, a signed difference of `-1.18e-11` from the cutoff-16
+comparator. The increment failed its `1200 s` whole-increment gate: the first
+over-bound check read `1529.11 s` and the final closure `1636.84 s`.
+
+Reading. Partial and held states are preserved:
+- regularized: preparation module, probes, comparisons and chains not started;
+- repair-early: handover sweeps, resolution, maps, cost reading and variants
+  not run;
+- cone: increment 3 (option implementation) and increments 4 to 7 held;
+- divergence map: complete within its exploratory scope; 024 stopped by root
+  025.
+
+Every hold remains binding: root messages 014 to 017 and 019, cone increment
+3, root 025, and the three failed strict parity gates. A corrected
+prerequisite acceptance must pass the unchanged strict gate and its separate
+carried-reference receipt, and root must review it. Bitwise selector-input
+identity is one possible sufficient strategy, not a necessary condition or a
+gate, and would need root selection. No evidence is adopted.
+
+Next: root reviews the four reviews; no execution is selected.
