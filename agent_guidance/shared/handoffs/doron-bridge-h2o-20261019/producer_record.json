@@ -1,0 +1,56 @@
+{
+ "schema": "doron_bridge_h2o_reproduction_producer_record_v1",
+ "exporter": {
+  "repository": "https://github.com/jacopos86/qdynamics",
+  "branch": "doron-chemistry",
+  "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+  "license": "GPL-3.0",
+  "entry": "python -m src.chemistry.pyscf.main_pyscf <inp>",
+  "blob_ids": {
+   "src/chemistry/pyscf/electron_solver.py": "8400fc64c5ac",
+   "src/chemistry/pyscf/input_parser.py": "d9dc9eb32faa",
+   "src/chemistry/pyscf/main_pyscf.py": "594293ae21d9",
+   "src/chemistry/pyscf/read_write_pyscf_results.py": "3bf71a4d0d2c"
+  }
+ },
+ "execution": {
+  "host": "Lords-MacBook-Pro.local",
+  "machine": "arm64",
+  "python": "3.12.14",
+  "venv": "/Users/lordskyler/.venvs/doron-bridge-gpu",
+  "pyscf": "2.14.0",
+  "h5py": "3.16.0",
+  "numpy": "2.3.5",
+  "scipy": "1.16.3",
+  "torch": "2.14.1",
+  "driver_wall_s": 3.3,
+  "scf_converged": true,
+  "e_scf_hartree": -74.96302344338558,
+  "nuclear_repulsion_hartree": 9.189275612994711
+ },
+ "input": {
+  "file": "input/h2o.inp",
+  "sha256": "99775d78897928b905c451acde052a2eeccb02ec125dd65c0d9b59cd8774415e",
+  "geometry": "O (0,0,0); H (0, \u00b10.757271299391, 0.586447797437) Angstrom = R(OH) 0.9578 A, HOH 104.49 deg",
+  "geometry_provenance": "inferred from the 2026-07-14 cross-code audit match (|dE_SCF| 3.05e-7 Ha to the slide row 'PySCF in qcdynamics'); not stated by Doron",
+  "basis": "sto-3g",
+  "method": "RHF",
+  "spin": 0,
+  "charge": 0
+ },
+ "output": {
+  "file": "input/h2o_ele.h5",
+  "sha256": "e413ecbf9e150d313dd2daa0ef1fb72c83f583d2f48ca849db1a74fe927c6648",
+  "size_bytes": 51856,
+  "n_spatial_orbitals": 7,
+  "n_electrons": 10
+ },
+ "origin_statement": "simulated: Doron's exporter code at the pinned commit was executed on this machine by the bridge author; the bytes did not come from Doron. producer_origin_established=False in every receipt.",
+ "comparison": {
+  "slide_row_pyscf_in_qcdynamics_e_scf": -74.9630231385,
+  "july_2026_cross_code_audit_pyscf_e_scf": -74.9630234434,
+  "this_run_e_scf": -74.96302344338558,
+  "abs_diff_to_slide": 3.05e-07,
+  "abs_diff_to_july_audit": 0.0
+ }
+}
