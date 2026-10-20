@@ -186,3 +186,11 @@ Files edited: `pipelines/chemistry_bridge/qdynamics_export.py`, `pipelines/chemi
 `pipelines/chemistry_bridge/methods.py` (phase split only: `run_bridge_resolved`), `test/test_chemistry_bridge_export.py`,
 `test/test_chemistry_bridge_cli.py`, this file. 003 clock: start 2026-10-20T03:02:49Z (before the packet read);
 end and commit recorded below after the commit.
+
+### 003 record (appended after the commit)
+
+| item | value |
+|---|---|
+| 003 commit | `5954316d0c51f4aab405d381c6ec3af7b3dee1fc` |
+| 003 clock | start 2026-10-20T03:02:49Z, end 2026-10-20T03:06:25Z |
+| Correction commits, in order | `404454ac` → `16e12761` → `f0892355` → `00a9c844` → `44e68912` → `70d0b317` → `5954316d0c51f4aab405d381c6ec3af7b3dee1fc` (→ this record commit) |
