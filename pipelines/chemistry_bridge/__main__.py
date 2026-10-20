@@ -10,9 +10,10 @@ Exit codes of ``run`` (receipts are written before the code is decided):
     1  at least one requested method ended failed, OR a method/output failure
        raised after the input was accepted (traceback printed; "run failed after
        intake"); such a failure is operational, not a usage error
-    2  usage error: unknown or empty --methods, bad arguments, a missing or unreadable
-       manifest/document, or the strict intake refused the input (no receipt written;
-       "run refused")
+    2  usage error: unknown or empty --methods, a --backend spec that does not parse,
+       an --apm-times grid that is not finite and strictly increasing, an inadmissible
+       --apm-pool, a missing or unreadable manifest/document, or the strict intake
+       refused the input (no receipt written; "run refused")
     3  nothing failed, but a requested method was skipped_unsupported or blocked
        (e.g. an unavailable accelerator); this is never GPU evidence
 """
@@ -26,7 +27,7 @@ import sys
 import traceback
 from typing import Sequence
 
-from pipelines.chemistry_bridge.array_backend import probe_backends
+from pipelines.chemistry_bridge.array_backend import parse_backend_spec, probe_backends
 from pipelines.chemistry_bridge.methods import (
     DEFAULT_METHODS,
     EXIT_CHECK_FAILED,
@@ -35,6 +36,7 @@ from pipelines.chemistry_bridge.methods import (
     normalize_methods,
     resolve_bridge_context,
     run_bridge_resolved,
+    validate_apm_times,
 )
 from pipelines.chemistry_bridge.qdynamics_export import (
     BridgeDependencyUnavailable,
@@ -105,14 +107,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({**{k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, "origin": bridge_problem.provenance["origin"], "container_schema": bridge_problem.provenance["container_schema"]}, indent=2))
         return 0
     if args.command == "run":
-        # Phase 1 — input resolution and validation only.  Failures here mean the
-        # request could not be turned into a calculation (bad methods/arguments,
-        # missing or unreadable manifest/document, strict-intake refusal): usage
-        # error, no receipt.
+        # Phase 1 — input resolution and request validation only.  Failures here
+        # mean the request could not be turned into a calculation (unknown or
+        # empty methods, a backend spec that does not parse, an APM grid that is
+        # not finite and strictly increasing, an inadmissible pool key, a missing
+        # or unreadable manifest/document, strict-intake refusal): usage error,
+        # no receipt.  Backend *availability* is not decided here: a well-formed
+        # but unavailable backend yields skipped_unsupported receipts and exit 3.
         try:
             methods = normalize_methods(str(args.methods))
-            times = [float(v) for v in str(args.apm_times).split(",") if v.strip()]
+            parse_backend_spec(str(args.backend))
+            times = validate_apm_times([v for v in str(args.apm_times).split(",") if v.strip()])
             bridge = resolve_bridge_context(args.manifest)
+            if "apm" in methods and str(args.apm_pool) not in set(bridge.context.admissible_pool_keys):
+                raise ValueError(f"apm pool {args.apm_pool!r} is not admissible for this problem; choose from {sorted(bridge.context.admissible_pool_keys)}")
         except (ValueError, FileNotFoundError, OSError, KeyError) as exc:
             print(f"run refused: {type(exc).__name__}: {exc}", file=sys.stderr)
             return EXIT_USAGE

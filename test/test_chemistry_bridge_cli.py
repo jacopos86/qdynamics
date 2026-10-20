@@ -142,3 +142,50 @@ def test_003_output_failure_after_methods_is_operational_exit_one(tmp_path):
     # argparse last-wins: our helper's own --out-dir precedes, the explicit one here wins
     assert proc.returncode == bm.EXIT_CHECK_FAILED, proc.stdout + proc.stderr
     assert "run failed after intake" in proc.stderr and ("NotADirectoryError" in proc.stderr or "FileExistsError" in proc.stderr or "OSError" in proc.stderr)
+
+
+# ---------------------------------------------------------------------------
+# Packet 004 (2026-10-20): invalid request configuration is usage, not execution failure
+# ---------------------------------------------------------------------------
+
+
+def _assert_usage(proc: subprocess.CompletedProcess, needle: str) -> None:
+    assert proc.returncode == bm.EXIT_USAGE, proc.stdout + proc.stderr
+    assert "run refused" in proc.stderr and needle in proc.stderr
+    assert "run failed after intake" not in proc.stderr and "Traceback" not in proc.stderr
+    assert not (proc.out_dir / "bridge_receipts.json").exists()  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("backend, needle", [("not-a-backend", "unknown backend library"), ("torch", "requires a device"), ("numpy:mps:float32", "malformed backend spec"), ("torch:tpu", "unknown torch device"), ("torch:cpu:int8", "unknown real dtype")])
+def test_004_unparseable_backend_spec_is_usage_exit_two(backend, needle, tmp_path):
+    # Reviewer control: `--methods mapping --backend not-a-backend` exited 1 at 67f88981.
+    manifest = _manifest(tmp_path, "contract4")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "mapping", "--backend", backend), needle)
+
+
+@pytest.mark.parametrize("grid, needle", [("0,0", "strictly increasing"), ("0.1,0.05", "strictly increasing"), ("0", "at least two"), ("0,nan", "finite"), ("0,inf", "finite"), ("a,b", "real numbers"), (",", "at least two")])
+def test_004_invalid_apm_grid_is_usage_exit_two(grid, needle, tmp_path):
+    # Reviewer control: `--methods apm --apm-times 0,0` exited 1 at 67f88981.
+    manifest = _manifest(tmp_path, "contract4")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "apm", "--apm-times", grid), needle)
+
+
+def test_004_inadmissible_apm_pool_is_usage_exit_two(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "apm", "--apm-pool", "no_such_pool"), "not admissible")
+
+
+def test_004_valid_but_unavailable_backend_still_exits_three(tmp_path):
+    # Syntax validation must not swallow the availability path (skipped_unsupported receipt, exit 3).
+    if backend_availability("torch:cuda:float64").available:
+        pytest.skip("cuda available here")
+    manifest = _manifest(tmp_path, "contract4")
+    proc = _run(tmp_path, manifest, "--methods", "qse", "--backend", "torch:cuda:float64")
+    assert proc.returncode == bm.EXIT_NOT_EXECUTED and (proc.out_dir / "bridge_receipts.json").exists()  # type: ignore[attr-defined]
+
+
+def test_004_validate_apm_times_shared_with_runner():
+    assert bm.validate_apm_times(("0", 0.5, 1)) == [0.0, 0.5, 1.0]
+    for bad in ((0.0, 0.0), (0.0,), (), (0.0, float("nan")), (1.0, 0.5), ("x", "y")):
+        with pytest.raises(ValueError):
+            bm.validate_apm_times(bad)

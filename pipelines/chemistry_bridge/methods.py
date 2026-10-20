@@ -583,6 +583,24 @@ def run_static_adapt_screening(bridge: BridgeContext, backend_spec: str = "numpy
 # ----------------------------------------------------------------------------
 
 
+def validate_apm_times(times: Sequence[float]) -> list[float]:
+    """Request validation for an AP-McLachlan checkpoint grid (shared by the runner and the CLI).
+
+    At least two finite, strictly increasing checkpoints.  Raises ``ValueError``;
+    callers that classify exit codes treat it as a usage error.
+    """
+
+    try:
+        grid = [float(t) for t in times]
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"times must be real numbers: {exc}") from exc
+    if len(grid) < 2:
+        raise ValueError("times must contain at least two checkpoints")
+    if any(not math.isfinite(t) for t in grid) or any(b <= a for a, b in zip(grid, grid[1:])):
+        raise ValueError("times must be finite and strictly increasing")
+    return grid
+
+
 def _sector_safe_candidates(
     bridge: BridgeContext,
     pool: Sequence[Any],
@@ -709,11 +727,7 @@ def run_ap_mclachlan(
     inputs = bridge.input_identity()
     cpu = NumpyBackend("float64")
     report = cpu.report()
-    grid = [float(t) for t in times]
-    if len(grid) < 2:
-        raise ValueError("times must contain at least two checkpoints")
-    if any(not math.isfinite(t) for t in grid) or any(b <= a for a, b in zip(grid, grid[1:])):
-        raise ValueError("times must be finite and strictly increasing")
+    grid = validate_apm_times(times)
     initial_time = float(grid[0])
     pool, pool_meta = resolve_molecular_pool(bridge, candidate_pool_key)
     mode = str(parameterization_mode)
@@ -985,5 +999,6 @@ __all__ = [
     "run_mapping_witness",
     "run_qse",
     "run_static_adapt_screening",
+    "validate_apm_times",
     "verified_status",
 ]
