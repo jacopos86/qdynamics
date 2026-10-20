@@ -100,3 +100,45 @@ def test_cli_exit_two_when_the_manifest_is_missing(tmp_path):
     assert "FileNotFoundError" in proc.stderr and not out_dir.exists()
     export = subprocess.run([sys.executable, "-m", "pipelines.chemistry_bridge", "export-qdynamics", "--h5", str(tmp_path / "missing_ele.h5"), "--out", str(tmp_path / "p.json")], cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=300)
     assert export.returncode == 2 and "export refused" in export.stderr
+
+
+# ---------------------------------------------------------------------------
+# Packet 003 (2026-10-20): P3 failures after a real intake are not usage errors
+# ---------------------------------------------------------------------------
+
+
+_INJECT_RUNNER = r"""
+import sys, pipelines.chemistry_bridge.methods as m
+from pipelines.chemistry_bridge.__main__ import main
+kind, manifest, out_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+def boom(*a, **k):
+    print("INJECTED_FAULT_AT_METHOD_BOUNDARY", file=sys.stderr)
+    if kind == "keyerror": raise KeyError("injected-key")
+    if kind == "oserror": raise OSError("injected-os")
+    raise RuntimeError("injected-runtime")
+m.run_mapping_witness = boom
+raise SystemExit(main(["run", "--manifest", manifest, "--out-dir", out_dir, "--methods", "mapping"]))
+"""
+
+
+@pytest.mark.parametrize("kind, marker", [("keyerror", "KeyError"), ("oserror", "OSError"), ("runtime", "RuntimeError")])
+def test_003_internal_failure_after_intake_exits_one_with_traceback_not_usage(kind, marker, tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT), "STATIC_ADAPT_HH_POOL_CACHE": "off", "PYTHONDONTWRITEBYTECODE": "1", "PYDEPHASING_TESTING": "1"}
+    out_dir = tmp_path / f"out_{kind}"
+    proc = subprocess.run([sys.executable, "-c", _INJECT_RUNNER, kind, manifest["manifest_path"], str(out_dir)], cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=300)
+    assert proc.returncode == bm.EXIT_CHECK_FAILED, proc.stdout + proc.stderr
+    assert "INJECTED_FAULT_AT_METHOD_BOUNDARY" in proc.stderr  # the real intake succeeded first
+    assert "run failed after intake" in proc.stderr and marker in proc.stderr and "Traceback" in proc.stderr
+    assert "run refused" not in proc.stderr
+    assert not (out_dir / "bridge_receipts.json").exists()
+
+
+def test_003_output_failure_after_methods_is_operational_exit_one(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    blocker = tmp_path / "not_a_dir"
+    blocker.write_text("x")
+    proc = _run(tmp_path, manifest, "--methods", "mapping", "--out-dir", str(blocker / "sub"))
+    # argparse last-wins: our helper's own --out-dir precedes, the explicit one here wins
+    assert proc.returncode == bm.EXIT_CHECK_FAILED, proc.stdout + proc.stderr
+    assert "run failed after intake" in proc.stderr and ("NotADirectoryError" in proc.stderr or "FileExistsError" in proc.stderr or "OSError" in proc.stderr)

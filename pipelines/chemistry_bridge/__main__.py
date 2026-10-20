@@ -7,9 +7,12 @@
 
 Exit codes of ``run`` (receipts are written before the code is decided):
     0  every requested method ended cpu_verified or gpu_verified
-    1  at least one requested method ended failed
+    1  at least one requested method ended failed, OR a method/output failure
+       raised after the input was accepted (traceback printed; "run failed after
+       intake"); such a failure is operational, not a usage error
     2  usage error: unknown or empty --methods, bad arguments, a missing or unreadable
-       manifest/document, or the strict intake refused the input (no receipt written)
+       manifest/document, or the strict intake refused the input (no receipt written;
+       "run refused")
     3  nothing failed, but a requested method was skipped_unsupported or blocked
        (e.g. an unavailable accelerator); this is never GPU evidence
 """
@@ -20,10 +23,19 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import traceback
 from typing import Sequence
 
 from pipelines.chemistry_bridge.array_backend import probe_backends
-from pipelines.chemistry_bridge.methods import DEFAULT_METHODS, EXIT_USAGE, exit_code_for_statuses, normalize_methods, run_bridge
+from pipelines.chemistry_bridge.methods import (
+    DEFAULT_METHODS,
+    EXIT_CHECK_FAILED,
+    EXIT_USAGE,
+    exit_code_for_statuses,
+    normalize_methods,
+    resolve_bridge_context,
+    run_bridge_resolved,
+)
 from pipelines.chemistry_bridge.qdynamics_export import (
     BridgeDependencyUnavailable,
     FrozenCoreReduction,
@@ -93,11 +105,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps({**{k: manifest[k] for k in ("problem_json_path", "manifest_path", "raw_sha256", "n_qubits", "num_particles", "reduction")}, "origin": bridge_problem.provenance["origin"], "container_schema": bridge_problem.provenance["container_schema"]}, indent=2))
         return 0
     if args.command == "run":
+        # Phase 1 — input resolution and validation only.  Failures here mean the
+        # request could not be turned into a calculation (bad methods/arguments,
+        # missing or unreadable manifest/document, strict-intake refusal): usage
+        # error, no receipt.
         try:
             methods = normalize_methods(str(args.methods))
             times = [float(v) for v in str(args.apm_times).split(",") if v.strip()]
-            summary = run_bridge(
-                args.manifest,
+            bridge = resolve_bridge_context(args.manifest)
+        except (ValueError, FileNotFoundError, OSError, KeyError) as exc:
+            print(f"run refused: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        # Phase 2 — method execution and output.  Anything raised here is an
+        # operational failure after the input was accepted; it keeps its type and
+        # traceback and exits 1, never 2.
+        try:
+            summary = run_bridge_resolved(
+                bridge,
                 backend_spec=str(args.backend),
                 methods=methods,
                 out_dir=Path(args.out_dir),
@@ -106,12 +130,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 apm_parameterization_mode=str(args.apm_parameterization),
                 apm_candidate_filter=str(args.apm_candidate_filter),
             )
-        except (ValueError, FileNotFoundError, OSError, KeyError) as exc:
-            # Usage error: the request could not be turned into a calculation
-            # (bad methods/arguments, missing or unreadable manifest/document,
-            # strict-intake refusal).  No receipt exists for such a run.
-            print(f"run refused: {type(exc).__name__}: {exc}", file=sys.stderr)
-            return EXIT_USAGE
+        except Exception as exc:
+            print(f"run failed after intake: {type(exc).__name__}: {exc}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+            return EXIT_CHECK_FAILED
         code = exit_code_for_statuses(summary["status_by_method"])
         print(json.dumps({"status_by_method": summary["status_by_method"], "out_path": summary.get("out_path"), "backend": summary["backend_spec"], "exit_code": code, "exit_policy": summary["exit_policy"].get(str(code))}, indent=2))
         return code

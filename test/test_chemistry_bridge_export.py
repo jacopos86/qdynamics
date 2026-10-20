@@ -446,3 +446,72 @@ def test_finding6_fcidump_attested_origin_requires_an_attestation_over_the_text(
     assert identity["data_role"] == "attested:fcidump_text" and identity["origin_attestation"]["attested_by"] == "test"
     plain = qx.bridge_problem_from_fcidump(data, qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf))
     assert plain.provenance["origin"] == "unknown" and plain.provenance["origin_attestation"] is None
+
+
+# ---------------------------------------------------------------------------
+# Packet 003 (2026-10-20): P2 attester identity must be a real nonblank string
+# ---------------------------------------------------------------------------
+
+
+_BAD_ATTESTERS = [None, False, True, [], {}, "", "   ", 0, 1.5, b"who", ["who"]]
+
+
+@pytest.mark.parametrize("who", _BAD_ATTESTERS)
+def test_003_fcidump_attester_identity_rejected_before_coercion(who):
+    h, g, scalar, hf = contract_four_qubit_tensors()
+    data = qx.read_fcidump(_fcidump_text(h, g, scalar, 2))
+    with pytest.raises(ValueError, match="attested_by"):
+        qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": who, "text_sha256": data.text_sha256})
+
+
+@pytest.mark.parametrize("digest", [None, False, 12345, "abc", "0" * 63, "g" * 64, ["0" * 64]])
+def test_003_fcidump_attestation_digest_must_be_hex_string(digest):
+    h, g, scalar, hf = contract_four_qubit_tensors()
+    with pytest.raises(ValueError, match="text_sha256"):
+        qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": "Jake", "text_sha256": digest})
+
+
+def test_003_fcidump_valid_attester_is_preserved_exactly_end_to_end(tmp_path):
+    h, g, scalar, hf = contract_four_qubit_tensors()
+    text = _fcidump_text(h, g, scalar, 2)
+    data = qx.read_fcidump(text)
+    who = "  Jake S. (synthetic text, not Doron)  "
+    bp = qx.bridge_problem_from_fcidump(data, qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": who, "text_sha256": data.text_sha256.upper()}))
+    assert bp.provenance["origin_attestation"]["attested_by"] == who  # preserved, not stripped
+    manifest = qx.write_bridge_problem_json(bp, tmp_path / "attested.json")
+    identity = resolve_bridge_context(manifest["manifest_path"]).input_identity()
+    assert identity["data_role"] == "attested:fcidump_text"
+    assert identity["origin_attestation"]["attested_by"] == who and identity["producer_origin_established"] is False
+    # wrong digest and missing digest are still refused
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.bridge_problem_from_fcidump(data, qx.FcidumpSidecar(geometry_spec="s", basis="s", e_scf=hf, origin="attested", attestation={"attested_by": "Jake", "text_sha256": "0" * 64}))
+    assert excinfo.value.code == "origin_attestation"
+
+
+@pytest.mark.parametrize("who", [None, False, [], "", "  ", 7])
+def test_003_h5_attester_identity_rejected_on_the_file_path(who, tmp_path):
+    mapping = synthetic_qdynamics_mapping("contract4")
+    try:
+        import h5py  # type: ignore
+    except ModuleNotFoundError:
+        # same contract through the shared private constructor (h5py absent here)
+        with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+            qx._matrix_elements_from_payload(mapping, caller_source=None, declared_origin="attested", declared_producer=None, attestation={"attested_by": who, "file_sha256": "0" * 64}, container_schema=qx.QDYNAMICS_ELE_H5_SCHEMA, file_sha256="0" * 64)
+        assert excinfo.value.code == "origin_attestation" and "attested_by" in str(excinfo.value)
+        return
+    path = tmp_path / "synthetic_ele.h5"
+    with h5py.File(path, "w") as handle:
+        group = handle.create_group("metadata")
+        for key, value in mapping["metadata"].items():
+            group.attrs[key] = value if value is not None else ""
+        handle.create_dataset("h1", data=np.asarray(mapping["h1"]))
+        handle.create_dataset("h2", data=np.asarray(mapping["h2"]))
+        handle.create_dataset("nuclear_repulsion", data=float(mapping["nuclear_repulsion"]))
+    import hashlib
+
+    file_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(qx.QdynamicsConventionError) as excinfo:
+        qx.load_qdynamics_matrix_elements_h5(path, declared_origin="attested", attestation={"attested_by": who, "file_sha256": file_sha})
+    assert excinfo.value.code == "origin_attestation" and "attested_by" in str(excinfo.value)
+    good = qx.load_qdynamics_matrix_elements_h5(path, declared_origin="attested", attestation={"attested_by": "Jake (synthetic file)", "file_sha256": file_sha})
+    assert good.source["origin"] == "attested" and good.source["origin_attestation"]["attested_by"] == "Jake (synthetic file)" and good.source["producer_origin_established"] is False

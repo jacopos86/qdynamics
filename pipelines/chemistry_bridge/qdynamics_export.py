@@ -243,6 +243,30 @@ class QdynamicsMatrixElements:
     source: dict[str, Any] = field(default_factory=dict)
 
 
+def validate_attestation(
+    attestation: Any,
+    *,
+    digest_key: str,
+) -> dict[str, Any]:
+    """Validate an attestation record's actual representation, without coercion.
+
+    ``attested_by`` must be a ``str`` (not a bool or any other type) that is not
+    blank; its value is preserved exactly.  ``digest_key`` must name a 64-hex
+    SHA-256 string.  A valid record is still only a claim by the named attester;
+    nothing here authenticates a producer.
+    """
+
+    if not isinstance(attestation, Mapping):
+        raise QdynamicsConventionError("origin_attestation", f"attestation must be a mapping with 'attested_by' and '{digest_key}'; got {type(attestation).__name__}.")
+    who = attestation.get("attested_by", None)
+    if isinstance(who, bool) or not isinstance(who, str) or not who.strip():
+        raise QdynamicsConventionError("origin_attestation", f"attestation.attested_by must be a nonblank string identity; got {who!r}.")
+    digest = attestation.get(digest_key, None)
+    if isinstance(digest, bool) or not isinstance(digest, str) or re.fullmatch(r"[0-9a-fA-F]{64}", digest) is None:
+        raise QdynamicsConventionError("origin_attestation", f"attestation.{digest_key} must be a 64-character SHA-256 hex string; got {digest!r}.")
+    return {str(k): v for k, v in attestation.items()}
+
+
 def _origin_record(
     *,
     container_schema: str,
@@ -282,13 +306,13 @@ def _origin_record(
             origin = ORIGIN_SIMULATED
     attestation_record: dict[str, Any] | None = None
     if origin == ORIGIN_ATTESTED:
-        if not isinstance(attestation, Mapping) or not str(attestation.get("attested_by", "")).strip() or not str(attestation.get("file_sha256", "")).strip():
+        if attestation is None:
             raise QdynamicsConventionError("origin_attestation", "origin='attested' requires attestation={'attested_by': <who>, 'file_sha256': <sha256>, ...}.")
+        attestation_record = validate_attestation(attestation, digest_key="file_sha256")
         if file_sha256 is None:
             raise QdynamicsConventionError("origin_attestation", "an attested origin needs a file whose sha256 the attestation covers; in-memory mappings cannot be attested.")
-        if str(attestation["file_sha256"]).lower() != str(file_sha256).lower():
+        if str(attestation_record["file_sha256"]).lower() != str(file_sha256).lower():
             raise QdynamicsConventionError("origin_attestation", "attestation.file_sha256 does not match the loaded file.")
-        attestation_record = {str(k): v for k, v in attestation.items()}
     elif attestation:
         raise QdynamicsConventionError("origin_attestation", f"attestation supplied but declared_origin is {origin!r}; declare origin='attested' explicitly.")
     return {
@@ -933,8 +957,12 @@ class FcidumpSidecar:
         if str(self.origin) not in ORIGIN_CHOICES:
             raise ValueError(f"origin must be one of {ORIGIN_CHOICES}; got {self.origin!r}")
         if str(self.origin) == ORIGIN_ATTESTED:
-            if not isinstance(self.attestation, Mapping) or not str(self.attestation.get("attested_by", "")).strip() or not re.fullmatch(r"[0-9a-fA-F]{64}", str(self.attestation.get("text_sha256", ""))):
+            if self.attestation is None:
                 raise ValueError("origin='attested' requires attestation={'attested_by': <who>, 'text_sha256': <sha256 of the FCIDUMP text>, ...}")
+            try:
+                validate_attestation(self.attestation, digest_key="text_sha256")
+            except QdynamicsConventionError as exc:
+                raise ValueError(f"origin='attested' requires a valid attestation: {exc}") from exc
         elif self.attestation:
             raise ValueError(f"attestation supplied but origin is {self.origin!r}; declare origin='attested' explicitly")
 
@@ -1138,5 +1166,6 @@ __all__ = [
     "read_bridge_manifest",
     "read_fcidump",
     "spatial_tensors_from_interleaved",
+    "validate_attestation",
     "write_bridge_problem_json",
 ]

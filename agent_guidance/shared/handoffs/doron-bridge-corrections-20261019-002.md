@@ -150,3 +150,39 @@ Gates after 002-D (same commands as §3): repository venv **69 passed, 18 skippe
 | 002-D clock | start 2026-10-19T18:17:58Z, end 2026-10-19T18:20:55Z |
 | recheck1_residual_probes.json sha256 | c1c6cbedae75e2ea6201ce2206ed724cab5ee648e317de326024789f95a28508 |
 | Correction commits, in order | `404454ac` → `16e12761` → `f0892355` → `00a9c844` → `44e689122a9bf2e3a9587dc327a96d37702c948b` (→ this record commit) |
+
+## 9. Packet 003 response — focused residual corrections (2026-10-20)
+
+ACK `doron-bridge-focused-residual-corrections-20261020-003` (packet sha256
+`0285dee5510976c12756deebfd2629b7f0aea0ffe1f248bf39a40237f5a4a305`, read in full). Reviewer
+report `recheck-002-D/report.md` (sha256 `ca26a3025b3c2e8f6e1e0959240fd90662d4789d7f659ec5d6d557f2c9754cf8`,
+read in full): residual 1 PARTLY CLOSED (attester identity), residual 2 CLOSED at the public
+factory boundary, residual 3 CLOSED for missing inputs with a P3 regression on broad exception
+policy; focused baseline 49 passed in each runtime; actual synthetic HDF5 read verified. The
+reviewer also corrects my attribution: the successful `00a9c844` recheck belongs to chat
+`01a1550d-7cf5-79e3-a355-b7c1cb177dde`, not `01a15508…`; §8 above is read with that correction.
+
+| finding | disposition | regression |
+|---|---|---|
+| **P2** `str(value).strip()` accepted `attested_by = None / False / []` as identities (`qdynamics_export.py:936`, and the same pattern in the HDF5 origin helper at `:285`) | **Closed.** New `validate_attestation(attestation, digest_key=...)`: `attested_by` must be a `str` (bools and every other type refused), nonblank after stripping, and is preserved exactly (not stripped); the digest must be a `str` of 64 hex characters. Used by both the HDF5 origin helper (`file_sha256`) and `FcidumpSidecar.__post_init__` (`text_sha256`); mismatching digests are still refused; `producer_origin_established` stays `False`; a valid record remains an unauthenticated claim. | `test_003_fcidump_attester_identity_rejected_before_coercion` (11 identities incl. the reviewer's `None`, `False`, `[]`), `test_003_fcidump_attestation_digest_must_be_hex_string` (7), `test_003_fcidump_valid_attester_is_preserved_exactly_end_to_end` (value preserved through JSON → manifest → intake → receipt; uppercase digest accepted; wrong digest refused), `test_003_h5_attester_identity_rejected_on_the_file_path` (6; real synthetic HDF5 bytes via h5py where available, the shared private constructor otherwise; a valid named attester on the real file path is accepted and recorded) |
+| **P3** `__main__.py:109` caught `KeyError`/`OSError` around all of `run_bridge`, so an internal failure after a real intake exited 2 as "run refused" | **Closed.** The CLI now has two phases: input resolution/validation (`normalize_methods`, times, `resolve_bridge_context`) → usage error 2, no receipt; method execution and output (`run_bridge_resolved`, new in `methods.py`, called by `run_bridge`) → any exception is printed as `run failed after intake: <type>: <msg>` with its traceback and exits 1, keeping the exception type. Ordinary failed-check receipts still exit 1 with the receipt kept; unsupported backend 3; verified 0; missing manifest/HDF5 and malformed input 2. | `test_003_internal_failure_after_intake_exits_one_with_traceback_not_usage` (subprocess fault injection of `KeyError`, `OSError`, `RuntimeError` at the mapping-runner boundary after the real intake; stderr marker proves the boundary was reached; exit 1; traceback and type present; no "run refused"; no receipt), `test_003_output_failure_after_methods_is_operational_exit_one` (receipt directory under a regular file → OSError family at output → exit 1 with diagnostic) |
+
+Scoped gates (exact commands; only the changed exporter/CLI modules and their tests plus the
+methods test file whose `run_bridge` was split):
+
+```sh
+cd /Users/lordskyler/Holstein_test.worktrees/claude-doron-bridge-20261019
+export PYTHONPATH=. STATIC_ADAPT_HH_POOL_CACHE=off PYTHONDONTWRITEBYTECODE=1 PYDEPHASING_TESTING=1
+/Users/lordskyler/Holstein_test/.venv/bin/python -m pytest -q -p no:randomly test/test_chemistry_bridge_export.py test/test_chemistry_bridge_cli.py   # 78 passed
+/Users/lordskyler/.venvs/doron-bridge-gpu/bin/python -m pytest -q -p no:randomly test/test_chemistry_bridge_export.py test/test_chemistry_bridge_cli.py  # 78 passed (real h5py branch)
+/Users/lordskyler/Holstein_test/.venv/bin/python -m pytest -q -p no:randomly test/test_chemistry_bridge_methods.py   # result recorded in the 003 commit message
+```
+
+No GPU computation, no broad campaign, no install, no `ps` read, no scientific run. The separately
+approved PySCF reproduction (`claude/doron-h2o-export-20261019`, origin `simulated`, inferred
+geometry) is untouched and remains distinct from these correction receipts.
+
+Files edited: `pipelines/chemistry_bridge/qdynamics_export.py`, `pipelines/chemistry_bridge/__main__.py`,
+`pipelines/chemistry_bridge/methods.py` (phase split only: `run_bridge_resolved`), `test/test_chemistry_bridge_export.py`,
+`test/test_chemistry_bridge_cli.py`, this file. 003 clock: start 2026-10-20T03:02:49Z (before the packet read);
+end and commit recorded below after the commit.

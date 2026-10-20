@@ -887,6 +887,38 @@ def run_bridge(
 ) -> dict[str, Any]:
     wanted = list(normalize_methods(methods))
     bridge = resolve_bridge_context(manifest_path)
+    return run_bridge_resolved(
+        bridge,
+        backend_spec=backend_spec,
+        methods=wanted,
+        out_dir=out_dir,
+        apm_times=apm_times,
+        apm_pool_key=apm_pool_key,
+        apm_parameterization_mode=apm_parameterization_mode,
+        qse_exact_compare=qse_exact_compare,
+        apm_candidate_filter=apm_candidate_filter,
+    )
+
+
+def run_bridge_resolved(
+    bridge: BridgeContext,
+    *,
+    backend_spec: str = "numpy:float64",
+    methods: Sequence[str] = DEFAULT_METHODS,
+    out_dir: str | Path | None = None,
+    apm_times: Sequence[float] = (0.0, 0.02, 0.04, 0.06, 0.08, 0.10),
+    apm_pool_key: str = "full_meta",
+    apm_parameterization_mode: str = "logical_shared",
+    qse_exact_compare: bool = True,
+    apm_candidate_filter: str = "executed_fixed_counts",
+) -> dict[str, Any]:
+    """Execute the requested methods on an already resolved (intake-accepted) context.
+
+    Input resolution and validation happen before this point; anything that
+    fails in here is a method or output failure, not a usage error.
+    """
+
+    wanted = list(normalize_methods(methods))
     receipts: list[BridgeMethodReceipt] = []
     exact_roots: list[float] | None = None
     if "mapping" in wanted:
@@ -948,6 +980,7 @@ __all__ = [
     "resolve_molecular_pool",
     "run_ap_mclachlan",
     "run_bridge",
+    "run_bridge_resolved",
     "run_exact_reference",
     "run_mapping_witness",
     "run_qse",
