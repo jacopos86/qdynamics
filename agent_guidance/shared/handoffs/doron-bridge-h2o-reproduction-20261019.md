@@ -69,3 +69,11 @@ Files: this note; `doron-bridge-h2o-20261019/{producer_record.json, input/h2o.in
 input/h2o_ele.h5, h2o_cas8e6o_problem.json, h2o_cas8e6o_problem.manifest.json,
 h2o_full_space_problem.json, h2o_full_space_problem.manifest.json, receipts/*/bridge_receipts.json}`.
 Nothing else changed; the fetched exporter tree lives only in the session scratchpad.
+
+## 6. Record (appended after the commit)
+
+| item | value |
+|---|---|
+| commit | `a51adb8df08fbbd15195ebefab800bf2c03c910c` on `claude/doron-h2o-export-20261019` (parent `70d0b317`) |
+| 003-A clock | start 2026-10-20T02:45:07Z, end 2026-10-20T02:51:57Z |
+| h2o_ele.h5 sha256 | e413ecbf9e150d313dd2daa0ef1fb72c83f583d2f48ca849db1a74fe927c6648 |
