@@ -700,7 +700,7 @@ def run_ra_adapt_construction(
     family, this pool and the proxy cost.
     """
 
-    from pipelines.static_adapt.ra_adapt.engine import run_ra_adapt
+    from pipelines.static_adapt.ra_adapt.engine import _route_sha256, run_ra_adapt
     from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
         MOLECULAR_CLOSED_SHELL_APPLICATION_LANE,
         MOLECULAR_CLOSED_SHELL_FAMILY,
@@ -724,12 +724,14 @@ def run_ra_adapt_construction(
     exact_stop = None
     if exact_stop_tolerance is not None:
         exact_stop = exact_ed_stop_for_problem(bridge.context, energy=exact_ground, absolute_tolerance=float(exact_stop_tolerance))
-    # The horizon is capped at the executable pool size: on a witness whose
-    # sector is spanned by a handful of generators the construction reaches the
-    # exact ground state within that many rounds, and the engine's canonical v2
-    # full-vs-active candidate-gain receipt cannot close once no candidate can
-    # gain anything (contract4: 3 generators, exact after round 2, RuntimeError
-    # at round 4).  Requested and executed horizons are both recorded.
+    # Bridge-side workaround, not a natural limit: the horizon is capped at the
+    # executable pool size.  Generators may be re-admitted at later rounds, so
+    # the pool size does not bound useful rounds in general; the cap exists
+    # because on a witness whose sector is spanned by a handful of generators
+    # the construction reaches the exact ground state early (contract4: 3
+    # generators, exact after round 1) and the engine's canonical v2
+    # full-vs-active candidate-gain receipt then cannot close (RuntimeError at
+    # round 4).  Requested and executed horizons are both recorded.
     executable_count = int(len(MolecularClosedShellMacroCandidateAdapter(pool_key=key).executable_pool(bridge.context).candidates))
     horizon_executed = min(horizon, executable_count)
     request = build_molecular_closed_shell_ra_request(maximum_controller_rounds=horizon_executed, insertion=policy, pool_key=key, exact_ed_stop=exact_stop)
@@ -805,8 +807,11 @@ def run_ra_adapt_construction(
         "final_operators": [str(op) for op in result.run.final_state.operators],
         "rounds": rounds_out,
         "stop": _contract_json(result.run.stop),
+        # SerializableContract.to_dict drops None fields, so say explicitly that
+        # no exact-energy stop condition was handed to the controller.
+        "exact_reference_used_online": bool(exact_stop is not None),
         "route_profile": str(route.get("route_profile", "")),
-        "route_contract_sha256": str(route.get("sha256", route.get("contract_sha256", ""))),
+        "route_contract_sha256": str(_route_sha256(route)) if route else "",
         "algorithm_id": str(result.protocol.algorithm_id),
         "selector_identity": str(result.selector_identity),
         "executed_settings": {k: execution.get(k) for k in ("problem", "adapt_pool", "adapt_insertion_mode", "phase3_backend_cost_mode", "adapt_continuation_mode") if k in execution},

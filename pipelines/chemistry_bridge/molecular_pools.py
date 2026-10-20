@@ -10,7 +10,10 @@ convention).  Every word of such a block has an even number of ``Y`` factors
 with a real coefficient, so the block is a real symmetric matrix and its
 exponential is genuinely complex; the words of one block mutually commute, so
 the repository's termwise-product execution of a single shared angle is the
-exact exponential and preserves ``(n_up, n_dn)`` (verified at run time by the
+exact exponential (the audit records ``all_nonzero_components_mutually_commute``
+per generator; the product-vs-``expm`` equality itself was measured at 1e-15 on
+the witnesses and on H2O, not checked at run time) and preserves
+``(n_up, n_dn)`` (the fixed-count preservation IS verified at run time by the
 executed-unitary sector audit, never assumed).
 
 Contrast with the repository UCCSD pool ``i (T - T†)``: those words carry an

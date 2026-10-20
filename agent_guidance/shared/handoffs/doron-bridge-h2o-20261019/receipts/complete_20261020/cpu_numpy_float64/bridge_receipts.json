@@ -1,6 +1,6 @@
 {
   "backend_spec": "numpy:float64",
-  "created_utc": "2026-10-20T09:00:30.856569+00:00",
+  "created_utc": "2026-10-20T09:08:21.406960+00:00",
   "exit_code": 0,
   "exit_policy": {
     "0": "all requested methods verified on the requested backend",
@@ -207,8 +207,8 @@
         "sector_leakage_max_norm": 2.3261632779547428e-17,
         "term_count": 551
       },
-      "created_utc": "2026-10-20T08:54:19.641591+00:00",
-      "elapsed_s": 0.846429624943994,
+      "created_utc": "2026-10-20T09:02:27.865350+00:00",
+      "elapsed_s": 0.8444421250023879,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",
@@ -366,8 +366,8 @@
         "sector_dimension": 225,
         "sector_leakage_max_norm": 2.3261632779547428e-17
       },
-      "created_utc": "2026-10-20T08:55:25.582342+00:00",
-      "elapsed_s": 65.94033962499816,
+      "created_utc": "2026-10-20T09:03:10.902698+00:00",
+      "elapsed_s": 43.037013666005805,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",
@@ -548,8 +548,8 @@
         "ritz_below_exact_max": -0.0007049586520082585,
         "ritz_minus_exact_sector_roots_max_abs": 0.062181994698690346
       },
-      "created_utc": "2026-10-20T08:55:27.623897+00:00",
-      "elapsed_s": 1.9610475420486182,
+      "created_utc": "2026-10-20T09:03:12.182573+00:00",
+      "elapsed_s": 1.2670717909932137,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",
@@ -818,8 +818,8 @@
         "energy_backend_minus_repository_abs": 1.4210854715202004e-14,
         "pool_size": 644
       },
-      "created_utc": "2026-10-20T08:55:29.047232+00:00",
-      "elapsed_s": 1.4215090409852564,
+      "created_utc": "2026-10-20T09:03:13.291559+00:00",
+      "elapsed_s": 1.1081913750385866,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",
@@ -1031,8 +1031,8 @@
         "hf_energy_minus_hf_witness_abs": 0.0,
         "route_profile_names_molecular_lane": true
       },
-      "created_utc": "2026-10-20T08:59:40.884901+00:00",
-      "elapsed_s": 251.83539899997413,
+      "created_utc": "2026-10-20T09:07:30.263304+00:00",
+      "elapsed_s": 256.9699006250012,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",
@@ -1221,6 +1221,7 @@
         "application_lane": "doron_molecular_closed_shell_ra_macro_v1",
         "exact_ground_energy": -75.01250192475737,
         "exact_reference_role": "reporting_input_sector_block_eigvalsh",
+        "exact_reference_used_online": false,
         "executable_pool_count": 92,
         "executed_settings": {
           "adapt_continuation_mode": "phase3_v1",
@@ -2693,7 +2694,7 @@
             ]
           }
         ],
-        "route_contract_sha256": "",
+        "route_contract_sha256": "f86aad998cd9a685de1fd38884c4930a1aa56a5fa3e778b1e90087f4bc6df4d4",
         "route_profile": "doron_molecular_ra_adapt__macro_generator_v1__insertion_commutation_plateau_v2__measured_residual_response_v1__all_phase_resource_weighting_v1__incremental_active_baseline__exact_guarded_full_response",
         "selector_identity": "ra_adapt_staged_phase_i_ii_iii_funnel_v1",
         "semantic_invariants": {
@@ -2751,8 +2752,8 @@
         "point_count": 21,
         "sector_leakage_max_norm": 1.718371816688523e-17
       },
-      "created_utc": "2026-10-20T09:00:30.855113+00:00",
-      "elapsed_s": 49.965257000003476,
+      "created_utc": "2026-10-20T09:08:21.405545+00:00",
+      "elapsed_s": 51.13376158301253,
       "inputs": {
         "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
         "container_schema": "qdynamics_matrix_elements_ele_h5",

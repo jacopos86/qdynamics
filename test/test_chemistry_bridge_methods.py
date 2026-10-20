@@ -275,8 +275,8 @@ def test_hermitian_pool_contract_witness_single_double_is_near_exact(tmp_path):
 def test_qse_product_bases_tighten_to_the_exact_sector_spectrum(tmp_path):
     manifest = _manifest(tmp_path, "random8")
     bridge = bm.resolve_bridge_context(manifest["manifest_path"])
-    exact = bm.run_exact_reference(bridge, "numpy:float64", n_roots=8)
-    assert exact.checks["sector_dimension"] == 36
+    exact = bm.run_exact_reference(bridge, "numpy:float64", n_roots=36)  # every sector root, so the CISDTQ check covers all 36
+    assert exact.checks["sector_dimension"] == 36 and len(exact.results["low_roots"]) == 36
     cisd = bm.run_qse(bridge, "numpy:float64", basis_kind="uccsd_singles_doubles", exact_roots=exact.results["low_roots"])
     cisdt = bm.run_qse(bridge, "numpy:float64", basis_kind="uccsd_sdt_products", exact_roots=exact.results["low_roots"])
     cisdtq = bm.run_qse(bridge, "numpy:float64", basis_kind="uccsd_sdtq_products", exact_roots=exact.results["low_roots"])
@@ -290,7 +290,7 @@ def test_qse_product_bases_tighten_to_the_exact_sector_spectrum(tmp_path):
     e0 = exact.results["low_roots"][0]
     gap_cisd, gap_cisdt, gap_cisdtq = (r.results["ritz_roots"][0] - e0 for r in (cisd, cisdt, cisdtq))
     assert gap_cisd > gap_cisdt > 1.0e-6 and abs(gap_cisdtq) < 1.0e-10  # measured 0.7445, 7.05e-3, -7e-15
-    assert cisdtq.checks["ritz_minus_exact_sector_roots_max_abs"] < 1.0e-9  # every sector root reproduced
+    assert cisdtq.results["exact_roots_compared"] == 36 and cisdtq.checks["ritz_minus_exact_sector_roots_max_abs"] < 1.0e-9  # all 36 sector roots reproduced
     for r in (cisd, cisdt, cisdtq):
         assert r.checks["ritz_below_exact_max"] < 1.0e-9  # Ritz values never fall below the exact sector roots
     with pytest.raises(ValueError, match="basis_kind must be one of"):
@@ -316,6 +316,7 @@ def test_ra_adapt_construction_receipt_runs_the_named_application(tmp_path):
     assert checks["route_profile_names_molecular_lane"] is True and checks["hf_energy_minus_hf_witness_abs"] < 1.0e-12
     res = receipt.results
     assert res["exact_reference_role"] == "reporting_input_sector_block_eigvalsh" and res["stop"]["primary_reason"] == "maximum_controller_rounds"
+    assert res["exact_reference_used_online"] is False and len(res["route_contract_sha256"]) == 64
     assert abs(res["final_energy"] - (-1.608561)) < 1.0e-5 and abs(res["exact_ground_energy"] - (-1.750066)) < 1.0e-5  # measured 2026-10-20
     assert res["final_operators"] == ["uccsd_dbl(ab:0,3->2,5)", "uccsd_dbl(ab:0,3->2,4)", "uccsd_sing(alpha:0->2)", "uccsd_sing(alpha:0->1)"]
     assert res["parent_pool_count"] == 8 and res["executable_pool_count"] == 8

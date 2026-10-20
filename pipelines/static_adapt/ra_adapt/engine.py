@@ -5892,11 +5892,6 @@ def run_ra_adapt(
             "Hubbard--Holstein L=2 problem. Pure Hubbard is executable only "
             "through the exact named Page-12 full-noise application adapter."
         )
-    if (
-        family_key == MOLECULAR_CLOSED_SHELL_FAMILY
-        and not is_molecular_closed_shell_application(problem, public_request)
-    ):
-        raise ValueError(MOLECULAR_CLOSED_SHELL_LOCK_MESSAGE)
 
     if operational_controls is not None:
         if not bundle_resolved:
