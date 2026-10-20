@@ -1,0 +1,98 @@
+[
+  {
+    "spec": "numpy:float64",
+    "library": "numpy",
+    "library_version": "2.3.5",
+    "requested_device": "cpu",
+    "exercised_device": "cpu",
+    "real_dtype": "float64",
+    "complex_dtype": "complex128",
+    "is_gpu": false,
+    "available": true,
+    "reason": null
+  },
+  {
+    "spec": "numpy:float32",
+    "library": "numpy",
+    "library_version": "2.3.5",
+    "requested_device": "cpu",
+    "exercised_device": "cpu",
+    "real_dtype": "float32",
+    "complex_dtype": "complex64",
+    "is_gpu": false,
+    "available": true,
+    "reason": null
+  },
+  {
+    "spec": "torch:cpu:float64",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "cpu",
+    "exercised_device": "cpu",
+    "real_dtype": "float64",
+    "complex_dtype": "complex128",
+    "is_gpu": false,
+    "available": true,
+    "reason": null
+  },
+  {
+    "spec": "torch:cpu:float32",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "cpu",
+    "exercised_device": "cpu",
+    "real_dtype": "float32",
+    "complex_dtype": "complex64",
+    "is_gpu": false,
+    "available": true,
+    "reason": null
+  },
+  {
+    "spec": "torch:mps:float32",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "mps",
+    "exercised_device": "mps",
+    "real_dtype": "float32",
+    "complex_dtype": "complex64",
+    "is_gpu": true,
+    "available": true,
+    "reason": null
+  },
+  {
+    "spec": "torch:mps:float64",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "mps",
+    "exercised_device": null,
+    "real_dtype": "float64",
+    "complex_dtype": "complex128",
+    "is_gpu": false,
+    "available": false,
+    "reason": "mps rejected dtype float64: TypeError: Cannot convert a MPS Tensor to float64 dtype as the MPS framework doesn't support float64. Please use float32 instead."
+  },
+  {
+    "spec": "torch:cuda:float64",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "cuda",
+    "exercised_device": null,
+    "real_dtype": "float64",
+    "complex_dtype": "complex128",
+    "is_gpu": false,
+    "available": false,
+    "reason": "torch.cuda.is_available() is False"
+  },
+  {
+    "spec": "torch:cuda:float32",
+    "library": "torch",
+    "library_version": "2.14.1",
+    "requested_device": "cuda",
+    "exercised_device": null,
+    "real_dtype": "float32",
+    "complex_dtype": "complex64",
+    "is_gpu": false,
+    "available": false,
+    "reason": "torch.cuda.is_available() is False"
+  }
+]

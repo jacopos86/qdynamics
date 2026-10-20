@@ -16806,17 +16806,25 @@ def _validated_ra_adapt_route_contract(
         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
     }:
         return None
+    from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
+        MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX,
+    )
+
     profile = str(contract.get("route_profile", ""))
     paper_i_profile = profile.startswith("paper_i_ra_adapt__")
     semantic_paper_i_profile = profile.startswith("paper_i_ra__")
     h2o_application_profile = profile.startswith(
         "paper_iv_h2o_ra_adapt__"
     )
+    molecular_application_profile = profile.startswith(
+        MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX
+    )
     if (
         not (
             paper_i_profile
             or semantic_paper_i_profile
             or h2o_application_profile
+            or molecular_application_profile
         )
         or profile != str(kwargs.get("sr_route_profile_resolved", ""))
         or profile != str(kwargs.get("sr_route_profile_request", ""))
@@ -16894,6 +16902,67 @@ def _validated_ra_adapt_route_contract(
         ):
             raise ValueError(
                 "The Paper-IV H2O RA-ADAPT application identity drifted."
+            )
+    if molecular_application_profile:
+        from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
+            MOLECULAR_CLOSED_SHELL_APPLICATION_ID,
+            MOLECULAR_CLOSED_SHELL_APPLICATION_LANE,
+            MOLECULAR_CLOSED_SHELL_FAMILY,
+            MOLECULAR_CLOSED_SHELL_PHASE3_COST_MODE,
+            MolecularClosedShellMacroCandidateAdapter,
+        )
+
+        resolved_problem = kwargs.get("resolved_problem_context")
+        admissible = (
+            tuple(str(k) for k in resolved_problem.admissible_pool_keys)
+            if isinstance(resolved_problem, ResolvedProblemContext)
+            else ()
+        )
+        executed_pool = str(execution.get("adapt_pool", ""))
+        drift: list[str] = []
+        if not isinstance(resolved_problem, ResolvedProblemContext):
+            drift.append("resolved problem context missing")
+        elif (
+            str(resolved_problem.family_key).strip().lower()
+            != MOLECULAR_CLOSED_SHELL_FAMILY
+        ):
+            drift.append(f"problem family {resolved_problem.family_key!r}")
+        # The adapter object is not available at this gate (candidate_adapter is
+        # None on this path, as for the H2O lane); the contract and the resolved
+        # problem are what is cross-checked.  The adapter/pool pairing is checked
+        # earlier, in the engine (pool_key override -> executed adapt_pool).
+        if isinstance(
+            candidate_adapter, MolecularClosedShellMacroCandidateAdapter
+        ) and executed_pool != str(candidate_adapter.pool_key):
+            drift.append(
+                f"executed pool {executed_pool!r} != adapter pool "
+                f"{candidate_adapter.pool_key!r}"
+            )
+        if execution.get("problem") != MOLECULAR_CLOSED_SHELL_FAMILY:
+            drift.append(f"executed problem {execution.get('problem')!r}")
+        if (
+            execution.get("phase3_backend_cost_mode")
+            != MOLECULAR_CLOSED_SHELL_PHASE3_COST_MODE
+        ):
+            drift.append(
+                f"phase3 cost mode {execution.get('phase3_backend_cost_mode')!r}"
+            )
+        if admissible and executed_pool not in admissible:
+            drift.append(f"executed pool {executed_pool!r} not admissible")
+        for key, expected in (
+            ("problem_family", MOLECULAR_CLOSED_SHELL_FAMILY),
+            ("application_lane", MOLECULAR_CLOSED_SHELL_APPLICATION_LANE),
+            ("application_id", MOLECULAR_CLOSED_SHELL_APPLICATION_ID),
+            ("operator_pool_identity", executed_pool),
+            ("singleton_admission", True),
+            ("raw_single_pauli_child_exposure", False),
+        ):
+            if invariants.get(key) != expected:
+                drift.append(f"invariant {key} = {invariants.get(key)!r}")
+        if drift:
+            raise ValueError(
+                "The Doron molecular closed-shell RA-ADAPT application "
+                "identity drifted: " + "; ".join(drift)
             )
     trust_policy = str(invariants.get("trust_policy", ""))
     endpoint_overlap_trust = bool(

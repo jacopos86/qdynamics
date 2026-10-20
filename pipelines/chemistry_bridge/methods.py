@@ -1,0 +1,1367 @@
+"""Method runners: strict intake -> repository methods, with per-method receipts.
+
+Every runner returns a ``BridgeMethodReceipt`` whose ``status`` is one of
+
+    cpu_verified         the method executed on a CPU backend and its checks passed
+    gpu_verified         the method executed on an accelerator (``cuda``/``mps``)
+                         whose device was read back from a live tensor, and its
+                         CPU-parity checks passed
+    skipped_unsupported  the requested backend/device/dtype cannot be exercised here
+    blocked              the repository route refuses this problem family (reason recorded)
+    failed               a check failed (details recorded)
+
+A GPU run that silently fell back to CPU can never be reported as
+``gpu_verified``: the status is derived from ``BackendReport.exercised_device``.
+
+Lane status for a molecular electronic problem at this commit:
+
+* Paper III (QSE): ``pipelines.qse_spectra.core.compute_qse_spectra`` is
+  family-neutral and is executed directly (CPU).  The same pencil is assembled
+  on the bridge backend for CPU/GPU parity.
+* Paper II (AP-McLachlan): ``run_append_mclachlan_trajectory`` is executed
+  directly on a ``ScaffoldRuntimeInput`` built from the resolved context (CPU
+  only; the route's geometry is dense numpy).  The candidate pool offered to
+  the controller is the repository's ``full_meta`` molecular pool restricted,
+  by default, to generators whose *executed* unitary preserves the fixed
+  (n_alpha, n_beta) counts according to the repository's own audit
+  (``pipelines.static_adapt.sector_invariants``): for ``logical_shared`` that
+  is ``execution_preserves_fixed_counts`` (grouped conservation with mutually
+  commuting words, or word-wise conservation); for ``per_pauli_term`` it is
+  word-wise conservation.  ``logical_shared`` alone is NOT a conservation
+  proof: single Hamiltonian words with X/Y support and the noncommuting
+  Hamiltonian blocks in ``full_meta`` leak under either parameterization, and
+  the unfiltered pool (``candidate_sector_filter="none"``) is kept only as the
+  leakage regression.  The restriction is labelled in every receipt; the pool
+  itself is not changed, and which pool a molecular Paper II lane should use
+  remains an unselected scientific decision.
+* Paper I (RA-ADAPT/SNAKE): the typed facade ``run_ra_adapt`` rejects every
+  family except HH L in {2,3}, named Hubbard applications and the H2O
+  linear-FD family (``pipelines/static_adapt/ra_adapt/engine.py``).  The bridge
+  resolves the repository's molecular pool plan and evaluates the ADAPT
+  selection gradients on the backend; the full route stays ``blocked`` until a
+  named lane-owned application admits the family.
+"""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+import json
+import math
+from pathlib import Path
+import time
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+
+from pipelines.chemistry_bridge import BRIDGE_SCHEMA_VERSION
+from pipelines.chemistry_bridge.molecular_pools import (
+    BRIDGE_LOCAL_POOL_KEYS,
+    HERMITIAN_EXCITATIONS_METHOD_NAME,
+    HERMITIAN_EXCITATIONS_POOL_KEY,
+    build_hermitian_excitation_pool,
+    build_product_excitation_basis,
+    is_bridge_local_pool_key,
+)
+
+QSE_BASIS_KINDS = ("uccsd_singles_doubles", "uccsd_singles", "uccsd_sdt_products", "uccsd_sdtq_products")
+RA_INSERTION_POLICIES = ("plateau_commutation", "append_only")
+RA_DEFAULT_ROUNDS = 8
+RA_DEFAULT_POOL_KEY = "uccsd"
+from pipelines.chemistry_bridge.array_backend import (
+    BackendReport,
+    BackendUnavailable,
+    NumpyBackend,
+    TorchBackend,
+    parity_tolerances,
+    resolve_backend,
+)
+from pipelines.chemistry_bridge.polynomial_action import (
+    BoundPolynomialAction,
+    BridgePolynomialAction,
+    adapt_commutator_gradients,
+    fixed_sector_basis_indices,
+    out_of_sector_norm,
+    qse_pencil,
+    sector_matrix,
+    sector_spectrum,
+)
+from pipelines.chemistry_bridge.qdynamics_export import declaration_from_mapping, read_bridge_manifest
+from pipelines.contracts.problem import ProblemRequest, ResolvedProblemContext
+from pipelines.static_adapt.builders.molecular_diagnostic_intake import (
+    MolecularDiagnosticDeclaration,
+    resolve_molecular_diagnostic_intake,
+)
+from src.quantum.compiled_polynomial import (
+    adapt_commutator_grad_from_hpsi,
+    apply_compiled_polynomial,
+    compile_polynomial_action,
+    energy_via_one_apply,
+)
+from src.quantum.pauli_polynomial_class import PauliPolynomial
+
+
+STATUS_CPU_VERIFIED = "cpu_verified"
+STATUS_GPU_VERIFIED = "gpu_verified"
+STATUS_SKIPPED_UNSUPPORTED = "skipped_unsupported"
+STATUS_BLOCKED = "blocked"
+STATUS_FAILED = "failed"
+
+RECEIPT_SCHEMA = "doron_bridge_method_receipt_v1"
+MOLECULAR_FAMILY = "molecular_restricted_closed_shell"
+
+Backend = NumpyBackend | TorchBackend
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    if isinstance(value, (np.bool_,)):
+        return bool(value)
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    if isinstance(value, (np.floating,)):
+        return float(value)
+    if isinstance(value, complex):
+        return {"re": float(value.real), "im": float(value.imag)}
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    return value
+
+
+def verified_status(report: BackendReport, *, checks_passed: bool) -> str:
+    """Derive the status from the live device report, never from the request."""
+
+    if not report.available:
+        return STATUS_SKIPPED_UNSUPPORTED
+    if report.exercised_device != report.requested_device:
+        # A request that landed somewhere else is a fallback; it is never
+        # counted, not even as a CPU result.
+        return STATUS_FAILED
+    if not checks_passed:
+        return STATUS_FAILED
+    if report.exercised_device in {"cuda", "mps"}:
+        return STATUS_GPU_VERIFIED
+    if report.exercised_device == "cpu":
+        return STATUS_CPU_VERIFIED
+    return STATUS_FAILED
+
+
+@dataclass
+class BridgeMethodReceipt:
+    method: str
+    lane: str
+    route: str
+    status: str
+    backend: dict[str, Any]
+    inputs: dict[str, Any]
+    results: dict[str, Any] = field(default_factory=dict)
+    checks: dict[str, Any] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
+    elapsed_s: float = 0.0
+    schema: str = RECEIPT_SCHEMA
+    created_utc: str = field(default_factory=_now)
+
+    def to_json_dict(self) -> dict[str, Any]:
+        return _json_safe(asdict(self))
+
+
+@dataclass(frozen=True)
+class BridgeContext:
+    """A strict-intake context plus the identities a receipt must carry."""
+
+    context: ResolvedProblemContext
+    intake_receipt: dict[str, Any]
+    declaration: MolecularDiagnosticDeclaration
+    manifest: dict[str, Any]
+    provenance: dict[str, Any]
+    data_role: str
+
+    @property
+    def nq(self) -> int:
+        return int(self.context.layout.total_qubits)
+
+    @property
+    def n_spatial(self) -> int:
+        return int(self.context.request.num_sites)
+
+    @property
+    def num_particles(self) -> tuple[int, int]:
+        return tuple(int(v) for v in self.context.default_num_particles)  # type: ignore[return-value]
+
+    def input_identity(self) -> dict[str, Any]:
+        receipt = self.intake_receipt
+        return {
+            "problem_json_path": self.manifest.get("problem_json_path"),
+            "raw_sha256": receipt.get("raw_sha256"),
+            "tensor_sha256": receipt.get("tensor_sha256"),
+            "semantic_sha256": receipt.get("semantic_sha256"),
+            "operator_sha256": receipt.get("operator_sha256"),
+            "diagnostic_atol": receipt.get("diagnostic_atol"),
+            "data_role": self.data_role,
+            "origin": self.provenance.get("origin", "unknown"),
+            "container_schema": self.provenance.get("container_schema"),
+            "claimed_producer": self.provenance.get("claimed_producer"),
+            "origin_attestation": self.provenance.get("origin_attestation"),
+            "producer_origin_established": bool(self.provenance.get("producer_origin_established", False)),
+            "source": self.provenance.get("source", {}),
+            "schema_reference_producer": self.provenance.get("schema_reference_producer", {}),
+            "reduction": self.provenance.get("reduction", {}),
+            "n_qubits": self.nq,
+            "num_particles": list(self.num_particles),
+        }
+
+
+def resolve_bridge_context(manifest_path: str | Path, *, atol: float = 1.0e-12) -> BridgeContext:
+    """Run the strict intake on a bridge problem document named by its manifest."""
+
+    manifest = read_bridge_manifest(manifest_path)
+    problem_json = Path(manifest["problem_json_path"])
+    document = json.loads(problem_json.read_text(encoding="utf-8"))
+    provenance = dict(document.get("provenance", {}))
+    declaration = declaration_from_mapping(manifest["declaration"])
+    request = ProblemRequest(
+        problem_key=MOLECULAR_FAMILY,
+        num_sites=int(manifest["n_spatial_orbitals"]),
+        t=0.0, u=0.0, dv=0.0, omega0=0.0, g_ep=0.0,
+        n_ph_max=0, boson_encoding="binary", ordering="blocked", boundary="open",
+        include_zero_point=True, molecular_problem_json=str(problem_json),
+    )
+    context = resolve_molecular_diagnostic_intake(
+        request,
+        expected_raw_sha256=str(manifest["raw_sha256"]),
+        declaration=declaration,
+        atol=float(atol),
+    )
+    receipt = dict(context.runtime_data["molecular_diagnostic_intake_receipt"])
+    # Three separate facts travel with every receipt: the observed container
+    # (what the bytes look like), the claimed producer (a claim), and the
+    # declared origin (synthetic / simulated / unknown / attested).  The data
+    # role is origin:container; neither a hash nor a recognized schema can
+    # turn an unknown origin into a producer export.
+    origin = str(provenance.get("origin", "unknown"))
+    container = str(provenance.get("container_schema", provenance.get("source", {}).get("container_schema", "unknown_container")))
+    data_role = f"{origin}:{container}"
+    return BridgeContext(context=context, intake_receipt=receipt, declaration=declaration, manifest=manifest, provenance=provenance, data_role=data_role)
+
+
+def _backend_or_receipt(spec: str, *, method: str, lane: str, route: str, inputs: dict[str, Any]) -> tuple[Backend | None, BridgeMethodReceipt | None]:
+    try:
+        backend = resolve_backend(spec)
+    except BackendUnavailable as exc:
+        from pipelines.chemistry_bridge.array_backend import backend_availability
+
+        report = backend_availability(spec)
+        return None, BridgeMethodReceipt(
+            method=method, lane=lane, route=route, status=STATUS_SKIPPED_UNSUPPORTED,
+            backend=report.to_json_dict(), inputs=inputs,
+            notes=[f"backend {spec!r} unavailable: {exc}"],
+        )
+    return backend, None
+
+
+def hf_statevector(bridge: BridgeContext) -> np.ndarray:
+    return np.asarray(bridge.context.reference_state.build_state(), dtype=np.complex128).reshape(-1)
+
+
+def hamiltonian_action(bridge: BridgeContext, *, compile_tol: float = 1.0e-15) -> BridgePolynomialAction:
+    return BridgePolynomialAction.from_polynomial(bridge.context.hamiltonian, compile_tol=compile_tol)
+
+
+# ----------------------------------------------------------------------------
+# Mapping witness
+# ----------------------------------------------------------------------------
+
+
+def run_mapping_witness(bridge: BridgeContext, backend_spec: str = "numpy:float64", *, seed: int = 1) -> BridgeMethodReceipt:
+    """Check the mapped operator against tensor-level witnesses on the backend.
+
+    * HF expectation of the mapped operator equals the intake's input-tensor
+      determinant energy (the JW mapping, spin blocking and scalar insertion
+      agree with the tensors).
+    * The action is Hermitian on random states.
+    * The action preserves the (n_alpha, n_beta) sector.
+
+    The HF witness also proves the scalar slot is inserted exactly once: the
+    mapped expectation equals the tensor determinant energy that already
+    contains it.  (The identity Pauli coefficient itself is not the scalar: the
+    Jordan-Wigner images of number operators contribute identity terms too.)
+    """
+
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    backend, skipped = _backend_or_receipt(backend_spec, method="mapping_witness", lane="shared_chemistry_input", route="bridge_polynomial_action", inputs=inputs)
+    if skipped is not None:
+        return skipped
+    report = backend.report()
+    tol = parity_tolerances(report.real_dtype)
+    action = hamiltonian_action(bridge)
+    bound = action.bind(backend)
+    psi_hf = hf_statevector(bridge)
+    witness = float(bridge.intake_receipt["checks"]["input_tensor_determinant_energy"])
+    hf_energy = bound.expectation_numpy(psi_hf)
+    rng = np.random.default_rng(int(seed))
+    dim = 1 << bridge.nq
+    phi = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
+    chi = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
+    phi /= np.linalg.norm(phi)
+    chi /= np.linalg.norm(chi)
+    h_phi = bound.apply_numpy(phi)
+    h_chi = bound.apply_numpy(chi)
+    hermiticity = abs(np.vdot(chi, h_phi) - np.vdot(h_chi, phi))
+    basis = fixed_sector_basis_indices(bridge.n_spatial, bridge.num_particles)
+    block, leakage = sector_matrix(bound, basis)
+    scalar_slot = float(bridge.declaration.nuclear_scalar_hartree + bridge.declaration.frozen_core_scalar_hartree)
+    identity = complex(action.identity_coefficient)
+    checks = {
+        "hf_expectation_minus_tensor_witness_abs": abs(hf_energy.real - witness),
+        "hf_expectation_imag_abs": abs(hf_energy.imag),
+        "hermiticity_defect_abs": float(hermiticity),
+        "sector_leakage_max_norm": float(leakage),
+        "identity_coefficient_imag_abs": abs(identity.imag),
+        "sector_dimension": int(basis.size),
+        "term_count": int(action.term_count),
+    }
+    passed = (
+        checks["hf_expectation_minus_tensor_witness_abs"] <= tol["scalar_abs"] * max(1.0, abs(witness))
+        and checks["hf_expectation_imag_abs"] <= tol["scalar_abs"]
+        and checks["hermiticity_defect_abs"] <= tol["scalar_abs"] * 10
+        and checks["sector_leakage_max_norm"] <= tol["vector_abs"] * 10
+        and checks["identity_coefficient_imag_abs"] <= 1.0e-12
+    )
+    return BridgeMethodReceipt(
+        method="mapping_witness", lane="shared_chemistry_input", route="bridge_polynomial_action",
+        status=verified_status(report, checks_passed=passed), backend=report.to_json_dict(), inputs=inputs,
+        results={"hf_expectation": hf_energy.real, "tensor_witness_determinant_energy": witness, "action_sha256": action.action_sha256, "scalar_slot": scalar_slot, "identity_pauli_coefficient": identity.real},
+        checks=checks, elapsed_s=time.perf_counter() - started,
+        notes=["tensor witness is the intake's input-tensor determinant energy, not an SCF stationarity proof"],
+    )
+
+
+# ----------------------------------------------------------------------------
+# Exact reference (fixed-sector dense diagonalization assembled on the backend)
+# ----------------------------------------------------------------------------
+
+
+def run_exact_reference(bridge: BridgeContext, backend_spec: str = "numpy:float64", *, n_roots: int = 4, compare_repository_target: bool = True) -> BridgeMethodReceipt:
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    backend, skipped = _backend_or_receipt(backend_spec, method="exact_sector_reference", lane="shared_chemistry_reference", route="bridge_sector_matrix_eigvalsh", inputs=inputs)
+    if skipped is not None:
+        return skipped
+    report = backend.report()
+    tol = parity_tolerances(report.real_dtype)
+    bound = hamiltonian_action(bridge).bind(backend)
+    basis = fixed_sector_basis_indices(bridge.n_spatial, bridge.num_particles)
+    block, leakage = sector_matrix(bound, basis)
+    spectrum = sector_spectrum(block, hermitian_atol=tol["matrix_abs"] * 10)
+    roots = [float(v) for v in spectrum[: int(n_roots)]]
+    checks: dict[str, Any] = {"sector_leakage_max_norm": float(leakage), "sector_dimension": int(basis.size)}
+    results: dict[str, Any] = {"ground_energy": roots[0], "low_roots": roots, "eigensolver": "numpy.linalg.eigvalsh on CPU over the backend-assembled block"}
+    passed = leakage <= tol["vector_abs"] * 10
+    if compare_repository_target:
+        repository_energy = float(bridge.context.exact_target.resolve_energy())
+        checks["repository_exact_target_minus_bridge_abs"] = abs(repository_energy - roots[0])
+        results["repository_exact_target"] = repository_energy
+        passed = passed and checks["repository_exact_target_minus_bridge_abs"] <= tol["scalar_abs"] * max(1.0, abs(repository_energy))
+    return BridgeMethodReceipt(
+        method="exact_sector_reference", lane="shared_chemistry_reference", route="bridge_sector_matrix_eigvalsh",
+        status=verified_status(report, checks_passed=passed), backend=report.to_json_dict(), inputs=inputs,
+        results=results, checks=checks, elapsed_s=time.perf_counter() - started,
+        notes=["reporting input only; never an online controller input"],
+    )
+
+
+# ----------------------------------------------------------------------------
+# Paper III: QSE
+# ----------------------------------------------------------------------------
+
+
+def _uccsd_pool(bridge: BridgeContext) -> list[Any]:
+    from src.quantum.chemistry.molecular_uccsd import build_molecular_uccsd_pool
+
+    return list(build_molecular_uccsd_pool(n_spatial_orbitals=bridge.n_spatial, num_particles=bridge.num_particles, ordering="blocked"))
+
+
+def _signature(term: Any) -> tuple[frozenset[int], frozenset[int]]:
+    from pipelines.chemistry_bridge.molecular_pools import excitation_signature
+
+    return excitation_signature(str(term.label))
+
+
+def run_qse(
+    bridge: BridgeContext,
+    backend_spec: str = "numpy:float64",
+    *,
+    basis_kind: str = "uccsd_singles_doubles",
+    include_identity: bool = True,
+    reference_projection: str = "none",
+    basis_vector_normalization: str = "normalized",
+    n_roots_report: int = 4,
+    exact_roots: Sequence[float] | None = None,
+) -> BridgeMethodReceipt:
+    """Execute the repository QSE core on the HF reference with a UCC-generator basis.
+
+    The authoritative result is ``compute_qse_spectra`` (CPU numpy).  The same
+    pencil is assembled on the requested backend and compared entrywise; when
+    the backend is an accelerator and parity holds, the status is
+    ``gpu_verified``.  If ``exact_roots`` are supplied and the basis spans the
+    sector, the Ritz roots are compared with them.
+    """
+
+    from pipelines.qse_spectra.core import (
+        QSEBasisVectorPolicy,
+        compute_qse_spectra,
+        pauli_string_basis_element,
+        polynomial_basis_element,
+    )
+
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    backend, skipped = _backend_or_receipt(backend_spec, method="qse", lane="paper_iii", route="pipelines.qse_spectra.core.compute_qse_spectra", inputs=inputs)
+    if skipped is not None:
+        return skipped
+    report = backend.report()
+    tol = parity_tolerances(report.real_dtype)
+    pool = _uccsd_pool(bridge)
+    kind = str(basis_kind)
+    if kind == "uccsd_singles_doubles":
+        chosen = [(str(term.label), term.polynomial, len(_signature(term)[0])) for term in pool]
+    elif kind == "uccsd_singles":
+        chosen = [(str(term.label), term.polynomial, 1) for term in pool if str(term.label).startswith("uccsd_sing(")]
+    elif kind in ("uccsd_sdt_products", "uccsd_sdtq_products"):
+        chosen = build_product_excitation_basis(pool, max_level=3 if kind == "uccsd_sdt_products" else 4)
+    else:
+        raise ValueError(f"basis_kind must be one of {QSE_BASIS_KINDS}")
+    levels: dict[str, int] = {}
+    for _, _, level in chosen:
+        levels[str(level)] = levels.get(str(level), 0) + 1
+    psi_hf = hf_statevector(bridge)
+    elements = []
+    bridge_actions: list[BoundPolynomialAction | None] = []
+    if include_identity:
+        elements.append(pauli_string_basis_element("e" * bridge.nq, nq=bridge.nq, name="identity"))
+        bridge_actions.append(None)
+    for label, polynomial, _ in chosen:
+        elements.append(polynomial_basis_element(polynomial, name=str(label)))
+        bridge_actions.append(BridgePolynomialAction.from_polynomial(polynomial).bind(backend))
+    policy = QSEBasisVectorPolicy(reference_projection=reference_projection, basis_vector_normalization=basis_vector_normalization)
+    result = compute_qse_spectra(bridge.context.hamiltonian, psi_hf, elements, basis_vector_policy=policy)
+    core_overlap = np.asarray(result.matrices.overlap, dtype=np.complex128)
+    core_hamiltonian = np.asarray(result.matrices.hamiltonian, dtype=np.complex128)
+    h_bound = hamiltonian_action(bridge).bind(backend)
+    pencil = qse_pencil(h_bound, bridge_actions, psi_hf, reference_projection=reference_projection, basis_vector_normalization=basis_vector_normalization)
+    overlap_diff = float(np.max(np.abs(pencil.overlap - core_overlap))) if core_overlap.size else 0.0
+    hamiltonian_diff = float(np.max(np.abs(pencil.hamiltonian - core_hamiltonian))) if core_hamiltonian.size else 0.0
+    roots = [float(v) for v in np.asarray(result.eigenvalues, dtype=float)[: int(n_roots_report)]]
+    checks: dict[str, Any] = {
+        "backend_overlap_minus_core_max_abs": overlap_diff,
+        "backend_hamiltonian_minus_core_max_abs": hamiltonian_diff,
+        "reference_energy_backend_minus_core_abs": abs(pencil.reference_energy - float(result.matrices.reference_energy)),
+        "core_overlap_hermitian_residual_raw": float(result.matrices.overlap_hermitian_residual_max_abs_raw),
+        "core_hamiltonian_hermitian_residual_raw": float(result.matrices.hamiltonian_hermitian_residual_max_abs_raw),
+        "retained_rank": int(result.retained_rank),
+        "discarded_rank": int(result.discarded_rank),
+        "basis_size": int(len(elements)),
+    }
+    passed = overlap_diff <= tol["matrix_abs"] and hamiltonian_diff <= tol["matrix_abs"] * max(1.0, float(np.max(np.abs(core_hamiltonian)))) and checks["reference_energy_backend_minus_core_abs"] <= tol["scalar_abs"]
+    results: dict[str, Any] = {
+        "ritz_roots": roots,
+        "reference_energy": float(result.matrices.reference_energy),
+        "solver_status": str(result.solver_status),
+        "basis_labels": [str(element.name) for element in elements],
+        "basis_kind": kind,
+        "basis_elements_by_excitation_level": levels,
+        "policy": {"reference_projection": reference_projection, "basis_vector_normalization": basis_vector_normalization},
+    }
+    sector_dimension = int(fixed_sector_basis_indices(bridge.n_spatial, bridge.num_particles).size)
+    results["sector_dimension"] = sector_dimension
+    results["basis_spans_sector"] = bool(int(result.retained_rank) == sector_dimension)
+    if exact_roots is not None:
+        exact = np.asarray(list(exact_roots), dtype=float)
+        ritz = np.asarray(result.eigenvalues, dtype=float)
+        count = min(exact.size, ritz.size)
+        diff = float(np.max(np.abs(np.sort(ritz)[:count] - np.sort(exact)[:count]))) if count else 0.0
+        checks["ritz_minus_exact_sector_roots_max_abs"] = diff
+        results["exact_roots_compared"] = int(count)
+        # Ritz values are upper bounds; equality with the exact sector roots is
+        # expected only when the retained basis spans the whole sector.
+        if results["basis_spans_sector"]:
+            passed = passed and diff <= tol["scalar_abs"] * max(1.0, float(np.max(np.abs(exact[:count]))) if count else 1.0) * 10
+        ritz_sorted = np.sort(ritz)[:count]
+        exact_sorted = np.sort(exact)[:count]
+        checks["ritz_below_exact_max"] = float(np.max(exact_sorted - ritz_sorted)) if count else 0.0
+    return BridgeMethodReceipt(
+        method="qse", lane="paper_iii", route="pipelines.qse_spectra.core.compute_qse_spectra",
+        status=verified_status(report, checks_passed=passed), backend=report.to_json_dict(), inputs=inputs,
+        results=results, checks=checks, elapsed_s=time.perf_counter() - started,
+        notes=[
+            "authoritative pencil and roots come from the repository core on CPU; the backend pencil is the parity witness",
+            "the UCC-generator basis is a bridge choice, not Doron data; R (roots reported), sector and observables remain user decisions",
+        ],
+    )
+
+
+# ----------------------------------------------------------------------------
+# Paper I: static ADAPT selection gradients + facade gate record
+# ----------------------------------------------------------------------------
+
+
+def admissible_pool_keys(bridge: BridgeContext) -> tuple[str, ...]:
+    """Repository pool keys for this problem plus the bridge-local dynamics pool keys."""
+
+    return tuple(sorted(set(str(k) for k in bridge.context.admissible_pool_keys) | set(BRIDGE_LOCAL_POOL_KEYS)))
+
+
+def resolve_molecular_pool(bridge: BridgeContext, pool_key: str = "full_meta") -> tuple[list[Any], dict[str, Any]]:
+    """Resolve a generator pool: repository keys via ``resolve_pool_plan``, bridge-local keys locally."""
+
+    if is_bridge_local_pool_key(pool_key):
+        pool = build_hermitian_excitation_pool(
+            n_spatial_orbitals=int(bridge.n_spatial),
+            num_particles=tuple(int(x) for x in bridge.num_particles),
+            ordering=str(bridge.context.layout.ordering),
+        )
+        meta = {
+            "pool_key": HERMITIAN_EXCITATIONS_POOL_KEY,
+            "method_name": HERMITIAN_EXCITATIONS_METHOD_NAME,
+            "pool_size": int(len(pool)),
+            "qpb": 1,
+            "source": "pipelines.chemistry_bridge.molecular_pools.build_hermitian_excitation_pool",
+            "bridge_local": True,
+        }
+        return pool, meta
+    from pipelines.static_adapt.builders.pool_resolution import resolve_pool_plan
+
+    plan = resolve_pool_plan(
+        resolved_problem=bridge.context,
+        continuation_mode="phase3_v1",
+        adapt_pool=str(pool_key),
+        paop_r=1,
+        paop_split_paulis=False,
+        paop_prune_eps=0.0,
+        paop_normalization="none",
+        phase3_symmetry_mitigation_mode="verify_only",
+    )
+    meta = {"pool_key": str(plan.pool_key), "method_name": str(plan.method_name), "pool_size": int(len(plan.pool)), "qpb": int(plan.qpb), "source": "pipelines.static_adapt.builders.pool_resolution.resolve_pool_plan", "bridge_local": False}
+    return list(plan.pool), meta
+
+
+def initial_mclachlan_velocities(h_bound: BoundPolynomialAction, terms: Sequence[Any], psi: np.ndarray, backend: Any) -> np.ndarray:
+    """McLachlan right-hand side at theta = 0 for each candidate generator.
+
+    For ``U_k = exp(-i theta_k G_k)`` the tangent is ``-i G_k psi`` and the
+    phase-projected McLachlan vector is ``V_k = Re <G_k psi | (H - E) psi>``.
+    ``|V_k|`` is what a seed generator must make non-zero for the trajectory
+    to leave the reference at all: it vanishes identically for every
+    odd-``Y`` (real-orthogonal) generator acting on a real reference.
+    """
+
+    state = np.asarray(psi, dtype=np.complex128).reshape(-1)
+    h_psi = np.asarray(h_bound.apply_numpy(state), dtype=np.complex128).reshape(-1)
+    energy = float(np.vdot(state, h_psi).real)
+    residual = h_psi - energy * state
+    out = np.zeros(int(len(terms)), dtype=float)
+    for k, term in enumerate(terms):
+        g_psi = BridgePolynomialAction.from_polynomial(term.polynomial).bind(backend).apply_numpy(state)
+        out[k] = float(np.vdot(np.asarray(g_psi, dtype=np.complex128).reshape(-1), residual).real)
+    return out
+
+
+def facade_admission_record(bridge: BridgeContext) -> dict[str, Any]:
+    """Call the typed RA facade once to record its actual admission verdict."""
+
+    try:
+        from pipelines.static_adapt.ra_adapt.engine import run_ra_adapt
+    except Exception as exc:  # pragma: no cover - import environment
+        return {"admitted": None, "error": f"facade import failed: {type(exc).__name__}: {exc}"}
+    try:
+        run_ra_adapt(bridge.context)
+    except ValueError as exc:
+        return {"admitted": False, "facade": "pipelines.static_adapt.ra_adapt.engine.run_ra_adapt", "message": str(exc)}
+    except Exception as exc:
+        return {"admitted": None, "facade": "pipelines.static_adapt.ra_adapt.engine.run_ra_adapt", "message": f"{type(exc).__name__}: {exc}"}
+    return {"admitted": True, "facade": "pipelines.static_adapt.ra_adapt.engine.run_ra_adapt", "message": "facade accepted the molecular context"}
+
+
+def run_static_adapt_screening(bridge: BridgeContext, backend_spec: str = "numpy:float64", *, pool_key: str = "full_meta", top_k: int = 8, record_facade_gate: bool = True) -> BridgeMethodReceipt:
+    """Resolve the repository molecular pool and evaluate ADAPT selection gradients.
+
+    Gradients ``g_k = 2 Im <H psi| A_k psi>`` at the HF reference are computed on
+    the backend and compared with the repository's numpy formula.  The full
+    RA-ADAPT route is recorded as ``blocked`` while the typed facade rejects the
+    family; this receipt never claims an RA-ADAPT run.
+    """
+
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    backend, skipped = _backend_or_receipt(backend_spec, method="static_adapt_selection_gradients", lane="paper_i", route="resolve_pool_plan + adapt_commutator_gradients", inputs=inputs)
+    if skipped is not None:
+        return skipped
+    report = backend.report()
+    tol = parity_tolerances(report.real_dtype)
+    pool, pool_meta = resolve_molecular_pool(bridge, pool_key)
+    psi_hf = hf_statevector(bridge)
+    h_bound = hamiltonian_action(bridge).bind(backend)
+    generators = [BridgePolynomialAction.from_polynomial(term.polynomial).bind(backend) for term in pool]
+    gradients, energy = adapt_commutator_gradients(h_bound, generators, psi_hf)
+    compiled_h = compile_polynomial_action(bridge.context.hamiltonian, tol=1.0e-15)
+    energy_ref, h_psi = energy_via_one_apply(psi_hf, compiled_h)
+    reference = np.array([
+        adapt_commutator_grad_from_hpsi(h_psi, apply_compiled_polynomial(psi_hf, compile_polynomial_action(term.polynomial, tol=1.0e-15)))
+        for term in pool
+    ], dtype=float)
+    gradient_diff = float(np.max(np.abs(gradients - reference))) if reference.size else 0.0
+    order = np.argsort(-np.abs(gradients))
+    top = [{"label": str(pool[int(i)].label), "gradient": float(gradients[int(i)])} for i in order[: int(top_k)]]
+    checks = {
+        "backend_gradients_minus_repository_max_abs": gradient_diff,
+        "energy_backend_minus_repository_abs": abs(energy - float(energy_ref)),
+        "pool_size": int(len(pool)),
+    }
+    scale = max(1.0, float(np.max(np.abs(reference))) if reference.size else 1.0)
+    passed = gradient_diff <= tol["scalar_abs"] * scale * 10 and checks["energy_backend_minus_repository_abs"] <= tol["scalar_abs"] * max(1.0, abs(energy_ref))
+    results: dict[str, Any] = {"pool": pool_meta, "hf_energy": float(energy), "top_gradients": top, "max_abs_gradient": float(np.max(np.abs(gradients))) if reference.size else 0.0}
+    notes = [
+        "selection gradients only: the typed RA-ADAPT facade does not admit molecular_restricted_closed_shell, so no RA-ADAPT/SNAKE run is claimed",
+        "the molecular pool comes from the repository's resolve_pool_plan (phase3_v1), not from Doron data",
+    ]
+    status = verified_status(report, checks_passed=passed)
+    if record_facade_gate:
+        gate = facade_admission_record(bridge)
+        results["ra_adapt_facade_gate"] = gate
+        if gate.get("admitted") is False:
+            results["full_route_status"] = STATUS_BLOCKED
+    return BridgeMethodReceipt(
+        method="static_adapt_selection_gradients", lane="paper_i", route="resolve_pool_plan + adapt_commutator_gradients",
+        status=status, backend=report.to_json_dict(), inputs=inputs, results=results, checks=checks,
+        elapsed_s=time.perf_counter() - started, notes=notes,
+    )
+
+
+def _contract_json(value: Any) -> Any:
+    for name in ("to_json_dict", "to_dict"):
+        method = getattr(value, name, None)
+        if callable(method):
+            try:
+                return _json_safe(method())
+            except Exception:  # pragma: no cover - defensive serialization
+                continue
+    return _json_safe(value)
+
+
+def validate_ra_construction_request(rounds: int, insertion: str, pool_key: str, bridge: BridgeContext | None = None) -> tuple[int, str, str]:
+    """Request validation for the RA-ADAPT construction (shared by the runner and the CLI)."""
+
+    try:
+        horizon = int(rounds)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"ra rounds must be an integer: {exc}") from exc
+    if horizon < 1:
+        raise ValueError("ra rounds must be at least 1")
+    policy = str(insertion)
+    if policy not in RA_INSERTION_POLICIES:
+        raise ValueError(f"ra insertion must be one of {RA_INSERTION_POLICIES}; got {insertion!r}")
+    key = str(pool_key).strip().lower()
+    if bridge is not None and key not in set(str(k) for k in bridge.context.admissible_pool_keys):
+        raise ValueError(f"ra pool {pool_key!r} is not a repository pool key for this problem; choose from {sorted(str(k) for k in bridge.context.admissible_pool_keys)}")
+    return horizon, policy, key
+
+
+def run_ra_adapt_construction(
+    bridge: BridgeContext,
+    *,
+    rounds: int = RA_DEFAULT_ROUNDS,
+    insertion: str = "plateau_commutation",
+    pool_key: str = RA_DEFAULT_POOL_KEY,
+    exact_stop_tolerance: float | None = None,
+) -> BridgeMethodReceipt:
+    """Run the repository RA-ADAPT/SNAKE construction through its named molecular application (CPU).
+
+    The named application (``pipelines.static_adapt.ra_adapt.molecular_closed_shell``)
+    admits the strict-intake closed-shell context with intact macro generators
+    from the repository ``pool_key`` pool, singleton admission, plateau or
+    append-only insertion, proxy Phase-III cost.  The exact sector energy is
+    computed here from the bridge sector block and reported; it is not an
+    online input unless ``exact_stop_tolerance`` is given (then an explicit
+    ``ExactEDStop`` with a source receipt is attached).  Checks: accepted
+    energies never increase, the final energy stays at or above the exact
+    sector ground energy (variational), and the executed route names this
+    family, this pool and the proxy cost.
+    """
+
+    from pipelines.static_adapt.ra_adapt.engine import _route_sha256, run_ra_adapt
+    from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
+        MOLECULAR_CLOSED_SHELL_APPLICATION_LANE,
+        MOLECULAR_CLOSED_SHELL_FAMILY,
+        MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX,
+        MolecularClosedShellMacroCandidateAdapter,
+        build_molecular_closed_shell_ra_request,
+        exact_ed_stop_for_problem,
+    )
+
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    cpu = NumpyBackend("float64")
+    report = cpu.report()
+    horizon, policy, key = validate_ra_construction_request(rounds, insertion, pool_key, bridge)
+    psi_hf = hf_statevector(bridge)
+    h_bound = hamiltonian_action(bridge).bind(cpu)
+    basis = fixed_sector_basis_indices(bridge.n_spatial, bridge.num_particles)
+    block, leakage = sector_matrix(h_bound, basis)
+    exact_ground = float(sector_spectrum(block)[0])
+    hf_energy = float(np.vdot(psi_hf, h_bound.apply_numpy(psi_hf)).real)
+    exact_stop = None
+    if exact_stop_tolerance is not None:
+        exact_stop = exact_ed_stop_for_problem(bridge.context, energy=exact_ground, absolute_tolerance=float(exact_stop_tolerance))
+    # Bridge-side workaround, not a natural limit: the horizon is capped at the
+    # executable pool size.  Generators may be re-admitted at later rounds, so
+    # the pool size does not bound useful rounds in general; the cap exists
+    # because on a witness whose sector is spanned by a handful of generators
+    # the construction reaches the exact ground state early (contract4: 3
+    # generators, exact after round 1) and the engine's canonical v2
+    # full-vs-active candidate-gain receipt then cannot close (RuntimeError at
+    # round 4).  Requested and executed horizons are both recorded.
+    executable_count = int(len(MolecularClosedShellMacroCandidateAdapter(pool_key=key).executable_pool(bridge.context).candidates))
+    horizon_executed = min(horizon, executable_count)
+    request = build_molecular_closed_shell_ra_request(maximum_controller_rounds=horizon_executed, insertion=policy, pool_key=key, exact_ed_stop=exact_stop)
+    try:
+        result = run_ra_adapt(bridge.context, request)
+    except RuntimeError as exc:
+        # An engine receipt validator refused to close after the rounds ran
+        # (observed only on tiny witnesses at or past exact convergence).  The
+        # construction result is not recoverable, so the receipt says so.
+        checks_failed: dict[str, Any] = {
+            "engine_receipt_closure_error": f"{type(exc).__name__}: {exc}",
+            "hf_energy_minus_hf_witness_abs": abs(hf_energy - float(bridge.intake_receipt["checks"]["input_tensor_determinant_energy"])),
+            "hamiltonian_sector_leakage": float(leakage),
+            "accepted_rounds": 0,
+        }
+        return BridgeMethodReceipt(
+            method="ra_adapt_construction", lane="paper_i", route="pipelines.static_adapt.ra_adapt.engine.run_ra_adapt[molecular_closed_shell]",
+            status=STATUS_FAILED, backend=report.to_json_dict(), inputs=inputs,
+            results={"application_lane": MOLECULAR_CLOSED_SHELL_APPLICATION_LANE, "request": {"maximum_controller_rounds_requested": horizon, "maximum_controller_rounds_executed": horizon_executed, "insertion": policy, "pool_key": key, "exact_ed_stop_tolerance": exact_stop_tolerance}, "hf_energy": hf_energy, "exact_ground_energy": exact_ground, "executable_pool_count": executable_count},
+            checks=checks_failed, elapsed_s=time.perf_counter() - started,
+            notes=["the repository engine raised while closing its post-run receipts; no construction result is reported (status failed, exit 1 at the CLI)"],
+        )
+    trajectory = list(result.run.accepted_trajectory)
+    energies = [float(state.energy) for state in trajectory]
+    route = result.scientific_receipts.get("resolved_route_contract", {})
+    execution = dict(route.get("execution_settings", {}))
+    invariants = dict(route.get("semantic_invariants", {}))
+    rounds_out = [
+        {
+            "controller_round": int(state.controller_round),
+            "energy": float(state.energy),
+            "energy_minus_exact": float(state.energy) - exact_ground,
+            "operators": [str(op) for op in state.operators],
+            "insertion_positions": [int(p) for p in state.insertion_positions],
+            "logical_parameters": [float(x) for x in state.logical_parameters],
+        }
+        for state in trajectory
+    ]
+    final_energy = float(result.run.final_state.energy)
+    nonincreasing = all(b <= a + 1.0e-12 for a, b in zip([hf_energy] + energies, energies))
+    checks: dict[str, Any] = {
+        "hf_energy_minus_hf_witness_abs": abs(hf_energy - float(bridge.intake_receipt["checks"]["input_tensor_determinant_energy"])),
+        "accepted_energies_nonincreasing_from_hf": bool(nonincreasing),
+        "final_energy_minus_exact_sector_ground": final_energy - exact_ground,
+        "final_energy_not_below_exact": bool(final_energy >= exact_ground - 1.0e-9),
+        "hamiltonian_sector_leakage": float(leakage),
+        "executed_problem_is_molecular_family": bool(str(execution.get("problem")) == MOLECULAR_CLOSED_SHELL_FAMILY),
+        "executed_pool_matches_request": bool(str(execution.get("adapt_pool")) == key),
+        "executed_phase3_cost_mode": str(execution.get("phase3_backend_cost_mode")),
+        "route_profile_names_molecular_lane": bool(str(route.get("route_profile", "")).startswith(MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX)),
+        "accepted_rounds": int(len(trajectory)),
+        "chemical_accuracy_reached_1p6_mha": bool(final_energy - exact_ground <= 1.6e-3),
+    }
+    passed = (
+        checks["accepted_energies_nonincreasing_from_hf"]
+        and checks["final_energy_not_below_exact"]
+        and checks["executed_problem_is_molecular_family"]
+        and checks["executed_pool_matches_request"]
+        and checks["executed_phase3_cost_mode"] == "proxy"
+        and checks["route_profile_names_molecular_lane"]
+        and checks["hf_energy_minus_hf_witness_abs"] <= 1.0e-10
+        and checks["hamiltonian_sector_leakage"] <= 1.0e-8
+    )
+    results: dict[str, Any] = {
+        "application_lane": MOLECULAR_CLOSED_SHELL_APPLICATION_LANE,
+        "request": {"maximum_controller_rounds_requested": horizon, "maximum_controller_rounds_executed": horizon_executed, "insertion": policy, "pool_key": key, "exact_ed_stop_tolerance": exact_stop_tolerance},
+        "hf_energy": hf_energy,
+        "exact_ground_energy": exact_ground,
+        "exact_reference_role": "reporting_input_sector_block_eigvalsh" if exact_stop is None else "explicit_exact_ed_stop_requested",
+        "accepted_energies": energies,
+        "accepted_energy_minus_exact": [e - exact_ground for e in energies],
+        "final_energy": final_energy,
+        "final_operators": [str(op) for op in result.run.final_state.operators],
+        "rounds": rounds_out,
+        "stop": _contract_json(result.run.stop),
+        # SerializableContract.to_dict drops None fields, so say explicitly that
+        # no exact-energy stop condition was handed to the controller.
+        "exact_reference_used_online": bool(exact_stop is not None),
+        "route_profile": str(route.get("route_profile", "")),
+        "route_contract_sha256": str(_route_sha256(route)) if route else "",
+        "algorithm_id": str(result.protocol.algorithm_id),
+        "selector_identity": str(result.selector_identity),
+        "executed_settings": {k: execution.get(k) for k in ("problem", "adapt_pool", "adapt_insertion_mode", "phase3_backend_cost_mode", "adapt_continuation_mode") if k in execution},
+        "semantic_invariants": {k: invariants.get(k) for k in ("application_lane", "application_id", "problem_family", "operator_pool_identity", "phase3_backend_cost_mode", "phase3_backend_cost_reason", "experimental_insertion_policy", "singleton_admission") if k in invariants},
+        "parent_pool_count": int(getattr(result.parent_inventory, "candidate_count", 0) or len(getattr(result.parent_inventory, "ordered_labels", ()) or ())),
+        "executable_pool_count": int(getattr(result.executable_pool, "candidate_count", 0) or len(getattr(result.executable_pool, "ordered_labels", ()) or ())),
+        "numerical_physical_integrity": _contract_json(result.numerical_physical_integrity),
+    }
+    return BridgeMethodReceipt(
+        method="ra_adapt_construction", lane="paper_i", route="pipelines.static_adapt.ra_adapt.engine.run_ra_adapt[molecular_closed_shell]",
+        status=verified_status(report, checks_passed=passed), backend=report.to_json_dict(), inputs=inputs, results=results, checks=checks,
+        elapsed_s=time.perf_counter() - started,
+        notes=[
+            "CPU only: the RA-ADAPT/SNAKE controller runs on the repository numpy runtime; no GPU path exists for this route (GPU status: unsupported, not attempted)",
+            "named application: intact macro generators from the repository pool, singleton admission, plateau-commutation or append-only insertion, pruning off, beam off, proxy Phase-III backend cost (the HH graph-span oracle is lattice-specific); these are bridge/lane choices, not Doron data",
+            "the plateau and shortlist thresholds of the macro parent route were calibrated on Hubbard--Holstein replays and are inherited unvalidated for molecules",
+            "the exact sector ground energy is a reporting input computed from the bridge sector block; it is not used online unless exact_stop_tolerance is requested",
+        ],
+    )
+
+
+# ----------------------------------------------------------------------------
+# Paper II: AP-McLachlan (generalized-exchange support controller), CPU route
+# ----------------------------------------------------------------------------
+
+
+def parse_apm_support_config(text: str | Mapping[str, Any] | None) -> dict[str, Any]:
+    """Request validation for AP-McLachlan controller overrides (shared by the runner and the CLI).
+
+    Accepts a JSON object (or mapping) of ``SupportPatchControllerConfig``
+    field overrides and validates it by constructing the config; raises
+    ``ValueError`` on malformed JSON, non-object payloads or unknown fields,
+    which the CLI classifies as a usage error.
+    """
+
+    if text is None:
+        return {}
+    if isinstance(text, Mapping):
+        overrides = dict(text)
+    else:
+        raw = str(text).strip()
+        if not raw:
+            return {}
+        try:
+            overrides = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"apm support config is not valid JSON: {exc}") from exc
+        if not isinstance(overrides, dict):
+            raise ValueError("apm support config must be a JSON object of SupportPatchControllerConfig fields")
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import SupportPatchControllerConfig
+
+    try:
+        SupportPatchControllerConfig(**overrides)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"apm support config rejected by SupportPatchControllerConfig: {exc}") from exc
+    return overrides
+
+
+def validate_apm_times(times: Sequence[float]) -> list[float]:
+    """Request validation for an AP-McLachlan checkpoint grid (shared by the runner and the CLI).
+
+    At least two finite, strictly increasing checkpoints.  Raises ``ValueError``;
+    callers that classify exit codes treat it as a usage error.
+    """
+
+    try:
+        grid = [float(t) for t in times]
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"times must be real numbers: {exc}") from exc
+    if len(grid) < 2:
+        raise ValueError("times must contain at least two checkpoints")
+    if any(not math.isfinite(t) for t in grid) or any(b <= a for a, b in zip(grid, grid[1:])):
+        raise ValueError("times must be finite and strictly increasing")
+    return grid
+
+
+def _sector_safe_candidates(
+    bridge: BridgeContext,
+    pool: Sequence[Any],
+    *,
+    parameterization_mode: str,
+    candidate_sector_filter: str,
+) -> tuple[dict[str, Any], list[Any]]:
+    """Audit every pool generator with the repository sector contract and filter.
+
+    Criterion per parameterization: ``logical_shared`` -> the audit's
+    ``execution_preserves_fixed_counts`` (one angle per generator, termwise
+    product); ``per_pauli_term`` -> ``components_individually_preserve_fixed_counts``
+    (one angle per word).  ``candidate_sector_filter="none"`` keeps everything
+    and records what would have been excluded.
+    """
+
+    from pipelines.static_adapt.sector_invariants import (
+        audit_generator_sector_contract,
+        resolve_fixed_count_qubit_groups,
+    )
+
+    if candidate_sector_filter not in {"executed_fixed_counts", "none"}:
+        raise ValueError("candidate_sector_filter must be 'executed_fixed_counts' or 'none'")
+    groups, unsupported = resolve_fixed_count_qubit_groups(bridge.context)
+    if unsupported or not groups:
+        raise ValueError(f"fixed-count sector groups unavailable for this problem: unsupported={list(unsupported)}")
+    criterion = "execution_preserves_fixed_counts" if parameterization_mode == "logical_shared" else "components_individually_preserve_fixed_counts"
+    eligible: list[Any] = []
+    excluded_by_class: dict[str, int] = {}
+    eligible_by_class: dict[str, int] = {}
+    excluded_sample: list[str] = []
+    requires_logical_shared = 0
+    even_y_eligible = 0
+    dynamics_capable_eligible = 0
+    for term in pool:
+        row = audit_generator_sector_contract(term, groups=groups, total_qubits=bridge.nq)
+        label = str(term.label)
+        klass = label.split("(")[0].split("::")[0]
+        requires_logical_shared += int(bool(row["requires_logical_shared_parameterization"]))
+        passes = bool(row[criterion])
+        if passes or candidate_sector_filter == "none":
+            eligible.append(term)
+            eligible_by_class[klass] = eligible_by_class.get(klass, 0) + 1
+            words = [(str(t.pw2strng()), complex(t.p_coeff)) for t in term.polynomial.return_polynomial() if abs(complex(t.p_coeff)) > 0.0]
+            if any(w.count("y") % 2 == 0 for w, _ in words):
+                even_y_eligible += 1
+            # complex-capable AND able to move a computational-basis reference: every word
+            # even-Y with a real coefficient (real symmetric block) and at least one
+            # off-diagonal word (a Z-only word only adds a phase to a basis state)
+            if words and all(w.count("y") % 2 == 0 and c.imag == 0.0 for w, c in words) and any(("x" in w or "y" in w) for w, _ in words):
+                dynamics_capable_eligible += 1
+        if not passes:
+            excluded_by_class[klass] = excluded_by_class.get(klass, 0) + 1
+            if len(excluded_sample) < 12:
+                excluded_sample.append(label)
+    summary = {
+        "schema": "doron_bridge_apm_candidate_sector_audit_v1",
+        "audit": "pipelines.static_adapt.sector_invariants.audit_generator_sector_contract",
+        "criterion": criterion,
+        "parameterization_mode": parameterization_mode,
+        "filter_applied": candidate_sector_filter == "executed_fixed_counts",
+        "fixed_count_quantities": [str(g.quantity) for g in groups],
+        "generator_count": int(len(pool)),
+        "eligible_count": int(len(eligible)),
+        "audit_failing_count": int(sum(excluded_by_class.values())),
+        "audit_failing_by_class": excluded_by_class,
+        "eligible_by_class": eligible_by_class,
+        "audit_failing_sample": excluded_sample,
+        "requires_logical_shared_count": int(requires_logical_shared),
+        "even_y_eligible_count": int(even_y_eligible),
+        "dynamics_capable_eligible_count": int(dynamics_capable_eligible),
+    }
+    return summary, eligible
+
+
+def _exact_sector_propagation(block: np.ndarray, basis: np.ndarray, psi0: np.ndarray, times: Sequence[float], dim: int) -> list[np.ndarray]:
+    eigenvalues, vectors = np.linalg.eigh(0.5 * (block + block.conj().T))
+    coefficients = vectors.conj().T @ np.asarray(psi0, dtype=np.complex128)[basis]
+    states = []
+    for t in times:
+        sector = vectors @ (np.exp(-1j * eigenvalues * float(t)) * coefficients)
+        full = np.zeros(int(dim), dtype=np.complex128)
+        full[basis] = sector
+        states.append(full)
+    return states
+
+
+def run_ap_mclachlan(
+    bridge: BridgeContext,
+    *,
+    times: Sequence[float] = (0.0, 0.02, 0.04, 0.06, 0.08, 0.10),
+    candidate_pool_key: str = HERMITIAN_EXCITATIONS_POOL_KEY,
+    seed_term_label: str = "auto",
+    parameterization_mode: str = "logical_shared",
+    integrator_method: str = "rk4",
+    support_config_overrides: Mapping[str, Any] | None = None,
+    compare_exact: bool = True,
+    candidate_sector_filter: str = "executed_fixed_counts",
+) -> BridgeMethodReceipt:
+    """Execute the repository AP-McLachlan controller from the HF reference (CPU).
+
+    ``candidate_sector_filter``: ``"executed_fixed_counts"`` (default) offers
+    the controller only generators whose executed unitary preserves the fixed
+    counts under the chosen parameterization (repository sector audit);
+    ``"none"`` offers the whole pool and exists to reproduce leakage.  The
+    measured leakage gate is applied in both cases.  ``seed_term_label="auto"``
+    seeds with the eligible generator of largest initial McLachlan velocity
+    ``|Re <G psi|(H - E) psi>|`` (``auto_max_initial_velocity_v1``); when every
+    velocity is zero (only real-orthogonal or diagonal generators are eligible,
+    as with the repository ``full_meta`` pool from a real reference) it falls back
+    to the class-rank rule (Hamiltonian blocks, then Hamiltonian words, then UCC)
+    and says so in ``seed_selection``; ``"auto_class_rank"`` requests that rule
+    directly; an explicit label must be eligible.  The default pool is the
+    bridge-local ``hermitian_excitations`` family (see ``molecular_pools``).
+
+    Diagnostics: energy drift along the trajectory (static H), out-of-sector
+    norm of every recorded state, and fidelity against exact fixed-sector
+    propagation ``exp(-iH (t - t_0))|HF>`` computed from the bridge sector
+    block, where ``t_0`` is the first checkpoint: the trajectory starts from
+    the HF reference *at* ``times[0]``, and this runner has no drive, so the
+    static reference is time-translation invariant and must be clocked from
+    the start of the trajectory, not from absolute zero.  (A driven protocol
+    would make absolute time physical; no drive can be configured here.)
+    """
+
+    from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        SupportPatchControllerConfig,
+        run_append_mclachlan_trajectory,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.fixed_step import SolveRepairConfig
+    from pipelines.time_dynamics.ap_mclachlan.hamiltonian import time_dependent_hamiltonian_from_runtime_input
+    from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+    from pipelines.time_dynamics.ap_mclachlan.state import state_from_scaffold_runtime_input
+    from src.quantum.ansatz_parameterization import build_parameter_layout
+
+    started = time.perf_counter()
+    inputs = bridge.input_identity()
+    cpu = NumpyBackend("float64")
+    report = cpu.report()
+    grid = validate_apm_times(times)
+    initial_time = float(grid[0])
+    pool, pool_meta = resolve_molecular_pool(bridge, candidate_pool_key)
+    mode = str(parameterization_mode)
+    audit_summary, eligible = _sector_safe_candidates(bridge, pool, parameterization_mode=mode, candidate_sector_filter=str(candidate_sector_filter))
+    if not eligible:
+        raise ValueError(f"no generator in pool {candidate_pool_key!r} passes the executed sector audit under {mode!r}; audit: {audit_summary}")
+    psi_hf = hf_statevector(bridge)
+    h_bound = hamiltonian_action(bridge).bind(cpu)
+    velocities = initial_mclachlan_velocities(h_bound, eligible, psi_hf, cpu)
+    velocity_rank = sorted(range(len(eligible)), key=lambda k: (-abs(float(velocities[k])), k))
+    velocity_top = [{"label": str(eligible[k].label), "abs_initial_velocity": float(abs(velocities[k]))} for k in velocity_rank[:8]]
+    velocity_nonzero = int(sum(1 for v in velocities if abs(float(v)) > 1.0e-12))
+
+    def _class_rank(term: Any) -> int:
+        label = str(term.label)
+        return 0 if label.startswith("ham_block::") else (1 if label.startswith("ham_term(") else 2)
+
+    requested_seed = str(seed_term_label)
+    if requested_seed == "auto":
+        if velocity_nonzero > 0:
+            seed = eligible[velocity_rank[0]]
+            seed_selection = "auto_max_initial_velocity_v1"
+        else:
+            seed = sorted(eligible, key=_class_rank)[0]
+            seed_selection = "auto_class_rank_fallback_all_initial_velocities_zero"
+    elif requested_seed == "auto_class_rank":
+        seed = sorted(eligible, key=_class_rank)[0]
+        seed_selection = "auto_class_rank"
+    else:
+        seeds = [term for term in eligible if str(term.label) == requested_seed]
+        if not seeds:
+            raise ValueError(f"seed term {seed_term_label!r} is not an eligible generator under filter {candidate_sector_filter!r}/{mode!r}; eligible labels start with {sorted({str(t.label).split('(')[0] for t in eligible})[:8]}")
+        seed = seeds[0]
+        seed_selection = "explicit"
+    seed_velocity = float(abs(velocities[next(k for k, term in enumerate(eligible) if term is seed)]))
+    selected = (seed,)
+    # Offer candidates in decreasing initial-velocity order: the exchange controller
+    # scores at most max_structural_pool_size candidates per round in the offered
+    # (frozen) order, so pool order decides which generators it can ever see.
+    candidates = tuple(eligible[k] for k in velocity_rank if str(eligible[k].label) != str(seed.label))
+    layout = build_parameter_layout(selected)
+    basis = fixed_sector_basis_indices(bridge.n_spatial, bridge.num_particles)
+    block, leakage = sector_matrix(h_bound, basis)
+    exact_ground = float(sector_spectrum(block)[0])
+    runtime_input = ScaffoldRuntimeInput(
+        resolved_problem=bridge.context,
+        psi_ref=psi_hf,
+        psi_initial=psi_hf.copy(),
+        base_layout=layout,
+        theta_runtime=np.zeros(int(layout.runtime_parameter_count), dtype=float),
+        theta_logical=np.zeros(int(layout.logical_parameter_count), dtype=float),
+        structure_locked=False,
+        exact_energy=exact_ground,
+        selected_terms=selected,
+        candidate_pool_terms=candidates,
+        candidate_pool_source=CandidatePoolSource(source_kind="resolved_pool", pool_key=str(pool_meta["pool_key"]), completeness="complete"),
+        provenance={"schema": BRIDGE_SCHEMA_VERSION, "intake_raw_sha256": bridge.intake_receipt.get("raw_sha256"), "intake_operator_sha256": bridge.intake_receipt.get("operator_sha256"), "seed": "hf_reference_theta_zero"},
+    )
+    state = state_from_scaffold_runtime_input(runtime_input, parameterization_mode=mode)
+    hamiltonian = time_dependent_hamiltonian_from_runtime_input(runtime_input)
+    config = SupportPatchControllerConfig(**dict(support_config_overrides or {}))
+    trajectory = run_append_mclachlan_trajectory(
+        state=state,
+        hamiltonian=hamiltonian,
+        times=grid,
+        inverse_policy=McLachlanInversePolicy(),
+        integrator_method=str(integrator_method),
+        support_patch_config=config,
+        solve_repair_config=SolveRepairConfig(),
+        metadata={"bridge": BRIDGE_SCHEMA_VERSION},
+    )
+    energies = [float(point.energy_expectation) for point in trajectory.points]
+    recorded_times = [float(point.time) for point in trajectory.points]
+    leak = [out_of_sector_norm(np.asarray(point.geometry.psi), basis) for point in trajectory.points]
+    supports = [int(point.runtime_parameter_count) for point in trajectory.points]
+    patch_kinds = [str(point.patch_decision.patch_kind) for point in trajectory.points]
+    theta_max_abs = max((float(np.max(np.abs(np.asarray(point.theta_runtime, dtype=float)))) if np.asarray(point.theta_runtime).size else 0.0) for point in trajectory.points) if trajectory.points else 0.0
+    trajectory_moved = bool(theta_max_abs > 0.0 or any(kind != "no_edit" for kind in patch_kinds))
+    checks: dict[str, Any] = {
+        "energy_drift_max_abs": float(max(energies) - min(energies)) if energies else 0.0,
+        "sector_leakage_max_norm": float(max(leak)) if leak else 0.0,
+        "hamiltonian_sector_leakage": float(leakage),
+        "initial_energy_minus_hf_witness_abs": abs(energies[0] - float(bridge.intake_receipt["checks"]["input_tensor_determinant_energy"])) if energies else None,
+        "point_count": int(len(trajectory.points)),
+    }
+    elapsed_times = [float(t - initial_time) for t in recorded_times]
+    results: dict[str, Any] = {
+        "times": recorded_times,
+        "initial_time": initial_time,
+        "elapsed_times_from_initial_checkpoint": elapsed_times,
+        "exact_reference_clock": "elapsed_from_initial_checkpoint_static_zero_drive",
+        "energies": energies,
+        "runtime_parameter_counts": supports,
+        "patch_kinds": patch_kinds,
+        "pool": pool_meta,
+        "candidate_sector_filter": str(candidate_sector_filter),
+        "sector_audit": audit_summary,
+        "executed_parameterization_sector_safe": bool(audit_summary["filter_applied"]),
+        "seed_term": str(seed.label),
+        "seed_selection": seed_selection,
+        "seed_abs_initial_velocity": seed_velocity,
+        "initial_velocity_nonzero_count": velocity_nonzero,
+        "initial_velocity_top": velocity_top,
+        "candidate_order": "abs_initial_velocity_desc",
+        "candidate_count_offered": int(len(candidates)),
+        "parameterization_mode": str(state.parameterization_mode),
+        "integrator_method": str(trajectory.integrator_method),
+        "exact_ground_energy": exact_ground,
+        "final_runtime_parameter_count": int(trajectory.final_state.runtime_parameter_count),
+        "trajectory_moved": trajectory_moved,
+        "theta_max_abs": float(theta_max_abs),
+        "support_patch_config": _json_safe(config.to_json_dict()) if hasattr(config, "to_json_dict") else {},
+    }
+    passed = checks["sector_leakage_max_norm"] <= 1.0e-8 and (checks["initial_energy_minus_hf_witness_abs"] or 0.0) <= 1.0e-10
+    if compare_exact and trajectory.points:
+        exact_states = _exact_sector_propagation(block, basis, psi_hf, elapsed_times, 1 << bridge.nq)
+        fidelities = [float(abs(np.vdot(exact, np.asarray(point.geometry.psi, dtype=np.complex128))) ** 2) for exact, point in zip(exact_states, trajectory.points)]
+        exact_energies = [float(np.vdot(exact, h_bound.apply_numpy(exact)).real) for exact in exact_states]
+        # the same fidelity for a trajectory that never leaves the reference: the
+        # exact state's own departure from HF, the floor any moving ansatz must beat
+        static_fidelities = [float(abs(np.vdot(exact, psi_hf)) ** 2) for exact in exact_states]
+        results["fidelity_vs_exact_sector_propagation"] = fidelities
+        results["fidelity_static_reference_vs_exact"] = static_fidelities
+        results["exact_energies"] = exact_energies
+        checks["min_fidelity_vs_exact"] = float(min(fidelities))
+        checks["min_fidelity_static_reference"] = float(min(static_fidelities))
+        checks["final_infidelity_ratio_vs_static_reference"] = float((1.0 - fidelities[-1]) / max(1.0 - static_fidelities[-1], 1.0e-300)) if len(fidelities) > 1 else None
+        checks["exact_energy_drift_max_abs"] = float(max(exact_energies) - min(exact_energies))
+    return BridgeMethodReceipt(
+        method="ap_mclachlan", lane="paper_ii", route="pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory.run_append_mclachlan_trajectory",
+        status=verified_status(report, checks_passed=passed), backend=report.to_json_dict(), inputs=inputs, results=results, checks=checks,
+        elapsed_s=time.perf_counter() - started,
+        notes=[
+            "CPU only: the AP-McLachlan geometry evaluator is dense numpy; no GPU path exists for this route (GPU status: unsupported, not attempted)",
+            "zero drive: molecular_restricted_closed_shell declares supports_driven_realtime=False; a dipole drive would be a separate bridge input",
+            f"candidate pool ({pool_meta['pool_key']}), seed rule ({seed_selection}) and candidate order (abs initial velocity, descending) are bridge choices, not Doron data; the pool is restricted by the executed sector audit when candidate_sector_filter is on",
+            "logical_shared is not a conservation proof by itself: only generators passing the repository's executed-unitary audit are offered; the measured leakage gate stays in force",
+            "fidelity against exact sector propagation is a diagnostic of the variational trajectory, not a certification",
+        ] + ([] if velocity_nonzero > 0 else ["every eligible generator has zero initial McLachlan velocity at the real reference (odd-Y generators give a real tangent against an imaginary force; diagonal Z-words only add a phase), so the trajectory cannot leave the reference; the fidelity trace then measures the exact state's departure from HF, not a variational error"]),
+    )
+
+
+# ----------------------------------------------------------------------------
+# Orchestration
+# ----------------------------------------------------------------------------
+
+
+# mapping: tensor-level witnesses of the mapped operator (CPU/GPU parity)
+# exact:   fixed-sector exact reference (sector block assembled on the backend)
+# qse:     Paper III QSE pencil (repository core; backend pencil parity)
+# adapt:   Paper I ADAPT selection gradients at HF (CPU/GPU parity) + facade gate record
+# ra:      Paper I RA-ADAPT/SNAKE construction through the named molecular application (CPU)
+# apm:     Paper II AP-McLachlan trajectory from HF (CPU)
+DEFAULT_METHODS = ("mapping", "exact", "qse", "adapt", "ra", "apm")
+KNOWN_METHODS = frozenset(DEFAULT_METHODS)
+
+EXIT_ALL_VERIFIED = 0        # every requested method ended cpu_verified or gpu_verified
+EXIT_CHECK_FAILED = 1        # at least one requested method ended failed (receipts are still written)
+EXIT_USAGE = 2               # unknown/empty method request, bad arguments, intake refusal
+EXIT_NOT_EXECUTED = 3        # nothing failed, but a requested method was skipped_unsupported or blocked
+
+
+def normalize_methods(methods: Sequence[str] | str) -> tuple[str, ...]:
+    """Validate a method request; unknown or empty requests are usage errors."""
+
+    if isinstance(methods, str):
+        raw = [part for part in methods.split(",")]
+    else:
+        raw = list(methods)
+    names = [str(m).strip().lower() for m in raw if str(m).strip()]
+    if not names:
+        raise ValueError(f"no methods requested; choose from {sorted(KNOWN_METHODS)}")
+    unknown = [name for name in names if name not in KNOWN_METHODS]
+    if unknown:
+        raise ValueError(f"unknown methods {unknown}; choose from {sorted(KNOWN_METHODS)}")
+    ordered: list[str] = []
+    for name in names:
+        if name not in ordered:
+            ordered.append(name)
+    return tuple(ordered)
+
+
+def exit_code_for_statuses(status_by_method: Mapping[str, str]) -> int:
+    """Map receipt statuses to a process exit code (policy documented on the constants)."""
+
+    statuses = [str(v) for v in status_by_method.values()]
+    if not statuses:
+        return EXIT_USAGE
+    if any(s == STATUS_FAILED for s in statuses):
+        return EXIT_CHECK_FAILED
+    if all(s in {STATUS_CPU_VERIFIED, STATUS_GPU_VERIFIED} for s in statuses):
+        return EXIT_ALL_VERIFIED
+    return EXIT_NOT_EXECUTED
+
+
+def run_bridge(
+    manifest_path: str | Path,
+    *,
+    backend_spec: str = "numpy:float64",
+    methods: Sequence[str] = DEFAULT_METHODS,
+    out_dir: str | Path | None = None,
+    apm_times: Sequence[float] = (0.0, 0.02, 0.04, 0.06, 0.08, 0.10),
+    apm_pool_key: str = HERMITIAN_EXCITATIONS_POOL_KEY,
+    apm_parameterization_mode: str = "logical_shared",
+    qse_exact_compare: bool = True,
+    apm_candidate_filter: str = "executed_fixed_counts",
+    apm_support_config_overrides: Mapping[str, Any] | None = None,
+    qse_basis_kind: str = "uccsd_singles_doubles",
+    ra_rounds: int = RA_DEFAULT_ROUNDS,
+    ra_insertion: str = "plateau_commutation",
+    ra_pool_key: str = RA_DEFAULT_POOL_KEY,
+) -> dict[str, Any]:
+    wanted = list(normalize_methods(methods))
+    bridge = resolve_bridge_context(manifest_path)
+    return run_bridge_resolved(
+        bridge,
+        backend_spec=backend_spec,
+        methods=wanted,
+        out_dir=out_dir,
+        apm_times=apm_times,
+        apm_pool_key=apm_pool_key,
+        apm_parameterization_mode=apm_parameterization_mode,
+        qse_exact_compare=qse_exact_compare,
+        apm_candidate_filter=apm_candidate_filter,
+        apm_support_config_overrides=apm_support_config_overrides,
+        qse_basis_kind=qse_basis_kind,
+        ra_rounds=ra_rounds,
+        ra_insertion=ra_insertion,
+        ra_pool_key=ra_pool_key,
+    )
+
+
+def run_bridge_resolved(
+    bridge: BridgeContext,
+    *,
+    backend_spec: str = "numpy:float64",
+    methods: Sequence[str] = DEFAULT_METHODS,
+    out_dir: str | Path | None = None,
+    apm_times: Sequence[float] = (0.0, 0.02, 0.04, 0.06, 0.08, 0.10),
+    apm_pool_key: str = HERMITIAN_EXCITATIONS_POOL_KEY,
+    apm_parameterization_mode: str = "logical_shared",
+    qse_exact_compare: bool = True,
+    apm_candidate_filter: str = "executed_fixed_counts",
+    apm_support_config_overrides: Mapping[str, Any] | None = None,
+    qse_basis_kind: str = "uccsd_singles_doubles",
+    ra_rounds: int = RA_DEFAULT_ROUNDS,
+    ra_insertion: str = "plateau_commutation",
+    ra_pool_key: str = RA_DEFAULT_POOL_KEY,
+) -> dict[str, Any]:
+    """Execute the requested methods on an already resolved (intake-accepted) context.
+
+    Input resolution and validation happen before this point; anything that
+    fails in here is a method or output failure, not a usage error.
+    """
+
+    wanted = list(normalize_methods(methods))
+    receipts: list[BridgeMethodReceipt] = []
+    exact_roots: list[float] | None = None
+    if "mapping" in wanted:
+        receipts.append(run_mapping_witness(bridge, backend_spec))
+    if "exact" in wanted or (qse_exact_compare and "qse" in wanted):
+        exact = run_exact_reference(bridge, backend_spec, n_roots=16)
+        if "exact" in wanted:
+            receipts.append(exact)
+        if exact.status in {STATUS_CPU_VERIFIED, STATUS_GPU_VERIFIED}:
+            exact_roots = list(exact.results["low_roots"])
+    if "qse" in wanted:
+        receipts.append(run_qse(bridge, backend_spec, basis_kind=str(qse_basis_kind), exact_roots=exact_roots if qse_exact_compare else None))
+    if "adapt" in wanted:
+        receipts.append(run_static_adapt_screening(bridge, backend_spec))
+    if "ra" in wanted:
+        receipts.append(run_ra_adapt_construction(bridge, rounds=ra_rounds, insertion=ra_insertion, pool_key=ra_pool_key))
+    if "apm" in wanted:
+        receipts.append(run_ap_mclachlan(bridge, times=apm_times, candidate_pool_key=apm_pool_key, parameterization_mode=apm_parameterization_mode, candidate_sector_filter=apm_candidate_filter, support_config_overrides=parse_apm_support_config(apm_support_config_overrides)))
+    summary = {
+        "schema": RECEIPT_SCHEMA + "_bundle",
+        "created_utc": _now(),
+        "backend_spec": str(backend_spec),
+        "inputs": bridge.input_identity(),
+        "intake_receipt": _json_safe(bridge.intake_receipt),
+        "receipts": [receipt.to_json_dict() for receipt in receipts],
+        "status_by_method": {receipt.method: receipt.status for receipt in receipts},
+        "requested_methods": list(wanted),
+    }
+    summary["exit_code"] = exit_code_for_statuses(summary["status_by_method"])
+    summary["exit_policy"] = {"0": "all requested methods verified on the requested backend", "1": "a check failed (receipts kept)", "2": "usage error", "3": "no failure, but a requested method was skipped_unsupported or blocked"}
+    if out_dir is not None:
+        directory = Path(out_dir)
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "bridge_receipts.json").write_text(json.dumps(summary, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
+        summary["out_path"] = str(directory / "bridge_receipts.json")
+    return summary
+
+
+__all__ = [
+    "BridgeContext",
+    "BridgeMethodReceipt",
+    "DEFAULT_METHODS",
+    "EXIT_ALL_VERIFIED",
+    "EXIT_CHECK_FAILED",
+    "EXIT_NOT_EXECUTED",
+    "EXIT_USAGE",
+    "KNOWN_METHODS",
+    "MOLECULAR_FAMILY",
+    "exit_code_for_statuses",
+    "normalize_methods",
+    "RECEIPT_SCHEMA",
+    "STATUS_BLOCKED",
+    "STATUS_CPU_VERIFIED",
+    "STATUS_FAILED",
+    "STATUS_GPU_VERIFIED",
+    "STATUS_SKIPPED_UNSUPPORTED",
+    "facade_admission_record",
+    "hamiltonian_action",
+    "hf_statevector",
+    "resolve_bridge_context",
+    "resolve_molecular_pool",
+    "run_ap_mclachlan",
+    "run_bridge",
+    "run_bridge_resolved",
+    "run_exact_reference",
+    "run_mapping_witness",
+    "run_qse",
+    "run_static_adapt_screening",
+    "admissible_pool_keys",
+    "initial_mclachlan_velocities",
+    "parse_apm_support_config",
+    "QSE_BASIS_KINDS",
+    "RA_DEFAULT_POOL_KEY",
+    "RA_DEFAULT_ROUNDS",
+    "RA_INSERTION_POLICIES",
+    "run_ra_adapt_construction",
+    "validate_ra_construction_request",
+    "validate_apm_times",
+    "verified_status",
+]

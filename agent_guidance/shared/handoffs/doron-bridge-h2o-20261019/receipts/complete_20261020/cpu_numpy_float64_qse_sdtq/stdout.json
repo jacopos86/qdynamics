@@ -1,0 +1,10 @@
+{
+  "status_by_method": {
+    "exact_sector_reference": "cpu_verified",
+    "qse": "cpu_verified"
+  },
+  "out_path": "agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/receipts/complete_20261020/cpu_numpy_float64_qse_sdtq/bridge_receipts.json",
+  "backend": "numpy:float64",
+  "exit_code": 0,
+  "exit_policy": "all requested methods verified on the requested backend"
+}
