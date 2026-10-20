@@ -194,3 +194,51 @@ end and commit recorded below after the commit.
 | 003 commit | `5954316d0c51f4aab405d381c6ec3af7b3dee1fc` |
 | 003 clock | start 2026-10-20T03:02:49Z, end 2026-10-20T03:06:25Z |
 | Correction commits, in order | `404454ac` → `16e12761` → `f0892355` → `00a9c844` → `44e68912` → `70d0b317` → `5954316d0c51f4aab405d381c6ec3af7b3dee1fc` (→ this record commit) |
+
+## 10. Packet 004 response — CLI invalid-argument classification (2026-10-20)
+
+Packet `doron-bridge-cli-usage-correction-20261020-004.md` (sha256
+`166bec955749baa925c8c4a2fcb3a22eb2e393932fef723e6b6b4d4595e69fca`, read in full). Reviewer report
+`recheck-003/report.md` (sha256 `6ceb1de1d749548e476f501b11f00c4975582281963ed767f108f5c66bfd6340`, read in
+full): the 003 P2 (attester identity) and P3 (internal errors after intake) are CLOSED; one new P3: at
+`67f88981` the invalid requests `--methods mapping --backend not-a-backend` and `--methods apm --apm-times 0,0`
+exited 1 ("run failed after intake") where `70d0b317` exited 2.
+
+| finding | disposition | regression |
+|---|---|---|
+| **P3** invalid request configuration classified as execution failure (exit 1) because the backend spec was first parsed, and the APM grid first checked, inside phase 2 (`run_bridge_resolved` → `resolve_backend` / `run_ap_mclachlan`) | **Closed.** Phase 1 of `__main__.py run` now validates the request before method execution: `parse_backend_spec` (syntax only — availability is still decided in phase 2, so a well-formed but unavailable backend keeps its `skipped_unsupported` receipt and exit 3), `validate_apm_times` (new shared helper in `methods.py`, also called by `run_ap_mclachlan`: at least two finite, strictly increasing checkpoints), and the `--apm-pool` key against the resolved context's admissible pool keys. These raise `ValueError` → `run refused: …`, exit 2, no receipt. No broad catch was restored around execution; the 003 policy (any exception after intake → exit 1 with traceback) is unchanged. | `test_004_unparseable_backend_spec_is_usage_exit_two` (5 specs: the reviewer's `not-a-backend`, `torch` without device, `numpy:mps:float32`, `torch:tpu`, `torch:cpu:int8`), `test_004_invalid_apm_grid_is_usage_exit_two` (7 grids: the reviewer's `0,0`, `0.1,0.05`, single point, `0,nan`, `0,inf`, non-numeric, empty), `test_004_inadmissible_apm_pool_is_usage_exit_two`, `test_004_valid_but_unavailable_backend_still_exits_three` (cuda absent → exit 3 with receipt), `test_004_validate_apm_times_shared_with_runner` (helper contract). The 003 fault-injection and output-OSError controls (exit 1) and the verified control (exit 0) are unchanged and were re-run. |
+
+Controls reproduced on the scratchpad `contract4` manifest after the fix:
+
+```text
+--methods mapping --backend not-a-backend   -> exit 2  run refused: ValueError: unknown backend library 'not-a-backend'   (no receipt)
+--methods apm --apm-times 0,0               -> exit 2  run refused: ValueError: times must be finite and strictly increasing (no receipt)
+--methods qse --backend torch:cuda:float64  -> exit 3  skipped_unsupported receipt kept (gpu venv; unchanged path)
+```
+
+Scoped gates (exact commands; only the changed CLI module, the methods module whose helper is shared, and
+their tests):
+
+```sh
+cd /Users/lordskyler/Holstein_test.worktrees/claude-doron-bridge-20261019
+export PYTHONPATH=. STATIC_ADAPT_HH_POOL_CACHE=off PYTHONDONTWRITEBYTECODE=1 PYDEPHASING_TESTING=1
+/Users/lordskyler/Holstein_test/.venv/bin/python -m pytest -q -p no:randomly test/test_chemistry_bridge_cli.py test/test_chemistry_bridge_methods.py   # 33 passed in 33.86 s
+/Users/lordskyler/.venvs/doron-bridge-gpu/bin/python -m pytest -q -p no:randomly test/test_chemistry_bridge_cli.py test/test_chemistry_bridge_methods.py  # 33 passed in 31.02 s (real h5py/torch)
+```
+
+GitNexus `detect-changes --scope staged` on the rebuilt worktree index: 3 files, 10 symbols, 6 execution
+flows, all `Main → …` inside `pipelines/chemistry_bridge`; rated **high** by the CLI entrypoint's fan-out,
+no flow outside the bridge package. No GPU computation, no broad campaign, no install, no scientific run,
+no agents, no merge, no push. The sibling `claude/doron-h2o-export-20261019` branch is untouched.
+
+Files edited: `pipelines/chemistry_bridge/__main__.py`, `pipelines/chemistry_bridge/methods.py`
+(`validate_apm_times` extracted and exported; `run_ap_mclachlan` calls it), `test/test_chemistry_bridge_cli.py`,
+this file.
+
+### 004 record (appended after the commit)
+
+| item | value |
+|---|---|
+| 004 commit | `b6f76bf78866c37843e3818283bbda89657ad5d4` |
+| 004 clock | start 2026-10-20T03:34:19Z (before the packet read), end 2026-10-20T03:44:06Z (fix commit); 587 s of the 1200 s increment, no reset |
+| Correction commits, in order | `404454ac` → `16e12761` → `f0892355` → `00a9c844` → `44e68912` → `70d0b317` → `5954316d` → `67f88981` → `b6f76bf78866c37843e3818283bbda89657ad5d4` (→ this record commit) |
