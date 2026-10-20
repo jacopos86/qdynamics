@@ -189,3 +189,63 @@ def test_004_validate_apm_times_shared_with_runner():
     for bad in ((0.0, 0.0), (0.0,), (), (0.0, float("nan")), (1.0, 0.5), ("x", "y")):
         with pytest.raises(ValueError):
             bm.validate_apm_times(bad)
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-20: Hermitian pool default and controller overrides at the CLI
+# ---------------------------------------------------------------------------
+
+
+def test_cli_default_apm_pool_is_the_hermitian_family_and_moves(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    proc = _run(tmp_path, manifest, "--methods", "apm", "--apm-times", "0,0.02,0.04")
+    assert proc.returncode == bm.EXIT_ALL_VERIFIED, proc.stdout + proc.stderr
+    receipts = json.loads((proc.out_dir / "bridge_receipts.json").read_text())  # type: ignore[attr-defined]
+    apm = [r for r in receipts["receipts"] if r["method"] == "ap_mclachlan"][0]
+    assert apm["results"]["pool"]["pool_key"] == "hermitian_excitations" and apm["results"]["trajectory_moved"] is True
+
+
+def test_cli_apm_support_config_is_validated_before_intake_and_recorded(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "apm", "--apm-support-config", "[1,2]"), "JSON object")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "apm", "--apm-support-config", '{"no_such_field": 1}'), "rejected by SupportPatchControllerConfig")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "apm", "--apm-support-config", "{oops"), "not valid JSON")
+    proc = _run(tmp_path, manifest, "--methods", "apm", "--apm-times", "0,0.02,0.04", "--apm-support-config", '{"max_structural_pool_size": 16}')
+    assert proc.returncode == bm.EXIT_ALL_VERIFIED, proc.stdout + proc.stderr
+    receipts = json.loads((proc.out_dir / "bridge_receipts.json").read_text())  # type: ignore[attr-defined]
+    apm = [r for r in receipts["receipts"] if r["method"] == "ap_mclachlan"][0]
+    assert apm["results"]["support_patch_config"]["max_structural_pool_size"] == 16
+
+
+def test_cli_repository_pool_key_still_accepted(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    proc = _run(tmp_path, manifest, "--methods", "apm", "--apm-times", "0,0.02,0.04", "--apm-pool", "full_meta")
+    assert proc.returncode == bm.EXIT_ALL_VERIFIED, proc.stdout + proc.stderr
+    receipts = json.loads((proc.out_dir / "bridge_receipts.json").read_text())  # type: ignore[attr-defined]
+    apm = [r for r in receipts["receipts"] if r["method"] == "ap_mclachlan"][0]
+    assert apm["results"]["pool"]["pool_key"] == "full_meta" and apm["results"]["trajectory_moved"] is False
+
+
+def test_cli_qse_basis_choice_is_recorded_and_validated(tmp_path):
+    manifest = _manifest(tmp_path, "random8")
+    proc = _run(tmp_path, manifest, "--methods", "exact,qse", "--qse-basis", "uccsd_sdtq_products")
+    assert proc.returncode == bm.EXIT_ALL_VERIFIED, proc.stdout + proc.stderr
+    receipts = json.loads((proc.out_dir / "bridge_receipts.json").read_text())  # type: ignore[attr-defined]
+    qse = [r for r in receipts["receipts"] if r["method"] == "qse"][0]
+    assert qse["results"]["basis_kind"] == "uccsd_sdtq_products" and qse["results"]["basis_spans_sector"] is True
+    assert qse["checks"]["ritz_minus_exact_sector_roots_max_abs"] < 1.0e-9
+    bad = _run(tmp_path, manifest, "--methods", "qse", "--qse-basis", "no_such_basis")
+    assert bad.returncode == bm.EXIT_USAGE and "invalid choice" in bad.stderr  # argparse refuses before intake
+
+
+def test_cli_ra_arguments_are_validated_before_intake_and_run(tmp_path):
+    manifest = _manifest(tmp_path, "contract4")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "ra", "--ra-rounds", "0"), "at least 1")
+    _assert_usage(_run(tmp_path, manifest, "--methods", "ra", "--ra-pool", "hermitian_excitations"), "not a repository pool key")
+    bad = _run(tmp_path, manifest, "--methods", "ra", "--ra-insertion", "beam")
+    assert bad.returncode == bm.EXIT_USAGE and "invalid choice" in bad.stderr
+    proc = _run(tmp_path, manifest, "--methods", "ra", "--ra-rounds", "1", "--ra-insertion", "append_only")
+    assert proc.returncode == bm.EXIT_ALL_VERIFIED, proc.stdout + proc.stderr
+    receipts = json.loads((proc.out_dir / "bridge_receipts.json").read_text())  # type: ignore[attr-defined]
+    construction = [r for r in receipts["receipts"] if r["method"] == "ra_adapt_construction"][0]
+    assert construction["status"] == bm.STATUS_CPU_VERIFIED and construction["results"]["request"] == {"maximum_controller_rounds_requested": 1, "maximum_controller_rounds_executed": 1, "insertion": "append_only", "pool_key": "uccsd", "exact_ed_stop_tolerance": None}

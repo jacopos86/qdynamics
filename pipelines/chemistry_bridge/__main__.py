@@ -3,7 +3,7 @@
     python -m pipelines.chemistry_bridge probe-backends
     python -m pipelines.chemistry_bridge export-qdynamics --h5 <prefix>_ele.h5 --out problem.json [--frozen-core 1]
     python -m pipelines.chemistry_bridge export-synthetic --kind contract4 --out problem.json [--frozen-core 0]
-    python -m pipelines.chemistry_bridge run --manifest problem.manifest.json --out-dir out/ [--backend torch:mps:float32] [--methods mapping,exact,qse,adapt,apm]
+    python -m pipelines.chemistry_bridge run --manifest problem.manifest.json --out-dir out/ [--backend torch:mps:float32] [--methods mapping,exact,qse,adapt,ra,apm]
 
 Exit codes of ``run`` (receipts are written before the code is decided):
     0  every requested method ended cpu_verified or gpu_verified
@@ -12,7 +12,9 @@ Exit codes of ``run`` (receipts are written before the code is decided):
        intake"); such a failure is operational, not a usage error
     2  usage error: unknown or empty --methods, a --backend spec that does not parse,
        an --apm-times grid that is not finite and strictly increasing, an inadmissible
-       --apm-pool, a missing or unreadable manifest/document, or the strict intake
+       --apm-pool, an --apm-support-config that is not a JSON object of controller
+       fields, an --ra-rounds below 1 or an --ra-pool that is not a repository pool
+       key, a missing or unreadable manifest/document, or the strict intake
        refused the input (no receipt written; "run refused")
     3  nothing failed, but a requested method was skipped_unsupported or blocked
        (e.g. an unavailable accelerator); this is never GPU evidence
@@ -34,9 +36,16 @@ from pipelines.chemistry_bridge.methods import (
     EXIT_USAGE,
     exit_code_for_statuses,
     normalize_methods,
+    QSE_BASIS_KINDS,
+    RA_DEFAULT_POOL_KEY,
+    RA_DEFAULT_ROUNDS,
+    RA_INSERTION_POLICIES,
+    admissible_pool_keys,
+    parse_apm_support_config,
     resolve_bridge_context,
     run_bridge_resolved,
     validate_apm_times,
+    validate_ra_construction_request,
 )
 from pipelines.chemistry_bridge.qdynamics_export import (
     BridgeDependencyUnavailable,
@@ -72,9 +81,14 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--backend", default="numpy:float64")
     run.add_argument("--methods", default=",".join(DEFAULT_METHODS))
     run.add_argument("--apm-times", default="0,0.02,0.04,0.06,0.08,0.10")
-    run.add_argument("--apm-pool", default="full_meta")
+    run.add_argument("--apm-pool", default="hermitian_excitations", help="repository pool key (uccsd, full_meta, ...) or the bridge-local Hermitian number-conserving excitation pool (default)")
     run.add_argument("--apm-parameterization", default="logical_shared", choices=("logical_shared", "per_pauli_term"))
     run.add_argument("--apm-candidate-filter", default="executed_fixed_counts", choices=("executed_fixed_counts", "none"), help="'none' offers the unaudited pool and exists only to reproduce particle-number leakage")
+    run.add_argument("--qse-basis", default="uccsd_singles_doubles", choices=QSE_BASIS_KINDS, help="QSE basis on the HF reference: UCCSD singles, singles+doubles (CISD), or products of commuting generators up to triples / quadruples")
+    run.add_argument("--ra-rounds", default=RA_DEFAULT_ROUNDS, type=int, help="RA-ADAPT controller rounds for the named molecular closed-shell application (method 'ra')")
+    run.add_argument("--ra-insertion", default="plateau_commutation", choices=RA_INSERTION_POLICIES)
+    run.add_argument("--ra-pool", default=RA_DEFAULT_POOL_KEY, help="repository pool key for the RA-ADAPT macro generators (uccsd, full_meta, ...)")
+    run.add_argument("--apm-support-config", default="{}", help="JSON object of SupportPatchControllerConfig field overrides for the AP-McLachlan exchange controller (validated before intake; recorded in the receipt)")
     return parser
 
 
@@ -118,9 +132,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             methods = normalize_methods(str(args.methods))
             parse_backend_spec(str(args.backend))
             times = validate_apm_times([v for v in str(args.apm_times).split(",") if v.strip()])
+            apm_support = parse_apm_support_config(str(args.apm_support_config))
             bridge = resolve_bridge_context(args.manifest)
-            if "apm" in methods and str(args.apm_pool) not in set(bridge.context.admissible_pool_keys):
-                raise ValueError(f"apm pool {args.apm_pool!r} is not admissible for this problem; choose from {sorted(bridge.context.admissible_pool_keys)}")
+            if "apm" in methods and str(args.apm_pool) not in set(admissible_pool_keys(bridge)):
+                raise ValueError(f"apm pool {args.apm_pool!r} is not admissible for this problem; choose from {list(admissible_pool_keys(bridge))}")
+            if "ra" in methods:
+                validate_ra_construction_request(args.ra_rounds, str(args.ra_insertion), str(args.ra_pool), bridge)
         except (ValueError, FileNotFoundError, OSError, KeyError) as exc:
             print(f"run refused: {type(exc).__name__}: {exc}", file=sys.stderr)
             return EXIT_USAGE
@@ -137,6 +154,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 apm_pool_key=str(args.apm_pool),
                 apm_parameterization_mode=str(args.apm_parameterization),
                 apm_candidate_filter=str(args.apm_candidate_filter),
+                apm_support_config_overrides=apm_support,
+                qse_basis_kind=str(args.qse_basis),
+                ra_rounds=int(args.ra_rounds),
+                ra_insertion=str(args.ra_insertion),
+                ra_pool_key=str(args.ra_pool),
             )
         except Exception as exc:
             print(f"run failed after intake: {type(exc).__name__}: {exc}", file=sys.stderr)

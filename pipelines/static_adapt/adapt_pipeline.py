@@ -16806,17 +16806,25 @@ def _validated_ra_adapt_route_contract(
         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
     }:
         return None
+    from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
+        MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX,
+    )
+
     profile = str(contract.get("route_profile", ""))
     paper_i_profile = profile.startswith("paper_i_ra_adapt__")
     semantic_paper_i_profile = profile.startswith("paper_i_ra__")
     h2o_application_profile = profile.startswith(
         "paper_iv_h2o_ra_adapt__"
     )
+    molecular_application_profile = profile.startswith(
+        MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX
+    )
     if (
         not (
             paper_i_profile
             or semantic_paper_i_profile
             or h2o_application_profile
+            or molecular_application_profile
         )
         or profile != str(kwargs.get("sr_route_profile_resolved", ""))
         or profile != str(kwargs.get("sr_route_profile_request", ""))
