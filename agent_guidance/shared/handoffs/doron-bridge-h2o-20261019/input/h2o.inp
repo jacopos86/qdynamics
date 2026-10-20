@@ -1,0 +1,19 @@
+# H2O / STO-3G / RHF at Doron's inferred geometry R(OH)=0.9578 A, HOH=104.49 deg
+# (same construction as pipelines/exact_bench/audit_h2o_cross_code_reference.py:_fixed_h2o_geometry_angstrom)
+method = RHF
+basis = sto-3g
+charge = 0
+spin = 0
+unit = Angstrom
+output = results/h2o
+write_h5 = true
+write_vibration = false
+write_eph = false
+e_converg = 1e-12
+d_converg = 1e-8
+max_iter = 100
+geometry
+O 0.0 0.0 0.0
+H 0.0 0.757271299391 0.586447797437
+H 0.0 -0.757271299391 0.586447797437
+end
