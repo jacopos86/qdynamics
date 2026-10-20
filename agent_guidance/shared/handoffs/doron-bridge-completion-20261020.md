@@ -240,3 +240,24 @@ default to "refuted"); transcript `subagents/workflows/wf_947618d7-1d0`.
 After these fixes the application, bridge and CLI RA tests pass again; the final test
 counts and the lock-suite rerun are in §9. The CPU receipt was regenerated with the fixed
 code so the committed receipt carries the route-contract hash and the explicit flag.
+
+## 8. Test counts after the refuter-driven fixes
+
+| suite | result |
+|---|---|
+| repository venv: bridge export/backend/methods/cli/gpu-parity + application + strict intake | 206 passed, 18 skipped |
+| GPU venv (torch 2.14.1, h5py 3.16.0): bridge suites + application | 137 passed, 9 skipped |
+| RA-ADAPT lock / facade / named-lane set (10 files) | 103 passed, 7 failed — identical set fails on untouched `main` `d1436ab1` |
+
+## 9. Record (appended after the commits)
+
+| item | value |
+|---|---|
+| completion code | `01bf17ca` |
+| merge of the H2O reproduction branch | `c6dfcc48` |
+| first receipts + this handoff | `a53cec52` |
+| refuter-driven fixes + regenerated CPU receipt + §7/§8 | `af04ec7fb2e31eaac6a9c2fecb6eebe4f95decff` |
+| this record | the next commit |
+| `main` | `d1436ab1`, untouched; branch not merged, not pushed |
+| final CPU receipt clock | 2026-10-20T09:02:25Z – 09:08:21Z (mapping 0.8 s, exact 66 s, QSE 1.3 s, ADAPT gradients, RA 24 rounds 252 s, APM 21 checkpoints 50 s) |
+| session clock | work began 2026-10-20T07:5xZ after Jake's instruction; fixes committed 2026-10-20T09:13:46Z |
