@@ -52,7 +52,7 @@ def test_psi4_h2_expectation_values_match_psi4_energies(tmp_path, monkeypatch):
         ],
     )
     # import time
-    from src.backends.psi4.run import Psi4Driver
+    from src.chemistry.psi4.electron_solver import Psi4Driver
     from src.parameters.set_param_object import p
     p._real_p = None
     p.read_yml_data(input_file)

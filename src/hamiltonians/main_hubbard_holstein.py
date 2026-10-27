@@ -1,33 +1,12 @@
-# This is the main subroutine
-# for non Markovian calculation of electronic systems
-#
-import numpy as np
 from src.parameters.set_param_object import p
 from src.parallelization.mpi import mpi
 from src.utilities.log import log
-from src.backends.psi4.BasisSet_module import setup_basis_set
-from src.backends.psi4.run import Psi4Driver
 from src.hamiltonians.problem_hamiltonian import build_problem_hamiltonian
 
-# ====================================================
-#
-#     Hubbard model solver
-#
-# ====================================================
 
-def solve_Holstein_Hubbard_model():
+def run_hubbard_holstein_model():
     """
-    Main static HH entrypoint.
-
-    Repo-consistent role:
-      1. resolve HH model inputs
-      2. build HH Hamiltonian
-      3. prepare initial state
-      4. run GS / ADAPT-style static solve
-      5. save JSON artifact
-      6. optionally write PDF summary
-
-    This is the static stage that later feeds realtime dynamics.
+    Build the Holstein-Hubbard model Hamiltonian from input parameters.
     """
     if mpi.rank == mpi.root:
         log.info("\t " + p.sep)
@@ -93,49 +72,9 @@ def solve_Holstein_Hubbard_model():
     metadata   = hh_problem.metadata
     observables = getattr(hh_problem, "observables", None)
 
-# ====================================================
-#
-#     PSI4 solver
-#
-# ====================================================
 
-def PSI4_elec_gs_driver():
-    '''
-    use PSI4 data to perform RT dynamics
-    '''
-    if mpi.rank == mpi.root:
-        log.info("\t " + p.sep)
-        log.info("\n")
-        log.info("\t START PSI4 CALCULATION")
-        log.info("\n")
-        log.info("\t " + p.sep)
-    # prepare/write basis set
-    setup_basis_set(p.coordinate_file, p.basis_set_file)
-    # set up psi4 driver
-    psi4_obj = Psi4Driver(p.basis_set_file, p.psi4_calc_parameters)
-    # -------------------------------------
-    #  1)  geometry structure
-    # -------------------------------------
-    geometry = psi4_obj.psi4_geometry_driver(
-        p.coordinate_file,
-        p.optimized_coordinate_file, 
-        p.charge, 
-        p.multiplicity
-    )
-    # -------------------------------------
-    #  2)  electronic structure
-    # -------------------------------------
-    WF = psi4_obj.psi4_elec_struct_driver(geometry)
-    # -------------------------------------
-    #    3)  model initialization
-    # -------------------------------------
-    S_obj, MO_obj, DM_obj, He = psi4_obj.set_electronic_operators(WF)
-    # run tests
-    psi4_obj.run_consistency_tests(WF, S_obj, MO_obj, DM_obj)
-    # finalize calculation -> perform MO basis conversion
-    psi4_obj.build_operators_MO_basis(MO_obj, DM_obj, He)
-    # run energy tests
-    psi4_obj.energy_report(He, WF, DM_obj)
-    # if required compute electron vibration coupling
-    psi4_obj.set_elecvibr_inter(WF)
-    exit()
+def solve_Holstein_Hubbard_model():
+    """
+    Backward-compatible name for the Holstein-Hubbard model workflow.
+    """
+    return run_hubbard_holstein_model()
