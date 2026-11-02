@@ -216,3 +216,35 @@ Bosons now:
 - current vibronic model is one quantized H-H stretch mode with linear coupling from finite-difference `dH/dR`
 - current coupling derivative is overlap-aligned to the center MO basis before finite differencing
 - this is still a prototype vibronic model, not a full nonadiabatic derivative-coupling treatment
+
+## Molecule-agnostic linear vibronic builder
+
+`src/quantum/chemistry/molecular_vibronic.py` generalizes the H2O linear-FD
+generator to any closed-shell molecule, with PySCF as the electronic-structure
+backend (imported lazily; the module and its PySCF-free tests load without it):
+
+```bash
+PYTHONPATH=$(pwd) python -m src.quantum.chemistry.molecular_vibronic \
+  --geometry "O 0 0 0; H 0 0.757 0.587; H 0 -0.757 0.587" \
+  --basis sto-3g --active-space frozen_core --cutoffs 3 7 3 \
+  --coupling full_linear --exact 2 --output h2o_vibronic.json
+```
+
+Model: `H = H_el(R0) + sum_nu omega_nu (b†b + 1/2) + sum_nu Q_nu C_nu` with
+`Q_nu = (b + b†)/sqrt(2 omega_nu)`. Steps: RHF, analytic Hessian, mass-weighted
+normal modes with translations and rotations projected out, displaced SCFs at
+`R0 ± Q e_nu/sqrt(M)` aligned to the R0 MO gauge by orthogonal Procrustes,
+frozen-core/CAS slicing (`full`, `frozen_core`, `frozen_core:<n>`,
+`cas(<ne>,<no>)`), central differences, Jordan-Wigner in blocked spin order,
+binary or unary bosons, and a vectorized exact solver in the physical sector.
+Coupling models: `full_linear` (derivative of the scalar, one-body and two-body
+active tensors; the Paper IV model), `mean_field_fd` (Fock-matrix derivative)
+and `mean_field_pyscf_eph` (PySCF's vertex with the AO basis fixed). The
+mean-field models get the reference-force counter-term `C -> C - <HF|C|HF>` by
+default; without it their residual force displaces every oscillator.
+
+Acceptance: assembling from the Paper IV fixture's tensors reproduces its
+operators exactly, and building H2O from scratch at the fixture geometry
+reproduces its exact sector ground energies to 5e-8 Ha at cutoffs (3,3,3),
+(4,4,4) and (3,7,3). Output schema `molecular_vibronic_qubit_hamiltonian_v1`
+states units, spin order, Pauli-word order and the ladder convention.
