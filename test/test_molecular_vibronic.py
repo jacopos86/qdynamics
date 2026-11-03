@@ -235,7 +235,7 @@ def test_parse_geometry_units_and_xyz_header():
     # The decided defaults (2026-11-02): K_PES + chi oscillators, canonical frozen core.
     assert args.harmonic_curvature == "pes_consistent" == HARMONIC_CURVATURES[0]
     assert args.alignment == "block_diagonal" == ALIGNMENTS[0]
-    assert args.mode_basis == "rhf_normal_modes" == MODE_BASES[0]
+    assert args.mode_basis is None and MODE_BASES[0] == "model_consistent"   # resolved by the builder per curvature
 
 
 def test_oscillator_frequency_refuses_a_non_positive_curvature():
@@ -647,6 +647,7 @@ def test_pyscf_h2o_reproduces_paper_iv_model():
                                                         masses_amu=masses_amu, harmonic_curvature="rhf_hessian", alignment="full")
     assert model.n_qubits == 18 and model.active_space.active == (1, 2, 3, 4, 5, 6)
     assert model.provenance["alignment"] == "full" and computation.fci_surface_curvature_by_mode == ()
+    assert model.provenance["mode_basis"] == "rhf_normal_modes"   # resolved: no response matrix under rhf_hessian
     for ours, theirs in zip(model.modes, fixture["normal_modes"]):
         assert ours.frequency_cm1 == pytest.approx(theirs["frequency_cm1"], abs=2e-3)
     assert computation.active_tensors.scalar == pytest.approx(fixture["active_space"]["scalar_energy_hartree"], abs=1e-9)
@@ -709,9 +710,12 @@ def test_pes_consistent_model_carries_the_fci_surface_curvature():
     geometry = MolecularGeometry(("O", "H", "H"), np.array([[0.0, 7.452305433104561e-16, -0.06340060329635555],
                                                             [0.0, 1.432278617817422, 1.1388573462159217],
                                                             [0.0, -1.4322786178174232, 1.1388573462159226]]))
-    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3)
+    # The diagonal construction in the RHF normal-mode basis (the model-consistent default is tested below).
+    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3,
+                                                        mode_basis="rhf_normal_modes")
     prov = model.provenance
     assert prov["harmonic_curvature"] == "pes_consistent" and prov["alignment"] == "block_diagonal"
+    assert prov["mode_basis"] == "rhf_normal_modes" and "model_consistent_rotation" not in prov
     k_pes = prov["fci_surface_curvature_hartree_per_q2"]
     chi = prov["active_response_hartree_per_q2"]
     for mode, k, c in zip(model.modes, k_pes, chi):
@@ -791,14 +795,14 @@ def test_model_consistent_modes_carry_the_full_fci_hessian_for_h2o():
                                                             [0.0, -1.4322786178174232, 1.1388573462159226]]))
     with pytest.raises(ValueError, match="model_consistent"):
         build_molecular_vibronic_model(geometry, basis="sto-3g", cutoffs=1, harmonic_curvature="rhf_hessian", mode_basis="model_consistent")
-    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3,
-                                                        mode_basis="model_consistent")
+    # The default since the 2026-11-02 decision: model-consistent modes.
+    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3)
     prov = model.provenance
     particles = (computation.active_space.n_alpha, computation.active_space.n_beta)
     k_pes = np.array(prov["fci_surface_hessian_hartree_per_q2"])
     chi = np.array(prov["active_response_matrix_hartree_per_q2"])
     u = np.array(prov["model_consistent_rotation"])
-    assert prov["mode_basis"] == "model_consistent"
+    assert prov["mode_basis"] == "model_consistent" == MODE_BASES[0]
     np.testing.assert_allclose(k_pes, k_pes.T, atol=1e-12)
     np.testing.assert_allclose(np.diag(k_pes), prov["fci_surface_curvature_hartree_per_q2"], rtol=0, atol=1e-15)
     # Bend and symmetric stretch (A1) couple through the electrons, chi_01 = 2.3e-5 Ha/Q^2, while the FCI

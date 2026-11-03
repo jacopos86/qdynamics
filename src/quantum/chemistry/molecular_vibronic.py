@@ -36,15 +36,17 @@ The oscillator frequency is a choice (``harmonic_curvature``). The default,
 ``pes_consistent``, sets omega_nu^2 = K_nu^PES + chi_nu: the curvature of the
 frozen-core (active-space) FCI potential energy surface along the mode plus the
 model's own correlated response to Q_nu C_nu, so that the exactly solved model
-reproduces the diagonal of the frozen-core FCI Hessian in the RHF normal-mode
-basis (second-order perturbation theory). The off-diagonal is not reproduced:
-between two modes of the same irreducible representation the model's adiabatic
-Hessian holds -chi_{mu nu} (its cross response) where the FCI surface holds
-K^PES_{mu nu}; for H2O/STO-3G that leaves the model's adiabatic bend and
-symmetric-stretch frequencies at 1949 / 4010 cm^-1 against the surface's
-1975 / 3998. ``rhf_hessian`` (the Paper IV H2O definition) takes omega_nu from
-the RHF Hessian, which already holds the orbital relaxation the coupling
-regenerates; ``frozen_reference`` is the Hartree-Fock analogue of the default.
+reproduces the frozen-core FCI Hessian (second-order perturbation theory). With
+the default ``mode_basis="model_consistent"`` K^PES and chi are full matrices
+in the RHF normal-mode basis and the model's modes are the eigenvectors of
+K^PES + chi, so the whole Hessian is reproduced; with ``rhf_normal_modes`` only
+its diagonal is, and between two modes of the same irreducible representation
+the model's adiabatic Hessian holds -chi_{mu nu} (its cross response) where the
+FCI surface holds K^PES_{mu nu} (H2O/STO-3G: adiabatic bend and symmetric
+stretch at 1949 / 4010 cm^-1 against the surface's 1975 / 3998).
+``rhf_hessian`` (the Paper IV H2O definition) takes omega_nu from the RHF
+Hessian, which already holds the orbital relaxation the coupling regenerates;
+``frozen_reference`` is the Hartree-Fock analogue of ``pes_consistent``.
 Displaced orbitals are aligned to the R0 gauge block by block (frozen core,
 active, external) so the frozen core stays the canonical core of each displaced
 SCF; the Paper IV full-set alignment is kept as ``alignment="full"``.
@@ -86,7 +88,7 @@ BOHR_TO_ANGSTROM = 0.529177210903
 COUPLING_MODELS = ("full_linear", "mean_field_fd")
 HARMONIC_CURVATURES = ("pes_consistent", "rhf_hessian", "frozen_reference")
 ALIGNMENTS = ("block_diagonal", "full")
-MODE_BASES = ("rhf_normal_modes", "model_consistent")
+MODE_BASES = ("model_consistent", "rhf_normal_modes")
 LADDER_CONVENTION = "Q=(2*omega)^(-1/2)*(b_dag+b)"
 
 # Most-abundant-isotope masses in atomic mass units (the Psi4 convention the
@@ -1375,7 +1377,7 @@ def build_molecular_vibronic_model(
     reference_force_counter_term: bool | None = None,
     harmonic_curvature: str = "pes_consistent",
     alignment: str = "block_diagonal",
-    mode_basis: str = "rhf_normal_modes",
+    mode_basis: str | None = None,
     degenerate_boundary_tolerance_hartree: float = 1.0e-6,
     stationary_gradient_tolerance: float = 1.0e-3,
     tol: float = 1.0e-12,
@@ -1431,17 +1433,22 @@ def build_molecular_vibronic_model(
     Hartree. Reproducing the Paper IV H2O model therefore needs both
     ``harmonic_curvature="rhf_hessian"`` and ``alignment="full"``.
 
-    ``mode_basis`` (with ``pes_consistent`` only): ``rhf_normal_modes`` keeps
-    the RHF normal modes with diagonal oscillators, which reproduces the
-    diagonal of the FCI Hessian; the full response matrix chi_{mu nu} is still
-    recorded so the uncompensated off-diagonal is visible. ``model_consistent``
-    also measures the off-diagonal of the FCI surface Hessian (four extra
-    displaced SCFs per mode pair) and takes the modes as the eigenvectors of
-    W = K^PES + chi with omega_a^2 its eigenvalues, the couplings rotated with
-    them; the model's adiabatic Hessian is then the full FCI Hessian with
-    diagonal oscillators only. The rotation mixes modes of one irreducible
-    representation (H2O/STO-3G: bend and symmetric stretch by about 2.6
-    degrees) and is recorded in the provenance.
+    ``mode_basis`` (``None`` resolves to ``model_consistent`` under
+    ``pes_consistent`` and to ``rhf_normal_modes`` under the legacy
+    curvatures, which have no response matrix to diagonalize):
+    ``model_consistent`` (the default, decided 2026-11-02) measures the off-diagonal of the FCI
+    surface Hessian (four extra displaced SCFs per mode pair) and takes the
+    modes as the eigenvectors of W = K^PES + chi with omega_a^2 its
+    eigenvalues, the couplings rotated with them; the model's adiabatic
+    Hessian is then the full FCI Hessian with diagonal oscillators only. The
+    rotation mixes modes of one irreducible representation (H2O/STO-3G: bend
+    and symmetric stretch by about 2.6 degrees) and is recorded in the
+    provenance; the model modes come in ascending frequency, which can reorder
+    them against the RHF modes (H2O: the B2 stretch becomes mode 1), and
+    per-mode ``cutoffs`` follow that order. ``rhf_normal_modes`` keeps the RHF
+    normal modes with diagonal oscillators, which reproduces the diagonal of
+    the FCI Hessian only; the full response matrix chi_{mu nu} is still
+    recorded so the uncompensated off-diagonal is visible.
     The geometry is used as given (never optimized): the residual gradient is
     recorded and a warning is issued above ``stationary_gradient_tolerance``
     Hartree/Bohr.
@@ -1453,6 +1460,8 @@ def build_molecular_vibronic_model(
         raise ValueError(f"harmonic_curvature must be one of {HARMONIC_CURVATURES}; got {harmonic_curvature!r}.")
     if alignment not in ALIGNMENTS:
         raise ValueError(f"alignment must be one of {ALIGNMENTS}; got {alignment!r}.")
+    if mode_basis is None:
+        mode_basis = "model_consistent" if harmonic_curvature == "pes_consistent" else "rhf_normal_modes"
     if mode_basis not in MODE_BASES:
         raise ValueError(f"mode_basis must be one of {MODE_BASES}; got {mode_basis!r}.")
     if mode_basis == "model_consistent" and harmonic_curvature != "pes_consistent":
@@ -1648,9 +1657,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--alignment", choices=list(ALIGNMENTS), default="block_diagonal",
                         help="displaced-orbital alignment: block_diagonal keeps the canonical frozen core (default); "
                              "full rotates the whole MO set (Paper IV H2O)")
-    parser.add_argument("--mode-basis", choices=list(MODE_BASES), default="rhf_normal_modes",
-                        help="rhf_normal_modes (default) or model_consistent: modes from the eigenvectors of "
-                             "K_PES + chi so the model carries the full FCI Hessian (pes_consistent only)")
+    parser.add_argument("--mode-basis", choices=list(MODE_BASES), default=None,
+                        help="model_consistent (the default with pes_consistent): modes from the eigenvectors of "
+                             "K_PES + chi so the model carries the full FCI Hessian; rhf_normal_modes (the default "
+                             "with the legacy curvatures) keeps the RHF normal modes and reproduces only its diagonal")
     parser.add_argument("--q-step", type=float, default=0.1)
     parser.add_argument("--q-step-alt", type=float, default=0.05)
     parser.add_argument("--modes", type=int, nargs="*", default=None, help="subset of mode indices (ascending frequency)")
