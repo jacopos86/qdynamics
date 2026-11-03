@@ -18,7 +18,9 @@ from src.quantum.chemistry.generate_h2o_linear_fd_fixture import (
     build_fixed_particle_sector_sparse_matrix,
 )
 from src.quantum.chemistry.molecular_vibronic import (
+    ALIGNMENTS,
     AMU_TO_ELECTRON_MASS,
+    HARMONIC_CURVATURES,
     HARTREE_TO_CM_INV,
     ActiveSpace,
     ActiveTensors,
@@ -27,11 +29,16 @@ from src.quantum.chemistry.molecular_vibronic import (
     MolecularGeometry,
     NormalMode,
     _check_degenerate_orbital_boundaries,
+    _oscillator_frequency,
+    active_response_curvature,
     align_to_center,
     assemble_vibronic_model,
     build_register_layout,
     closed_shell_determinant_energy,
+    compute_linear_couplings,
+    displace_along_mode,
     exact_sector_energies,
+    fermion_polynomial_from_tensors,
     frozen_core_contract,
     frozen_core_contract_one_body,
     hartree_fock_state,
@@ -222,6 +229,86 @@ def test_parse_geometry_units_and_xyz_header():
     assert len(long_inline) > 255
     args = parse_args(["--geometry", long_inline, "--output", "x.json"])
     assert args.geometry == long_inline
+    # The decided defaults (2026-11-02): K_PES + chi oscillators, canonical frozen core.
+    assert args.harmonic_curvature == "pes_consistent" == HARMONIC_CURVATURES[0]
+    assert args.alignment == "block_diagonal" == ALIGNMENTS[0]
+
+
+def test_oscillator_frequency_refuses_a_non_positive_curvature():
+    mode = NormalMode(0, 0.01, np.zeros((2, 3)), "mode_0")
+    assert _oscillator_frequency(4.0e-4, mode=mode, source="test") == pytest.approx(0.02)
+    for bad in (0.0, -1.0e-5, float("nan")):
+        with pytest.raises(ValueError, match="not a minimum"):
+            _oscillator_frequency(bad, mode=mode, source="test")
+
+
+@pytest.mark.parametrize("two_body_coupling", [True, False])
+def test_active_response_curvature_matches_second_order_perturbation_theory(two_body_coupling):
+    model = _synthetic_two_orbital_model(two_body_coupling=two_body_coupling)
+    t0, coupling = model.active_tensors, model.couplings[0]
+    assert (coupling.two_body is None) is (not two_body_coupling)
+    particles = (1, 1)
+    basis = physical_sector_basis(build_register_layout(2, (), (), "binary"), n_spatial_orbitals=2, num_particles=particles)
+
+    def energy(t, num_particles):
+        dense = np.asarray(hamiltonian_matrix(fermion_polynomial_from_tensors(t.scalar, t.one_body, t.two_body, num_particles)))
+        return float(np.linalg.eigvalsh(dense[np.ix_(basis, basis)])[0])
+
+    chi = active_response_curvature(t0, coupling, particles, q_step_au=1.0e-3, energy=energy)
+    h_el = np.asarray(hamiltonian_matrix(model.h_electronic))[np.ix_(basis, basis)]
+    c = np.asarray(hamiltonian_matrix(model.coupling_operators[0]))[np.ix_(basis, basis)]
+    evals, evecs = np.linalg.eigh(h_el)
+    amplitudes = evecs[:, 1:].conj().T @ c @ evecs[:, 0]
+    # chi = -d2E/dQ2 of E[H_el + Q C] is the second-order lowering 2 sum_k |<k|C|0>|^2 / (E_k - E_0).
+    expected = float(2.0 * np.sum(np.abs(amplitudes) ** 2 / (evals[1:] - evals[0])))
+    assert expected > 0.0 and chi == pytest.approx(expected, rel=1e-5)
+    # A scalar in the coupling (the reference-force counter-term) shifts E linearly and drops out
+    # (to round-off: the shift enters the energies at +/- 0.3 q and is differenced away over q^2).
+    shifted = LinearCoupling(coupling.mode_index, coupling.model, coupling.scalar + 0.3, coupling.one_body,
+                             coupling.two_body, coupling.q_step_au)
+    assert active_response_curvature(t0, shifted, particles, q_step_au=1.0e-3, energy=energy) == pytest.approx(chi, rel=1e-6)
+    with pytest.raises(ValueError):
+        active_response_curvature(t0, coupling, particles, q_step_au=0.0, energy=energy)
+
+
+def test_block_overlap_guard_detects_an_orbital_crossing_a_block_boundary():
+    rng = np.random.default_rng(11)
+    n_ao, n_occ = 4, 2
+    h, g = _random_chemist_tensors(rng, n_ao)
+    fock = np.diag([-20.0, -1.0, 0.5, 1.0])
+    geometry = MolecularGeometry(("H", "H"), np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.4]]))
+
+    def snapshot(rotation):
+        return ElectronicSnapshot(geometry, "x", 0.0, 0.0, np.eye(n_ao) @ rotation, np.diag(rotation.T @ fock @ rotation),
+                                  rotation.T @ h @ rotation,
+                                  np.einsum("ap,bq,cr,ds,abcd->pqrs", rotation, rotation, rotation, rotation, g),
+                                  rotation.T @ fock @ rotation, n_occ, n_occ, "test", "0")
+
+    center = snapshot(np.eye(n_ao))
+    space = ActiveSpace((0,), (1, 2, 3), (), 1, 1, "frozen_core:1")
+    partition = (space.frozen_core, space.active, space.external)
+    # The "displaced" SCF returns the same orbitals with the core and the first valence orbital
+    # swapped in energy order: by canonical index the wrong orbital is frozen.
+    swapped = snapshot(np.eye(n_ao)[[1, 0, 2, 3]])
+    _, _, _, diag = align_to_center(swapped, center, cross_overlap_ao=np.eye(n_ao), blocks=partition)
+    assert diag["block_min_singular_values"][0] == pytest.approx(0.0, abs=1e-12)
+    assert diag["block_min_singular_values"][2] == 1.0   # empty external block
+    # The swap stays inside the occupied set and inside the full orbital set, so the older
+    # diagnostics are blind to it.
+    assert diag["min_singular_value"] == pytest.approx(1.0) and diag["occupied_block_min_singular_value"] == pytest.approx(1.0)
+    _, _, _, diag_full = align_to_center(swapped, center, cross_overlap_ao=np.eye(n_ao), partition=partition)
+    assert diag_full["block_diagonal"] is False and diag_full["block_min_singular_values"][0] == pytest.approx(0.0, abs=1e-12)
+    mode = NormalMode(0, 0.01, np.zeros((2, 3)), "mode_0")
+    for alignment in ALIGNMENTS:
+        with pytest.raises(ValueError, match="crossed"):
+            compute_linear_couplings(center, (mode,), masses_me=np.ones(2), active_space=space, q_step_alt_au=None,
+                                     alignment=alignment, snapshot_factory=lambda geometry: swapped,
+                                     cross_overlap_factory=lambda c, s: np.eye(n_ao))
+    # Without a crossing the same path runs and records the per-block overlaps.
+    computation = compute_linear_couplings(center, (mode,), masses_me=np.ones(2), active_space=space, q_step_alt_au=None,
+                                           snapshot_factory=lambda geometry: center, cross_overlap_factory=lambda c, s: np.eye(n_ao))
+    assert computation.couplings["full_linear"][0].diagnostics["alignment_block_min_singular_values"] == [1.0, 1.0, 1.0]
+    assert computation.fci_surface_curvature_by_mode == () and computation.center_fci_energy is None
 
 
 def test_hartree_fock_state_lies_in_the_physical_sector_for_both_encodings():
@@ -300,6 +387,50 @@ def test_alignment_recovers_a_known_orbital_rotation():
     np.testing.assert_allclose(f_back, fock, atol=1e-10)
     assert diag["alignment_residual_fro"] < 1e-10 and diag["min_singular_value"] == pytest.approx(1.0)
     assert diag["occupied_block_min_singular_value"] <= 1.0 + 1e-12
+    assert diag["block_diagonal"] is False
+
+
+def test_block_diagonal_alignment_recovers_a_block_rotation_and_validates_blocks():
+    rng = np.random.default_rng(5)
+    n_ao, n_occ = 4, 2
+    h, g = _random_chemist_tensors(rng, n_ao)
+    fock = 0.5 * (rng.normal(size=(n_ao, n_ao)) + rng.normal(size=(n_ao, n_ao)).T)
+    coeff = np.linalg.qr(rng.normal(size=(n_ao, n_ao)))[0]
+    geometry = MolecularGeometry(("H", "H"), np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.4]]))
+
+    def snapshot(c, h_mo, g_mo, f_mo):
+        return ElectronicSnapshot(geometry, "x", 0.0, 0.0, c, np.zeros(n_ao), h_mo, g_mo, f_mo, n_occ, n_occ, "test", "0")
+
+    def rotated_by(rotation):
+        return snapshot(coeff @ rotation, rotation.T @ h @ rotation,
+                        np.einsum("ap,bq,cr,ds,abcd->pqrs", rotation, rotation, rotation, rotation, g), rotation.T @ fock @ rotation)
+
+    center = snapshot(coeff, h, g, fock)
+    blocks = ((0, 1), (2, 3))
+    block_rotation = np.zeros((n_ao, n_ao))
+    for block in blocks:
+        q = np.linalg.qr(rng.normal(size=(2, 2)))[0]
+        block_rotation[np.ix_(block, block)] = q
+    h_back, g_back, f_back, diag = align_to_center(rotated_by(block_rotation), center, cross_overlap_ao=np.eye(n_ao), blocks=blocks)
+    np.testing.assert_allclose(h_back, h, atol=1e-10)
+    np.testing.assert_allclose(g_back, g, atol=1e-10)
+    np.testing.assert_allclose(f_back, fock, atol=1e-10)
+    assert diag["alignment_residual_fro"] < 1e-10 and diag["block_diagonal"] is True
+    # A rotation that mixes the blocks is undone by the full-set alignment but, by design,
+    # not by the block-diagonal one: the inter-block part stays in the residual.
+    mixing = np.linalg.qr(rng.normal(size=(n_ao, n_ao)))[0]
+    mixed = rotated_by(mixing)
+    h_full, _, _, diag_full = align_to_center(mixed, center, cross_overlap_ao=np.eye(n_ao))
+    np.testing.assert_allclose(h_full, h, atol=1e-10)
+    _, _, _, diag_block = align_to_center(mixed, center, cross_overlap_ao=np.eye(n_ao), blocks=blocks)
+    assert diag_full["alignment_residual_fro"] < 1e-10 < diag_block["alignment_residual_fro"]
+    assert diag_block["min_singular_value"] == pytest.approx(diag_full["min_singular_value"])
+    for bad in (((0, 1), (2,)), ((0, 1), (1, 2, 3)), ((0, 1, 2, 3, 4),)):
+        with pytest.raises(ValueError, match="partition"):
+            align_to_center(mixed, center, cross_overlap_ao=np.eye(n_ao), blocks=bad)
+    # Empty blocks (no frozen core, no external orbitals) are allowed.
+    h_one, _, _, _ = align_to_center(mixed, center, cross_overlap_ao=np.eye(n_ao), blocks=((), (0, 1, 2, 3), ()))
+    np.testing.assert_allclose(h_one, h, atol=1e-10)
 
 
 def test_explicit_active_space_is_sorted_and_validated():
@@ -363,12 +494,13 @@ def test_assembly_reproduces_paper_iv_h2o_fixture_operators():
 
 def test_pyscf_h2_end_to_end():
     pytest.importorskip("pyscf")
-    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model
+    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model, pyscf_rhf_snapshot
 
     geometry = parse_geometry("H 0 0 0; H 0 0 0.7414")
     model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="full", cutoffs=3)
     assert model.n_qubits == 6 and len(model.modes) == 1
-    assert model.modes[0].frequency_cm1 == pytest.approx(5019.1, abs=1.0)
+    rhf_mode = computation.modes[0]   # the RHF normal mode; the model's oscillator is K_PES + chi
+    assert rhf_mode.frequency_cm1 == pytest.approx(5019.1, abs=1.0)
     dense = np.asarray(hamiltonian_matrix(model.h_vibronic))
     hf = hartree_fock_state(model)
     assert float(np.real(np.vdot(hf, dense @ hf))) == pytest.approx(
@@ -379,17 +511,34 @@ def test_pyscf_h2_end_to_end():
     mf = computation.center.backend_handle["mf"]
     gradient = np.asarray(mf.nuc_grad_method().kernel(), dtype=float)
     masses = computation.masses_me
-    projected = float(np.sum(gradient * model.modes[0].mass_weighted_vector / np.sqrt(masses)[:, None]))
+    projected = float(np.sum(gradient * rhf_mode.mass_weighted_vector / np.sqrt(masses)[:, None]))
     assert computation.hf_force_by_mode["full_linear"][0] == pytest.approx(projected, abs=1e-6)
     # The frequency equals PySCF's own harmonic analysis with the same masses.
+    from pyscf import fci
     from pyscf.hessian import thermo
 
     hessian = mf.Hessian().kernel()
     analysis = thermo.harmonic_analysis(mf.mol, hessian, exclude_trans=True, exclude_rot=True, mass=masses / AMU_TO_ELECTRON_MASS)
-    assert model.modes[0].frequency_cm1 == pytest.approx(float(np.real(analysis["freq_wavenumber"][0])), abs=1e-3)
+    assert rhf_mode.frequency_cm1 == pytest.approx(float(np.real(analysis["freq_wavenumber"][0])), abs=1e-3)
     # The bare frozen-reference curvature exceeds the relaxed RHF curvature (orbital relaxation lowers the energy).
     diag = computation.couplings["full_linear"][0].diagnostics
     assert diag["frozen_reference_curvature_hartree_per_q2"] > diag["rhf_hessian_curvature_hartree_per_q2"]
+    # Default oscillator: omega^2 = K_PES + chi, with K_PES the curvature of PySCF's own FCI energy
+    # along the mode (recomputed here independently of the builder) and chi > 0 the model's response.
+    prov = model.provenance
+    assert prov["harmonic_curvature"] == "pes_consistent" and prov["alignment"] == "block_diagonal"
+    k_pes, chi = prov["fci_surface_curvature_hartree_per_q2"][0], prov["active_response_hartree_per_q2"][0]
+    assert model.modes[0].frequency_hartree ** 2 == pytest.approx(k_pes + chi, rel=1e-12)
+    assert model.modes[0].frequency_cm1 == pytest.approx(prov["pes_consistent_frequencies_cm1"][0])
+    assert chi > 0.0 and k_pes < rhf_mode.frequency_hartree ** 2   # the FCI stretch is softer than the RHF one
+
+    def fci_energy_at(q):
+        snap = pyscf_rhf_snapshot(displace_along_mode(geometry, rhf_mode, masses, q), basis="sto-3g")
+        return float(fci.FCI(snap.backend_handle["mf"]).kernel()[0])
+
+    assert k_pes == pytest.approx((fci_energy_at(0.1) - 2.0 * fci_energy_at(0.0) + fci_energy_at(-0.1)) / 0.01, rel=1e-6)
+    assert computation.center_fci_energy == pytest.approx(fci_energy_at(0.0), abs=1e-9)
+    assert diag["fci_surface_curvature_hartree_per_q2"] == k_pes and prov["active_response_drift"][0]["rel"] < 1e-3
     coupled, _ = exact_sector_energies(model, n_low=1)
     electronic_basis = physical_sector_basis(build_register_layout(2, (), (), "binary"), n_spatial_orbitals=2, num_particles=(1, 1))
     electronic = np.linalg.eigvalsh(np.asarray(hamiltonian_matrix(model.h_electronic))[np.ix_(electronic_basis, electronic_basis)])[0]
@@ -419,11 +568,131 @@ def test_pyscf_h2o_reproduces_paper_iv_model():
     symbols = tuple(fixture["geometry"]["symbols"])
     masses_amu = {s: m / AMU_TO_ELECTRON_MASS for s, m in zip(symbols, fixture["geometry"]["masses_me"]["data"])}
     geometry = MolecularGeometry(symbols, np.array(fixture["geometry"]["coordinates_bohr"]["data"]).reshape(3, 3))
+    # The Paper IV H2O model as run: RHF-Hessian oscillators and the full-set orbital alignment,
+    # both legacy choices now (the defaults are pes_consistent and block_diagonal).
     model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3,
-                                                        masses_amu=masses_amu)
+                                                        masses_amu=masses_amu, harmonic_curvature="rhf_hessian", alignment="full")
     assert model.n_qubits == 18 and model.active_space.active == (1, 2, 3, 4, 5, 6)
+    assert model.provenance["alignment"] == "full" and computation.fci_surface_curvature_by_mode == ()
     for ours, theirs in zip(model.modes, fixture["normal_modes"]):
         assert ours.frequency_cm1 == pytest.approx(theirs["frequency_cm1"], abs=2e-3)
     assert computation.active_tensors.scalar == pytest.approx(fixture["active_space"]["scalar_energy_hartree"], abs=1e-9)
     energies, _ = exact_sector_energies(model, n_low=1)
     assert energies[0] == pytest.approx(fixture["exact_reference"]["ground_energy_hartree"], abs=2e-7)
+
+
+def test_block_diagonal_alignment_keeps_the_canonical_frozen_core():
+    pytest.importorskip("pyscf")
+    from src.quantum.chemistry.molecular_vibronic import (
+        active_space_fci_energy, pyscf_ao_cross_overlap, pyscf_hessian, pyscf_rhf_snapshot)
+
+    geometry = parse_geometry("O 0 0 0.1173; H 0 0.7572 -0.4692; H 0 -0.7572 -0.4692")
+    center = pyscf_rhf_snapshot(geometry, basis="sto-3g")
+    space = select_active_space(center.n_spatial_orbitals, center.n_alpha, center.n_beta, policy="frozen_core", symbols=geometry.symbols)
+    assert space.frozen_core == (0,)
+    masses = isotope_masses_me(geometry.symbols)
+    modes = vibrational_modes_from_hessian(pyscf_hessian(center), coordinates_bohr=geometry.coordinates_bohr, masses_me=masses)
+    particles = (space.n_alpha, space.n_beta)
+    blocks = (space.frozen_core, space.active, space.external)
+    center_fci = active_space_fci_energy(frozen_core_contract(center.h_mo, center.eri_mo, center.nuclear_repulsion, space), particles)
+    for mode in modes:
+        energies = {"canonical": [], "block_diagonal": [], "full": []}
+        for q in (0.1, -0.1):
+            snap = pyscf_rhf_snapshot(displace_along_mode(geometry, mode, masses, q), basis="sto-3g")
+            overlap = pyscf_ao_cross_overlap(center, snap)
+            energies["canonical"].append(active_space_fci_energy(
+                frozen_core_contract(snap.h_mo, snap.eri_mo, snap.nuclear_repulsion, space), particles))
+            for name, kwargs in (("block_diagonal", {"blocks": blocks}), ("full", {})):
+                h, g, _, diag = align_to_center(snap, center, cross_overlap_ao=overlap, **kwargs)
+                assert diag["block_diagonal"] is (name == "block_diagonal")
+                energies[name].append(active_space_fci_energy(frozen_core_contract(h, g, snap.nuclear_repulsion, space), particles))
+        # The frozen-core FCI energy is invariant to rotations inside the blocks, so the block-diagonal
+        # alignment reproduces the displaced SCF's own canonical-core energy at every point.
+        np.testing.assert_allclose(energies["block_diagonal"], energies["canonical"], rtol=0.0, atol=1e-10)
+        # The full-set rotation carries the R0 core along and freezes it. That core differs from the
+        # displaced canonical core by a part odd in the displacement, which cancels in the second
+        # difference, and an even part that raises the energy at second order, which the second
+        # difference turns into spurious curvature of the size of the force constants (~1e-4 Ha/Q^2).
+        curvature = {k: (v[0] - 2.0 * center_fci + v[1]) / 0.01 for k, v in energies.items()}
+        assert curvature["full"] - curvature["canonical"] > 1.0e-5
+        assert abs(curvature["block_diagonal"] - curvature["canonical"]) < 1.0e-8
+        # K_PES must not depend on the alignment: the coupling computation evaluates the FCI surface
+        # from each displaced SCF's own canonical tensors under either alignment.
+        for name in ALIGNMENTS:
+            computation = compute_linear_couplings(center, (mode,), masses_me=masses, active_space=space,
+                                                   q_step_alt_au=None, alignment=name, fci_surface=True)
+            assert computation.alignment == name
+            assert computation.fci_surface_curvature_by_mode[0] == pytest.approx(curvature["canonical"], abs=1e-9)
+            assert computation.center_fci_energy == pytest.approx(center_fci, abs=1e-10)
+
+
+def test_pes_consistent_model_carries_the_fci_surface_curvature():
+    pytest.importorskip("pyscf")
+    from pyscf import fci
+
+    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model, pyscf_ao_cross_overlap, pyscf_rhf_snapshot
+
+    # The Paper IV H2O fixture geometry (Bohr); its masses are the module's default isotope masses.
+    geometry = MolecularGeometry(("O", "H", "H"), np.array([[0.0, 7.452305433104561e-16, -0.06340060329635555],
+                                                            [0.0, 1.432278617817422, 1.1388573462159217],
+                                                            [0.0, -1.4322786178174232, 1.1388573462159226]]))
+    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3)
+    prov = model.provenance
+    assert prov["harmonic_curvature"] == "pes_consistent" and prov["alignment"] == "block_diagonal"
+    k_pes = prov["fci_surface_curvature_hartree_per_q2"]
+    chi = prov["active_response_hartree_per_q2"]
+    for mode, k, c in zip(model.modes, k_pes, chi):
+        assert mode.frequency_hartree ** 2 == pytest.approx(k + c, rel=1e-12)
+        assert c > 0.0 and k > 0.0
+    # Measured 2026-11-02 for the Paper IV geometry and masses (the hand scripts, whose couplings
+    # carried the full-set alignment, gave 2138 / 5302 / 5061); the RHF Hessian gives 2171 / 4139 / 4389.
+    assert [m.frequency_cm1 for m in model.modes] == pytest.approx([2142.2, 5309.8, 5061.8], abs=0.5)
+    assert computation.center_fci_energy == pytest.approx(-75.0203648544, abs=1e-8)
+    assert all(v > 0.99 for c in model.couplings for v in c.diagnostics["alignment_block_min_singular_values"])
+    # Second-order identity, exact for the analytic derivatives: the curvature of the frozen-core FCI
+    # surface equals the curvature of <Psi0|H(Q)|Psi0> (the R0 FCI state carried rigidly along the
+    # mode with the block-diagonal alignment) minus the model's response chi. With the full-set
+    # alignment the residual is ~1e-4 Ha/Q^2 (the frozen rotated core); here it is finite-difference noise.
+    t0 = computation.active_tensors
+    n = t0.one_body.shape[0]
+    particles = (computation.active_space.n_alpha, computation.active_space.n_beta)
+    blocks = (computation.active_space.frozen_core, computation.active_space.active, computation.active_space.external)
+    e0, c0 = fci.direct_spin1.kernel(t0.one_body, t0.two_body, n, particles, ecore=t0.scalar, tol=1e-12, max_cycle=300)
+    for nu, mode in enumerate(computation.modes):
+        rigid = []
+        for q in (0.1, -0.1):
+            snap = pyscf_rhf_snapshot(displace_along_mode(geometry, mode, computation.masses_me, q), basis="sto-3g")
+            h, g, _, _ = align_to_center(snap, computation.center, cross_overlap_ao=pyscf_ao_cross_overlap(computation.center, snap), blocks=blocks)
+            t = frozen_core_contract(h, g, snap.nuclear_repulsion, computation.active_space)
+            rigid.append(float(fci.direct_spin1.energy(t.one_body, t.two_body, c0, n, particles)) + t.scalar)
+        k_rigid = (rigid[0] - 2.0 * e0 + rigid[1]) / 0.01
+        assert abs(k_rigid - chi[nu] - k_pes[nu]) < 1e-8
+    # The exactly solved model sits near HF (x) vacuum: no mode holds more than a fraction of a quantum
+    # (at these cutoffs the symmetric stretch holds 0.21 quanta here against 0.64 for the RHF-Hessian
+    # model, and 0.27 against 2.3 at cutoffs (4, 8, 4)).
+    basis = physical_sector_basis(model.layout, n_spatial_orbitals=n, num_particles=particles)
+    energies, state = exact_sector_energies(model, n_low=1, return_state=True)
+    vector = state[basis]
+    occupations = [float(np.real(np.vdot(vector, sector_sparse_matrix(op, basis) @ vector))) for op in model.n_operators]
+    assert max(occupations) < 0.4
+    assert energies[0] < computation.center_fci_energy + 0.5 * sum(m.frequency_hartree for m in model.modes)
+    assert energies[0] == pytest.approx(-75.0002755275, abs=1e-6)   # the decided model's exact reference at cutoffs 3
+
+
+def test_pes_consistent_response_follows_the_assembled_coupling_model():
+    pytest.importorskip("pyscf")
+    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model
+
+    geometry = parse_geometry("H 0 0 0; H 0 0 0.7414")
+    chi = {}
+    for coupling_model in ("full_linear", "mean_field_fd"):
+        model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="full", cutoffs=1,
+                                                            coupling_model=coupling_model)
+        coupling = model.couplings[0]
+        assert coupling.model == coupling_model and (coupling.two_body is None) is (coupling_model == "mean_field_fd")
+        chi[coupling_model] = active_response_curvature(model.active_tensors, coupling, (1, 1), q_step_au=0.1)
+        # omega^2 - chi[C] = K_PES for the coupling that went into the model, counter-term included.
+        assert model.modes[0].frequency_hartree ** 2 - chi[coupling_model] == pytest.approx(
+            computation.fci_surface_curvature_by_mode[0], rel=1e-10)
+        assert model.provenance["active_response_hartree_per_q2"][0] == pytest.approx(chi[coupling_model], rel=1e-12)
+    assert chi["mean_field_fd"] != pytest.approx(chi["full_linear"], rel=1e-3)

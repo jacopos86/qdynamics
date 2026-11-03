@@ -233,7 +233,11 @@ PYTHONPATH=$(pwd) python -m src.quantum.chemistry.molecular_vibronic \
 Model: `H = H_el(R0) + sum_nu omega_nu (b†b + 1/2) + sum_nu Q_nu C_nu` with
 `Q_nu = (b + b†)/sqrt(2 omega_nu)`. Steps: RHF, analytic Hessian, mass-weighted
 normal modes with translations and rotations projected out, displaced SCFs at
-`R0 ± Q e_nu/sqrt(M)` aligned to the R0 MO gauge by orthogonal Procrustes,
+`R0 ± Q e_nu/sqrt(M)` aligned to the R0 MO gauge by orthogonal Procrustes
+inside each of the frozen-core, active and external blocks (`--alignment
+block_diagonal`, the default, keeps the frozen core canonical; `full` rotates
+the whole set as the Paper IV H2O generator did and adds a spurious curvature
+of the size of the force constants to the frozen-reference curvature),
 frozen-core/CAS slicing (`full`, `frozen_core`, `frozen_core:<n>`,
 `cas(<ne>,<no>)`), central differences, Jordan-Wigner in blocked spin order,
 binary or unary bosons, and a vectorized exact solver in the physical sector.
@@ -243,8 +247,20 @@ and `mean_field_pyscf_eph` (PySCF's vertex with the AO basis fixed). The
 mean-field models get the reference-force counter-term `C -> C - <HF|C|HF>` by
 default; without it their residual force displaces every oscillator.
 
+Oscillator frequencies (`--harmonic-curvature`): `pes_consistent` (the default,
+decided 2026-11-02) sets `omega_nu^2 = K_nu^PES + chi_nu`, the curvature of the
+frozen-core FCI surface along the mode plus the model's own response to the
+assembled coupling, so the exactly solved model reproduces the diagonal of the
+FCI Hessian in the normal-mode basis; it costs one active-space FCI per
+displaced geometry and per coupling step. `rhf_hessian` is the Paper IV H2O
+definition (the RHF Hessian already holds the orbital relaxation the coupling
+regenerates) and `frozen_reference` is the Hartree-Fock analogue of the
+default. The model file records all three frequency sets.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
-operators exactly, and building H2O from scratch at the fixture geometry
-reproduces its exact sector ground energies to 5e-8 Ha at cutoffs (3,3,3),
-(4,4,4) and (3,7,3). Output schema `molecular_vibronic_qubit_hamiltonian_v1`
-states units, spin order, Pauli-word order and the ladder convention.
+operators exactly, and building H2O from scratch at the fixture geometry with
+`--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector
+ground energies to 5e-8 Ha at cutoffs (3,3,3), (4,4,4) and (3,7,3); with the
+defaults the exact ground energy at cutoffs (3,3,3) is -75.0002755 Ha (18
+qubits). Output schema `molecular_vibronic_qubit_hamiltonian_v1` states units,
+spin order, Pauli-word order and the ladder convention.
