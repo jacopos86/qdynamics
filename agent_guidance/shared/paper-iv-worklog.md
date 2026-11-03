@@ -324,16 +324,38 @@ Evidence gate `validate_paper_iv_h2o_linear_fd_evidence_fixture`: passed;
 fixture end to end, 93 s; checked-in fixture against its summary; the
 production run itself is opt-in, `PAPER_IV_FIXTURE_FROM_BUILDER_FULL=1`).
 
-**What a restart on the new model needs (not done, nothing submitted or
-stopped):** (a) the request must name the new fixture path and carry
-`n_ph_max = 3` (the registry checks it against the fixture's largest cutoff;
-the old request used 7); (b) a new two-arm package variant:
-`chtc/paper_iv_h2o_two_arm_20260903/` hard-codes the old `FIXTURE_NAME`,
-`FIXTURE_EXPECTED_BYTES`, the (3,7,3) request and
-`STATIC_ADAPT_PAULI_SIGN_CACHE_MAX_NQ=19` (18 now); the route contract's
-`paper_iv_h2o_fixture_source_lock_v1` is a name, not a hash, so no contract
-change for the fixture itself, but the attestation makes old checkpoints
-non-resumable on the new fixture by design; (c) Jake's call on the running
-seg13 (cluster 12396953.0, old model); (d) the manuscript has to state the new
-model: K^PES + chi oscillators, model-consistent modes, 2.6 degrees of A1
-mixing, 18 qubits, cutoffs 3.
+**What a restart on the new model needs (nothing submitted or stopped):**
+(a) the request must name the new fixture path and carry `n_ph_max = 3` (the
+registry checks it against the fixture's largest cutoff; the old request used
+7; `h2o_application` reads it from the fixture, so the package runner is
+unchanged); (b) a package for the new fixture — **built 2026-11-03, see
+below**; the route contract's `paper_iv_h2o_fixture_source_lock_v1` is a
+name, not a hash, so no contract change for the fixture itself, but the
+attestation makes old checkpoints non-resumable on the new fixture by design;
+(c) Jake's call on the running seg13 (cluster 12396953.0, old model); (d) the
+manuscript has to state the new model: K^PES + chi oscillators,
+model-consistent modes, 2.6 degrees of A1 mixing, 18 qubits, cutoffs 3.
+
+### CHTC package for the decided model — 2026-11-03 (user: "Yes, build it")
+
+`chtc/paper_iv_h2o_two_arm_model_consistent_20261103/`: the
+`paper_iv_h2o_two_arm_20260903` package (same segment discipline, arms,
+runner, chaining, monitor) with the campaign name, fixture, qubit count,
+memory request and a fixture-identity guard changed. Non-submitting; nothing
+was sent to ap2001.
+
+| | value |
+|---|---|
+| fixture packaged | `h2o_builder_model_consistent_work333_ref444_20261103_fixture.json`, sha256 `de32cd4d…94df`, 15,673,312 bytes |
+| guard (`build_package.py`, re-verified by `runtime_preflight.py`) | bytes, sha256, 18 qubits, `n_ph_max_by_mode == [3,3,3]`, lane mode order, `production_validated`, `model_definition.decided_model` with `pes_consistent` / `block_diagonal` / `model_consistent`; the old fixture is refused (`n_total_qubits 19 != 18`) |
+| source archive | `git archive` of HEAD `df206077` (`source.tgz` sha256 `3039eaa3…`), engine and registry unchanged from the live refit branch `d17d4046` |
+| `STATIC_ADAPT_PAULI_SIGN_CACHE_MAX_NQ` | 18 (was 19) |
+| `request_memory` | 16GB default, `--request-memory` build option; derivation: the 19q (3,7,3) campaign's measured true peak 14,792 MB at round 25 (raised to 22,528 MB) scaled by the sector ratio 14,400/28,800 with a factor-of-two margin; no peak measured for this model yet |
+| `--max-wall-seconds` | 129,600 s default (unchanged; rounds are cheaper at half the sector) |
+| graph-span cost mode | needs an 18-qubit embedding decision; the 19-qubit spans (10,8,8)/(8,7,6)/(1,2,1) were for 2+3+2 boson qubits, now 2+2+2 |
+| `runtime_preflight.py` | **pass, 23/23** (21 inherited + `fixture_identity_verified`, `manifest_fixture_identity_matches`); archived `h2o_application --help` lists every runner flag and both arms |
+| tests | `test/test_paper_iv_h2o_two_arm_model_consistent_package.py`: 4 pass (constants, identity guard accepts only the decided fixture and rejects a same-length edit, submit rendering with the campaign/memory, built-manifest identity) |
+
+Before any submission (user): decide the fate of seg13 of the old model,
+confirm `image.sif` and quota headroom on ap2001, rsync the directory, point
+the monitor/watcher at the new batch names.
