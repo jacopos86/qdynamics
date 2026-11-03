@@ -86,6 +86,7 @@ BOHR_TO_ANGSTROM = 0.529177210903
 COUPLING_MODELS = ("full_linear", "mean_field_fd")
 HARMONIC_CURVATURES = ("pes_consistent", "rhf_hessian", "frozen_reference")
 ALIGNMENTS = ("block_diagonal", "full")
+MODE_BASES = ("rhf_normal_modes", "model_consistent")
 LADDER_CONVENTION = "Q=(2*omega)^(-1/2)*(b_dag+b)"
 
 # Most-abundant-isotope masses in atomic mass units (the Psi4 convention the
@@ -655,6 +656,57 @@ def active_response_curvature(
     return -(e_plus - 2.0 * e_zero + e_minus) / (q * q)
 
 
+def _tensors_along(t0: ActiveTensors, terms: Sequence[tuple[float, LinearCoupling]]) -> ActiveTensors:
+    """H_el + sum_i x_i C_i as active tensors (a one-body coupling leaves the two-body part alone)."""
+    scalar = float(t0.scalar)
+    one = np.asarray(t0.one_body, dtype=float)
+    two = np.asarray(t0.two_body, dtype=float)
+    for x, c in terms:
+        scalar += float(x) * float(c.scalar)
+        one = one + float(x) * np.asarray(c.one_body, dtype=float)
+        if c.two_body is not None:
+            two = two + float(x) * np.asarray(c.two_body, dtype=float)
+    return ActiveTensors(scalar, one, two)
+
+
+def active_response_matrix(
+    t0: ActiveTensors,
+    couplings: Sequence[LinearCoupling],
+    num_particles: tuple[int, int],
+    *,
+    q_step_au: float,
+    energy: Any = None,
+    diagonal: Sequence[float] | None = None,
+) -> np.ndarray:
+    """chi_{mu nu} = -d2/dQ_mu dQ_nu E[H_el + sum_nu Q_nu C_nu] at Q = 0 for every pair of
+    couplings, by mixed central differences at ``q_step_au`` (four energies per pair); the
+    diagonal comes from ``active_response_curvature`` unless ``diagonal`` is given.
+
+    In second-order perturbation theory chi_{mu nu} = 2 sum_k <0|C_mu|k><k|C_nu|0> / (E_k - E_0).
+    The off-diagonal part is the cross response of the model's electrons between two modes;
+    a diagonal oscillator term cannot cancel it, so with the modes left as they are the
+    model's adiabatic Hessian holds -chi_{mu nu} off the diagonal.
+    """
+    if energy is None:
+        energy = active_space_fci_energy
+    q = float(q_step_au)
+    if not (math.isfinite(q) and q > 0.0):
+        raise ValueError(f"q_step_au must be a positive finite number; got {q_step_au!r}.")
+    m = len(couplings)
+    if diagonal is not None and len(diagonal) != m:
+        raise ValueError("one diagonal response per coupling is required.")
+    chi = np.zeros((m, m))
+    for mu in range(m):
+        chi[mu, mu] = (float(diagonal[mu]) if diagonal is not None
+                       else active_response_curvature(t0, couplings[mu], num_particles, q_step_au=q, energy=energy))
+    for mu in range(m):
+        for nu in range(mu + 1, m):
+            e = {(a, b): float(energy(_tensors_along(t0, ((a * q, couplings[mu]), (b * q, couplings[nu]))), num_particles))
+                 for a in (1, -1) for b in (1, -1)}
+            chi[mu, nu] = chi[nu, mu] = -(e[1, 1] - e[1, -1] - e[-1, 1] + e[-1, -1]) / (4.0 * q * q)
+    return chi
+
+
 def _oscillator_frequency(curvature: float, *, mode: NormalMode, source: str) -> float:
     """sqrt of a curvature in Hartree per Q^2; refuses a non-positive one (no oscillator)."""
     value = float(curvature)
@@ -665,7 +717,86 @@ def _oscillator_frequency(curvature: float, *, mode: NormalMode, source: str) ->
     return math.sqrt(value)
 
 
+def model_consistent_modes(
+    modes: Sequence[NormalMode],
+    couplings: Sequence[LinearCoupling],
+    dynamical_matrix: np.ndarray,
+) -> tuple[tuple[NormalMode, ...], tuple[LinearCoupling, ...], np.ndarray]:
+    """Rotate the modes to the eigenvectors of W = K^PES + chi, given in the input-mode basis.
+
+    With W = U diag(w) U^T the new modes are e'_a = sum_nu U_{nu a} e_nu with omega_a^2 = w_a,
+    and the couplings rotate with them, C'_a = sum_nu U_{nu a} C_nu (exact, the coupling is
+    linear in Q). The model's adiabatic Hessian in the new modes is diag(w) - U^T chi U =
+    U^T K^PES U: the full frozen-core FCI Hessian, with diagonal oscillators only. Modes
+    come back in ascending frequency with indices 0..M-1; each column of U is oriented so
+    its largest weight is positive. Returns (modes, couplings, U).
+    """
+    w = np.asarray(dynamical_matrix, dtype=float)
+    m = len(modes)
+    if w.shape != (m, m) or len(couplings) != m:
+        raise ValueError("the dynamical matrix must be M x M for M modes with one coupling each.")
+    if not np.allclose(w, w.T, atol=1.0e-9 * max(1.0, float(np.max(np.abs(w))))):
+        raise ValueError("the dynamical matrix must be symmetric.")
+    if len({c.two_body is None for c in couplings}) > 1:
+        raise ValueError("couplings must all carry a two-body part or all lack one.")
+    evals, u = np.linalg.eigh(0.5 * (w + w.T))
+    for a in range(m):
+        column = u[:, a]
+        largest = float(np.max(np.abs(column)))
+        pivot = int(np.flatnonzero(np.abs(column) >= largest * (1.0 - 1.0e-8))[0])
+        if column[pivot] < 0.0:
+            u[:, a] = -column
+    model_name = couplings[0].model if couplings else "none"
+    new_modes: list[NormalMode] = []
+    new_couplings: list[LinearCoupling] = []
+    for a in range(m):
+        vector = sum(float(u[nu, a]) * np.asarray(modes[nu].mass_weighted_vector, dtype=float) for nu in range(m))
+        norm = float(np.linalg.norm(vector))
+        if not math.isclose(norm, 1.0, rel_tol=1.0e-8):
+            raise ValueError("the input modes must be orthonormal mass-weighted vectors.")
+        probe = NormalMode(a, 0.0, vector, f"mode_{a}")
+        frequency = _oscillator_frequency(float(evals[a]), mode=probe, source="model-consistent (eigenvalue of K_PES + chi)")
+        new_modes.append(NormalMode(a, frequency, vector, f"mode_{a}"))
+        scalar = sum(float(u[nu, a]) * float(couplings[nu].scalar) for nu in range(m))
+        one = sum(float(u[nu, a]) * np.asarray(couplings[nu].one_body, dtype=float) for nu in range(m))
+        two = None
+        if couplings[0].two_body is not None:
+            two = sum(float(u[nu, a]) * np.asarray(couplings[nu].two_body, dtype=float) for nu in range(m))
+        dominant = int(np.argmax(np.abs(u[:, a])))
+        diag = {**dict(couplings[dominant].diagnostics), "mode_basis": "model_consistent",
+                "input_mode_weights": [float(v) for v in u[:, a]], "dominant_input_mode": int(modes[dominant].mode_index)}
+        new_couplings.append(LinearCoupling(a, model_name, scalar, one, two, float(couplings[dominant].q_step_au), diag))
+    return tuple(new_modes), tuple(new_couplings), u
+
+
 # ---------------------------------------------------------------- alignment
+
+
+def _block_min_singular_values(overlap_mo: np.ndarray, partition: Sequence[Sequence[int]]) -> list[float]:
+    """Smallest singular value of the MO overlap inside each block of ``partition`` (1.0 for an empty block)."""
+    out = []
+    for block in partition:
+        idx = np.asarray([int(i) for i in block], dtype=int)
+        out.append(float(np.min(np.linalg.svd(overlap_mo[np.ix_(idx, idx)], compute_uv=False))) if idx.size else 1.0)
+    return out
+
+
+def _check_block_overlap(values: Sequence[float], tolerance: float, *, where: str) -> None:
+    """Fail closed when an orbital crossed a frozen-core/active/external boundary (a block overlap collapsed)."""
+    if min(float(v) for v in values) < float(tolerance):
+        raise ValueError(
+            f"an orbital crossed a frozen-core/active/external boundary between R0 and {where}: smallest overlap "
+            f"singular value per block {[float(v) for v in values]}. The canonical partition of the displaced SCF no "
+            "longer matches R0, so neither the couplings nor the FCI surface there are defined by index; reduce "
+            "q_step_au or change the active space.")
+
+
+def _default_snapshot_factory(center: ElectronicSnapshot) -> Any:
+    """Displaced RHF through the same backend as the center, started from the center density."""
+    def factory(geometry: MolecularGeometry) -> ElectronicSnapshot:
+        mf = center.backend_handle["mf"] if center.backend_handle else None
+        return pyscf_rhf_snapshot(geometry, basis=center.basis, initial_density=None if mf is None else mf.make_rdm1())
+    return factory
 
 
 def align_to_center(
@@ -725,12 +856,7 @@ def align_to_center(
     n_occ = int(center.n_alpha)
     occupied_singular = np.linalg.svd(overlap_mo[:n_occ, :n_occ], compute_uv=False)
     report = blocks if partition is None else partition
-    block_singular = None
-    if report is not None:
-        block_singular = []
-        for block in as_partition(report, "partition"):
-            idx = np.asarray(block, dtype=int)
-            block_singular.append(float(np.min(np.linalg.svd(overlap_mo[np.ix_(idx, idx)], compute_uv=False))) if idx.size else 1.0)
+    block_singular = None if report is None else _block_min_singular_values(overlap_mo, as_partition(report, "partition"))
     diag = {
         "min_singular_value": float(np.min(singular)),
         "occupied_block_min_singular_value": float(np.min(occupied_singular)),
@@ -817,12 +943,7 @@ def compute_linear_couplings(
     raises (an orbital crossing makes it drop towards zero).
     """
     if snapshot_factory is None:
-        def snapshot_factory(geometry: MolecularGeometry) -> ElectronicSnapshot:
-            dm0 = None
-            mf = center.backend_handle["mf"] if center.backend_handle else None
-            if mf is not None:
-                dm0 = mf.make_rdm1()
-            return pyscf_rhf_snapshot(geometry, basis=center.basis, initial_density=dm0)
+        snapshot_factory = _default_snapshot_factory(center)
     if cross_overlap_factory is None:
         cross_overlap_factory = pyscf_ao_cross_overlap
     for model in models:
@@ -859,13 +980,8 @@ def compute_linear_couplings(
                 snap = snapshot_factory(geometry)
                 h, g, f, diag = align_to_center(snap, center, cross_overlap_ao=cross_overlap_factory(center, snap),
                                                 blocks=blocks, partition=partition)
-                if min(diag["block_min_singular_values"]) < float(block_overlap_tolerance):
-                    raise ValueError(
-                        f"an orbital crossed a frozen-core/active/external boundary between R0 and Q = {sign * q:+.3f} "
-                        f"along mode {mode.mode_index} ({mode.label}): smallest overlap singular value per block "
-                        f"{diag['block_min_singular_values']}. The canonical partition of the displaced SCF no longer "
-                        "matches R0, so neither the couplings nor the FCI surface along this mode are defined by index; "
-                        "reduce q_step_au or change the active space.")
+                _check_block_overlap(diag["block_min_singular_values"], block_overlap_tolerance,
+                                     where=f"Q = {sign * q:+.3f} along mode {mode.mode_index} ({mode.label})")
                 full = frozen_core_contract(h, g, snap.nuclear_repulsion, active_space)
                 fock_scalar, fock_active = frozen_core_contract_one_body(f, active_space)
                 side[sign] = {"full": full, "fock_scalar": fock_scalar, "fock": fock_active,
@@ -947,6 +1063,58 @@ def compute_linear_couplings(
         fci_surface_curvature_by_mode=tuple(fci_curvatures),
         center_fci_energy=center_fci,
     )
+
+
+def fci_surface_hessian(
+    center: ElectronicSnapshot,
+    modes: Sequence[NormalMode],
+    *,
+    masses_me: np.ndarray,
+    active_space: ActiveSpace,
+    diagonal: Sequence[float],
+    q_step_au: float = 0.1,
+    snapshot_factory: Any = None,
+    cross_overlap_factory: Any = None,
+    fci_energy: Any = None,
+    block_overlap_tolerance: float = 0.5,
+) -> np.ndarray:
+    """K^PES_{mu nu} = d2 E_FCI / dQ_mu dQ_nu of the frozen-core FCI surface for every pair of modes.
+
+    Mixed central differences of displaced SCFs at R0 + q (s_mu e_mu + s_nu e_nu) / sqrt(M),
+    four per pair, each with its own canonical core (the same guard against an orbital
+    crossing a block boundary as in ``compute_linear_couplings``); the diagonal is the
+    per-mode curvature already on ``CouplingComputation.fci_surface_curvature_by_mode``.
+    """
+    if snapshot_factory is None:
+        snapshot_factory = _default_snapshot_factory(center)
+    if cross_overlap_factory is None:
+        cross_overlap_factory = pyscf_ao_cross_overlap
+    if fci_energy is None:
+        fci_energy = active_space_fci_energy
+    q = float(q_step_au)
+    if not (math.isfinite(q) and q > 0.0):
+        raise ValueError(f"q_step_au must be a positive finite number; got {q_step_au!r}.")
+    m = len(modes)
+    if len(diagonal) != m:
+        raise ValueError("one diagonal curvature per mode is required.")
+    partition = (active_space.frozen_core, active_space.active, active_space.external)
+    particles = (int(active_space.n_alpha), int(active_space.n_beta))
+    hessian = np.diag(np.asarray(diagonal, dtype=float))
+    for mu in range(m):
+        for nu in range(mu + 1, m):
+            e: dict[tuple[int, int], float] = {}
+            for a in (1, -1):
+                for b in (1, -1):
+                    geometry = displace_along_mode(displace_along_mode(center.geometry, modes[mu], masses_me, a * q),
+                                                   modes[nu], masses_me, b * q)
+                    snap = snapshot_factory(geometry)
+                    overlap_mo = center.mo_coeff.T @ np.asarray(cross_overlap_factory(center, snap), dtype=float) @ snap.mo_coeff
+                    _check_block_overlap(_block_min_singular_values(overlap_mo, partition), block_overlap_tolerance,
+                                         where=f"Q = ({a * q:+.3f}, {b * q:+.3f}) along modes {modes[mu].mode_index} and {modes[nu].mode_index}")
+                    canonical = frozen_core_contract(snap.h_mo, snap.eri_mo, snap.nuclear_repulsion, active_space)
+                    e[a, b] = float(fci_energy(canonical, particles))
+            hessian[mu, nu] = hessian[nu, mu] = (e[1, 1] - e[1, -1] - e[-1, 1] + e[-1, -1]) / (4.0 * q * q)
+    return hessian
 
 
 def mean_field_pyscf_eph_couplings(computation: CouplingComputation) -> tuple[LinearCoupling, ...]:
@@ -1207,6 +1375,7 @@ def build_molecular_vibronic_model(
     reference_force_counter_term: bool | None = None,
     harmonic_curvature: str = "pes_consistent",
     alignment: str = "block_diagonal",
+    mode_basis: str = "rhf_normal_modes",
     degenerate_boundary_tolerance_hartree: float = 1.0e-6,
     stationary_gradient_tolerance: float = 1.0e-3,
     tol: float = 1.0e-12,
@@ -1231,9 +1400,9 @@ def build_molecular_vibronic_model(
       the phonon is screened by everything except the electrons the model
       treats explicitly. Costs the FCI of the active space at the center, at
       every displaced geometry and at +/- q_step along each coupling.
-      The off-diagonal of the FCI Hessian between modes of one irreducible
-      representation is not reproduced (the model holds its cross response
-      -chi_{mu nu} there); see the module docstring.
+      With the RHF normal modes the off-diagonal of the FCI Hessian between
+      modes of one irreducible representation is not reproduced (the model
+      holds its cross response -chi_{mu nu} there); see ``mode_basis``.
     * ``rhf_hessian``: omega_nu from the RHF Hessian (the Paper IV H2O
       definition). The Hessian already holds the Hartree-Fock orbital
       relaxation, omega_nu^2 = K_nu - chi_nu^HF, and the coupling regenerates
@@ -1261,6 +1430,18 @@ def build_molecular_vibronic_model(
     few cm^-1 through chi and the H2O cutoff-3 exact ground energy by 2e-4
     Hartree. Reproducing the Paper IV H2O model therefore needs both
     ``harmonic_curvature="rhf_hessian"`` and ``alignment="full"``.
+
+    ``mode_basis`` (with ``pes_consistent`` only): ``rhf_normal_modes`` keeps
+    the RHF normal modes with diagonal oscillators, which reproduces the
+    diagonal of the FCI Hessian; the full response matrix chi_{mu nu} is still
+    recorded so the uncompensated off-diagonal is visible. ``model_consistent``
+    also measures the off-diagonal of the FCI surface Hessian (four extra
+    displaced SCFs per mode pair) and takes the modes as the eigenvectors of
+    W = K^PES + chi with omega_a^2 its eigenvalues, the couplings rotated with
+    them; the model's adiabatic Hessian is then the full FCI Hessian with
+    diagonal oscillators only. The rotation mixes modes of one irreducible
+    representation (H2O/STO-3G: bend and symmetric stretch by about 2.6
+    degrees) and is recorded in the provenance.
     The geometry is used as given (never optimized): the residual gradient is
     recorded and a warning is issued above ``stationary_gradient_tolerance``
     Hartree/Bohr.
@@ -1272,6 +1453,10 @@ def build_molecular_vibronic_model(
         raise ValueError(f"harmonic_curvature must be one of {HARMONIC_CURVATURES}; got {harmonic_curvature!r}.")
     if alignment not in ALIGNMENTS:
         raise ValueError(f"alignment must be one of {ALIGNMENTS}; got {alignment!r}.")
+    if mode_basis not in MODE_BASES:
+        raise ValueError(f"mode_basis must be one of {MODE_BASES}; got {mode_basis!r}.")
+    if mode_basis == "model_consistent" and harmonic_curvature != "pes_consistent":
+        raise ValueError("mode_basis='model_consistent' diagonalizes K_PES + chi and needs harmonic_curvature='pes_consistent'.")
     center = pyscf_rhf_snapshot(geometry, basis=basis)
     space = select_active_space(center.n_spatial_orbitals, center.n_alpha, center.n_beta, policy=active_space, symbols=geometry.symbols)
     _check_degenerate_orbital_boundaries(center.mo_energy, space, tolerance=degenerate_boundary_tolerance_hartree)
@@ -1325,17 +1510,31 @@ def build_molecular_vibronic_model(
         model_modes = tuple(
             NormalMode(m.mode_index, _oscillator_frequency(w2, mode=m, source="K_PES + chi"), m.mass_weighted_vector, m.label)
             for m, w2 in zip(modes, omega_sq))
+        # The full response matrix, off-diagonal included: what diagonal oscillators in the
+        # RHF normal modes leave uncompensated between modes of one irreducible representation.
+        chi_matrix = active_response_matrix(computation.active_tensors, couplings, particles, q_step_au=q_step_au,
+                                            diagonal=responses)
         curvature_record = {
             "fci_surface_curvature_hartree_per_q2": list(computation.fci_surface_curvature_by_mode),
             "active_response_hartree_per_q2": [float(v) for v in responses],
             "active_response_drift": response_drift,
+            "active_response_matrix_hartree_per_q2": chi_matrix.tolist(),
             "pes_consistent_frequencies_cm1": [m.frequency_cm1 for m in model_modes],
             "center_fci_energy_hartree": computation.center_fci_energy,
         }
+        if mode_basis == "model_consistent":
+            k_matrix = fci_surface_hessian(center, modes, masses_me=masses, active_space=space,
+                                           diagonal=computation.fci_surface_curvature_by_mode, q_step_au=q_step_au)
+            model_modes, couplings, rotation = model_consistent_modes(modes, couplings, k_matrix + chi_matrix)
+            curvature_record.update({
+                "fci_surface_hessian_hartree_per_q2": k_matrix.tolist(),
+                "model_consistent_rotation": rotation.tolist(),   # column a: model mode a in the RHF-mode basis
+                "model_consistent_frequencies_cm1": [m.frequency_cm1 for m in model_modes],
+            })
     provenance = {
         "producer": "src.quantum.chemistry.molecular_vibronic", "schema": MODEL_SCHEMA,
         "reference_force_counter_term": bool(reference_force_counter_term),
-        "harmonic_curvature": str(harmonic_curvature), "alignment": str(alignment),
+        "harmonic_curvature": str(harmonic_curvature), "alignment": str(alignment), "mode_basis": str(mode_basis),
         "rhf_hessian_frequencies_cm1": [m.frequency_cm1 for m in modes],
         "frozen_reference_frequencies_cm1": [math.sqrt(max(k, 0.0)) * HARTREE_TO_CM_INV
                                              for k in computation.frozen_reference_curvature_by_mode],
@@ -1449,6 +1648,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--alignment", choices=list(ALIGNMENTS), default="block_diagonal",
                         help="displaced-orbital alignment: block_diagonal keeps the canonical frozen core (default); "
                              "full rotates the whole MO set (Paper IV H2O)")
+    parser.add_argument("--mode-basis", choices=list(MODE_BASES), default="rhf_normal_modes",
+                        help="rhf_normal_modes (default) or model_consistent: modes from the eigenvectors of "
+                             "K_PES + chi so the model carries the full FCI Hessian (pes_consistent only)")
     parser.add_argument("--q-step", type=float, default=0.1)
     parser.add_argument("--q-step-alt", type=float, default=0.05)
     parser.add_argument("--modes", type=int, nargs="*", default=None, help="subset of mode indices (ascending frequency)")
@@ -1472,7 +1674,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         geometry, basis=args.basis, active_space=args.active_space, cutoffs=cutoffs, encoding=args.encoding,
         coupling_model=args.coupling, q_step_au=args.q_step, q_step_alt_au=args.q_step_alt, mode_indices=args.modes,
         reference_force_counter_term={"auto": None, "on": True, "off": False}[args.reference_force_counter_term],
-        harmonic_curvature=args.harmonic_curvature, alignment=args.alignment)
+        harmonic_curvature=args.harmonic_curvature, alignment=args.alignment, mode_basis=args.mode_basis)
     report: dict[str, Any] = {"n_qubits": model.n_qubits, "n_terms": len(model.h_vibronic.return_polynomial()),
                               "frequencies_cm1": [m.frequency_cm1 for m in model.modes]}
     if int(args.exact) > 0:
