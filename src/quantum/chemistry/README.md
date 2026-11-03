@@ -255,21 +255,23 @@ FCI Hessian in the normal-mode basis; it costs one active-space FCI per
 displaced geometry and per coupling step. `rhf_hessian` is the Paper IV H2O
 definition (the RHF Hessian already holds the orbital relaxation the coupling
 regenerates) and `frozen_reference` is the Hartree-Fock analogue of the
-default. The model file records all three frequency sets. With the RHF normal
-modes only the diagonal of the FCI Hessian is reproduced: the model's cross
-response `chi_{mu nu}` between modes of one irreducible representation stays
-uncompensated (recorded as a matrix in the provenance). `--mode-basis
-model_consistent` also measures the off-diagonal FCI surface curvature (four
-extra displaced SCFs per mode pair) and takes the modes as the eigenvectors of
-`K_PES + chi`, after which the model's adiabatic Hessian is the full FCI
-Hessian (H2O/STO-3G: bend and symmetric stretch mix by 2.6 degrees; exact
-ground energy -74.9999118 Ha at cutoffs (3,3,3) against -75.0002755 with the
-RHF normal modes).
+default. The model file records all three frequency sets. Mode basis
+(`--mode-basis`): `model_consistent` (the default, decided 2026-11-02) also
+measures the off-diagonal FCI surface curvature (four extra displaced SCFs per
+mode pair) and takes the modes as the eigenvectors of `K_PES + chi`, after
+which the model's adiabatic Hessian is the full FCI Hessian; the modes come in
+ascending frequency and can reorder against the RHF modes (H2O/STO-3G: bend
+and symmetric stretch mix by 2.6 degrees and the B2 stretch becomes mode 1),
+so per-mode cutoffs follow that order. `rhf_normal_modes` keeps the RHF normal
+modes, which reproduces only the diagonal of the FCI Hessian; the model's
+cross response `chi_{mu nu}` between modes of one irreducible representation
+stays uncompensated there (recorded as a matrix in the provenance).
 
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector
 ground energies to 5e-8 Ha at cutoffs (3,3,3), (4,4,4) and (3,7,3); with the
-defaults the exact ground energy at cutoffs (3,3,3) is -75.0002755 Ha (18
-qubits). Output schema `molecular_vibronic_qubit_hamiltonian_v1` states units,
-spin order, Pauli-word order and the ladder convention.
+defaults the exact ground energy at cutoffs (3,3,3) is -74.9999118 Ha (18
+qubits; -75.0002755 Ha with `--mode-basis rhf_normal_modes`). Output schema
+`molecular_vibronic_qubit_hamiltonian_v1` states units, spin order, Pauli-word
+order and the ladder convention.
