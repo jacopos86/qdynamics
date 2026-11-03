@@ -1972,6 +1972,9 @@
           0.9999991443666061,
           0.9999989697852989
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.999998970650842,
         "occupied_block_min_singular_value": 0.9999997688133179,
         "passed": true,
@@ -3971,6 +3974,9 @@
           0.9999997842314089,
           0.9999991448710179,
           0.9999989696600056
+        ],
+        "leakage_partner_orbitals": [
+          0
         ],
         "min_singular_value": 0.9999989705136766,
         "occupied_block_min_singular_value": 0.9999997687723832,
@@ -5972,6 +5978,9 @@
           0.9999997861230402,
           0.999999742438223
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999997426538656,
         "occupied_block_min_singular_value": 0.999999942200776,
         "passed": true,
@@ -7971,6 +7980,9 @@
           0.9999999460583442,
           0.9999997861860912,
           0.9999997424225611
+        ],
+        "leakage_partner_orbitals": [
+          0
         ],
         "min_singular_value": 0.9999997426367201,
         "occupied_block_min_singular_value": 0.999999942195648,
@@ -9972,6 +9984,9 @@
           0.9999995268258719,
           0.9999994082353229
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999994082353231,
         "occupied_block_min_singular_value": 0.9999997538127153,
         "passed": true,
@@ -11971,6 +11986,9 @@
           0.9999998414445461,
           0.9999995270881177,
           0.9999994082907959
+        ],
+        "leakage_partner_orbitals": [
+          0
         ],
         "min_singular_value": 0.9999994082907958,
         "occupied_block_min_singular_value": 0.9999997537377636,
@@ -13972,6 +13990,9 @@
           0.9999998817227767,
           0.9999998520622041
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999998520622041,
         "occupied_block_min_singular_value": 0.9999999384484322,
         "passed": true,
@@ -15971,6 +15992,9 @@
           0.9999999603609777,
           0.9999998817555578,
           0.9999998520691382
+        ],
+        "leakage_partner_orbitals": [
+          0
         ],
         "min_singular_value": 0.9999998520691388,
         "occupied_block_min_singular_value": 0.9999999384391486,
@@ -17972,6 +17996,9 @@
           0.9999995448460014,
           0.9999994346309586
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999994320770412,
         "occupied_block_min_singular_value": 0.9999997200007361,
         "passed": true,
@@ -19971,6 +19998,9 @@
           0.9999997694072368,
           0.9999995448460006,
           0.9999994346309589
+        ],
+        "leakage_partner_orbitals": [
+          0
         ],
         "min_singular_value": 0.9999994320770412,
         "occupied_block_min_singular_value": 0.9999997200007325,
@@ -21972,6 +22002,9 @@
           0.9999998862113989,
           0.9999998586576743
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999998580191947,
         "occupied_block_min_singular_value": 0.9999999300001841,
         "passed": true,
@@ -23972,6 +24005,9 @@
           0.9999998862113992,
           0.9999998586576745
         ],
+        "leakage_partner_orbitals": [
+          0
+        ],
         "min_singular_value": 0.9999998580191948,
         "occupied_block_min_singular_value": 0.999999930000184,
         "passed": true,
@@ -25936,6 +25972,7 @@
       "center_fci_energy_hartree": -75.02036485442103,
       "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
       "coupling_model": "full_linear",
+      "decided_model": true,
       "decided_on": "2026-11-02",
       "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
       "fci_surface_curvature_hartree_per_q2": [
@@ -25965,6 +26002,7 @@
         5222.103582824089,
         4954.734131336276
       ],
+      "geometry_source": "paper_iv_h2o_fixture_center_20260731",
       "harmonic_curvature": "pes_consistent",
       "hf_energy_hartree": -74.96590106193611,
       "lane_frequencies_cm1": {
@@ -25976,6 +26014,11 @@
         "0": "bend",
         "1": "antisymmetric_stretch",
         "2": "symmetric_stretch"
+      },
+      "lane_orientation_by_builder_mode": {
+        "0": -1.0,
+        "1": 1.0,
+        "2": 1.0
       },
       "mode_basis": "model_consistent",
       "model_consistent_frequencies_cm1": [
@@ -26012,11 +26055,64 @@
         2170.792520826191,
         4138.6873656670505,
         4389.243833398536
+      ],
+      "rhf_normal_mode_vectors": [
+        [
+          [
+            1.814286760359035e-30,
+            -4.389231546875227e-18,
+            -0.26440530379650073
+          ],
+          [
+            -5.5034205425240566e-17,
+            -0.43320163459514,
+            0.5266699739364676
+          ],
+          [
+            -5.037861510515238e-22,
+            0.43320163459514005,
+            0.5266699739364663
+          ]
+        ],
+        [
+          [
+            4.3769174613270915e-31,
+            -1.2392667936898461e-14,
+            -0.20495050283510208
+          ],
+          [
+            1.6249940183920717e-16,
+            0.5588705966358639,
+            0.4082417199524541
+          ],
+          [
+            1.2731346544932167e-21,
+            -0.5588705966358143,
+            0.40824171995241193
+          ]
+        ],
+        [
+          [
+            1.3445603128730283e-18,
+            -0.2623724133553842,
+            9.97895784069848e-15
+          ],
+          [
+            2.2363427900010248e-17,
+            0.5226206513991648,
+            0.4386889707823795
+          ],
+          [
+            4.591191519870752e-18,
+            0.5226206513992177,
+            -0.43868897078241914
+          ]
+        ]
       ]
     },
     "name": "pyscf",
     "reference": "rhf",
-    "scf_type": "direct",
+    "scf_type": "incore",
     "version": "2.14.0"
   },
   "center_snapshot_id": "snap_center",
@@ -26123,15 +26219,17 @@
         "symmetric_stretch_score": 0.0007755465377861093
       },
       "mode_index": 0,
+      "orientation_sign_vs_builder_mode": -1.0,
       "primary_max_cartesian_displacement_bohr": 0.0011843132574288575,
       "q_step_alt_au": 0.05,
       "q_step_au": 0.1,
       "rhf_hessian_frequency_cm1_of_dominant_mode": 2170.792520826191,
       "rhf_mode_weights": [
-        0.9989718124066165,
-        -0.04533561532658186,
-        -2.469539745401821e-09
-      ]
+        -0.9989718124066165,
+        0.04533561532658186,
+        2.469539745401821e-09
+      ],
+      "trans_rot_overlap": 2.338938151982311e-16
     },
     {
       "alt_max_cartesian_displacement_bohr": 0.0006283611101290426,
@@ -26175,6 +26273,7 @@
         "symmetric_stretch_score": 0.03383410309487844
       },
       "mode_index": 1,
+      "orientation_sign_vs_builder_mode": 1.0,
       "primary_max_cartesian_displacement_bohr": 0.0012567222202580853,
       "q_step_alt_au": 0.05,
       "q_step_au": 0.1,
@@ -26183,7 +26282,8 @@
         0.04533561532658184,
         0.9989718124066167,
         -5.634473243690995e-09
-      ]
+      ],
+      "trans_rot_overlap": 2.630674544691253e-16
     },
     {
       "alt_max_cartesian_displacement_bohr": 0.0006096547352499568,
@@ -26227,6 +26327,7 @@
         "symmetric_stretch_score": 1.9255141925356156e-10
       },
       "mode_index": 2,
+      "orientation_sign_vs_builder_mode": 1.0,
       "primary_max_cartesian_displacement_bohr": 0.0012193094704999136,
       "q_step_alt_au": 0.05,
       "q_step_au": 0.1,
@@ -26235,7 +26336,8 @@
         2.722442906818124e-09,
         5.516721844275349e-09,
         1.0
-      ]
+      ],
+      "trans_rot_overlap": 5.157092201093733e-17
     }
   ],
   "provenance": {
@@ -26285,6 +26387,7 @@
       "center_fci_energy_hartree": -75.02036485442103,
       "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
       "coupling_model": "full_linear",
+      "decided_model": true,
       "decided_on": "2026-11-02",
       "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
       "fci_surface_curvature_hartree_per_q2": [
@@ -26314,6 +26417,7 @@
         5222.103582824089,
         4954.734131336276
       ],
+      "geometry_source": "paper_iv_h2o_fixture_center_20260731",
       "harmonic_curvature": "pes_consistent",
       "hf_energy_hartree": -74.96590106193611,
       "lane_frequencies_cm1": {
@@ -26325,6 +26429,11 @@
         "0": "bend",
         "1": "antisymmetric_stretch",
         "2": "symmetric_stretch"
+      },
+      "lane_orientation_by_builder_mode": {
+        "0": -1.0,
+        "1": 1.0,
+        "2": 1.0
       },
       "mode_basis": "model_consistent",
       "model_consistent_frequencies_cm1": [
@@ -26361,6 +26470,59 @@
         2170.792520826191,
         4138.6873656670505,
         4389.243833398536
+      ],
+      "rhf_normal_mode_vectors": [
+        [
+          [
+            1.814286760359035e-30,
+            -4.389231546875227e-18,
+            -0.26440530379650073
+          ],
+          [
+            -5.5034205425240566e-17,
+            -0.43320163459514,
+            0.5266699739364676
+          ],
+          [
+            -5.037861510515238e-22,
+            0.43320163459514005,
+            0.5266699739364663
+          ]
+        ],
+        [
+          [
+            4.3769174613270915e-31,
+            -1.2392667936898461e-14,
+            -0.20495050283510208
+          ],
+          [
+            1.6249940183920717e-16,
+            0.5588705966358639,
+            0.4082417199524541
+          ],
+          [
+            1.2731346544932167e-21,
+            -0.5588705966358143,
+            0.40824171995241193
+          ]
+        ],
+        [
+          [
+            1.3445603128730283e-18,
+            -0.2623724133553842,
+            9.97895784069848e-15
+          ],
+          [
+            2.2363427900010248e-17,
+            0.5226206513991648,
+            0.4386889707823795
+          ],
+          [
+            4.591191519870752e-18,
+            0.5226206513992177,
+            -0.43868897078241914
+          ]
+        ]
       ]
     },
     "q_step_alt_au": 0.05,
@@ -26439,6 +26601,7 @@
       "center_fci_energy_hartree": -75.02036485442103,
       "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
       "coupling_model": "full_linear",
+      "decided_model": true,
       "decided_on": "2026-11-02",
       "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
       "fci_surface_curvature_hartree_per_q2": [
@@ -26468,6 +26631,7 @@
         5222.103582824089,
         4954.734131336276
       ],
+      "geometry_source": "paper_iv_h2o_fixture_center_20260731",
       "harmonic_curvature": "pes_consistent",
       "hf_energy_hartree": -74.96590106193611,
       "lane_frequencies_cm1": {
@@ -26479,6 +26643,11 @@
         "0": "bend",
         "1": "antisymmetric_stretch",
         "2": "symmetric_stretch"
+      },
+      "lane_orientation_by_builder_mode": {
+        "0": -1.0,
+        "1": 1.0,
+        "2": 1.0
       },
       "mode_basis": "model_consistent",
       "model_consistent_frequencies_cm1": [
@@ -26515,6 +26684,59 @@
         2170.792520826191,
         4138.6873656670505,
         4389.243833398536
+      ],
+      "rhf_normal_mode_vectors": [
+        [
+          [
+            1.814286760359035e-30,
+            -4.389231546875227e-18,
+            -0.26440530379650073
+          ],
+          [
+            -5.5034205425240566e-17,
+            -0.43320163459514,
+            0.5266699739364676
+          ],
+          [
+            -5.037861510515238e-22,
+            0.43320163459514005,
+            0.5266699739364663
+          ]
+        ],
+        [
+          [
+            4.3769174613270915e-31,
+            -1.2392667936898461e-14,
+            -0.20495050283510208
+          ],
+          [
+            1.6249940183920717e-16,
+            0.5588705966358639,
+            0.4082417199524541
+          ],
+          [
+            1.2731346544932167e-21,
+            -0.5588705966358143,
+            0.40824171995241193
+          ]
+        ],
+        [
+          [
+            1.3445603128730283e-18,
+            -0.2623724133553842,
+            9.97895784069848e-15
+          ],
+          [
+            2.2363427900010248e-17,
+            0.5226206513991648,
+            0.4386889707823795
+          ],
+          [
+            4.591191519870752e-18,
+            0.5226206513992177,
+            -0.43868897078241914
+          ]
+        ]
       ]
     },
     "normal_mode_diagnostics": [
@@ -26543,13 +26765,15 @@
           "symmetric_stretch_score": 0.0007755465377861093
         },
         "mode_index": 0,
+        "orientation_sign_vs_builder_mode": -1.0,
         "primary_max_cartesian_displacement_bohr": 0.0011843132574288575,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 2170.792520826191,
         "rhf_mode_weights": [
-          0.9989718124066165,
-          -0.04533561532658186,
-          -2.469539745401821e-09
-        ]
+          -0.9989718124066165,
+          0.04533561532658186,
+          2.469539745401821e-09
+        ],
+        "trans_rot_overlap": 2.338938151982311e-16
       },
       {
         "alt_max_cartesian_displacement_bohr": 0.0006283611101290426,
@@ -26576,13 +26800,15 @@
           "symmetric_stretch_score": 0.03383410309487844
         },
         "mode_index": 1,
+        "orientation_sign_vs_builder_mode": 1.0,
         "primary_max_cartesian_displacement_bohr": 0.0012567222202580853,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 4138.6873656670505,
         "rhf_mode_weights": [
           0.04533561532658184,
           0.9989718124066167,
           -5.634473243690995e-09
-        ]
+        ],
+        "trans_rot_overlap": 2.630674544691253e-16
       },
       {
         "alt_max_cartesian_displacement_bohr": 0.0006096547352499568,
@@ -26609,13 +26835,15 @@
           "symmetric_stretch_score": 1.9255141925356156e-10
         },
         "mode_index": 2,
+        "orientation_sign_vs_builder_mode": 1.0,
         "primary_max_cartesian_displacement_bohr": 0.0012193094704999136,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 4389.243833398536,
         "rhf_mode_weights": [
           2.722442906818124e-09,
           5.516721844275349e-09,
           1.0
-        ]
+        ],
+        "trans_rot_overlap": 5.157092201093733e-17
       }
     ],
     "normal_mode_label_policy": "internal_coordinate_character_v1",

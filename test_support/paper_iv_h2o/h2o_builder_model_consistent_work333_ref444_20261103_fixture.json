@@ -128607,7 +128607,7 @@
     "symmetry": {}
   },
   "manifest": {
-    "created_utc": "2026-11-03T06:36:23Z",
+    "created_utc": "2026-11-03T16:26:58Z",
     "derivative_source": "finite_difference_mass_weighted_normal_modes_center_aligned_v1",
     "family_key": "molecular_vibronic_h2o_linear_fd",
     "generator_version": "h2o_linear_fd_generator_v2",
@@ -128615,7 +128615,7 @@
     "molecule_family_key": "molecular_vibronic_h2o",
     "production_status": "production_validated",
     "provenance_hashes": {
-      "backend_record_sha256": "ee1e3cd7957af387476f7f06320b3626fa445aed1cecd877d715fcc91596828a"
+      "backend_record_sha256": "c73553288903195becad1c2bbd11ed4b46166038b648252fce5e709d9fff3aab"
     },
     "repository_commit": null,
     "schema": "molecular_vibronic_h2o_linear_fd_fixture_v1",
@@ -180177,6 +180177,7 @@
         "center_fci_energy_hartree": -75.02036485442103,
         "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
         "coupling_model": "full_linear",
+        "decided_model": true,
         "decided_on": "2026-11-02",
         "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
         "fci_surface_curvature_hartree_per_q2": [
@@ -180206,6 +180207,7 @@
           5222.103582824089,
           4954.734131336276
         ],
+        "geometry_source": "paper_iv_h2o_fixture_center_20260731",
         "harmonic_curvature": "pes_consistent",
         "hf_energy_hartree": -74.96590106193611,
         "lane_frequencies_cm1": {
@@ -180217,6 +180219,11 @@
           "0": "bend",
           "1": "antisymmetric_stretch",
           "2": "symmetric_stretch"
+        },
+        "lane_orientation_by_builder_mode": {
+          "0": -1.0,
+          "1": 1.0,
+          "2": 1.0
         },
         "mode_basis": "model_consistent",
         "model_consistent_frequencies_cm1": [
@@ -180253,15 +180260,68 @@
           2170.792520826191,
           4138.6873656670505,
           4389.243833398536
+        ],
+        "rhf_normal_mode_vectors": [
+          [
+            [
+              1.814286760359035e-30,
+              -4.389231546875227e-18,
+              -0.26440530379650073
+            ],
+            [
+              -5.5034205425240566e-17,
+              -0.43320163459514,
+              0.5266699739364676
+            ],
+            [
+              -5.037861510515238e-22,
+              0.43320163459514005,
+              0.5266699739364663
+            ]
+          ],
+          [
+            [
+              4.3769174613270915e-31,
+              -1.2392667936898461e-14,
+              -0.20495050283510208
+            ],
+            [
+              1.6249940183920717e-16,
+              0.5588705966358639,
+              0.4082417199524541
+            ],
+            [
+              1.2731346544932167e-21,
+              -0.5588705966358143,
+              0.40824171995241193
+            ]
+          ],
+          [
+            [
+              1.3445603128730283e-18,
+              -0.2623724133553842,
+              9.97895784069848e-15
+            ],
+            [
+              2.2363427900010248e-17,
+              0.5226206513991648,
+              0.4386889707823795
+            ],
+            [
+              4.591191519870752e-18,
+              0.5226206513992177,
+              -0.43868897078241914
+            ]
+          ]
         ]
       },
       "name": "pyscf",
       "reference": "rhf",
-      "scf_type": "direct",
+      "scf_type": "incore",
       "version": "2.14.0"
     },
     "backend_record_schema": "h2o_linear_fd_backend_record_v1",
-    "backend_record_sha256": "ee1e3cd7957af387476f7f06320b3626fa445aed1cecd877d715fcc91596828a",
+    "backend_record_sha256": "c73553288903195becad1c2bbd11ed4b46166038b648252fce5e709d9fff3aab",
     "generator": "src.quantum.chemistry.generate_h2o_linear_fd_fixture:h2o_linear_fd_generator_v2"
   },
   "reference_state": {
@@ -1228969,6 +1229029,7 @@
       "center_fci_energy_hartree": -75.02036485442103,
       "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
       "coupling_model": "full_linear",
+      "decided_model": true,
       "decided_on": "2026-11-02",
       "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
       "fci_surface_curvature_hartree_per_q2": [
@@ -1228998,6 +1229059,7 @@
         5222.103582824089,
         4954.734131336276
       ],
+      "geometry_source": "paper_iv_h2o_fixture_center_20260731",
       "harmonic_curvature": "pes_consistent",
       "hf_energy_hartree": -74.96590106193611,
       "lane_frequencies_cm1": {
@@ -1229009,6 +1229071,11 @@
         "0": "bend",
         "1": "antisymmetric_stretch",
         "2": "symmetric_stretch"
+      },
+      "lane_orientation_by_builder_mode": {
+        "0": -1.0,
+        "1": 1.0,
+        "2": 1.0
       },
       "mode_basis": "model_consistent",
       "model_consistent_frequencies_cm1": [
@@ -1229045,6 +1229112,59 @@
         2170.792520826191,
         4138.6873656670505,
         4389.243833398536
+      ],
+      "rhf_normal_mode_vectors": [
+        [
+          [
+            1.814286760359035e-30,
+            -4.389231546875227e-18,
+            -0.26440530379650073
+          ],
+          [
+            -5.5034205425240566e-17,
+            -0.43320163459514,
+            0.5266699739364676
+          ],
+          [
+            -5.037861510515238e-22,
+            0.43320163459514005,
+            0.5266699739364663
+          ]
+        ],
+        [
+          [
+            4.3769174613270915e-31,
+            -1.2392667936898461e-14,
+            -0.20495050283510208
+          ],
+          [
+            1.6249940183920717e-16,
+            0.5588705966358639,
+            0.4082417199524541
+          ],
+          [
+            1.2731346544932167e-21,
+            -0.5588705966358143,
+            0.40824171995241193
+          ]
+        ],
+        [
+          [
+            1.3445603128730283e-18,
+            -0.2623724133553842,
+            9.97895784069848e-15
+          ],
+          [
+            2.2363427900010248e-17,
+            0.5226206513991648,
+            0.4386889707823795
+          ],
+          [
+            4.591191519870752e-18,
+            0.5226206513992177,
+            -0.43868897078241914
+          ]
+        ]
       ]
     },
     "normal_mode_diagnostics": [
@@ -1229073,13 +1229193,15 @@
           "symmetric_stretch_score": 0.0007755465377861093
         },
         "mode_index": 0,
+        "orientation_sign_vs_builder_mode": -1.0,
         "primary_max_cartesian_displacement_bohr": 0.0011843132574288575,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 2170.792520826191,
         "rhf_mode_weights": [
-          0.9989718124066165,
-          -0.04533561532658186,
-          -2.469539745401821e-09
-        ]
+          -0.9989718124066165,
+          0.04533561532658186,
+          2.469539745401821e-09
+        ],
+        "trans_rot_overlap": 2.338938151982311e-16
       },
       {
         "alt_max_cartesian_displacement_bohr": 0.0006283611101290426,
@@ -1229106,13 +1229228,15 @@
           "symmetric_stretch_score": 0.03383410309487844
         },
         "mode_index": 1,
+        "orientation_sign_vs_builder_mode": 1.0,
         "primary_max_cartesian_displacement_bohr": 0.0012567222202580853,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 4138.6873656670505,
         "rhf_mode_weights": [
           0.04533561532658184,
           0.9989718124066167,
           -5.634473243690995e-09
-        ]
+        ],
+        "trans_rot_overlap": 2.630674544691253e-16
       },
       {
         "alt_max_cartesian_displacement_bohr": 0.0006096547352499568,
@@ -1229139,13 +1229263,15 @@
           "symmetric_stretch_score": 1.9255141925356156e-10
         },
         "mode_index": 2,
+        "orientation_sign_vs_builder_mode": 1.0,
         "primary_max_cartesian_displacement_bohr": 0.0012193094704999136,
         "rhf_hessian_frequency_cm1_of_dominant_mode": 4389.243833398536,
         "rhf_mode_weights": [
           2.722442906818124e-09,
           5.516721844275349e-09,
           1.0
-        ]
+        ],
+        "trans_rot_overlap": 5.157092201093733e-17
       }
     ],
     "normal_mode_label_policy": "internal_coordinate_character_v1",

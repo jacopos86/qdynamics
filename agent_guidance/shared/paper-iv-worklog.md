@@ -270,8 +270,10 @@ checkout, uncommitted; measurement scripts `work/vibronic_curvature_20261102/`):
    curvature along the mode plus the model's own correlated response to the
    assembled coupling, so the exactly solved model carries the FCI curvature.
    The RHF Hessian used so far holds the orbital relaxation that the coupling
-   regenerates (double counting; the symmetric stretch came out a third too
-   soft, the ground state held 2.3 quanta on it, hence n_max = 7).
+   regenerates (double counting: the old model's adiabatic symmetric-stretch
+   curvature is about a third of the FCI surface's, 2237 against 3998 cm^-1,
+   and its ground state holds 2.3 quanta on that mode at cutoffs (4,8,4),
+   hence the n_max = 7 of the production run).
 2. **Modes** = eigenvectors of K^PES + chi as full matrices in the RHF
    normal-mode basis (model-consistent modes), so the full FCI Hessian is
    reproduced rather than its diagonal; bend and symmetric stretch (A1) mix by
@@ -306,8 +308,8 @@ tolerance 1e-5, the setting the 2026-08-26 fixture was validated with.
 
 | quantity | new fixture (3,3,3) | old fixture (3,7,3) |
 |---|---|---|
-| sha256 of the bytes (the attested identity) | `e13ce4fa2316cf7495ca22f4d47f92b3ffe278d2840fb4a223caf690979cd25d` | `fe3c041e…` lineage, 28,025,185 bytes |
-| bytes | 15,670,011 | 28,025,185 |
+| sha256 of the bytes (the attested identity) | see the committed summary file (`<tag>_summary.json`, `fixture_sha256`), pinned in `test_checked_in_production_fixture_matches_its_summary` | `190387449b556904c73fd424635e494eb92af2c13e8b0e0d71234a4bc391256e` (re-encoded from source fixture `fe3c041e…`) |
+| bytes | 15,673,312 (sha256 `de32cd4d1e29b8dcc07e94ad132ee43893fe03fd36cf4538eb6dadf6d5e194df`) | 28,025,185 |
 | qubits / sector dimension | 18 / 14,400 | 19 / 28,800 |
 | modes bend / sym / asym (cm^-1) | 2130.79 / 5314.42 / 5061.82 | 2170.79 / 4138.69 / 4389.24 |
 | exact ground energy (Ha) | −74.99991178 | −75.01446351 |

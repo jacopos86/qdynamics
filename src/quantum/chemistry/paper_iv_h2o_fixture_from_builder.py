@@ -37,6 +37,7 @@ from src.quantum.chemistry.generate_h2o_linear_fd_fixture import (
     _assign_h2o_mode_labels_by_character,
     _h2o_mode_character,
     _parse_int_tuple,
+    _translation_rotation_overlap,
     _write_json,
     build_h2o_linear_fd_fixture_from_record,
     sha256_jsonable,
@@ -93,10 +94,24 @@ def _tensor_payload(scalar: float, one_body: np.ndarray, two_body: np.ndarray) -
 
 
 def lane_active_space_kind(space: Any) -> str:
-    """The lane's name for a frozen-core valence space (``cas_8e_6o_valence`` for H2O/STO-3G), else the builder's."""
+    """The lane's name for the space: ``full_mo_space`` with nothing frozen or discarded, the
+    valence name (``cas_8e_6o_valence`` for H2O/STO-3G) for a frozen-core valence space, else the builder's."""
+    if not space.frozen_core and not space.external:
+        return "full_mo_space"
     if tuple(space.frozen_core) == tuple(range(len(space.frozen_core))) and not space.external:
         return f"cas_{2 * int(space.n_alpha)}e_{len(space.active)}o_valence"
     return str(space.kind)
+
+
+DECIDED_MODEL = ("pes_consistent", "block_diagonal", "model_consistent")
+
+
+def _geometry_source(geometry: MolecularGeometry, given: str | None) -> str:
+    if given is not None:
+        return str(given)
+    same = tuple(geometry.symbols) == tuple(PAPER_IV_H2O_GEOMETRY.symbols) and np.allclose(
+        geometry.coordinates_bohr, PAPER_IV_H2O_GEOMETRY.coordinates_bohr, atol=1e-12)
+    return "paper_iv_h2o_fixture_center_20260731" if same else "caller-supplied geometry"
 
 
 def _sha256_file(path: Path) -> tuple[str, int]:
@@ -123,7 +138,7 @@ def builder_backend_record(
     mode_basis: str | None = None,
     masses_amu: Mapping[str, float] | None = None,
     block_overlap_tolerance: float = 0.5,
-    geometry_source: str = "paper_iv_h2o_fixture_center_20260731",
+    geometry_source: str | None = None,
 ) -> tuple[dict[str, Any], VibronicQubitModel, CouplingComputation]:
     """The ``h2o_linear_fd_backend_record_v1`` of the builder's model at ``geometry``.
 
@@ -147,6 +162,8 @@ def builder_backend_record(
     n_modes = len(model.modes)
     rotation = np.asarray(prov.get("model_consistent_rotation") or np.eye(n_modes), dtype=float)
     rhf_cm1 = [float(v) for v in prov["rhf_hessian_frequencies_cm1"]]
+    decided = (str(prov["harmonic_curvature"]), str(prov["alignment"]), str(prov["mode_basis"])) == DECIDED_MODEL
+    geometry_source = _geometry_source(geometry, geometry_source)
 
     rows: list[dict[str, Any]] = []
     for a, mode in enumerate(model.modes):
@@ -165,9 +182,25 @@ def builder_backend_record(
             "dominant_rhf_mode_index": dominant,
             "rhf_hessian_frequency_cm1_of_dominant_mode": rhf_cm1[dominant],
         })
-    labeled = _assign_h2o_mode_labels_by_character(rows)
+    labeled = [dict(r) for r in _assign_h2o_mode_labels_by_character(rows)]
     if tuple(str(r["label"]) for r in labeled) != LANE_MODE_LABELS:
         raise ValueError(f"mode labelling by character did not yield {LANE_MODE_LABELS}: {[r['label'] for r in labeled]}")
+    for row in labeled:
+        # The assignment maximizes the summed character scores; demand that each mode's own dominant
+        # character agrees, so two modes of one character cannot be split between labels silently.
+        dominant = str(dict(row["mode_character"]).get("dominant_label"))
+        if dominant != str(row["label"]):
+            raise ValueError(f"mode labelled {row['label']!r} has dominant internal-coordinate character {dominant!r}; "
+                             "the model modes do not map one-to-one onto bend / symmetric_stretch / antisymmetric_stretch.")
+        # The lane orients each vector so its own indicator is positive; carry that sign into the
+        # weights so sum_nu w_nu e_nu^RHF reproduces the stored vector, not its negative.
+        a = int(row["builder_mode_index"])
+        orientation = float(np.sign(np.sum(np.asarray(row["mass_weighted_eigenvector"], dtype=float)
+                                           * np.asarray(model.modes[a].mass_weighted_vector, dtype=float))))
+        row["orientation_sign_vs_builder_mode"] = orientation
+        row["rhf_mode_weights"] = [float(orientation * v) for v in rotation[:, a]]
+        row["trans_rot_overlap"] = float(_translation_rotation_overlap(
+            np.asarray(row["mass_weighted_eigenvector"], dtype=float), coordinates_bohr=geometry.coordinates_bohr, masses_me=masses))
 
     mf = center.backend_handle["mf"]
     center_dm = mf.make_rdm1()
@@ -223,6 +256,10 @@ def builder_backend_record(
                         "min_singular_value": float(np.min(s_act)),
                         "alignment_residual_fro": float(np.linalg.norm(o_aa @ r_aa - np.eye(len(active)))),
                         "active_rotation": r_aa.tolist(),
+                        # "external" in these two keys is the generator's meaning: every non-active
+                        # orbital of the displaced SCF (the frozen core here), not the builder's
+                        # discarded virtuals listed under blocks.external.
+                        "leakage_partner_orbitals": [int(i) for i in other],
                         "active_to_external_leakage_fro": float(np.linalg.norm(overlap_mo[np.ix_(active, other)])) if other else None,
                         "external_to_active_leakage_fro": float(np.linalg.norm(overlap_mo[np.ix_(other, active)])) if other else None,
                         "full_singular_values": [float(v) for v in np.linalg.svd(overlap_mo, compute_uv=False)],
@@ -246,9 +283,11 @@ def builder_backend_record(
             "label_source": str(row.get("label_source", "internal_coordinate_character_v1")),
             "mode_character": dict(row.get("mode_character", {})),
             "builder_mode_index": int(row["builder_mode_index"]),
+            "orientation_sign_vs_builder_mode": float(row["orientation_sign_vs_builder_mode"]),
             "rhf_mode_weights": list(row["rhf_mode_weights"]),
             "dominant_rhf_mode_index": int(row["dominant_rhf_mode_index"]),
             "rhf_hessian_frequency_cm1_of_dominant_mode": float(row["rhf_hessian_frequency_cm1_of_dominant_mode"]),
+            "trans_rot_overlap": float(row["trans_rot_overlap"]),
             "primary_max_cartesian_displacement_bohr": float(np.max(np.abs(float(q_step_au) * vector / np.sqrt(masses)[:, None]))),
             "alt_max_cartesian_displacement_bohr": float(np.max(np.abs(float(q_step_alt_au) * vector / np.sqrt(masses)[:, None]))),
         })
@@ -257,8 +296,14 @@ def builder_backend_record(
     model_definition = {k: prov.get(k) for k in MODEL_DEFINITION_KEYS}
     model_definition.update({
         "builder": "src.quantum.chemistry.molecular_vibronic", "builder_model_schema": MODEL_SCHEMA,
-        "coupling_model": str(model.coupling_model), "decided_on": MODEL_DECIDED_ON,
+        "coupling_model": str(model.coupling_model),
+        "decided_model": bool(decided), "decided_on": MODEL_DECIDED_ON if decided else None,
+        "geometry_source": geometry_source,
+        # The RHF normal modes the rotation refers to (mass-weighted, builder order), so the model
+        # modes can be reconstructed from the fixture alone: e_lane = sign * sum_nu U[nu, a] e_nu^RHF.
+        "rhf_normal_mode_vectors": [np.asarray(m.mass_weighted_vector, dtype=float).tolist() for m in computation.modes],
         "lane_label_by_builder_mode": {str(r["builder_mode_index"]): str(r["label"]) for r in labeled},
+        "lane_orientation_by_builder_mode": {str(r["builder_mode_index"]): float(r["orientation_sign_vs_builder_mode"]) for r in labeled},
         "lane_frequencies_cm1": {str(r["label"]): float(r["frequency_cm1"]) for r in labeled},
         "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
     })
@@ -272,9 +317,9 @@ def builder_backend_record(
         "center_gradient_diagnostics": gradient_diagnostics,
         "normal_mode_diagnostics": [
             {k: m[k] for k in ("mode_index", "label", "frequency_hartree", "frequency_cm1", "frequency_source", "label_source",
-                               "mode_character", "builder_mode_index", "rhf_mode_weights", "dominant_rhf_mode_index",
-                               "rhf_hessian_frequency_cm1_of_dominant_mode", "primary_max_cartesian_displacement_bohr",
-                               "alt_max_cartesian_displacement_bohr")}
+                               "mode_character", "builder_mode_index", "orientation_sign_vs_builder_mode", "rhf_mode_weights",
+                               "dominant_rhf_mode_index", "rhf_hessian_frequency_cm1_of_dominant_mode", "trans_rot_overlap",
+                               "primary_max_cartesian_displacement_bohr", "alt_max_cartesian_displacement_bohr")}
             for m in normal_modes],
         "model_definition": model_definition,
     }
@@ -283,7 +328,7 @@ def builder_backend_record(
     record = {
         "schema": BACKEND_RECORD_SCHEMA,
         "backend": {
-            "name": "pyscf", "method": "scf", "basis": str(basis), "reference": "rhf", "scf_type": "direct",
+            "name": "pyscf", "method": "scf", "basis": str(basis), "reference": "rhf", "scf_type": "incore",
             "version": str(center.backend_version), "conv_tol": 1.0e-12, "conv_tol_grad": 1.0e-9,
             "model_definition": model_definition,
         },
@@ -325,60 +370,81 @@ def write_paper_iv_h2o_fixture_from_builder(
     tag: str,
     geometry: MolecularGeometry = PAPER_IV_H2O_GEOMETRY,
     mode_cutoffs: Sequence[int] = (3, 3, 3),
-    reference_cutoffs: Sequence[int] | None = (4, 4, 4),
+    reference_cutoffs: Sequence[int] | None = None,
     derivative_validation_tier: str = "production",
     max_derivative_drift: float = 1.0e-5,
-    exact_reference_policy: str = "auto_sector",
     force: bool = False,
     **record_kwargs: Any,
 ) -> dict[str, Any]:
     """Write ``<tag>_record.json``, ``<tag>_fixture.json`` and ``<tag>_summary.json`` into ``output_dir``.
 
-    The generator validates the finite-difference drift between the two steps with the
-    production tier at relative tolerance ``max_derivative_drift``; 1e-5 is what the production
-    fixture of 2026-08-26 was validated with (its records carry ``rel_tol: 1e-05``). The fixture
-    passes the lane's evidence gate (``validate_paper_iv_h2o_linear_fd_evidence_fixture``) before
-    it is written and again after reloading; the summary cross-checks the fixture's exact sector
-    ground energy against the builder's own exact solution of the same model at uniform work
-    cutoffs.
+    ``reference_cutoffs`` default to one more than each work cutoff (the generator's own rule);
+    given explicitly, each must exceed its work cutoff. The generator validates the
+    finite-difference drift between the two steps with the production tier at relative tolerance
+    ``max_derivative_drift``; 1e-5 is what the production fixture of 2026-08-26 was validated with
+    (its records carry ``rel_tol: 1e-05``). The fixture passes the lane's evidence gate
+    (``validate_paper_iv_h2o_linear_fd_evidence_fixture``) before it is written and again after
+    reloading; the summary cross-checks the fixture's exact sector ground energy against the
+    builder's own exact solution of the same model at the work cutoffs (permuted from lane order
+    into the builder's mode order).
     """
     started = time.time()
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    record, model, computation = builder_backend_record(geometry, **record_kwargs)
-    record_path = out / f"{tag}_record.json"
-    _write_json(record_path, record, force=bool(force))
+    paths = {kind: out / f"{tag}_{kind}.json" for kind in ("record", "fixture", "summary")}
+    if not force:
+        existing = [str(p) for p in paths.values() if p.exists()]
+        if existing:
+            raise FileExistsError(f"output exists (pass force=True to overwrite): {existing}")
     cutoffs = tuple(int(v) for v in mode_cutoffs)
+    reference = None if reference_cutoffs is None else tuple(int(v) for v in reference_cutoffs)
+    if reference is not None and (len(reference) != len(cutoffs) or any(r <= w for r, w in zip(reference, cutoffs))):
+        raise ValueError(f"each reference cutoff must exceed its work cutoff; got reference {reference} for work {cutoffs}.")
+    record, model, computation = builder_backend_record(geometry, **record_kwargs)
     fixture = build_h2o_linear_fd_fixture_from_record(
-        record, mode_cutoffs=cutoffs, reference_cutoffs=None if reference_cutoffs is None else tuple(int(v) for v in reference_cutoffs),
-        require_reference_cutoff=reference_cutoffs is not None,
+        record, mode_cutoffs=cutoffs, reference_cutoffs=reference, require_reference_cutoff=True,
         derivative_validation_tier=str(derivative_validation_tier), max_derivative_drift=float(max_derivative_drift),
-        exact_reference_policy=str(exact_reference_policy))
+        exact_reference_policy="auto_sector")
     validate_paper_iv_h2o_linear_fd_evidence_fixture(fixture)
     payload = production_vibronic_h2o_fixture_to_jsonable(fixture)
-    fixture_path = out / f"{tag}_fixture.json"
-    _write_json(fixture_path, payload, force=bool(force))
+    _write_json(paths["record"], record, force=bool(force))
+    _write_json(paths["fixture"], payload, force=bool(force))
+    record_path, fixture_path = paths["record"], paths["fixture"]
     reloaded = load_production_vibronic_h2o_fixture(fixture_path)
     validate_paper_iv_h2o_linear_fd_evidence_fixture(reloaded)
     fixture_sha256, fixture_bytes = _sha256_file(fixture_path)
+    record_file_sha256, _ = _sha256_file(record_path)
 
-    builder_energy = None
-    if len(set(cutoffs)) == 1:
-        # The same model (the builder's modes and couplings) solved by the builder at the work cutoffs.
-        work_model = assemble_vibronic_model(
-            geometry=geometry, basis=str(model.basis), active_space=computation.active_space,
-            active_tensors=computation.active_tensors, modes=model.modes, couplings=model.couplings,
-            cutoffs=cutoffs[0], coupling_model=str(model.coupling_model))
-        builder_energy = float(exact_sector_energies(work_model, n_low=1)[0][0])
+    # The same model (the builder's modes and couplings) solved by the builder at the work cutoffs,
+    # which the lane lists in bend / symmetric_stretch / antisymmetric_stretch order.
+    lane_to_builder = {int(m["mode_index"]): int(m["builder_mode_index"]) for m in record["normal_modes"]}
+    builder_cutoffs = [0] * len(cutoffs)
+    for lane_index, cutoff in enumerate(cutoffs):
+        builder_cutoffs[lane_to_builder[lane_index]] = int(cutoff)
+    work_model = assemble_vibronic_model(
+        geometry=geometry, basis=str(model.basis), active_space=computation.active_space,
+        active_tensors=computation.active_tensors, modes=model.modes, couplings=model.couplings,
+        cutoffs=builder_cutoffs, coupling_model=str(model.coupling_model))
+    builder_energy = float(exact_sector_energies(work_model, n_low=1)[0][0])
     exact = fixture.exact_reference
     fixture_energy = None if exact.ground_energy_hartree is None else float(exact.ground_energy_hartree)
+    applied = {(str(d.finite_difference_diagnostics.get("tier")), float(d.finite_difference_diagnostics.get("rel_tol")))
+               for d in fixture.first_derivatives}
+    if len(applied) != 1:
+        raise ValueError(f"the generator applied different drift settings per mode: {sorted(applied)}")
+    applied_tier, applied_rel_tol = next(iter(applied))
+    definition = record["backend"]["model_definition"]
     summary = {
-        "schema": SUMMARY_SCHEMA, "producer": PRODUCER, "tag": str(tag), "model_decided_on": MODEL_DECIDED_ON,
+        "schema": SUMMARY_SCHEMA, "producer": PRODUCER, "tag": str(tag),
+        "decided_model": bool(definition["decided_model"]), "model_decided_on": definition["decided_on"],
         "fixture_file": fixture_path.name, "fixture_sha256": fixture_sha256, "fixture_byte_count": int(fixture_bytes),
         "fixture_payload_sha256": sha256_jsonable(payload),
-        "record_file": record_path.name, "record_sha256": sha256_jsonable(record),
+        "record_file": record_path.name, "record_file_sha256": record_file_sha256,
+        "record_payload_sha256": sha256_jsonable(record),
         "fixture_schema": str(fixture.manifest.schema), "production_status": str(fixture.manifest.production_status),
-        "work_cutoffs": list(cutoffs), "reference_cutoffs": None if reference_cutoffs is None else [int(v) for v in reference_cutoffs],
+        "work_cutoffs": list(cutoffs), "builder_order_cutoffs": builder_cutoffs,
+        "reference_cutoffs": None if fixture.cutoff_diagnostics is None or fixture.cutoff_diagnostics.reference_cutoffs is None
+        else [int(v) for v in fixture.cutoff_diagnostics.reference_cutoffs],
         "n_total_qubits": int(fixture.layout.n_total_qubits), "sector_dimension": exact.sector_dimension,
         "mode_labels": [str(m.label) for m in fixture.normal_modes],
         "mode_frequencies_cm1": [float(m.frequency_cm1) for m in fixture.normal_modes],
@@ -389,13 +455,15 @@ def write_paper_iv_h2o_fixture_from_builder(
         "cutoff_diagnostics_passed": None if fixture.cutoff_diagnostics is None else bool(fixture.cutoff_diagnostics.passed),
         "builder_ground_energy_hartree": builder_energy,
         "builder_minus_fixture_hartree": None if builder_energy is None or fixture_energy is None else builder_energy - fixture_energy,
-        "derivative_validation": {"tier": str(derivative_validation_tier), "rel_tol": float(max_derivative_drift)},
+        # The settings the generator applied, read back from its per-mode diagnostics (a non-positive
+        # requested tolerance falls back to the tier default inside the generator).
+        "derivative_validation": {"tier": applied_tier, "rel_tol": applied_rel_tol},
         "finite_difference_drift_by_mode": {str(d.mode_label): float(d.finite_difference_drift) for d in fixture.first_derivatives},
-        "model_definition": record["backend"]["model_definition"],
+        "model_definition": definition,
         "evidence_validation": "passed",
         "elapsed_seconds": time.time() - started,
     }
-    _write_json(out / f"{tag}_summary.json", summary, force=bool(force))
+    _write_json(paths["summary"], summary, force=bool(force))
     return summary
 
 
@@ -408,8 +476,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--basis", default="sto-3g")
     parser.add_argument("--active-space", default="frozen_core")
     parser.add_argument("--mode-cutoffs", default="3,3,3")
-    parser.add_argument("--reference-mode-cutoffs", default="4,4,4")
-    parser.add_argument("--no-reference-cutoff", action="store_true")
+    parser.add_argument("--reference-mode-cutoffs", default=None, help="default: one more than each work cutoff")
     parser.add_argument("--q-step", type=float, default=0.1)
     parser.add_argument("--q-step-alt", type=float, default=0.05)
     parser.add_argument("--harmonic-curvature", default="pes_consistent")
@@ -417,7 +484,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--derivative-validation-tier", default="production")
     parser.add_argument("--max-derivative-drift", type=float, default=1.0e-5,
                         help="relative drift tolerance between the two finite-difference steps (the production fixture used 1e-5)")
-    parser.add_argument("--exact-reference-policy", default="auto_sector")
     parser.add_argument("--force", action="store_true")
     return parser.parse_args(argv)
 
@@ -426,18 +492,17 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     geometry = PAPER_IV_H2O_GEOMETRY if args.geometry is None else parse_geometry(str(args.geometry), units=str(args.units))
     mode_cutoffs = _parse_int_tuple(str(args.mode_cutoffs), label="mode-cutoffs")
-    reference = None if bool(args.no_reference_cutoff) else _parse_int_tuple(str(args.reference_mode_cutoffs), label="reference-mode-cutoffs")
+    reference = None if args.reference_mode_cutoffs is None else _parse_int_tuple(str(args.reference_mode_cutoffs), label="reference-mode-cutoffs")
     summary = write_paper_iv_h2o_fixture_from_builder(
         args.output_dir, tag=str(args.tag), geometry=geometry, mode_cutoffs=mode_cutoffs, reference_cutoffs=reference,
         derivative_validation_tier=str(args.derivative_validation_tier), max_derivative_drift=float(args.max_derivative_drift),
-        exact_reference_policy=str(args.exact_reference_policy),
         force=bool(args.force), basis=str(args.basis), active_space=str(args.active_space), q_step_au=float(args.q_step),
-        q_step_alt_au=float(args.q_step_alt), harmonic_curvature=str(args.harmonic_curvature), mode_basis=args.mode_basis,
-        geometry_source="paper_iv_h2o_fixture_center_20260731" if args.geometry is None else "command line")
+        q_step_alt_au=float(args.q_step_alt), harmonic_curvature=str(args.harmonic_curvature), mode_basis=args.mode_basis)
     print(json.dumps({k: summary[k] for k in ("fixture_file", "fixture_sha256", "fixture_byte_count", "n_total_qubits",
-                                              "mode_labels", "mode_frequencies_cm1", "fixture_ground_energy_hartree",
-                                              "builder_ground_energy_hartree", "builder_minus_fixture_hartree",
-                                              "cutoff_diagnostics_passed", "elapsed_seconds")}, indent=1))
+                                              "mode_labels", "mode_frequencies_cm1", "reference_cutoffs",
+                                              "fixture_ground_energy_hartree", "builder_ground_energy_hartree",
+                                              "builder_minus_fixture_hartree", "cutoff_diagnostics_passed", "decided_model",
+                                              "elapsed_seconds")}, indent=1))
 
 
 if __name__ == "__main__":
