@@ -259,3 +259,79 @@ their own `current.json` + sidecar into a fresh output directory.
 `agent_guidance/static-adapt/failure-atlas.md` was generated 2026-08-18 at
 `ce2adf79` by `pipelines/shell/failure_atlas.py`; it is hundreds of commits
 stale independent of this work.
+
+## Production fixture from the vibronic builder — 2026-11-03
+
+Two decisions by Jake on 2026-11-02 change the Paper IV model definition
+(scientific record: `work/doron-chemistry-brief-20261102.md` in the main
+checkout, uncommitted; measurement scripts `work/vibronic_curvature_20261102/`):
+
+1. **Oscillators** omega_nu^2 = K_nu^PES + chi_nu: the frozen-core FCI surface
+   curvature along the mode plus the model's own correlated response to the
+   assembled coupling, so the exactly solved model carries the FCI curvature.
+   The RHF Hessian used so far holds the orbital relaxation that the coupling
+   regenerates (double counting; the symmetric stretch came out a third too
+   soft, the ground state held 2.3 quanta on it, hence n_max = 7).
+2. **Modes** = eigenvectors of K^PES + chi as full matrices in the RHF
+   normal-mode basis (model-consistent modes), so the full FCI Hessian is
+   reproduced rather than its diagonal; bend and symmetric stretch (A1) mix by
+   2.6 degrees. Displaced orbitals are aligned block by block so the frozen
+   core stays canonical: the full-set Procrustes rotation of the old generator
+   added about 1e-4 Ha/Q^2 of spurious curvature and moved the couplings by
+   0.5-5 %.
+
+Implemented in the molecule-agnostic builder
+`src/quantum/chemistry/molecular_vibronic.py` (branch
+`claude/molecular-vibronic-builder-20261102`, commits `b5426f27` / `0ad967dc`
+/ `72a0668b`; cherry-picked onto this branch as `0513703f` / `9951ab62` /
+`d5dac21d`; the legacy model is reproduced with `harmonic_curvature=
+"rhf_hessian", alignment="full"` to 2e-7 Ha).
+
+**Producer.** `src/quantum/chemistry/paper_iv_h2o_fixture_from_builder.py`
+builds the lane's `h2o_linear_fd_backend_record_v1` from the builder's model
+and hands it to the lane's own generator
+(`generate_h2o_linear_fd_fixture.build_h2o_linear_fd_fixture_from_record`).
+Schema decision: convert to the record rather than teach the lane the builder
+schema, so derivative validation, operator encoding, exact reference,
+evidence gate and sha attestation are unchanged. The record's modes are the
+model modes, labelled bend / symmetric_stretch / antisymmetric_stretch by
+internal-coordinate character (the lane's policy) and kept in that order, so
+positional conventions survive; the displaced tensors are real SCFs along the
+model modes; the generator's central difference reproduces the builder's
+rotated couplings to 2e-6 Ha/Q. Drift validation: production tier at relative
+tolerance 1e-5, the setting the 2026-08-26 fixture was validated with.
+
+**Fixture.** `test_support/paper_iv_h2o/h2o_builder_model_consistent_work333_ref444_20261103_fixture.json`
+(record and summary beside it):
+
+| quantity | new fixture (3,3,3) | old fixture (3,7,3) |
+|---|---|---|
+| sha256 of the bytes (the attested identity) | `e13ce4fa2316cf7495ca22f4d47f92b3ffe278d2840fb4a223caf690979cd25d` | `fe3c041e…` lineage, 28,025,185 bytes |
+| bytes | 15,670,011 | 28,025,185 |
+| qubits / sector dimension | 18 / 14,400 | 19 / 28,800 |
+| modes bend / sym / asym (cm^-1) | 2130.79 / 5314.42 / 5061.82 | 2170.79 / 4138.69 / 4389.24 |
+| exact ground energy (Ha) | −74.99991178 | −75.01446351 |
+| reference cutoffs, energy, delta | (4,4,4), −75.00006177, 1.5e-4 Ha, passed | (4,8,4), −75.01513494, 6.7e-4 Ha, passed |
+| builder's own solution of the same model | −74.99991177 (differs by 1.1e-8 Ha) | — |
+| drift scaled residuals bend / sym / asym (rel 1e-5) | 0.17 / 0.06 / 0.11 | 0.39 / 0.06 / 0.12 |
+
+Evidence gate `validate_paper_iv_h2o_linear_fd_evidence_fixture`: passed;
+`production_validated`; the registry's cached loader
+(`load_cached_production_vibronic_h2o_linear_fd_fixture`) loads it. Tests:
+`test/test_paper_iv_h2o_fixture_from_builder.py` (record structure; small
+fixture end to end, 93 s; checked-in fixture against its summary; the
+production run itself is opt-in, `PAPER_IV_FIXTURE_FROM_BUILDER_FULL=1`).
+
+**What a restart on the new model needs (not done, nothing submitted or
+stopped):** (a) the request must name the new fixture path and carry
+`n_ph_max = 3` (the registry checks it against the fixture's largest cutoff;
+the old request used 7); (b) a new two-arm package variant:
+`chtc/paper_iv_h2o_two_arm_20260903/` hard-codes the old `FIXTURE_NAME`,
+`FIXTURE_EXPECTED_BYTES`, the (3,7,3) request and
+`STATIC_ADAPT_PAULI_SIGN_CACHE_MAX_NQ=19` (18 now); the route contract's
+`paper_iv_h2o_fixture_source_lock_v1` is a name, not a hash, so no contract
+change for the fixture itself, but the attestation makes old checkpoints
+non-resumable on the new fixture by design; (c) Jake's call on the running
+seg13 (cluster 12396953.0, old model); (d) the manuscript has to state the new
+model: K^PES + chi oscillators, model-consistent modes, 2.6 degrees of A1
+mixing, 18 qubits, cutoffs 3.

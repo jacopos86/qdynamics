@@ -267,6 +267,27 @@ modes, which reproduces only the diagonal of the FCI Hessian; the model's
 cross response `chi_{mu nu}` between modes of one irreducible representation
 stays uncompensated there (recorded as a matrix in the provenance).
 
+Paper IV production fixture from the builder:
+`src/quantum/chemistry/paper_iv_h2o_fixture_from_builder.py` turns the
+builder's decided model into the lane's `h2o_linear_fd_backend_record_v1`
+(model modes labelled bend / symmetric_stretch / antisymmetric_stretch by
+internal-coordinate character and kept in that order, their frequencies the
+builder's, displaced SCFs along the model modes aligned block by block) and
+hands it to `generate_h2o_linear_fd_fixture.build_h2o_linear_fd_fixture_from_record`,
+so the fixture is produced, validated (production tier, drift tolerance 1e-5 as
+the 2026-08-26 fixture) and attested exactly as before:
+
+```bash
+PYTHONPATH=$(pwd) python -m src.quantum.chemistry.paper_iv_h2o_fixture_from_builder \
+  --output-dir test_support/paper_iv_h2o --tag h2o_builder_model_consistent_work333_ref444_20261103 \
+  --mode-cutoffs 3,3,3 --reference-mode-cutoffs 4,4,4
+```
+
+The summary it writes next to the fixture cross-checks the fixture's exact
+sector ground energy against the builder's own solution of the same model
+(agreement to 1e-8 Ha) and records the fixture's byte SHA-256, the identity
+the lane's checkpoints attest.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector

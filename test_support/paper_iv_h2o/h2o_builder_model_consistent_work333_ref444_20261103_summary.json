@@ -1,0 +1,176 @@
+{
+  "builder_ground_energy_hartree": -74.99991177059621,
+  "builder_minus_fixture_hartree": 1.0530015970289242e-08,
+  "cutoff_diagnostics_passed": true,
+  "derivative_validation": {
+    "rel_tol": 1e-05,
+    "tier": "production"
+  },
+  "elapsed_seconds": 1423.5425999164581,
+  "evidence_validation": "passed",
+  "exact_reference_method": "sparse_sector_eigsh",
+  "finite_difference_drift_by_mode": {
+    "antisymmetric_stretch": 0.1081395936634629,
+    "bend": 0.17182157868636455,
+    "symmetric_stretch": 0.061005864245934814
+  },
+  "fixture_byte_count": 15670011,
+  "fixture_file": "h2o_builder_model_consistent_work333_ref444_20261103_fixture.json",
+  "fixture_ground_energy_hartree": -74.99991178112623,
+  "fixture_payload_sha256": "54a030eeac968c5a2444862cf16f1a671037576491f2e4ccd89579b8548dfa38",
+  "fixture_schema": "molecular_vibronic_h2o_linear_fd_fixture_v1",
+  "fixture_sha256": "e13ce4fa2316cf7495ca22f4d47f92b3ffe278d2840fb4a223caf690979cd25d",
+  "mode_frequencies_cm1": [
+    2130.7891161820767,
+    5314.422115398927,
+    5061.824990463059
+  ],
+  "mode_labels": [
+    "bend",
+    "symmetric_stretch",
+    "antisymmetric_stretch"
+  ],
+  "model_decided_on": "2026-11-02",
+  "model_definition": {
+    "active_response_drift": [
+      {
+        "abs": 1.4210854715202004e-11,
+        "rel": 9.93684933510554e-07
+      },
+      {
+        "abs": 1.9895196601282805e-11,
+        "rel": 7.846900426129292e-08
+      },
+      {
+        "abs": 5.826450433232822e-11,
+        "rel": 3.8508129686063703e-07
+      }
+    ],
+    "active_response_hartree_per_q2": [
+      1.4301181749942767e-05,
+      0.0002535420861704551,
+      0.00015130448360878288
+    ],
+    "active_response_matrix_hartree_per_q2": [
+      [
+        1.4301181749942767e-05,
+        2.292093554956409e-05,
+        -0.0
+      ],
+      [
+        2.292093554956409e-05,
+        0.0002535420861704551,
+        -0.0
+      ],
+      [
+        -0.0,
+        -0.0,
+        0.00015130448360878288
+      ]
+    ],
+    "alignment": "block_diagonal",
+    "backend": "pyscf",
+    "backend_version": "2.14.0",
+    "builder": "src.quantum.chemistry.molecular_vibronic",
+    "builder_model_schema": "molecular_vibronic_qubit_hamiltonian_v1",
+    "center_fci_energy_hartree": -75.02036485442103,
+    "center_gradient_max_abs_hartree_per_bohr": 0.00036247144008116905,
+    "coupling_model": "full_linear",
+    "decided_on": "2026-11-02",
+    "displaced_scf_along": "model modes (the record's normal_modes), aligned block by block, canonical frozen core",
+    "fci_surface_curvature_hartree_per_q2": [
+      8.096690038428277e-05,
+      0.0003317783267675622,
+      0.00038061462817040587
+    ],
+    "fci_surface_hessian_hartree_per_q2": [
+      [
+        8.096690038428277e-05,
+        -6.353467085773444e-07,
+        1.06581410364015e-12
+      ],
+      [
+        -6.353467085773444e-07,
+        0.0003317783267675622,
+        -3.5527136788005004e-13
+      ],
+      [
+        1.06581410364015e-12,
+        -3.5527136788005004e-13,
+        0.00038061462817040587
+      ]
+    ],
+    "frozen_reference_frequencies_cm1": [
+      2300.7469760156787,
+      5222.103582824089,
+      4954.734131336276
+    ],
+    "harmonic_curvature": "pes_consistent",
+    "hf_energy_hartree": -74.96590106193611,
+    "lane_frequencies_cm1": {
+      "antisymmetric_stretch": 5061.824990463059,
+      "bend": 2130.7891161820767,
+      "symmetric_stretch": 5314.422115398927
+    },
+    "lane_label_by_builder_mode": {
+      "0": "bend",
+      "1": "antisymmetric_stretch",
+      "2": "symmetric_stretch"
+    },
+    "mode_basis": "model_consistent",
+    "model_consistent_frequencies_cm1": [
+      2130.7891161820767,
+      5061.824990463059,
+      5314.422115398927
+    ],
+    "model_consistent_rotation": [
+      [
+        0.9989718124066165,
+        2.722442906818124e-09,
+        0.04533561532658184
+      ],
+      [
+        -0.04533561532658186,
+        5.516721844275349e-09,
+        0.9989718124066167
+      ],
+      [
+        -2.469539745401821e-09,
+        1.0,
+        -5.634473243690995e-09
+      ]
+    ],
+    "pes_consistent_frequencies_cm1": [
+      2142.1902555505353,
+      5309.836681792155,
+      5061.824990463059
+    ],
+    "q_step_alt_au": 0.05,
+    "q_step_au": 0.1,
+    "reference_force_counter_term": false,
+    "rhf_hessian_frequencies_cm1": [
+      2170.792520826191,
+      4138.6873656670505,
+      4389.243833398536
+    ]
+  },
+  "n_total_qubits": 18,
+  "producer": "src.quantum.chemistry.paper_iv_h2o_fixture_from_builder:paper_iv_h2o_fixture_from_builder_v1",
+  "production_status": "production_validated",
+  "record_file": "h2o_builder_model_consistent_work333_ref444_20261103_record.json",
+  "record_sha256": "ee1e3cd7957af387476f7f06320b3626fa445aed1cecd877d715fcc91596828a",
+  "reference_cutoff_ground_energy_hartree": -75.00006177263757,
+  "reference_cutoffs": [
+    4,
+    4,
+    4
+  ],
+  "schema": "paper_iv_h2o_fixture_from_builder_summary_v1",
+  "sector_dimension": 14400,
+  "tag": "h2o_builder_model_consistent_work333_ref444_20261103",
+  "work_cutoffs": [
+    3,
+    3,
+    3
+  ]
+}
