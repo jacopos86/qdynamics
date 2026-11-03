@@ -255,7 +255,16 @@ FCI Hessian in the normal-mode basis; it costs one active-space FCI per
 displaced geometry and per coupling step. `rhf_hessian` is the Paper IV H2O
 definition (the RHF Hessian already holds the orbital relaxation the coupling
 regenerates) and `frozen_reference` is the Hartree-Fock analogue of the
-default. The model file records all three frequency sets.
+default. The model file records all three frequency sets. With the RHF normal
+modes only the diagonal of the FCI Hessian is reproduced: the model's cross
+response `chi_{mu nu}` between modes of one irreducible representation stays
+uncompensated (recorded as a matrix in the provenance). `--mode-basis
+model_consistent` also measures the off-diagonal FCI surface curvature (four
+extra displaced SCFs per mode pair) and takes the modes as the eigenvectors of
+`K_PES + chi`, after which the model's adiabatic Hessian is the full FCI
+Hessian (H2O/STO-3G: bend and symmetric stretch mix by 2.6 degrees; exact
+ground energy -74.9999118 Ha at cutoffs (3,3,3) against -75.0002755 with the
+RHF normal modes).
 
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with

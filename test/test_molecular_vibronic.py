@@ -22,6 +22,7 @@ from src.quantum.chemistry.molecular_vibronic import (
     AMU_TO_ELECTRON_MASS,
     HARMONIC_CURVATURES,
     HARTREE_TO_CM_INV,
+    MODE_BASES,
     ActiveSpace,
     ActiveTensors,
     ElectronicSnapshot,
@@ -31,6 +32,7 @@ from src.quantum.chemistry.molecular_vibronic import (
     _check_degenerate_orbital_boundaries,
     _oscillator_frequency,
     active_response_curvature,
+    active_response_matrix,
     align_to_center,
     assemble_vibronic_model,
     build_register_layout,
@@ -44,6 +46,7 @@ from src.quantum.chemistry.molecular_vibronic import (
     hartree_fock_state,
     isotope_masses_me,
     load_vibronic_hamiltonian,
+    model_consistent_modes,
     parse_args,
     parse_geometry,
     physical_sector_basis,
@@ -232,6 +235,7 @@ def test_parse_geometry_units_and_xyz_header():
     # The decided defaults (2026-11-02): K_PES + chi oscillators, canonical frozen core.
     assert args.harmonic_curvature == "pes_consistent" == HARMONIC_CURVATURES[0]
     assert args.alignment == "block_diagonal" == ALIGNMENTS[0]
+    assert args.mode_basis == "rhf_normal_modes" == MODE_BASES[0]
 
 
 def test_oscillator_frequency_refuses_a_non_positive_curvature():
@@ -269,6 +273,75 @@ def test_active_response_curvature_matches_second_order_perturbation_theory(two_
     assert active_response_curvature(t0, shifted, particles, q_step_au=1.0e-3, energy=energy) == pytest.approx(chi, rel=1e-6)
     with pytest.raises(ValueError):
         active_response_curvature(t0, coupling, particles, q_step_au=0.0, energy=energy)
+
+
+def _dense_sector_energy_factory(n_orbitals, particles):
+    basis = physical_sector_basis(build_register_layout(n_orbitals, (), (), "binary"), n_spatial_orbitals=n_orbitals, num_particles=particles)
+
+    def energy(t, num_particles):
+        dense = np.asarray(hamiltonian_matrix(fermion_polynomial_from_tensors(t.scalar, t.one_body, t.two_body, num_particles)))
+        return float(np.linalg.eigvalsh(dense[np.ix_(basis, basis)])[0])
+
+    return basis, energy
+
+
+def test_active_response_matrix_matches_second_order_perturbation_theory():
+    model = _synthetic_two_orbital_model()
+    particles = (1, 1)
+    basis, energy = _dense_sector_energy_factory(2, particles)
+    chi = active_response_matrix(model.active_tensors, model.couplings, particles, q_step_au=1.0e-3, energy=energy)
+    h_el = np.asarray(hamiltonian_matrix(model.h_electronic))[np.ix_(basis, basis)]
+    evals, evecs = np.linalg.eigh(h_el)
+    amplitudes = [evecs[:, 1:].conj().T @ np.asarray(hamiltonian_matrix(c))[np.ix_(basis, basis)] @ evecs[:, 0]
+                  for c in model.coupling_operators]
+    # chi_{mu nu} = 2 sum_k <0|C_mu|k><k|C_nu|0> / (E_k - E_0): symmetric, positive on the diagonal.
+    expected = np.array([[2.0 * float(np.real(np.sum(np.conj(a) * b / (evals[1:] - evals[0])))) for b in amplitudes] for a in amplitudes])
+    np.testing.assert_allclose(chi, expected, rtol=1e-5, atol=1e-12)
+    assert chi[0, 1] == chi[1, 0] and abs(chi[0, 1]) > 1e-4
+    diagonal = [active_response_curvature(model.active_tensors, c, particles, q_step_au=1.0e-3, energy=energy) for c in model.couplings]
+    np.testing.assert_allclose(np.diag(chi), diagonal, rtol=1e-12)
+    given = active_response_matrix(model.active_tensors, model.couplings, particles, q_step_au=1.0e-3, energy=energy, diagonal=(1.0, 2.0))
+    assert given[0, 0] == 1.0 and given[1, 1] == 2.0 and given[0, 1] == chi[0, 1]
+    with pytest.raises(ValueError):
+        active_response_matrix(model.active_tensors, model.couplings, particles, q_step_au=1.0e-3, energy=energy, diagonal=(1.0,))
+
+
+def test_model_consistent_modes_rotate_modes_and_couplings_together():
+    model = _synthetic_two_orbital_model()
+    vectors = np.zeros((2, 2, 3))
+    vectors[0, 0, 0] = 1.0
+    vectors[1, 1, 2] = 1.0
+    modes = tuple(NormalMode(k, 0.02 * (k + 1), vectors[k], f"mode_{k}") for k in range(2))
+    w = np.array([[4.0e-4, 1.0e-4], [1.0e-4, 9.0e-4]])
+    new_modes, new_couplings, u = model_consistent_modes(modes, model.couplings, w)
+    np.testing.assert_allclose(u.T @ u, np.eye(2), atol=1e-12)
+    evals = np.linalg.eigvalsh(w)
+    assert [m.frequency_hartree for m in new_modes] == pytest.approx(np.sqrt(evals).tolist(), rel=1e-12)
+    assert [m.mode_index for m in new_modes] == [0, 1] == [c.mode_index for c in new_couplings]
+    for a, (mode, coupling) in enumerate(zip(new_modes, new_couplings)):
+        np.testing.assert_allclose(mode.mass_weighted_vector, sum(u[nu, a] * vectors[nu] for nu in range(2)), atol=1e-12)
+        assert float(np.linalg.norm(mode.mass_weighted_vector)) == pytest.approx(1.0)
+        assert u[np.argmax(np.abs(u[:, a])), a] > 0.0
+        assert coupling.diagnostics["mode_basis"] == "model_consistent" and coupling.diagnostics["input_mode_weights"] == u[:, a].tolist()
+    # The couplings rotate with the modes: C_nu = sum_a U_{nu a} C'_a reconstructs the inputs exactly.
+    for nu, c in enumerate(model.couplings):
+        assert sum(u[nu, a] * new_couplings[a].scalar for a in range(2)) == pytest.approx(c.scalar, abs=1e-14)
+        np.testing.assert_allclose(sum(u[nu, a] * new_couplings[a].one_body for a in range(2)), c.one_body, atol=1e-14)
+        np.testing.assert_allclose(sum(u[nu, a] * new_couplings[a].two_body for a in range(2)), c.two_body, atol=1e-14)
+    # A diagonal W leaves everything in place (identity rotation, positive orientation).
+    same_modes, same_couplings, identity = model_consistent_modes(modes, model.couplings, np.diag([4.0e-4, 9.0e-4]))
+    np.testing.assert_allclose(identity, np.eye(2), atol=1e-14)
+    np.testing.assert_allclose(same_couplings[1].one_body, model.couplings[1].one_body, atol=1e-14)
+    assert same_modes[1].frequency_hartree == pytest.approx(0.03)
+    with pytest.raises(ValueError, match="symmetric"):
+        model_consistent_modes(modes, model.couplings, np.array([[4.0e-4, 1.0e-4], [2.0e-4, 9.0e-4]]))
+    with pytest.raises(ValueError, match="not a minimum"):
+        model_consistent_modes(modes, model.couplings, np.diag([4.0e-4, -1.0e-5]))
+    one_body_model = _synthetic_two_orbital_model(two_body_coupling=False)
+    with pytest.raises(ValueError, match="two-body"):
+        model_consistent_modes(modes, (model.couplings[0], one_body_model.couplings[1]), w)
+    rotated_one_body = model_consistent_modes(modes, one_body_model.couplings, w)[1]
+    assert all(c.two_body is None for c in rotated_one_body)
 
 
 def test_block_overlap_guard_detects_an_orbital_crossing_a_block_boundary():
@@ -677,6 +750,95 @@ def test_pes_consistent_model_carries_the_fci_surface_curvature():
     assert max(occupations) < 0.4
     assert energies[0] < computation.center_fci_energy + 0.5 * sum(m.frequency_hartree for m in model.modes)
     assert energies[0] == pytest.approx(-75.0002755275, abs=1e-6)   # the decided model's exact reference at cutoffs 3
+
+
+def _adiabatic_hessian(model, particles, step=0.1):
+    """Mixed central second differences of E_FCI[H_el + sum_a Q_a C_a] + 1/2 sum_a omega_a^2 Q_a^2 at Q = 0."""
+    from src.quantum.chemistry.molecular_vibronic import active_space_fci_energy
+
+    t0, modes, couplings = model.active_tensors, model.modes, model.couplings
+    m = len(modes)
+
+    def energy(q):
+        scalar, one, two = t0.scalar, t0.one_body, t0.two_body
+        for qa, c in zip(q, couplings):
+            scalar, one = scalar + qa * c.scalar, one + qa * np.asarray(c.one_body)
+            two = two if c.two_body is None else two + qa * np.asarray(c.two_body)
+        return active_space_fci_energy(ActiveTensors(scalar, one, two), particles) + 0.5 * sum(
+            float(md.frequency_hartree) ** 2 * qa ** 2 for md, qa in zip(modes, q))
+
+    e0 = energy(np.zeros(m))
+    hess = np.zeros((m, m))
+    for a in range(m):
+        q = np.zeros(m); q[a] = step
+        hess[a, a] = (energy(q) - 2.0 * e0 + energy(-q)) / step ** 2
+        for b in range(a + 1, m):
+            vals = {}
+            for sa in (1, -1):
+                for sb in (1, -1):
+                    q = np.zeros(m); q[a], q[b] = sa * step, sb * step
+                    vals[sa, sb] = energy(q)
+            hess[a, b] = hess[b, a] = (vals[1, 1] - vals[1, -1] - vals[-1, 1] + vals[-1, -1]) / (4.0 * step ** 2)
+    return hess
+
+
+def test_model_consistent_modes_carry_the_full_fci_hessian_for_h2o():
+    pytest.importorskip("pyscf")
+    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model
+
+    geometry = MolecularGeometry(("O", "H", "H"), np.array([[0.0, 7.452305433104561e-16, -0.06340060329635555],
+                                                            [0.0, 1.432278617817422, 1.1388573462159217],
+                                                            [0.0, -1.4322786178174232, 1.1388573462159226]]))
+    with pytest.raises(ValueError, match="model_consistent"):
+        build_molecular_vibronic_model(geometry, basis="sto-3g", cutoffs=1, harmonic_curvature="rhf_hessian", mode_basis="model_consistent")
+    model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="frozen_core", cutoffs=3,
+                                                        mode_basis="model_consistent")
+    prov = model.provenance
+    particles = (computation.active_space.n_alpha, computation.active_space.n_beta)
+    k_pes = np.array(prov["fci_surface_hessian_hartree_per_q2"])
+    chi = np.array(prov["active_response_matrix_hartree_per_q2"])
+    u = np.array(prov["model_consistent_rotation"])
+    assert prov["mode_basis"] == "model_consistent"
+    np.testing.assert_allclose(k_pes, k_pes.T, atol=1e-12)
+    np.testing.assert_allclose(np.diag(k_pes), prov["fci_surface_curvature_hartree_per_q2"], rtol=0, atol=1e-15)
+    # Bend and symmetric stretch (A1) couple through the electrons, chi_01 = 2.3e-5 Ha/Q^2, while the FCI
+    # surface itself is nearly separable there (K_01 = -6.4e-7); the asymmetric stretch (B2) couples to neither.
+    assert chi[0, 1] == pytest.approx(2.29e-5, abs=1e-6) and abs(k_pes[0, 1]) < 2e-6
+    assert max(abs(k_pes[0, 2]), abs(k_pes[1, 2]), abs(chi[0, 2]), abs(chi[1, 2])) < 1e-9
+    np.testing.assert_allclose(u.T @ u, np.eye(3), atol=1e-12)
+    assert abs(abs(u[2, 1]) - 1.0) < 1e-6   # the B2 mode stays pure and lands second in ascending frequency
+    assert abs(np.degrees(np.arctan2(u[1, 0], u[0, 0]))) == pytest.approx(2.6, abs=0.1)   # A1 mixing
+    assert [m.frequency_hartree ** 2 for m in model.modes] == pytest.approx(np.linalg.eigvalsh(k_pes + chi).tolist(), rel=1e-10)
+    assert [m.frequency_cm1 for m in model.modes] == pytest.approx([2130.8, 5061.8, 5314.4], abs=0.5)
+    # The model's adiabatic Hessian (independent mixed differences of its own FCI surface) is the full
+    # FCI Hessian rotated into the model modes, so its eigenfrequencies are those of the FCI surface.
+    hessian = _adiabatic_hessian(model, particles)
+    np.testing.assert_allclose(hessian, u.T @ k_pes @ u, atol=1e-9)
+    assert (np.sqrt(np.linalg.eigvalsh(hessian)) * HARTREE_TO_CM_INV).tolist() == pytest.approx([1974.9, 3997.7, 4281.8], abs=0.2)
+    # Exact reference of this model at cutoffs 3 (18 qubits), and its ground state near HF (x) vacuum.
+    basis = physical_sector_basis(model.layout, n_spatial_orbitals=6, num_particles=particles)
+    energies, state = exact_sector_energies(model, n_low=1, return_state=True)
+    vector = state[basis]
+    occupations = [float(np.real(np.vdot(vector, sector_sparse_matrix(op, basis) @ vector))) for op in model.n_operators]
+    assert energies[0] == pytest.approx(-74.9999117706, abs=1e-6) and max(occupations) < 0.3
+
+
+def test_rhf_normal_mode_model_records_the_uncompensated_cross_response():
+    pytest.importorskip("pyscf")
+    from src.quantum.chemistry.molecular_vibronic import build_molecular_vibronic_model
+
+    geometry = parse_geometry("H 0 0 0; H 0 0 0.7414")
+    for mode_basis in MODE_BASES:
+        model, computation = build_molecular_vibronic_model(geometry, basis="sto-3g", active_space="full", cutoffs=1, mode_basis=mode_basis)
+        # One mode: the model-consistent rotation is the identity and nothing changes.
+        assert model.modes[0].frequency_hartree ** 2 == pytest.approx(
+            computation.fci_surface_curvature_by_mode[0] + model.provenance["active_response_hartree_per_q2"][0], rel=1e-12)
+        assert np.array(model.provenance["active_response_matrix_hartree_per_q2"]).shape == (1, 1)
+        if mode_basis == "model_consistent":
+            assert model.provenance["model_consistent_rotation"] == [[1.0]]
+            assert model.provenance["model_consistent_frequencies_cm1"] == [model.modes[0].frequency_cm1]
+        else:
+            assert "model_consistent_rotation" not in model.provenance
 
 
 def test_pes_consistent_response_follows_the_assembled_coupling_model():
