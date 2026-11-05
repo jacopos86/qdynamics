@@ -301,6 +301,30 @@ part only), so his reference energy E_RHF + sum omega/2 sits 8.9e-5 Ha above
 ours. The vendored tree has its own `conftest.py` so pytest never collects his
 tests, whose `src.` imports would resolve to our package.
 
+Running his file through our solvers: `pipelines/chemistry_bridge/qubit_hamiltonian.py`
+(`PYTHONPATH=. python -m pipelines.chemistry_bridge.qubit_hamiltonian --hamiltonian
+h2o.json --out-dir out --methods exact,qse,apm`) takes a
+`qdynamics_qubit_hamiltonian_v1` file as the whole input (no integrals, no fixture)
+and starts every method from the Hartree-Fock determinant (x) boson vacuum: `exact`
+is the sparse physical-sector eigensolver (low roots, the reference energy
+`<HF x vac|H|HF x vac>`, the ground state's boson occupations and reference weight,
+a one-apply sector-leakage witness); `qse` is the repository QSE core with a
+mixed-register basis (identity, UCCSD generators lifted to the full register, boson
+raising operators and their products with the singles, or every UCCSD generator
+times every mode coordinate `Q_I`); `apm` is the repository AP-McLachlan exchange
+controller with lifted Hermitian excitations, the `Q_I` and `Q_I` times the singles
+as audited candidates, the Hamiltonian acting through compiled Pauli actions (no
+dense matrix; the one guarded branch added to
+`pipelines/time_dynamics/ap_mclachlan/geometry_eval.py` for providers with
+`apply_at`). The report `qubit_hamiltonian_report.json` carries the file's sha256
+and operator digest, the repository commit, the environment, the declared origin
+and each method's requested and executed settings; exit 0 only when every method
+verified, 2 for a refused input. RA-ADAPT is not in it: the Paper IV lane runs
+RA-ADAPT from a fixture, and a fixture producer for a qdynamics-conventions model is
+the next step (`agent_guidance/shared/handoffs/doron-bridge-qdynamics-entry-20261104.md`).
+`test/test_chemistry_bridge_qubit_hamiltonian.py` exercises all three methods and the
+CLI on a synthetic two-orbital, one-mode model.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector
