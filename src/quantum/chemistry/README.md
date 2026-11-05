@@ -280,6 +280,27 @@ Hamiltonians term by term. `test/test_qdynamics_interop.py` reproduces the
 reference matrices of his own test suite with our assembly to 1e-12 (binary and
 unary, cutoffs 1 and 2) without running his code.
 
+His code itself is vendored read-only under `third_party/qdynamics_chemistry`
+(GPL-3.0, byte-identical to `jacopos86/qdynamics@38f40805`, manifest with git
+blob and sha256 per file, its README for the provenance and the measurements).
+`src/quantum/chemistry/qdynamics_vendored.py` runs it as subprocesses
+(`write_input_deck` -> `run_pyscf_driver` -> `run_qubitizer`, or
+`his_hamiltonian_json` for the chain; pyscf + h5py needed, e.g.
+`~/.venvs/doron-bridge-gpu`), and `qdynamics_interop.py` matches his mode order
+and mode signs to ours (`match_modes_to_reference`) and reports the largest
+difference per class of Pauli word (`classify_term_differences`: identity,
+electronic, oscillator, coupling). `test/test_qdynamics_vendored_crosscheck.py`
+runs his driver and qubitizer on H2O/STO-3G at the RHF optimum and compares
+with `builder_model_in_qdynamics_conventions`: electronic terms equal to 1e-12;
+with `isotope_masses` in his input deck the oscillator terms agree to 1e-9 and
+the coupling terms to 2e-5 (his Hessian keeps translations and rotations, ours
+projects them out) and the sector ground state to 1e-6 Ha; with his default
+masses every frequency is `sqrt(MP_ME/AMU2AU)` = 1.00363 times ours (PySCF's
+`eph` uses integer mass numbers times MP_ME, his scale factor undoes the MP_ME
+part only), so his reference energy E_RHF + sum omega/2 sits 8.9e-5 Ha above
+ours. The vendored tree has its own `conftest.py` so pytest never collects his
+tests, whose `src.` imports would resolve to our package.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector

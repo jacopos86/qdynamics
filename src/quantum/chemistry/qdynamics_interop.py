@@ -284,3 +284,149 @@ def builder_model_in_qdynamics_conventions(
         geometry, basis=basis, active_space="full", cutoffs=cutoffs, encoding=encoding,
         coupling_model=OUR_EQUIVALENT_COUPLING_MODEL, reference_force_counter_term=False,
         harmonic_curvature="rhf_hessian", mode_basis="rhf_normal_modes", **kwargs)
+
+
+# ----------------------------------------------------- relabelings and term classes
+
+
+def pauli_term_table(poly: PauliPolynomial, *, atol: float = 0.0) -> dict[str, complex]:
+    """Word (``q_(n-1)...q_0`` display order) -> summed coefficient; terms with |c| <= ``atol`` dropped."""
+    out: dict[str, complex] = {}
+    for term in poly.return_polynomial():
+        c = complex(term.p_coeff)
+        if abs(c) > atol:
+            word = str(term.pw2strng())
+            out[word] = out.get(word, 0j) + c
+    return out
+
+
+def boson_register_qubits(n_fermion_qubits: int, mode_cutoffs: Sequence[int], encoding: str) -> tuple[range, ...]:
+    """Qubit indices of each boson register in his layout (fermion qubits 0..nf-1, then mode 0, mode 1, ...)."""
+    widths = [(int(c).bit_length() if encoding == "binary" else int(c) + 1) for c in mode_cutoffs]
+    out, start = [], int(n_fermion_qubits)
+    for width in widths:
+        out.append(range(start, start + width))
+        start += width
+    return tuple(out)
+
+
+def _payload_registers(payload: Mapping[str, Any]) -> tuple[int, tuple[range, ...]]:
+    n = int(payload["n_qubits"])
+    registers = boson_register_qubits(int(payload["n_fermion_qubits"]), payload["mode_cutoffs"], str(payload["boson_encoding"]))
+    if registers and registers[-1].stop != n:
+        raise ValueError(f"boson registers end at qubit {registers[-1].stop}, n_qubits is {n}")
+    return n, registers
+
+
+def permute_boson_registers(payload: Mapping[str, Any], order: Sequence[int]) -> dict[str, Any]:
+    """Relabel modes: register ``k`` of the result is register ``order[k]`` of ``payload`` (equal widths only)."""
+    n, registers = _payload_registers(payload)
+    order = [int(k) for k in order]
+    if sorted(order) != list(range(len(registers))):
+        raise ValueError(f"order must be a permutation of {list(range(len(registers)))}; got {order}")
+    terms = []
+    for term in payload["terms"]:
+        letters = list(term["word"][::-1])          # letters[q] is the letter on qubit q
+        new = letters[:]
+        for k, m in enumerate(order):
+            if len(registers[k]) != len(registers[m]):
+                raise ValueError("permute_boson_registers needs registers of equal width")
+            for a, b in zip(registers[k], registers[m]):
+                new[a] = letters[b]
+        terms.append({**term, "word": "".join(new[::-1])})
+    out = dict(payload)
+    out["terms"] = terms
+    out["mode_cutoffs"] = [payload["mode_cutoffs"][m] for m in order]
+    out["omega_hartree"] = [payload["omega_hartree"][m] for m in order]
+    return out
+
+
+def flip_boson_register_sign(payload: Mapping[str, Any], mode: int) -> dict[str, Any]:
+    """``b_mode -> -b_mode`` (the normal-mode vector's sign): conjugation by (-1)^n = Z on the register's
+    lowest qubit, which negates every word carrying X or Y there. The spectrum is unchanged."""
+    _n, registers = _payload_registers(payload)
+    low = registers[int(mode)][0]
+    terms = []
+    for term in payload["terms"]:
+        if term["word"][::-1][low] in "xy":
+            c = term["coefficient"]
+            terms.append({**term, "coefficient": [-c[0], -c[1]]})
+        else:
+            terms.append(dict(term))
+    out = dict(payload)
+    out["terms"] = terms
+    return out
+
+
+def match_modes_to_reference(
+    payload: Mapping[str, Any],
+    reference_frequencies: Sequence[float],
+    reference_operator: PauliPolynomial,
+    *,
+    atol: float = 1.0e-12,
+) -> tuple[dict[str, Any], tuple[int, ...], tuple[int, ...]]:
+    """Reorder his modes to the reference's (nearest frequency, one to one) and pick each mode's sign
+    by the smaller coefficient difference on that register's odd words. Returns (payload, order, signs)."""
+    his = np.asarray(payload["omega_hartree"], dtype=float)
+    ref = np.asarray(reference_frequencies, dtype=float)
+    if his.shape != ref.shape:
+        raise ValueError(f"{len(his)} modes in the payload, {len(ref)} in the reference")
+    order = []
+    taken: set[int] = set()
+    for k in range(len(ref)):
+        candidates = sorted((abs(his[m] - ref[k]), m) for m in range(len(his)) if m not in taken)
+        order.append(candidates[0][1])
+        taken.add(candidates[0][1])
+    ordered = permute_boson_registers(payload, order)
+    _n, registers = _payload_registers(ordered)
+    ref_table = pauli_term_table(reference_operator, atol=atol)
+    signs = []
+    current = ordered
+    for k, register in enumerate(registers):
+        low = register[0]
+
+        def odd_mismatch(p: Mapping[str, Any]) -> float:
+            worst = 0.0
+            for term in p["terms"]:
+                if term["word"][::-1][low] in "xy":
+                    worst = max(worst, abs(complex(*term["coefficient"]) - ref_table.get(term["word"], 0j)))
+            return worst
+
+        flipped = flip_boson_register_sign(current, k)
+        if odd_mismatch(flipped) < odd_mismatch(current):
+            current, sign = flipped, -1
+        else:
+            sign = 1
+        signs.append(sign)
+    return current, tuple(int(m) for m in order), tuple(signs)
+
+
+TERM_CLASSES = ("identity", "electronic", "oscillator", "coupling")
+
+
+def classify_term_differences(
+    a: PauliPolynomial, b: PauliPolynomial, n_fermion_qubits: int, *, atol: float = 1.0e-12,
+) -> dict[str, dict[str, float]]:
+    """Per class of Pauli word, the largest |a - b| and the largest |b|: ``identity`` (all e),
+    ``electronic`` (identity on every boson qubit), ``oscillator`` (identity on every fermion qubit),
+    ``coupling`` (both registers touched). Words absent from one side count with coefficient 0."""
+    ta, tb = pauli_term_table(a, atol=atol), pauli_term_table(b, atol=atol)
+    nf = int(n_fermion_qubits)
+    out = {name: {"n_terms": 0, "max_abs_difference": 0.0, "max_abs_in_b": 0.0} for name in TERM_CLASSES}
+    for word in set(ta) | set(tb):
+        fermion, boson = word[-nf:], word[:-nf]
+        if set(word) <= {"e"}:
+            name = "identity"
+        elif set(boson) <= {"e"}:
+            name = "electronic"
+        elif set(fermion) <= {"e"}:
+            name = "oscillator"
+        else:
+            name = "coupling"
+        row = out[name]
+        row["n_terms"] += 1
+        row["max_abs_difference"] = max(row["max_abs_difference"], abs(ta.get(word, 0j) - tb.get(word, 0j)))
+        row["max_abs_in_b"] = max(row["max_abs_in_b"], abs(tb.get(word, 0j)))
+    for row in out.values():
+        row["relative"] = (row["max_abs_difference"] / row["max_abs_in_b"]) if row["max_abs_in_b"] > 0 else 0.0
+    return out
