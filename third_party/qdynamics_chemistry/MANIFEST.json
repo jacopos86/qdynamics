@@ -1,0 +1,146 @@
+{
+ "branch": "doron-chemistry",
+ "commit": "38f40805d6db3fa3c2cee8a003bd07cf7dd963b3",
+ "commit_author": "doronwu",
+ "commit_date": "2026-10-27T22:13:15Z",
+ "commit_subject": "Add chemistry-specific qubitization workflow",
+ "files": {
+  "LICENSE": {
+   "bytes": 35149,
+   "git_blob_sha": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+   "matches_upstream_tree": true,
+   "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  "dependencies/requirements.txt": {
+   "bytes": 68,
+   "git_blob_sha": "780328061f2954a60015f204120432b40eabcda2",
+   "matches_upstream_tree": true,
+   "sha256": "054b753d3570e4ecaac78fe36986c835f4625c13b6c71404157c80593fd6b2b7"
+  },
+  "src/__init__.py": {
+   "bytes": 21,
+   "git_blob_sha": "75977e6f4181a04517451d1fdb63b6b847c1a7bf",
+   "matches_upstream_tree": true,
+   "sha256": "747ba863abe82bb9e9d40ee8473c35c72072ec22bdfca040738142296dbdb914"
+  },
+  "src/chemistry/pyscf/__init__.py": {
+   "bytes": 0,
+   "git_blob_sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+   "matches_upstream_tree": true,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "src/chemistry/pyscf/electron_phonon_fd_solver.py": {
+   "bytes": 2514,
+   "git_blob_sha": "11ff3db314f49f0275bf963c420f3323ec478a79",
+   "matches_upstream_tree": true,
+   "sha256": "9844db08ce3e0b213dbcbedccf85106f9b5db854766771e5660eb58708c9a001"
+  },
+  "src/chemistry/pyscf/electron_phonon_solver.py": {
+   "bytes": 4467,
+   "git_blob_sha": "769de0249f9cc59a44e14dfd8fd6442b9124707f",
+   "matches_upstream_tree": true,
+   "sha256": "af85ea5789660c0ae1fc7160f9b7f8abba03dd5bfd8a6ffd0618cd525efe3d1d"
+  },
+  "src/chemistry/pyscf/electron_solver.py": {
+   "bytes": 8013,
+   "git_blob_sha": "8400fc64c5ac211ce10b2492d9ef73507a162298",
+   "matches_upstream_tree": true,
+   "sha256": "2ff572339ff403346a763956fc7f1507abcc3bc019f26b8c8844931b538ad143"
+  },
+  "src/chemistry/pyscf/input_parser.py": {
+   "bytes": 6752,
+   "git_blob_sha": "d9dc9eb32faa44332550b3427a91864597cacd0d",
+   "matches_upstream_tree": true,
+   "sha256": "e42a92bb9bb203bc17557680f6e386cf5dcc812e3c4386edc24e32c03ceded66"
+  },
+  "src/chemistry/pyscf/main_pyscf.py": {
+   "bytes": 3938,
+   "git_blob_sha": "594293ae21d99f1be488a626cf40d77a5f7bda90",
+   "matches_upstream_tree": true,
+   "sha256": "2892de554cffbcdc55d1e25e8581eb1e946668183fc63f059ef3979548384111"
+  },
+  "src/chemistry/pyscf/read_write_pyscf_results.py": {
+   "bytes": 4786,
+   "git_blob_sha": "3bf71a4d0d2c1e155346f67a0459d84b1165cfad",
+   "matches_upstream_tree": true,
+   "sha256": "4b5db149702a37b013847e3bdaf46a1d2f017230d7cecfb7bc5865ba9629390b"
+  },
+  "src/chemistry/pyscf/vibration_solver.py": {
+   "bytes": 3453,
+   "git_blob_sha": "feb0d6adf38cc6d35f3b8192faf920b0c6e663fc",
+   "matches_upstream_tree": true,
+   "sha256": "bdb9755a36cd130f9415ffd5a14e2c9c3981b1372e8e2e9d38e9be136975ea0b"
+  },
+  "src/chemistry_qubitization/README.md": {
+   "bytes": 3020,
+   "git_blob_sha": "fa84e93f882ebdbbcb50ceef48d131d892bcd8d7",
+   "matches_upstream_tree": true,
+   "sha256": "ae0cf129ef2fd8e9e82d7873408360a2b3aad5f1780e55aeb908689d8b12ed1e"
+  },
+  "src/chemistry_qubitization/__init__.py": {
+   "bytes": 375,
+   "git_blob_sha": "e66f42d6edcc84026bb464ef1bca8a0109e9f13b",
+   "matches_upstream_tree": true,
+   "sha256": "191693560d9ebe8d88a01a06f79767d6d960fa00ddd9416f59d2c7e2b1a5b4f6"
+  },
+  "src/chemistry_qubitization/__main__.py": {
+   "bytes": 1695,
+   "git_blob_sha": "91315390d999c389ac33765d9ea26cdc98de9130",
+   "matches_upstream_tree": true,
+   "sha256": "5c7e9bb1607ab606c1e4822038ce235dfaa7f34366790380679dff0af8472a94"
+  },
+  "src/chemistry_qubitization/boson.py": {
+   "bytes": 2148,
+   "git_blob_sha": "aaee13bf2c8042478b4f26080ae838006e54bd36",
+   "matches_upstream_tree": true,
+   "sha256": "03f4789ddf6ce331cdc2465d477e464f24e47dffb16693c73a9161f4b81ecfbf"
+  },
+  "src/chemistry_qubitization/data.py": {
+   "bytes": 801,
+   "git_blob_sha": "96d0b5406b1eb5a6eea96856399a5182206ef9cd",
+   "matches_upstream_tree": true,
+   "sha256": "58f18e144a1a61b968d19a861613400e537f5e52a6904250b931fe65a5305ef7"
+  },
+  "src/chemistry_qubitization/fermion.py": {
+   "bytes": 1358,
+   "git_blob_sha": "e3aed5854fcbf22ffcceaeb704e840267e55e448",
+   "matches_upstream_tree": true,
+   "sha256": "3f4a0d8e1eb1d45c81262b2fdcffcdccc42d416501c830042ac279afcc67fefa"
+  },
+  "src/chemistry_qubitization/hamiltonian.py": {
+   "bytes": 2286,
+   "git_blob_sha": "54405052321439e4f93c34503e2bd065e1dce1aa",
+   "matches_upstream_tree": true,
+   "sha256": "c2fb253e8c5294a785157834be548722fcfa66aa831ebce01dcb1bb4eec7cd23"
+  },
+  "src/chemistry_qubitization/hamiltonian_io.py": {
+   "bytes": 2584,
+   "git_blob_sha": "bd1dbb301a80231ea7f166aeaafedf7187a8a101",
+   "matches_upstream_tree": true,
+   "sha256": "495248957c9961217c7ce5188bfdb55c64563a144c7848c4877ead5a93e76c21"
+  },
+  "src/chemistry_qubitization/io_qubitization.py": {
+   "bytes": 6026,
+   "git_blob_sha": "3545bdcfd40510c4e3837750ae0df475a4fe8ab3",
+   "matches_upstream_tree": true,
+   "sha256": "01c07ac6513d17b12b4ca41fe7154b92102faad80d15afb83fbab53070c2847c"
+  },
+  "src/chemistry_qubitization/pauli.py": {
+   "bytes": 6372,
+   "git_blob_sha": "690600357717a9b370e27f54e58ee2be6e388c57",
+   "matches_upstream_tree": true,
+   "sha256": "b23a5103db92c9abf4163f77a6ee669e81274ef882aefd3ebd2f5f0b0986ec4b"
+  },
+  "test/test_chemistry_qubitization.py": {
+   "bytes": 8072,
+   "git_blob_sha": "350aed58192e64f201b2ac42c1c5a6e97802d310",
+   "matches_upstream_tree": true,
+   "sha256": "a41fcf8cad003f7dadda825527ffc4480a273431b9d40170fa8dc12af6e05222"
+  }
+ },
+ "license": "GPL-3.0 (LICENSE in this directory, as in the source repository)",
+ "python_import_root": "third_party/qdynamics_chemistry (his code imports `src.chemistry...` and `src.chemistry_qubitization`; run with PYTHONPATH set to this directory from a cwd outside this repository so our own `src` package does not shadow his)",
+ "repository": "https://github.com/jacopos86/qdynamics.git",
+ "schema": "vendored_code_manifest_v1",
+ "vendored_on": "2026-11-04"
+}
