@@ -71,9 +71,12 @@ The full-space electronic FCI is -75.0204389 Ha; FCI + zero point is -74.9960654
 | run (cutoff 1, 17 qubits) | QSE basis (elements) | lowest Ritz value (Ha) | above exact | AP-McLachlan t = 0 to 0.10 (6 points), support | energy drift | fidelity vs exact at t = 0.10 / static reference |
 |---|---|---|---|---|---|---|
 | his file | `uccsd_boson_ladders` (207) | -75.0846051 | 34.4 mHa | 2 -> 6, seed `Q(2)*herm_sing(alpha:0->5)` | 7.5 mHa | 0.99861 / 0.99831 |
+| his file | `uccsd_times_displacements` (564: identity, 140 UCCSD, 3 `Q_I`, 420 `Q_I` x UCCSD) | -75.0859481 | 33.1 mHa | same run as above | | |
 | counter-term on | `uccsd_boson_ladders` (207) | -75.0026926 | 2.5 mHa | 2 -> 6, seed `Q(0)*herm_sing(alpha:0->5)` | 7.5 mHa | 0.99870 / 0.99840 |
 
-QSE cost: about 2.3 s per basis element at 17 qubits (one compiled Hamiltonian apply each; 475 s for 207).
+QSE cost: about 2.3 s per basis element at 17 qubits (one compiled Hamiltonian apply each; 475 s for 207,
+662 s for 564). Tripling the basis with every `Q_I` x UCCSD product gains 1.3 mHa on his operator: from the
+vacuum, products linear in the displacements cannot describe a ground state that has left the reference.
 AP-McLachlan: 25 s for the six points (203 candidates, all pass the fixed-count audit); sector leakage 1e-21.
 The two AP-McLachlan trajectories agree to 1e-7 in energy: on generators `Q_I x (excitation)` the force term
 `F_I Q_I` has zero expectation to every order, so the counter-term is invisible to this pool over this horizon.
