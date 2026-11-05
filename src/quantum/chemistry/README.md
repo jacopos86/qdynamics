@@ -288,6 +288,19 @@ sector ground energy against the builder's own solution of the same model
 (agreement to 1e-8 Ha) and records the fixture's byte SHA-256, the identity
 the lane's checkpoints attest.
 
+Interoperability with Doron Wu's qubitizer (`github.com/jacopos86/qdynamics`,
+branch `doron-chemistry`, `src/chemistry_qubitization`):
+`src/quantum/chemistry/qdynamics_interop.py` loads his
+`qdynamics_qubit_hamiltonian_v1` JSON into our `PauliPolynomial` and register
+layout (same blocked spin order, same `q_(n-1)...q_0` word order, same boson
+registers; his coupling `g_I (b + b+)` is our `C_I Q_I` with `C_I = sqrt(2
+omega_I) g_I`, the `mean_field_pyscf_eph` model without the counter-term),
+writes our models in his schema, evaluates the Hartree-Fock (x) vacuum energy
+and the exact physical-sector spectrum of either, and compares two
+Hamiltonians term by term. `test/test_qdynamics_interop.py` reproduces the
+reference matrices of his own test suite with our assembly to 1e-12 (binary and
+unary, cutoffs 1 and 2) without running his code.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector
