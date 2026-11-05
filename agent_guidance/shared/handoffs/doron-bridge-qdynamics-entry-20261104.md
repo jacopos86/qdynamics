@@ -88,3 +88,14 @@ The two AP-McLachlan trajectories agree to 1e-7 in energy: on generators `Q_I x 
 - His file here is "simulated" origin (his code, our run, our input deck); his own H2O deck is not in his repo.
 - The QSE bases are bridge choices; from HF (x) vacuum they are far from the ground state on his operator
   because the ground state is displaced; a basis built on an RA-ADAPT state would be the right follow-up.
+
+## Addendum 2026-11-05: RA-ADAPT is done on the fixture branch
+
+The seam note above is closed on `claude/paper-iv-fixture-from-builder-20261102` (commit `36c5ae09` and
+after): `src/quantum/chemistry/paper_iv_h2o_fixture_from_vibronic_model.py` writes the lane's fixture from a
+vibronic model with analytic couplings (our builder in his conventions, or his driver's HDF5 files through
+`qdynamics_vendored.vibronic_model_from_qdynamics_outputs`), the validators admit the analytic derivative
+source, and `ra_adapt/pools.py` locks the application to the active space the fixture declares.  The fixture
+built from his files equals his JSON to 2e-14 (17 and 20 qubits), and the unchanged lane launcher runs
+RA-ADAPT on it.  Numbers and the run table: `doron-ra-adapt-lane-fixture-20261105.md` on that branch.  This
+branch (the entry point) does not contain the producer; the two branches are unmerged and unpushed.
