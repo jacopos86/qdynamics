@@ -1,0 +1,16 @@
+# H2O at our Paper IV geometry (= RHF/STO-3G optimum), coordinates in Bohr
+method = RHF
+basis = sto-3g
+unit = Bohr
+output = h2o_optiso
+isotope_masses = 15.99491461957, 1.00782503223, 1.00782503223
+write_h5 = true
+write_fcidump = false
+write_vibration = true
+write_eph = true
+eph_method = analytic
+geometry
+O 0.0 0.0 -0.06340060329635555
+H 0.0 1.432278617817422 1.1388573462159217
+H 0.0 -1.4322786178174232 1.1388573462159226
+end

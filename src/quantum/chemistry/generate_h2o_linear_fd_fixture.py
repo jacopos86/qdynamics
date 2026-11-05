@@ -30,7 +30,9 @@ from src.quantum.chemistry.vibronic_h2 import (
 from src.quantum.chemistry.vibronic_h2o_linear_fd import (
     H2O_LINEAR_FD_CUTOFF_BOUNDARY_WEIGHT_TOLERANCE,
     H2O_LINEAR_FD_CUTOFF_ENERGY_TOLERANCE_HARTREE,
+    H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE,
     H2O_LINEAR_FD_DERIVATIVE_SOURCE,
+    H2O_LINEAR_FD_DERIVATIVE_SOURCES,
     H2O_LINEAR_FD_FAMILY_KEY,
     H2O_LINEAR_FD_FIXTURE_SCHEMA,
     H2O_LINEAR_FD_MODEL_ROLE,
@@ -1697,6 +1699,153 @@ def build_h2o_linear_fd_fixture_from_record(
             )
         )
 
+    geometry_record = GeometryRecord(
+        geometry_id=center_geometry_id,
+        molecule="H2O",
+        symbols=tuple(str(v) for v in geometry_payload["symbols"]),
+        coordinates_bohr=_array(geometry_payload["coordinates_bohr"], label="geometry.coordinates_bohr", ndim=2),
+        masses_me=_array(geometry_payload["masses_me"], label="geometry.masses_me", ndim=1),
+        charge=int(charge),
+        multiplicity=int(multiplicity),
+        method=str(backend.get("method", "unknown")),
+        basis=str(basis),
+        reference=str(reference).upper(),
+        optimized=bool(system.get("optimized", True)),
+        provenance=dict(geometry_payload.get("provenance", {})),
+    )
+    active_kind = str(active_payload.get("active_space_kind", "cas_8e_6o_valence"))
+    active_record = ActiveSpaceRecord(
+        active_space_kind=active_kind,
+        frozen_core_indices=_tuple_int(active_payload.get("frozen_core_indices", ()), label="active_space.frozen_core_indices"),
+        active_indices_center=_tuple_int(active_payload.get("active_indices_center", range(n_spatial)), label="active_space.active_indices_center"),
+        external_indices=_tuple_int(active_payload.get("external_indices", ()), label="active_space.external_indices"),
+        n_spatial_orbitals=int(n_spatial),
+        num_particles=tuple(int(v) for v in num_particles),
+        scalar_energy_hartree=float(active_scalar),
+        one_body_integrals=active_h,
+        two_body_integrals=active_g,
+    )
+    return build_h2o_linear_fd_fixture_from_components(
+        geometry=geometry_record,
+        active_space=active_record,
+        normal_modes=mode_records,
+        first_derivatives=derivatives,
+        mode_cutoffs=mode_cutoffs_t,
+        reference_cutoffs=reference_cutoffs_t,
+        derivative_source=H2O_LINEAR_FD_DERIVATIVE_SOURCE,
+        displacements=displacements,
+        aligned_tensors=aligned_records,
+        alignment_diagnostics=alignment_records,
+        report_summary=dict(obj.get("report_summary", {})),
+        provenance={
+            "backend": backend,
+            "backend_record_schema": BACKEND_RECORD_SCHEMA,
+            "backend_record_sha256": sha256_jsonable(record),
+            "generator": f"src.quantum.chemistry.generate_h2o_linear_fd_fixture:{GENERATOR_VERSION}",
+        },
+        provenance_hashes={"backend_record_sha256": sha256_jsonable(record)},
+        electronic_reference=str(reference),
+        dense_full_dim_cap=int(dense_full_dim_cap),
+        embed_exact_state=bool(embed_exact_state),
+        require_reference_cutoff=bool(require_reference_cutoff),
+        exact_reference_policy=exact_policy,
+        operator_cleanup_tol=float(operator_cleanup_tol),
+        cutoff_energy_tolerance_hartree=float(cutoff_energy_tolerance_hartree),
+        cutoff_boundary_weight_tolerance=float(cutoff_boundary_weight_tolerance),
+    )
+
+
+def build_h2o_linear_fd_fixture_from_components(
+    *,
+    geometry: GeometryRecord,
+    active_space: ActiveSpaceRecord,
+    normal_modes: Sequence[NormalModeRecord],
+    first_derivatives: Sequence[FirstDerivativeRecord],
+    mode_cutoffs: Sequence[int],
+    reference_cutoffs: Sequence[int] | None = None,
+    derivative_source: str = H2O_LINEAR_FD_DERIVATIVE_SOURCE,
+    displacements: Sequence[DisplacedGeometryRecord] = (),
+    aligned_tensors: Sequence[AlignedActiveTensorRecord] = (),
+    alignment_diagnostics: Sequence[AlignmentDiagnosticsRecord] = (),
+    report_summary: Mapping[str, Any] | None = None,
+    provenance: Mapping[str, Any] | None = None,
+    provenance_hashes: Mapping[str, str] | None = None,
+    electronic_reference: str | None = None,
+    dense_full_dim_cap: int = 8192,
+    embed_exact_state: bool = True,
+    require_reference_cutoff: bool = True,
+    exact_reference_policy: str = "auto_sector",
+    operator_cleanup_tol: float = 1.0e-12,
+    cutoff_energy_tolerance_hartree: float = H2O_LINEAR_FD_CUTOFF_ENERGY_TOLERANCE_HARTREE,
+    cutoff_boundary_weight_tolerance: float = H2O_LINEAR_FD_CUTOFF_BOUNDARY_WEIGHT_TOLERANCE,
+) -> ProductionVibronicH2OFixture:
+    """Encode, solve and validate a production fixture from its resolved components.
+
+    ``build_h2o_linear_fd_fixture_from_record`` resolves a backend record (displaced SCF
+    tensors aligned to the centre, central differences, drift validation) into these
+    components and calls this.  A producer whose per-mode derivatives dH/dQ_mu are given
+    analytically (``derivative_source`` = ``H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE``, no
+    displaced tensors) calls it directly.  Everything downstream of the derivatives is
+    shared and unchanged: the register layout, the encoded operators, the reference state,
+    the exact sector reference, the cutoff diagnostics, the production pool, the manifest
+    and the evidence gate.  ``electronic_reference`` is the reference label handed to the
+    electronic encoder (the record path passes its backend's lower-case ``rhf``; the
+    geometry record carries it upper-cased).
+    """
+    mode_records = tuple(normal_modes)
+    if len(mode_records) != 3:
+        raise ValueError("H2O linear-FD fixture components must contain exactly three normal modes.")
+    mode_labels = tuple(str(row.label) for row in mode_records)
+    mode_cutoffs_t = tuple(int(v) for v in mode_cutoffs)
+    if len(mode_cutoffs_t) != 3:
+        raise ValueError("mode_cutoffs must contain exactly three entries.")
+    if reference_cutoffs is not None:
+        reference_cutoffs_t: tuple[int, ...] | None = tuple(int(v) for v in reference_cutoffs)
+    elif bool(require_reference_cutoff):
+        reference_cutoffs_t = tuple(int(v) + 1 for v in mode_cutoffs_t)
+    else:
+        reference_cutoffs_t = None
+    if reference_cutoffs_t is not None and len(reference_cutoffs_t) != 3:
+        raise ValueError("reference_cutoffs must contain exactly three entries.")
+    exact_policy = str(exact_reference_policy).strip().lower().replace("-", "_")
+    if exact_policy not in {
+        "auto_sector",
+        "dense_required",
+        "candidate_without_exact",
+        "sparse_sector_eigsh",
+    }:
+        raise ValueError(f"unsupported exact_reference_policy: {exact_reference_policy!r}.")
+    if str(derivative_source) not in H2O_LINEAR_FD_DERIVATIVE_SOURCES:
+        raise ValueError(f"unsupported derivative_source: {derivative_source!r}.")
+    derivatives = tuple(first_derivatives)
+    if sorted(int(d.mode_index) for d in derivatives) != sorted(int(m.mode_index) for m in mode_records):
+        raise ValueError("first derivatives must cover exactly the normal modes.")
+    for d in derivatives:
+        if str(d.derivative_source) != str(derivative_source):
+            raise ValueError(
+                f"mode {d.mode_index}: derivative source {d.derivative_source!r} disagrees with "
+                f"the manifest's {derivative_source!r}."
+            )
+    n_spatial = int(active_space.n_spatial_orbitals)
+    num_particles = tuple(int(v) for v in active_space.num_particles)
+    if len(num_particles) != 2:
+        raise ValueError("active_space.num_particles must contain (n_alpha, n_beta).")
+    active_scalar = float(active_space.scalar_energy_hartree)
+    active_h = np.asarray(active_space.one_body_integrals, dtype=float)
+    active_g = np.asarray(active_space.two_body_integrals, dtype=float)
+    if active_h.shape != (n_spatial, n_spatial) or active_g.shape != (n_spatial, n_spatial, n_spatial, n_spatial):
+        raise ValueError("active-space tensor shapes do not match n_spatial_orbitals.")
+    layout = _build_register_layout(
+        n_spatial_orbitals=n_spatial,
+        mode_labels=mode_labels,
+        mode_cutoffs=mode_cutoffs_t,
+    )
+    frequencies = tuple(float(row.frequency_hartree) for row in mode_records)
+    basis = str(geometry.basis)
+    reference = str(geometry.reference if electronic_reference is None else electronic_reference)
+    charge = int(geometry.charge)
+    multiplicity = int(geometry.multiplicity)
+
     encoded, h_vibronic, _q_ops, p_ops, derivative_polys = _build_encoded_operators(
         n_spatial_orbitals=int(n_spatial),
         num_particles=tuple(int(v) for v in num_particles),
@@ -1888,8 +2037,8 @@ def build_h2o_linear_fd_fixture_from_record(
         derivative_polys=derivative_polys,
     )
 
-    active_kind = str(active_payload.get("active_space_kind", "cas_8e_6o_valence"))
-    report_summary = dict(obj.get("report_summary", {}))
+    active_kind = str(active_space.active_space_kind)
+    report_summary = dict(report_summary or {})
     report_summary["exact_reference_policy"] = str(exact_policy)
     report_summary["operator_cleanup_tol"] = float(operator_cleanup_tol)
     report_summary["vibrational_cutoff_converged"] = (
@@ -1923,41 +2072,18 @@ def build_h2o_linear_fd_fixture_from_record(
                 if exact_policy == "candidate_without_exact"
                 else "production_validated"
             ),
-            derivative_source=H2O_LINEAR_FD_DERIVATIVE_SOURCE,
+            derivative_source=str(derivative_source),
             created_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
             generator_version=GENERATOR_VERSION,
             repository_commit=None,
-            provenance_hashes={"backend_record_sha256": sha256_jsonable(record)},
+            provenance_hashes=dict(provenance_hashes or {}),
         ),
-        geometry=GeometryRecord(
-            geometry_id=center_geometry_id,
-            molecule="H2O",
-            symbols=tuple(str(v) for v in geometry_payload["symbols"]),
-            coordinates_bohr=_array(geometry_payload["coordinates_bohr"], label="geometry.coordinates_bohr", ndim=2),
-            masses_me=_array(geometry_payload["masses_me"], label="geometry.masses_me", ndim=1),
-            charge=int(charge),
-            multiplicity=int(multiplicity),
-            method=str(backend.get("method", "unknown")),
-            basis=str(basis),
-            reference=str(reference).upper(),
-            optimized=bool(system.get("optimized", True)),
-            provenance=dict(geometry_payload.get("provenance", {})),
-        ),
+        geometry=geometry,
         normal_modes=tuple(mode_records),
         displacements=tuple(displacements),
-        active_space=ActiveSpaceRecord(
-            active_space_kind=active_kind,
-            frozen_core_indices=_tuple_int(active_payload.get("frozen_core_indices", ()), label="active_space.frozen_core_indices"),
-            active_indices_center=_tuple_int(active_payload.get("active_indices_center", range(n_spatial)), label="active_space.active_indices_center"),
-            external_indices=_tuple_int(active_payload.get("external_indices", ()), label="active_space.external_indices"),
-            n_spatial_orbitals=int(n_spatial),
-            num_particles=tuple(int(v) for v in num_particles),
-            scalar_energy_hartree=float(active_scalar),
-            one_body_integrals=active_h,
-            two_body_integrals=active_g,
-        ),
-        aligned_tensors=tuple(aligned_records),
-        alignment_diagnostics=tuple(alignment_records),
+        active_space=active_space,
+        aligned_tensors=tuple(aligned_tensors),
+        alignment_diagnostics=tuple(alignment_diagnostics),
         first_derivatives=tuple(derivatives),
         layout=layout,
         physical_sector=PhysicalSectorRecord(
@@ -1979,12 +2105,7 @@ def build_h2o_linear_fd_fixture_from_record(
         ),
         pool=pool,
         report_summary=report_summary,
-        provenance={
-            "backend": backend,
-            "backend_record_schema": BACKEND_RECORD_SCHEMA,
-            "backend_record_sha256": sha256_jsonable(record),
-            "generator": f"src.quantum.chemistry.generate_h2o_linear_fd_fixture:{GENERATOR_VERSION}",
-        },
+        provenance=dict(provenance or {}),
     )
     if exact_policy == "candidate_without_exact":
         validate_production_vibronic_h2o_fixture(

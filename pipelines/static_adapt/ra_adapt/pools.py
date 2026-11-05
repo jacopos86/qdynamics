@@ -312,13 +312,85 @@ def _per_mode_qubit_total(mode_cutoffs: Sequence[int]) -> int:
     )
 
 
-def require_h2o_symmetry_complete_problem(
-    problem: ResolvedProblemContext,
-) -> None:
-    """Require the supported three-mode CAS(8e,6o) full-binary H2O lane."""
+def h2o_lane_active_space(problem: ResolvedProblemContext) -> dict[str, Any]:
+    """The active space the resolved H2O linear-FD fixture declares, with its parent-count lock.
+
+    The named H2O application was defined on the CAS(8e,6o) valence space of the
+    production fixtures: 6 spatial orbitals, (4, 4) electrons, 12 fermion qubits and
+    448 parents in the derivative-resolved pool.  The evidence gate requires any other
+    active space to be declared in the fixture
+    (``report_summary.paper_iv_active_space_variant``), and a fixture whose pool size
+    differs from 448 records that size as
+    ``report_summary.derivative_resolved_pool_v2_parent_count`` when it is produced.
+    The parent inventory is then locked against that recorded number, whose bytes
+    every checkpoint attests through the fixture sha256, instead of the constant.
+    Without a resolved fixture the CAS(8e,6o) defaults apply.
+    """
 
     if not isinstance(problem, ResolvedProblemContext):
         raise TypeError("problem must be a ResolvedProblemContext.")
+    runtime = problem.runtime_data if isinstance(problem.runtime_data, Mapping) else {}
+    fixture = runtime.get("vibronic_h2o_linear_fd_fixture")
+    if fixture is None:
+        return {
+            "n_spatial_orbitals": 6,
+            "num_particles": (4, 4),
+            "n_fermion_qubits": 12,
+            "active_space_kind": "cas_8e_6o_valence",
+            "variant": None,
+            "expected_parent_count": EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT,
+        }
+    active = fixture.active_space
+    summary = dict(getattr(fixture, "report_summary", {}) or {})
+    variant = summary.get("paper_iv_active_space_variant") or summary.get("active_space_variant")
+    recorded = summary.get("derivative_resolved_pool_v2_parent_count")
+    n_spatial = int(active.n_spatial_orbitals)
+    num_particles = tuple(int(value) for value in active.num_particles)
+    is_default_target = n_spatial == 6 and num_particles == (4, 4) and not variant
+    if recorded is not None:
+        expected: int | None = int(recorded)
+    elif is_default_target:
+        expected = EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT
+    else:
+        expected = None
+    return {
+        "n_spatial_orbitals": n_spatial,
+        "num_particles": num_particles,
+        "n_fermion_qubits": 2 * n_spatial,
+        "active_space_kind": str(active.active_space_kind),
+        "variant": None if not variant else str(variant),
+        "expected_parent_count": expected,
+    }
+
+
+def _h2o_expected_parent_count(problem: ResolvedProblemContext) -> int:
+    expected = h2o_lane_active_space(problem)["expected_parent_count"]
+    if expected is None:
+        raise RuntimeError(
+            "The H2O fixture declares an active-space variant but records no "
+            "derivative-resolved parent count "
+            "(report_summary.derivative_resolved_pool_v2_parent_count); the "
+            "parent inventory cannot be locked."
+        )
+    return int(expected)
+
+
+def require_h2o_symmetry_complete_problem(
+    problem: ResolvedProblemContext,
+) -> None:
+    """Require the three-mode full-binary H2O linear-FD lane on the fixture's active space.
+
+    The default is CAS(8e,6o) with 12 fermion qubits; a fixture that declares an
+    active-space variant (see :func:`h2o_lane_active_space`) is required to match
+    the space it declares instead.
+    """
+
+    if not isinstance(problem, ResolvedProblemContext):
+        raise TypeError("problem must be a ResolvedProblemContext.")
+    space = h2o_lane_active_space(problem)
+    n_spatial = int(space["n_spatial_orbitals"])
+    num_particles = tuple(int(value) for value in space["num_particles"])
+    n_fermion = int(space["n_fermion_qubits"])
     n_ph_max = int(problem.request.n_ph_max)
     level_count = n_ph_max + 1
     qubits_per_mode = max(0, (level_count - 1).bit_length())
@@ -331,9 +403,9 @@ def require_h2o_symmetry_complete_problem(
     )
     if (
         str(problem.family_key).strip().lower() != H2O_LINEAR_FD_FAMILY
-        or int(problem.request.num_sites) != 6
+        or int(problem.request.num_sites) != n_spatial
         or tuple(int(value) for value in problem.sector.num_particles)
-        != (4, 4)
+        != num_particles
         or str(problem.request.boson_encoding).strip().lower() != "binary"
         or len(mode_cutoffs) != 3
         or any(levels < 1 for levels in _per_mode_levels(mode_cutoffs))
@@ -342,16 +414,18 @@ def require_h2o_symmetry_complete_problem(
             for levels in _per_mode_levels(mode_cutoffs)
         )
         or n_ph_max != max(mode_cutoffs)
-        or int(problem.layout.fermion_qubits) != 12
+        or int(problem.layout.fermion_qubits) != n_fermion
         or int(problem.layout.boson_qubits)
         != _per_mode_qubit_total(mode_cutoffs)
         or int(problem.layout.total_qubits)
-        != 12 + _per_mode_qubit_total(mode_cutoffs)
+        != n_fermion + _per_mode_qubit_total(mode_cutoffs)
     ):
         raise ValueError(
-            "The H2O RA application requires the three-mode CAS(8e,6o), "
-            "(4 alpha, 4 beta), full-binary linear-FD problem with each "
-            "mode cutoff one less than a power of two."
+            "The H2O RA application requires the three-mode, full-binary "
+            "linear-FD problem on the active space its fixture declares "
+            f"({space['active_space_kind']}: {n_spatial} spatial orbitals, "
+            f"{num_particles} electrons, {n_fermion} fermion qubits), with "
+            "each mode cutoff one less than a power of two."
         )
 
 
@@ -601,7 +675,7 @@ def _parent_pool_spec(
         )
     return {
         "problem_key": H2O_LINEAR_FD_FAMILY,
-        "num_sites": 6,
+        "num_sites": int(problem.request.num_sites),
         "pool_key": H2O_DERIVATIVE_RESOLVED_POOL,
         "boson_mode_count": 3,
     }
@@ -784,7 +858,7 @@ def _build_parent_template_inventory(
         )
         if paper_i_l3_page12_application
         else
-        EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT
+        _h2o_expected_parent_count(problem)
         if family == H2O_LINEAR_FD_FAMILY
         else EXPECTED_PARENT_COUNTS.get(nph)
     )
@@ -1805,6 +1879,7 @@ __all__ = [
     "build_staged_single_pauli_pool",
     "build_parent_template_inventory",
     "guarded_singleton_generator_identity",
+    "h2o_lane_active_space",
     "sector_complete_pauli_block_identity",
     "require_paper_i_l3_page12_problem",
     "require_paper_i_pure_hubbard_noise_page12_problem",

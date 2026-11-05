@@ -322,6 +322,36 @@ part only), so his reference energy E_RHF + sum omega/2 sits 8.9e-5 Ha above
 ours. The vendored tree has its own `conftest.py` so pytest never collects his
 tests, whose `src.` imports would resolve to our package.
 
+Paper IV lane fixture from a model with an analytic coupling (his model):
+`src/quantum/chemistry/paper_iv_h2o_fixture_from_vibronic_model.py` writes the
+lane's `molecular_vibronic_h2o_linear_fd_fixture_v1` file from any
+`VibronicQubitModel` whose linear coupling is given as tensors, so RA-ADAPT runs
+on Doron Wu's model through the unchanged lane launcher
+(`pipelines.static_adapt.ra_adapt.h2o_application`). Sources: our builder in
+his conventions (`--source builder`, full MO space, mean-field PySCF vertex,
+RHF-Hessian modes; `--counter-term` adds `C_I -> C_I - <HF|C_I|HF>`), or his
+driver's own HDF5 files (`--source qdynamics-h5 --ele-h5 --vib-h5 --eph-h5`,
+through `qdynamics_vendored.vibronic_model_from_qdynamics_outputs`, which
+checks the tensor layout, the HF energy and the mode normalization, and refuses
+files written without `isotope_masses`). The modes are labelled by
+internal-coordinate character and oriented by the lane policy; the derivative
+records carry `dH/dQ_mu` as the (oriented) coupling tensors with
+`derivative_source = analytic_linear_coupling_tensors_mass_weighted_normal_modes_v1`
+and no displaced tensors, which the fixture validators admit next to the
+finite-difference source (an analytic record must say so and carry no drift).
+Everything from the encoded operators on is the generator's shared core
+(`build_h2o_linear_fd_fixture_from_components`, split out of the record path
+with byte-identical output). The fixture declares its active-space variant
+(`full_mo_space`) and records the size of the derivative-resolved pool
+(`report_summary.derivative_resolved_pool_v2_parent_count`, 584 for H2O in his
+conventions), which `ra_adapt/pools.py` locks the parent inventory against in
+place of the CAS(8e,6o) constant 448 (`h2o_lane_active_space`); the summary
+cross-checks the fixture's exact sector energy against the model's own and
+compares the fixture's Hamiltonian term by term with the model in his schema and
+with a given qdynamics JSON (his file: equal to 1e-9 from his HDF5 files; 4e-6
+on the coupling words from our builder, his unprojected Hessian). His H2O
+outputs are checked in under `test_support/qdynamics_h2o/`.
+
 Acceptance: assembling from the Paper IV fixture's tensors reproduces its
 operators exactly, and building H2O from scratch at the fixture geometry with
 `--harmonic-curvature rhf_hessian --alignment full` reproduces its exact sector

@@ -27,6 +27,17 @@ H2O_LINEAR_FD_FAMILY_KEY = "molecular_vibronic_h2o_linear_fd"
 H2O_UMBRELLA_FAMILY_KEY = "molecular_vibronic_h2o"
 H2O_LINEAR_FD_MODEL_ROLE = "production_linear_fd"
 H2O_LINEAR_FD_DERIVATIVE_SOURCE = "finite_difference_mass_weighted_normal_modes_center_aligned_v1"
+H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE = "analytic_linear_coupling_tensors_mass_weighted_normal_modes_v1"
+# Admissible derivative sources.  The finite-difference source is the production linear-FD
+# path (displaced SCFs aligned to the centre, central differences, drift between two steps).
+# The analytic source carries dH/dQ_mu as given active-space tensors (a vibronic builder's
+# linear coupling, Doron Wu's PySCF electron-phonon vertex): no displaced tensors exist and
+# there is no finite-difference drift to validate, so the evidence gate asks for the
+# derivative method instead.
+H2O_LINEAR_FD_DERIVATIVE_SOURCES = (
+    H2O_LINEAR_FD_DERIVATIVE_SOURCE,
+    H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE,
+)
 H2O_LINEAR_FD_REQUIRED_MODE_LABELS = ("bend", "symmetric_stretch", "antisymmetric_stretch")
 H2O_LINEAR_FD_CUTOFF_ENERGY_TOLERANCE_HARTREE = 1.6e-3
 H2O_LINEAR_FD_CUTOFF_BOUNDARY_WEIGHT_TOLERANCE = 1.0e-2
@@ -175,8 +186,8 @@ class FirstDerivativeRecord:
     mode_index: int
     mode_label: str
     q_step_au: float
-    plus_aligned_tensor_id: str
-    minus_aligned_tensor_id: str
+    plus_aligned_tensor_id: str | None
+    minus_aligned_tensor_id: str | None
     scalar_derivative_hartree_per_q: float
     one_body_derivative: np.ndarray
     two_body_derivative: np.ndarray
@@ -572,7 +583,7 @@ def validate_production_vibronic_h2o_fixture(
         raise ValueError(f"unexpected production family_key: {manifest.family_key!r}")
     if str(manifest.model_role) != H2O_LINEAR_FD_MODEL_ROLE:
         raise ValueError(f"unexpected model_role: {manifest.model_role!r}")
-    if str(manifest.derivative_source) != H2O_LINEAR_FD_DERIVATIVE_SOURCE:
+    if str(manifest.derivative_source) not in H2O_LINEAR_FD_DERIVATIVE_SOURCES:
         raise ValueError(f"unexpected derivative source: {manifest.derivative_source!r}")
     if require_production_validated and str(manifest.production_status) != "production_validated":
         raise ValueError(f"fixture is not production_validated: {manifest.production_status!r}")
@@ -661,8 +672,12 @@ def validate_production_vibronic_h2o_fixture(
     for deriv in fixture.first_derivatives:
         if int(deriv.mode_index) not in mode_ids:
             raise ValueError(f"derivative record has unknown mode index: {deriv.mode_index}")
-        if str(deriv.derivative_source) != H2O_LINEAR_FD_DERIVATIVE_SOURCE:
+        if str(deriv.derivative_source) != str(manifest.derivative_source):
             raise ValueError(f"mode {deriv.mode_index}: unexpected derivative source.")
+        if str(manifest.derivative_source) == H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE and (
+            deriv.plus_aligned_tensor_id is not None or deriv.minus_aligned_tensor_id is not None
+        ):
+            raise ValueError(f"mode {deriv.mode_index}: an analytic derivative must not reference displaced tensors.")
         if not bool(deriv.scalar_derivative_included):
             raise ValueError(f"mode {deriv.mode_index}: scalar derivative is not included.")
         if not str(deriv.scalar_derivative_convention).strip():
@@ -819,7 +834,16 @@ def validate_paper_iv_h2o_linear_fd_evidence_fixture(
     derivative_mode_ids = [int(deriv.mode_index) for deriv in fixture.first_derivatives]
     if sorted(derivative_mode_ids) != sorted(int(mode.mode_index) for mode in modes):
         raise ValueError("Paper-IV derivative records do not cover exactly the retained modes.")
+    analytic_source = str(fixture.manifest.derivative_source) == H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE
     for deriv in fixture.first_derivatives:
+        if analytic_source:
+            method = str(dict(deriv.finite_difference_diagnostics).get("derivative_method", ""))
+            if method != "analytic" or deriv.finite_difference_drift is not None:
+                raise ValueError(
+                    f"mode {deriv.mode_index}: an analytic derivative must declare derivative_method "
+                    "'analytic' and carry no finite-difference drift."
+                )
+            continue
         if deriv.finite_difference_drift is None or not np.isfinite(float(deriv.finite_difference_drift)):
             raise ValueError(f"mode {deriv.mode_index}: finite-difference drift diagnostic missing.")
 
@@ -1800,8 +1824,12 @@ def _first_derivative_from_json(payload: Any) -> FirstDerivativeRecord:
         mode_index=int(obj["mode_index"]),
         mode_label=str(obj["mode_label"]),
         q_step_au=float(obj["q_step_au"]),
-        plus_aligned_tensor_id=str(obj["plus_aligned_tensor_id"]),
-        minus_aligned_tensor_id=str(obj["minus_aligned_tensor_id"]),
+        plus_aligned_tensor_id=(
+            None if obj.get("plus_aligned_tensor_id") is None else str(obj["plus_aligned_tensor_id"])
+        ),
+        minus_aligned_tensor_id=(
+            None if obj.get("minus_aligned_tensor_id") is None else str(obj["minus_aligned_tensor_id"])
+        ),
         scalar_derivative_hartree_per_q=float(obj["scalar_derivative_hartree_per_q"]),
         one_body_derivative=_array_from_payload(obj["one_body_derivative"], label="first_derivative.one_body_derivative"),
         two_body_derivative=_array_from_payload(obj["two_body_derivative"], label="first_derivative.two_body_derivative"),
@@ -2108,7 +2136,9 @@ def _evidence_hooks_from_json(payload: Any) -> EvidenceHooksRecord:
 
 
 __all__ = [
+    "H2O_LINEAR_FD_ANALYTIC_DERIVATIVE_SOURCE",
     "H2O_LINEAR_FD_DERIVATIVE_SOURCE",
+    "H2O_LINEAR_FD_DERIVATIVE_SOURCES",
     "H2O_LINEAR_FD_DERIVATIVE_RESOLVED_POOL_KEY",
     "H2O_LINEAR_FD_CUTOFF_BOUNDARY_WEIGHT_TOLERANCE",
     "H2O_LINEAR_FD_CUTOFF_ENERGY_TOLERANCE_HARTREE",

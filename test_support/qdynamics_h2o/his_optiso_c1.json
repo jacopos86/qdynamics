@@ -1,0 +1,8521 @@
+{
+  "schema": "qdynamics_qubit_hamiltonian_v1",
+  "energy_units": "hartree",
+  "spin_ordering": "blocked",
+  "pauli_ordering": "q_(n-1)...q_0",
+  "coupling_model": "mean_field_potential_eph",
+  "n_qubits": 17,
+  "n_fermion_qubits": 14,
+  "num_particles": [
+    5,
+    5
+  ],
+  "mode_cutoffs": [
+    1,
+    1,
+    1
+  ],
+  "boson_encoding": "binary",
+  "omega_hartree": [
+    0.019998866511604083,
+    0.018857247147078846,
+    0.009890858490504233
+  ],
+  "source_files": [
+    "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/074d2be4-c4e9-40f5-b6d6-82618819854b/scratchpad/doron_run_20261104/optiso/h2o_optiso_ele.h5",
+    "/private/tmp/claude-501/-Users-lordskyler-Holstein-test/074d2be4-c4e9-40f5-b6d6-82618819854b/scratchpad/doron_run_20261104/optiso/h2o_optiso_eph.h5"
+  ],
+  "metadata": {
+    "basis": "sto-3g",
+    "charge": 0,
+    "converged": true,
+    "d_converg": 1e-08,
+    "e_converg": 1e-12,
+    "e_scf": -74.96590106193605,
+    "h1_convention": "spin_orbital_interleaved",
+    "h2_antisymmetrized": false,
+    "h2_convention": "chemist_spin_orbital_coulomb",
+    "isotope_masses": "[15.99491461957, 1.00782503223, 1.00782503223]",
+    "max_iter": 100,
+    "method": "RHF",
+    "mol_str": "O 0.0 0.0 -0.06340060329635555\nH 0.0 1.432278617817422 1.1388573462159217\nH 0.0 -1.4322786178174232 1.1388573462159226",
+    "ms2": 0,
+    "nelec": 10,
+    "nmo": 7,
+    "spin": 0,
+    "unit": "Bohr",
+    "xc": "",
+    "electron_phonon": {
+      "basis": "sto-3g",
+      "charge": 0,
+      "converged": true,
+      "d_converg": 1e-08,
+      "e_converg": 1e-12,
+      "e_scf": -74.96590106193605,
+      "eph_basis": "MO",
+      "eph_method": "analytic",
+      "isotope_masses": "[15.99491461957, 1.00782503223, 1.00782503223]",
+      "max_iter": 100,
+      "method": "RHF",
+      "mol_str": "O 0.0 0.0 -0.06340060329635555\nH 0.0 1.432278617817422 1.1388573462159217\nH 0.0 -1.4322786178174232 1.1388573462159226",
+      "ms2": 0,
+      "nelec": 10,
+      "nmo": 7,
+      "spin": 0,
+      "unit": "Bohr",
+      "xc": ""
+    },
+    "coefficient_tolerance": 1e-12
+  },
+  "terms": [
+    {
+      "word": "eeeeeeeeeeeeeeeee",
+      "coefficient": [
+        -46.49076646282709,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeeeez",
+      "coefficient": [
+        12.41137926710862,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeeexx",
+      "coefficient": [
+        0.12499875829079955,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeeeyy",
+      "coefficient": [
+        0.12499875829079955,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeeeze",
+      "coefficient": [
+        1.6495434690872377,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeeezz",
+      "coefficient": [
+        0.2369402599130312,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeezee",
+      "coefficient": [
+        1.1907192076267736,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeezez",
+      "coefficient": [
+        0.19596095118396395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeezxx",
+      "coefficient": [
+        0.005538794154708683,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeezyy",
+      "coefficient": [
+        0.005538794154708683,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeezze",
+      "coefficient": [
+        0.12487904460109056,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexexe",
+      "coefficient": [
+        0.0038010901105791847,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexezx",
+      "coefficient": [
+        -0.0024816025240086276,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexzex",
+      "coefficient": [
+        -0.0016020984661251254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexzxe",
+      "coefficient": [
+        0.12612965413580923,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexzxz",
+      "coefficient": [
+        0.028578412770974962,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeexzzx",
+      "coefficient": [
+        -0.04328059631040226,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyeye",
+      "coefficient": [
+        0.0038010901105791847,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyezy",
+      "coefficient": [
+        -0.0024816025240086276,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyzey",
+      "coefficient": [
+        -0.0016020984661251254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyzye",
+      "coefficient": [
+        0.12612965413580923,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyzyz",
+      "coefficient": [
+        0.028578412770974962,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeeyzzy",
+      "coefficient": [
+        -0.04328059631040226,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezeee",
+      "coefficient": [
+        1.2972780346946533,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezeez",
+      "coefficient": [
+        0.23824813673053646,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezexx",
+      "coefficient": [
+        0.00778506543835401,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezeyy",
+      "coefficient": [
+        0.00778506543835401,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezeze",
+      "coefficient": [
+        0.13610786397467212,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeeezzee",
+      "coefficient": [
+        0.13546020213540916,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezeeee",
+      "coefficient": [
+        1.3666102725582303,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezeeez",
+      "coefficient": [
+        0.27232984324486886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezeexx",
+      "coefficient": [
+        0.011080402049311797,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezeeyy",
+      "coefficient": [
+        0.011080402049311797,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezeeze",
+      "coefficient": [
+        0.15069747794966393,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezezee",
+      "coefficient": [
+        0.14905143222344494,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezxzxe",
+      "coefficient": [
+        0.006503049957971095,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezxzzx",
+      "coefficient": [
+        -0.004672093707991717,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezyzye",
+      "coefficient": [
+        0.006503049957971095,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezyzzy",
+      "coefficient": [
+        -0.004672093707991717,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeezzeee",
+      "coefficient": [
+        0.16583120801693402,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexexeee",
+      "coefficient": [
+        -0.031469999265990874,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexezzxe",
+      "coefficient": [
+        -0.024560715911499702,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexezzzx",
+      "coefficient": [
+        0.005215655098070492,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzezxe",
+      "coefficient": [
+        -0.03010610406379256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzezzx",
+      "coefficient": [
+        0.005029778379979996,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxeee",
+      "coefficient": [
+        -0.23960627780206906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxeez",
+      "coefficient": [
+        -0.05859837676075621,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxexx",
+      "coefficient": [
+        -0.005874198539578628,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxeyy",
+      "coefficient": [
+        -0.005373264327525244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxeze",
+      "coefficient": [
+        -0.01985622003892372,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzxzee",
+      "coefficient": [
+        -0.018880154295442195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzyeyx",
+      "coefficient": [
+        -0.0005009342120533853,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzexe",
+      "coefficient": [
+        -0.028084867400754037,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzezx",
+      "coefficient": [
+        0.0006781739880595013,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzzex",
+      "coefficient": [
+        -0.0014675862507154622,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzzxe",
+      "coefficient": [
+        -0.2764155061800527,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzzxz",
+      "coefficient": [
+        -0.06628419856167315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeexzzzzx",
+      "coefficient": [
+        0.06931017062179289,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyeyeee",
+      "coefficient": [
+        -0.031469999265990874,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyezzye",
+      "coefficient": [
+        -0.024560715911499702,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyezzzy",
+      "coefficient": [
+        0.005215655098070492,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzezye",
+      "coefficient": [
+        -0.03010610406379256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzezzy",
+      "coefficient": [
+        0.005029778379979996,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzxexy",
+      "coefficient": [
+        -0.0005009342120533853,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyeee",
+      "coefficient": [
+        -0.23960627780206906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyeez",
+      "coefficient": [
+        -0.05859837676075621,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyexx",
+      "coefficient": [
+        -0.005373264327525244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyeyy",
+      "coefficient": [
+        -0.005874198539578628,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyeze",
+      "coefficient": [
+        -0.01985622003892372,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzyzee",
+      "coefficient": [
+        -0.018880154295442195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzeye",
+      "coefficient": [
+        -0.028084867400754037,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzezy",
+      "coefficient": [
+        0.0006781739880595013,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzzey",
+      "coefficient": [
+        -0.0014675862507154622,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzzye",
+      "coefficient": [
+        -0.2764155061800527,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzzyz",
+      "coefficient": [
+        -0.06628419856167315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeeyzzzzy",
+      "coefficient": [
+        0.06931017062179289,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeeeee",
+      "coefficient": [
+        0.7930149840702517,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeeeez",
+      "coefficient": [
+        0.19431200567840318,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeeexx",
+      "coefficient": [
+        0.0038504024861100716,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeeeyy",
+      "coefficient": [
+        0.0038504024861100716,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeeeze",
+      "coefficient": [
+        0.1283163972455315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeezee",
+      "coefficient": [
+        0.1250865201213418,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezexzxe",
+      "coefficient": [
+        0.001241730380781886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezexzzx",
+      "coefficient": [
+        -0.005467356377531624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeyzye",
+      "coefficient": [
+        0.001241730380781886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezeyzzy",
+      "coefficient": [
+        -0.005467356377531624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezezeee",
+      "coefficient": [
+        0.11844636480802068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeezzeeee",
+      "coefficient": [
+        0.138294147832894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexezzxee",
+      "coefficient": [
+        -0.025357053706860658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxeexxe",
+      "coefficient": [
+        0.014893896712849197,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxeexzx",
+      "coefficient": [
+        0.001203921826119193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxeeyye",
+      "coefficient": [
+        0.004923895260534867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxeeyzy",
+      "coefficient": [
+        0.0038754452529874478,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxexxee",
+      "coefficient": [
+        -0.008758444721231783,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexxeyyee",
+      "coefficient": [
+        0.0012347783408940443,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexyeeyxe",
+      "coefficient": [
+        0.009970001452314328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexyeeyzx",
+      "coefficient": [
+        -0.0026715234268682546,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexyeyxee",
+      "coefficient": [
+        -0.009993223062125828,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzezxee",
+      "coefficient": [
+        -0.04198864095012571,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzexee",
+      "coefficient": [
+        -0.03876757179056041,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzxxxe",
+      "coefficient": [
+        -0.010747733305205788,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzxxzx",
+      "coefficient": [
+        -0.0011759030679617227,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzxyye",
+      "coefficient": [
+        0.00044480236145430247,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzxyzy",
+      "coefficient": [
+        -0.0022170314363537894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzyyxe",
+      "coefficient": [
+        -0.01119253566666009,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzyyzx",
+      "coefficient": [
+        0.001041128368392067,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzxee",
+      "coefficient": [
+        -0.3691150367210119,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzxez",
+      "coefficient": [
+        -0.08684221700504867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzxxx",
+      "coefficient": [
+        -0.007473405579515929,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzxyy",
+      "coefficient": [
+        -0.005352883693480002,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzxze",
+      "coefficient": [
+        -0.024629766722321523,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeexzzzyyx",
+      "coefficient": [
+        -0.0021205218860359267,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyezzyee",
+      "coefficient": [
+        -0.025357053706860658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyxeexye",
+      "coefficient": [
+        0.009970001452314328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyxeexzy",
+      "coefficient": [
+        -0.0026715234268682546,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyxexyee",
+      "coefficient": [
+        -0.009993223062125828,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyeexxe",
+      "coefficient": [
+        0.004923895260534867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyeexzx",
+      "coefficient": [
+        0.0038754452529874478,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyeeyye",
+      "coefficient": [
+        0.014893896712849197,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyeeyzy",
+      "coefficient": [
+        0.001203921826119193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyexxee",
+      "coefficient": [
+        0.0012347783408940443,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyyeyyee",
+      "coefficient": [
+        -0.008758444721231783,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzezyee",
+      "coefficient": [
+        -0.04198864095012571,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzeyee",
+      "coefficient": [
+        -0.03876757179056041,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzxxye",
+      "coefficient": [
+        -0.01119253566666009,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzxxzy",
+      "coefficient": [
+        0.001041128368392067,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzyxxe",
+      "coefficient": [
+        0.00044480236145430247,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzyxzx",
+      "coefficient": [
+        -0.0022170314363537894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzyyye",
+      "coefficient": [
+        -0.010747733305205788,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzyyzy",
+      "coefficient": [
+        -0.0011759030679617227,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzxxy",
+      "coefficient": [
+        -0.0021205218860359267,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzyee",
+      "coefficient": [
+        -0.3691150367210119,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzyez",
+      "coefficient": [
+        -0.08684221700504867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzyxx",
+      "coefficient": [
+        -0.005352883693480002,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzyyy",
+      "coefficient": [
+        -0.007473405579515929,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeeyzzzyze",
+      "coefficient": [
+        -0.024629766722321523,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeeeee",
+      "coefficient": [
+        0.8108589897471585,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeeeez",
+      "coefficient": [
+        0.20854396300880734,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeeexx",
+      "coefficient": [
+        0.006774722461033512,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeeeyy",
+      "coefficient": [
+        0.006774722461033512,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeeeze",
+      "coefficient": [
+        0.1390950298718728,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeezee",
+      "coefficient": [
+        0.11230668047090987,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeexzxe",
+      "coefficient": [
+        -0.0007179493502360662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeexzzx",
+      "coefficient": [
+        -0.004268594505186554,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeyzye",
+      "coefficient": [
+        -0.0007179493502360662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeeyzzy",
+      "coefficient": [
+        -0.004268594505186554,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezeezeee",
+      "coefficient": [
+        0.13194075568435285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezezeeee",
+      "coefficient": [
+        0.14858942276643666,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezxzxeee",
+      "coefficient": [
+        -0.025474072591292567,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezxzzzxe",
+      "coefficient": [
+        -0.019184360515628173,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezxzzzzx",
+      "coefficient": [
+        0.003924747810515068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezyzyeee",
+      "coefficient": [
+        -0.025474072591292567,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezyzzzye",
+      "coefficient": [
+        -0.019184360515628173,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezyzzzzy",
+      "coefficient": [
+        0.003924747810515068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeeezzeeeee",
+      "coefficient": [
+        0.11305114444447542,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeeeee",
+      "coefficient": [
+        12.411379267108622,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeeeez",
+      "coefficient": [
+        1.1862794121945472,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeeexx",
+      "coefficient": [
+        0.10460916720380664,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeeeyy",
+      "coefficient": [
+        0.10460916720380664,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeeeze",
+      "coefficient": [
+        0.25159238665064226,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeezee",
+      "coefficient": [
+        0.1987283573214158,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeexzxe",
+      "coefficient": [
+        0.03433688471751649,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeexzzx",
+      "coefficient": [
+        -0.046272610675961535,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeyzye",
+      "coefficient": [
+        0.03433688471751649,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeeyzzy",
+      "coefficient": [
+        -0.046272610675961535,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeeezeee",
+      "coefficient": [
+        0.24502958453325385,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeezeeee",
+      "coefficient": [
+        0.27883554714612624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezexzxeee",
+      "coefficient": [
+        -0.058649902239074604,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezexzzzxe",
+      "coefficient": [
+        -0.07483215129058254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezexzzzzx",
+      "coefficient": [
+        0.056471905988418246,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeyzyeee",
+      "coefficient": [
+        -0.058649902239074604,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeyzzzye",
+      "coefficient": [
+        -0.07483215129058254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezeyzzzzy",
+      "coefficient": [
+        0.056471905988418246,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezezeeeee",
+      "coefficient": [
+        0.20188287816155054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezxzzzxee",
+      "coefficient": [
+        -0.09059753857956582,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezyzzzyee",
+      "coefficient": [
+        -0.09059753857956582,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeezzeeeeee",
+      "coefficient": [
+        0.21365196160912586,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeeeee",
+      "coefficient": [
+        0.12499875829079955,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeeeez",
+      "coefficient": [
+        0.10460916720380664,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeeexx",
+      "coefficient": [
+        0.014652126737611054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeeeyy",
+      "coefficient": [
+        0.014652126737611054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeeeze",
+      "coefficient": [
+        0.0033267709135993244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeezee",
+      "coefficient": [
+        0.001120171559819021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeexzxe",
+      "coefficient": [
+        0.00229543548549508,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeexzzx",
+      "coefficient": [
+        -0.005758471946541524,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeyzye",
+      "coefficient": [
+        0.00229543548549508,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeeyzzy",
+      "coefficient": [
+        -0.005758471946541524,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeeezeee",
+      "coefficient": [
+        0.003262544284088677,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeezeeee",
+      "coefficient": [
+        0.002940204973282021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxexzxeee",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxexzzzxe",
+      "coefficient": [
+        -0.0015769523676782287,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxexzzzzx",
+      "coefficient": [
+        0.00854795272890939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeyzyeee",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeyzzzye",
+      "coefficient": [
+        -0.0015769523676782287,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxeyzzzzy",
+      "coefficient": [
+        0.00854795272890939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxezeeeee",
+      "coefficient": [
+        0.0017857457721791184,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxxzzzxee",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxyzzzyee",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeexxzeeeeee",
+      "coefficient": [
+        0.002253491577311714,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeeeee",
+      "coefficient": [
+        0.12499875829079955,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeeeez",
+      "coefficient": [
+        0.10460916720380664,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeeexx",
+      "coefficient": [
+        0.014652126737611054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeeeyy",
+      "coefficient": [
+        0.014652126737611054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeeeze",
+      "coefficient": [
+        0.0033267709135993244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeezee",
+      "coefficient": [
+        0.001120171559819021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeexzxe",
+      "coefficient": [
+        0.00229543548549508,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeexzzx",
+      "coefficient": [
+        -0.005758471946541524,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeyzye",
+      "coefficient": [
+        0.00229543548549508,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeeyzzy",
+      "coefficient": [
+        -0.005758471946541524,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeeezeee",
+      "coefficient": [
+        0.003262544284088677,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeezeeee",
+      "coefficient": [
+        0.002940204973282021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyexzxeee",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyexzzzxe",
+      "coefficient": [
+        -0.0015769523676782287,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyexzzzzx",
+      "coefficient": [
+        0.00854795272890939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeyzyeee",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeyzzzye",
+      "coefficient": [
+        -0.0015769523676782287,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyeyzzzzy",
+      "coefficient": [
+        0.00854795272890939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyezeeeee",
+      "coefficient": [
+        0.0017857457721791184,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyxzzzxee",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyyzzzyee",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeeyyzeeeeee",
+      "coefficient": [
+        0.002253491577311714,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeeeee",
+      "coefficient": [
+        1.6495434690872377,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeeeez",
+      "coefficient": [
+        0.25159238665064226,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeeexx",
+      "coefficient": [
+        0.003326770913599325,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeeeyy",
+      "coefficient": [
+        0.003326770913599325,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeeeze",
+      "coefficient": [
+        0.181792662664457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeezee",
+      "coefficient": [
+        0.16015809905259593,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeexzxe",
+      "coefficient": [
+        0.00047189523888047856,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeexzzx",
+      "coefficient": [
+        -0.003897533951620206,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeyzye",
+      "coefficient": [
+        0.00047189523888047856,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeeyzzy",
+      "coefficient": [
+        -0.003897533951620206,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeeezeee",
+      "coefficient": [
+        0.1674270459336642,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeezeeee",
+      "coefficient": [
+        0.1870183375206403,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeexzxeee",
+      "coefficient": [
+        -0.02542795141437505,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeexzzzxe",
+      "coefficient": [
+        -0.03545048898235939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeexzzzzx",
+      "coefficient": [
+        0.00010936611696276662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeyzyeee",
+      "coefficient": [
+        -0.02542795141437505,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeyzzzye",
+      "coefficient": [
+        -0.03545048898235939,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeeyzzzzy",
+      "coefficient": [
+        0.00010936611696276662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeezeeeee",
+      "coefficient": [
+        0.1536113345340061,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezexzzzxee",
+      "coefficient": [
+        -0.03526681047167609,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezeyzzzyee",
+      "coefficient": [
+        -0.03526681047167609,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezezeeeeee",
+      "coefficient": [
+        0.15481209332577273,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeezzeeeeeee",
+      "coefficient": [
+        0.2369402599130312,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeeexxe",
+      "coefficient": [
+        0.03527905445150536,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeeexzx",
+      "coefficient": [
+        0.0044186225948896615,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeeeyye",
+      "coefficient": [
+        0.03527905445150536,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeeeyzy",
+      "coefficient": [
+        0.0044186225948896615,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeexxee",
+      "coefficient": [
+        0.005284799981938631,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeeeyyee",
+      "coefficient": [
+        0.005284799981938631,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeexzzxee",
+      "coefficient": [
+        -0.009097636853434623,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeeyzzyee",
+      "coefficient": [
+        -0.009097636853434623,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxexxeeeee",
+      "coefficient": [
+        0.023560444747716063,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxexzzxeee",
+      "coefficient": [
+        -0.019471802260937806,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxexzzzzxe",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxexzzzzzx",
+      "coefficient": [
+        0.005628284562999905,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeyyeeeee",
+      "coefficient": [
+        0.023560444747716063,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeyzzyeee",
+      "coefficient": [
+        -0.019471802260937806,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeyzzzzye",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexxeyzzzzzy",
+      "coefficient": [
+        0.005628284562999905,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeeexxe",
+      "coefficient": [
+        0.004418622594889662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeeexzx",
+      "coefficient": [
+        0.00276740613745186,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeeeyye",
+      "coefficient": [
+        0.004418622594889662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeeeyzy",
+      "coefficient": [
+        0.00276740613745186,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeexxee",
+      "coefficient": [
+        -0.0008708605437614569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeeeyyee",
+      "coefficient": [
+        -0.0008708605437614569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxexzzxee",
+      "coefficient": [
+        0.0008109092735813496,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxeyzzyee",
+      "coefficient": [
+        0.0008109092735813496,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxxxeeeee",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxxzzxeee",
+      "coefficient": [
+        -0.0023936723939629694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxxzzzzxe",
+      "coefficient": [
+        0.003507762676963979,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxxzzzzzx",
+      "coefficient": [
+        0.0037553215745171464,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxyyeeeee",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxyzzyeee",
+      "coefficient": [
+        -0.0023936723939629694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxyzzzzye",
+      "coefficient": [
+        0.003507762676963979,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeexzxyzzzzzy",
+      "coefficient": [
+        0.0037553215745171464,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeeexxe",
+      "coefficient": [
+        0.03527905445150536,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeeexzx",
+      "coefficient": [
+        0.0044186225948896615,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeeeyye",
+      "coefficient": [
+        0.03527905445150536,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeeeyzy",
+      "coefficient": [
+        0.0044186225948896615,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeexxee",
+      "coefficient": [
+        0.005284799981938631,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeeeyyee",
+      "coefficient": [
+        0.005284799981938631,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeexzzxee",
+      "coefficient": [
+        -0.009097636853434623,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeeyzzyee",
+      "coefficient": [
+        -0.009097636853434623,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyexxeeeee",
+      "coefficient": [
+        0.023560444747716063,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyexzzxeee",
+      "coefficient": [
+        -0.019471802260937806,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyexzzzzxe",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyexzzzzzx",
+      "coefficient": [
+        0.005628284562999905,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeyyeeeee",
+      "coefficient": [
+        0.023560444747716063,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeyzzyeee",
+      "coefficient": [
+        -0.019471802260937806,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeyzzzzye",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyyeyzzzzzy",
+      "coefficient": [
+        0.005628284562999905,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeeexxe",
+      "coefficient": [
+        0.004418622594889662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeeexzx",
+      "coefficient": [
+        0.00276740613745186,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeeeyye",
+      "coefficient": [
+        0.004418622594889662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeeeyzy",
+      "coefficient": [
+        0.00276740613745186,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeexxee",
+      "coefficient": [
+        -0.0008708605437614569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeeeyyee",
+      "coefficient": [
+        -0.0008708605437614569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyexzzxee",
+      "coefficient": [
+        0.0008109092735813496,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyeyzzyee",
+      "coefficient": [
+        0.0008109092735813496,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyxxeeeee",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyxzzxeee",
+      "coefficient": [
+        -0.0023936723939629694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyxzzzzxe",
+      "coefficient": [
+        0.003507762676963979,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyxzzzzzx",
+      "coefficient": [
+        0.0037553215745171464,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyyyeeeee",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyyzzyeee",
+      "coefficient": [
+        -0.0023936723939629694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyyzzzzye",
+      "coefficient": [
+        0.003507762676963979,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeeyzyyzzzzzy",
+      "coefficient": [
+        0.0037553215745171464,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeeeee",
+      "coefficient": [
+        1.190719207626773,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeeeez",
+      "coefficient": [
+        0.1987283573214158,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeeexx",
+      "coefficient": [
+        0.001120171559819021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeeeyy",
+      "coefficient": [
+        0.001120171559819021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeeeze",
+      "coefficient": [
+        0.16015809905259593,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeezee",
+      "coefficient": [
+        0.15648682806222894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeexzxe",
+      "coefficient": [
+        -0.001483709871359447,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeexzzx",
+      "coefficient": [
+        -0.0016107419802471705,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeyzye",
+      "coefficient": [
+        -0.001483709871359447,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeeyzzy",
+      "coefficient": [
+        -0.0016107419802471705,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeeezeee",
+      "coefficient": [
+        0.14785637045221045,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeezeeee",
+      "coefficient": [
+        0.15615547696287757,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeexzxeee",
+      "coefficient": [
+        -0.011383786796471432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeexzzzxe",
+      "coefficient": [
+        -0.018987230547319413,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeexzzzzx",
+      "coefficient": [
+        -0.00013273528552184836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeyzyeee",
+      "coefficient": [
+        -0.011383786796471432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeyzzzye",
+      "coefficient": [
+        -0.018987230547319413,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeeyzzzzy",
+      "coefficient": [
+        -0.00013273528552184836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeezeeeee",
+      "coefficient": [
+        0.14231776661147166,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeexzzzxee",
+      "coefficient": [
+        -0.022393820862494036,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeeyzzzyee",
+      "coefficient": [
+        -0.022393820862494036,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezeezeeeeee",
+      "coefficient": [
+        0.1511572420215152,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezezeeeeeee",
+      "coefficient": [
+        0.19596095118396395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezxxeeeeeee",
+      "coefficient": [
+        0.005538794154708683,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezyyeeeeeee",
+      "coefficient": [
+        0.005538794154708683,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeezzeeeeeeee",
+      "coefficient": [
+        0.12487904460109056,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexexeeeeeeee",
+      "coefficient": [
+        0.0038010901105791847,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexezxeeeeeee",
+      "coefficient": [
+        -0.0024816025240086276,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeeexxe",
+      "coefficient": [
+        0.005284799981938632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeeexzx",
+      "coefficient": [
+        -0.0008708605437614566,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeeeyye",
+      "coefficient": [
+        0.005284799981938632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeeeyzy",
+      "coefficient": [
+        -0.0008708605437614566,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeexxee",
+      "coefficient": [
+        0.012396168316801313,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeeeyyee",
+      "coefficient": [
+        0.012396168316801313,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeexzzxee",
+      "coefficient": [
+        -0.007496367498970762,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeeyzzyee",
+      "coefficient": [
+        -0.007496367498970762,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeexxeeeee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeexzzxeee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeexzzzzxe",
+      "coefficient": [
+        -0.008724068955732016,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeexzzzzzx",
+      "coefficient": [
+        -0.0012177693260012467,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeyyeeeee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeyzzyeee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeyzzzzye",
+      "coefficient": [
+        -0.008724068955732016,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexxeeyzzzzzy",
+      "coefficient": [
+        -0.0012177693260012467,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzexeeeeeee",
+      "coefficient": [
+        -0.0016020984661251254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeeeee",
+      "coefficient": [
+        0.1261296541358093,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeeeez",
+      "coefficient": [
+        0.03433688471751649,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeeexx",
+      "coefficient": [
+        0.0022954354854950805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeeeyy",
+      "coefficient": [
+        0.0022954354854950805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeeeze",
+      "coefficient": [
+        0.0004718952388804785,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeezee",
+      "coefficient": [
+        -0.001483709871359447,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeexzxe",
+      "coefficient": [
+        0.03131918195899209,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeexzzx",
+      "coefficient": [
+        0.004522521154265333,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeyzye",
+      "coefficient": [
+        0.03131918195899209,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeeyzzy",
+      "coefficient": [
+        0.004522521154265333,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeeezeee",
+      "coefficient": [
+        0.02558569641515225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeezeeee",
+      "coefficient": [
+        0.018424569313185944,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeexzxeee",
+      "coefficient": [
+        -0.010182783771811215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeexzzzxe",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeexzzzzx",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeyzyeee",
+      "coefficient": [
+        -0.010182783771811215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeyzzzye",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeeyzzzzy",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeezeeeee",
+      "coefficient": [
+        -0.013771119721584185,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxexzzzxee",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxeyzzzyee",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxezeeeeee",
+      "coefficient": [
+        0.003335573251428285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzxzeeeeeee",
+      "coefficient": [
+        0.028578412770974962,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeeeee",
+      "coefficient": [
+        -0.04328059631040225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeeeez",
+      "coefficient": [
+        -0.046272610675961535,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeeexx",
+      "coefficient": [
+        -0.005758471946541525,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeeeyy",
+      "coefficient": [
+        -0.005758471946541525,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeeeze",
+      "coefficient": [
+        -0.003897533951620206,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeezee",
+      "coefficient": [
+        -0.0016107419802471703,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeexzxe",
+      "coefficient": [
+        0.004522521154265332,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeexzzx",
+      "coefficient": [
+        0.006781447802717381,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeyzye",
+      "coefficient": [
+        0.004522521154265332,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeeyzzy",
+      "coefficient": [
+        0.006781447802717381,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeeezeee",
+      "coefficient": [
+        0.0026258679745295266,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeezeeee",
+      "coefficient": [
+        -0.0012949963355426207,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxexzxeee",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxexzzzxe",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxexzzzzx",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeyzyeee",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeyzzzye",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxeyzzzzy",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxezeeeee",
+      "coefficient": [
+        -0.005127228443809256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxxzzzxee",
+      "coefficient": [
+        -0.0001766409576091794,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxyzzzyee",
+      "coefficient": [
+        -0.0001766409576091794,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeexzzxzeeeeee",
+      "coefficient": [
+        -0.0010620340317422574,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyeyeeeeeeee",
+      "coefficient": [
+        0.0038010901105791847,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyezyeeeeeee",
+      "coefficient": [
+        -0.0024816025240086276,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeeexxe",
+      "coefficient": [
+        0.005284799981938632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeeexzx",
+      "coefficient": [
+        -0.0008708605437614566,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeeeyye",
+      "coefficient": [
+        0.005284799981938632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeeeyzy",
+      "coefficient": [
+        -0.0008708605437614566,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeexxee",
+      "coefficient": [
+        0.012396168316801313,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeeeyyee",
+      "coefficient": [
+        0.012396168316801313,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeexzzxee",
+      "coefficient": [
+        -0.007496367498970762,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeeyzzyee",
+      "coefficient": [
+        -0.007496367498970762,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeexxeeeee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeexzzxeee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeexzzzzxe",
+      "coefficient": [
+        -0.008724068955732016,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeexzzzzzx",
+      "coefficient": [
+        -0.0012177693260012467,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeyyeeeee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeyzzyeee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeyzzzzye",
+      "coefficient": [
+        -0.008724068955732016,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyyeeyzzzzzy",
+      "coefficient": [
+        -0.0012177693260012467,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzeyeeeeeee",
+      "coefficient": [
+        -0.0016020984661251254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeeeee",
+      "coefficient": [
+        0.1261296541358093,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeeeez",
+      "coefficient": [
+        0.03433688471751649,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeeexx",
+      "coefficient": [
+        0.0022954354854950805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeeeyy",
+      "coefficient": [
+        0.0022954354854950805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeeeze",
+      "coefficient": [
+        0.0004718952388804785,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeezee",
+      "coefficient": [
+        -0.001483709871359447,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeexzxe",
+      "coefficient": [
+        0.03131918195899209,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeexzzx",
+      "coefficient": [
+        0.004522521154265333,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeyzye",
+      "coefficient": [
+        0.03131918195899209,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeeyzzy",
+      "coefficient": [
+        0.004522521154265333,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeeezeee",
+      "coefficient": [
+        0.02558569641515225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeezeeee",
+      "coefficient": [
+        0.018424569313185944,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeexzxeee",
+      "coefficient": [
+        -0.010182783771811215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeexzzzxe",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeexzzzzx",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeyzyeee",
+      "coefficient": [
+        -0.010182783771811215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeyzzzye",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeeyzzzzy",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeezeeeee",
+      "coefficient": [
+        -0.013771119721584185,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyexzzzxee",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyeyzzzyee",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyezeeeeee",
+      "coefficient": [
+        0.003335573251428285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzyzeeeeeee",
+      "coefficient": [
+        0.028578412770974962,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeeeee",
+      "coefficient": [
+        -0.04328059631040225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeeeez",
+      "coefficient": [
+        -0.046272610675961535,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeeexx",
+      "coefficient": [
+        -0.005758471946541525,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeeeyy",
+      "coefficient": [
+        -0.005758471946541525,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeeeze",
+      "coefficient": [
+        -0.003897533951620206,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeezee",
+      "coefficient": [
+        -0.0016107419802471703,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeexzxe",
+      "coefficient": [
+        0.004522521154265332,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeexzzx",
+      "coefficient": [
+        0.006781447802717381,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeyzye",
+      "coefficient": [
+        0.004522521154265332,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeeyzzy",
+      "coefficient": [
+        0.006781447802717381,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeeezeee",
+      "coefficient": [
+        0.0026258679745295266,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeezeeee",
+      "coefficient": [
+        -0.0012949963355426207,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyexzxeee",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyexzzzxe",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyexzzzzx",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeyzyeee",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeyzzzye",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyeyzzzzy",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyezeeeee",
+      "coefficient": [
+        -0.005127228443809256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyxzzzxee",
+      "coefficient": [
+        -0.0001766409576091794,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyyzzzyee",
+      "coefficient": [
+        -0.0001766409576091794,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeeyzzyzeeeeee",
+      "coefficient": [
+        -0.0010620340317422574,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeeeee",
+      "coefficient": [
+        1.2972780346946529,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeeeez",
+      "coefficient": [
+        0.24502958453325385,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeeexx",
+      "coefficient": [
+        0.003262544284088677,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeeeyy",
+      "coefficient": [
+        0.003262544284088677,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeeeze",
+      "coefficient": [
+        0.1674270459336642,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeezee",
+      "coefficient": [
+        0.14785637045221045,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeexzxe",
+      "coefficient": [
+        0.02558569641515225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeexzzx",
+      "coefficient": [
+        0.0026258679745295266,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeyzye",
+      "coefficient": [
+        0.02558569641515225,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeeyzzy",
+      "coefficient": [
+        0.0026258679745295266,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeeezeee",
+      "coefficient": [
+        0.18985027192179973,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeezeeee",
+      "coefficient": [
+        0.17953274659445956,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeexzxeee",
+      "coefficient": [
+        -0.03174856492423573,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeexzzzxe",
+      "coefficient": [
+        -0.019923320291981347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeexzzzzx",
+      "coefficient": [
+        0.004708012536835617,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeyzyeee",
+      "coefficient": [
+        -0.03174856492423573,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeyzzzye",
+      "coefficient": [
+        -0.019923320291981347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeeyzzzzy",
+      "coefficient": [
+        0.004708012536835617,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeezeeeee",
+      "coefficient": [
+        0.13788132557650612,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeexzzzxee",
+      "coefficient": [
+        -0.03831979852418312,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeeyzzzyee",
+      "coefficient": [
+        -0.03831979852418312,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeeezeeeeee",
+      "coefficient": [
+        0.1497079035000999,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeezeeeeeee",
+      "coefficient": [
+        0.23824813673053646,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezexxeeeeeee",
+      "coefficient": [
+        0.00778506543835401,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezeyyeeeeeee",
+      "coefficient": [
+        0.00778506543835401,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezezeeeeeeee",
+      "coefficient": [
+        0.13610786397467212,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeezzeeeeeeeee",
+      "coefficient": [
+        0.13546020213540916,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeexxeee",
+      "coefficient": [
+        0.013701538577525539,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeexzzxe",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeexzzzx",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeeyyeee",
+      "coefficient": [
+        0.013701538577525539,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeeyzzye",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeeyzzzy",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeexxeeee",
+      "coefficient": [
+        2.782444157777983e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexxeeeeyyeeee",
+      "coefficient": [
+        2.782444157777983e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzxeeeexzxee",
+      "coefficient": [
+        0.007104044739432632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzxeeeeyzyee",
+      "coefficient": [
+        0.007104044739432632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzxeexzxeeee",
+      "coefficient": [
+        0.0059173094374784805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzxeeyzyeeee",
+      "coefficient": [
+        0.0059173094374784805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeexxeee",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeexzzxe",
+      "coefficient": [
+        0.036320859570976395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeexzzzx",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeeyyeee",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeeyzzye",
+      "coefficient": [
+        0.036320859570976395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeeyzzzy",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeexxeeee",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzxeeyyeeee",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeexxeee",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeexzzxe",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeexzzzx",
+      "coefficient": [
+        0.00650570390125737,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeeyyeee",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeeyzzye",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeeyzzzy",
+      "coefficient": [
+        0.00650570390125737,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxexxeeee",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeexzzzxeyyeeee",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeexxeee",
+      "coefficient": [
+        0.013701538577525539,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeexzzxe",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeexzzzx",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeeyyeee",
+      "coefficient": [
+        0.013701538577525539,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeeyzzye",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeeyzzzy",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeexxeeee",
+      "coefficient": [
+        2.782444157777983e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyyeeeeyyeeee",
+      "coefficient": [
+        2.782444157777983e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzyeeeexzxee",
+      "coefficient": [
+        0.007104044739432632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzyeeeeyzyee",
+      "coefficient": [
+        0.007104044739432632,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzyeexzxeeee",
+      "coefficient": [
+        0.0059173094374784805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzyeeyzyeeee",
+      "coefficient": [
+        0.0059173094374784805,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeexxeee",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeexzzxe",
+      "coefficient": [
+        0.036320859570976395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeexzzzx",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeeyyeee",
+      "coefficient": [
+        -0.01192151935521485,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeeyzzye",
+      "coefficient": [
+        0.036320859570976395,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeeyzzzy",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeexxeeee",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzyeeyyeeee",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeexxeee",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeexzzxe",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeexzzzx",
+      "coefficient": [
+        0.00650570390125737,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeeyyeee",
+      "coefficient": [
+        -0.0033770973724490958,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeeyzzye",
+      "coefficient": [
+        0.008140197076029775,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeeyzzzy",
+      "coefficient": [
+        0.00650570390125737,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyexxeeee",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeeyzzzyeyyeeee",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeeeee",
+      "coefficient": [
+        1.3666102725582305,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeeeez",
+      "coefficient": [
+        0.27883554714612624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeeexx",
+      "coefficient": [
+        0.002940204973282021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeeeyy",
+      "coefficient": [
+        0.002940204973282021,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeeeze",
+      "coefficient": [
+        0.1870183375206403,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeezee",
+      "coefficient": [
+        0.15615547696287757,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeexzxe",
+      "coefficient": [
+        0.018424569313185944,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeexzzx",
+      "coefficient": [
+        -0.0012949963355426207,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeyzye",
+      "coefficient": [
+        0.018424569313185944,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeeyzzy",
+      "coefficient": [
+        -0.0012949963355426207,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeeezeee",
+      "coefficient": [
+        0.17953274659445956,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeezeeee",
+      "coefficient": [
+        0.22003977334376176,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeexzxeee",
+      "coefficient": [
+        -0.03147278171014865,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeexzzzxe",
+      "coefficient": [
+        -0.038735753348285995,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeexzzzzx",
+      "coefficient": [
+        0.0014828214610980456,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeyzyeee",
+      "coefficient": [
+        -0.03147278171014865,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeyzzzye",
+      "coefficient": [
+        -0.038735753348285995,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeeyzzzzy",
+      "coefficient": [
+        0.0014828214610980456,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeezeeeee",
+      "coefficient": [
+        0.14768687378501258,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeexzzzxee",
+      "coefficient": [
+        -0.047905950387604194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeeyzzzyee",
+      "coefficient": [
+        -0.047905950387604194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeeezeeeeee",
+      "coefficient": [
+        0.15463175315821565,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeezeeeeeee",
+      "coefficient": [
+        0.27232984324486886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeexxeeeeeee",
+      "coefficient": [
+        0.011080402049311797,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeeyyeeeeeee",
+      "coefficient": [
+        0.011080402049311797,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezeezeeeeeeee",
+      "coefficient": [
+        0.15069747794966393,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezezeeeeeeeee",
+      "coefficient": [
+        0.14905143222344494,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezxzxeeeeeeee",
+      "coefficient": [
+        0.006503049957971095,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezxzzxeeeeeee",
+      "coefficient": [
+        -0.004672093707991717,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezyzyeeeeeeee",
+      "coefficient": [
+        0.006503049957971095,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezyzzyeeeeeee",
+      "coefficient": [
+        -0.004672093707991717,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeezzeeeeeeeeee",
+      "coefficient": [
+        0.16583120801693402,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexexeeeeeeeeee",
+      "coefficient": [
+        -0.031469999265990874,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexezzxeeeeeeee",
+      "coefficient": [
+        -0.024560715911499702,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexezzzxeeeeeee",
+      "coefficient": [
+        0.005215655098070492,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeexxeee",
+      "coefficient": [
+        2.7824441577779826e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeexzzxe",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeexzzzx",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeeyyeee",
+      "coefficient": [
+        2.7824441577779826e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeeyzzye",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeeyzzzy",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeexxeeee",
+      "coefficient": [
+        0.009392725952118555,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexxeeeeeyyeeee",
+      "coefficient": [
+        0.009392725952118555,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzezxeeeeeeee",
+      "coefficient": [
+        -0.03010610406379256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzezzxeeeeeee",
+      "coefficient": [
+        0.005029778379979996,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeeeee",
+      "coefficient": [
+        -0.23960627780206906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeeeez",
+      "coefficient": [
+        -0.058649902239074604,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeeexx",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeeeyy",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeeeze",
+      "coefficient": [
+        -0.025427951414375052,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeezee",
+      "coefficient": [
+        -0.011383786796471432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeexzxe",
+      "coefficient": [
+        -0.010182783771811213,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeexzzx",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeyzye",
+      "coefficient": [
+        -0.010182783771811213,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeeyzzy",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeeezeee",
+      "coefficient": [
+        -0.03174856492423573,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeezeeee",
+      "coefficient": [
+        -0.03147278171014865,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeexzxeee",
+      "coefficient": [
+        0.019434960768485457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeexzzzxe",
+      "coefficient": [
+        0.015012850102366068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeexzzzzx",
+      "coefficient": [
+        -0.0003401279337223675,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeyzyeee",
+      "coefficient": [
+        0.019434960768485457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeyzzzye",
+      "coefficient": [
+        0.015012850102366068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeeyzzzzy",
+      "coefficient": [
+        -0.0003401279337223675,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeezeeeee",
+      "coefficient": [
+        -0.011719676965382153,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeexzzzxee",
+      "coefficient": [
+        0.021522555716335025,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeeyzzzyee",
+      "coefficient": [
+        0.021522555716335025,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeeezeeeeee",
+      "coefficient": [
+        -0.010687710016905813,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeezeeeeeee",
+      "coefficient": [
+        -0.05859837676075621,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxexxeeeeeee",
+      "coefficient": [
+        -0.005874198539578628,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxeyyeeeeeee",
+      "coefficient": [
+        -0.005373264327525244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxezeeeeeeee",
+      "coefficient": [
+        -0.01985622003892372,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzxzeeeeeeeee",
+      "coefficient": [
+        -0.018880154295442195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzyeyxeeeeeee",
+      "coefficient": [
+        -0.0005009342120533853,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzexeeeeeeee",
+      "coefficient": [
+        -0.028084867400754037,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzezxeeeeeee",
+      "coefficient": [
+        0.0006781739880595013,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeeexxe",
+      "coefficient": [
+        -0.00909763685343462,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeeexzx",
+      "coefficient": [
+        0.0008109092735813495,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeeeyye",
+      "coefficient": [
+        -0.00909763685343462,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeeeyzy",
+      "coefficient": [
+        0.0008109092735813495,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeexxee",
+      "coefficient": [
+        -0.007496367498970763,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeeeyyee",
+      "coefficient": [
+        -0.007496367498970763,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeexzzxee",
+      "coefficient": [
+        0.017231246490129876,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeeyzzyee",
+      "coefficient": [
+        0.017231246490129876,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeexxeeeee",
+      "coefficient": [
+        -0.015440182139164347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeexzzxeee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeexzzzzxe",
+      "coefficient": [
+        0.008666548034866868,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeexzzzzzx",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeyyeeeee",
+      "coefficient": [
+        -0.015440182139164347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeyzzyeee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeyzzzzye",
+      "coefficient": [
+        0.008666548034866868,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzxeeyzzzzzy",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzexeeeeeee",
+      "coefficient": [
+        -0.0014675862507154622,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeeeee",
+      "coefficient": [
+        -0.2764155061800529,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeeeez",
+      "coefficient": [
+        -0.07483215129058254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeeexx",
+      "coefficient": [
+        -0.001576952367678229,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeeeyy",
+      "coefficient": [
+        -0.001576952367678229,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeeeze",
+      "coefficient": [
+        -0.0354504889823594,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeezee",
+      "coefficient": [
+        -0.018987230547319413,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeexzxe",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeexzzx",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeyzye",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeeyzzy",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeeezeee",
+      "coefficient": [
+        -0.019923320291981347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeezeeee",
+      "coefficient": [
+        -0.038735753348285995,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeexzxeee",
+      "coefficient": [
+        0.01501285010236607,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeexzzzxe",
+      "coefficient": [
+        0.02529493728847463,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeexzzzzx",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeyzyeee",
+      "coefficient": [
+        0.01501285010236607,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeyzzzye",
+      "coefficient": [
+        0.02529493728847463,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeeyzzzzy",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeezeeeee",
+      "coefficient": [
+        -0.02471718351758819,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxexzzzxee",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxeyzzzyee",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxezeeeeee",
+      "coefficient": [
+        -0.016647780231234442,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzxzeeeeeee",
+      "coefficient": [
+        -0.06628419856167315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeeeee",
+      "coefficient": [
+        0.06931017062179293,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeeeez",
+      "coefficient": [
+        0.056471905988418246,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeeexx",
+      "coefficient": [
+        0.008547952728909389,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeeeyy",
+      "coefficient": [
+        0.008547952728909389,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeeeze",
+      "coefficient": [
+        0.00010936611696276662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeezee",
+      "coefficient": [
+        -0.00013273528552184836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeexzxe",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeexzzx",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeyzye",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeeyzzy",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeeezeee",
+      "coefficient": [
+        0.004708012536835617,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeezeeee",
+      "coefficient": [
+        0.0014828214610980456,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxexzxeee",
+      "coefficient": [
+        -0.0003401279337223674,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxexzzzxe",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxexzzzzx",
+      "coefficient": [
+        0.0075708724831473435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeyzyeee",
+      "coefficient": [
+        -0.0003401279337223674,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeyzzzye",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxeyzzzzy",
+      "coefficient": [
+        0.0075708724831473435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxezeeeee",
+      "coefficient": [
+        -0.0022531129886454175,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxxzzzxee",
+      "coefficient": [
+        -0.0017067422157065694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxyzzzyee",
+      "coefficient": [
+        -0.0017067422157065694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeexzzzzxzeeeeee",
+      "coefficient": [
+        0.001113586597011285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyeyeeeeeeeeee",
+      "coefficient": [
+        -0.031469999265990874,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyezzyeeeeeeee",
+      "coefficient": [
+        -0.024560715911499702,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyezzzyeeeeeee",
+      "coefficient": [
+        0.005215655098070492,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeexxeee",
+      "coefficient": [
+        2.7824441577779826e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeexzzxe",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeexzzzx",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeeyyeee",
+      "coefficient": [
+        2.7824441577779826e-06,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeeyzzye",
+      "coefficient": [
+        0.014175037436786291,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeeyzzzy",
+      "coefficient": [
+        0.0037328336369724475,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeexxeeee",
+      "coefficient": [
+        0.009392725952118555,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyyeeeeeyyeeee",
+      "coefficient": [
+        0.009392725952118555,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzezyeeeeeeee",
+      "coefficient": [
+        -0.03010610406379256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzezzyeeeeeee",
+      "coefficient": [
+        0.005029778379979996,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzxexyeeeeeee",
+      "coefficient": [
+        -0.0005009342120533853,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeeeee",
+      "coefficient": [
+        -0.23960627780206906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeeeez",
+      "coefficient": [
+        -0.058649902239074604,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeeexx",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeeeyy",
+      "coefficient": [
+        -0.0006804005263582986,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeeeze",
+      "coefficient": [
+        -0.025427951414375052,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeezee",
+      "coefficient": [
+        -0.011383786796471432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeexzxe",
+      "coefficient": [
+        -0.010182783771811213,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeexzzx",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeyzye",
+      "coefficient": [
+        -0.010182783771811213,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeeyzzy",
+      "coefficient": [
+        0.0003217658431443784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeeezeee",
+      "coefficient": [
+        -0.03174856492423573,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeezeeee",
+      "coefficient": [
+        -0.03147278171014865,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeexzxeee",
+      "coefficient": [
+        0.019434960768485457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeexzzzxe",
+      "coefficient": [
+        0.015012850102366068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeexzzzzx",
+      "coefficient": [
+        -0.0003401279337223675,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeyzyeee",
+      "coefficient": [
+        0.019434960768485457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeyzzzye",
+      "coefficient": [
+        0.015012850102366068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeeyzzzzy",
+      "coefficient": [
+        -0.0003401279337223675,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeezeeeee",
+      "coefficient": [
+        -0.011719676965382153,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeexzzzxee",
+      "coefficient": [
+        0.021522555716335025,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeeyzzzyee",
+      "coefficient": [
+        0.021522555716335025,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeeezeeeeee",
+      "coefficient": [
+        -0.010687710016905813,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeezeeeeeee",
+      "coefficient": [
+        -0.05859837676075621,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyexxeeeeeee",
+      "coefficient": [
+        -0.005373264327525244,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyeyyeeeeeee",
+      "coefficient": [
+        -0.005874198539578628,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyezeeeeeeee",
+      "coefficient": [
+        -0.01985622003892372,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzyzeeeeeeeee",
+      "coefficient": [
+        -0.018880154295442195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzeyeeeeeeee",
+      "coefficient": [
+        -0.028084867400754037,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzezyeeeeeee",
+      "coefficient": [
+        0.0006781739880595013,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeeexxe",
+      "coefficient": [
+        -0.00909763685343462,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeeexzx",
+      "coefficient": [
+        0.0008109092735813495,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeeeyye",
+      "coefficient": [
+        -0.00909763685343462,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeeeyzy",
+      "coefficient": [
+        0.0008109092735813495,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeexxee",
+      "coefficient": [
+        -0.007496367498970763,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeeeyyee",
+      "coefficient": [
+        -0.007496367498970763,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeexzzxee",
+      "coefficient": [
+        0.017231246490129876,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeeyzzyee",
+      "coefficient": [
+        0.017231246490129876,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeexxeeeee",
+      "coefficient": [
+        -0.015440182139164347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeexzzxeee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeexzzzzxe",
+      "coefficient": [
+        0.008666548034866868,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeexzzzzzx",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeyyeeeee",
+      "coefficient": [
+        -0.015440182139164347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeyzzyeee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeyzzzzye",
+      "coefficient": [
+        0.008666548034866868,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzyeeyzzzzzy",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzeyeeeeeee",
+      "coefficient": [
+        -0.0014675862507154622,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeeeee",
+      "coefficient": [
+        -0.2764155061800529,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeeeez",
+      "coefficient": [
+        -0.07483215129058254,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeeexx",
+      "coefficient": [
+        -0.001576952367678229,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeeeyy",
+      "coefficient": [
+        -0.001576952367678229,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeeeze",
+      "coefficient": [
+        -0.0354504889823594,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeezee",
+      "coefficient": [
+        -0.018987230547319413,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeexzxe",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeexzzx",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeyzye",
+      "coefficient": [
+        0.005571731375451328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeeyzzy",
+      "coefficient": [
+        0.0046928638011669455,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeeezeee",
+      "coefficient": [
+        -0.019923320291981347,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeezeeee",
+      "coefficient": [
+        -0.038735753348285995,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeexzxeee",
+      "coefficient": [
+        0.01501285010236607,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeexzzzxe",
+      "coefficient": [
+        0.02529493728847463,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeexzzzzx",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeyzyeee",
+      "coefficient": [
+        0.01501285010236607,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeyzzzye",
+      "coefficient": [
+        0.02529493728847463,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeeyzzzzy",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeezeeeee",
+      "coefficient": [
+        -0.02471718351758819,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyexzzzxee",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyeyzzzyee",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyezeeeeee",
+      "coefficient": [
+        -0.016647780231234442,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzyzeeeeeee",
+      "coefficient": [
+        -0.06628419856167315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeeeee",
+      "coefficient": [
+        0.06931017062179293,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeeeez",
+      "coefficient": [
+        0.056471905988418246,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeeexx",
+      "coefficient": [
+        0.008547952728909389,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeeeyy",
+      "coefficient": [
+        0.008547952728909389,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeeeze",
+      "coefficient": [
+        0.00010936611696276662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeezee",
+      "coefficient": [
+        -0.00013273528552184836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeexzxe",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeexzzx",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeyzye",
+      "coefficient": [
+        0.0051937980132203306,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeeyzzy",
+      "coefficient": [
+        5.152547831839953e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeeezeee",
+      "coefficient": [
+        0.004708012536835617,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeezeeee",
+      "coefficient": [
+        0.0014828214610980456,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyexzxeee",
+      "coefficient": [
+        -0.0003401279337223674,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyexzzzxe",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyexzzzzx",
+      "coefficient": [
+        0.0075708724831473435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeyzyeee",
+      "coefficient": [
+        -0.0003401279337223674,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeyzzzye",
+      "coefficient": [
+        0.002064656713930953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyeyzzzzy",
+      "coefficient": [
+        0.0075708724831473435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyezeeeee",
+      "coefficient": [
+        -0.0022531129886454175,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyxzzzxee",
+      "coefficient": [
+        -0.0017067422157065694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyyzzzyee",
+      "coefficient": [
+        -0.0017067422157065694,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeeyzzzzyzeeeeee",
+      "coefficient": [
+        0.001113586597011285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeeeee",
+      "coefficient": [
+        0.7930149840702511,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeeeez",
+      "coefficient": [
+        0.20188287816155054,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeeexx",
+      "coefficient": [
+        0.0017857457721791184,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeeeyy",
+      "coefficient": [
+        0.0017857457721791184,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeeeze",
+      "coefficient": [
+        0.1536113345340061,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeezee",
+      "coefficient": [
+        0.14231776661147166,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeexzxe",
+      "coefficient": [
+        -0.013771119721584185,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeexzzx",
+      "coefficient": [
+        -0.005127228443809256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeyzye",
+      "coefficient": [
+        -0.013771119721584185,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeeyzzy",
+      "coefficient": [
+        -0.005127228443809256,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeeezeee",
+      "coefficient": [
+        0.13788132557650612,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeezeeee",
+      "coefficient": [
+        0.14768687378501258,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeexzxeee",
+      "coefficient": [
+        -0.011719676965382153,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeexzzzxe",
+      "coefficient": [
+        -0.024717183517588195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeexzzzzx",
+      "coefficient": [
+        -0.0022531129886454175,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeyzyeee",
+      "coefficient": [
+        -0.011719676965382153,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeyzzzye",
+      "coefficient": [
+        -0.024717183517588195,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeeyzzzzy",
+      "coefficient": [
+        -0.0022531129886454175,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeezeeeee",
+      "coefficient": [
+        0.14967808558283172,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeexzzzxee",
+      "coefficient": [
+        -0.009916871567696309,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeeyzzzyee",
+      "coefficient": [
+        -0.009916871567696309,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeeezeeeeee",
+      "coefficient": [
+        0.14122724153827432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeezeeeeeee",
+      "coefficient": [
+        0.19431200567840318,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeexxeeeeeee",
+      "coefficient": [
+        0.0038504024861100716,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeeyyeeeeeee",
+      "coefficient": [
+        0.0038504024861100716,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeeezeeeeeeee",
+      "coefficient": [
+        0.1283163972455315,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeezeeeeeeeee",
+      "coefficient": [
+        0.1250865201213418,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezexzxeeeeeeee",
+      "coefficient": [
+        0.001241730380781886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezexzzxeeeeeee",
+      "coefficient": [
+        -0.005467356377531624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeyzyeeeeeeee",
+      "coefficient": [
+        0.001241730380781886,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezeyzzyeeeeeee",
+      "coefficient": [
+        -0.005467356377531624,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezezeeeeeeeeee",
+      "coefficient": [
+        0.11844636480802068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeezzeeeeeeeeeee",
+      "coefficient": [
+        0.138294147832894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexezzxeeeeeeeee",
+      "coefficient": [
+        -0.025357053706860658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeeexxe",
+      "coefficient": [
+        0.023560444747716066,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeeexzx",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeeeyye",
+      "coefficient": [
+        0.023560444747716066,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeeeyzy",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeexxee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeeeyyee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeexzzxee",
+      "coefficient": [
+        -0.01544018213916435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeeyzzyee",
+      "coefficient": [
+        -0.01544018213916435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeexxeeeee",
+      "coefficient": [
+        0.028176097093798914,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeexzzxeee",
+      "coefficient": [
+        -0.014786362574386754,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeexzzzzxe",
+      "coefficient": [
+        -0.00253658028439373,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeexzzzzzx",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeyyeeeee",
+      "coefficient": [
+        0.028176097093798914,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeyzzyeee",
+      "coefficient": [
+        -0.014786362574386754,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeyzzzzye",
+      "coefficient": [
+        -0.00253658028439373,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeeeeyzzzzzy",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeexxeeeeeeee",
+      "coefficient": [
+        0.014893896712849197,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeexzxeeeeeee",
+      "coefficient": [
+        0.001203921826119193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeyyeeeeeeee",
+      "coefficient": [
+        0.004923895260534867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeeyzyeeeeeee",
+      "coefficient": [
+        0.0038754452529874478,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxexxeeeeeeeee",
+      "coefficient": [
+        -0.008758444721231783,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexxeyyeeeeeeeee",
+      "coefficient": [
+        0.0012347783408940443,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexyeeyxeeeeeeee",
+      "coefficient": [
+        0.009970001452314328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexyeeyzxeeeeeee",
+      "coefficient": [
+        -0.0026715234268682546,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexyeyxeeeeeeeee",
+      "coefficient": [
+        -0.009993223062125828,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzezxeeeeeeeee",
+      "coefficient": [
+        -0.04198864095012571,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzxeeeeeexzxee",
+      "coefficient": [
+        0.005917309437478481,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzxeeeeeeyzyee",
+      "coefficient": [
+        0.005917309437478481,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzxeeeexzxeeee",
+      "coefficient": [
+        0.00604233039177897,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzxeeeeyzyeeee",
+      "coefficient": [
+        0.00604233039177897,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzexeeeeeeeee",
+      "coefficient": [
+        -0.03876757179056041,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeeexxe",
+      "coefficient": [
+        -0.01947180226093781,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeeexzx",
+      "coefficient": [
+        -0.002393672393962969,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeeeyye",
+      "coefficient": [
+        -0.01947180226093781,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeeeyzy",
+      "coefficient": [
+        -0.002393672393962969,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeexxee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeeeyyee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeexzzxee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeeyzzyee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeexxeeeee",
+      "coefficient": [
+        -0.014786362574386756,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeexzzxeee",
+      "coefficient": [
+        0.017767147815747078,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeexzzzzxe",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeexzzzzzx",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeyyeeeee",
+      "coefficient": [
+        -0.014786362574386756,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeyzzyeee",
+      "coefficient": [
+        0.017767147815747078,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeyzzzzye",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxeeeyzzzzzy",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxxxeeeeeeee",
+      "coefficient": [
+        -0.010747733305205788,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxxzxeeeeeee",
+      "coefficient": [
+        -0.0011759030679617227,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxyyeeeeeeee",
+      "coefficient": [
+        0.00044480236145430247,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzxyzyeeeeeee",
+      "coefficient": [
+        -0.0022170314363537894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzyyxeeeeeeee",
+      "coefficient": [
+        -0.01119253566666009,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzyyzxeeeeeee",
+      "coefficient": [
+        0.001041128368392067,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeeeee",
+      "coefficient": [
+        -0.36911503672101215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeeeez",
+      "coefficient": [
+        -0.0905975385795658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeeexx",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeeeyy",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeeeze",
+      "coefficient": [
+        -0.0352668104716761,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeezee",
+      "coefficient": [
+        -0.022393820862494036,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeexzxe",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeexzzx",
+      "coefficient": [
+        -0.00017664095760917941,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeyzye",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeeyzzy",
+      "coefficient": [
+        -0.00017664095760917941,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeeezeee",
+      "coefficient": [
+        -0.038319798524183116,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeezeeee",
+      "coefficient": [
+        -0.04790595038760419,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeexzxeee",
+      "coefficient": [
+        0.02152255571633502,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeexzzzxe",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeexzzzzx",
+      "coefficient": [
+        -0.001706742215706569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeyzyeee",
+      "coefficient": [
+        0.02152255571633502,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeyzzzye",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeeyzzzzy",
+      "coefficient": [
+        -0.001706742215706569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeezeeeee",
+      "coefficient": [
+        -0.009916871567696309,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeexzzzxee",
+      "coefficient": [
+        0.038850561550605345,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeeyzzzyee",
+      "coefficient": [
+        0.038850561550605345,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxeezeeeeee",
+      "coefficient": [
+        -0.02232315333793882,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxezeeeeeee",
+      "coefficient": [
+        -0.08684221700504867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxxxeeeeeee",
+      "coefficient": [
+        -0.007473405579515929,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxyyeeeeeee",
+      "coefficient": [
+        -0.005352883693480002,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzxzeeeeeeee",
+      "coefficient": [
+        -0.024629766722321523,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzyyxeeeeeee",
+      "coefficient": [
+        -0.0021205218860359267,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeeexxe",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeeexzx",
+      "coefficient": [
+        0.0035077626769639786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeeeyye",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeeeyzy",
+      "coefficient": [
+        0.0035077626769639786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeexxee",
+      "coefficient": [
+        -0.008724068955732018,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeeeyyee",
+      "coefficient": [
+        -0.008724068955732018,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeexzzxee",
+      "coefficient": [
+        0.008666548034866866,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeeyzzyee",
+      "coefficient": [
+        0.008666548034866866,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxexxeeeee",
+      "coefficient": [
+        -0.0025365802843937296,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxexzzxeee",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxexzzzzxe",
+      "coefficient": [
+        0.01571706345389993,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxexzzzzzx",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeyyeeeee",
+      "coefficient": [
+        -0.0025365802843937296,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeyzzyeee",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeyzzzzye",
+      "coefficient": [
+        0.01571706345389993,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzxeyzzzzzy",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeeexxe",
+      "coefficient": [
+        0.005628284562999906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeeexzx",
+      "coefficient": [
+        0.003755321574517147,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeeeyye",
+      "coefficient": [
+        0.005628284562999906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeeeyzy",
+      "coefficient": [
+        0.003755321574517147,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeexxee",
+      "coefficient": [
+        -0.0012177693260012465,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeeeyyee",
+      "coefficient": [
+        -0.0012177693260012465,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxexzzxee",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxeyzzyee",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxxxeeeee",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxxzzxeee",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxxzzzzxe",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxxzzzzzx",
+      "coefficient": [
+        0.005107998600318561,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxyyeeeee",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxyzzyeee",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxyzzzzye",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeexzzzzzxyzzzzzy",
+      "coefficient": [
+        0.005107998600318561,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyezzyeeeeeeeee",
+      "coefficient": [
+        -0.025357053706860658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyxeexyeeeeeeee",
+      "coefficient": [
+        0.009970001452314328,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyxeexzyeeeeeee",
+      "coefficient": [
+        -0.0026715234268682546,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyxexyeeeeeeeee",
+      "coefficient": [
+        -0.009993223062125828,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeeexxe",
+      "coefficient": [
+        0.023560444747716066,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeeexzx",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeeeyye",
+      "coefficient": [
+        0.023560444747716066,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeeeyzy",
+      "coefficient": [
+        0.0021687030372808786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeexxee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeeeyyee",
+      "coefficient": [
+        0.012764110995103238,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeexzzxee",
+      "coefficient": [
+        -0.01544018213916435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeeyzzyee",
+      "coefficient": [
+        -0.01544018213916435,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeexxeeeee",
+      "coefficient": [
+        0.028176097093798914,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeexzzxeee",
+      "coefficient": [
+        -0.014786362574386754,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeexzzzzxe",
+      "coefficient": [
+        -0.00253658028439373,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeexzzzzzx",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeyyeeeee",
+      "coefficient": [
+        0.028176097093798914,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeyzzyeee",
+      "coefficient": [
+        -0.014786362574386754,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeyzzzzye",
+      "coefficient": [
+        -0.00253658028439373,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeeeeyzzzzzy",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeexxeeeeeeee",
+      "coefficient": [
+        0.004923895260534867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeexzxeeeeeee",
+      "coefficient": [
+        0.0038754452529874478,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeyyeeeeeeee",
+      "coefficient": [
+        0.014893896712849197,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeeyzyeeeeeee",
+      "coefficient": [
+        0.001203921826119193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyexxeeeeeeeee",
+      "coefficient": [
+        0.0012347783408940443,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyyeyyeeeeeeeee",
+      "coefficient": [
+        -0.008758444721231783,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzezyeeeeeeeee",
+      "coefficient": [
+        -0.04198864095012571,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzyeeeeeexzxee",
+      "coefficient": [
+        0.005917309437478481,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzyeeeeeeyzyee",
+      "coefficient": [
+        0.005917309437478481,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzyeeeexzxeeee",
+      "coefficient": [
+        0.00604233039177897,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzyeeeeyzyeeee",
+      "coefficient": [
+        0.00604233039177897,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzeyeeeeeeeee",
+      "coefficient": [
+        -0.03876757179056041,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzxxyeeeeeeee",
+      "coefficient": [
+        -0.01119253566666009,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzxxzyeeeeeee",
+      "coefficient": [
+        0.001041128368392067,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeeexxe",
+      "coefficient": [
+        -0.01947180226093781,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeeexzx",
+      "coefficient": [
+        -0.002393672393962969,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeeeyye",
+      "coefficient": [
+        -0.01947180226093781,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeeeyzy",
+      "coefficient": [
+        -0.002393672393962969,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeexxee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeeeyyee",
+      "coefficient": [
+        -0.0004477732663772953,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeexzzxee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeeyzzyee",
+      "coefficient": [
+        0.011529332654209194,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeexxeeeee",
+      "coefficient": [
+        -0.014786362574386756,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeexzzxeee",
+      "coefficient": [
+        0.017767147815747078,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeexzzzzxe",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeexzzzzzx",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeyyeeeee",
+      "coefficient": [
+        -0.014786362574386756,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeyzzyeee",
+      "coefficient": [
+        0.017767147815747078,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeyzzzzye",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyeeeyzzzzzy",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyxxeeeeeeee",
+      "coefficient": [
+        0.00044480236145430247,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyxzxeeeeeee",
+      "coefficient": [
+        -0.0022170314363537894,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyyyeeeeeeee",
+      "coefficient": [
+        -0.010747733305205788,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzyyzyeeeeeee",
+      "coefficient": [
+        -0.0011759030679617227,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzxxyeeeeeee",
+      "coefficient": [
+        -0.0021205218860359267,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeeeee",
+      "coefficient": [
+        -0.36911503672101215,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeeeez",
+      "coefficient": [
+        -0.0905975385795658,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeeexx",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeeeyy",
+      "coefficient": [
+        -0.0018451210165160237,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeeeze",
+      "coefficient": [
+        -0.0352668104716761,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeezee",
+      "coefficient": [
+        -0.022393820862494036,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeexzxe",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeexzzx",
+      "coefficient": [
+        -0.00017664095760917941,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeyzye",
+      "coefficient": [
+        -0.019916604622392108,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeeyzzy",
+      "coefficient": [
+        -0.00017664095760917941,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeeezeee",
+      "coefficient": [
+        -0.038319798524183116,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeezeeee",
+      "coefficient": [
+        -0.04790595038760419,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeexzxeee",
+      "coefficient": [
+        0.02152255571633502,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeexzzzxe",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeexzzzzx",
+      "coefficient": [
+        -0.001706742215706569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeyzyeee",
+      "coefficient": [
+        0.02152255571633502,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeyzzzye",
+      "coefficient": [
+        0.018636549487181193,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeeyzzzzy",
+      "coefficient": [
+        -0.001706742215706569,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeezeeeee",
+      "coefficient": [
+        -0.009916871567696309,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeexzzzxee",
+      "coefficient": [
+        0.038850561550605345,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeeyzzzyee",
+      "coefficient": [
+        0.038850561550605345,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyeezeeeeee",
+      "coefficient": [
+        -0.02232315333793882,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyezeeeeeee",
+      "coefficient": [
+        -0.08684221700504867,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyxxeeeeeee",
+      "coefficient": [
+        -0.005352883693480002,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyyyeeeeeee",
+      "coefficient": [
+        -0.007473405579515929,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzyzeeeeeeee",
+      "coefficient": [
+        -0.024629766722321523,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeeexxe",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeeexzx",
+      "coefficient": [
+        0.0035077626769639786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeeeyye",
+      "coefficient": [
+        0.01063704374935457,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeeeyzy",
+      "coefficient": [
+        0.0035077626769639786,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeexxee",
+      "coefficient": [
+        -0.008724068955732018,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeeeyyee",
+      "coefficient": [
+        -0.008724068955732018,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeexzzxee",
+      "coefficient": [
+        0.008666548034866866,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeeyzzyee",
+      "coefficient": [
+        0.008666548034866866,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyexxeeeee",
+      "coefficient": [
+        -0.0025365802843937296,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyexzzxeee",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyexzzzzxe",
+      "coefficient": [
+        0.01571706345389993,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyexzzzzzx",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeyyeeeee",
+      "coefficient": [
+        -0.0025365802843937296,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeyzzyeee",
+      "coefficient": [
+        -0.004053522601664351,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeyzzzzye",
+      "coefficient": [
+        0.01571706345389993,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzyeyzzzzzy",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeeexxe",
+      "coefficient": [
+        0.005628284562999906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeeexzx",
+      "coefficient": [
+        0.003755321574517147,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeeeyye",
+      "coefficient": [
+        0.005628284562999906,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeeeyzy",
+      "coefficient": [
+        0.003755321574517147,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeexxee",
+      "coefficient": [
+        -0.0012177693260012465,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeeeyyee",
+      "coefficient": [
+        -0.0012177693260012465,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyexzzxee",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyeyzzyee",
+      "coefficient": [
+        0.0009647812111616852,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyxxeeeee",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyxzzxeee",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyxzzzzxe",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyxzzzzzx",
+      "coefficient": [
+        0.005107998600318561,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyyyeeeee",
+      "coefficient": [
+        0.0028111612135037836,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyyzzyeee",
+      "coefficient": [
+        -0.0032065604734442966,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyyzzzzye",
+      "coefficient": [
+        0.0045212308837218,
+        0.0
+      ]
+    },
+    {
+      "word": "eeeyzzzzzyyzzzzzy",
+      "coefficient": [
+        0.005107998600318561,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeeeee",
+      "coefficient": [
+        0.8108589897471585,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeeeez",
+      "coefficient": [
+        0.21365196160912586,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeeexx",
+      "coefficient": [
+        0.002253491577311714,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeeeyy",
+      "coefficient": [
+        0.002253491577311714,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeeeze",
+      "coefficient": [
+        0.15481209332577273,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeezee",
+      "coefficient": [
+        0.1511572420215152,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeexzxe",
+      "coefficient": [
+        0.003335573251428285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeexzzx",
+      "coefficient": [
+        -0.0010620340317422576,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeyzye",
+      "coefficient": [
+        0.003335573251428285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeeyzzy",
+      "coefficient": [
+        -0.0010620340317422576,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeeezeee",
+      "coefficient": [
+        0.1497079035000999,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeezeeee",
+      "coefficient": [
+        0.15463175315821565,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeexzxeee",
+      "coefficient": [
+        -0.010687710016905813,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeexzzzxe",
+      "coefficient": [
+        -0.016647780231234442,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeexzzzzx",
+      "coefficient": [
+        0.001113586597011285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeyzyeee",
+      "coefficient": [
+        -0.010687710016905813,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeyzzzye",
+      "coefficient": [
+        -0.016647780231234442,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeeyzzzzy",
+      "coefficient": [
+        0.001113586597011285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeezeeeee",
+      "coefficient": [
+        0.14122724153827432,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeexzzzxee",
+      "coefficient": [
+        -0.022323153337938825,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeeyzzzyee",
+      "coefficient": [
+        -0.022323153337938825,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeeezeeeeee",
+      "coefficient": [
+        0.15310521708202784,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeezeeeeeee",
+      "coefficient": [
+        0.20854396300880734,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeexxeeeeeee",
+      "coefficient": [
+        0.006774722461033512,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeeyyeeeeeee",
+      "coefficient": [
+        0.006774722461033512,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeeezeeeeeeee",
+      "coefficient": [
+        0.1390950298718728,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeezeeeeeeeee",
+      "coefficient": [
+        0.11230668047090987,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeexzxeeeeeeee",
+      "coefficient": [
+        -0.0007179493502360662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeexzzxeeeeeee",
+      "coefficient": [
+        -0.004268594505186554,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeyzyeeeeeeee",
+      "coefficient": [
+        -0.0007179493502360662,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeeyzzyeeeeeee",
+      "coefficient": [
+        -0.004268594505186554,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezeezeeeeeeeeee",
+      "coefficient": [
+        0.13194075568435285,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezezeeeeeeeeeee",
+      "coefficient": [
+        0.14858942276643666,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezxzxeeeeeeeeee",
+      "coefficient": [
+        -0.025474072591292567,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezxzzzxeeeeeeee",
+      "coefficient": [
+        -0.019184360515628173,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezxzzzzxeeeeeee",
+      "coefficient": [
+        0.003924747810515068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezyzyeeeeeeeeee",
+      "coefficient": [
+        -0.025474072591292567,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezyzzzyeeeeeeee",
+      "coefficient": [
+        -0.019184360515628173,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezyzzzzyeeeeeee",
+      "coefficient": [
+        0.003924747810515068,
+        0.0
+      ]
+    },
+    {
+      "word": "eeezzeeeeeeeeeeee",
+      "coefficient": [
+        0.11305114444447542,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeeexxe",
+      "coefficient": [
+        -0.015183960896043491,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeeexzx",
+      "coefficient": [
+        -0.04022121794022206,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeeeyye",
+      "coefficient": [
+        -0.015183960896043491,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeeeyzy",
+      "coefficient": [
+        -0.04022121794022206,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeexxee",
+      "coefficient": [
+        -0.0030857408303431645,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeeeyyee",
+      "coefficient": [
+        -0.0030857408303431645,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeexzzxee",
+      "coefficient": [
+        -0.013347860185042897,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeeyzzyee",
+      "coefficient": [
+        -0.013347860185042897,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeexxeeeee",
+      "coefficient": [
+        0.007647639601312102,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeexzzxeee",
+      "coefficient": [
+        -0.00412416728045518,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeexzzzzxe",
+      "coefficient": [
+        -0.008953723592374653,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeexzzzzzx",
+      "coefficient": [
+        -0.0581208768641507,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeyyeeeee",
+      "coefficient": [
+        0.007647639601312102,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeyzzyeee",
+      "coefficient": [
+        -0.00412416728045518,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeyzzzzye",
+      "coefficient": [
+        -0.008953723592374653,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeeeeyzzzzzy",
+      "coefficient": [
+        -0.0581208768641507,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeexxeeeeeeee",
+      "coefficient": [
+        -0.015183960896043491,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeexzxeeeeeee",
+      "coefficient": [
+        -0.04022121794022206,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeyyeeeeeeee",
+      "coefficient": [
+        -0.015183960896043491,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeeyzyeeeeeee",
+      "coefficient": [
+        -0.04022121794022206,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeexxeeeeeeeee",
+      "coefficient": [
+        -0.0030857408303431645,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeeeyyeeeeeeeee",
+      "coefficient": [
+        -0.0030857408303431645,
+        0.0
+      ]
+    },
+    {
+      "word": "eexexzzxeeeeeeeee",
+      "coefficient": [
+        -0.013347860185042897,
+        0.0
+      ]
+    },
+    {
+      "word": "eexeyzzyeeeeeeeee",
+      "coefficient": [
+        -0.013347860185042897,
+        0.0
+      ]
+    },
+    {
+      "word": "eexxxeeeeeeeeeeee",
+      "coefficient": [
+        0.007647639601312102,
+        0.0
+      ]
+    },
+    {
+      "word": "eexxzzxeeeeeeeeee",
+      "coefficient": [
+        -0.00412416728045518,
+        0.0
+      ]
+    },
+    {
+      "word": "eexxzzzzxeeeeeeee",
+      "coefficient": [
+        -0.008953723592374653,
+        0.0
+      ]
+    },
+    {
+      "word": "eexxzzzzzxeeeeeee",
+      "coefficient": [
+        -0.0581208768641507,
+        0.0
+      ]
+    },
+    {
+      "word": "eexyyeeeeeeeeeeee",
+      "coefficient": [
+        0.007647639601312102,
+        0.0
+      ]
+    },
+    {
+      "word": "eexyzzyeeeeeeeeee",
+      "coefficient": [
+        -0.00412416728045518,
+        0.0
+      ]
+    },
+    {
+      "word": "eexyzzzzyeeeeeeee",
+      "coefficient": [
+        -0.008953723592374653,
+        0.0
+      ]
+    },
+    {
+      "word": "eexyzzzzzyeeeeeee",
+      "coefficient": [
+        -0.0581208768641507,
+        0.0
+      ]
+    },
+    {
+      "word": "eezeeeeeeeeeeeeee",
+      "coefficient": [
+        -0.009999433255802041,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeeeee",
+      "coefficient": [
+        -0.0011983671882002615,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeeeez",
+      "coefficient": [
+        0.004512488659500185,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeeexx",
+      "coefficient": [
+        0.007831239645885293,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeeeyy",
+      "coefficient": [
+        0.007831239645885293,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeeeze",
+      "coefficient": [
+        -0.011180171826307775,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeezee",
+      "coefficient": [
+        -0.009091309545757332,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeexzxe",
+      "coefficient": [
+        0.01099104446253055,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeexzzx",
+      "coefficient": [
+        0.03811756295452593,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeyzye",
+      "coefficient": [
+        0.01099104446253055,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeeyzzy",
+      "coefficient": [
+        0.03811756295452593,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeeezeee",
+      "coefficient": [
+        -9.640062976361716e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeezeeee",
+      "coefficient": [
+        -0.0005325506103161174,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeexzxeee",
+      "coefficient": [
+        0.011340046660852702,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeexzzzxe",
+      "coefficient": [
+        0.009372909108410273,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeexzzzzx",
+      "coefficient": [
+        0.03757685446778031,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeyzyeee",
+      "coefficient": [
+        0.011340046660852702,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeyzzzye",
+      "coefficient": [
+        0.009372909108410273,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeeyzzzzy",
+      "coefficient": [
+        0.03757685446778031,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeezeeeee",
+      "coefficient": [
+        0.00630924787796795,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeexzzzxee",
+      "coefficient": [
+        0.009977510619998672,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeeyzzzyee",
+      "coefficient": [
+        0.009977510619998672,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeeezeeeeee",
+      "coefficient": [
+        0.010677879668776839,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeezeeeeeee",
+      "coefficient": [
+        0.004512488659500185,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeexxeeeeeee",
+      "coefficient": [
+        0.007831239645885293,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeeyyeeeeeee",
+      "coefficient": [
+        0.007831239645885293,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeeezeeeeeeee",
+      "coefficient": [
+        -0.011180171826307775,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeezeeeeeeeee",
+      "coefficient": [
+        -0.009091309545757332,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeexzxeeeeeeee",
+      "coefficient": [
+        0.01099104446253055,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeexzzxeeeeeee",
+      "coefficient": [
+        0.03811756295452593,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeyzyeeeeeeee",
+      "coefficient": [
+        0.01099104446253055,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeeyzzyeeeeeee",
+      "coefficient": [
+        0.03811756295452593,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeeezeeeeeeeeee",
+      "coefficient": [
+        -9.640062976361716e-05,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeezeeeeeeeeeee",
+      "coefficient": [
+        -0.0005325506103161174,
+        0.0
+      ]
+    },
+    {
+      "word": "exeexzxeeeeeeeeee",
+      "coefficient": [
+        0.011340046660852702,
+        0.0
+      ]
+    },
+    {
+      "word": "exeexzzzxeeeeeeee",
+      "coefficient": [
+        0.009372909108410273,
+        0.0
+      ]
+    },
+    {
+      "word": "exeexzzzzxeeeeeee",
+      "coefficient": [
+        0.03757685446778031,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeyzyeeeeeeeeee",
+      "coefficient": [
+        0.011340046660852702,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeyzzzyeeeeeeee",
+      "coefficient": [
+        0.009372909108410273,
+        0.0
+      ]
+    },
+    {
+      "word": "exeeyzzzzyeeeeeee",
+      "coefficient": [
+        0.03757685446778031,
+        0.0
+      ]
+    },
+    {
+      "word": "exeezeeeeeeeeeeee",
+      "coefficient": [
+        0.00630924787796795,
+        0.0
+      ]
+    },
+    {
+      "word": "exexzzzxeeeeeeeee",
+      "coefficient": [
+        0.009977510619998672,
+        0.0
+      ]
+    },
+    {
+      "word": "exeyzzzyeeeeeeeee",
+      "coefficient": [
+        0.009977510619998672,
+        0.0
+      ]
+    },
+    {
+      "word": "exezeeeeeeeeeeeee",
+      "coefficient": [
+        0.010677879668776839,
+        0.0
+      ]
+    },
+    {
+      "word": "ezeeeeeeeeeeeeeee",
+      "coefficient": [
+        -0.009428623573539423,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeeeee",
+      "coefficient": [
+        0.03902772416190296,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeeeez",
+      "coefficient": [
+        -0.007216815369558561,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeeexx",
+      "coefficient": [
+        -0.012470094362727285,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeeeyy",
+      "coefficient": [
+        -0.012470094362727285,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeeeze",
+      "coefficient": [
+        -0.0015444029340210786,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeezee",
+      "coefficient": [
+        0.004932764662851066,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeexzxe",
+      "coefficient": [
+        -0.003212851498343797,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeexzzx",
+      "coefficient": [
+        -0.0668586227498916,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeyzye",
+      "coefficient": [
+        -0.003212851498343797,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeeyzzy",
+      "coefficient": [
+        -0.0668586227498916,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeeezeee",
+      "coefficient": [
+        -0.009947585052673985,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeezeeee",
+      "coefficient": [
+        -0.003369219723475271,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeexzxeee",
+      "coefficient": [
+        -0.00380936562646838,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeexzzzxe",
+      "coefficient": [
+        -0.0003676224836431252,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeexzzzzx",
+      "coefficient": [
+        -0.0654533246487257,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeyzyeee",
+      "coefficient": [
+        -0.00380936562646838,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeyzzzye",
+      "coefficient": [
+        -0.0003676224836431252,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeeyzzzzy",
+      "coefficient": [
+        -0.0654533246487257,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeezeeeee",
+      "coefficient": [
+        0.002929063218917163,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeexzzzxee",
+      "coefficient": [
+        0.0023878772803694456,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeeyzzzyee",
+      "coefficient": [
+        0.0023878772803694456,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeeezeeeeee",
+      "coefficient": [
+        -0.0052976668829908145,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeezeeeeeee",
+      "coefficient": [
+        -0.007216815369558561,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeexxeeeeeee",
+      "coefficient": [
+        -0.012470094362727285,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeeyyeeeeeee",
+      "coefficient": [
+        -0.012470094362727285,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeeezeeeeeeee",
+      "coefficient": [
+        -0.0015444029340210786,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeezeeeeeeeee",
+      "coefficient": [
+        0.004932764662851066,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeexzxeeeeeeee",
+      "coefficient": [
+        -0.003212851498343797,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeexzzxeeeeeee",
+      "coefficient": [
+        -0.0668586227498916,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeyzyeeeeeeee",
+      "coefficient": [
+        -0.003212851498343797,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeeyzzyeeeeeee",
+      "coefficient": [
+        -0.0668586227498916,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeeezeeeeeeeeee",
+      "coefficient": [
+        -0.009947585052673985,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeezeeeeeeeeeee",
+      "coefficient": [
+        -0.003369219723475271,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeexzxeeeeeeeeee",
+      "coefficient": [
+        -0.00380936562646838,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeexzzzxeeeeeeee",
+      "coefficient": [
+        -0.0003676224836431252,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeexzzzzxeeeeeee",
+      "coefficient": [
+        -0.0654533246487257,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeyzyeeeeeeeeee",
+      "coefficient": [
+        -0.00380936562646838,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeyzzzyeeeeeeee",
+      "coefficient": [
+        -0.0003676224836431252,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeeyzzzzyeeeeeee",
+      "coefficient": [
+        -0.0654533246487257,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeezeeeeeeeeeeee",
+      "coefficient": [
+        0.002929063218917163,
+        0.0
+      ]
+    },
+    {
+      "word": "xeexzzzxeeeeeeeee",
+      "coefficient": [
+        0.0023878772803694456,
+        0.0
+      ]
+    },
+    {
+      "word": "xeeyzzzyeeeeeeeee",
+      "coefficient": [
+        0.0023878772803694456,
+        0.0
+      ]
+    },
+    {
+      "word": "xeezeeeeeeeeeeeee",
+      "coefficient": [
+        -0.0052976668829908145,
+        0.0
+      ]
+    },
+    {
+      "word": "zeeeeeeeeeeeeeeee",
+      "coefficient": [
+        -0.004945429245252117,
+        0.0
+      ]
+    }
+  ]
+}

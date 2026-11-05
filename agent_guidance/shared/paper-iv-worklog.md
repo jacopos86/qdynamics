@@ -359,3 +359,17 @@ was sent to ap2001.
 Before any submission (user): decide the fate of seg13 of the old model,
 confirm `image.sif` and quota headroom on ap2001, rsync the directory, point
 the monitor/watcher at the new batch names.
+
+## Doron Wu's model through the lane — 2026-11-05 (user: "Yes, build it")
+
+The lane now runs RA-ADAPT on a fixture whose per-mode derivatives are given
+analytically (`paper_iv_h2o_fixture_from_vibronic_model.py`: our builder in his
+conventions, or his driver's HDF5 files via `qdynamics_vendored.vibronic_model_from_qdynamics_outputs`).
+Lane changes: the fixture validators admit `analytic_linear_coupling_tensors_mass_weighted_normal_modes_v1`
+next to the finite-difference source; the generator's encode-solve-validate
+core is `build_h2o_linear_fd_fixture_from_components` (record path byte-identical);
+`ra_adapt/pools.py` locks the H2O application and the parent inventory to the
+active space and the derivative-resolved parent count the fixture declares
+(`h2o_lane_active_space`), the CAS(8e,6o)/448 defaults unchanged. The production
+model, fixture and campaign are untouched. Numbers, decisions and the RA-ADAPT runs:
+`agent_guidance/shared/handoffs/doron-ra-adapt-lane-fixture-20261105.md`.
