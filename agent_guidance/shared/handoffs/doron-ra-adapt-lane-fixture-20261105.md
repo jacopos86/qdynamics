@@ -71,7 +71,7 @@ classical ground state").  "his HDF5 files" = his driver run here with `isotope_
 | `his_h5_c111` | his HDF5 files (`test_support/qdynamics_h2o`) | 1,1,1 / 17 | 3528 | -75.1190471 | -75.2011488 (2,2,2) | 0.0821 | 0.69 | 584 | 1207/1207 words shared, none missing, max 2.1e-14 |
 | `builder_his_conventions_c111` | our builder in his conventions | 1,1,1 / 17 | 3528 | -75.1190469 | -75.2011485 (2,2,2) | 0.0821 | 0.69 | 584 | 1207/1207 words shared, none missing, max 4.4e-06 |
 | `builder_counter_term_c111` | our builder in his conventions, counter-term on | 1,1,1 / 17 | 3528 | -75.0052072 | -75.0090347 (2,2,2) | 0.0038 | 0.08 | 584 | not compared |
-| `his_h5_c333` | his HDF5 files | pending | | | | | | | |
+| `his_h5_c333` | his HDF5 files | 3,3,3 / 20 | 28224 | -75.2644600 | -75.3163222 (4,4,4) | 0.0519 | 0.34 | 584 | 1564/1564 words shared, none missing, max 2.8e-14 |
 
 The fixture built from his files carries his operator exactly (2e-14 on 1207 words); our
 builder in his conventions differs from it by 4e-6 on the coupling words (his Hessian keeps
@@ -91,7 +91,46 @@ once.  Route profile
 `paper_iv_h2o_ra_adapt__macro_generator_v1__symmetry_complete_macro_v1__append_only__measured_residual_response_v1__all_phase_resource_weighting_v1__incremental_active_baseline__exact_guarded_full_response`,
 exact-ED stop at 1.6 mHa from the fixture's exact energy.
 
-RA_ADAPT_TABLE_PLACEHOLDER
+| run (macro arm, append-only, proxy cost, 6 rounds max, 3 h wall) | controller rounds | operators | energy after the last round (Ha) | exact same-cutoff (Ha) | above exact | stop | wall clock |
+|---|---|---|---|---|---|---|---|
+| his file (fixture from his HDF5 files), 17 qubits | 6 | 6 | -75.0889771 | -75.1190471 | 30.1 mHa | `maximum_controller_rounds` | 1860 s |
+| counter-term model, 17 qubits | 6 | 6 | -74.9750170 | -75.0052072 | 30.2 mHa | `maximum_controller_rounds` | 1949 s |
+
+`his_h5_c111_macro`:
+
+| round | selected generator (Phase-I trust-region score) | energy after refit (Ha) | change (mHa) | `max_grad` over the pool | optimizer evaluations |
+|---|---|---|---|---|---|
+| 1 | `coupled::bend::dH_dQ_one_body_factor[5]_times_p` | -75.0053413 | -63.81 | 1.861 | 20 |
+| 2 | `boson::symmetric_stretch::p` | -75.0621390 | -56.80 | 2.204 | 21 |
+| 3 | `el::uccsd_dbl(ab:2,9->6,13)` | -75.0759071 | -13.77 | 2.204 | 62 |
+| 4 | `el::uccsd_dbl(ab:2,10->6,12)` | -75.0805638 | -4.66 | 1.435 | 31 |
+| 5 | `el::uccsd_dbl(ab:3,10->5,12)` | -75.0844887 | -3.92 | 1.431 | 42 |
+| 6 | `el::uccsd_dbl(ab:3,9->5,13)` | -75.0889771 | -4.49 | 1.336 | 51 |
+
+`counter_term_c111_macro`:
+
+| round | selected generator (Phase-I trust-region score) | energy after refit (Ha) | change (mHa) | `max_grad` over the pool | optimizer evaluations |
+|---|---|---|---|---|---|
+| 1 | `el::uccsd_dbl(ab:2,9->6,13)` | -74.9555935 | -14.07 | 1.861 | 31 |
+| 2 | `el::uccsd_dbl(ab:3,10->5,12)` | -74.9599283 | -4.33 | 1.861 | 21 |
+| 3 | `el::uccsd_dbl(ab:3,9->5,13)` | -74.9645158 | -4.59 | 1.856 | 31 |
+| 4 | `el::uccsd_dbl(ab:2,10->6,12)` | -74.9692108 | -4.70 | 1.856 | 41 |
+| 5 | `el::uccsd_dbl(ab:3,10->6,13)` | -74.9722487 | -3.04 | 1.850 | 63 |
+| 6 | `el::uccsd_dbl(ab:2,9->5,12)` | -74.9750170 | -2.77 | 1.851 | 74 |
+
+Reading: on his operator the lane's Phase-I selection takes the displacement generators first
+(`dH/dQ_bend` one-body factor times P_bend, then P_symmetric_stretch: 121 of the 178 mHa between
+HF (x) vacuum and the exact ground state in two rounds), then UCCSD doubles; the counter-term
+model has no reference force, so it takes UCCSD doubles from round 1.  Both stop at the round
+limit about 30 mHa above exact; the exact-ED stop at 1.6 mHa never fired (the CAS(8e,6o) bridge
+run of 2026-10-20 needed 17 rounds for that).  On the same operator, six RA-ADAPT operators
+(-75.0890 Ha) already lie below the entry point's QSE Ritz values from HF (x) vacuum (-75.0846 Ha
+with 207 basis elements, -75.0859 Ha with 564; handoff of 2026-11-04): the P_mu and dH/dQ x P
+generators of this pool are what the bridge's lifted-UCCSD bases lacked.  Every checkpoint's
+`problem_attestation` carries the fixture sha256 and `fixture_derivative_source` =
+`analytic_linear_coupling_tensors_mass_weighted_normal_modes_v1`.  Per round: 87-120 s of
+gradient screening over 584 parents on 8 threads, 20-74 Powell evaluations; peak resident set
+about 0.2 GB per run (two runs at once).
 
 ## Not done / untested
 
