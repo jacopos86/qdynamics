@@ -1,0 +1,131 @@
+{
+  "adoption": {
+    "manuscript_updated": false,
+    "paper_evidence_adopted": false,
+    "purpose": "repair-only retry of verified terminal Gamma candidate failures"
+  },
+  "campaign_id": "paper_ii_final_selector_comparison_v1",
+  "created_utc": "2026-09-03T07:30:20Z",
+  "inputs": {
+    "action_ids": {
+      "path": "input/action_ids.txt",
+      "sha256": "8249a51752ecb23daf4402dbb52887b3fb99c05019a0a3a7427aab89df2a208f"
+    },
+    "actions_jsonl": {
+      "path": "input/actions.jsonl",
+      "sha256": "2351cf812862372bbdbc204ba25ea93caea204211d87ee0c2ae51b8cd2a67879"
+    },
+    "calibration_receipt": {
+      "allow_unverified_response_scales_used": false,
+      "error_count": 0,
+      "not_checked_count": 2,
+      "ok_count": 5,
+      "path": "input/calibration_receipt.json",
+      "sha256": "6282223365aeef4e6a87a35f9faae13c9dc1c50f3d03f1e95f675f049ba2bff6",
+      "status": "INCOMPLETE"
+    },
+    "matched_cells_lock": {
+      "path": "input/matched_cells_lock.json",
+      "sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030"
+    },
+    "prepare_summary": {
+      "path": "input/prepare_summary.json",
+      "sha256": "7f0cd6f9beb865d0553017e2a933fb0f47a90df9f637b18b3714421123653014"
+    },
+    "report_refresh_resolution": {
+      "active_blocks": [],
+      "path": "input/report_refresh_resolution.json",
+      "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+      "status": "RESOLVED"
+    },
+    "retry_parent_failures": {
+      "path": "input/retry_parent_failures.json",
+      "sha256": "c711e4a44990ffac77732448152645866812b4d88103124ecae5cfcf742d0c6c"
+    }
+  },
+  "package_files": {
+    "run_action.py": "c0fe376f5b1a54a3b7b89225355450eebd2ba71cd89ae4b2ba963aa22b54cf60",
+    "run_action_apptainer.sh": "62f05c6eb3d1f544cb8e9c79ed12c088aced1307f5f67c211d390874e51e8da3",
+    "submit.sub": "a519aa0526852665314a4bf8c870dc68167ddc5703e9d7e5b98a686b53fc2a8e",
+    "validate_package.py": "a8e478292dd6b17e320b5dc0c0f8a30bbd4ce5a1284b8f4c2538bf332ecbb589"
+  },
+  "parent": {
+    "cluster_id": 9718529,
+    "code_revision": "821a6ad598c86ba27986456d4e0dc4fe5d27ac61",
+    "failed_proc_ids": [
+      1,
+      5,
+      7,
+      8,
+      13,
+      14,
+      16,
+      17,
+      19,
+      20,
+      22,
+      23,
+      31,
+      32,
+      35,
+      37,
+      38,
+      40,
+      41
+    ],
+    "failure_class": "GammaMonotonicityError",
+    "package": "chtc/paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "source_archive_sha256": "bc5d5a539bd5d03717bf37165387b04e18045451d77bdf3899de256d489e2791"
+  },
+  "repair": {
+    "exact_gamma_definition_changed": false,
+    "gamma_tolerance_changed": false,
+    "policy": "Reject only the invalid Gamma candidate from the shared compiled Q/Gamma population; preserve exact Gamma and all scientific settings.",
+    "scientific_action_arguments_changed": false,
+    "shared_q_gamma_population_preserved": true
+  },
+  "retry_package_id": "paper_ii_final_selector_gamma_candidate_retry_wave1_4bca80b0_20260903",
+  "routes": {
+    "paper_ii_exchange_gamma_compiled_v1": 10,
+    "paper_ii_exchange_q_compiled_v1": 9
+  },
+  "runtime": {
+    "blas_threads_per_process": 1,
+    "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "container_size_bytes": 216371200,
+    "max_runtime_seconds": 43200,
+    "request_cpus": 4,
+    "request_disk": "40GB",
+    "request_memory": "10GB",
+    "scoring_workers": 4,
+    "transfer_format": "one gzip archive plus SHA receipt per action"
+  },
+  "schema": "paper_ii_final_selector_gamma_candidate_retry_package_v1",
+  "scope": {
+    "action_count": 19,
+    "active_parent_actions_excluded": true,
+    "apm_action_count": 19,
+    "avqds_action_count": 0,
+    "cell_count": 11,
+    "fresh_trajectories": true,
+    "precursor_action_count": 0,
+    "successful_parent_actions_excluded": true,
+    "terminal_parent_failures_only": true,
+    "time_point_count": 501,
+    "time_span": [
+      0.0,
+      20.0
+    ]
+  },
+  "source": {
+    "archive": "input/source_4bca80b0.tar.gz",
+    "archive_sha256": "8f12755668b793062650801eab5755b81ff64c20e851f15e9b0ec18813e047d3",
+    "code_revision": "4bca80b01f3d4e20e74f21b21ec36d23374b3392",
+    "included_paths": [
+      "pipelines",
+      "src",
+      "chtc/paper_ii_production_v2/input/seeds"
+    ]
+  }
+}

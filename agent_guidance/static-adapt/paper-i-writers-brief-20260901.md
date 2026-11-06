@@ -63,3 +63,68 @@ Per `docs/reports/EVIDENCE_PARITY_AUDIT_20260831.md` §2.1 and
 - RAM: builds are light; heavy reruns follow
   `agent_guidance/shared/memory-budget.md` (18 GB aggregate, bounded
   concurrent jobs with per-tree `ram_guard` allocations).
+
+## Update 2026-09-04 — flag 3 is closed; arXiv readiness audit
+
+### Flag 3 (L4 AVQE arm) — RESOLVED, brief above is stale
+
+The user-scheduled rerun from `53bba1c2` completed 2026-09-04 15:33 in
+`Holstein_test.worktrees/codex-paper-i-l4-level1-regen-20260904`, at
+`output/local_runs/paper_i_hubbard_l4_avqe_level1_regen_20260904/append/`.
+
+```text
+schema        paper_i_hubbard_l4_arm_summary_v1
+arm           append          rounds 60/60 accepted
+S_alg         141495          (n_grad 2880, n_h_outer 60, n_h_refit 138555, n_metric 0)
+terminal      absolute_energy_error 9.926e-2, accepted -3.283504070421171
+exact         same-sector -3.3827681604170525
+protocol_sha256      a77f501f4ac27cdb...
+git_diff_sha256      e3b0c44298fc1c14...b855   (empty diff — sealed tree)
+git_status_porcelain (empty)
+```
+
+Manuscript commit `bdac723` (2026-09-04 15:37, four minutes later) adopted
+exactly these values: printed $\mathcal E=141495$ and the $9.93\times10^{-2}$
+plateau. **The L4 AVQE arm is now locally verified and adopted; treat flag 3 as
+closed and stop reporting it as unverified.**
+
+Note against flag 2: $S_{\rm alg}=141495$ is an `N_H_refit`-derived printed
+number, which flag 2 reserves to the user. `bdac723` is the user's own commit,
+so that call has been made for this value. Flag 2 still governs any *further*
+$S_{\rm alg}$ edit.
+
+### arXiv submission readiness — Paper I is essentially clean
+
+Verified against `Paper_I_overleaf_20260818/` @ `bdac723`:
+
+| check | result |
+|---|---|
+| pages | 21 |
+| class | `revtex4-2`, `aps pra reprint superscriptaddress` |
+| bibliography | inline `thebibliography`, 58 `\bibitem`s (no `.bbl` dependency) |
+| overfull boxes | 0 |
+| undefined references / citations | none |
+| live `\placeholder` / `\tentative` | none — `\structlabel` is defined at line 29 and never used |
+| referenced figures | 4/4 present and resolving under `figures/` |
+
+Compare Paper II, which still carries a live acknowledgments `\placeholder` and
+a three-way unversioned source split. **Paper I is the nearer submission.**
+
+Two tarball mechanics remain, neither scientific:
+
+1. `\graphicspath{{../../}{}}` (line 16) — the `{../../}` entry is dead. The
+   build log resolves no graphic outside the source directory; all four
+   figures sit under `figures/`. Drop it so an arXiv tarball cannot reach
+   above its root.
+2. Tarball hygiene — 5 of the 9 `figures/` subdirectories are unreferenced
+   (`paper_i_hubbard_noise_common_prefix_k20_20260814`,
+   `paper_i_macro_insertion_policies_20260813`,
+   `paper_i_ra_vs_append_matched_singleton_plateau_20260812`,
+   `ra_adapt_appendix_v5`, `ra_adapt_appendix_v9`), and the stale
+   `Paper_I.bbl` must be excluded because the bibliography is inline.
+
+### Still open and still the user's
+
+Flags 1, 2, 4, 5, and 6 above are unchanged. None blocks a build; each is an
+evidence or interpretation decision. Flag 1 (Fig 2 §6.5 formal closure) and
+flag 4 (R21 tie-flip) are the two that a referee could raise.

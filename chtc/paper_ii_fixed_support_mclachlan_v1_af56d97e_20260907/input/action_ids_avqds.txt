@@ -1,0 +1,6 @@
+weakslow__delta_theta_5e-5__avqds
+fastweak__delta_theta_5e-5__avqds
+midres__delta_theta_5e-5__avqds
+slowstrong__delta_theta_5e-5__avqds
+strongfast__delta_theta_5e-5__avqds
+fastfast__delta_theta_5e-5__avqds

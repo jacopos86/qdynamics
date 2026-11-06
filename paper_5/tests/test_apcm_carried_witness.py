@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import numpy as np
@@ -497,3 +498,1009 @@ def test_accuracy_metrics_separate_fixed_offset_from_dynamic_error() -> None:
     )
     for block in metrics["blockwise"].values():
         assert block["dynamic_scalar_rms_error"] == 0.0
+
+
+def test_tier_timing_is_off_by_default_and_names_every_tier(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    assert model.tier_timing is None
+
+    timed = CarriedWitnessModel(model.parameters, geometry=model.geometry)
+    timed.prepare(phonon_cutoff=16)
+    timed.enable_tier_timing()
+    atom = timed.radial_atom(0.0, preparation.state, 1e-8)
+    report = timed.tier_timing
+
+    assert atom.success
+    assert report is not None
+    assert set(report["seconds"]) == {
+        "gram_eigendecomposition",
+        "coefficient_assembly_and_svec",
+        "clarabel_solve",
+        "retraction",
+        "unguarded_velocity",
+    }
+    assert report["calls"]["unguarded_velocity"] == 1
+    assert report["calls"]["gram_eigendecomposition"] >= 1
+    assert report["seconds"]["unguarded_velocity"] > 0.0
+    # The model the other tests share must stay uninstrumented.
+    assert model.tier_timing is None
+
+
+def test_compiled_commutator_rows_reproduce_the_literal_moment_rate(
+    prepared_model,
+) -> None:
+    from paper5.stability.apcm_carried_witness import _moment_derivative
+    from paper5.stability.moment_hierarchy import (
+        _commutator,
+        _hamiltonian_terms,
+    )
+
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    moments = model.geometry.moment_mapping(retained, completion)
+    time = 0.037
+
+    def literal(key) -> float:
+        derivative = 0.0j
+        for coefficient, word in _hamiltonian_terms(time, model.parameters):
+            for generated, commutator_coefficient in _commutator(
+                word, key
+            ).items():
+                value = 1.0 if generated.degree == 0 else moments[generated]
+                derivative += (
+                    1j * coefficient * commutator_coefficient * float(value)
+                )
+        return float(derivative.real)
+
+    checked = 0
+    for key in model.geometry.outer_extension.frontier_keys:
+        if any(
+            generated not in moments
+            for _, word in _hamiltonian_terms(time, model.parameters)
+            for generated in _commutator(word, key)
+            if generated.degree > 0
+        ):
+            continue
+        assert _moment_derivative(
+            key, time, model.parameters, moments
+        ) == literal(key)
+        checked += 1
+    assert checked > 0
+
+
+def test_default_integration_takes_no_subdivision_and_still_terminates(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    calls: list[float] = []
+    original = model.radial_atom
+
+    def failing_atom(time, state, step_size, **keywords):
+        calls.append(step_size)
+        return replace(
+            original(time, state, step_size, **keywords),
+            success=False,
+            message="forced_failure",
+        )
+
+    model.radial_atom = failing_atom  # type: ignore[method-assign]
+    try:
+        trajectory = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=2e-8,
+            time_step=1e-8,
+        )
+    finally:
+        del model.radial_atom
+
+    assert not trajectory.success
+    assert trajectory.completed_steps == 0
+    assert trajectory.message.startswith("first atom at t=0.000000")
+    assert "subdivision" not in trajectory.message
+    assert calls == [1e-8]
+
+    with pytest.raises(ValueError):
+        integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=2e-8,
+            time_step=1e-8,
+            maximum_step_subdivisions=-1,
+        )
+
+
+def test_bounded_step_halving_recovers_from_a_failed_atom(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    original = model.radial_atom
+    sizes: list[float] = []
+
+    def halving_atom(time, state, step_size, **keywords):
+        sizes.append(step_size)
+        result = original(time, state, step_size, **keywords)
+        if step_size > 0.75e-8:
+            return replace(
+                result, success=False, message="forced_failure_at_full_step"
+            )
+        return result
+
+    model.radial_atom = halving_atom  # type: ignore[method-assign]
+    try:
+        stopped = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=1e-8,
+            time_step=1e-8,
+        )
+        recovered = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=1e-8,
+            time_step=1e-8,
+            maximum_step_subdivisions=1,
+        )
+    finally:
+        del model.radial_atom
+
+    assert not stopped.success
+    assert stopped.completed_steps == 0
+
+    assert recovered.success
+    assert recovered.completed_steps == 1
+    assert recovered.times.size == 2
+    # One failed full step, then two accepted SSPRK2 steps of half the size.
+    assert 0.5e-8 in sizes
+    assert recovered.atom_evaluations == 5
+    assert np.all(np.isfinite(recovered.states))
+
+
+def test_batched_mode_gradients_are_off_by_default_and_agree_to_roundoff(
+    prepared_model,
+) -> None:
+    from paper5.stability.apcm_carried_witness import (
+        _mode_eigenvalue_gradients,
+    )
+
+    model, preparation = prepared_model
+    assert CWRMFSettings().batched_mode_gradients is False
+    assert cwrmf_settings_for_profile("strict").batched_mode_gradients is False
+    assert (
+        cwrmf_settings_for_profile("balanced").batched_mode_gradients is False
+    )
+
+    geometry = model.geometry
+    coefficients = geometry.scaled_completion_coefficients()
+    retained, completion = geometry.unpack_state(preparation.state)
+    _, vectors = np.linalg.eigh(
+        geometry.scaled_unified_matrix(retained, completion)
+    )
+    working = vectors[:, :12]
+
+    per_mode = _mode_eigenvalue_gradients(
+        coefficients, working, batched=False
+    )
+    batched = _mode_eigenvalue_gradients(coefficients, working, batched=True)
+
+    assert per_mode.shape == (12, geometry.completion_count)
+    for row in range(12):
+        vector = working[:, row]
+        assert np.array_equal(
+            per_mode[row],
+            np.einsum(
+                "a,jab,b->j",
+                vector.conjugate(),
+                coefficients,
+                vector,
+                optimize=True,
+            ).real,
+        )
+    # One contraction instead of twelve is a different BLAS blocking, so the
+    # agreement is to roundoff, not bitwise.
+    assert np.max(np.abs(per_mode - batched)) <= 1e-13 * max(
+        float(np.max(np.abs(per_mode))), 1e-300
+    )
+
+
+def test_step_scaled_coefficient_cache_returns_the_literal_product(
+    prepared_model,
+) -> None:
+    model, _ = prepared_model
+    compiled = model.geometry.scaled_completion_coefficients()
+
+    first = model._step_scaled_completion_coefficients(0.0025)
+    second = model._step_scaled_completion_coefficients(0.0025)
+    assert first is second
+    assert np.array_equal(first, 0.0025 * compiled)
+    assert first.shape == (model.geometry.completion_count, 62, 62)
+
+    halved = model._step_scaled_completion_coefficients(0.00125)
+    assert halved is not first
+    assert np.array_equal(halved, 0.00125 * compiled)
+    # The compiled tensor itself is untouched by the scaling.
+    assert np.array_equal(
+        compiled, model.geometry.scaled_completion_coefficients()
+    )
+
+
+def test_vectorized_svec_packs_the_literal_upper_triangle_order() -> None:
+    from paper5.stability.apcm_positive_extension import _clarabel_svec_upper
+
+    def literal(matrix: np.ndarray) -> np.ndarray:
+        value = np.asarray(matrix, dtype=float)
+        packed: list[float] = []
+        root_two = np.sqrt(2.0)
+        for column in range(value.shape[1]):
+            for row in range(column + 1):
+                scale = 1.0 if row == column else root_two
+                packed.append(scale * float(value[row, column]))
+        return np.asarray(packed, dtype=float)
+
+    generator = np.random.default_rng(20260914)
+    for size in (1, 2, 5, 62, 80, 124):
+        sample = generator.standard_normal((size, size))
+        symmetric = 0.5 * (sample + sample.T)
+        assert np.array_equal(
+            literal(symmetric), _clarabel_svec_upper(symmetric)
+        )
+        assert np.array_equal(literal(sample), _clarabel_svec_upper(sample))
+
+    with pytest.raises(ValueError):
+        _clarabel_svec_upper(np.zeros((3, 4)))
+
+
+def test_center_cross_evaluator_matches_the_one_shot_reader(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    geometry = model.geometry
+    retained, completion = geometry.unpack_state(preparation.state)
+    reader = geometry.center_cross_evaluator(retained, completion)
+
+    checked = 0
+    for row in range(9 + geometry.extra_count):
+        key = geometry._relative_row_key(row)
+        for center_index in range(2):
+            assert reader(center_index, key) == geometry.center_cross_value(
+                center_index, key, retained, completion
+            )
+            checked += 1
+    assert checked == 2 * (9 + geometry.extra_count)
+
+
+def test_solver_setting_profile_defaults_to_the_pinned_single_thread_set(
+) -> None:
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+        DEFAULT_SOLVER_SETTING_PROFILE,
+    )
+
+    assert DEFAULT_SOLVER_SETTING_PROFILE == "pinned_single_thread"
+    assert CWRMF_SOLVER_SETTING_PROFILES[DEFAULT_SOLVER_SETTING_PROFILE] == {}
+    for profile in ("strict", "balanced"):
+        assert (
+            cwrmf_settings_for_profile(profile).solver_setting_profile
+            == DEFAULT_SOLVER_SETTING_PROFILE
+        )
+    assert (
+        CWRMFSettings().solver_setting_profile
+        == DEFAULT_SOLVER_SETTING_PROFILE
+    )
+    with pytest.raises(ValueError, match="unknown CWRMF solver setting"):
+        replace(CWRMFSettings(), solver_setting_profile="faster_please")
+
+
+def test_default_solver_setting_profile_touches_no_clarabel_field() -> None:
+    import clarabel
+
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+    )
+    from paper5.stability.cwrmf_solver_instances import (
+        RECORDED_SETTING_FIELDS,
+    )
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    model = CarriedWitnessModel(DimerParameters())
+    settings = clarabel.DefaultSettings()
+    settings.max_threads = 1
+    before = {
+        name: getattr(settings, name) for name in RECORDED_SETTING_FIELDS
+    }
+
+    model._apply_solver_setting_profile(settings)
+
+    after = {
+        name: getattr(settings, name) for name in RECORDED_SETTING_FIELDS
+    }
+    assert before == after
+    # Every declared profile names only fields Clarabel carries.
+    for overrides in CWRMF_SOLVER_SETTING_PROFILES.values():
+        for field_name in overrides:
+            assert hasattr(settings, field_name), field_name
+
+
+def test_named_solver_setting_profiles_overlay_only_their_own_fields() -> None:
+    import clarabel
+
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_SOLVER_SETTING_PROFILES,
+    )
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    assert set(CWRMF_SOLVER_SETTING_PROFILES) == {
+        "pinned_single_thread",
+        "presolve_off",
+        "max_threads_8",
+    }
+    assert CWRMF_SOLVER_SETTING_PROFILES["presolve_off"] == {
+        "presolve_enable": False
+    }
+    assert CWRMF_SOLVER_SETTING_PROFILES["max_threads_8"] == {
+        "max_threads": 8
+    }
+
+    for name, overrides in CWRMF_SOLVER_SETTING_PROFILES.items():
+        model = CarriedWitnessModel(
+            DimerParameters(),
+            settings=replace(CWRMFSettings(), solver_setting_profile=name),
+        )
+        settings = clarabel.DefaultSettings()
+        settings.max_threads = 1
+        settings.presolve_enable = True
+        model._apply_solver_setting_profile(settings)
+        assert settings.max_threads == overrides.get("max_threads", 1)
+        assert settings.presolve_enable == overrides.get(
+            "presolve_enable", True
+        )
+
+
+def test_bundle_seed_and_growth_defaults_are_the_recorded_rule() -> None:
+    from paper5.stability.apcm_carried_witness import (
+        CWRMF_BUNDLE_SEED_POLICIES,
+        DEFAULT_BUNDLE_SEED_POLICY,
+    )
+
+    assert DEFAULT_BUNDLE_SEED_POLICY == "monotone_hint"
+    assert CWRMF_BUNDLE_SEED_POLICIES == (
+        "monotone_hint",
+        "spectral_threshold",
+        "previous_accepted_rank",
+        "previous_accepted_rank_margin",
+        "carried_accepted_basis",
+        "carried_accepted_basis_exit",
+    )
+    for settings in (
+        CWRMFSettings(),
+        cwrmf_settings_for_profile("strict"),
+        cwrmf_settings_for_profile("balanced"),
+    ):
+        assert settings.bundle_seed_policy == DEFAULT_BUNDLE_SEED_POLICY
+        assert settings.bundle_seed_rank_margin == 0
+        assert settings.bundle_growth_factor == 1.0
+        assert settings.bundle_growth_trigger == 0.0
+        assert settings.bundle_interior_overshoot == 1.0
+
+    with pytest.raises(ValueError, match="unknown CWRMF bundle seed policy"):
+        replace(CWRMFSettings(), bundle_seed_policy="guess_harder")
+    with pytest.raises(ValueError, match="bundle_seed_rank_margin"):
+        replace(CWRMFSettings(), bundle_seed_rank_margin=-1)
+    with pytest.raises(ValueError, match="bundle_seed_spectral_threshold"):
+        replace(CWRMFSettings(), bundle_seed_spectral_threshold=0.0)
+    with pytest.raises(ValueError, match="bundle_growth_factor"):
+        replace(CWRMFSettings(), bundle_growth_factor=0.5)
+    with pytest.raises(ValueError, match="bundle_growth_trigger"):
+        replace(CWRMFSettings(), bundle_growth_trigger=-1.0)
+    with pytest.raises(ValueError, match="bundle_interior_overshoot"):
+        replace(CWRMFSettings(), bundle_interior_overshoot=0.9)
+
+
+def _seed_operands(rank: int = 62, seed: int = 20260915):
+    """Return a shifted Hermitian predictor and its ordered eigenpairs."""
+
+    generator = np.random.default_rng(seed)
+    root = generator.normal(size=(rank, rank)) + 1j * generator.normal(
+        size=(rank, rank)
+    )
+    matrix = root.conjugate().T @ root
+    matrix = 1e-9 * 0.5 * (matrix + matrix.conjugate().T)
+    values, vectors = np.linalg.eigh(matrix)
+    return matrix, values, vectors
+
+
+def test_default_bundle_seed_is_the_literal_leading_eigenvector_block(
+) -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    model = CarriedWitnessModel(DimerParameters())
+    for hint, spectral_rank in ((0, 6), (26, 6), (26, 31), (70, 4)):
+        model._bundle_rank_hint = hint
+        basis = model._bundle_seed_working_set(
+            values, vectors, spectral_rank, matrix
+        )
+        expected_rank = min(
+            model.settings.critical_mode_limit, max(spectral_rank, hint)
+        )
+        selected = np.arange(expected_rank, dtype=np.int64)
+        assert np.array_equal(basis, vectors[:, selected])
+
+
+def test_named_bundle_seed_policies_move_only_the_starting_rank() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    threshold = float(values[33] - CWRMFSettings().psd_inflation)
+
+    def model_for(**overrides):
+        settings = replace(CWRMFSettings(), **overrides)
+        built = CarriedWitnessModel(DimerParameters(), settings=settings)
+        built._bundle_rank_hint = 26
+        built._bundle_accepted_rank = 24
+        return built
+
+    spectral = model_for(
+        bundle_seed_policy="spectral_threshold",
+        bundle_seed_spectral_threshold=threshold,
+    )
+    basis = spectral._bundle_seed_working_set(values, vectors, 6, matrix)
+    # 33 eigenvalues lie strictly below the declared threshold, which is more
+    # than both the spectral entry count and the monotone hint.
+    assert basis.shape[1] == 33
+    assert np.array_equal(basis, vectors[:, np.arange(33, dtype=np.int64)])
+
+    previous = model_for(bundle_seed_policy="previous_accepted_rank")
+    assert (
+        previous._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 24
+    )
+
+    margin = model_for(
+        bundle_seed_policy="previous_accepted_rank_margin",
+        bundle_seed_rank_margin=5,
+    )
+    assert (
+        margin._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 29
+    )
+
+    first = model_for(
+        bundle_seed_policy="previous_accepted_rank_margin",
+        bundle_seed_rank_margin=5,
+    )
+    first._bundle_accepted_rank = 0
+    assert (
+        first._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 6
+    )
+
+
+def test_carried_working_set_spans_the_accepted_directions() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    carried = vectors[:, np.arange(40, 60, dtype=np.int64)]
+    settings = replace(
+        CWRMFSettings(), bundle_seed_policy="carried_accepted_basis"
+    )
+    model = CarriedWitnessModel(DimerParameters(), settings=settings)
+    model._bundle_rank_hint = 26
+
+    # Without an accepted working set the policy is the recorded rule.
+    assert np.array_equal(
+        model._bundle_seed_working_set(values, vectors, 6, matrix),
+        vectors[:, np.arange(26, dtype=np.int64)],
+    )
+
+    model._bundle_accepted_rank = 20
+    model._bundle_accepted_basis = carried
+    basis = model._bundle_seed_working_set(values, vectors, 6, matrix)
+    assert basis.shape[1] == 26
+    assert np.allclose(basis.conjugate().T @ basis, np.eye(26), atol=1e-12)
+    projector = basis @ basis.conjugate().T
+    assert np.allclose(projector @ carried, carried, atol=1e-10)
+    assert np.allclose(
+        projector @ vectors[:, :6], vectors[:, :6], atol=1e-10
+    )
+
+    capped = CarriedWitnessModel(
+        DimerParameters(),
+        settings=replace(settings, bundle_seed_rank_margin=2),
+    )
+    capped._bundle_rank_hint = 26
+    capped._bundle_accepted_rank = 20
+    capped._bundle_accepted_basis = carried
+    assert (
+        capped._bundle_seed_working_set(values, vectors, 6, matrix).shape[1]
+        == 22
+    )
+
+
+def test_carried_working_set_exit_drops_the_risen_modes() -> None:
+    from paper5.stability.hubbard_dimer import DimerParameters
+
+    matrix, values, vectors = _seed_operands()
+    carried = vectors[:, np.arange(40, 60, dtype=np.int64)]
+    threshold = float(values[50] - CWRMFSettings().psd_inflation)
+    settings = replace(
+        CWRMFSettings(),
+        bundle_seed_policy="carried_accepted_basis_exit",
+        bundle_seed_spectral_threshold=threshold,
+    )
+    model = CarriedWitnessModel(DimerParameters(), settings=settings)
+    model._bundle_rank_hint = 6
+    model._bundle_accepted_rank = 20
+    model._bundle_accepted_basis = carried
+    basis = model._bundle_seed_working_set(values, vectors, 6, matrix)
+    # Carried columns 40..49 stay below the declared threshold; 50..59 exit.
+    assert basis.shape[1] == 16
+    projector = basis @ basis.conjugate().T
+    kept = vectors[:, np.arange(40, 50, dtype=np.int64)]
+    dropped = vectors[:, np.arange(50, 60, dtype=np.int64)]
+    assert np.allclose(projector @ kept, kept, atol=1e-10)
+    assert float(np.max(np.abs(projector @ dropped))) < 1e-8
+
+
+def test_bundle_growth_target_is_the_declared_factor_capped() -> None:
+    from paper5.stability.apcm_carried_witness import _bundle_growth_target
+
+    assert _bundle_growth_target(1.5, 20, 61) == 30
+    assert _bundle_growth_target(1.25, 31, 61) == 39
+    assert _bundle_growth_target(2.0, 40, 61) == 61
+    assert _bundle_growth_target(1.0, 31, 61) == 31
+    # At the default factor the tier never reaches the padding branch.
+    assert CWRMFSettings().bundle_growth_factor == 1.0
+    assert not CWRMFSettings().bundle_growth_factor > 1.0
+
+
+def test_interior_overshoot_moves_the_compressed_margin_not_acceptance(
+) -> None:
+    default = CWRMFSettings()
+    assert (
+        default.schur_safety_margin * default.bundle_interior_overshoot
+        == default.schur_safety_margin
+    )
+    raised = replace(default, bundle_interior_overshoot=3.0)
+    assert raised.schur_safety_margin == default.schur_safety_margin
+    assert (
+        raised.schur_safety_margin * raised.bundle_interior_overshoot
+        == 3.0 * default.schur_safety_margin
+    )
+    assert raised.solver_tolerance == default.solver_tolerance
+
+
+def test_analysis_parser_defaults_leave_the_bundle_rule_untouched() -> None:
+    from paper5.stability.apcm_carried_witness_analysis import _parser
+
+    parsed = _parser().parse_args(["--output-directory", "run"])
+    assert parsed.bundle_seed_policy == "monotone_hint"
+    assert parsed.bundle_seed_spectral_threshold is None
+    assert parsed.bundle_seed_rank_margin is None
+    assert parsed.bundle_growth_factor is None
+    assert parsed.bundle_growth_trigger is None
+    assert parsed.bundle_interior_overshoot is None
+
+    parsed = _parser().parse_args(
+        [
+            "--output-directory",
+            "run",
+            "--bundle-seed-policy",
+            "carried_accepted_basis",
+            "--bundle-seed-rank-margin",
+            "2",
+        ]
+    )
+    assert parsed.bundle_seed_policy == "carried_accepted_basis"
+    assert parsed.bundle_seed_rank_margin == 2
+
+    with pytest.raises(SystemExit):
+        _parser().parse_args(
+            ["--output-directory", "run", "--bundle-seed-policy", "hopeful"]
+        )
+
+
+def test_accepted_working_set_can_be_restored_for_continuation() -> None:
+    model = CarriedWitnessModel(DimerParameters())
+
+    assert model.bundle_accepted_basis is None
+    assert model.bundle_accepted_rank == 0
+
+    model.restore_bundle_accepted_rank(31)
+    assert model.bundle_accepted_rank == 31
+    with pytest.raises(ValueError, match="between zero and 61"):
+        model.restore_bundle_accepted_rank(62)
+
+    generator = np.random.default_rng(20260915)
+    block = np.linalg.qr(
+        generator.normal(size=(62, 12))
+        + 1j * generator.normal(size=(62, 12))
+    )[0]
+
+    model.restore_bundle_accepted_basis(block)
+    assert model.bundle_accepted_rank == 12
+    assert np.array_equal(model.bundle_accepted_basis, block)
+
+    model.restore_bundle_accepted_basis(block, rank=10)
+    assert model.bundle_accepted_rank == 10
+
+    with pytest.raises(ValueError, match="62-row complex block"):
+        model.restore_bundle_accepted_basis(block[:60])
+    with pytest.raises(ValueError, match="one and 61 columns"):
+        model.restore_bundle_accepted_basis(np.zeros((62, 0), dtype=complex))
+    with pytest.raises(ValueError, match="one and 61 columns"):
+        model.restore_bundle_accepted_basis(np.zeros((62, 62), dtype=complex))
+
+
+def _run_driver(argv: list[str]) -> None:
+    import sys
+
+    from paper5.stability import apcm_carried_witness_analysis as driver
+
+    saved = sys.argv
+    sys.argv = ["apcm_carried_witness_analysis", *argv]
+    try:
+        assert driver.main() == 0
+    finally:
+        sys.argv = saved
+
+
+def test_default_checkpoint_carries_the_scalars_and_no_working_set(
+    tmp_path,
+) -> None:
+    output = tmp_path / "default_policy"
+    _run_driver(
+        [
+            "--output-directory",
+            str(output),
+            "--final-time",
+            "1e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    stored = np.load(output / "checkpoint.npz")
+    assert "bundle_rank_hint" in stored.files
+    assert "bundle_accepted_rank" in stored.files
+    # The 62-row accepted working set is recorded only for the seed policies
+    # that read it, so a default-path checkpoint gains no array.
+    assert "bundle_accepted_basis" not in stored.files
+
+
+def test_resumed_rollout_under_carried_basis_reproduces_the_unbroken_one(
+    tmp_path,
+) -> None:
+    """A resume carries the accepted working set, not only its rank.
+
+    Strict numerical profile, always-on guard, strong coupling
+    ``lambda_ep = 1.5``, ``gamma = 0.5``, drive amplitude 1, phonon cutoff
+    16, seed policy ``carried_accepted_basis`` with rank margin 2, over
+    ``t = 0`` to ``0.003`` at ``h = 0.0015`` -- two SSPRK2 steps, four
+    radial atoms, the first step already accepting an adaptive bundle
+    solve.  The resumed second step must reproduce the unbroken rollout's
+    endpoint exactly; with the rank hint alone it does not, because the
+    first atom after the resume rebuilds its working set from the recorded
+    rule instead of the directions the enlargement discovered.
+    """
+
+    common = [
+        "--final-time",
+        "0.003",
+        "--time-step",
+        "0.0015",
+        "--numerical-profile",
+        "strict",
+        "--bundle-seed-policy",
+        "carried_accepted_basis",
+        "--bundle-seed-rank-margin",
+        "2",
+    ]
+
+    unbroken = tmp_path / "unbroken"
+    _run_driver(["--output-directory", str(unbroken), *common])
+
+    first = tmp_path / "segment_a"
+    _run_driver(
+        [
+            "--output-directory",
+            str(first),
+            *common[2:],
+            "--final-time",
+            "0.0015",
+        ]
+    )
+
+    checkpoint = np.load(first / "checkpoint.npz")
+    assert "bundle_accepted_basis" in checkpoint.files
+    carried = np.asarray(checkpoint["bundle_accepted_basis"])
+    assert carried.shape[0] == 62
+    assert carried.shape[1] == int(np.asarray(checkpoint["bundle_accepted_rank"]))
+    assert float(np.asarray(checkpoint["time"])) == pytest.approx(0.0015)
+
+    second = tmp_path / "segment_b"
+    _run_driver(
+        [
+            "--output-directory",
+            str(second),
+            "--initial-state-file",
+            str(first / "checkpoint.npz"),
+            *common,
+        ]
+    )
+
+    whole = np.load(unbroken / "autonomous_trajectory.npz")
+    resumed = np.load(second / "autonomous_trajectory.npz")
+    assert float(resumed["times"][-1]) == pytest.approx(0.003)
+    for name in sorted(whole.files):
+        if name == "maximum_atom_seconds":
+            # Wall time, not a propagated quantity.
+            continue
+        assert np.array_equal(
+            np.asarray(whole[name])[-1], np.asarray(resumed[name])[-1]
+        ), name
+
+
+def test_resume_below_the_exact_reference_zero_tolerance_still_scores(
+    tmp_path,
+) -> None:
+    """A resume whose start time is tiny is still a resume.
+
+    The exact cutoff-16 reference requires its first sample time to be zero
+    to within ``1e-15``; the driver prepends a zero sample for a resumed
+    rollout.  A resume that starts at or below ``1e-8`` -- the default
+    absolute tolerance of ``np.isclose`` -- must take the prepending branch
+    like any other resume, not be mistaken for a rollout from zero.
+    """
+
+    first = tmp_path / "prefix"
+    _run_driver(
+        [
+            "--output-directory",
+            str(first),
+            "--final-time",
+            "1e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    second = tmp_path / "resumed"
+    _run_driver(
+        [
+            "--output-directory",
+            str(second),
+            "--initial-state-file",
+            str(first / "checkpoint.npz"),
+            "--final-time",
+            "2e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    summary = json.loads((second / "summary.json").read_text(encoding="utf-8"))
+    assert summary["integration"]["initial_time"] == pytest.approx(1e-8)
+    assert summary["integration"]["last_time"] == pytest.approx(2e-8)
+    assert summary["integration"]["success"]
+
+
+def test_declared_stop_request_halts_the_rollout_at_an_accepted_step(
+    prepared_model,
+) -> None:
+    """The caller's stop is off by default and never moves a step.
+
+    ``stop_requested`` is consulted after every accepted step other than the
+    last, after the checkpoint callback has recorded it.  A rollout it stops
+    reports the steps it took, and every one of them was accepted, so the
+    trajectory is a success; the state it stops at is the state the
+    uninterrupted rollout reached at that same step, bitwise.
+    """
+
+    model, preparation = prepared_model
+    observed: list[tuple[int, float]] = []
+
+    def never(completed_steps: int, current_time: float) -> bool:
+        observed.append((completed_steps, current_time))
+        return False
+
+    whole = integrate_cwrmf_ssprk2(
+        model,
+        preparation.state,
+        final_time=3e-8,
+        time_step=1e-8,
+        stop_requested=never,
+    )
+
+    assert whole.success
+    assert whole.completed_steps == 3
+    # Not consulted on the last step: that one ends the rollout at
+    # final_time on the ordinary path.  The times are the grid's own, from
+    # linspace, so they are compared at the grid's precision.
+    assert [entry[0] for entry in observed] == [1, 2]
+    assert observed[0][1] == pytest.approx(1e-8)
+    assert observed[1][1] == pytest.approx(2e-8)
+
+    stops: list[tuple[int, float]] = []
+
+    def at_once(completed_steps: int, current_time: float) -> bool:
+        stops.append((completed_steps, current_time))
+        return True
+
+    halted = integrate_cwrmf_ssprk2(
+        model,
+        preparation.state,
+        final_time=3e-8,
+        time_step=1e-8,
+        stop_requested=at_once,
+    )
+
+    assert len(stops) == 1
+    assert stops[0][0] == 1
+    assert stops[0][1] == pytest.approx(1e-8)
+    assert halted.success
+    assert halted.completed_steps == 1
+    assert halted.times.size == 2
+    assert float(halted.times[-1]) == pytest.approx(1e-8)
+    assert "stopped on the caller's declared stop request" in halted.message
+    assert np.array_equal(halted.states[-1], whole.states[1])
+    assert np.array_equal(
+        halted.minimum_shifted_lower_bounds,
+        whole.minimum_shifted_lower_bounds[:2],
+    )
+
+
+def test_wall_budget_is_off_by_default_and_a_budget_not_reached_is_inert(
+    tmp_path,
+) -> None:
+    """``--maximum-wall-seconds`` is default off and changes no number.
+
+    A run without it writes exactly the summary it wrote before: neither
+    ``maximum_wall_seconds`` nor ``stop_reason`` appears.  A run with a
+    budget the rollout never reaches is bitwise identical on every recorded
+    array and records that it ended at ``final_time``.
+    """
+
+    import sys
+
+    from paper5.stability import apcm_carried_witness_analysis as driver
+    from paper5.stability.apcm_carried_witness_analysis import _parser
+
+    assert (
+        _parser().parse_args(
+            ["--output-directory", "run"]
+        ).maximum_wall_seconds
+        is None
+    )
+
+    rejected = tmp_path / "rejected"
+    saved = sys.argv
+    sys.argv = [
+        "apcm_carried_witness_analysis",
+        "--output-directory",
+        str(rejected),
+        "--maximum-wall-seconds",
+        "0",
+    ]
+    try:
+        with pytest.raises(ValueError, match="must be positive"):
+            driver.main()
+    finally:
+        sys.argv = saved
+    # Refused before the output directory is created.
+    assert not rejected.exists()
+
+    common = ["--final-time", "2e-8", "--time-step", "1e-8"]
+
+    unbudgeted = tmp_path / "unbudgeted"
+    _run_driver(["--output-directory", str(unbudgeted), *common])
+
+    budgeted = tmp_path / "budgeted"
+    _run_driver(
+        [
+            "--output-directory",
+            str(budgeted),
+            *common,
+            "--maximum-wall-seconds",
+            "600",
+        ]
+    )
+
+    plain = json.loads(
+        (unbudgeted / "summary.json").read_text(encoding="utf-8")
+    )
+    assert "maximum_wall_seconds" not in plain["integration"]
+    assert "stop_reason" not in plain["integration"]
+
+    bounded = json.loads(
+        (budgeted / "summary.json").read_text(encoding="utf-8")
+    )
+    assert bounded["integration"]["maximum_wall_seconds"] == 600.0
+    assert bounded["integration"]["stop_reason"] == "final_time"
+    assert bounded["integration"]["success"]
+    assert bounded["integration"]["completed_steps"] == 2
+
+    reference = np.load(unbudgeted / "autonomous_trajectory.npz")
+    under_budget = np.load(budgeted / "autonomous_trajectory.npz")
+    assert sorted(reference.files) == sorted(under_budget.files)
+    for name in sorted(reference.files):
+        if name == "maximum_atom_seconds":
+            # Wall time, not a propagated quantity.
+            continue
+        assert np.array_equal(
+            np.asarray(reference[name]), np.asarray(under_budget[name])
+        ), name
+
+
+def test_a_reached_wall_budget_stops_cleanly_and_leaves_a_resume_point(
+    tmp_path,
+) -> None:
+    """A budget of ``1e-9`` s is already past when the first step ends.
+
+    The rollout must stop at that first accepted step rather than run to
+    ``--final-time``: exit status 0, ``stop_reason`` ``wall_budget``,
+    trajectory arrays and ``summary.json`` for the steps taken, and a
+    ``checkpoint.npz`` at the accepted step that a second invocation
+    resumes from.
+    """
+
+    stopped = tmp_path / "stopped"
+    _run_driver(
+        [
+            "--output-directory",
+            str(stopped),
+            "--final-time",
+            "3e-8",
+            "--time-step",
+            "1e-8",
+            "--maximum-wall-seconds",
+            "1e-9",
+        ]
+    )
+
+    summary = json.loads(
+        (stopped / "summary.json").read_text(encoding="utf-8")
+    )
+    integration = summary["integration"]
+    assert integration["stop_reason"] == "wall_budget"
+    assert integration["maximum_wall_seconds"] == pytest.approx(1e-9)
+    assert integration["success"]
+    assert integration["completed_steps"] == 1
+    assert integration["final_time_requested"] == pytest.approx(3e-8)
+    assert integration["last_time"] == pytest.approx(1e-8)
+
+    recorded = np.load(stopped / "autonomous_trajectory.npz")
+    assert recorded["times"].size == 2
+    assert float(recorded["times"][-1]) == pytest.approx(1e-8)
+
+    checkpoint = np.load(stopped / "checkpoint.npz")
+    assert int(np.asarray(checkpoint["step"])) == 1
+    assert float(np.asarray(checkpoint["time"])) == pytest.approx(1e-8)
+    assert (
+        np.asarray(checkpoint["state"]).size
+        == summary["state"]["total_dimension"]
+    )
+
+    resumed = tmp_path / "resumed"
+    _run_driver(
+        [
+            "--output-directory",
+            str(resumed),
+            "--initial-state-file",
+            str(stopped / "checkpoint.npz"),
+            "--final-time",
+            "2e-8",
+            "--time-step",
+            "1e-8",
+        ]
+    )
+
+    continuation = json.loads(
+        (resumed / "summary.json").read_text(encoding="utf-8")
+    )["integration"]
+    assert continuation["initial_time"] == pytest.approx(1e-8)
+    assert continuation["last_time"] == pytest.approx(2e-8)
+    assert continuation["success"]
+    assert "stop_reason" not in continuation

@@ -152,8 +152,13 @@ def test_zero_action_frontier_accepts_only_digest_bound_idle_or_closed(
 def test_promotion_slot_is_selected_from_canonical_completion_arm() -> None:
     assert _promotion_slot_from_completion_arm("avqds") == "avqds"
     assert _promotion_slot_from_completion_arm("exchange") == "full_apm"
+    # The compiled-Q route keeps the two promotion slots: its worker arm is the
+    # same structural arm and lands in ``full_apm``.
+    assert _promotion_slot_from_completion_arm("exchange_q_compiled") == "full_apm"
     with pytest.raises(SIAMStableBindingError, match="unsupported SIAM completion"):
         _promotion_slot_from_completion_arm("full_apm")
+    with pytest.raises(SIAMStableBindingError, match="unsupported SIAM completion"):
+        _promotion_slot_from_completion_arm("exchange_gamma_compiled")
 
 
 def test_continuation_binds_raw_and_stitched_evidence_separately(

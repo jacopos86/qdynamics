@@ -19,3 +19,8 @@ draft manuscript is `MATH/paper_details/paper_V_high_u_gkba.tex`; code, tests,
 references, and exploratory notes stay in `paper_5/` unless the user explicitly
 asks to move them. If Paper V reuses parent-repo quantum primitives, preserve
 the root Pauli, JW, and number-operator conventions.
+
+Plan of record (2026-09-14): `agent_guidance/paper-v/paper-v-state-and-plan-20260914.md`
+holds the route ledger, the ordered plan, and the open user decisions D1--D3.
+Read it before starting any Paper V route work; update it in place rather than
+writing a new state file.

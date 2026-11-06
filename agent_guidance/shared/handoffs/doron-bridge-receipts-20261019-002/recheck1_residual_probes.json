@@ -1,0 +1,36 @@
+{
+ "schema": "doron_bridge_recheck1_residual_probes_v1",
+ "created_utc": "2026-10-19T18:19:58.761235+00:00",
+ "python": "/Users/lordskyler/.venvs/doron-bridge-gpu/bin/python",
+ "probes": {
+  "fcidump_attested_without_attestation": "refused: origin='attested' requires attestation={'attested_by': <who>, 'text_sha256': <sha256 of the FCIDUMP text>, ...}",
+  "fcidump_attested_wrong_hash": "refused: origin_attestation",
+  "fcidump_attested_matching_hash": {
+   "data_role": "attested:fcidump_text",
+   "origin_attestation": {
+    "attested_by": "probe (synthetic text, not Doron)",
+    "text_sha256": "6e39d2a3958ea93eeb8a04c8730222f03197580a1ab372e8356bb4cbf263c788"
+   },
+   "producer_origin_established": false,
+   "text_sha256": "6e39d2a3958ea93eeb8a04c8730222f03197580a1ab372e8356bb4cbf263c788"
+  },
+  "mapping_api_signature": [
+   "mapping",
+   "source",
+   "declared_origin",
+   "declared_producer"
+  ],
+  "mapping_forged_container": "refused: TypeError: qdynamics_matrix_elements_from_mapping() got an unexpected keyword argument '_container_schema'",
+  "private_constructor_file_container_without_loader_hash": "refused: container_claim",
+  "cli_missing_manifest": {
+   "returncode": 2,
+   "stderr": "run refused: FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/kx/d9rnzzsd4j97qd4n_s9d7n980000gn/T/tmpw80pueu7/nope.manifest.json'",
+   "receipt_written": false,
+   "wall_s": 0.153938
+  },
+  "cli_export_missing_h5": {
+   "returncode": 2,
+   "stderr": "export refused: FileNotFoundError: qdynamics export not found: /var/folders/kx/d9rnzzsd4j97qd4n_s9d7n980000gn/T/tmpw80pueu7/missing_ele.h5"
+  }
+ }
+}

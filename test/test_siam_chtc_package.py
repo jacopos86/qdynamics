@@ -15,7 +15,10 @@ import pytest
 import pipelines.time_dynamics.siam_chtc_package as siam_chtc_package_module
 from pipelines.time_dynamics.paper_ii_runs import (
     SIAM_NB4_CONTINUATION_SEGMENT,
+    SIAM_NB4_PILOT_EXCHANGE_SEARCH,
+    SIAM_NB4_PILOT_SEARCH,
     SIAM_NB4_SCREEN_SEGMENT,
+    SearchProfile,
     build_siam_nb4_screen_run,
 )
 from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
@@ -38,8 +41,10 @@ from pipelines.time_dynamics.siam_chtc_package import (
     SIAM_NB4_ACTIVATION_CUT_LADDER,
     SIAM_NB4_CHTC_ACTION_SCHEMA_V3,
     SIAM_NB4_CHTC_ACTION_SCHEMA_V4,
+    SIAM_NB4_CHTC_ACTION_SCHEMA_V5,
     SIAM_NB4_CHTC_MANIFEST_SCHEMA_V3,
     SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4,
+    SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5,
     SIAMSourceEpochRebaseline,
     build_siam_source_epoch_closure,
     build_siam_source_epoch_contract,
@@ -145,6 +150,7 @@ def _prepare(
     resume: Path | None = None,
     resume_receipt: Path | None = None,
     source_rebaseline: SIAMSourceEpochRebaseline | None = None,
+    search_profile=SIAM_NB4_PILOT_SEARCH,
 ):
     root, seed, image = package_repo
     with mock.patch.object(
@@ -164,6 +170,7 @@ def _prepare(
             activation_cut=cut,
             arm=arm,
             segment=segment,
+            search_profile=search_profile,
             resume_from_run_json=resume,
             resume_action_receipt_json=resume_receipt,
             prepared_at="2026-08-27T00:00:00+00:00",
@@ -754,6 +761,7 @@ def _write_completion_receipt(
     arm: str,
     activation_cut: float = 1.0e-3,
     status: str = "COMPLETED",
+    search_profile_id: str | None = None,
 ) -> None:
     root = seed.parents[1]
     seed_rel = seed.relative_to(root).as_posix()
@@ -764,6 +772,7 @@ def _write_completion_receipt(
         activation_cut=activation_cut,
         output_json=trajectory_rel,
         code_revision=RESUME_REVISION,
+        search_profile_id=search_profile_id,
     )
     runner_argv = list(command.argv())
     runner_argv_sha256 = _argv_sha256(runner_argv)
@@ -797,6 +806,8 @@ def _write_completion_receipt(
         "compile_terminal_cost": False,
         "qiskit_compilation_requested": False,
     }
+    if search_profile_id is not None:
+        action_contract["search_profile_id"] = search_profile_id
     action_json_sha256 = _pretty_json_sha256(action_contract)
     package_manifest_contract = {
         "schema": SIAM_NB4_CHTC_MANIFEST_SCHEMA_V3,
@@ -816,6 +827,8 @@ def _write_completion_receipt(
         "activation_cut_ladder_sha256": SIAM_NB4_CANONICAL_LADDER_SHA256,
         "files": {"action": {"sha256": action_json_sha256}},
     }
+    if search_profile_id is not None:
+        package_manifest_contract["search_profile_id"] = search_profile_id
     trajectory_payload = json.loads(trajectory.read_text(encoding="utf-8"))
     resume_checks, resume_terminal_proof = (
         siam_chtc_package_module._assert_completed_terminal_resume(
@@ -851,6 +864,11 @@ def _write_completion_receipt(
         "resume_terminal_proof": resume_terminal_proof,
         "action_contract": action_contract,
         "package_manifest_contract": package_manifest_contract,
+        **(
+            {}
+            if search_profile_id is None
+            else {"search_profile_id": search_profile_id}
+        ),
         "checks": {
             "source_revision": True,
             "uncured_local_subdivisions": True,
@@ -1102,7 +1120,9 @@ def test_continuation_rejects_legacy_incomplete_receipt_schema(
         json.dumps(receipt, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="requires a v3 screen action receipt"):
+    with pytest.raises(
+        ValueError, match="requires a v3, v4, or v5 screen action receipt"
+    ):
         _prepare(
             package_repo,
             package_id="reject_legacy_receipt",
@@ -1829,4 +1849,743 @@ def test_runtime_rejects_top_level_manifest_digest_disagreement(
             expected_action_id="manifest_digest_disagreement_action",
             expected_action_sha256=prepared.action_sha256,
             expected_source_revision=REVISION,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Compiled-Q exchange route (v5 lineage)
+# ---------------------------------------------------------------------------
+
+ROUTE_Q_COMPILED = "paper_ii_exchange_q_compiled_v1"
+Q_COMPILED_CONTRACT_SHA256 = (
+    "7883d93767e00523539d509abf92d126b0effd255eeefc8184a11f2636c356b1"
+)
+# Frozen from the pre-change packager on the identical fixture: a historical
+# action must keep producing these bytes forever, because the r00--r07 lineage
+# was submitted under them.
+FROZEN_HISTORICAL_AVQDS_SCREEN = {
+    "action_sha256": (
+        "cbb2aae79d9654309cf406a09be1c76464767d7bfa405ce6cddf5a4e01e5ab88"
+    ),
+    "manifest_sha256": (
+        "df6d589065f795a6e518561258bbd4f0035be6f06b9457a4e182064e33e2898e"
+    ),
+    "worker_sha256": (
+        "171b0d58fb1c585c2f78a23d1cee3e5df99179b637950e3000dbedca6f6f6053"
+    ),
+    "wrapper_sha256": (
+        "35bd15209cc37e0df8d1127343ac6b2c9e2e705b5784c2d42b7910777a480f7c"
+    ),
+    "submit_sha256": (
+        "1c26e3224016b2ca150509043b00794dd520888666ce909249b65ed979ea701f"
+    ),
+}
+FROZEN_HISTORICAL_EXCHANGE_SCREEN = {
+    "action_sha256": (
+        "04373e4c519e37fa1de73b58b7599cfa2f76aeee67e681358593f66ede947536"
+    ),
+    "manifest_sha256": (
+        "55febf7ea80b6097ffbb7d851d94177d22533e4c5337f1d9ba3bd3cea8227cf9"
+    ),
+    "submit_sha256": (
+        "36ee67db5e44586dc55d5167b6ffab2bf6550e57e8b45eab7cb97922da732f4c"
+    ),
+}
+
+
+def _pinned_source_tree_contract(root: Path, revision: str) -> dict[str, object]:
+    """The fixture source tree with pinned modes, so digests are umask-free."""
+
+    marker = root / "pipelines" / "test_source_marker.py"
+    source_marker = root / "src" / "test_source_marker.py"
+    source_marker.parent.mkdir(parents=True, exist_ok=True)
+    source_marker.write_text("SOURCE_LOCKED = True\n", encoding="utf-8")
+    body = b"SOURCE_LOCKED = True\n"
+    rows = [
+        {
+            "path": "pipelines/test_source_marker.py",
+            "kind": "file",
+            "mode": 0o644,
+            "bytes": marker.stat().st_size,
+            "sha256": hashlib.sha256(body).hexdigest(),
+            "link_target": None,
+        },
+        {
+            "path": "src/test_source_marker.py",
+            "kind": "file",
+            "mode": 0o644,
+            "bytes": len(body),
+            "sha256": hashlib.sha256(body).hexdigest(),
+            "link_target": None,
+        },
+    ]
+    encoded = json.dumps(
+        rows,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return {
+        "schema": "siam_source_tree_contract_v1",
+        "source_revision": revision,
+        "file_count": len(rows),
+        "files_sha256": hashlib.sha256(encoded).hexdigest(),
+        "files": rows,
+    }
+
+
+def _prepare_pinned(
+    package_repo,
+    *,
+    package_id: str,
+    action_id: str,
+    arm: str,
+    route_id: str = "historical",
+    cut: float = 1.0e-3,
+    search_profile=SIAM_NB4_PILOT_SEARCH,
+):
+    root, seed, image = package_repo
+    with mock.patch.object(
+        siam_chtc_package_module, "_verify_source_revision"
+    ), mock.patch.object(
+        siam_chtc_package_module,
+        "_build_source_tree_contract",
+        return_value=_pinned_source_tree_contract(root, REVISION),
+    ):
+        return prepare_siam_nb4_chtc_action(
+            repo_root=root,
+            package_dir=Path("chtc") / package_id,
+            seed_path=seed,
+            image_path=image,
+            source_revision=REVISION,
+            action_id=action_id,
+            activation_cut=cut,
+            arm=arm,
+            segment="screen",
+            route_id=route_id,
+            search_profile=search_profile,
+            prepared_at="2026-08-27T00:00:00+00:00",
+        )
+
+
+def _batch_name(submit: Path) -> str:
+    return [
+        line.split("=", 1)[1].strip().strip('"')
+        for line in submit.read_text(encoding="utf-8").splitlines()
+        if line.startswith("+JobBatchName")
+    ][0]
+
+
+@pytest.mark.parametrize(
+    "alias",
+    ("exchange_q_compiled", "full_apm_q_compiled", "Full-APM-Q-Compiled"),
+)
+def test_compiled_q_aliases_resolve_to_the_registered_route_arm(
+    alias: str,
+) -> None:
+    assert (
+        siam_chtc_package_module._canonical_arm(alias) == "exchange_q_compiled"
+    )
+
+
+def test_canonical_arm_error_names_the_compiled_q_arm() -> None:
+    with pytest.raises(ValueError, match="exchange_q_compiled"):
+        siam_chtc_package_module._canonical_arm("gamma_compiled")
+
+
+def test_compiled_q_arm_reports_exchange_policy_and_its_own_method_label() -> None:
+    assert siam_chtc_package_module._arm_dynamics_policy(
+        "exchange_q_compiled"
+    ) == "exchange"
+    assert siam_chtc_package_module._arm_method_label(
+        "exchange_q_compiled"
+    ) == "full_apm_q_compiled"
+    assert siam_chtc_package_module._arm_method_label("exchange") == "full_apm"
+    assert siam_chtc_package_module._arm_method_label("avqds") == "avqds"
+    assert siam_chtc_package_module._arm_route_bundle_id(
+        "exchange_q_compiled"
+    ) == ROUTE_Q_COMPILED
+    assert siam_chtc_package_module._route_contract_sha256(
+        ROUTE_Q_COMPILED
+    ) == Q_COMPILED_CONTRACT_SHA256
+
+
+def test_compiled_q_package_carries_v5_route_identity(package_repo) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+    action_id = siam_nb4_action_id(
+        arm="full_apm",
+        segment="screen",
+        activation_cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        route_id=ROUTE_Q_COMPILED,
+    )
+    assert action_id == "siam-nb4-qc-full_apm-screen-r00-cut1em02"
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id="siam_nb4_qc_full_apm_r00",
+        action_id=action_id,
+        arm="exchange_q_compiled",
+        route_id=ROUTE_Q_COMPILED,
+        cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
+
+    assert action["schema"] == SIAM_NB4_CHTC_ACTION_SCHEMA_V5
+    assert manifest["schema"] == SIAM_NB4_CHTC_MANIFEST_SCHEMA_V5
+    assert action["arm"] == "exchange_q_compiled"
+    assert action["method_label"] == "full_apm_q_compiled"
+    assert action["route_id"] == ROUTE_Q_COMPILED
+    assert action["route_bundle_id"] == ROUTE_Q_COMPILED
+    assert action["route_contract_sha256"] == Q_COMPILED_CONTRACT_SHA256
+    for field in ("route_id", "route_bundle_id", "route_contract_sha256"):
+        assert manifest[field] == action[field]
+    assert action["activation_cut_ladder_index"] == 0
+    assert "--exchange-route-bundle" in " ".join(
+        json.dumps(action["expected_execution_contract"])
+    ) or action["expected_execution_contract"][
+        "support_patch_config"
+    ]["dynamics_policy"] == "exchange"
+
+
+def test_compiled_q_batch_name_matches_the_submission_intent_bridge(
+    package_repo,
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+    from pipelines.time_dynamics.siam_submission_intent_bridge import (
+        _accepted_batch_names,
+    )
+
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id="siam_nb4_qc_batch_name",
+        action_id=siam_nb4_action_id(
+            arm="full_apm",
+            segment="screen",
+            activation_cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+            route_id=ROUTE_Q_COMPILED,
+        ),
+        arm="exchange_q_compiled",
+        route_id=ROUTE_Q_COMPILED,
+        cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+    )
+    batch = _batch_name(prepared.submit)
+    assert batch == (
+        "siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0"
+    )
+    assert batch in _accepted_batch_names(
+        segment=SIAM_NB4_SCREEN_SEGMENT.segment_id,
+        arm="exchange_q_compiled",
+        ladder_index=0,
+    )
+
+
+def test_avqds_on_the_compiled_q_route_is_route_free_but_v5(
+    package_repo,
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+    from pipelines.time_dynamics.siam_submission_intent_bridge import (
+        _accepted_batch_names,
+    )
+
+    action_id = siam_nb4_action_id(
+        arm="avqds",
+        segment="screen",
+        activation_cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        route_id=ROUTE_Q_COMPILED,
+    )
+    assert action_id == "siam-nb4-qc-avqds-screen-r00-cut1em02"
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id="siam_nb4_qc_avqds_r00",
+        action_id=action_id,
+        arm="avqds",
+        route_id=ROUTE_Q_COMPILED,
+        cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    assert action["schema"] == SIAM_NB4_CHTC_ACTION_SCHEMA_V5
+    assert action["route_id"] == ROUTE_Q_COMPILED
+    assert action["route_bundle_id"] == "not_applicable"
+    assert action["route_contract_sha256"] is None
+    assert action["method_label"] == "avqds"
+    batch = _batch_name(prepared.submit)
+    assert batch == "siam-nb4-screen-t0-t1-101-avqds-rung0"
+    assert batch in _accepted_batch_names(
+        segment=SIAM_NB4_SCREEN_SEGMENT.segment_id,
+        arm="avqds",
+        ladder_index=0,
+    )
+
+
+def test_compiled_q_route_rejects_a_nonladder_action_id(package_repo) -> None:
+    with pytest.raises(ValueError, match="must be the ladder identity"):
+        _prepare_pinned(
+            package_repo,
+            package_id="siam_nb4_qc_bad_action_id",
+            action_id="siam-nb4-full_apm-screen-r00-cut1em02",
+            arm="exchange_q_compiled",
+            route_id=ROUTE_Q_COMPILED,
+            cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        )
+
+
+def test_historical_arm_is_refused_on_the_compiled_q_route(
+    package_repo,
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+    with pytest.raises(ValueError, match="not the packaged ladder route"):
+        _prepare_pinned(
+            package_repo,
+            package_id="siam_nb4_qc_wrong_arm",
+            action_id=siam_nb4_action_id(
+                arm="full_apm",
+                segment="screen",
+                activation_cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+                route_id=ROUTE_Q_COMPILED,
+            ),
+            arm="exchange",
+            route_id=ROUTE_Q_COMPILED,
+            cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        )
+
+
+def test_unregistered_route_id_is_refused(package_repo) -> None:
+    with pytest.raises(ValueError, match="package route must be one of"):
+        _prepare_pinned(
+            package_repo,
+            package_id="siam_nb4_unknown_route",
+            action_id="siam-nb4-avqds-screen-r00-cut1em02",
+            arm="avqds",
+            route_id="paper_ii_exchange_gamma_compiled_v1",
+            cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        )
+
+
+def _compiled_q_screen_payload(seed: Path) -> dict[str, object]:
+    payload = _screen_payload(
+        seed=seed,
+        arm="exchange_q_compiled",
+        source_revision=REVISION,
+    )
+    policy = payload["run_lock"]["policy"]
+    policy["structural_policy"] = "exchange"
+    policy["guards"]["exchange_route_contract"] = {
+        "bundle_id": ROUTE_Q_COMPILED,
+        "objective_id": "realized_q",
+        "cost_model_id": "compiled_population",
+        "kernel_id": "shifted_paper_i",
+        "compiler": None,
+    }
+    policy["guards"]["exchange_route_contract_sha256"] = (
+        Q_COMPILED_CONTRACT_SHA256
+    )
+    return payload
+
+
+def test_completed_configuration_accepts_a_compiled_q_run_lock(
+    package_repo,
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id="siam_nb4_qc_config_ok",
+        action_id=siam_nb4_action_id(
+            arm="full_apm",
+            segment="screen",
+            activation_cut=1.0e-3,
+            route_id=ROUTE_Q_COMPILED,
+        ),
+        arm="exchange_q_compiled",
+        route_id=ROUTE_Q_COMPILED,
+        cut=1.0e-3,
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    siam_chtc_package_module._assert_completed_configuration(
+        _compiled_q_screen_payload(prepared.seed), action=action
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("bundle", "different exchange route"),
+        ("digest", "changed the exchange route contract"),
+        ("absent", "records no exchange route contract"),
+        ("policy", "resolved the wrong arm"),
+    ),
+)
+def test_completed_configuration_rejects_a_mismatched_compiled_q_route(
+    package_repo, mutation: str, message: str
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id=f"siam_nb4_qc_config_{mutation}",
+        action_id=siam_nb4_action_id(
+            arm="full_apm",
+            segment="screen",
+            activation_cut=1.0e-3,
+            route_id=ROUTE_Q_COMPILED,
+        ),
+        arm="exchange_q_compiled",
+        route_id=ROUTE_Q_COMPILED,
+        cut=1.0e-3,
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    payload = _compiled_q_screen_payload(prepared.seed)
+    guards = payload["run_lock"]["policy"]["guards"]
+    if mutation == "bundle":
+        guards["exchange_route_contract"]["bundle_id"] = (
+            "paper_ii_generalized_exchange_v2"
+        )
+    elif mutation == "digest":
+        guards["exchange_route_contract_sha256"] = "5" * 64
+    elif mutation == "absent":
+        guards.pop("exchange_route_contract")
+    elif mutation == "policy":
+        payload["run_lock"]["policy"]["structural_policy"] = "avqds"
+    else:  # pragma: no cover
+        raise AssertionError(mutation)
+    with pytest.raises(ValueError, match=message):
+        siam_chtc_package_module._assert_completed_configuration(
+            payload, action=action
+        )
+
+
+@pytest.mark.parametrize(
+    ("arm", "action_id", "package_id", "frozen"),
+    (
+        (
+            "avqds",
+            "siam-nb4-avqds-screen-r00-cut1em03",
+            "siam_nb4_frozen_avqds",
+            FROZEN_HISTORICAL_AVQDS_SCREEN,
+        ),
+        (
+            "exchange",
+            "siam-nb4-full_apm-screen-r00-cut1em03",
+            "siam_nb4_frozen_exchange",
+            FROZEN_HISTORICAL_EXCHANGE_SCREEN,
+        ),
+    ),
+)
+def test_historical_packaging_output_is_byte_frozen(
+    package_repo,
+    arm: str,
+    action_id: str,
+    package_id: str,
+    frozen: dict[str, str],
+) -> None:
+    """The v4 lineage must never move: r00--r07 were submitted under it."""
+
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id=package_id,
+        action_id=action_id,
+        arm=arm,
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
+    assert action["schema"] == SIAM_NB4_CHTC_ACTION_SCHEMA_V4
+    assert manifest["schema"] == SIAM_NB4_CHTC_MANIFEST_SCHEMA_V4
+    for field in ("route_id", "route_bundle_id", "route_contract_sha256"):
+        assert field not in action
+        assert field not in manifest
+    assert prepared.action_sha256 == frozen["action_sha256"]
+    assert prepared.manifest_sha256 == frozen["manifest_sha256"]
+    assert _sha256(prepared.submit) == frozen["submit_sha256"]
+    if "worker_sha256" in frozen:
+        assert _sha256(prepared.worker) == frozen["worker_sha256"]
+        assert _sha256(prepared.wrapper) == frozen["wrapper_sha256"]
+
+
+# ---------------------------------------------------------------------------
+# Declared search budget: the exchange-insertion frontier
+# ---------------------------------------------------------------------------
+
+EXCHANGE_PROFILE_ID = SIAM_NB4_PILOT_EXCHANGE_SEARCH.profile_id
+
+
+def test_exchange_frontier_profile_matches_the_pilot_budget_exactly() -> None:
+    """Only the exchange face differs; the work limits are the same numbers."""
+
+    assert SIAM_NB4_PILOT_EXCHANGE_SEARCH.exchange_insertion_frontier == 8
+    assert SIAM_NB4_PILOT_SEARCH.exchange_insertion_frontier is None
+    for field in (
+        "pool_size",
+        "joint_patch_evaluations",
+        "certification_attempts_per_level",
+        "certification_attempts_per_deletion_branch",
+        "rounds_per_checkpoint",
+        "insertion_cardinality",
+    ):
+        assert getattr(SIAM_NB4_PILOT_EXCHANGE_SEARCH, field) == getattr(
+            SIAM_NB4_PILOT_SEARCH, field
+        )
+    assert SIAM_NB4_PILOT_EXCHANGE_SEARCH.profile_id != (
+        SIAM_NB4_PILOT_SEARCH.profile_id
+    )
+
+
+def test_default_search_profile_emits_no_frontier_flag(package_repo) -> None:
+    prepared = _prepare(
+        package_repo,
+        package_id="siam_screen_default_budget",
+        action_id="screen_default_budget",
+        arm="exchange",
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
+
+    assert "search_profile_id" not in action
+    assert "search_profile_id" not in manifest
+    support = action["expected_execution_contract"]["support_patch_config"]
+    assert "exchange_insertion_frontier" not in support
+    expected = build_siam_nb4_screen_run(
+        seed_path=action["seed_path"],
+        arm="exchange",
+        activation_cut=action["activation_cut"],
+        output_json=action["trajectory_json"],
+        code_revision=REVISION,
+    )
+    assert "--exchange-insertion-frontier" not in expected.argv()
+    assert action["expected_runner_argv_sha256"] == _argv_sha256(
+        list(expected.argv())
+    )
+
+
+def test_frontier_search_profile_emits_the_flag_and_records_its_id(
+    package_repo,
+) -> None:
+    prepared = _prepare(
+        package_repo,
+        package_id="siam_screen_frontier_budget",
+        action_id="screen_frontier_budget",
+        arm="exchange",
+        search_profile=SIAM_NB4_PILOT_EXCHANGE_SEARCH,
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
+
+    assert action["search_profile_id"] == EXCHANGE_PROFILE_ID
+    assert manifest["search_profile_id"] == EXCHANGE_PROFILE_ID
+    support = action["expected_execution_contract"]["support_patch_config"]
+    assert support["exchange_insertion_frontier"] == 8
+    expected = build_siam_nb4_screen_run(
+        seed_path=action["seed_path"],
+        arm="exchange",
+        activation_cut=action["activation_cut"],
+        output_json=action["trajectory_json"],
+        code_revision=REVISION,
+        search_profile_id=EXCHANGE_PROFILE_ID,
+    )
+    argv = list(expected.argv())
+    assert "--exchange-insertion-frontier" in argv
+    assert argv[argv.index("--exchange-insertion-frontier") + 1] == "8"
+    assert action["expected_runner_argv_sha256"] == _argv_sha256(argv)
+
+
+def test_frontier_profile_separates_the_packaged_identity(package_repo) -> None:
+    """The same rung under the two budgets is not the same packaged action."""
+
+    default = _prepare(
+        package_repo,
+        package_id="siam_screen_budget_default",
+        action_id="screen_budget_default",
+        arm="exchange",
+    )
+    frontier = _prepare(
+        package_repo,
+        package_id="siam_screen_budget_frontier",
+        action_id="screen_budget_frontier",
+        arm="exchange",
+        search_profile=SIAM_NB4_PILOT_EXCHANGE_SEARCH,
+    )
+    default_action = json.loads(default.action.read_text(encoding="utf-8"))
+    frontier_action = json.loads(frontier.action.read_text(encoding="utf-8"))
+
+    assert (
+        default_action["expected_runner_argv_sha256"]
+        != frontier_action["expected_runner_argv_sha256"]
+    )
+    assert default.action_sha256 != frontier.action_sha256
+
+
+def test_compiled_q_frontier_package_carries_both_identities(
+    package_repo,
+) -> None:
+    from pipelines.time_dynamics.siam_nb4_ladder import siam_nb4_action_id
+
+    action_id = siam_nb4_action_id(
+        arm="full_apm",
+        segment="screen",
+        activation_cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        route_id=ROUTE_Q_COMPILED,
+    )
+    prepared = _prepare_pinned(
+        package_repo,
+        package_id="siam_nb4_qc_full_apm_frontier_r00",
+        action_id=action_id,
+        arm="exchange_q_compiled",
+        route_id=ROUTE_Q_COMPILED,
+        cut=SIAM_NB4_ACTIVATION_CUT_LADDER[0],
+        search_profile=SIAM_NB4_PILOT_EXCHANGE_SEARCH,
+    )
+    action = json.loads(prepared.action.read_text(encoding="utf-8"))
+    manifest = json.loads(prepared.manifest.read_text(encoding="utf-8"))
+
+    assert action["schema"] == SIAM_NB4_CHTC_ACTION_SCHEMA_V5
+    assert action["route_id"] == ROUTE_Q_COMPILED
+    assert action["search_profile_id"] == EXCHANGE_PROFILE_ID
+    assert manifest["search_profile_id"] == EXCHANGE_PROFILE_ID
+    assert action["expected_execution_contract"]["support_patch_config"][
+        "exchange_insertion_frontier"
+    ] == 8
+
+
+def test_packager_refuses_an_unregistered_search_profile(package_repo) -> None:
+    stranger = SearchProfile(
+        profile_id="siam_nb4_unregistered_v1",
+        pool_size=64,
+        joint_patch_evaluations=50_000,
+        certification_attempts_per_level=12,
+        certification_attempts_per_deletion_branch=2,
+        rounds_per_checkpoint=12,
+        exchange_insertion_frontier=4,
+    )
+    with pytest.raises(ValueError, match="registered search profile"):
+        _prepare(
+            package_repo,
+            package_id="siam_screen_unregistered_budget",
+            action_id="screen_unregistered_budget",
+            arm="exchange",
+            search_profile=stranger,
+        )
+
+
+def test_completion_receipt_validator_reports_the_declared_profile(
+    package_repo,
+) -> None:
+    root, seed, _image = package_repo
+    trajectory = root / "raw_outputs" / "frontier_validator" / "run.json"
+    _write_resume(trajectory, seed=seed, arm="exchange")
+    receipt_path = trajectory.with_name("action_receipt.json")
+    _write_completion_receipt(
+        receipt_path,
+        trajectory=trajectory,
+        seed=seed,
+        arm="exchange",
+        search_profile_id=EXCHANGE_PROFILE_ID,
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+    verified = validate_siam_nb4_completion_receipt(receipt)
+    assert verified["search_profile_id"] == EXCHANGE_PROFILE_ID
+
+    default_trajectory = root / "raw_outputs" / "default_validator" / "run.json"
+    _write_resume(default_trajectory, seed=seed, arm="exchange")
+    default_receipt_path = default_trajectory.with_name("action_receipt.json")
+    _write_completion_receipt(
+        default_receipt_path,
+        trajectory=default_trajectory,
+        seed=seed,
+        arm="exchange",
+    )
+    default_receipt = json.loads(
+        default_receipt_path.read_text(encoding="utf-8")
+    )
+    assert "search_profile_id" not in default_receipt
+    assert validate_siam_nb4_completion_receipt(default_receipt)[
+        "search_profile_id"
+    ] == SIAM_NB4_PILOT_SEARCH.profile_id
+
+
+def test_completion_receipt_validator_refuses_a_half_declared_profile(
+    package_repo,
+) -> None:
+    root, seed, _image = package_repo
+    trajectory = root / "raw_outputs" / "half_declared" / "run.json"
+    _write_resume(trajectory, seed=seed, arm="exchange")
+    receipt_path = trajectory.with_name("action_receipt.json")
+    _write_completion_receipt(
+        receipt_path,
+        trajectory=trajectory,
+        seed=seed,
+        arm="exchange",
+        search_profile_id=EXCHANGE_PROFILE_ID,
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt.pop("search_profile_id")
+
+    with pytest.raises(ValueError, match="search-profile identity"):
+        validate_siam_nb4_completion_receipt(receipt)
+
+
+def test_declared_profile_gate_refuses_unregistered_and_redundant_ids() -> None:
+    """Only a registered non-default budget may be written into a document."""
+
+    assert (
+        siam_chtc_package_module._declared_search_profile_id(None) is None
+    )
+    assert siam_chtc_package_module._declared_search_profile_id(
+        EXCHANGE_PROFILE_ID
+    ) == EXCHANGE_PROFILE_ID
+    with pytest.raises(ValueError, match="not registered"):
+        siam_chtc_package_module._declared_search_profile_id(
+            "siam_nb4_not_registered_v1"
+        )
+    with pytest.raises(ValueError, match="stay implicit"):
+        siam_chtc_package_module._declared_search_profile_id(
+            SIAM_NB4_PILOT_SEARCH.profile_id
+        )
+    assert siam_chtc_package_module._document_search_profile(
+        {}
+    ) is SIAM_NB4_PILOT_SEARCH
+    assert siam_chtc_package_module._document_search_profile(
+        {"search_profile_id": EXCHANGE_PROFILE_ID}
+    ) is SIAM_NB4_PILOT_EXCHANGE_SEARCH
+
+
+def test_run_command_refuses_an_unregistered_search_profile_id() -> None:
+    with pytest.raises(ValueError, match="registered search profiles"):
+        build_siam_nb4_screen_run(
+            seed_path="input/seed.json",
+            arm="exchange",
+            output_json="raw_outputs/x/run.json",
+            code_revision=REVISION,
+            search_profile_id="siam_nb4_not_registered_v1",
+        )
+
+
+def test_continuation_refuses_a_cross_profile_screen_receipt(
+    package_repo,
+) -> None:
+    root, seed, _image = package_repo
+    resume = root / "inputs" / "cross_profile_screen_run.json"
+    _write_resume(resume, seed=seed, arm="exchange")
+    source_receipt = resume.with_name("action_receipt.json")
+    _write_completion_receipt(
+        source_receipt,
+        trajectory=resume,
+        seed=seed,
+        arm="exchange",
+        activation_cut=1.0e-4,
+    )
+
+    with pytest.raises(ValueError, match="different search profiles"):
+        _prepare(
+            package_repo,
+            package_id="siam_apm_cross_profile_continuation",
+            action_id="continue_cross_profile_rung2",
+            arm="full_apm",
+            segment="continuation",
+            cut=1.0e-4,
+            resume=resume,
+            resume_receipt=source_receipt,
+            search_profile=SIAM_NB4_PILOT_EXCHANGE_SEARCH,
         )

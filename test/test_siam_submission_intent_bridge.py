@@ -407,3 +407,27 @@ def test_bridge_rejects_tampering_of_a_bound_package_file(tmp_path: Path) -> Non
 
     with pytest.raises(BridgeError, match="submit.*digest"):
         build_bridge_receipt(intent_path, repository_root=tmp_path)
+
+
+def test_batch_names_keep_historical_form_and_admit_the_compiled_q_arm() -> None:
+    from pipelines.time_dynamics.siam_submission_intent_bridge import (
+        _accepted_batch_names,
+    )
+
+    historical = _accepted_batch_names(
+        segment="screen_t0_t1_101", arm="full_apm", ladder_index=0
+    )
+    assert historical == {"siam-nb4-screen-t0-t1-101-full-apm-rung0"}
+
+    avqds = _accepted_batch_names(
+        segment="continue_t1_t5_401", arm="avqds", ladder_index=7
+    )
+    assert avqds == {"siam-nb4-continue-t1-t5-401-avqds-rung7"}
+
+    compiled = _accepted_batch_names(
+        segment="screen_t0_t1_101", arm="exchange_q_compiled", ladder_index=0
+    )
+    assert (
+        "siam-nb4-screen-t0-t1-101-exchange_q_compiled-rung0" in compiled
+    )
+    assert "siam-nb4-screen-t0-t1-101-exchange-q-compiled-rung0" in compiled

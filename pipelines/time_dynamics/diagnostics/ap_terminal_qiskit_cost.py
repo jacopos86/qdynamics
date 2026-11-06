@@ -83,14 +83,40 @@ def _drive_config(payload: Mapping[str, Any], runtime_input: Any) -> Any:
     )
 
 
+def _drive_aligned_enabled(
+    payload: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+) -> bool:
+    """Recover the requested route, including resumed already-present support."""
+
+    requested = metadata.get("drive_aligned_ansatz_requested")
+    if requested is not None:
+        return bool(requested)
+    record = payload.get("drive_aligned_ansatz")
+    if not isinstance(record, Mapping):
+        return True
+    return bool(record.get("applied", True)) or str(record.get("reason", "")) == (
+        "resume_terminal_support_already_contains_drive_alignment"
+    )
+
+
 def reconstruct_terminal_ap_compile_input(
     trajectory_path: Path,
+    *,
+    source_artifact_path: Path | None = None,
 ) -> tuple[Any, dict[str, Any], dict[str, Any]]:
     payload = _load_json(trajectory_path)
     trajectory = dict(payload.get("trajectory", {}))
     metadata = dict(trajectory.get("metadata", {}))
     final_state = dict(payload.get("final_state", {}))
-    source_path = Path(str(payload["source_artifact_json"]))
+    declared_source_path = Path(str(payload["source_artifact_json"]))
+    source_path = (
+        declared_source_path
+        if source_artifact_path is None
+        else Path(source_artifact_path).expanduser().resolve()
+    )
+    if not source_path.is_file():
+        raise FileNotFoundError(source_path)
     runtime_input = _load_runtime_input_or_raise(
         source_path,
         loader_mode=metadata.get("loader_mode"),
@@ -144,7 +170,7 @@ def reconstruct_terminal_ap_compile_input(
     augmentation = augment_state_with_drive_aligned_generator(
         state,
         hamiltonian=hamiltonian,
-        enabled=bool(dict(payload.get("drive_aligned_ansatz", {})).get("applied", True)),
+        enabled=_drive_aligned_enabled(payload, metadata),
     )
     state = augmentation.state
     term_lookup = {
@@ -215,6 +241,9 @@ def reconstruct_terminal_ap_compile_input(
         "runtime_parameter_count_rebuilt": int(layout.runtime_parameter_count),
         "runtime_parameter_count_saved": int(final_state["runtime_parameter_count"]),
         "theta_length": int(theta.size),
+        "declared_source_artifact_json": str(declared_source_path),
+        "resolved_source_artifact_json": str(source_path),
+        "resolved_source_artifact_sha256": file_sha256(source_path),
     }
     if not parity["passed"]:
         raise ValueError(f"Terminal AP support reconstruction parity failed: {parity}")
@@ -239,9 +268,11 @@ def build_ap_terminal_cost_table(
     backend_name: str,
     seed_transpiler: int,
     optimization_level: int,
+    source_artifact_path: Path | None = None,
 ) -> dict[str, Any]:
     compile_input, parity, payload = reconstruct_terminal_ap_compile_input(
-        trajectory_path
+        trajectory_path,
+        source_artifact_path=source_artifact_path,
     )
     result = compile_terminal_qiskit_cost(
         compile_input,
@@ -256,6 +287,10 @@ def build_ap_terminal_cost_table(
         "label": str(label),
         "trajectory_json": str(trajectory_path),
         "trajectory_json_sha256": file_sha256(trajectory_path),
+        "source_artifact_json": str(parity["resolved_source_artifact_json"]),
+        "source_artifact_json_sha256": str(
+            parity["resolved_source_artifact_sha256"]
+        ),
         "logical_parameter_count": int(summary["logical_parameter_count_final"]),
         "runtime_parameter_count": int(summary["runtime_parameter_count_final"]),
         "accepted_append_count": int(summary.get("accepted_append_count", 0)),
@@ -301,6 +336,14 @@ def build_ap_terminal_cost_table(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trajectory-json", type=Path, required=True)
+    parser.add_argument(
+        "--source-artifact-json",
+        type=Path,
+        help=(
+            "Optional resolved override for a trajectory whose declared source "
+            "artifact path was repository-relative on another verified checkout."
+        ),
+    )
     parser.add_argument("--output-cost-table-json", type=Path, required=True)
     parser.add_argument("--label", required=True)
     parser.add_argument("--backend-name", default=DEFAULT_BACKEND)
@@ -314,6 +357,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         backend_name=str(args.backend_name),
         seed_transpiler=int(args.seed_transpiler),
         optimization_level=int(args.optimization_level),
+        source_artifact_path=args.source_artifact_json,
     )
     output = Path(args.output_cost_table_json)
     output.parent.mkdir(parents=True, exist_ok=True)

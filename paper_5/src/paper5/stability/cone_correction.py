@@ -9,6 +9,7 @@ cone and both electronic one-body density bounds in one constrained solve.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, replace
 from typing import Callable, Literal
 
@@ -27,6 +28,100 @@ from .matrix_reference import (
 )
 
 CorrectionMetric = Literal["euclidean", "frobenius"]
+
+HalfspaceBackend = Literal["slsqp", "active_set"]
+CutHarvest = Literal["single_mode", "all_violated"]
+
+#: Backend used by :func:`_project_origin_onto_halfspaces` when a caller does
+#: not name one.  ``"slsqp"`` is the backend every recorded Paper V number was
+#: produced with and stays the default; ``"active_set"`` is the warm-started
+#: dual active-set minimum-norm-point solve added on 2026-09-14.  The minimum-
+#: norm point of a nonempty polytope is unique, so the two backends solve the
+#: same problem and differ only in floating-point path.
+DEFAULT_HALFSPACE_BACKEND: HalfspaceBackend = "slsqp"
+
+
+@dataclass
+class SolverCounters:
+    """Call counts for the correction solvers.
+
+    Counting is unconditional and changes no number.  ``reset`` is the only
+    supported way to start an accounting window.
+    """
+
+    halfspace_projections: int = 0
+    slsqp_halfspace_projections: int = 0
+    active_set_halfspace_projections: int = 0
+    closed_form_halfspace_projections: int = 0
+    active_set_fallbacks_to_slsqp: int = 0
+    slsqp_halfspace_not_converged: int = 0
+    active_set_halfspace_not_converged: int = 0
+    direct_eigenvalue_slsqp_solves: int = 0
+    cutting_plane_fallback_slsqp_solves: int = 0
+    correction_memo_hits: int = 0
+    correction_memo_misses: int = 0
+
+    def reset(self) -> None:
+        for name in self.__dataclass_fields__:
+            setattr(self, name, 0)
+
+    def as_dict(self) -> dict[str, int]:
+        return {
+            name: int(getattr(self, name))
+            for name in self.__dataclass_fields__
+        }
+
+
+#: Process-wide counters; see :class:`SolverCounters`.
+SOLVER_COUNTERS = SolverCounters()
+
+#: Number of (state, derivative) pairs a memoizing right-hand side keeps.
+CORRECTION_MEMO_CAPACITY = 8
+
+
+class _CorrectionMemo:
+    """Exact-key cache for one right-hand side's correction coordinates.
+
+    The key is the byte image of the closed state and of the derivative the
+    correction is asked to repair; the settings are fixed by the enclosing
+    right-hand side.  A hit returns a copy of the stored coordinates, so the
+    corrected velocity is the same floating-point vector the solver produced.
+    """
+
+    def __init__(self, capacity: int = CORRECTION_MEMO_CAPACITY) -> None:
+        self._capacity = max(1, int(capacity))
+        self._entries: OrderedDict[bytes, FloatArray] = OrderedDict()
+
+    def lookup(
+        self,
+        state: FloatArray,
+        derivative: FloatArray,
+    ) -> FloatArray | None:
+        key = (
+            np.ascontiguousarray(state, dtype=float).tobytes()
+            + np.ascontiguousarray(derivative, dtype=float).tobytes()
+        )
+        stored = self._entries.get(key)
+        if stored is None:
+            SOLVER_COUNTERS.correction_memo_misses += 1
+            return None
+        SOLVER_COUNTERS.correction_memo_hits += 1
+        self._entries.move_to_end(key)
+        return stored.copy()
+
+    def store(
+        self,
+        state: FloatArray,
+        derivative: FloatArray,
+        coordinates: FloatArray,
+    ) -> None:
+        key = (
+            np.ascontiguousarray(state, dtype=float).tobytes()
+            + np.ascontiguousarray(derivative, dtype=float).tobytes()
+        )
+        self._entries[key] = np.asarray(coordinates, dtype=float).copy()
+        while len(self._entries) > self._capacity:
+            self._entries.popitem(last=False)
 
 
 @dataclass(frozen=True)
@@ -194,12 +289,15 @@ def structured_boson_velocity_lift(coordinates: FloatArray) -> np.ndarray:
         ],
         dtype=complex,
     )
-    return np.block(
-        [
-            [normal.T, anomalous.conjugate()],
-            [anomalous, normal],
-        ]
-    )
+    # Block assembly by slice copy.  ``np.block`` produced the same four
+    # copies through a recursive shape check whose Python cost dominated this
+    # function; every stored value is identical.
+    lifted = np.empty((4, 4), dtype=complex)
+    lifted[:2, :2] = normal.T
+    lifted[:2, 2:] = anomalous.conjugate()
+    lifted[2:, :2] = anomalous
+    lifted[2:, 2:] = normal
+    return lifted
 
 
 _STRUCTURED_VELOCITY_BASIS = tuple(
@@ -307,6 +405,29 @@ _CLOSED_STATE_LIFTED_FROBENIUS_METRIC = np.asarray(
     ],
     dtype=float,
 )
+
+
+def _metric_coordinate_map(metric_matrix: FloatArray) -> FloatArray:
+    """Return ``chol(metric)^-T`` as the map from metric to raw coordinates."""
+
+    metric_factor = np.linalg.cholesky(metric_matrix).T
+    return np.linalg.solve(
+        metric_factor,
+        np.eye(metric_matrix.shape[0], dtype=float),
+    )
+
+
+#: The two correction metrics are fixed matrices, so their Cholesky factor and
+#: the triangular solve against the identity are evaluated once at import
+#: instead of on every correction solve.  Same operands, same stored values.
+_METRIC_COORDINATE_MAPS: dict[str, FloatArray] = {
+    "euclidean": _metric_coordinate_map(
+        np.eye(len(CLOSED_SCALAR_STATE_NAMES), dtype=float)
+    ),
+    "frobenius": _metric_coordinate_map(
+        _CLOSED_STATE_LIFTED_FROBENIUS_METRIC
+    ),
+}
 
 
 def closed_state_lifted_frobenius_metric() -> FloatArray:
@@ -441,22 +562,30 @@ def _mode_response_vector(mode: np.ndarray) -> FloatArray:
     )
 
 
-def _project_origin_onto_halfspaces(
-    normals: list[FloatArray],
-    offsets: list[float],
+@dataclass
+class HalfspaceWarmState:
+    """Carried active set for the warm-started minimum-norm-point backend.
+
+    The cut set only grows inside one constraint-generation loop, so the
+    previous pass's active set is a valid starting working set for the next.
+    """
+
+    active: tuple[int, ...] = ()
+    iterations: int = 0
+
+
+def _slsqp_minimum_norm_point(
+    matrix: FloatArray,
+    bounds: FloatArray,
     *,
     tolerance: float,
     maximum_cycles: int,
 ) -> tuple[FloatArray, bool]:
-    """Project the origin onto ``normal @ y >= offset``."""
+    """Return the SLSQP minimum-norm point of ``matrix @ y >= bounds``."""
 
-    if not normals:
-        return np.zeros(0, dtype=float), True
-
-    matrix = np.vstack(normals)
-    bounds = np.asarray(offsets, dtype=float)
     constraint = LinearConstraint(matrix, bounds, np.inf)
     dimension = matrix.shape[1]
+    SOLVER_COUNTERS.slsqp_halfspace_projections += 1
     solution = minimize(
         lambda point: 0.5 * float(point @ point),
         np.zeros(dimension, dtype=float),
@@ -471,8 +600,157 @@ def _project_origin_onto_halfspaces(
     )
     point = np.asarray(solution.x, dtype=float)
     maximum_violation = float(np.max(bounds - matrix @ point))
-    return point, bool(
+    converged = bool(
         solution.success and maximum_violation <= 10.0 * tolerance
+    )
+    if not converged:
+        SOLVER_COUNTERS.slsqp_halfspace_not_converged += 1
+    return point, converged
+
+
+def _active_set_minimum_norm_point(
+    matrix: FloatArray,
+    bounds: FloatArray,
+    *,
+    tolerance: float,
+    maximum_cycles: int,
+    warm_state: HalfspaceWarmState | None,
+) -> tuple[FloatArray, bool]:
+    """Return the minimum-norm point of ``matrix @ y >= bounds`` directly.
+
+    The problem is ``min 1/2 ||y||^2`` over a polytope, whose objective is
+    strictly convex, so the minimizer is the unique minimum-norm point of that
+    polytope and does not depend on how it is found.  This is the dual
+    active-set construction: on a working set ``W`` the Karush--Kuhn--Tucker
+    point is ``y = A_W^T mu`` with ``A_W A_W^T mu = b_W``; a negative
+    multiplier drops the constraint that carries it and the most violated
+    remaining constraint enters.  ``warm_state`` carries the previous pass's
+    working set, which is feasible to start from because the cut set only
+    grows.
+
+    One accumulated half-space has the closed-form solution
+    ``y = max(0, b) n / (n . n)``, the same expression the boson barrier uses
+    for its single-mode flux correction.
+    """
+
+    rows, dimension = matrix.shape
+    if rows == 1:
+        SOLVER_COUNTERS.closed_form_halfspace_projections += 1
+        normal = matrix[0]
+        compliance = float(normal @ normal)
+        if compliance <= 0.0:
+            return (
+                np.zeros(dimension, dtype=float),
+                bool(float(bounds[0]) <= 10.0 * tolerance),
+            )
+        scale = max(0.0, float(bounds[0])) / compliance
+        point = scale * normal
+        maximum_violation = float(np.max(bounds - matrix @ point))
+        if warm_state is not None:
+            warm_state.active = (0,) if scale > 0.0 else ()
+            warm_state.iterations = 1
+        return point, bool(maximum_violation <= 10.0 * tolerance)
+
+    SOLVER_COUNTERS.active_set_halfspace_projections += 1
+    gram = matrix @ matrix.T
+    working: list[int] = []
+    if warm_state is not None:
+        working = [index for index in warm_state.active if index < rows]
+
+    entry_tolerance = 10.0 * tolerance
+    iterations = 0
+    limit = max(4 * rows + 8, 32)
+    point = np.zeros(dimension, dtype=float)
+    while iterations < limit:
+        iterations += 1
+        if working:
+            indices = np.asarray(working, dtype=int)
+            block = gram[np.ix_(indices, indices)]
+            values = bounds[indices]
+            try:
+                multipliers = np.linalg.solve(block, values)
+            except np.linalg.LinAlgError:
+                multipliers = np.linalg.lstsq(block, values, rcond=None)[0]
+            if not np.all(np.isfinite(multipliers)):
+                multipliers = np.linalg.lstsq(block, values, rcond=None)[0]
+            negative = int(np.argmin(multipliers))
+            if float(multipliers[negative]) < -entry_tolerance:
+                working.pop(negative)
+                continue
+            point = matrix[indices].T @ multipliers
+        else:
+            point = np.zeros(dimension, dtype=float)
+        residual = bounds - matrix @ point
+        entering = int(np.argmax(residual))
+        if float(residual[entering]) <= entry_tolerance:
+            break
+        if entering in working:
+            break
+        working.append(entering)
+        working.sort()
+
+    if warm_state is not None:
+        warm_state.active = tuple(working)
+        warm_state.iterations = iterations
+
+    maximum_violation = float(np.max(bounds - matrix @ point))
+    if maximum_violation <= 10.0 * tolerance:
+        return point, True
+
+    # Declared fallback: the active-set walk did not certify feasibility, so
+    # the recorded SLSQP backend answers instead.
+    SOLVER_COUNTERS.active_set_halfspace_not_converged += 1
+    SOLVER_COUNTERS.active_set_fallbacks_to_slsqp += 1
+    return _slsqp_minimum_norm_point(
+        matrix,
+        bounds,
+        tolerance=tolerance,
+        maximum_cycles=maximum_cycles,
+    )
+
+
+def _project_origin_onto_halfspaces(
+    normals: list[FloatArray],
+    offsets: list[float],
+    *,
+    tolerance: float,
+    maximum_cycles: int,
+    backend: HalfspaceBackend | None = None,
+    warm_state: HalfspaceWarmState | None = None,
+) -> tuple[FloatArray, bool]:
+    """Project the origin onto ``normal @ y >= offset``.
+
+    ``backend`` selects the solver.  ``"slsqp"`` is the recorded default and
+    every existing Paper V number was produced with it; ``"active_set"`` is the
+    warm-started minimum-norm-point solve.  Both return the unique minimum-norm
+    point of the same polytope.
+    """
+
+    if not normals:
+        return np.zeros(0, dtype=float), True
+
+    resolved = DEFAULT_HALFSPACE_BACKEND if backend is None else backend
+    if resolved not in ("slsqp", "active_set"):
+        raise ValueError(
+            "halfspace backend must be 'slsqp' or 'active_set'"
+        )
+
+    matrix = np.vstack(normals)
+    bounds = np.asarray(offsets, dtype=float)
+    SOLVER_COUNTERS.halfspace_projections += 1
+    if resolved == "active_set":
+        return _active_set_minimum_norm_point(
+            matrix,
+            bounds,
+            tolerance=tolerance,
+            maximum_cycles=maximum_cycles,
+            warm_state=warm_state,
+        )
+    return _slsqp_minimum_norm_point(
+        matrix,
+        bounds,
+        tolerance=tolerance,
+        maximum_cycles=maximum_cycles,
     )
 
 
@@ -580,8 +858,15 @@ def _direct_joint_barrier_solve(
     """Solve the small joint semidefinite problem through all eigenvalues."""
 
     sectors = ("electron_lower", "electron_upper", "boson")
+    # SLSQP evaluates the constraint function and its Jacobian at the same
+    # reduced point, so the three corrected matrices are assembled once per
+    # point and reused.  The stored matrices are the same objects the previous
+    # code rebuilt.
+    barrier_cache: OrderedDict[bytes, dict[str, np.ndarray]] = OrderedDict()
 
-    def corrected_barriers(reduced: FloatArray) -> dict[str, np.ndarray]:
+    def _build_corrected_barriers(
+        reduced: FloatArray,
+    ) -> dict[str, np.ndarray]:
         correction = coordinate_basis @ reduced
         electron_correction = structured_electron_velocity_lift(
             correction[electron_coordinates]
@@ -598,6 +883,17 @@ def _direct_joint_barrier_solve(
             ),
             "boson": raw_barriers["boson"] + boson_correction,
         }
+
+    def corrected_barriers(reduced: FloatArray) -> dict[str, np.ndarray]:
+        key = np.ascontiguousarray(reduced, dtype=float).tobytes()
+        cached = barrier_cache.get(key)
+        if cached is not None:
+            return cached
+        built = _build_corrected_barriers(reduced)
+        barrier_cache[key] = built
+        if len(barrier_cache) > 4:
+            barrier_cache.popitem(last=False)
+        return built
 
     def eigenvalue_constraints(reduced: FloatArray) -> FloatArray:
         return np.concatenate(
@@ -623,6 +919,7 @@ def _direct_joint_barrier_solve(
         return np.asarray(rows, dtype=float)
 
     reduced_dimension = coordinate_basis.shape[1]
+    SOLVER_COUNTERS.direct_eigenvalue_slsqp_solves += 1
     solution = minimize(
         lambda reduced: 0.5 * float(reduced @ reduced),
         np.zeros(reduced_dimension, dtype=float),
@@ -670,6 +967,8 @@ def structured_joint_barrier_correction(
     maximum_constraints: int = 128,
     maximum_projection_cycles: int = 10_000,
     solver: Literal["cutting_plane", "direct_eigenvalue"] = "cutting_plane",
+    halfspace_backend: HalfspaceBackend | None = None,
+    cut_harvest: CutHarvest = "single_mode",
 ) -> StructuredJointBarrierCorrection:
     """Enforce electronic and bosonic matrix barriers in one least-norm solve.
 
@@ -705,6 +1004,10 @@ def structured_joint_barrier_correction(
     if solver not in ("cutting_plane", "direct_eigenvalue"):
         raise ValueError(
             "solver must be 'cutting_plane' or 'direct_eigenvalue'"
+        )
+    if cut_harvest not in ("single_mode", "all_violated"):
+        raise ValueError(
+            "cut_harvest must be 'single_mode' or 'all_violated'"
         )
 
     state_array = np.asarray(state, dtype=float)
@@ -847,6 +1150,7 @@ def structured_joint_barrier_correction(
     normals: list[FloatArray] = []
     offsets: list[float] = []
     projection_converged = True
+    halfspace_warm_state = HalfspaceWarmState()
     for _ in range(maximum_constraints):
         electron_correction = structured_electron_velocity_lift(
             correction[:3]
@@ -895,31 +1199,58 @@ def structured_joint_barrier_correction(
                 converged=projection_converged,
             )
 
-        violated_mode = eigensystems[sector][1][:, 0]
-        full_response = _joint_mode_response_vector(
-            sector,
-            violated_mode,
-        )
-        reduced_response = coordinate_basis.T @ full_response
-        if float(reduced_response @ reduced_response) <= 1e-14:
-            break
-        normals.append(reduced_response)
-        offsets.append(
-            -float(
-                np.real(
-                    np.vdot(
-                        violated_mode,
-                        raw_barriers[sector] @ violated_mode,
+        # ``single_mode`` (the recorded default) cuts on the lowest eigenmode
+        # of the most violated sector alone.  ``all_violated`` harvests every
+        # eigenmode below the cone tolerance in every sector on the same pass,
+        # which is what the electron--phonon routine already does; it reaches
+        # feasibility in fewer passes but accumulates a different cut set, so
+        # it is a named option and not the default.
+        harvested: list[tuple[str, np.ndarray]] = []
+        if cut_harvest == "single_mode":
+            harvested.append((sector, eigensystems[sector][1][:, 0]))
+        else:
+            for name in ("electron_lower", "electron_upper", "boson"):
+                eigenvalues, eigenvectors = eigensystems[name]
+                for column, eigenvalue in enumerate(eigenvalues):
+                    if eigenvalue >= -cone_tolerance:
+                        continue
+                    harvested.append((name, eigenvectors[:, column]))
+
+        added = False
+        degenerate = False
+        for cut_sector, violated_mode in harvested:
+            full_response = _joint_mode_response_vector(
+                cut_sector,
+                violated_mode,
+            )
+            reduced_response = coordinate_basis.T @ full_response
+            if float(reduced_response @ reduced_response) <= 1e-14:
+                degenerate = True
+                continue
+            normals.append(reduced_response)
+            offsets.append(
+                -float(
+                    np.real(
+                        np.vdot(
+                            violated_mode,
+                            raw_barriers[cut_sector] @ violated_mode,
+                        )
                     )
                 )
             )
-        )
+            added = True
+        if not added:
+            if degenerate:
+                break
+            break
         reduced_correction, current_projection_converged = (
             _project_origin_onto_halfspaces(
                 normals,
                 offsets,
                 tolerance=projection_tolerance,
                 maximum_cycles=maximum_projection_cycles,
+                backend=halfspace_backend,
+                warm_state=halfspace_warm_state,
             )
         )
         projection_converged = bool(
@@ -1145,6 +1476,7 @@ def structured_electron_phonon_barrier_correction(
     maximum_projection_cycles: int = 10_000,
     solver: Literal["cutting_plane", "direct_eigenvalue"] = "cutting_plane",
     correction_metric: CorrectionMetric = "euclidean",
+    halfspace_backend: HalfspaceBackend | None = None,
 ) -> StructuredElectronPhononBarrierCorrection:
     """Enforce the joint Gram cone containing the retained correlation ``C``.
 
@@ -1200,9 +1532,12 @@ def structured_electron_phonon_barrier_correction(
     electron_identity = np.eye(2, dtype=complex)
 
     joint_moment = electron_phonon_moment_matrix(matrix_state)
-    joint_velocity = structured_electron_phonon_moment_velocity_lift(
-        state_array,
-        derivative_array,
+    # ``structured_electron_phonon_moment_velocity_lift`` rebuilds the matrix
+    # state from ``state_array`` on every call; ``matrix_state`` above is that
+    # same object, so the derivative map is applied to it directly.
+    joint_velocity = electron_phonon_moment_derivative(
+        matrix_state,
+        structured_closed_state_velocity_lift(derivative_array),
     )
     joint_identity = np.eye(joint_moment.shape[0], dtype=complex)
 
@@ -1256,16 +1591,10 @@ def structured_electron_phonon_barrier_correction(
         len(equality_rows),
         len(CLOSED_SCALAR_STATE_NAMES),
     )
-    metric_matrix = (
-        np.eye(len(CLOSED_SCALAR_STATE_NAMES), dtype=float)
-        if correction_metric == "euclidean"
-        else _CLOSED_STATE_LIFTED_FROBENIUS_METRIC
-    )
-    metric_factor = np.linalg.cholesky(metric_matrix).T
-    coordinates_from_metric = np.linalg.solve(
-        metric_factor,
-        np.eye(len(CLOSED_SCALAR_STATE_NAMES), dtype=float),
-    )
+    # Both correction metrics are fixed matrices, so their Cholesky factor and
+    # the triangular solve against the identity are module constants evaluated
+    # once at import instead of on every call.
+    coordinates_from_metric = _METRIC_COORDINATE_MAPS[correction_metric]
     metric_equality_matrix = equality_matrix @ coordinates_from_metric
     particular, coordinate_basis = _affine_equality_parameterization(
         metric_equality_matrix,
@@ -1276,19 +1605,27 @@ def structured_electron_phonon_barrier_correction(
         metric_coordinates = particular + coordinate_basis @ reduced
         return coordinates_from_metric @ metric_coordinates
 
+    # The 31 lifted unit-coordinate matrix states are fixed, and the matrix
+    # state built from ``state_array`` is already available, so the joint-Gram
+    # basis is built by applying the derivative map 31 times to the two
+    # existing objects instead of rebuilding both inside each of the 31 calls.
     joint_velocity_basis = np.asarray(
         [
-            structured_electron_phonon_moment_velocity_lift(
-                state_array,
-                np.eye(len(CLOSED_SCALAR_STATE_NAMES), dtype=float)[index],
-            )
-            for index in range(len(CLOSED_SCALAR_STATE_NAMES))
+            electron_phonon_moment_derivative(matrix_state, basis)
+            for basis in _CLOSED_STATE_VELOCITY_BASIS
         ],
         dtype=complex,
     )
     sectors = ("electron_lower", "electron_upper", "electron_phonon")
+    # The constraint function and the Jacobian are evaluated by SLSQP at the
+    # same reduced point, and the cutting-plane loop's exit test re-reads the
+    # matrices it just built.  The assembled matrices are cached on the exact
+    # reduced point so each assembly happens once.
+    barrier_cache: OrderedDict[bytes, dict[str, np.ndarray]] = OrderedDict()
 
-    def corrected_barriers(reduced: FloatArray) -> dict[str, np.ndarray]:
+    def _build_corrected_barriers(
+        reduced: FloatArray,
+    ) -> dict[str, np.ndarray]:
         correction = correction_from_reduced(reduced)
         electron_correction = structured_electron_velocity_lift(
             correction[:3]
@@ -1309,6 +1646,17 @@ def structured_electron_phonon_barrier_correction(
                 raw_barriers["electron_phonon"] + joint_correction
             ),
         }
+
+    def corrected_barriers(reduced: FloatArray) -> dict[str, np.ndarray]:
+        key = np.ascontiguousarray(reduced, dtype=float).tobytes()
+        cached = barrier_cache.get(key)
+        if cached is not None:
+            return cached
+        built = _build_corrected_barriers(reduced)
+        barrier_cache[key] = built
+        if len(barrier_cache) > 4:
+            barrier_cache.popitem(last=False)
+        return built
 
     def eigenvalue_constraints(reduced: FloatArray) -> FloatArray:
         return np.concatenate(
@@ -1355,6 +1703,7 @@ def structured_electron_phonon_barrier_correction(
 
     reduced_dimension = coordinate_basis.shape[1]
     if solver == "direct_eigenvalue":
+        SOLVER_COUNTERS.direct_eigenvalue_slsqp_solves += 1
         solution = minimize(
             lambda reduced: 0.5 * float(reduced @ reduced),
             np.zeros(reduced_dimension, dtype=float),
@@ -1382,6 +1731,7 @@ def structured_electron_phonon_barrier_correction(
         normals: list[FloatArray] = []
         offsets: list[float] = []
         projection_converged = True
+        halfspace_warm_state = HalfspaceWarmState()
         while len(normals) < maximum_constraints:
             matrices = corrected_barriers(reduced)
             violations: list[tuple[float, FloatArray]] = []
@@ -1438,6 +1788,8 @@ def structured_electron_phonon_barrier_correction(
                 offsets,
                 tolerance=projection_tolerance,
                 maximum_cycles=maximum_projection_cycles,
+                backend=halfspace_backend,
+                warm_state=halfspace_warm_state,
             )
             if not projection_converged:
                 break
@@ -1456,6 +1808,7 @@ def structured_electron_phonon_barrier_correction(
         # A nearly degenerate PSD boundary can stall the accumulated linear
         # projection.  The complete eigenvalue solve is slower but gives a
         # robust fallback from that warm start.
+        SOLVER_COUNTERS.cutting_plane_fallback_slsqp_solves += 1
         fallback = minimize(
             lambda point: 0.5 * float(point @ point),
             reduced,
@@ -1547,6 +1900,7 @@ def structured_boson_barrier_correction(
     projection_tolerance: float = 1e-12,
     maximum_constraints: int = 32,
     maximum_projection_cycles: int = 10_000,
+    halfspace_backend: HalfspaceBackend | None = None,
 ) -> StructuredConeBarrierCorrection:
     """Enforce the full structured matrix control-barrier inequality.
 
@@ -1632,6 +1986,7 @@ def structured_boson_barrier_correction(
     correction = coordinate_basis @ reduced_correction
     projection_converged = True
     corrected_minimum = raw_minimum
+    halfspace_warm_state = HalfspaceWarmState()
     for _ in range(maximum_constraints):
         corrected_barrier = (
             raw_barrier
@@ -1673,6 +2028,8 @@ def structured_boson_barrier_correction(
                 offsets,
                 tolerance=projection_tolerance,
                 maximum_cycles=maximum_projection_cycles,
+                backend=halfspace_backend,
+                warm_state=halfspace_warm_state,
             )
         )
         correction = coordinate_basis @ reduced_correction
@@ -1818,6 +2175,8 @@ def closed_cone_projected_rhs(
     barrier_rate: float | None = 5.0,
     energy_neutral: bool = False,
     subtract_initial_residual: bool = True,
+    halfspace_backend: HalfspaceBackend | None = None,
+    memoize_corrections: bool = False,
 ) -> RhsFunction:
     """Return the 31D RHS with a structured bosonic tangent correction.
 
@@ -1825,6 +2184,13 @@ def closed_cone_projected_rhs(
     pinned strong-coupling diagnostic.  Only derivative indices 7--16 can be
     changed.  The default control-barrier rate avoids the numerical chattering
     caused by a discontinuous correction activated only at the boundary.
+
+    ``memoize_corrections`` caches the correction on the exact
+    ``(state, derivative)`` byte key so a repeated evaluation at an identical
+    argument reuses the solved coordinates instead of resolving.  It is off by
+    default: on the pinned strong-coupling protocol DOP853 evaluates this
+    right-hand side at a distinct state every time, so the cache only adds
+    bookkeeping.
     """
 
     initial = np.asarray(initial_state, dtype=float)
@@ -1841,28 +2207,37 @@ def closed_cone_projected_rhs(
     else:
         residual = np.zeros_like(initial)
 
+    memo = _CorrectionMemo() if memoize_corrections else None
+
     def rhs(time: float, state: FloatArray) -> FloatArray:
         derivative = closed_scalar_rhs(time, state, parameters) - residual
-        if barrier_rate is None:
-            correction_coordinates = (
-                structured_boson_cone_correction(
-                    state,
-                    derivative,
-                    activation_margin=activation_margin,
-                    target_flux=target_flux,
-                ).correction_coordinates
-            )
-        else:
-            correction_coordinates = (
-                structured_boson_barrier_correction(
-                    state,
-                    derivative,
-                    activation_margin=activation_margin,
-                    target_flux=target_flux,
-                    barrier_rate=barrier_rate,
-                    energy_neutral=energy_neutral,
-                ).correction_coordinates
-            )
+        correction_coordinates = (
+            memo.lookup(state, derivative) if memo is not None else None
+        )
+        if correction_coordinates is None:
+            if barrier_rate is None:
+                correction_coordinates = (
+                    structured_boson_cone_correction(
+                        state,
+                        derivative,
+                        activation_margin=activation_margin,
+                        target_flux=target_flux,
+                    ).correction_coordinates
+                )
+            else:
+                correction_coordinates = (
+                    structured_boson_barrier_correction(
+                        state,
+                        derivative,
+                        activation_margin=activation_margin,
+                        target_flux=target_flux,
+                        barrier_rate=barrier_rate,
+                        energy_neutral=energy_neutral,
+                        halfspace_backend=halfspace_backend,
+                    ).correction_coordinates
+                )
+            if memo is not None:
+                memo.store(state, derivative, correction_coordinates)
         corrected = derivative.copy()
         corrected[7:17] += correction_coordinates
         return corrected
@@ -1885,6 +2260,9 @@ def closed_joint_cone_projected_rhs(
     barrier_solver: Literal[
         "cutting_plane", "direct_eigenvalue"
     ] = "cutting_plane",
+    halfspace_backend: HalfspaceBackend | None = None,
+    cut_harvest: CutHarvest = "single_mode",
+    memoize_corrections: bool = False,
 ) -> RhsFunction:
     """Return the 31D RHS with one joint electronic--bosonic barrier.
 
@@ -1908,30 +2286,44 @@ def closed_joint_cone_projected_rhs(
     else:
         residual = np.zeros_like(initial)
 
+    memo = _CorrectionMemo() if memoize_corrections else None
+
     def rhs(time: float, state: FloatArray) -> FloatArray:
         derivative = closed_scalar_rhs(time, state, parameters) - residual
-        result = structured_joint_barrier_correction(
-            state,
-            derivative,
-            parameters,
-            activation_margin=activation_margin,
-            target_flux=target_flux,
-            barrier_rate=barrier_rate,
-            energy_neutral=energy_neutral,
-            cone_tolerance=cone_tolerance,
-            projection_tolerance=projection_tolerance,
-            solver=barrier_solver,
+        coordinates = (
+            memo.lookup(state, derivative) if memo is not None else None
         )
-        if require_convergence and not result.converged:
-            raise RuntimeError(
-                "joint electronic--bosonic barrier solve did not converge: "
-                f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
-                f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
-                f"boson={result.corrected_boson_barrier_minimum_eigenvalue}"
+        if coordinates is None:
+            result = structured_joint_barrier_correction(
+                state,
+                derivative,
+                parameters,
+                activation_margin=activation_margin,
+                target_flux=target_flux,
+                barrier_rate=barrier_rate,
+                energy_neutral=energy_neutral,
+                cone_tolerance=cone_tolerance,
+                projection_tolerance=projection_tolerance,
+                solver=barrier_solver,
+                halfspace_backend=halfspace_backend,
+                cut_harvest=cut_harvest,
             )
+            if require_convergence and not result.converged:
+                raise RuntimeError(
+                    "joint electronic--bosonic barrier solve did not converge: "
+                    f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
+                    f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
+                    f"boson={result.corrected_boson_barrier_minimum_eigenvalue}"
+                )
+            coordinates = np.asarray(
+                result.correction_coordinates,
+                dtype=float,
+            )
+            if memo is not None:
+                memo.store(state, derivative, coordinates)
         corrected = derivative.copy()
-        corrected[:3] += result.correction_coordinates[:3]
-        corrected[7:17] += result.correction_coordinates[3:]
+        corrected[:3] += coordinates[:3]
+        corrected[7:17] += coordinates[3:]
         return corrected
 
     return rhs
@@ -1949,6 +2341,7 @@ def closed_full_state_joint_cone_projected_rhs(
     require_convergence: bool = True,
     cone_tolerance: float = 1e-9,
     projection_tolerance: float = 1e-12,
+    memoize_corrections: bool = False,
 ) -> RhsFunction:
     """Return the 31D RHS with the full-state joint matrix barrier."""
 
@@ -1966,27 +2359,39 @@ def closed_full_state_joint_cone_projected_rhs(
     else:
         residual = np.zeros_like(initial)
 
+    memo = _CorrectionMemo() if memoize_corrections else None
+
     def rhs(time: float, state: FloatArray) -> FloatArray:
         derivative = closed_scalar_rhs(time, state, parameters) - residual
-        result = structured_full_state_joint_barrier_correction(
-            state,
-            derivative,
-            parameters,
-            activation_margin=activation_margin,
-            target_flux=target_flux,
-            barrier_rate=barrier_rate,
-            energy_neutral=energy_neutral,
-            cone_tolerance=cone_tolerance,
-            projection_tolerance=projection_tolerance,
+        coordinates = (
+            memo.lookup(state, derivative) if memo is not None else None
         )
-        if require_convergence and not result.converged:
-            raise RuntimeError(
-                "full-state joint barrier solve did not converge: "
-                f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
-                f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
-                f"boson={result.corrected_boson_barrier_minimum_eigenvalue}"
+        if coordinates is None:
+            result = structured_full_state_joint_barrier_correction(
+                state,
+                derivative,
+                parameters,
+                activation_margin=activation_margin,
+                target_flux=target_flux,
+                barrier_rate=barrier_rate,
+                energy_neutral=energy_neutral,
+                cone_tolerance=cone_tolerance,
+                projection_tolerance=projection_tolerance,
             )
-        return derivative + result.correction_coordinates
+            if require_convergence and not result.converged:
+                raise RuntimeError(
+                    "full-state joint barrier solve did not converge: "
+                    f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
+                    f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
+                    f"boson={result.corrected_boson_barrier_minimum_eigenvalue}"
+                )
+            coordinates = np.asarray(
+                result.correction_coordinates,
+                dtype=float,
+            )
+            if memo is not None:
+                memo.store(state, derivative, coordinates)
+        return derivative + coordinates
 
     return rhs
 
@@ -2005,8 +2410,16 @@ def closed_electron_phonon_cone_projected_rhs(
     cone_tolerance: float = 1e-9,
     projection_tolerance: float = 1e-12,
     correction_metric: CorrectionMetric = "euclidean",
+    halfspace_backend: HalfspaceBackend | None = None,
+    memoize_corrections: bool = False,
 ) -> RhsFunction:
-    """Return the 31D RHS constrained by the joint ``(rho,N,A,C)`` cone."""
+    """Return the 31D RHS constrained by the joint ``(rho,N,A,C)`` cone.
+
+    ``halfspace_backend`` names the minimum-norm-point solver used inside the
+    constraint-generation loop; ``memoize_corrections`` caches the solved
+    correction on the exact ``(state, derivative)`` byte key.  Both leave the
+    declared correction unchanged and both default to the recorded behaviour.
+    """
 
     initial = np.asarray(initial_state, dtype=float)
     expected = (len(CLOSED_SCALAR_STATE_NAMES),)
@@ -2022,28 +2435,41 @@ def closed_electron_phonon_cone_projected_rhs(
     else:
         residual = np.zeros_like(initial)
 
+    memo = _CorrectionMemo() if memoize_corrections else None
+
     def rhs(time: float, state: FloatArray) -> FloatArray:
         derivative = closed_scalar_rhs(time, state, parameters) - residual
-        result = structured_electron_phonon_barrier_correction(
-            state,
-            derivative,
-            parameters,
-            activation_margin=activation_margin,
-            target_flux=target_flux,
-            barrier_rate=barrier_rate,
-            energy_neutral=energy_neutral,
-            preserve_correlation_trace=preserve_correlation_trace,
-            cone_tolerance=cone_tolerance,
-            projection_tolerance=projection_tolerance,
-            correction_metric=correction_metric,
+        coordinates = (
+            memo.lookup(state, derivative) if memo is not None else None
         )
-        if require_convergence and not result.converged:
-            raise RuntimeError(
-                "electron--phonon Gram barrier solve did not converge: "
-                f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
-                f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
-                f"joint={result.corrected_joint_barrier_minimum_eigenvalue}"
+        if coordinates is None:
+            result = structured_electron_phonon_barrier_correction(
+                state,
+                derivative,
+                parameters,
+                activation_margin=activation_margin,
+                target_flux=target_flux,
+                barrier_rate=barrier_rate,
+                energy_neutral=energy_neutral,
+                preserve_correlation_trace=preserve_correlation_trace,
+                cone_tolerance=cone_tolerance,
+                projection_tolerance=projection_tolerance,
+                correction_metric=correction_metric,
+                halfspace_backend=halfspace_backend,
             )
-        return derivative + result.correction_coordinates
+            if require_convergence and not result.converged:
+                raise RuntimeError(
+                    "electron--phonon Gram barrier solve did not converge: "
+                    f"lower={result.corrected_electron_lower_barrier_minimum_eigenvalue}, "
+                    f"upper={result.corrected_electron_upper_barrier_minimum_eigenvalue}, "
+                    f"joint={result.corrected_joint_barrier_minimum_eigenvalue}"
+                )
+            coordinates = np.asarray(
+                result.correction_coordinates,
+                dtype=float,
+            )
+            if memo is not None:
+                memo.store(state, derivative, coordinates)
+        return derivative + coordinates
 
     return rhs

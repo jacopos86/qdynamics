@@ -1,0 +1,143 @@
+{
+  "schema": "paper_ii_factorial_coverage_final_ingestion_receipt_v1",
+  "recorded_utc": "2026-09-02T08:32:12Z",
+  "cluster_id": 9718010,
+  "scheduler_snapshot": {
+    "path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/scheduler_snapshot_complete_20260902T082805Z.json",
+    "sha256": "d910421dcd133a2e93abd0e93b5e48043a510b17c6a39a04238dfeaa034a1e04",
+    "completed_exit_zero_processes": [0, 1, 2, 3, 4, 5],
+    "running_processes": [],
+    "failed_processes": [],
+    "scheduler_exit_status_was_authoritative": true
+  },
+  "verified_ingestion": {
+    "runs": [
+      {
+        "process": 0,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut2p7e-05",
+        "run_sha256": "302d2f4f5eefef8e9f0384e4453740749c50009baa35a09710737ce82a8291d0",
+        "ledger_status": "accuracy_qualified"
+      },
+      {
+        "process": 1,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastweak__t20__cut9e-06",
+        "run_sha256": "b30685e9390bf8ed561550b17e688c16260d8f9548100c7edf9925d2bd7c10c0",
+        "ledger_status": "accuracy_qualified"
+      },
+      {
+        "process": 2,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__slowstrong__t20__cut2p7e-05",
+        "run_sha256": "d4a901978e14da1d4117a3e399febfb01e3b4b31aced45804b9dbd1adf0a2f70",
+        "ledger_status": "accuracy_qualified"
+      },
+      {
+        "process": 3,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__avqds__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06",
+        "run_sha256": "d132afe95778f67b3edfd9cffea8126d5b872314b11aef5530af2e786a2abe1a",
+        "ledger_status": "accuracy_qualified"
+      },
+      {
+        "process": 4,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__strongfast__t20__cut9e-06",
+        "run_sha256": "f4135052aa101bef6ed18d90d9fcc392a07f593e47c421473425300600abb825",
+        "ledger_status": "accuracy_qualified"
+      },
+      {
+        "process": 5,
+        "action_id": "coverage_promote_t20__hh_snake_nph1__exchange__state_motion_1e-3_plus_parameter_5e-5__fastfast__t20__cut9e-06",
+        "run_sha256": "9120d72930833b36b24edf986051ed35c2dfe6ace550f88f6a1f11e3474df0f1",
+        "ledger_status": "accuracy_qualified"
+      }
+    ],
+    "ledger_path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/ledger_after_all_6_verified_successes.json",
+    "ledger_sha256": "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6",
+    "ledger_record_count": 371,
+    "completed_t20_method_arms": 34,
+    "pending_t20_method_arms": 2
+  },
+  "calibration": {
+    "pre_ingestion_path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/calibration_receipt_before_procs1_3_4_ingestion.json",
+    "pre_ingestion_sha256": "e3d3ed0add2e6c7341621a06e0a2c1f0afc78c6195484f2a8bc7887420f87f24",
+    "pre_report_path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/calibration_receipt_final_before_report_refresh.json",
+    "pre_report_sha256": "729091c2d702f8b56697324dbb660b64bd1bf739507600b7472addbfb5a952e0",
+    "status": "INCOMPLETE",
+    "error_count": 0,
+    "allow_unverified_response_scales_used": false,
+    "interpretation": "Only ERROR blocks. Two trajectory-dependent checks remained no-evidence, so INCOMPLETE was preserved rather than reported as OK."
+  },
+  "terminal_resources": [
+    {
+      "process": 0,
+      "canonical_file_sha256": "d6968a3e8ed129bfc43ff3bf7f1feb019f68eac9c7a658eb291bc1587ddb3e76",
+      "resource_sha256": "ea32a2dfb5c3f9537f7fe86febfb517b95966df57bcd88b01607bd0752c06623",
+      "terminal_resource_tuple": {"C_hat_1q": 344, "C_hat_2q": 156, "C_hat_d": 252, "N_theta": 56}
+    },
+    {
+      "process": 1,
+      "canonical_file_sha256": "e8eb0ea4ff5393d79db822ff245401c29db4119d5b34d1cd3f81f757fbf0076b",
+      "resource_sha256": "42f89f0e8c8c7c0eda15d8a6f8d2325a565d09ecdfd3e246f7b4e86a93e525b9",
+      "terminal_resource_tuple": {"C_hat_1q": 237, "C_hat_2q": 118, "C_hat_d": 156, "N_theta": 37}
+    },
+    {
+      "process": 2,
+      "canonical_file_sha256": "a7c2369bad9203cd035538cfd232762400629c1124c609492d0d07f4b7d8b12c",
+      "resource_sha256": "174d1c1b00acc8be9d26b25ebe07bedbd7360dad467d71f275923bd62988dee6",
+      "terminal_resource_tuple": {"C_hat_1q": 213, "C_hat_2q": 102, "C_hat_d": 138, "N_theta": 35}
+    },
+    {
+      "process": 3,
+      "canonical_file_sha256": "bcb8d1896df101e4917415d0ee9ba389397cae4e82ca306dd736114b4147073d",
+      "resource_sha256": "cab8526c4fe7cccba4817fa3c7a83e6c567acfcac29177795bbbc363118d3184",
+      "terminal_resource_tuple": {"C_hat_1q": 381, "C_hat_2q": 178, "C_hat_d": 242, "N_theta": 59}
+    },
+    {
+      "process": 4,
+      "canonical_file_sha256": "793a8155c4cf70a4e6c458c1b7241ec39156d8f406e7347c770c6344807fcd71",
+      "resource_sha256": "baade0113e47dfc171368e99bcb251417186940301743e74524e401e379c8ea1",
+      "terminal_resource_tuple": {"C_hat_1q": 261, "C_hat_2q": 116, "C_hat_d": 150, "N_theta": 39}
+    },
+    {
+      "process": 5,
+      "canonical_file_sha256": "e32cb18e1d2ce6c042e6b93ca756b64d9ad4b3aff2449e807e4d934fe33aef27",
+      "resource_sha256": "5f46bc4059e98fadc375e6bbdd74e655f9eebce9bcecb22ee98c87f32e6460a5",
+      "terminal_resource_tuple": {"C_hat_1q": 231, "C_hat_2q": 98, "C_hat_d": 156, "N_theta": 35}
+    }
+  ],
+  "frontier": {
+    "metadata_path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/combined_report_frontier_complete_20260902.json",
+    "metadata_sha256": "0147bc04836c577649651a67538840f83159bd62d171aab1d0b73d221a751cab",
+    "status_path": "output/paper_ii_full_factorial_coverage_20260901/cluster_9718010/final_status_with_deferred.json",
+    "status_sha256": "31ba42b5af6c706c621bc65738a44f7a8f19c60e3e3a1fcf3796959596045989",
+    "stage": "coverage_screen_t5",
+    "remaining_action_count": 2,
+    "deferred_actions": {
+      "coverage_screen_t5__hh_snake_nph1__avqds__state_motion_5e-5__strongfast__t5__cut2p7e-05": "Cluster 9717994 process 5 exited nonzero after exhausting the declared local-subdivision repair budget; an identical rerun is deferred pending a separately reviewed repair strategy.",
+      "coverage_screen_t5__hh_snake_nph1__exchange__state_motion_5e-5__strongfast__t5__cut9e-06": "Cluster 9717994 process 6 exited nonzero after exhausting the declared local-subdivision repair budget; an identical rerun is deferred pending a separately reviewed repair strategy."
+    }
+  },
+  "report_refresh": {
+    "stable_user_facing_path": "/Users/lordskyler/Documents/Codex/2026-09-01/paper-ii-context-verified-2026-08/outputs/paper_ii_full_factorial_results_refresh_20260901.pdf",
+    "sha256": "f5e1666a567a7abe3acea4609ce57a3930038f01749cef02ff411dc65151a2e6",
+    "page_count": 29,
+    "promotion_preview_sha256": "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf",
+    "qualified_t20_method_arms": 34,
+    "pending_t20_method_arms": 2,
+    "comparable_t20_pairs": 15,
+    "reported_columns_include": [
+      "mean_fidelity_or_infidelity",
+      "mean_absolute_energy_error",
+      "mean_absolute_doublon_error",
+      "mean_absolute_delta_n_error",
+      "total_accepted_steps"
+    ],
+    "row_order": "AVQDS and full APM are adjacent within each drive/controller pair",
+    "changed_or_new_pages": [1, 2, 3, 5, 7, 8, 14, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    "visual_qa": "PASS_ALL_CHANGED_PAGES"
+  },
+  "scope": {
+    "coverage_only": true,
+    "paper_evidence_adopted": false,
+    "manuscript_updated": false,
+    "identical_deferred_reruns_submitted": false
+  }
+}

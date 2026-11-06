@@ -78,6 +78,16 @@ def test_guard_never_partially_admits_a_family() -> None:
     assert guard.scored_count == 0  # nothing scored from the rejected family
 
 
+def test_guard_records_what_the_refused_family_would_have_cost() -> None:
+    """A cap that bound must be auditable from the artifact alone."""
+
+    guard = JointWorkGuard(max_joint_patch_evaluations=5)
+    assert not guard.admit("singleton_d1", 48_720)
+    assert guard.rejected_family == "singleton_d1"
+    assert guard.rejected_family_size == 48_720
+    assert guard.to_json_dict()["rejected_family_size"] == 48_720
+
+
 def test_guard_serialization_and_validation() -> None:
     guard = JointWorkGuard(max_joint_patch_evaluations=7)
     guard.admit("a", 3)
@@ -87,6 +97,7 @@ def test_guard_serialization_and_validation() -> None:
         "scored_count": 3,
         "admitted_families": ["a"],
         "rejected_family": None,
+        "rejected_family_size": None,
     }
     with pytest.raises(ValueError):
         JointWorkGuard(max_joint_patch_evaluations=-1)

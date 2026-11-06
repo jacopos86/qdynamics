@@ -1,0 +1,64 @@
+{
+  "schema": "paper_ii_final_selector_gamma_candidate_retry_submission_v1",
+  "submitted_utc": "2026-09-03T07:57:12Z",
+  "cluster_id": 9718537,
+  "batch_name": "paper-ii-selector-gamma-retry-w2",
+  "remote_host": "ap2001.chtc.wisc.edu",
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_gamma_candidate_retry_wave2_4bca80b0_20260903",
+  "parent_cluster_id": 9718529,
+  "parent_remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+  "action_count": 6,
+  "initial_queue_state": {
+    "idle": 6,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "scope": {
+    "terminal_parent_failures_only": true,
+    "parent_failed_proc_ids": [4, 10, 25, 28, 43, 44],
+    "prior_retry_proc_ids_excluded": [1, 5, 7, 8, 13, 14, 16, 17, 19, 20, 22, 23, 31, 32, 35, 37, 38, 40, 41],
+    "apm_action_count": 6,
+    "avqds_action_count": 0,
+    "precursor_action_count": 0,
+    "active_parent_actions_excluded": true,
+    "successful_parent_actions_excluded": true
+  },
+  "source": {
+    "repair_commit": "4bca80b01f3d4e20e74f21b21ec36d23374b3392",
+    "package_commit": "afb3b7c70c624846a074f590ccea2c8e5b358e63",
+    "source_archive_sha256": "8f12755668b793062650801eab5755b81ff64c20e851f15e9b0ec18813e047d3",
+    "manifest_sha256": "d6b78a18dddef6426f19a5c2a42241db66cef0329c34b0a273c246c2962d96d4",
+    "action_ids_sha256": "7360f7c01b4b645c554aaae9fbbf4c79274db783fc3abff7eab01f25ad5950b9",
+    "retry_parent_failures_sha256": "e251bcb7087fe9b73aabc96d96fe75ae2da78bf3a7e49129aea53eb8e59f3cde",
+    "transport_sha256": "0b23cc23dcfc92688d9bb83bc07377a7d48fc67782dbcadd326fb313afa79aa4",
+    "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "preflight": {
+    "package_validator": "OK",
+    "container_checked": true,
+    "container_source_import": "OK",
+    "condor_dry_run_action_count": 6,
+    "live_action_overlap_count": 0,
+    "scientific_action_diff": "provenance-only after code-revision normalization",
+    "calibration_status": "INCOMPLETE",
+    "calibration_error_count": 0,
+    "calibration_not_checked": [
+      "benchmark_point_sameness",
+      "response_normalized_matched_accuracy"
+    ],
+    "allow_unverified_response_scales_used": false
+  },
+  "repair_policy": {
+    "failure_class": "GammaMonotonicityError",
+    "candidate_local_fail_closed": true,
+    "exact_gamma_definition_changed": false,
+    "gamma_tolerance_changed": false,
+    "shared_q_gamma_population_preserved": true,
+    "scientific_action_arguments_changed": false
+  },
+  "adoption": {
+    "paper_evidence_adopted": false,
+    "manuscript_updated": false
+  }
+}

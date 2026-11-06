@@ -1,6 +1,4 @@
+anchor_u4_g0p5_nph1
 weak_weak
 intermediate_weak
 strong_weak_u8
-weak_strong
-intermediate_strong
-strong_strong_u8

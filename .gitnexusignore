@@ -33,3 +33,4 @@ claude_code_adapt_wave/
 # Self-referential workflow receipts (not runtime code or scientific config)
 agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/
 agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json
+third_party/

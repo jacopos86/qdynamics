@@ -1,0 +1,130 @@
+{
+ "schema": "paper_ii_final_estimator_telemetry_package_v1",
+ "campaign_id": "paper_ii_corrected_exchange_strongfast_state_motion_v1",
+ "status": "PREPARED_NOT_SUBMITTED",
+ "created_utc": "2026-09-06T19:33:57Z",
+ "scope": {
+  "action_count": 2,
+  "cell_count": 1,
+  "routes_per_cell": 2,
+  "apm_routes_per_cell": 1,
+  "apm_action_count": 1,
+  "avqds_action_count": 1,
+  "precursor_action_count": 0,
+  "time_span": [
+   0.0,
+   20.0
+  ],
+  "time_point_count": 501,
+  "fresh_trajectories": true,
+  "purpose": "exact logical candidate-estimator accounting"
+ },
+ "routes": {
+  "paper_ii_exchange_q_compiled_v1": 1,
+  "avqds": 1
+ },
+ "source": {
+  "code_revision": "9e31f4d7f3859110aa016d8eaefd4c50ac62fde8",
+  "archive": "input/source_9e31f4d7.tar.gz",
+  "archive_sha256": "f1e2d49de5b929de9715fbbf23ad3a64a4041a4b7fb29fe4f16e8f82bf7b995c",
+  "included_paths": [
+   "pipelines",
+   "src",
+   "chtc/paper_ii_production_v2/input/seeds"
+  ],
+  "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
+  "compile_worker_reconciliation_head": "7128545afb85af0fc70b2acc6ae2b8a07c949602",
+  "template_package": "paper_ii_final_estimator_telemetry_v1_426807d9_20260904"
+ },
+ "inputs": {
+  "actions_jsonl": {
+   "path": "input/actions.jsonl",
+   "sha256": "da34d0440b931eef83e8e24b6b2883c5fe03fa394ecb24f85964030eab9abb16"
+  },
+  "action_ids": {
+   "path": "input/action_ids.txt",
+   "sha256": "06293cd528c17bf0ea10c943f585c8fe63ca363b581dbe805f96cb60066c14f8"
+  },
+  "action_ids_apm": {
+   "path": "input/action_ids_apm.txt",
+   "sha256": "e1178b5f8460a790267973f8edb477cb2fd20b5b9f6446e06f7a739322b3d9d4"
+  },
+  "action_ids_avqds": {
+   "path": "input/action_ids_avqds.txt",
+   "sha256": "39a8ede366392a63350933018f58dcc9efba80f25c89d7169a872fbac30ab862"
+  },
+  "prepare_summary": {
+   "path": "input/prepare_summary.json",
+   "sha256": "57be39ad06c04f3b9f1654ad74da6ec6217791fe9455c6efafebb360296fbc6f"
+  },
+  "matched_cells_lock": {
+   "path": "input/matched_cells_lock.json",
+   "sha256": "d50c9672b7dd67d9c45fb7259766f751c51c7af7236982beba3368a283cc259e"
+  },
+  "calibration_receipt": {
+   "path": "input/calibration_receipt.json",
+   "sha256": "46bf1e92d7304da98324eb5ed2e6604bb72a18f078774aaeb7d9efde8bb5fbd9",
+   "status": "INCOMPLETE",
+   "error_count": 0,
+   "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+   ],
+   "allow_unverified_response_scales_used": false,
+   "carried_reason": "post-run comparison checks require the new trajectories"
+  },
+  "report_refresh_resolution": {
+   "path": "input/report_refresh_resolution.json",
+   "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+   "active_blocks": [],
+   "authorizes_new_campaign_submission": true
+  }
+ },
+ "runtime": {
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "container_size_bytes": 216371200,
+  "apm": {
+   "request_cpus": 9,
+   "compile_workers": 8,
+   "scoring_workers": 4,
+   "request_memory": "12GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "avqds": {
+   "request_cpus": 1,
+   "request_memory": "6GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "thread_environment": {
+   "OPENBLAS_NUM_THREADS": 1,
+   "OMP_NUM_THREADS": 1,
+   "MKL_NUM_THREADS": 1,
+   "VECLIB_MAXIMUM_THREADS": 1,
+   "NUMEXPR_NUM_THREADS": 1,
+   "RAYON_NUM_THREADS": 1
+  },
+  "transfer_format": "one gzip archive plus SHA receipt per action"
+ },
+ "completion_contract": {
+  "trajectory_required": true,
+  "exact_estimator_work_required": true,
+  "terminal_qiskit_cost_required": true,
+  "physical_shots": null,
+  "physical_shots_status": "unavailable_statevector_no_shot_ledger"
+ },
+ "package_files": {
+  "run_action.py": "302e69b6962e64163124ee0f2cf3a3d1563bef5291a194349c75628689bd18b5",
+  "run_action_apptainer.sh": "94e893cdb90d15c04ef524f00b32710f692f24a501b021dbbdd6ee3d06013db7",
+  "submit_apm.sub": "c024c32d4969b1ea9848199b315652dd86888ea279bbded6ac2218e999fb40ea",
+  "submit_avqds.sub": "bdb0c7313b3abb814967f59abae9cb2649956f6683652876c2d8887fb0de60e5",
+  "validate_package.py": "5e7a087bc011c00437a4d5102ddffcd1a0b778206d4c25c2d9cfd8085c02a019"
+ },
+ "adoption": {
+  "paper_evidence_adopted": false,
+  "manuscript_updated": false,
+  "purpose": "author-requested exact estimator reruns only"
+ },
+ "purpose": "Strong--fast (2.4,3) state-motion cell, absent from the final matched set (the manuscript's pending row): AP-McLachlan exchange arm with the declared insertion frontier W=8 at tau_m=3e-6 and a fresh exact-estimator AVQDS comparator at avqds cut 3e-6, both at the manuscript's permission bound. The cell row is copied from the strong--fast delta-theta cell with the controller and cuts changed; its metrics, run lock, source artifacts and tuple id refer to that parent cell and are carried only to satisfy the lock schema."
+}

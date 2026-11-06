@@ -45,6 +45,14 @@ from pipelines.time_dynamics.ap_mclachlan.state import (
 )
 
 AVQDS_POLICY_V1 = "avqds_adaptive_append_v1"
+AVQDS_ESTIMATOR_WORK_SCHEMA_V1 = "paper_ii_avqds_estimator_work_v1"
+
+
+def _geometry_entry_count(parameter_count: int) -> int:
+    p = int(parameter_count)
+    if p < 0:
+        raise ValueError("parameter_count must be non-negative.")
+    return int(p * (p + 1) // 2 + p + 2)
 
 
 def mclachlan_distance_squared(
@@ -92,12 +100,23 @@ class AVQDSDecision:
     state: APMcLachlanState | None = None
     theta: np.ndarray | None = None
     evaluation: GeometryEvaluation | None = None
+    candidate_geometry_rounds: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def accepted(self) -> bool:
         return bool(self.appended_atom_ids)
 
     def to_json_dict(self) -> dict[str, Any]:
+        rounds = [dict(row) for row in self.candidate_geometry_rounds]
+        attempted = sum(
+            int(row.get("geometry_evaluation_attempt_count", 0)) for row in rounds
+        )
+        completed = sum(
+            int(row.get("geometry_evaluation_count", 0)) for row in rounds
+        )
+        logical_entries = sum(
+            int(row.get("logical_geometry_entry_count", 0)) for row in rounds
+        )
         return {
             "policy": AVQDS_POLICY_V1,
             "appended_atom_ids": [str(a) for a in self.appended_atom_ids],
@@ -105,6 +124,17 @@ class AVQDSDecision:
             "l2_after": float(self.l2_after),
             "candidates_scored": int(self.candidates_scored),
             "stop_reason": str(self.stop_reason),
+            "candidate_geometry_rounds": rounds,
+            "estimator_work": {
+                "schema": AVQDS_ESTIMATOR_WORK_SCHEMA_V1,
+                "selector_round_count": int(len(rounds)),
+                "full_geometry_evaluation_attempt_count": int(attempted),
+                "full_geometry_evaluation_count": int(completed),
+                "logical_candidate_geometry_entries": int(logical_entries),
+                "complete": bool(
+                    all(bool(row.get("complete", False)) for row in rounds)
+                ),
+            },
         }
 
 
@@ -141,6 +171,7 @@ def select_avqds_appends(
     l2 = l2_initial
     appended: list[str] = []
     scored = 0
+    round_telemetry: list[dict[str, Any]] = []
     stop_reason = "below_threshold"
 
     budget = (
@@ -155,6 +186,13 @@ def select_avqds_appends(
             break
         best = None  # (l2_candidate, atom_id, state, theta, evaluation)
         cut = int(current_state.runtime_parameter_count)
+        candidate_dimension = int(cut + 1)
+        materialization_failures = 0
+        evaluation_attempts = 0
+        evaluation_completions = 0
+        finite_candidates = 0
+        nonfinite_candidates = 0
+        l2_before_round = float(l2)
         # Iterate in the pool's frozen order, not sorted order: ties then break
         # the same way they do for the exchange route, so a comparison between
         # the two reflects their rules rather than their candidate ordering.
@@ -167,6 +205,11 @@ def select_avqds_appends(
                     insertions=((cut, atom.term, label),),
                     theta_runtime=current_theta,
                 )
+            except (ValueError, np.linalg.LinAlgError):
+                materialization_failures += 1
+                continue
+            evaluation_attempts += 1
+            try:
                 cand_eval = evaluate_mclachlan_geometry(
                     state=cand_state,
                     hamiltonian=hamiltonian,
@@ -176,20 +219,55 @@ def select_avqds_appends(
                 )
             except (ValueError, np.linalg.LinAlgError):
                 continue
+            evaluation_completions += 1
             scored += 1
             cand_l2 = mclachlan_distance_squared(
                 cand_eval, inverse_policy=inverse_policy
             )
             if not np.isfinite(cand_l2):
+                nonfinite_candidates += 1
                 continue
+            finite_candidates += 1
             if best is None or cand_l2 < best[0]:
                 best = (cand_l2, str(atom_id), cand_state, cand_theta, cand_eval)
+
+        def record_round(*, committed: bool) -> None:
+            round_telemetry.append(
+                {
+                    "round_index": int(round_index),
+                    "base_runtime_parameter_count": int(cut),
+                    "candidate_runtime_parameter_count": int(candidate_dimension),
+                    "candidate_pool_count": int(len(atoms_by_id)),
+                    "materialization_failure_count": int(materialization_failures),
+                    "geometry_evaluation_attempt_count": int(evaluation_attempts),
+                    "geometry_evaluation_count": int(evaluation_completions),
+                    "finite_candidate_count": int(finite_candidates),
+                    "nonfinite_candidate_count": int(nonfinite_candidates),
+                    "logical_geometry_entry_count": int(
+                        evaluation_completions
+                        * _geometry_entry_count(candidate_dimension)
+                    ),
+                    "l2_before": float(l2_before_round),
+                    "best_candidate_l2": (
+                        None if best is None else float(best[0])
+                    ),
+                    "selected_atom_id": (
+                        None if best is None else str(best[1])
+                    ),
+                    "committed": bool(committed),
+                    "complete": bool(evaluation_attempts == evaluation_completions),
+                }
+            )
+
         if best is None:
+            record_round(committed=False)
             stop_reason = "no_finite_candidate"
             break
         if best[0] >= l2:
+            record_round(committed=False)
             stop_reason = "no_improving_candidate"
             break
+        record_round(committed=True)
         l2, atom_id, current_state, current_theta, current_eval = best
         appended.append(atom_id)
     else:
@@ -201,6 +279,7 @@ def select_avqds_appends(
         l2_after=float(l2),
         candidates_scored=int(scored),
         stop_reason=str(stop_reason),
+        candidate_geometry_rounds=tuple(round_telemetry),
         state=current_state if appended else None,
         theta=current_theta if appended else None,
         evaluation=current_eval if appended else None,
@@ -209,6 +288,7 @@ def select_avqds_appends(
 
 __all__ = [
     "AVQDS_POLICY_V1",
+    "AVQDS_ESTIMATOR_WORK_SCHEMA_V1",
     "AVQDSDecision",
     "mclachlan_distance_squared",
     "select_avqds_appends",

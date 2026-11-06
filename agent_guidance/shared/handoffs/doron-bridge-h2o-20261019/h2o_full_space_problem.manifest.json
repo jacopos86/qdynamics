@@ -1,0 +1,108 @@
+{
+  "declaration": {
+    "energy_units": "hartree",
+    "eri_convention": "real_spatial_chemists",
+    "frozen_core_scalar_hartree": 0.0,
+    "nuclear_scalar_hartree": 9.189275612994711,
+    "occupied_order": "occupied_prefix",
+    "one_body_core_policy": "none",
+    "orbital_basis": "orthonormal_spatial_mo",
+    "scalar_semantics": "nuclear_only"
+  },
+  "n_qubits": 14,
+  "n_spatial_orbitals": 7,
+  "num_particles": [
+    5,
+    5
+  ],
+  "problem_json": "h2o_full_space_problem.json",
+  "provenance_source": {
+    "caller_source": {
+      "dataset_dtypes": {
+        "h1": "float64",
+        "h2": "float64",
+        "mo_coeff": "float64",
+        "mo_energy": "float64",
+        "mo_occ": "float64",
+        "nuclear_repulsion": "float64"
+      },
+      "file_sha256": "e413ecbf9e150d313dd2daa0ef1fb72c83f583d2f48ca849db1a74fe927c6648",
+      "file_size_bytes": 51856,
+      "path": "/Users/lordskyler/Holstein_test.worktrees/claude-doron-h2o-export-20261019/agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/input/h2o_ele.h5"
+    },
+    "claimed_producer": "same as above",
+    "container_schema": "qdynamics_matrix_elements_ele_h5",
+    "datasets": {
+      "h1": {
+        "sha256": "b1c6748964d4bc10d27e6ddb9d5eb142d54b8a2485e8306956624421bf31cc4e",
+        "shape": [
+          14,
+          14
+        ]
+      },
+      "h2": {
+        "sha256": "0b9cb4e40a7236bfcfd82c1557662b7cbbab96a7f02b7ada61fab4353c1a7cfc",
+        "shape": [
+          14,
+          14,
+          14,
+          14
+        ]
+      },
+      "mo_coeff_present": true,
+      "mo_energy": {
+        "sha256": "e891d26e5ae09be4e9a141af49ef0a56983d83a4c8e386e7a62d9a7dd074ca31",
+        "shape": [
+          7
+        ]
+      },
+      "mo_occ": {
+        "sha256": "bd2b53aa22436a4e0f23ce4ccfd2aa8c4f45ae441bdd03e8f0b757c61eb49302",
+        "shape": [
+          7
+        ]
+      },
+      "nuclear_repulsion": {
+        "value": 9.189275612994711
+      }
+    },
+    "extra_datasets": [],
+    "origin": "simulated",
+    "origin_attestation": null,
+    "origin_forced_by": null,
+    "origin_note": "schema recognition and content hashes identify bytes, not who produced them",
+    "producer_origin_established": false,
+    "schema_reference_producer": {
+      "author": "doronwu <dwu269@wisc.edu>",
+      "branch": "doron-chemistry",
+      "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+      "commit_date_utc": "2026-08-26T21:02:57Z",
+      "driver": "src/chemistry/pyscf/main_pyscf.py",
+      "driver_blob": "594293ae21d9",
+      "fcidump_written_by_driver": false,
+      "integrals": "src/chemistry/pyscf/electron_solver.py::PySCFDriver.get_matrix_elements",
+      "integrals_blob": "8400fc64c5ac",
+      "license_spdx": "GPL-3.0",
+      "repository": "https://github.com/jacopos86/qdynamics",
+      "writer": "src/chemistry/pyscf/read_write_pyscf_results.py::write_matrix_elements_h5",
+      "writer_blob": "3bf71a4d0d2c"
+    }
+  },
+  "raw_sha256": "b0c9c1b93f357c25389330438e342a0cfa3c7031d4d07b2d3436d4e88d35e200",
+  "raw_size_bytes": 102707,
+  "reduction": {
+    "active_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "frozen_core_indices": [],
+    "kind": "none",
+    "n_frozen": 0
+  },
+  "schema": "doron_qdynamics_bridge_manifest_v1"
+}

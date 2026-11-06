@@ -369,3 +369,152 @@ def test_matrix_equations_conserve_energy_without_drive_instantaneously() -> Non
         ) / (2.0 * epsilon)
 
         assert abs(directional_derivative) < 2e-8
+
+
+def test_joint_gram_assembly_is_bitwise_stable_at_the_pinned_operating_point() -> None:
+    """Pin the joint-Gram moment map at the state the barrier runs start from.
+
+    ``tests/test_matrix_reference_moment_assembly.py`` checks the same identity
+    on random draws; this one checks it at the strong-coupling exact
+    cutoff-16 ground state and along the thirty-one closed-state velocity
+    directions the structured barrier lifts, which is the operand set the
+    energy-neutral runs actually evaluate.
+    """
+
+    from paper5.stability import exact_ground_closed_scalar_coordinates
+    from paper5.stability.matrix_reference import (
+        _ELECTRON_FLUCTUATION_BASIS,
+        electron_phonon_moment_derivative,
+        electron_phonon_moment_matrix,
+    )
+
+    def recorded_pauli_block(correlation: np.ndarray) -> np.ndarray:
+        values = np.empty((2, 3), dtype=complex)
+        for phonon_index in range(2):
+            for operator_index, operator in enumerate(
+                _ELECTRON_FLUCTUATION_BASIS
+            ):
+                values[phonon_index, operator_index] = np.trace(
+                    correlation[phonon_index] @ operator
+                )
+        return values
+
+    def recorded_electron_block(
+        electron_density: np.ndarray,
+        electron_derivative: np.ndarray | None = None,
+    ) -> np.ndarray:
+        electron = np.asarray(electron_density, dtype=complex)
+        means = np.asarray(
+            [
+                np.trace(electron @ operator).real
+                for operator in _ELECTRON_FLUCTUATION_BASIS
+            ],
+            dtype=float,
+        )
+        if electron_derivative is None:
+            block = np.empty((3, 3), dtype=complex)
+            for row, first in enumerate(_ELECTRON_FLUCTUATION_BASIS):
+                for column, second in enumerate(_ELECTRON_FLUCTUATION_BASIS):
+                    block[row, column] = (
+                        np.trace(electron @ first @ second)
+                        - means[row] * means[column]
+                    )
+            return 0.5 * (block + block.conjugate().T)
+        derivative = np.asarray(electron_derivative, dtype=complex)
+        mean_derivatives = np.asarray(
+            [
+                np.trace(derivative @ operator).real
+                for operator in _ELECTRON_FLUCTUATION_BASIS
+            ],
+            dtype=float,
+        )
+        block = np.empty((3, 3), dtype=complex)
+        for row, first in enumerate(_ELECTRON_FLUCTUATION_BASIS):
+            for column, second in enumerate(_ELECTRON_FLUCTUATION_BASIS):
+                block[row, column] = (
+                    np.trace(derivative @ first @ second)
+                    - mean_derivatives[row] * means[column]
+                    - means[row] * mean_derivatives[column]
+                )
+        return 0.5 * (block + block.conjugate().T)
+
+    def recorded_electron_phonon_moment_matrix(
+        state: MatrixDimerState,
+    ) -> np.ndarray:
+        phonon = np.asarray(state.phonon_density, dtype=complex)
+        anomalous = np.asarray(state.anomalous_phonon_density, dtype=complex)
+        boson = np.block(
+            [
+                [phonon.T, anomalous.conjugate()],
+                [anomalous, np.eye(2, dtype=complex) + phonon],
+            ]
+        )
+        correlation = recorded_pauli_block(state.electron_phonon_correlation)
+        cross = np.vstack([correlation.conjugate(), correlation])
+        moment = np.block(
+            [
+                [boson, cross],
+                [
+                    cross.conjugate().T,
+                    recorded_electron_block(state.electron_density),
+                ],
+            ]
+        )
+        return 0.5 * (moment + moment.conjugate().T)
+
+    def recorded_electron_phonon_moment_derivative(
+        state: MatrixDimerState,
+        derivative: MatrixDimerState,
+    ) -> np.ndarray:
+        normal = derivative.phonon_density
+        anomalous = derivative.anomalous_phonon_density
+        boson = np.block(
+            [
+                [normal.T, anomalous.conjugate()],
+                [anomalous, normal],
+            ]
+        )
+        correlation = recorded_pauli_block(
+            derivative.electron_phonon_correlation
+        )
+        cross = np.vstack([correlation.conjugate(), correlation])
+        moment = np.block(
+            [
+                [boson, cross],
+                [
+                    cross.conjugate().T,
+                    recorded_electron_block(
+                        state.electron_density,
+                        derivative.electron_density,
+                    ),
+                ],
+            ]
+        )
+        return 0.5 * (moment + moment.conjugate().T)
+
+    parameters = DimerParameters(
+        gamma=0.5,
+        lambda_ep=1.5,
+        drive_amplitude=1.0,
+    )
+    initial_state = exact_ground_closed_scalar_coordinates(
+        parameters,
+        phonon_cutoff=16,
+    )
+    state = closed_scalar_to_matrix_state(initial_state)
+    assert np.array_equal(
+        electron_phonon_moment_matrix(state),
+        recorded_electron_phonon_moment_matrix(state),
+    )
+
+    velocity = closed_scalar_rhs(0.0, initial_state, parameters)
+    directions = [closed_scalar_to_matrix_state(velocity)]
+    for index in range(len(CLOSED_SCALAR_STATE_NAMES)):
+        unit = np.zeros(len(CLOSED_SCALAR_STATE_NAMES), dtype=float)
+        unit[index] = 1.0
+        directions.append(closed_scalar_to_matrix_state(unit))
+    for direction in directions:
+        assert np.array_equal(
+            electron_phonon_moment_derivative(state, direction),
+            recorded_electron_phonon_moment_derivative(state, direction),
+        )

@@ -69,12 +69,23 @@ def evaluate_mclachlan_geometry(
         psi = _normalize_state(psi, name="psi")
 
     with phase("geometry.hamiltonian_action"):
-        hmat = np.asarray(hamiltonian.matrix_at(float(time)), dtype=complex)
-        if hmat.shape != (int(psi.size), int(psi.size)):
-            raise ValueError(
-                f"Hamiltonian matrix shape {hmat.shape} does not match state dimension {psi.size}."
-            )
-        h_psi = np.asarray(hmat @ psi, dtype=complex).reshape(-1)
+        apply_at = getattr(hamiltonian, "apply_at", None)
+        if callable(apply_at):
+            # A provider that acts on the statevector directly (compiled Pauli
+            # actions, no dense matrix): the only way past ~14 qubits.  Every
+            # provider without ``apply_at`` takes the dense path below unchanged.
+            h_psi = np.asarray(apply_at(float(time), psi), dtype=complex).reshape(-1)
+            if h_psi.shape != psi.shape:
+                raise ValueError(
+                    f"Hamiltonian action shape {h_psi.shape} does not match state dimension {psi.size}."
+                )
+        else:
+            hmat = np.asarray(hamiltonian.matrix_at(float(time)), dtype=complex)
+            if hmat.shape != (int(psi.size), int(psi.size)):
+                raise ValueError(
+                    f"Hamiltonian matrix shape {hmat.shape} does not match state dimension {psi.size}."
+                )
+            h_psi = np.asarray(hmat @ psi, dtype=complex).reshape(-1)
         energy = float(np.real(np.vdot(psi, h_psi)))
         b_bar = np.asarray(-1.0j * (h_psi - energy * psi), dtype=complex)
 

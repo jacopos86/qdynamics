@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from pipelines.time_dynamics import paper_ii_runs as runs
 from pipelines.time_dynamics.campaigns import paper_ii_staged_accuracy_v1 as staged
 from pipelines.time_dynamics.staged_campaign import (
     AccuracyMetrics,
@@ -185,3 +188,140 @@ def test_apm_is_seeded_at_t5_then_reopens_after_matched_avqds_t20_scout() -> Non
     ]
     assert len(apm) == 1
     assert apm[0].horizon == "t20"
+
+
+def test_survey_campaign_binds_regime_and_shorter_promotion_horizon() -> None:
+    campaign = staged.build_campaign(
+        prior_root=None,
+        submission_policy_replay="componentwise_1e-4",
+        regime="anchor_u4_g0p5_nph1",
+        promotion_horizon="t10",
+    )
+    assert {cell.regime for cell in campaign.cells} == {"anchor_u4_g0p5_nph1"}
+    assert len(campaign.cells) == 36
+    assert (campaign.screen_horizon, campaign.promotion_horizon) == ("t5", "t10")
+    assert staged.campaign_id_for("anchor_u4_g0p5_nph1", "t10") == (
+        "paper_ii_staged_accuracy_euler_v1__anchor_u4_g0p5_nph1__t10"
+    )
+    assert staged.campaign_id_for(staged.DEFAULT_REGIME, staged.DEFAULT_PROMOTION_HORIZON) == (
+        staged.CAMPAIGN_ID
+    )
+    assert campaign.apm_arm == staged.DEFAULT_APM_ARM == "exchange"
+    first = campaign.next_actions(CampaignLedger())
+    assert first and all(action.horizon == "t5" for action in first)
+    command = campaign.build_run_command(
+        first[0],
+        output_json="out/run.json",
+        numerics=staged.NUMERICS_ID,
+        gate=runs.MCLACHLAN_L2_GATE.gate_id,
+        search_profile=runs.PAPER_DECLARED_SEARCH.profile_id,
+    )
+    argv = command.argv()
+    assert argv[argv.index("--artifact-json") + 1] == runs.REGIMES[
+        "anchor_u4_g0p5_nph1"
+    ].seed_path
+
+
+def test_canonical_policy_refuses_a_regime_without_registered_response_scales(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        staged, "REGIME_RESPONSE_SCALE_REGISTRY", tmp_path / "absent_registry.json"
+    )
+    with pytest.raises(ValueError, match="build_regime_response_scales --regime weak_weak"):
+        staged.build_campaign(prior_root=None, regime="weak_weak")
+    (tmp_path / "registry.json").write_text(
+        json.dumps({"schema": staged.REGIME_RESPONSE_SCALE_REGISTRY_SCHEMA, "regimes": {}})
+    )
+    monkeypatch.setattr(staged, "REGIME_RESPONSE_SCALE_REGISTRY", tmp_path / "registry.json")
+    with pytest.raises(ValueError, match="no exact-response scales are registered"):
+        staged.build_campaign(prior_root=None, regime="weak_weak")
+    with pytest.raises(KeyError, match="unknown regime"):
+        staged.build_campaign(prior_root=None, regime="not_a_regime")
+
+
+def test_canonical_survey_policy_binds_the_registered_regime_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A registry row produced by stage 1.5 gives a survey regime the locked policy."""
+
+    from dataclasses import replace
+
+    from pipelines.time_dynamics.diagnostics import build_regime_response_scales as scales
+    from pipelines.time_dynamics.response_scales import response_scale_row
+
+    repo = Path(__file__).resolve().parents[1]
+    seed = repo / runs.REGIMES["hh_snake_nph1"].seed_path  # same physics as the anchor row
+    root = tmp_path / "output" / "paper_ii_regime_survey_anchor_u4_g0p5_nph1" / "exact_references"
+    payload = scales.build_sidecar(
+        regime="anchor_u4_g0p5_nph1", seed_path=seed, exact_reference_root=root,
+        substeps=1, repository_root=tmp_path,
+    )
+    sidecar = tmp_path / "paper_ii_exact_response_scales_anchor_u4_g0p5_nph1.json"
+    sha = scales.write_sidecar(payload, sidecar)
+    registry = tmp_path / "registry.json"
+    scales.update_registry(
+        registry, regime="anchor_u4_g0p5_nph1", sidecar_path=str(sidecar), sidecar_sha256=sha,
+        seed_path=str(seed), seed_sha256=payload["seed"]["sha256"], exact_reference_root=str(root),
+    )
+    monkeypatch.setattr(staged, "REGIME_RESPONSE_SCALE_REGISTRY", registry)
+    patched = dict(runs.REGIMES)
+    patched["anchor_u4_g0p5_nph1"] = replace(runs.REGIMES["anchor_u4_g0p5_nph1"], seed_path=str(seed))
+    monkeypatch.setattr(runs, "REGIMES", patched)
+
+    campaign = staged.build_campaign(prior_root=None, regime="anchor_u4_g0p5_nph1")
+    assert campaign.promotion_horizon == "t20"
+    row = response_scale_row(
+        campaign.accuracy_policy.response_scales, regime="anchor_u4_g0p5_nph1",
+        controller="state_motion_5e-5", drive="fastweak", horizon="t20",
+    )
+    assert row["energy_rms_excursion"] > 0.0
+    assert row["cell_identity"]["regime"] == "anchor_u4_g0p5_nph1"
+
+
+def test_apm_arm_selects_the_realizing_arm_behind_the_fixed_method_identity() -> None:
+    campaign = staged.build_campaign(
+        prior_root=None,
+        submission_policy_replay="componentwise_1e-4",
+        regime="anchor_u4_g0p5_nph1",
+        apm_arm="append_only",
+    )
+    ledger = CampaignLedger()
+    apm_actions = [
+        action for action in campaign.next_actions(ledger) if action.key.method == "exchange"
+    ]
+    avqds_actions = [
+        action for action in campaign.next_actions(ledger) if action.key.method == "avqds"
+    ]
+    assert avqds_actions, "comparator-first campaigns open AVQDS screens first"
+    command = campaign.build_run_command(
+        avqds_actions[0], output_json="o.json", numerics=staged.NUMERICS_ID,
+        gate=runs.MCLACHLAN_L2_GATE.gate_id, search_profile=runs.PAPER_DECLARED_SEARCH.profile_id,
+    )
+    assert command.arm.arm_id == "avqds"
+    apm_cell = next(cell for cell in campaign.cells if cell.method == "exchange")
+    from pipelines.time_dynamics.staged_campaign import CellAction
+    apm_action = CellAction(
+        action="run", stage="screen_apm_t5", key=apm_cell, horizon="t5",
+        threshold=3.0e-6, reason="test",
+    )
+    command = campaign.build_run_command(
+        apm_action, output_json="o.json", numerics=staged.NUMERICS_ID,
+        gate=runs.MCLACHLAN_L2_GATE.gate_id, search_profile=runs.PAPER_DECLARED_SEARCH.profile_id,
+    )
+    assert command.arm.arm_id == "append_only"
+    assert "append_only" in command.run_id
+    assert staged.campaign_id_for("anchor_u4_g0p5_nph1", "t20", "append_only") == (
+        "paper_ii_staged_accuracy_euler_v1__anchor_u4_g0p5_nph1__t20__append_only"
+    )
+    with pytest.raises(ValueError, match="non-comparator arm"):
+        staged.build_campaign(
+            prior_root=None, submission_policy_replay="componentwise_1e-4",
+            regime="anchor_u4_g0p5_nph1", apm_arm="avqds",
+        )
+
+
+def test_default_campaign_is_unchanged_by_the_survey_parameters() -> None:
+    default = staged.build_campaign(prior_root=None)
+    assert {cell.regime for cell in default.cells} == {staged.DEFAULT_REGIME}
+    assert default.promotion_horizon == staged.DEFAULT_PROMOTION_HORIZON == "t20"

@@ -138,7 +138,8 @@ about 0.2 GB per run (two runs at once).
 - The fixtures above live in `work/` (untracked); only his HDF5 files and JSON are checked in.
 - The coupling-model decision (his mean-field vertex vs ours; counter-term or not) is Jake's and
   Doron's; nothing here changes the Paper IV production model or campaign.
-- The two branches (`claude/molecular-vibronic-builder-20261102` with the entry point,
-  `claude/paper-iv-fixture-from-builder-20261102` with this work and the Paper IV campaign
-  lineage) are unmerged and unpushed; the fixture branch now contains the interop and vendoring
-  commits, the builder branch does not contain this producer.
+- Merged 2026-11-06: `claude/molecular-vibronic-builder-20261102` (the entry point, main's
+  bridge, the Paper V work) was merged into `claude/paper-iv-fixture-from-builder-20261102`, so
+  this branch holds the entry point, this producer and the Paper IV campaign lineage together and
+  contains main; nothing pushed. The merge commit message carries the conflict resolution and
+  the test evidence.

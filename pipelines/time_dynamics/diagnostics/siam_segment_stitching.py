@@ -234,6 +234,33 @@ def _stable_segment_contract(run: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _exchange_route_identity(
+    run: Mapping[str, Any],
+) -> tuple[str | None, str | None]:
+    """Return ``(route bundle id, route contract digest)`` for one raw segment.
+
+    Route identity is read from ``run_lock.policy.guards``.  It is deliberately
+    kept out of :func:`_stable_segment_contract`: that contract is embedded and
+    digested inside already-sealed segment-lineage documents, so extending it
+    would move ``source_protocol_sha256`` for evidence that never changed.  The
+    stitcher enforces route agreement directly instead.
+    """
+
+    lock = _mapping(run.get("run_lock"), name="SIAM run lock")
+    policy = lock.get("policy")
+    guards = policy.get("guards") if isinstance(policy, Mapping) else None
+    if not isinstance(guards, Mapping):
+        return None, None
+    contract = guards.get("exchange_route_contract")
+    bundle_id = (
+        str(contract.get("bundle_id") or "") or None
+        if isinstance(contract, Mapping)
+        else None
+    )
+    digest = guards.get("exchange_route_contract_sha256")
+    return bundle_id, (None if digest is None else str(digest))
+
+
 def _validate_run_lock_grid(
     run: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]
 ) -> None:
@@ -308,6 +335,38 @@ def prepare_siam_resume_lineage(
         "source_activation_l2_cut": _activation_cut(prior_run),
     }
     return {**core, "prepared_lineage_sha256": _document_sha256(core)}
+
+
+def assert_siam_resume_code_revision(
+    prepared: Mapping[str, Any],
+    code_revision: str | None,
+) -> None:
+    """Fail at start-up when a continuation would fail the lineage guard.
+
+    ``finalize_siam_resume_lineage`` compares the whole segment contract after
+    propagation, and that contract carries the code revision.  A continuation
+    launched from a different revision than its source segment is therefore
+    certain to be rejected after the full run (2026-09-07: cluster 9721121
+    propagated 401 SIAM points for 21 hours and wrote nothing).  Check the one
+    field that is already known before the first time step.
+    """
+
+    protocol = _mapping(prepared.get("source_protocol"), name="SIAM source protocol")
+    source_revision = str(protocol.get("code_revision") or "").strip()
+    current = str(code_revision or "").strip()
+    if not current:
+        raise ValueError(
+            "SIAM continuation requires --code-revision so its segment contract "
+            f"can be checked against the source segment ({source_revision})."
+        )
+    if current != source_revision:
+        raise ValueError(
+            "SIAM continuation code revision "
+            f"{current} differs from the source segment's {source_revision}; "
+            "the post-run lineage guard would reject this segment.  Re-run the "
+            "source segment at the current revision or pin the continuation to "
+            "the source revision."
+        )
 
 
 def finalize_siam_resume_lineage(
@@ -607,6 +666,12 @@ def stitch_siam_nb4_segments(
         )
     if contracts[0]["seed_sha256"] != seed_sha256:
         raise ValueError("SIAM segments do not bind the supplied Nb4 seed bytes.")
+    route_identities = [_exchange_route_identity(run) for run in runs]
+    if any(identity != route_identities[0] for identity in route_identities[1:]):
+        raise ValueError(
+            "SIAM segments were produced on different exchange routes; a stitched "
+            "horizon must stay on one route contract."
+        )
 
     row_groups = [_rows(run) for run in runs]
     for run, rows in zip(runs, row_groups):
@@ -884,7 +949,10 @@ def _canonical_proof_arm(value: Any) -> str:
     token = str(value or "").strip().lower().replace("-", "_")
     if token == "avqds":
         return "avqds"
-    if token in {"apm", "exchange", "full_apm"}:
+    # ``exchange_q_compiled`` is the compiled-Q route's arm id.  It is the same
+    # structural proof arm as ``exchange`` -- the route it ran on is carried
+    # separately, by ``route_bundle_id``, never by collapsing the arm family.
+    if token in {"apm", "exchange", "full_apm", "exchange_q_compiled"}:
         return "exchange"
     raise ValueError(f"SIAM stitched completion arm is invalid: {value!r}.")
 
@@ -1068,6 +1136,7 @@ def build_siam_nb4_stitch_completion_receipt(
 
     protocol = _mapping(stitch.get("protocol"), name="SIAM stitch protocol")
     arm = _canonical_proof_arm(protocol.get("structural_policy"))
+    route_bundle_id, route_contract_sha256 = _exchange_route_identity(stitched)
     seed_sha256 = _require_sha256(
         stitch.get("seed_sha256"), name="SIAM stitch seed SHA-256"
     )
@@ -1079,6 +1148,7 @@ def build_siam_nb4_stitch_completion_receipt(
 
     source_proofs: list[dict[str, Any]] = []
     action_ids: set[str] = set()
+    search_profile_ids: set[str] = set()
     for ordinal, (source, receipt_path) in enumerate(
         zip(source_stitches, receipt_paths)
     ):
@@ -1110,6 +1180,14 @@ def build_siam_nb4_stitch_completion_receipt(
         if action_id in action_ids:
             raise ValueError("SIAM stitched completion repeats a source action ID.")
         action_ids.add(action_id)
+        # The continuation inherits the screen's ansatz, so a stitch across two
+        # different declared search budgets is not one trajectory.
+        search_profile_ids.add(str(verified["search_profile_id"]))
+        if len(search_profile_ids) != 1:
+            raise ValueError(
+                "SIAM stitched completion pairs segments from different search "
+                f"profiles: {sorted(search_profile_ids)}."
+            )
         source_proofs.append(
             {
                 "ordinal": ordinal,
@@ -1139,6 +1217,8 @@ def build_siam_nb4_stitch_completion_receipt(
         "status": "COMPLETED",
         "problem_family": "siam",
         "arm": arm,
+        "route_bundle_id": route_bundle_id,
+        "route_contract_sha256": route_contract_sha256,
         "stitched_trajectory": {
             "path": str(trajectory_path.resolve()),
             "sha256": hashlib.sha256(stitched_bytes).hexdigest(),
@@ -1189,6 +1269,15 @@ def validate_siam_nb4_stitch_completion_receipt(
     arm = _canonical_proof_arm(core.get("arm"))
     if core.get("arm") != arm:
         raise ValueError("SIAM stitched completion arm is not canonical.")
+    # Receipts sealed before the route guards existed simply omit these keys.
+    route_bundle_id = core.get("route_bundle_id")
+    if route_bundle_id is not None and not str(route_bundle_id).strip():
+        raise ValueError("SIAM stitched completion route bundle id is empty.")
+    route_contract_sha256 = core.get("route_contract_sha256")
+    if route_contract_sha256 is not None:
+        _require_sha256(
+            route_contract_sha256, name="SIAM stitched completion route SHA-256"
+        )
 
     trajectory = _mapping(
         core.get("stitched_trajectory"), name="SIAM stitched trajectory binding"
@@ -1240,6 +1329,7 @@ def validate_siam_nb4_stitch_completion_receipt(
     ) != len(stitch_sources):
         raise ValueError("SIAM stitched completion source count mismatch.")
     action_ids: set[str] = set()
+    search_profile_ids: set[str] = set()
     for ordinal, (source, stitch_source) in enumerate(zip(sources, stitch_sources)):
         source = _mapping(source, name=f"SIAM completion source {ordinal}")
         stitch_source = _mapping(
@@ -1331,6 +1421,12 @@ def validate_siam_nb4_stitch_completion_receipt(
         if action_id in action_ids:
             raise ValueError("SIAM stitched completion repeats a source action ID.")
         action_ids.add(action_id)
+        search_profile_ids.add(str(verified["search_profile_id"]))
+        if len(search_profile_ids) != 1:
+            raise ValueError(
+                "SIAM stitched completion pairs segments from different search "
+                f"profiles: {sorted(search_profile_ids)}."
+            )
 
     required_checks = {
         "stitched_trajectory_digest_bound",
@@ -1380,6 +1476,7 @@ __all__ = [
     "SIAM_NB4_T_FINAL",
     "SIAM_SEGMENT_LINEAGE_V1",
     "build_siam_nb4_stitch_completion_receipt",
+    "assert_siam_resume_code_revision",
     "finalize_siam_resume_lineage",
     "prepare_siam_resume_lineage",
     "stitch_siam_nb4_segments",

@@ -75,3 +75,6 @@ MATH/archive/
 # CHTC generated oracle summary inputs / fetched summaries
 chtc/**/input/global_oracle_summaries/
 chtc/**/input/recovery_oracle_summaries/
+
+# fetched CHTC archives (per-action tarballs + receipts), like raw_outputs
+archives/

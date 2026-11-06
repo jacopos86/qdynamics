@@ -1,0 +1,114 @@
+{
+  "created_utc": "2026-09-03T07:54:48Z",
+  "failure_class": "GammaMonotonicityError",
+  "failure_count": 6,
+  "failures": [
+    {
+      "action_id": "weakslow__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.485e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.00032232214968052437, Gamma(J^B)=0.00032232214920024764.",
+      "job_status": 4,
+      "proc_id": 4,
+      "stderr_sha256": "d9b40dd477cb284976223f160f01aa93b66888a125a55ce8953dec776bf0b5db"
+    },
+    {
+      "action_id": "fastweak__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.414e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.003366432301332662, Gamma(J^B)=0.0033664322965735703.",
+      "job_status": 4,
+      "proc_id": 10,
+      "stderr_sha256": "bc02da8aad1c247d35b8c9bb8d0f24f35624404251a6f312d515086a84a60d8a"
+    },
+    {
+      "action_id": "slowstrong__delta_theta_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.539e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.005750136208097741, Gamma(J^B)=0.005750136199247153.",
+      "job_status": 4,
+      "proc_id": 25,
+      "stderr_sha256": "57c4174679cba0d6148224aeb09140300f54bcfa1ba3b10c61c1c650fa8a5c7b"
+    },
+    {
+      "action_id": "slowstrong__state_motion_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.853e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.0016211121122308716, Gamma(J^B)=0.0016211121092057621.",
+      "job_status": 4,
+      "proc_id": 28,
+      "stderr_sha256": "cb06deceddcc496c203d1bb10be61d61a8ad432dbf967f50c105946ddfb5174f"
+    },
+    {
+      "action_id": "fastfast__state_motion_5e-5__exchange_q_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_q_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.038e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.046163743527477055, Gamma(J^B)=0.046163743479579356.",
+      "job_status": 4,
+      "proc_id": 43,
+      "stderr_sha256": "e830d17435a1a982b2f6bb6bbbce7479b76197a0fdd82fb7b700edc1e2376de6"
+    },
+    {
+      "action_id": "fastfast__state_motion_5e-5__exchange_gamma_compiled",
+      "exchange_route_bundle": "paper_ii_exchange_gamma_compiled_v1",
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "final_error": "error: ideal Gamma violated nested monotonicity for a pure insertion: normalized slack -1.129e-09 < -1.000e-09 at rcond=1.000e-12; Gamma(J)=0.046165304173498185, Gamma(J^B)=0.046165304121390076.",
+      "job_status": 4,
+      "proc_id": 44,
+      "stderr_sha256": "d85e3c524560456f05e84860b6b0602ea5ba81abe4a08edf04bd71c475e039ff"
+    }
+  ],
+  "parent": {
+    "cluster_id": 9718529,
+    "code_revision": "821a6ad598c86ba27986456d4e0dc4fe5d27ac61",
+    "package": "chtc/paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+    "source_archive_sha256": "bc5d5a539bd5d03717bf37165387b04e18045451d77bdf3899de256d489e2791"
+  },
+  "repair": {
+    "code_revision": "4bca80b01f3d4e20e74f21b21ec36d23374b3392",
+    "policy": "Reject only the invalid Gamma candidate from the shared compiled Q/Gamma population; preserve exact Gamma and all scientific settings.",
+    "source_archive_sha256": "8f12755668b793062650801eab5755b81ff64c20e851f15e9b0ec18813e047d3"
+  },
+  "retry_wave": 2,
+  "schema": "paper_ii_final_selector_retry_parent_failures_v1",
+  "selection_policy": {
+    "active_jobs_excluded": true,
+    "no_avqds": true,
+    "no_precursors": true,
+    "prior_retry_proc_ids_excluded": [
+      1,
+      5,
+      7,
+      8,
+      13,
+      14,
+      16,
+      17,
+      19,
+      20,
+      22,
+      23,
+      31,
+      32,
+      35,
+      37,
+      38,
+      40,
+      41
+    ],
+    "successful_jobs_excluded": true,
+    "terminal_failed_only": true,
+    "terminal_signature": {
+      "exit_by_signal": false,
+      "exit_code": 2,
+      "job_status": 4
+    }
+  }
+}

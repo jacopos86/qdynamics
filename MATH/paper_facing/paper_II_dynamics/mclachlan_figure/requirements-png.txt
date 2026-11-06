@@ -1,0 +1,3 @@
+-r requirements.txt
+# Optional preview export. A working native Cairo runtime is also needed.
+CairoSVG==2.8.2

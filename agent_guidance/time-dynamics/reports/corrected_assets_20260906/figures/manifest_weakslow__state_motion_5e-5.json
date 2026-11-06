@@ -1,0 +1,199 @@
+{
+  "adoption_note": "corrected exchange campaign (frontier repair a43bcd86); state-motion trajectory figure for weakslow__state_motion_5e-5",
+  "comparison": {
+    "generated_utc": "2026-09-06T14:51:40.150086+00:00",
+    "path": "/tmp/report/comparison_corrected.json",
+    "sha256": "ca48ff886e8cb01a2f2cc52d9da160866f5f1c7621d6912aa5cb7d69946a558c",
+    "upstream_status": "analysis_only_not_adopted"
+  },
+  "coverage": {
+    "cell_ids": [
+      "weakslow__delta_theta_5e-5",
+      "weakslow__state_motion_5e-5",
+      "fastweak__delta_theta_5e-5",
+      "fastweak__state_motion_5e-5",
+      "midres__delta_theta_5e-5",
+      "midres__state_motion_5e-5",
+      "slowstrong__delta_theta_5e-5",
+      "strongfast__delta_theta_5e-5",
+      "fastfast__delta_theta_5e-5",
+      "fastfast__state_motion_5e-5"
+    ],
+    "excluded_controllers": [
+      "state_motion_1e-3_plus_parameter_5e-5"
+    ],
+    "locked_cells": 15,
+    "omitted_cells": [
+      {
+        "cell_id": "slowstrong__state_motion_5e-5",
+        "missing": "q_compiled trajectory, avqds terminal compiled cost"
+      }
+    ],
+    "pending_cells": [
+      "strongfast:state_motion_5e-5"
+    ],
+    "q_compiled_cells": 10,
+    "supplemented_arms": {
+      "strongfast__delta_theta_5e-5": [
+        "avqds"
+      ],
+      "weakslow__delta_theta_5e-5": [
+        "avqds"
+      ],
+      "weakslow__state_motion_5e-5": [
+        "avqds"
+      ]
+    }
+  },
+  "figure_sources": {
+    "avqds_trajectories": [
+      {
+        "path": "/Users/lordskyler/chtc_rescue/verification/frontier2_final_25/raw_outputs/paper_ii_staged_accuracy_euler_v1/screen_avqds_t5__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t5__cut1e-06/run.json",
+        "sha256": "966d227f0712150beac7c25b8ea260abd1a670a54f027859c9ea5fdca4371a0d"
+      },
+      {
+        "path": "/Users/lordskyler/chtc_rescue/home/Holstein_paper_ii_staged_accuracy_euler_v1_frontier277_76c08fae_20260827/raw_outputs/paper_ii_staged_accuracy_euler_v1/promote_avqds_t20__hh_snake_nph1__avqds__state_motion_5e-5__weakslow__t20__cut1p69350878084e-12/run.json",
+        "sha256": "4d88afbe07da5e99ade23ca09f19fd1210946e55d5eccdb76acf49997c829190"
+      }
+    ],
+    "cell_id": "weakslow__state_motion_5e-5",
+    "q_trajectories": [
+      {
+        "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/archives/paper_ii_corrected_exchange_v1_a43bcd86_20260905/weakslow__state_motion_5e-5__exchange_q_compiled/raw_outputs/paper_ii_corrected_exchange_v1/weakslow__state_motion_5e-5__exchange_q_compiled/run.json",
+        "sha256": "911e349817c2126b3718a6ce60c2c491433476477a09ed3bf2387ba2b926d148"
+      }
+    ],
+    "reference_data": {
+      "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/output/paper_ii_staged/exact_references/e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc/reference.npz",
+      "sha256": "1acb71d6779925abad10fc47f5200cfc6f8071defff80b2000cad9bd4903780c"
+    },
+    "reference_manifest": {
+      "path": "/Users/lordskyler/Holstein_test.worktrees/claude-paper-ii-corrected-campaign/output/paper_ii_staged/exact_references/e5551b66bcebcbeb740f169b591c3895a09f2a50539bace12780c4c1c2c6b0dc/manifest.json",
+      "sha256": "f00c8cc89ae4013b6fc569e0095a93448cb94c11ee8174817af028a06418ca9e"
+    }
+  },
+  "outputs": {
+    "figure": {
+      "path": "/tmp/report/assets/state_motion/paper_ii_t20_q_compiled_weakslow_state_motion.pdf",
+      "sha256": "2bde665dffe449850c1ff9b99a8cbe2b1001424d0c9fff4c7eabc8f6c1683896"
+    },
+    "table": {
+      "path": "/tmp/report/assets/state_motion/_table_weakslow__state_motion_5e-5.tex",
+      "sha256": "cb442ab8c87cbed72df5d69361fb02eac47a8cd73ac1bded29efaeb94f17098f"
+    }
+  },
+  "route_bundle": "paper_ii_exchange_q_compiled_v1",
+  "schema": "paper_ii_q_compiled_manuscript_assets_v1",
+  "terminal_cost_inputs": [
+    {
+      "avqds": {
+        "path": "/tmp/paper_ii_supp/terminal_costs/weakslow__delta_theta_5e-5/avqds.json",
+        "sha256": "e23b02bfbfe21600ff845dcb44b977dd9ca1cea99523ee2b6e1bf054d68cb2b2"
+      },
+      "cell_id": "weakslow__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/weakslow__delta_theta_5e-5/q_compiled.json",
+        "sha256": "619bf5d60bb48233b14af174d67c84667e28be225bc5e96b173f0e97181761b2"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/paper_ii_supp/terminal_costs/weakslow__state_motion_5e-5/avqds.json",
+        "sha256": "5ad2f1c6908f37e1e87677c39756e4a0ef87c9c909f3f07f0a6fee2aab859bd2"
+      },
+      "cell_id": "weakslow__state_motion_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/weakslow__state_motion_5e-5/q_compiled.json",
+        "sha256": "895a66decee3aa2c2c185254daadb6a25110540f8008541726ee6fda23f9ab64"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/fastweak__delta_theta_5e-5/avqds.json",
+        "sha256": "c7693e61e435afcb643ea6756a73f5bfe391c6bec1c34ecef1f9110118d5b077"
+      },
+      "cell_id": "fastweak__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/fastweak__delta_theta_5e-5/q_compiled.json",
+        "sha256": "ed7cf8883f14c6e58f3dc998d6d707c539333b05dc2da7afca49840d4cf29e7a"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/fastweak__state_motion_5e-5/avqds.json",
+        "sha256": "5924109c1da1dd140a738cecdda8f834bbb78cd433de1868a1b5a8908e8dc6a7"
+      },
+      "cell_id": "fastweak__state_motion_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/fastweak__state_motion_5e-5/q_compiled.json",
+        "sha256": "7933ae56eeba3a966c3f9bce2156d46faa68ff0d1261732de4ddec59f40d1c07"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/midres__delta_theta_5e-5/avqds.json",
+        "sha256": "88353e88b821b39b2182f1825842e2ebe472fa3ade3b97a2ade8b5e4394f2717"
+      },
+      "cell_id": "midres__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/midres__delta_theta_5e-5/q_compiled.json",
+        "sha256": "3e72d6f73562575a0585af9eebb8e48d997d3d1621adfef02d2b7a72662ca8f3"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/midres__state_motion_5e-5/avqds.json",
+        "sha256": "2909176c34526affae0a1e49fca6835a72a4ce372d323de0a13d5bd7f98f12dc"
+      },
+      "cell_id": "midres__state_motion_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/midres__state_motion_5e-5/q_compiled.json",
+        "sha256": "a0c0969b62d729b7bb3ef865e8d685c43f099321942d59f4c41ff63a8078ef32"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/slowstrong__delta_theta_5e-5/avqds.json",
+        "sha256": "986795bba90eac39eeee689d9362379febb6c21f56a4ef151fe16efc418d3c0e"
+      },
+      "cell_id": "slowstrong__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/slowstrong__delta_theta_5e-5/q_compiled.json",
+        "sha256": "266464931fe08d0809971881fc547fda7a0e17080f2ee03f49cea74f81be6aa8"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/paper_ii_supp/terminal_costs/strongfast__delta_theta_5e-5/avqds.json",
+        "sha256": "0261e7687c3f11fae2b2cd8046155eee91955362c96f3ed49f07aeb79251adf3"
+      },
+      "cell_id": "strongfast__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/strongfast__delta_theta_5e-5/q_compiled.json",
+        "sha256": "8f10f67ebf6562356d76c972a317cdcb2ac43edd84c13adfbeca65800ab47f32"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/fastfast__delta_theta_5e-5/avqds.json",
+        "sha256": "a01c34e858252b93c82b81e49804f38c0f1486f25ce91b35e39ab42abf71ab99"
+      },
+      "cell_id": "fastfast__delta_theta_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/fastfast__delta_theta_5e-5/q_compiled.json",
+        "sha256": "a63f99e873ac29306e2e955c4595006ddfcfdb4ca2ab7420320f67e456a25c49"
+      }
+    },
+    {
+      "avqds": {
+        "path": "/tmp/report/terminal_costs_combined/fastfast__state_motion_5e-5/avqds.json",
+        "sha256": "8004137db08ffb4682046a8a73d0227981fc532b12f95a58108efb7535d3885a"
+      },
+      "cell_id": "fastfast__state_motion_5e-5",
+      "q_compiled": {
+        "path": "/tmp/report/terminal_costs_combined/fastfast__state_motion_5e-5/q_compiled.json",
+        "sha256": "1ca13fe806afc84173811775cafed75e326b30f845e2caaae85482af6258932f"
+      }
+    }
+  ]
+}

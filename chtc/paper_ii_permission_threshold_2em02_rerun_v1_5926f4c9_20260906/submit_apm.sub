@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/run_action_apptainer.sh
+arguments = $(action_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = archives
+log = chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/logs/apm.$(Cluster).$(Process).log
+output = chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/logs/apm.$(Cluster).$(Process).out
+error = chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/logs/apm.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 9
+request_memory = 12GB
+request_disk = 40GB
++MaxRuntime = 172800
++JobBatchName = "paper-ii-permission-threshold-2em02-rerun-v1"
+queue action_id from chtc/paper_ii_permission_threshold_2em02_rerun_v1_5926f4c9_20260906/input/action_ids_apm.txt

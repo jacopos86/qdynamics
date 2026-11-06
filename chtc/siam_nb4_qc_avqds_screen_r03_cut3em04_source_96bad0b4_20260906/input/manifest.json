@@ -1,0 +1,102 @@
+{
+  "action_count": 1,
+  "action_id": "siam-nb4-qc-avqds-screen-r03-cut3em04",
+  "action_json_sha256": "72b8f32be7e541e9c5bbdff79bc4827c7288693d0ae459c22c7057d252492967",
+  "activation_cut_ladder": [
+    "0.01",
+    "0.00333333333333",
+    "0.001",
+    "0.000333333333333",
+    "0.0001",
+    "3.33333333333e-05",
+    "1e-05",
+    "3.33333333333e-06",
+    "1e-06",
+    "3.33333333333e-07",
+    "1e-07"
+  ],
+  "activation_cut_ladder_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+  "checks": {
+    "complete_logical_pool": true,
+    "exact_reference_blind": true,
+    "portable_seed_schema": true,
+    "qiskit_compilation_requested": false,
+    "record_statevectors": true,
+    "resume_input_present": false,
+    "source_locked": true,
+    "source_rebaseline_evidence_present": false,
+    "unique_output": true
+  },
+  "expected_image": {
+    "bytes": 216371200,
+    "path": "chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "expected_output": "raw_outputs/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/siam-nb4-qc-avqds-screen-r03-cut3em04/run.json",
+  "expected_run_id": "siam_nb4_screen_t0_t1_101_avqds_cut0.000333333333333",
+  "files": {
+    "action": {
+      "bytes": 233214,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/input/action.json",
+      "sha256": "72b8f32be7e541e9c5bbdff79bc4827c7288693d0ae459c22c7057d252492967"
+    },
+    "seed": {
+      "bytes": 2055,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/input/seed.json",
+      "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+    },
+    "submit_descriptor": {
+      "bytes": 1289,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/submit.sub",
+      "sha256": "b8b3434a661bcf23d15604fc3eeb555c2eb41e7b834a695e11a34165b9191bf7"
+    },
+    "worker": {
+      "bytes": 852,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/run_action.py",
+      "sha256": "2289c7d05275da169681779ae3df4171bbeb712d70be538787a4bec55544159c"
+    },
+    "wrapper": {
+      "bytes": 1704,
+      "path": "chtc/siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906/run_action_apptainer.sh",
+      "sha256": "64aebd42c848b5ddae3394c372ce02bf656da9c4dbae3c3609e0ab7eb5d26156"
+    }
+  },
+  "intentional_source_rebaseline": null,
+  "package_id": "siam_nb4_qc_avqds_screen_r03_cut3em04_source_96bad0b4_20260906",
+  "prepared_at": "2026-09-06T02:53:42+00:00",
+  "required_remote_preflight": [
+    "verify_source_archive_revision_and_digest",
+    "verify_package_file_digests",
+    "verify_image_size_and_sha256",
+    "verify_action_id_absent_from_prior_packages_and_scheduler_history",
+    "verify_output_path_absent",
+    "verify_quota",
+    "condor_submit_dry_run_exact_descriptor"
+  ],
+  "route_bundle_id": "not_applicable",
+  "route_contract_sha256": null,
+  "route_id": "paper_ii_exchange_q_compiled_v1",
+  "runner_argv_sha256": "56df4a1270777018ca331f4d762ab9b37dc507f0f69f61d959d99f950f21841c",
+  "schema": "siam_nb4_chtc_package_manifest_v5",
+  "scientific_identity": {
+    "action_id": "siam-nb4-qc-avqds-screen-r03-cut3em04",
+    "scope": "source_epoch_id/action_id",
+    "source_epoch_id": "siam-nb4-source-ab27905796d828b4d9f1"
+  },
+  "seed_schema": "siam_screening_seed_v2",
+  "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-ab27905796d828b4d9f1",
+    "source_revision": "96bad0b4efa4eda3a0ba010e2d2954c529e5c371",
+    "source_tree_files_sha256": "2f8b20929c94da8e162b22b3a69059165bfd257f12d3a6539e4184a61d23d8f9"
+  },
+  "source_revision": "96bad0b4efa4eda3a0ba010e2d2954c529e5c371",
+  "source_tree_contract": "siam_source_tree_contract_v1",
+  "source_tree_file_count": 821,
+  "source_tree_files_sha256": "2f8b20929c94da8e162b22b3a69059165bfd257f12d3a6539e4184a61d23d8f9",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "submit_descriptor_sha256": "b8b3434a661bcf23d15604fc3eeb555c2eb41e7b834a695e11a34165b9191bf7",
+  "worker_sha256": "2289c7d05275da169681779ae3df4171bbeb712d70be538787a4bec55544159c",
+  "wrapper_sha256": "64aebd42c848b5ddae3394c372ce02bf656da9c4dbae3c3609e0ab7eb5d26156"
+}

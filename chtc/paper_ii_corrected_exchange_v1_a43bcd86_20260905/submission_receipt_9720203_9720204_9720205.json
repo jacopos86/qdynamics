@@ -1,0 +1,58 @@
+{
+  "schema": "paper_ii_corrected_exchange_submission_v1",
+  "submitted_utc": "2026-09-05T23:05:00Z",
+  "submitter": "claude (session 83dc95d7), user-authorized 'submit'",
+  "remote_root": "ap2001:~/Holstein_paper_ii_corrected_exchange_v1_4c9984b0_20260905",
+  "branch": "claude/paper-ii-corrected-campaign-20260905",
+  "branch_head_at_submit": "5d04df1d",
+  "clusters": {
+    "9720203": {
+      "package": "chtc/paper_ii_corrected_exchange_v1_a43bcd86_20260905",
+      "submit_file": "submit_apm.sub",
+      "jobs": 11,
+      "action_ids": [
+        "weakslow__delta_theta_5e-5__exchange_q_compiled",
+        "weakslow__state_motion_5e-5__exchange_q_compiled",
+        "fastweak__delta_theta_5e-5__exchange_q_compiled",
+        "fastweak__state_motion_5e-5__exchange_q_compiled",
+        "midres__delta_theta_5e-5__exchange_q_compiled",
+        "midres__state_motion_5e-5__exchange_q_compiled",
+        "slowstrong__delta_theta_5e-5__exchange_q_compiled",
+        "slowstrong__state_motion_5e-5__exchange_q_compiled",
+        "strongfast__delta_theta_5e-5__exchange_q_compiled",
+        "fastfast__delta_theta_5e-5__exchange_q_compiled",
+        "fastfast__state_motion_5e-5__exchange_q_compiled"
+      ],
+      "source_lock": "a43bcd86",
+      "resources": {
+        "request_cpus": 9,
+        "request_memory": "12GB",
+        "request_disk": "40GB",
+        "MaxRuntime": 172800
+      }
+    },
+    "9720204": {
+      "package": "chtc/siam_nb4_qc_avqds_screen_r00_cut1em02_source_a3d1cebe_20260905",
+      "submit_file": "submit.sub",
+      "jobs": 1,
+      "arm": "avqds",
+      "source_lock": "a3d1cebe"
+    },
+    "9720205": {
+      "package": "chtc/siam_nb4_qc_full_apm_screen_r00_cut1em02_source_a3d1cebe_20260905",
+      "submit_file": "submit.sub",
+      "jobs": 1,
+      "arm": "exchange_q_compiled",
+      "search_profile": "siam_nb4_pilot_exchange_v1",
+      "source_lock": "a3d1cebe"
+    }
+  },
+  "package_file_sha256": {
+    "submit_apm.sub": "235643ef60c3e3a52119a2e38316bf12cd56adf9146a3dc592ec3d45963f3f3b",
+    "input/manifest.json": "da281b3e300e99587ff3b108912e87a3baea93e047c44a213abc03765ea2815b",
+    "input/actions.jsonl": "c70424d321af5da2e8f24207a4f4212c2c97ac0e6c35cc958837f13b69a4c85b",
+    "input/action_ids_apm.txt": "9de79ca515c6db9641adc192c9ca7e47053565dcc1f4535f914a10d0d1c8e431"
+  },
+  "monitoring": "agent_guidance heartbeat per HANDOFF_MONITOR_REGIME_SEEDS \u00a77: 15 min, then 6 h; memory hold (34) on dynamics jobs is reported, not auto-repaired; never condor_release / condor_rm",
+  "evidence_status": "analysis only; not adopted"
+}

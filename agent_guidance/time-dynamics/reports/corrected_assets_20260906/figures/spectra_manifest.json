@@ -1,0 +1,124 @@
+{
+  "cells": [
+    {
+      "A": 1.2,
+      "cell_id": "slowstrong__delta_theta_5e-5",
+      "drive": "slowstrong",
+      "omega": 1.0,
+      "reference_key": "f83fc25a31fb2930ea1eb4eefdd5e0276607521027cad58a9f2c7c4f7d537308",
+      "reference_sha256": "ac669be5b61cbaee43189c13f9fcc60661b885e416ece55664222e5c34bffff9",
+      "spectral_relative_error": {
+        "doublon": {
+          "admitted_bins": 36,
+          "apm": 0.014610958543773563,
+          "avqds": 0.0036687643776796715,
+          "displayed_bins": 79,
+          "omega_max_admitted": 11.287159234454347,
+          "residual_floor": 1.0902875713068719e-06
+        },
+        "staggered": {
+          "admitted_bins": 31,
+          "apm": 0.006532928118325346,
+          "avqds": 0.0017993953356355698,
+          "displayed_bins": 79,
+          "omega_max_admitted": 9.719498229669021,
+          "residual_floor": 2.804360169281562e-06
+        }
+      }
+    },
+    {
+      "A": 1.2,
+      "cell_id": "midres__delta_theta_5e-5",
+      "drive": "midres",
+      "omega": 2.0,
+      "reference_key": "097c97503ad839abf50df55d0a65aa5eb91711c9a8ba8bebe88cf3536b5f98b5",
+      "reference_sha256": "952bffb55cc11ee4801bedb1bdb40bca0d9ca3b93057a491705edb15056867e5",
+      "spectral_relative_error": {
+        "doublon": {
+          "admitted_bins": 53,
+          "apm": 0.0025785354447078186,
+          "avqds": 0.0016061296424784797,
+          "displayed_bins": 79,
+          "omega_max_admitted": 16.617206650724455,
+          "residual_floor": 4.0506878395485653e-07
+        },
+        "staggered": {
+          "admitted_bins": 45,
+          "apm": 0.0017383092113729803,
+          "avqds": 0.0012929254813866446,
+          "displayed_bins": 79,
+          "omega_max_admitted": 14.108949043067934,
+          "residual_floor": 5.71519721380462e-07
+        }
+      }
+    },
+    {
+      "A": 0.6,
+      "cell_id": "fastweak__delta_theta_5e-5",
+      "drive": "fastweak",
+      "omega": 3.0,
+      "reference_key": "4b3c54b25eea66be5af5ac3644824000a4ab060c41e29d49cec8c600317690a1",
+      "reference_sha256": "734373d93cda6c10717407708f23e610a7ea470365e34d54c6d718a5d5410bdb",
+      "spectral_relative_error": {
+        "doublon": {
+          "admitted_bins": 36,
+          "apm": 0.014029254602014261,
+          "avqds": 0.0030599341491770156,
+          "displayed_bins": 79,
+          "omega_max_admitted": 11.287159234454347,
+          "residual_floor": 1.594294192503658e-06
+        },
+        "staggered": {
+          "admitted_bins": 33,
+          "apm": 0.0051898601451175145,
+          "avqds": 0.00161725711923726,
+          "displayed_bins": 79,
+          "omega_max_admitted": 10.973627033497282,
+          "residual_floor": 3.960633091089499e-06
+        }
+      }
+    },
+    {
+      "A": 0.6,
+      "cell_id": "fastfast__delta_theta_5e-5",
+      "drive": "fastfast",
+      "omega": 6.0,
+      "reference_key": "b0d1e60f5a8cd51becbd8ea78e2e0cfd93e88488efd1ee079ecafd4d357ebd30",
+      "reference_sha256": "a03456e732ee9e4d86e09296d9361dac480fce542c6885e776335ab65f1f68dd",
+      "spectral_relative_error": {
+        "doublon": {
+          "admitted_bins": 45,
+          "apm": 0.0694374537537891,
+          "avqds": 0.005780225473271143,
+          "displayed_bins": 79,
+          "omega_max_admitted": 14.108949043067934,
+          "residual_floor": 1.9986041120415147e-06
+        },
+        "staggered": {
+          "admitted_bins": 40,
+          "apm": 0.0013078267098548244,
+          "avqds": 0.0011194954391617093,
+          "displayed_bins": 79,
+          "omega_max_admitted": 12.541288038282607,
+          "residual_floor": 1.9036546522659894e-06
+        }
+      }
+    }
+  ],
+  "comparison": {
+    "path": "/tmp/report/comparison_corrected.json",
+    "sha256": "ca48ff886e8cb01a2f2cc52d9da160866f5f1c7621d6912aa5cb7d69946a558c"
+  },
+  "controller": "delta_theta_5e-5",
+  "error_band_policy": "relative L2 error is scored only on bins whose exact amplitude exceeds the broadband residual floor, so noise-dominated bins do not enter the metric",
+  "figure": {
+    "path": "/tmp/report/assets/paper_ii_t20_response_spectra.pdf",
+    "sha256": "e70dab553744a7b130ca684e771ee02350e48b5e82656981561219c98334761f"
+  },
+  "omega_band": [
+    0.0,
+    25.0
+  ],
+  "schema": "paper_ii_response_spectra_v1",
+  "transform": "Hann-windowed rFFT of the mean-removed signal, amplitude normalized"
+}

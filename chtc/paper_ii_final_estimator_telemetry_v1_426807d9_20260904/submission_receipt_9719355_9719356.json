@@ -1,0 +1,75 @@
+{
+  "schema": "paper_ii_final_estimator_telemetry_submission_v1",
+  "status": "SUBMITTED",
+  "submitted_utc": "2026-09-04T15:18:26Z",
+  "campaign_id": "paper_ii_final_estimator_telemetry_v1",
+  "remote_host": "jsstrobel@ap2001.chtc.wisc.edu",
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_estimator_telemetry_v1_426807d9_20260904",
+  "source": {
+    "code_revision": "426807d9ccf599f16bed0d2c7679fd32bdbfca8d",
+    "source_archive_sha256": "09b9d837bae8981a53ca1dd7df206c4b1b7aac322bf0dcf1c35dbe2b4c8fffe5",
+    "actions_jsonl_sha256": "9134012a2f2cc7fcabd0e2277a8d20578c0c40f0f7bffa03a2abcfa91eff6860",
+    "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "package_metadata_commit": "a04e8ac2120075c557bd70df595d3cdb14c61969"
+  },
+  "preflight": {
+    "local_package_validation": "OK",
+    "remote_package_and_container_validation": "OK",
+    "apm_condor_dry_run_action_count": 45,
+    "avqds_condor_dry_run_action_count": 15,
+    "calibration_status": "INCOMPLETE",
+    "calibration_error_count": 0,
+    "calibration_not_checked": [
+      "benchmark_point_sameness",
+      "response_normalized_matched_accuracy"
+    ],
+    "calibration_disposition": "carried until the submitted trajectories exist",
+    "degraded_response_scales_used": false,
+    "active_submission_blocks": []
+  },
+  "clusters": {
+    "apm": {
+      "cluster_id": 9719355,
+      "action_count": 45,
+      "initial_idle_count": 45,
+      "request_cpus": 9,
+      "request_memory_mb": 6144,
+      "max_runtime_seconds": 432000
+    },
+    "avqds": {
+      "cluster_id": 9719356,
+      "action_count": 15,
+      "initial_idle_count": 15,
+      "request_cpus": 1,
+      "request_memory_mb": 6144,
+      "max_runtime_seconds": 432000
+    }
+  },
+  "scope": {
+    "locked_cell_count": 15,
+    "apm_routes_per_cell": 3,
+    "fresh_avqds_per_cell": 1,
+    "action_count": 60,
+    "time_span": [0.0, 20.0],
+    "time_point_count": 501,
+    "precursor_action_count": 0,
+    "resume_action_count": 0,
+    "telemetry_contract": "paper_ii_exact_logical_estimator_telemetry_20260903"
+  },
+  "completion_requirements": [
+    "trajectory JSON",
+    "exact logical estimator-work receipt",
+    "terminal FakeMarrakesh Qiskit cost",
+    "per-action archive SHA receipt"
+  ],
+  "monitoring": {
+    "runtime_headroom_floor_seconds": 86400,
+    "runtime_extension_target_seconds": 259200,
+    "fetch_only_after_success": true,
+    "never_resubmit_active_or_successful_action": true
+  },
+  "adoption": {
+    "paper_evidence_adopted": false,
+    "manuscript_updated": false
+  }
+}

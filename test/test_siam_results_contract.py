@@ -20,6 +20,8 @@ from pipelines.time_dynamics.diagnostics.siam_offline_scoring import (
     SIAM_ACCURACY_POLICY_V2,
     SIAM_OFFLINE_SCORE_V2,
     SIAM_OFFLINE_SCORE_V3,
+    SIAM_OFFLINE_SCORE_V4,
+    SIAM_ROUTE_HISTORICAL_UNRECORDED,
 )
 from pipelines.time_dynamics.diagnostics.siam_exact_reference_store import (
     SIAM_EXACT_REFERENCE_STORE_V2,
@@ -119,6 +121,8 @@ def _score(
     grid_times: tuple[float, ...] = SIAM_NB4_SCREEN_TIMES,
     seed_sha256: str = "1" * 64,
     code_revision: str = TEST_REVISION,
+    schema: str = SIAM_OFFLINE_SCORE_V3,
+    exchange_route_bundle: str | None = None,
 ) -> dict[str, object]:
     primitive_names = ("m_d", "D_d", "C_1", "C_2", "C_3", "C_4")
     response_target = 0.05
@@ -154,7 +158,7 @@ def _score(
     broad_pass = bool(observable_broad_pass and fidelity_pass and energy_pass)
     grid_sha256 = _time_grid_sha256(grid_times)
     core: dict[str, object] = {
-        "schema": SIAM_OFFLINE_SCORE_V3,
+        "schema": schema,
         "reporting_only": True,
         "accuracy_policy": {
             "schema": SIAM_ACCURACY_POLICY_V2,
@@ -279,6 +283,9 @@ def _score(
     core["series"]["absolute_error"] = {
         name: [0.0] * point_count for name in constant_series
     }
+    if exchange_route_bundle is not None:
+        core["method"]["exchange_route_bundle"] = exchange_route_bundle
+        core["method"]["exchange_route_contract_sha256"] = "5" * 64
     return {**core, "score_sha256": _document_sha256(core)}
 
 
@@ -628,6 +635,8 @@ def _fixture(
     avqds_revision: str = TEST_REVISION,
     apm_revision: str = TEST_REVISION,
     apm_first_source_file_sha256: str = "2" * 64,
+    apm_score_schema: str = SIAM_OFFLINE_SCORE_V3,
+    apm_exchange_route_bundle: str | None = None,
 ) -> dict[str, Path | None]:
     reference, seed_sha256 = _genuine_exact_view(tmp_path)
     paths: dict[str, Path | None] = {
@@ -683,6 +692,8 @@ def _fixture(
                 reference=reference,
                 seed_sha256=seed_sha256,
                 code_revision=apm_revision,
+                schema=apm_score_schema,
+                exchange_route_bundle=apm_exchange_route_bundle,
             ),
         )
         _write_json(
@@ -1499,3 +1510,40 @@ def test_manuscript_role_accepts_only_validated_stitched_t5_proofs(
             "source_tree_files_sha256"
         ] == "d" * 64
     assert "validated stitched $T=5$ manuscript evidence" in latex
+
+
+Q_COMPILED_ROUTE = "paper_ii_exchange_q_compiled_v1"
+
+
+def test_pre_route_promotion_declares_the_historical_unrecorded_route(
+    tmp_path: Path,
+) -> None:
+    paths = _fixture(tmp_path)
+    receipt, latex = _build(paths)
+
+    assert receipt["route"] == SIAM_ROUTE_HISTORICAL_UNRECORDED
+    assert (
+        f"Exchange route: {SIAM_ROUTE_HISTORICAL_UNRECORDED}." in latex
+    )
+    assert set(receipt["slots"]) == {"avqds", "full_apm"}
+
+
+def test_compiled_q_promotion_declares_its_route_without_new_columns(
+    tmp_path: Path,
+) -> None:
+    paths = _fixture(
+        tmp_path,
+        apm_score_schema=SIAM_OFFLINE_SCORE_V4,
+        apm_exchange_route_bundle=Q_COMPILED_ROUTE,
+    )
+    receipt, latex = _build(paths)
+
+    assert receipt["route"] == Q_COMPILED_ROUTE
+    assert f"Exchange route: {Q_COMPILED_ROUTE}." in latex
+    # The route is a header field only: the two promotion slots and the table's
+    # column count are unchanged.
+    assert set(receipt["slots"]) == {"avqds", "full_apm"}
+    assert r"\begin{tabular}{llcccccc}" in latex
+
+    pdf = render_siam_results_pdf(receipt)
+    assert pdf.startswith(b"%PDF")

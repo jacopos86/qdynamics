@@ -1,0 +1,181 @@
+{
+  "compile_defaults": {
+    "backend_name": "FakeMarrakesh",
+    "local_fake_only": true,
+    "optimization_level": 1,
+    "requested_backend_name": "FakeMarrakesh",
+    "seed_transpiler": 7
+  },
+  "compile_result": {
+    "D2q": 242,
+    "Dc": 838,
+    "N2q": 271,
+    "backend_name": "FakeMarrakesh",
+    "compile_rows": [
+      {
+        "backend_name": "FakeMarrakesh",
+        "compiled_count_1q": 891,
+        "compiled_count_1q_semantics": "post_transpile_one_qubit_quantum_ops_excluding_barrier_delay_id_measure_reset",
+        "compiled_count_2q": 271,
+        "compiled_cx_count": 0,
+        "compiled_depth": 838,
+        "compiled_depth_2q": 242,
+        "compiled_ecr_count": 0,
+        "compiled_num_qubits": 156,
+        "compiled_op_counts": {
+          "cz": 271,
+          "rz": 452,
+          "sx": 438,
+          "x": 1
+        },
+        "compiled_size": 1162,
+        "logical_to_physical": [
+          11,
+          18,
+          10,
+          12,
+          13,
+          14
+        ],
+        "optimization_level": 1,
+        "requested_backend_name": "FakeMarrakesh",
+        "resolution_kind": "fake_exact",
+        "seed_transpiler": 7,
+        "transpile_status": "ok",
+        "using_fake_backend": true
+      }
+    ],
+    "compile_scope": "final_active_ap_mclachlan_ansatz_at_terminal_time",
+    "compiled_count_1q": 891,
+    "compiled_op_counts": {
+      "cz": 271,
+      "rz": 452,
+      "sx": 438,
+      "x": 1
+    },
+    "compiled_size": 1162,
+    "drive_aligned_ansatz": {
+      "active_parameter_count_after": 28,
+      "applied": true,
+      "label": "drive_aligned_density(pattern=staggered)",
+      "logical_delta": 1,
+      "logical_parameter_count_after": 11,
+      "parameterization_label": "per Pauli / polynomial term",
+      "parameterization_mode": "per_pauli_term",
+      "reason": "appended_zero_angle_drive_generator",
+      "runtime_delta": 4,
+      "runtime_parameter_count_after": 28,
+      "runtime_pauli_parameter_count_after": 28,
+      "schema": "ap_mclachlan_drive_aligned_augmentation_v1"
+    },
+    "final_support_layout_sha256": "9dcb79adc94c711c42890d1be2394950193707a0ff959fc994dca0c2e2c1bd2e",
+    "final_theta_sha256": "631301894fa3ee661168ca16cf837a5983df8513dccdb1b63d8e80cc8dd7f7c7",
+    "fixed_vqe_conditioning_stress": {
+      "artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+      "online_injection_used": false,
+      "present": false,
+      "route_family": null,
+      "schema": "fixed_vqe_conditioning_stress_v1",
+      "source": "serialized_seed_artifact",
+      "structure_locked": false,
+      "subject_kind": null
+    },
+    "generated_utc": "2026-09-04T16:18:18.086610+00:00",
+    "local_fake_only": true,
+    "logical_parameter_count": 65,
+    "optimization_level": 1,
+    "requested_backend_name": "FakeMarrakesh",
+    "resolution_audit": [
+      {
+        "error": null,
+        "fake_exact_attempted": "FakeMarrakesh",
+        "fallback_reason": null,
+        "requested_name": "FakeMarrakesh",
+        "resolution_kind": "fake_exact",
+        "resolved_name": "FakeMarrakesh",
+        "runtime_error": null,
+        "runtime_lookup_attempted": false,
+        "success": true,
+        "target_snapshot": {
+          "backend_name": "fake_marrakesh",
+          "backend_version": "1.0.7",
+          "coupling_edge_count": 352,
+          "dt": 4e-09,
+          "instruction_durations_present": true,
+          "num_qubits": 156,
+          "operation_names": [
+            "reset",
+            "switch_case",
+            "delay",
+            "rz",
+            "for_loop",
+            "id",
+            "if_else",
+            "x",
+            "sx",
+            "measure",
+            "cz"
+          ],
+          "target_present": true
+        },
+        "using_fake_backend": true
+      }
+    ],
+    "runtime_lookup_enabled": false,
+    "runtime_parameter_count": 65,
+    "schema": "ap_terminal_qiskit_compile_v1",
+    "seed_transpiler": 7,
+    "terminal_reconstruction_parity": {
+      "declared_source_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+      "logical_parameter_count_rebuilt": 65,
+      "logical_parameter_count_saved": 65,
+      "passed": true,
+      "resolved_source_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+      "resolved_source_artifact_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+      "runtime_coordinate_labels_match": true,
+      "runtime_parameter_count_rebuilt": 65,
+      "runtime_parameter_count_saved": 65,
+      "schema": "ap_terminal_support_reconstruction_parity_v1",
+      "selected_term_labels_match": true,
+      "theta_length": 65
+    }
+  },
+  "generated_utc": "2026-09-04T16:18:18.100472+00:00",
+  "rows": [
+    {
+      "D2q": 242,
+      "Dc": 838,
+      "N2q": 271,
+      "accepted_append_count": 9,
+      "accepted_appended_coordinate_count": 0,
+      "accepted_delete_count": 0,
+      "accepted_deleted_coordinate_count": 0,
+      "final_abs_doublon_error": null,
+      "final_abs_energy_error": null,
+      "label": "fastfast__delta_theta_5e-5__avqds",
+      "logical_parameter_count": 65,
+      "qiskit_cost_source": "final_active_ap_mclachlan_ansatz_qiskit_compile",
+      "qiskit_cost_status": "ok",
+      "runtime_parameter_count": 65,
+      "source_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+      "source_artifact_json_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+      "terminal_reconstruction_parity": {
+        "declared_source_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+        "logical_parameter_count_rebuilt": 65,
+        "logical_parameter_count_saved": 65,
+        "passed": true,
+        "resolved_source_artifact_json": "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json",
+        "resolved_source_artifact_sha256": "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91",
+        "runtime_coordinate_labels_match": true,
+        "runtime_parameter_count_rebuilt": 65,
+        "runtime_parameter_count_saved": 65,
+        "schema": "ap_terminal_support_reconstruction_parity_v1",
+        "selected_term_labels_match": true,
+        "theta_length": 65
+      },
+      "trajectory_json": "raw_outputs/paper_ii_final_estimator_telemetry_v1/fastfast__delta_theta_5e-5__avqds/run.json",
+      "trajectory_json_sha256": "b995eaf962894b817ac9575ffda3a5d7aaaf74ac974926290304ba0774c6a1be"
+    }
+  ],
+  "schema": "ap_terminal_qiskit_cost_table_v1"
+}

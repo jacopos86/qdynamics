@@ -430,3 +430,59 @@ def classify_term_differences(
     for row in out.values():
         row["relative"] = (row["max_abs_difference"] / row["max_abs_in_b"]) if row["max_abs_in_b"] > 0 else 0.0
     return out
+
+
+# ------------------------------------------------------------ ground-state diagnostics
+
+
+def physical_sector_ground_state(
+    h: QdynamicsQubitHamiltonian | VibronicQubitModel, *, n_low: int = 1, tol: float = 1.0e-10,
+) -> tuple[tuple[float, ...], np.ndarray, np.ndarray]:
+    """Lowest sector eigenvalues, the ground-state vector in the sector basis, and that basis (full-register indices)."""
+    from scipy.sparse.linalg import eigsh  # type: ignore
+
+    operator, layout, n_spatial, particles = _as_operator_and_layout(h)
+    basis = physical_sector_basis(layout, n_spatial_orbitals=n_spatial, num_particles=particles)
+    matrix = sector_sparse_matrix(operator, basis)
+    dim = int(matrix.shape[0])
+    k = max(1, int(n_low))
+    if dim <= k + 1:
+        values, vectors = np.linalg.eigh(matrix.toarray())
+    else:
+        values, vectors = eigsh(matrix, k=min(k, dim - 1), which="SA", tol=float(tol))
+    order = np.argsort(np.real(values))
+    ground = np.asarray(vectors[:, order[0]], dtype=complex)
+    return tuple(float(np.real(values[i])) for i in order[:k]), ground, np.asarray(basis, dtype=np.int64)
+
+
+def boson_occupation_expectations(state: np.ndarray, basis: np.ndarray, layout: RegisterLayout) -> tuple[float, ...]:
+    """<n_I> of a sector-basis state for every boson register (binary: the register's integer; unary: the set bit)."""
+    weights = np.abs(np.asarray(state, dtype=complex)) ** 2
+    weights = weights / float(weights.sum())
+    out = []
+    for block in layout.boson_modes:
+        start, width = int(block.qubit_start), int(block.n_qubits)
+        codes = (np.asarray(basis, dtype=np.int64) >> start) & ((1 << width) - 1)
+        if str(block.encoding) == "unary":
+            levels = np.array([int(c).bit_length() - 1 if c else 0 for c in codes], dtype=float)
+        else:
+            levels = codes.astype(float)
+        out.append(float(np.dot(weights, levels)))
+    return tuple(out)
+
+
+def ground_state_summary(h: QdynamicsQubitHamiltonian | VibronicQubitModel, *, n_low: int = 2, tol: float = 1.0e-10) -> dict[str, Any]:
+    """Sector energies, HF (x) vacuum energy, ground-state boson occupations and its overlap with the reference."""
+    energies, ground, basis = physical_sector_ground_state(h, n_low=n_low, tol=tol)
+    _operator, layout, n_spatial, particles = _as_operator_and_layout(h)
+    reference_index = hartree_fock_vacuum_index(layout, n_spatial_orbitals=n_spatial, num_particles=particles)
+    position = np.searchsorted(basis, reference_index)
+    overlap = float(abs(ground[position]) ** 2) if position < basis.size and basis[position] == reference_index else 0.0
+    return {
+        "sector_dimension": int(basis.size),
+        "sector_energies": list(energies),
+        "ground_energy": float(energies[0]),
+        "hartree_fock_vacuum_energy": float(hartree_fock_vacuum_energy(h)),
+        "ground_boson_occupations": list(boson_occupation_expectations(ground, basis, layout)),
+        "ground_reference_weight": overlap,
+    }

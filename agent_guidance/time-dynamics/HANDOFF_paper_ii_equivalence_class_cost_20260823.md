@@ -1,9 +1,95 @@
-# Handoff — Paper II: least-cost realization over the insertion equivalence class
+# Handoff — Paper II: least-cost realization over singleton insertion equivalence classes
 
 **Author:** Claude (planning session 2026-08-22/23) · **Executor:** Codex (repo access)
 **Contract:** read `agent_guidance/shared/agent-handoff-contract.md` first. It defines
 anchors, evidence standards, traps, and the report-back format. This document supplies
 only what is specific to this task.
+
+---
+
+## 0. Author decision lock — singleton first, batching later (2026-09-03)
+
+**Status:** decided, but not implemented by this documentation edit. This
+section supersedes any unqualified reading of ``insertion candidate`` or
+``equivalence class`` below as requiring global minimization for a multi-insert
+batch.
+
+The current implementation and evidence scope is **insertion batch size one**:
+
+- On the **delete face**, deletion produces one survivor word. Compile that
+  word once; there is no insertion-placement representative to optimize.
+- On the **singleton insert face**, enumerate the insertion's exact commuting
+  placements in the current word and retain its least compiled-cost placement.
+- For a **singleton true exchange**, delete first, enumerate the one
+  insertion's exact commuting placements in the survivor word, and retain its
+  least compiled-cost placement.
+- Compute the Paper-I relative resource factor from the circuit that is
+  actually retained and materialized. Do not claim a globally least-cost
+  realization of a multi-insert batch.
+
+At one frozen checkpoint, the same insertion must be evaluated in parallel
+contexts rather than only after one deletion has already won:
+
+1. evaluate it with no deletion, on the insert face;
+2. evaluate it separately with every permitted deletion set for which it is
+   in the branch pool, on the true-exchange interior; and
+3. treat every ``(deletion set, insertion, commuting class)`` as a distinct
+   patch-cost record.
+
+The structural ordinate is evaluated once for each distinct physical patch.
+Its Qiskit placement work then compiles every legal commuting placement of
+that insertion **after applying that patch's deletion**, and retains the
+cheapest complete patched circuit. The original checkpoint circuit is still
+the common baseline for the signed resource marginal; for a fixed deletion,
+subtracting that common baseline does not change which placement is cheapest.
+
+These independent placement compiles should use one flattened process work
+queue over ``(deletion set, insertion, placement)`` and deterministic fan-in.
+Do not create nested process pools. Compile the unchanged baseline once, key
+placement caches by the deletion context (or the exact survivor-word hash),
+and seal the shared population normalization only after every admitted
+context has returned. Pure-insertion and deletion-conditioned exchange costs
+must therefore both be present; neither may borrow the other's chosen cut.
+
+This is the complete representative-selection contract for the next
+implementation pass. The registered Paper-II selector campaign has insertion
+batch size one, so the decision to defer batching does not invalidate those
+runs. However, the implementation audited on 2026-09-03 caches placement only
+by ``(atom, retained cut)``, chooses that placement against the undeleted base
+word, and then reuses it for all deletion contexts. It parallelizes the final
+complete-patch compiles, but not the required deletion-conditioned placement
+search. Consequently, the currently running compiled-selector jobs remain
+valid evidence for that recorded implementation, but they are not evidence
+for this newly locked conditional-placement rule and must not be relabelled as
+such.
+
+Batching is deferred to a later, more general route. When it is implemented,
+use **conditional greedy construction**, not joint combinatorial minimization:
+
+1. For a fixed deletion context, begin with the survivor word.
+2. For every remaining eligible insertion, find its cheapest legal commuting
+   placement relative to the current partial word.
+3. Rank those candidate--placement pairs with the same physical ordinate and
+   compiled-cost rule used by the active route; compiled cost alone does not
+   choose the candidate.
+4. Commit the best pair to the partial word.
+5. Recompute the remaining candidates' legal placements and compiled costs
+   conditioned on that updated word, then repeat until the batch limit or the
+   route's ordinary stopping rule is reached.
+
+The cheapest placement must therefore be recomputed after each accepted
+insertion. A placement cached against the original checkpoint is not an exact
+batch placement, and summed singleton cost marginals are not a substitute for
+compiling the realized partial word. This greedy construction is deliberately
+not claimed to find the globally cheapest batch realization. Exact joint batch
+minimization may be used later as a small-case diagnostic, but it is not the
+production controller.
+
+Future batch telemetry must record the selected insertion order, each greedy
+round's candidate population and chosen placement, the compiled resource
+vector used for ranking, and the stopping reason. Enabling insertion batch
+size greater than one under this policy is a separately versioned method
+change requiring its own tests and runs.
 
 ---
 

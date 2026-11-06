@@ -1,0 +1,76 @@
+{
+  "schema": "paper_ii_report_refresh_resolution_v1",
+  "recorded_utc": "2026-09-03T06:25:04Z",
+  "supersedes": {
+    "path": "chtc/paper_ii_staged_accuracy_euler_v1_t20_resume_repair_d3301581_20260826/report_refresh_required.json",
+    "sha256": "84c67ea56fd6267b1fb772178f96d0f5025556ad3b64412bb65edc673fc29a11",
+    "former_blocks": [
+      "further_campaign_submission",
+      "claiming_the_visible_pdf_is_current"
+    ]
+  },
+  "resolution_evidence": {
+    "final_ingestion_receipt": {
+      "path": "chtc/paper_ii_full_factorial_coverage_wave2_b1354438_20260902/final_ingestion_receipt_9718010_20260902.json",
+      "sha256": "5cbfa8c965e63bc52eecdd742e5a2cddab7cdd871d1faf358d65e7db3aa8e615"
+    },
+    "ledger": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/ledger_371_rows_20260902.json",
+      "sha256": "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6",
+      "record_count": 371
+    },
+    "promotion_preview": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/promotion_preview_20260902.json",
+      "sha256": "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf",
+      "comparable_t20_pairs": 15
+    },
+    "report_json": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/paper_ii_staged_report_20260902.json",
+      "sha256": "2006f8834020134ad8b9329fdfa5d6242026c38f8b2976a65f8a7a559ee1f791"
+    },
+    "results_pdf": {
+      "path": "/Users/lordskyler/Documents/Codex/2026-09-01/paper-ii-context-verified-2026-08/outputs/paper_ii_full_factorial_results_refresh_20260901.pdf",
+      "sha256": "f5e1666a567a7abe3acea4609ce57a3930038f01749cef02ff411dc65151a2e6",
+      "page_count": 29,
+      "visual_qa": "PASS_ALL_CHANGED_PAGES",
+      "row_order": "AVQDS and full APM are adjacent within each drive/controller pair",
+      "reported_columns_include": [
+        "mean_fidelity_or_infidelity",
+        "mean_absolute_energy_error",
+        "mean_absolute_doublon_error",
+        "mean_absolute_delta_n_error",
+        "total_accepted_steps"
+      ]
+    },
+    "calibration_receipt": {
+      "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/calibration_receipt_pre_submission_20260903.json",
+      "sha256": "9a8d2f1e2cf58d85f1957a15a8e427d239eaae9d50d817bace1cc6e01432e449",
+      "status": "INCOMPLETE",
+      "error_count": 0,
+      "ok_count": 5,
+      "not_checked_count": 2,
+      "allow_unverified_response_scales_used": false,
+      "interpretation": "Only ERROR blocks. The two trajectory-dependent benchmark-row checks remain no-evidence; the verified exact-reference response-scale store was used without degraded override."
+    }
+  },
+  "coverage_state": {
+    "qualified_t20_method_arms": 34,
+    "pending_t20_method_arms": 2,
+    "comparable_t20_pairs": 15,
+    "deferred_failures_are_outside_the_final_matched_set": true
+  },
+  "required_resolution_checklist": {
+    "eligible_artifacts_ingested_with_safeguard_provenance": true,
+    "declared_componentwise_exact_reference_gates_computed": true,
+    "canonical_consolidated_pdf_rebuilt": true,
+    "changed_pages_render_checked": true,
+    "ledger_report_and_pair_digests_recorded": true
+  },
+  "resolution": {
+    "status": "RESOLVED",
+    "active_blocks": [],
+    "authorizes_new_campaign_submission": true,
+    "adopts_new_selector_results_into_paper_evidence": false,
+    "note": "This receipt resolves the stale-report production gate only. It does not adopt the new selector campaign, alter manuscript claims, or resolve the two deferred non-selected coverage attempts."
+  }
+}

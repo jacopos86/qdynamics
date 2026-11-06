@@ -1,0 +1,135 @@
+{
+ "schema": "paper_ii_corrected_exchange_package_v1",
+ "campaign_id": "paper_ii_permission_threshold_1em02_v1",
+ "status": "PREPARED_NOT_SUBMITTED",
+ "created_utc": "2026-09-06T01:44:52Z",
+ "purpose": "Pre-permission ray-threshold pilot at 1e-2: one strong--fast (2.4,3) delta-theta cell of the corrected exchange campaign re-run with the ray bound of Paper II Eq. deletion_ray_bound tested at 1e-2 instead of the post-refit tolerance 2e-3. Post-refit ray and velocity certificates unchanged. Value chosen from stored certification telemetry: the post-refit ray distance is 0.35-0.7 of a_D, so certification yield collapses past a_D of about 5e-3.",
+ "scope": {
+  "action_count": 1,
+  "cell_count": 1,
+  "routes_per_cell": 1,
+  "apm_routes_per_cell": 1,
+  "apm_action_count": 1,
+  "avqds_action_count": 0,
+  "precursor_action_count": 0,
+  "time_span": [
+   0.0,
+   20.0
+  ],
+  "time_point_count": 501,
+  "fresh_trajectories": true,
+  "comparator_mode": "reuse_locked_exact_estimator_avqds",
+  "comparator_source_campaign_id": "paper_ii_final_estimator_telemetry_v1",
+  "comparator_note": "No AVQDS trajectory is re-run. The comparators are the fresh exact AVQDS runs of paper_ii_final_estimator_telemetry_v1; the search defect this campaign corrects is on the APM side only.",
+  "purpose": "pre-permission ray-threshold pilot at 1e-2, strong--fast delta-theta cell"
+ },
+ "routes": {
+  "paper_ii_exchange_q_compiled_v1": 1
+ },
+ "search": {
+  "search_profile": "paper_declared_exchange_v1",
+  "exchange_insertion_frontier": 8,
+  "insertion_gate_mode": "mclachlan_l2",
+  "apm_arm": "exchange",
+  "exchange_permission_ray_distance_max": "1e-2"
+ },
+ "source": {
+  "code_revision": "1cdce1a0cc38cf8f9a60cca86fe592358ce36d3a",
+  "archive": "input/source_1cdce1a0.tar.gz",
+  "archive_sha256": "5e79c267b85190c99a377b973f5b9f30e0971b7ca6d53a8a57c9d402024dc702",
+  "archive_command": "git archive --format=tar.gz 1cdce1a0cc38cf8f9a60cca86fe592358ce36d3a pipelines src chtc/paper_ii_production_v2/input/seeds",
+  "included_paths": [
+   "pipelines",
+   "src",
+   "chtc/paper_ii_production_v2/input/seeds"
+  ],
+  "exchange_frontier_commit": "3f3f89fd3f65648513fd66e0f0926294fc0d33f2",
+  "draft_lock_commit": "8bd011fb0c6457e8a46962da84b2b0b6f99e2422",
+  "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
+  "permission_threshold_commit": "2c25b0bf7cb13d0fd0d0d034d6d4ea80ffae8507",
+  "corrected_campaign_package_commit": "4c9984b0"
+ },
+ "inputs": {
+  "actions_jsonl": {
+   "path": "input/actions.jsonl",
+   "sha256": "746e7d5952117abf7d69a5284a1e492aa83904c15d0e999edfaf2341fd058254"
+  },
+  "action_ids": {
+   "path": "input/action_ids.txt",
+   "sha256": "198ba256d43802ef4808806fc24e316225496ffad6b45465d316c35a8369684c"
+  },
+  "action_ids_apm": {
+   "path": "input/action_ids_apm.txt",
+   "sha256": "198ba256d43802ef4808806fc24e316225496ffad6b45465d316c35a8369684c"
+  },
+  "prepare_summary": {
+   "path": "input/prepare_summary.json",
+   "sha256": "7a9e7a0a4a744e0034b19dee0b05746713eebfa33afbba98f3680e047d14c3aa"
+  },
+  "matched_cells_lock": {
+   "path": "input/matched_cells_lock.json",
+   "sha256": "f4208c084de41ddbc0193b7e8d6581585e47ba3dc1e7cbe4f559e39e8a022ee3"
+  },
+  "calibration_receipt": {
+   "path": "input/calibration_receipt.json",
+   "sha256": "9a8d2f1e2cf58d85f1957a15a8e427d239eaae9d50d817bace1cc6e01432e449",
+   "status": "INCOMPLETE",
+   "error_count": 0,
+   "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+   ],
+   "allow_unverified_response_scales_used": false,
+   "carried_reason": "This is the pre-submission calibration receipt bound by the report-refresh resolution the lock verifies, carried by reference rather than re-run: the two unrun checks are the trajectory-dependent ones and this campaign has no results yet."
+  },
+  "report_refresh_resolution": {
+   "path": "input/report_refresh_resolution.json",
+   "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+   "active_blocks": [],
+   "authorizes_new_campaign_submission": true
+  }
+ },
+ "runtime": {
+  "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "container_size_bytes": 216371200,
+  "apm": {
+   "request_cpus": 9,
+   "compile_workers": 8,
+   "scoring_workers": 4,
+   "request_memory": "12GB",
+   "request_disk": "40GB",
+   "max_runtime_seconds": 172800
+  },
+  "thread_environment": {
+   "OPENBLAS_NUM_THREADS": 1,
+   "OMP_NUM_THREADS": 1,
+   "MKL_NUM_THREADS": 1,
+   "VECLIB_MAXIMUM_THREADS": 1,
+   "NUMEXPR_NUM_THREADS": 1,
+   "RAYON_NUM_THREADS": 1
+  },
+  "transfer_format": "one gzip archive plus SHA receipt per action"
+ },
+ "completion_contract": {
+  "trajectory_required": true,
+  "exact_estimator_work_required": true,
+  "terminal_qiskit_cost_required": true,
+  "physical_shots": null,
+  "physical_shots_status": "unavailable_statevector_no_shot_ledger"
+ },
+ "package_files": {
+  "run_action.py": "151cfe7c3919d31ed1fc0fef70229d6d86d6e55a05dbcfffc5f17decf15f547b",
+  "run_action_apptainer.sh": "0b2926c882793b410445f125b89174ea4ec8ec32227ad3bf24e35e87aa888268",
+  "submit_apm.sub": "6ae3a46163bbaf31139e24e33f824ae8b534929612f795cf6794f074c53d6045",
+  "validate_package.py": "8c0c003dc7f0eb68db0434409c2363a4d87fe9c89d8a36e663e937fa6021365b"
+ },
+ "submission": {
+  "submitted": false,
+  "note": "Prepared only. This package has not been submitted to CHTC."
+ },
+ "adoption": {
+  "paper_evidence_adopted": false,
+  "manuscript_updated": false,
+  "purpose": "pre-permission threshold pilot only"
+ }
+}

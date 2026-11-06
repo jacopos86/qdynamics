@@ -174,19 +174,35 @@ def _realify_hermitian(matrix: ComplexArray) -> FloatArray:
     return np.asarray(0.5 * (realified + realified.T), dtype=float)
 
 
+@lru_cache(maxsize=None)
+def _clarabel_svec_upper_pattern(
+    size: int,
+) -> tuple[NDArray[np.int64], NDArray[np.int64], FloatArray]:
+    """Return the column-major upper-triangle indices and their svec scales.
+
+    ``np.tril_indices`` enumerates ``(i, j)`` with ``j <= i`` ordered by ``i``
+    then ``j``; reading ``i`` as the column and ``j`` as the row reproduces
+    exactly the ``for column: for row in range(column + 1)`` order of the
+    literal packer.
+    """
+
+    columns, rows = np.tril_indices(size)
+    scales = np.where(rows == columns, 1.0, np.sqrt(2.0))
+    return (
+        np.asarray(rows, dtype=np.int64),
+        np.asarray(columns, dtype=np.int64),
+        np.asarray(scales, dtype=float),
+    )
+
+
 def _clarabel_svec_upper(matrix: FloatArray) -> FloatArray:
     """Pack a symmetric matrix in Clarabel's scaled upper-triangle order."""
 
     value = np.asarray(matrix, dtype=float)
     if value.ndim != 2 or value.shape[0] != value.shape[1]:
         raise ValueError("svec requires one square matrix")
-    packed: list[float] = []
-    root_two = np.sqrt(2.0)
-    for column in range(value.shape[1]):
-        for row in range(column + 1):
-            scale = 1.0 if row == column else root_two
-            packed.append(scale * float(value[row, column]))
-    return np.asarray(packed, dtype=float)
+    rows, columns, scales = _clarabel_svec_upper_pattern(int(value.shape[1]))
+    return np.asarray(scales * value[rows, columns], dtype=float)
 
 
 def _word_scale(word: _OperatorKey, envelope: float) -> float:

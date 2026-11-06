@@ -1,0 +1,167 @@
+\documentclass[10pt]{article}
+\usepackage[margin=1.4cm,landscape]{geometry}\usepackage{booktabs,graphicx,float,amsmath,amssymb}
+\usepackage[T1]{fontenc}\setlength{\parskip}{4pt}
+\begin{document}
+\section*{Corrected exchange-face campaign against the current manuscript values}
+Generated 2026-09-06 18:58Z.  10 of 11 corrected cells returned so far; the remaining cells (weak--slow $\delta\theta$, weak--slow state motion, strong--slow state motion) are appended when they land.  \emph{Corrected} trajectories run the exchange-face search with the declared insertion frontier ($W=8$, profile \texttt{paper\_declared\_exchange\_v1}), which admits every deletion-cardinality rung the joint-work cap had refused whole; every other setting is the reported cell's.  Under the reported permission bound, a deletion batch is admitted only when $\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]\le2\times10^{-3}$, so every committed exchange below removes a coordinate whose accumulated effective angle was at most $2\times10^{-3}$ at the time point.
+\textbf{Hamiltonian.} Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits).  Drives are on-site-density modulations with the staggered pattern $(+1,-1)$, $\bar t=1$, $\phi=0$, at the amplitude and frequency $(A,\omega)$ named in each row.
+This report applies no accuracy guard or pass/fail rule: every arm's errors are printed and left to the reader.
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Manuscript Table~I columns for every corrected cell.  \emph{reported}: the AP-McLachlan trajectory in the current manuscript; \emph{corrected}: the same cell re-run with the declared exchange insertion frontier ($W=8$), which lets the search enumerate true-exchange patches; AVQDS: the locked comparator.  $\overline{|\Delta E|}$, $\overline{|\Delta D|}$, $\overline{|\Delta n|}$ in $10^{-4}$ over all 501 reporting times; $\mathcal E$ in $10^{8}$; $N_{\rm step}$ in $10^{3}$; \emph{exch.} counts committed patches that both delete and insert.}
+\begin{tabular}{lllrrrrrrrrrr}\toprule
+$(A,\omega)$ & controller & trajectory & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch. \\ \midrule
+$(0.3,\,1)$ & $\delta\theta$ & APM reported & 2.17 & 1.65 & 7.45 & 59 & 185 & 139 & 502 & 27.1 & 73.9 & 0 \\
+ &  & APM corrected & 2.17 & 1.65 & 7.45 & 59 & 185 & 139 & 502 & 27.1 & 73.9 & 40 \\
+ &  & AVQDS & 1.47 & 1.36 & 7.95 & 945 & 2835 & 2710 & 9708 & 549 & 93.2 & -- \\
+\addlinespace[2pt]
+$(0.3,\,1)$ & state motion & APM reported & 2.16 & 2.84 & 7.09 & 59 & 213 & 173 & 600 & 20.3 & 49.1 & 0 \\
+ &  & APM corrected & 2.16 & 2.84 & 7.09 & 59 & 213 & 173 & 600 & 20.3 & 49.1 & 28 \\
+ &  & AVQDS & 1.51 & 1.45 & 7.92 & 370 & 2049 & 1933 & 7209 & 45.0 & 37.1 & -- \\
+\addlinespace[2pt]
+$(0.6,\,3)$ & $\delta\theta$ & APM reported & 8.18 & 1.81 & 6.31 & 45 & 130 & 91 & 309 & 10.8 & 709 & 0 \\
+ &  & APM corrected & 16.2 & 3.03 & 8.17 & 50 & 152 & 115 & 402 & 9.37 & 524 & 3 \\
+ &  & AVQDS & 4.24 & 1.18 & 3.86 & 61 & 233 & 190 & 682 & 15.1 & 796 & -- \\
+\addlinespace[2pt]
+$(0.6,\,3)$ & state motion & APM reported & 8.96 & 3.01 & 6.26 & 49 & 150 & 128 & 463 & 8.37 & 498 & 0 \\
+ &  & APM corrected & 3.73 & 2.00 & 3.65 & 43 & 164 & 128 & 442 & 6.83 & 498 & 2 \\
+ &  & AVQDS & 5.25 & 1.52 & 4.60 & 60 & 233 & 192 & 692 & 9.31 & 498 & -- \\
+\addlinespace[2pt]
+$(1.2,\,2)$ & $\delta\theta$ & APM reported & 1.03 & 1.89 & 3.53 & 49 & 145 & 116 & 426 & 17.2 & 1084 & 0 \\
+ &  & APM corrected & 6.52 & 2.23 & 2.51 & 42 & 170 & 131 & 437 & 10.5 & 960 & 2 \\
+ &  & AVQDS & 4.77 & 1.43 & 1.76 & 60 & 216 & 185 & 666 & 17.1 & 948 & -- \\
+\addlinespace[2pt]
+$(1.2,\,2)$ & state motion & APM reported & 5.80 & 1.87 & 2.86 & 48 & 152 & 130 & 478 & 8.79 & 500 & 0 \\
+ &  & APM corrected & 2.71 & 2.59 & 2.88 & 40 & 154 & 117 & 406 & 5.92 & 500 & 3 \\
+ &  & AVQDS & 5.83 & 1.69 & 2.74 & 60 & 216 & 185 & 669 & 9.22 & 500 & -- \\
+\addlinespace[2pt]
+$(1.2,\,1)$ & $\delta\theta$ & APM reported & 3.40 & 2.54 & 2.56 & 50 & 187 & 150 & 498 & 11.3 & 700 & 0 \\
+ &  & APM corrected & 2.98 & 3.52 & 7.37 & 50 & 158 & 132 & 472 & 11.7 & 749 & 4 \\
+ &  & AVQDS & 1.99 & 1.16 & 1.17 & 62 & 251 & 214 & 748 & 10.2 & 519 & -- \\
+\addlinespace[2pt]
+$(2.4,\,3)$ & $\delta\theta$ & APM reported & 3.50 & 1.44 & 4.71 & 44 & 144 & 113 & 432 & 14.0 & 1227 & 0 \\
+ &  & APM corrected & 4.30 & 1.45 & 4.64 & 42 & 132 & 98 & 365 & 16.7 & 1589 & 5 \\
+ &  & AVQDS & 20.7 & 2.13 & 7.41 & 555 & 3123 & 2893 & 10979 & 346 & 441 & -- \\
+\addlinespace[2pt]
+$(0.6,\,6)$ & $\delta\theta$ & APM reported & 5.73 & 0.93 & 4.09 & 47 & 159 & 125 & 430 & 17.2 & 1279 & 0 \\
+ &  & APM corrected & 5.41 & 2.77 & 4.74 & 44 & 117 & 85 & 322 & 17.1 & 1391 & 5 \\
+ &  & AVQDS & 8.18 & 1.34 & 3.14 & 65 & 271 & 242 & 838 & 14.8 & 688 & -- \\
+\addlinespace[2pt]
+$(0.6,\,6)$ & state motion & APM reported & 17.1 & 2.72 & 6.60 & 49 & 162 & 128 & 450 & 7.78 & 504 & 0 \\
+ &  & APM corrected & 6.17 & 1.29 & 3.68 & 51 & 169 & 112 & 407 & 7.95 & 504 & 5 \\
+ &  & AVQDS & 4.50 & 0.71 & 2.28 & 100 & 424 & 339 & 1146 & 19.0 & 504 & -- \\
+\addlinespace[2pt]
+\bottomrule\end{tabular}\end{table}
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\caption{Structural actions at generator granularity for the reported and corrected AP-McLachlan trajectories (manuscript Table~II).  \emph{Inserted} and \emph{deleted} count structural events; \emph{exch.} counts time points whose committed patch both deletes and inserts; \emph{del.\ then re-ins.} a generator deleted and later re-inserted, \emph{ins.\ then del.} a generator inserted and later deleted; \emph{finalists tested/failed} are deletion-bearing finalists materialized and sent to the hard gates, over those failing a gate after materialization; \emph{exchange commits} counts accepted exchange patches over all selector rounds (several may commit inside one time point).}
+\begin{tabular}{lllrrrrrrcr}\toprule
+$(A,\omega)$ & controller & trajectory & $\mathcal E$ & ins. & del. & exch. & \shortstack{del.\ then\\re-ins.} & \shortstack{ins.\ then\\del.} & \shortstack{finalists\\tested/failed} & \shortstack{exchange\\commits} \\ \midrule
+$(0.3,\,1)$ & $\delta\theta$ & reported & 27.1 & 287 & 280 & 40 & 202 & 219 & 804/621 & -- \\
+ &  & corrected & 27.1 & 287 & 280 & 40 & 202 & 219 & 804/621 & 32 \\
+\addlinespace[2pt]
+$(0.3,\,1)$ & state motion & reported & 20.3 & 194 & 197 & 28 & 129 & 143 & 761/619 & -- \\
+ &  & corrected & 20.3 & 194 & 197 & 28 & 129 & 143 & 761/619 & 24 \\
+\addlinespace[2pt]
+$(0.6,\,3)$ & $\delta\theta$ & reported & 10.8 & 47 & 38 & 0 & 12 & 21 & 30/0 & 0 \\
+ &  & corrected & 9.37 & 41 & 27 & 3 & 12 & 21 & 22/1 & 3 \\
+\addlinespace[2pt]
+$(0.6,\,3)$ & state motion & reported & 8.37 & 39 & 22 & 0 & 7 & 16 & 22/1 & 0 \\
+ &  & corrected & 6.83 & 43 & 30 & 2 & 10 & 18 & 26/0 & 1 \\
+\addlinespace[2pt]
+$(1.2,\,2)$ & $\delta\theta$ & reported & 17.2 & 73 & 54 & 0 & 21 & 40 & 42/0 & 0 \\
+ &  & corrected & 10.5 & 25 & 16 & 2 & 5 & 9 & 15/1 & 2 \\
+\addlinespace[2pt]
+$(1.2,\,2)$ & state motion & reported & 8.79 & 67 & 50 & 0 & 24 & 38 & 37/0 & 0 \\
+ &  & corrected & 5.92 & 27 & 20 & 3 & 5 & 10 & 18/1 & 3 \\
+\addlinespace[2pt]
+$(1.2,\,1)$ & $\delta\theta$ & reported & 11.3 & 43 & 22 & 0 & 9 & 17 & 21/3 & 0 \\
+ &  & corrected & 11.7 & 46 & 25 & 4 & 8 & 18 & 28/5 & 4 \\
+\addlinespace[2pt]
+$(2.4,\,3)$ & $\delta\theta$ & reported & 14.0 & 27 & 15 & 0 & 5 & 8 & 14/0 & 0 \\
+ &  & corrected & 16.7 & 27 & 15 & 5 & 1 & 4 & 12/0 & 4 \\
+\addlinespace[2pt]
+$(0.6,\,6)$ & $\delta\theta$ & reported & 17.2 & 32 & 15 & 0 & 3 & 8 & 14/0 & 0 \\
+ &  & corrected & 17.1 & 50 & 38 & 5 & 14 & 23 & 34/2 & 3 \\
+\addlinespace[2pt]
+$(0.6,\,6)$ & state motion & reported & 7.78 & 30 & 11 & 0 & 2 & 9 & 11/0 & 0 \\
+ &  & corrected & 7.95 & 43 & 24 & 5 & 8 & 12 & 20/2 & 3 \\
+\addlinespace[2pt]
+\bottomrule\end{tabular}\end{table}
+\clearpage
+\section*{Pre-permission threshold pilot}
+\textbf{Hamiltonian.} Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=2.4$, $\omega=3$, $\bar t=1$, $\phi=0$.
+Strong--fast $(2.4,3)$ $\delta\theta$, $t=0\to20$.  The manuscript admits a deletion batch $D$ only when its ray bound $\sin[\min(\pi/2,\sum_{\mu\in D}|\theta_\mu c_\mu|)]$ lies below the post-refit tolerance $2\times10^{-3}$; each pilot run tests that bound at $\tau_{\rm pre}$ instead, leaving the post-refit ray and velocity certificates unchanged.  Columns as in the corrected-campaign table; \emph{permitted} is the number of deletion sets the permission test admitted over the number it evaluated.
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}\begin{tabular}{lrrrrrrrrrrl}\toprule
+$\tau_{\rm pre}$ & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch. & permitted / evaluated \\ \midrule
+$2\times10^{-3}$ (manuscript bound) & 4.30 & 1.45 & 4.64 & 42 & 132 & 98 & 365 & 16.7 & 1589 & 4 & 129 / 4,758,651 \\
+$5\times10^{-3}$ & 27.4 & 3.30 & 17.2 & 31 & 103 & 89 & 321 & 11.5 & 1519 & 4 & 470 / 13,758,252 \\
+$1\times10^{-2}$ & 5.92 & 2.12 & 16.5 & 40 & 105 & 76 & 266 & 19.9 & 2068 & 4 & 784 / 4,124,021 \\
+$2\times10^{-2}$ & 19.2 & 11.5 & 35.4 & 36 & 98 & 77 & 276 & 17.5 & 2240 & 6 & 1,238 / 18,148,171 \\
+$5\times10^{-2}$ & 9.68 & 14.6 & 42.0 & 40 & 111 & 84 & 301 & 16.9 & 1775 & 8 & 4,300 / 3,698,861 \\
+$1\times10^{-1}$ & 21.7 & 12.3 & 35.4 & 39 & 110 & 76 & 271 & 21.0 & 2441 & 0 & 12,203 / 6,737,189 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/pilot_strongfast_dtheta.pdf}\caption{Total energy, doublon occupation and charge imbalance of the pilot trajectories against the exact reference (the strong--fast AVQDS comparator has no fresh trajectory yet).  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=2.4$, $\omega=3$, $\bar t=1$, $\phi=0$.}\end{figure}
+\section*{Activation-threshold rungs for the two corrected cells outside the factor-two rule}
+\textbf{Hamiltonian.} Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); the drive of each cell is stated in its caption.
+The activation threshold $\tau_m$ of Eq.~(realized\_mclachlan\_distance) is stepped on the factor-three ladder the reported cells were chosen on; every run keeps the declared insertion frontier and the manuscript's permission bound.  The AVQDS comparator row is the locked one.
+\subsection*{weak--fast $(0.6,\,3)$, $\delta\theta$}
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}\begin{tabular}{lrrrrrrrrrr}\toprule
+$\tau_m$ & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch. \\ \midrule
+$3\times10^{-7}$ & 16.2 & 3.03 & 8.17 & 50 & 152 & 115 & 402 & 9.37 & 524 & 3 \\
+$1\times10^{-7}$ & 15.4 & 2.88 & 8.20 & 45 & 121 & 78 & 281 & 11.0 & 581 & 2 \\
+$3.33\times10^{-8}$ & 13.1 & 2.92 & 5.93 & 50 & 133 & 111 & 403 & 11.1 & 440 & 6 \\
+$1\times10^{-8}$ & 13.8 & 2.39 & 7.87 & 53 & 151 & 122 & 426 & 12.4 & 350 & 7 \\
+AVQDS (locked) & 4.24 & 1.18 & 3.86 & 61 & 233 & 190 & 682 & 15.1 & 796 & 0 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/rungs_fastweak__delta_theta_5e-5.pdf}\caption{Total energy, doublon occupation and charge imbalance of the rung trajectories, the exact reference and the AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.6$, $\omega=3$, $\bar t=1$, $\phi=0$.}\end{figure}
+\subsection*{strong--slow $(1.2,\,1)$, $\delta\theta$}
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}\begin{tabular}{lrrrrrrrrrr}\toprule
+$\tau_m$ & $\overline{|\Delta E|}$ & $\overline{|\Delta D|}$ & $\overline{|\Delta n|}$ & $N_\theta$ & $N_{2q}$ & $D_{2q}$ & $D_c$ & $\mathcal E$ & $N_{\rm step}$ & exch. \\ \midrule
+$3\times10^{-6}$ & 2.98 & 3.52 & 7.37 & 50 & 158 & 132 & 472 & 11.7 & 749 & 4 \\
+$1\times10^{-6}$ & 4.52 & 2.05 & 2.64 & 46 & 145 & 110 & 392 & 9.15 & 621 & 4 \\
+$3\times10^{-7}$ & 4.93 & 2.93 & 3.34 & 42 & 127 & 89 & 305 & 8.48 & 533 & 4 \\
+$1\times10^{-7}$ & 4.27 & 1.52 & 4.54 & 50 & 144 & 117 & 434 & 8.38 & 444 & 4 \\
+$3.33\times10^{-8}$ & 6.25 & 2.99 & 3.49 & 48 & 151 & 124 & 451 & 7.47 & 388 & 7 \\
+AVQDS (locked) & 1.99 & 1.16 & 1.17 & 62 & 251 & 214 & 748 & 10.2 & 519 & 0 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/rungs_slowstrong__delta_theta_5e-5.pdf}\caption{Total energy, doublon occupation and charge imbalance of the rung trajectories, the exact reference and the AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=1.2$, $\omega=1$, $\bar t=1$, $\phi=0$.}\end{figure}
+\section*{SIAM $N_b=4$ (10 qubits) activation-threshold ladder}
+\textbf{Hamiltonian.} single-impurity Anderson model in a finite box, $N_b=4$ bath sites (10 qubits), hopping $t=1$, $U=1.5$, hybridization quench $V: 0\to0.7071$ at $t=0$, $N_\uparrow=3$, $N_\downarrow=2$.
+Screens over $t\in[0,1]$ (101 points) at the activation cut of each rung, both arms on the compiled-$Q$ route; the AP-McLachlan arm uses the declared insertion frontier and the manuscript's permission bound.  Errors are normalized by the RMS excursion of the exact reference (the scorer's response components); \emph{burden} is their aggregate.  No target or guard is applied here.
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}\begin{tabular}{llrlrrrrrrrrrr}\toprule
+arm & segment & rung & cut & $C_{1}$ & $C_{2}$ & $C_{3}$ & $C_{4}$ & $D_{d}$ & fidelity & $m_{d}$ & burden & $N_\theta$ & exch. \\ \midrule
+APM (exchange face) & $t\in[0,1]$ & 0 & $10^{-2}$ & 0.919 & 2.13 & 20.2 & 1.51 & 0.152 & 4.91 & 0.0704 & 5.66 & 25 & 0 \\
+APM (exchange face) & $t\in[0,1]$ & 1 & $3.33\times10^{-3}$ & 0.271 & 0.505 & 15 & 0.92 & 0.0231 & 1.05 & 0.051 & 3.79 & 24 & 0 \\
+AVQDS & $t\in[0,1]$ & 0 & $10^{-2}$ & 0.833 & 1.73 & 13.1 & 1.87 & 0.123 & 3.83 & 0.0614 & 3.86 & 15 & 0 \\
+AVQDS & $t\in[0,1]$ & 1 & $3.33\times10^{-3}$ & 0.275 & 0.255 & 2.71 & 1.11 & 0.0412 & 1.08 & 0.044 & 0.916 & 20 & 0 \\
+AVQDS & $t\in[0,1]$ & 2 & $10^{-3}$ & 0.0705 & 0.2 & 1.59 & 0.455 & 0.0715 & 0.26 & 0.04 & 0.438 & 24 & 0 \\
+AVQDS & $t\in[0,1]$ & 3 & $3.33\times10^{-4}$ & 0.0936 & 0.113 & 3.83 & 0.245 & 0.0221 & 0.0702 & 0.0123 & 0.961 & 25 & 0 \\
+AVQDS & $t\in[0,1]$ & 4 & $10^{-4}$ & 0.115 & 0.11 & 3.92 & 0.129 & 0.0125 & 0.0168 & 0.00176 & 0.982 & 22 & 0 \\
+AVQDS & $t\in[0,1]$ & 5 & $3.33\times10^{-5}$ & 0.049 & 0.0441 & 2.07 & 0.0806 & 0.00672 & 0.0069 & 0.00226 & 0.518 & 32 & 0 \\
+AVQDS & $t\in[0,1]$ & 6 & $10^{-5}$ & 0.0349 & 0.0339 & 1.2 & 0.053 & 0.00251 & 0.00275 & 0.00265 & 0.3 & 80 & 0 \\
+AVQDS & $t\in[0,1]$ & 7 & $3.33\times10^{-6}$ & 0.00712 & 0.00708 & 1.3 & 0.0504 & 0.00193 & 0.0015 & 0.000911 & 0.324 & 90 & 0 \\
+AVQDS & $t\in[0,1]$ & 8 & $10^{-6}$ & 0.00242 & 0.00879 & 1.14 & 0.0433 & 0.00233 & 0.000611 & 0.00114 & 0.285 & 124 & 0 \\
+AVQDS & $t\in[0,1]$ & 9 & $3.33\times10^{-7}$ & 0.0029 & 0.00681 & 0.44 & 0.0195 & 0.0026 & 0.000245 & 0.00142 & 0.11 & 161 & 0 \\
+\bottomrule\end{tabular}\end{table}
+Observables (offline, from the checkpoint statevectors): impurity number $N_d=n_{d\uparrow}+n_{d\downarrow}$, impurity double occupancy $D_d$, impurity magnetization $m_d$, impurity spin square $S_d^2=\tfrac34(N_d-2D_d)$, impurity--bath spin correlators $C_1,\dots,C_4$ by bath site, and the integrated screening $\Sigma_r=S_d^2+\sum_{j\le r}C_j$.  Each response component above is the mean absolute error of that observable divided by its RMS excursion along the exact reference; the table below gives the mean absolute errors and the excursions themselves for the latest screen of each arm.
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{4pt}\begin{tabular}{llrrrrrrrrr}\toprule
+arm & quantity & $N_d$ & $D_d$ & $m_d$ & $S_d^2$ & $C_1$ & $C_2$ & $C_3$ & $C_4$ & $\Sigma_4$ \\ \midrule
+APM (exchange face) (rung 1) & mean abs.\ error & -- & 8.34e-05 & 4.36e-04 & -- & 3.60e-04 & 6.82e-04 & 3.36e-04 & 7.92e-04 & -- \\
+ & RMS excursion of the exact reference & -- & 7.22e-02 & 1.71e-01 & -- & 2.66e-02 & 2.70e-02 & 4.49e-04 & 1.72e-02 & -- \\
+AVQDS (rung 9) & mean abs.\ error & -- & 9.39e-06 & 1.22e-05 & -- & 3.85e-06 & 9.20e-06 & 9.88e-06 & 1.68e-05 & -- \\
+ & RMS excursion of the exact reference & -- & 7.22e-02 & 1.71e-01 & -- & 2.66e-02 & 2.70e-02 & 4.49e-04 & 1.72e-02 & -- \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering\includegraphics[width=0.92\linewidth]{figures/siam_observables_apm_r01.pdf}\caption{APM (exchange face), rung 1 screen ($t\in[0,1]$): observables against the exact reference.  single-impurity Anderson model in a finite box, $N_b=4$ bath sites (10 qubits), hopping $t=1$, $U=1.5$, hybridization quench $V: 0\to0.7071$ at $t=0$, $N_\uparrow=3$, $N_\downarrow=2$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=0.92\linewidth]{figures/siam_observables_avqds_r09.pdf}\caption{AVQDS, rung 9 screen ($t\in[0,1]$): observables against the exact reference.  single-impurity Anderson model in a finite box, $N_b=4$ bath sites (10 qubits), hopping $t=1$, $U=1.5$, hybridization quench $V: 0\to0.7071$ at $t=0$, $N_\uparrow=3$, $N_\downarrow=2$.}\end{figure}
+\clearpage
+\section*{Observables of the corrected cells}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/weakslow__delta_theta_5e-5.pdf}\caption{weak--slow $(0.3,\,1)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.3$, $\omega=1$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/weakslow__state_motion_5e-5.pdf}\caption{weak--slow $(0.3,\,1)$, state motion: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.3$, $\omega=1$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/fastweak__delta_theta_5e-5.pdf}\caption{weak--fast $(0.6,\,3)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.6$, $\omega=3$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/fastweak__state_motion_5e-5.pdf}\caption{weak--fast $(0.6,\,3)$, state motion: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.6$, $\omega=3$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/midres__delta_theta_5e-5.pdf}\caption{strong--mid $(1.2,\,2)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=1.2$, $\omega=2$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/midres__state_motion_5e-5.pdf}\caption{strong--mid $(1.2,\,2)$, state motion: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=1.2$, $\omega=2$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/slowstrong__delta_theta_5e-5.pdf}\caption{strong--slow $(1.2,\,1)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=1.2$, $\omega=1$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/strongfast__delta_theta_5e-5.pdf}\caption{strong--fast $(2.4,\,3)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=2.4$, $\omega=3$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/fastfast__delta_theta_5e-5.pdf}\caption{weak--fastest $(0.6,\,6)$, $\delta\theta$: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.6$, $\omega=6$, $\bar t=1$, $\phi=0$.}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=\linewidth]{figures/fastfast__state_motion_5e-5.pdf}\caption{weak--fastest $(0.6,\,6)$, state motion: total energy, doublon occupation and charge imbalance; exact reference, corrected AP-McLachlan trajectory, AVQDS comparator.  Hubbard--Holstein chain, $L=2$ sites (open boundary), $t=1$, $U=4$, $g_{\rm ep}=0.5$, $\omega_0=1$, $n_{\rm ph}\le1$ (6 qubits); drive on the on-site density, staggered pattern (1.0, -1.0), $A=0.6$, $\omega=6$, $\bar t=1$, $\phi=0$.}\end{figure}
+\end{document}

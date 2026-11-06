@@ -1,0 +1,34 @@
+# Paper V CWRMF bounded-depth event-triggered guard, balanced profile.
+# Segment 04 of 8: t = 1.50 to 2.00 at h = 0.0025,
+# event Gram hard floor 2e-4, bounded step halving at depth 2.
+# Argument contract: run_id final_time time_step event_gram_hard_floor \
+#   initial_state_file expected_initial_time  ("none none" for the first
+#   segment).  expected_initial_time is the time the declared checkpoint must
+#   hold; the driver refuses the pair when they disagree.
+# This file is the planned grid.  It is submitted once, under the run id it
+# carries.  If the segment before it returned stop_reason wall_budget, or was
+# itself a resume, the checkpoint named below is not the one to continue
+# from: write the continuation with
+#   python3 chtc/paper_v_cwrmf_event_guard_accel_20260915/make_resume_submit.py archives_by_receipt/<sha>/receipt.json
+# and submit what that writes instead of this file.
+universe = vanilla
+executable = chtc/paper_v_cwrmf_event_guard_accel_20260915/run_cwrmf_event_guard_accel_apptainer.sh
+arguments = accel_s04_t1500_t2000 2.00 0.0025 2e-4 raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s03_t1000_t1500/checkpoint.npz 1.50
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = paper_5/src, chtc/paper_v_cwrmf_event_guard_accel_20260915, chtc/time_dynamics_optuna/image.sif, raw_outputs/paper_v_cwrmf_event_guard_accel_20260915_v1/accel_s03_t1000_t1500/checkpoint.npz
+transfer_output_files = raw_outputs, logs, archives_by_receipt
+stream_output = False
+stream_error = False
+log = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.$(Cluster).$(Process).log
+output = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.accel_s04_t1500_t2000.$(Cluster).$(Process).out
+error = logs/paper_v_cwrmf_event_guard_accel_20260915_v1.accel_s04_t1500_t2000.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 12GB
+request_disk = 30GB
++MaxRuntime = 172800
++JobBatchName = "paper_v_cwrmf_event_guard_accel_20260915_v1-accel_s04_t1500_t2000"
+queue 1

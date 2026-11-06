@@ -1,0 +1,58 @@
+{
+  "schema": "paper_ii_final_selector_submission_receipt_v1",
+  "recorded_utc": "2026-09-03T06:43:39Z",
+  "cluster_id": 9718529,
+  "remote": "jsstrobel@ap2001.chtc.wisc.edu",
+  "remote_workspace": "/home/jsstrobel/Holstein_paper_ii_final_selector_comparison_v1_821a6ad5_20260903",
+  "campaign_id": "paper_ii_final_selector_comparison_v1",
+  "job_batch_name": "paper-ii-final-selector-comparison-v1",
+  "submitted_actions": {
+    "count": 45,
+    "apm": 45,
+    "avqds": 0,
+    "precursors": 0,
+    "routes": {
+      "paper_ii_exchange_legacy_proxy_fixed_v1": 15,
+      "paper_ii_exchange_q_compiled_v1": 15,
+      "paper_ii_exchange_gamma_compiled_v1": 15
+    }
+  },
+  "bindings": {
+    "code_revision": "821a6ad598c86ba27986456d4e0dc4fe5d27ac61",
+    "source_archive_sha256": "bc5d5a539bd5d03717bf37165387b04e18045451d77bdf3899de256d489e2791",
+    "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "matched_cell_lock_sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030",
+    "calibration_receipt_sha256": "9a8d2f1e2cf58d85f1957a15a8e427d239eaae9d50d817bace1cc6e01432e449",
+    "report_refresh_resolution_sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+    "package_manifest_sha256": "ad46d997a638228163db8409b1551be50a8161c4a751525ace9ec894db3ce98d",
+    "transport_archive_sha256": "4be625bf03f5656f14a6e301d70e69cd0804a5f058f34e97cf8f58e2ec676758"
+  },
+  "preflight": {
+    "package_validation": "OK",
+    "container_validation": "OK",
+    "container_source_import": "OK",
+    "condor_dry_run_job_count": 45,
+    "live_overlap_count_before_submit": 0,
+    "calibration_status": "INCOMPLETE",
+    "calibration_error_count": 0,
+    "unverified_response_scale_override_used": false,
+    "active_submission_blocks": []
+  },
+  "resources": {
+    "request_cpus": 4,
+    "request_memory_mb": 10240,
+    "request_disk_kb": 41943040,
+    "max_runtime_seconds": 43200
+  },
+  "scheduler_initial_state": {
+    "idle": 45,
+    "running": 0,
+    "held": 0,
+    "removed": 0,
+    "completed": 0
+  },
+  "adoption": {
+    "paper_evidence_adopted": false,
+    "manuscript_updated": false
+  }
+}

@@ -130,6 +130,16 @@ from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
     is_paper_i_hubbard_l4_ra_application,
     require_paper_i_hubbard_l4_materialization,
 )
+from pipelines.static_adapt.ra_adapt.molecular_closed_shell import (
+    MOLECULAR_CLOSED_SHELL_FAMILY,
+    MOLECULAR_CLOSED_SHELL_LOCK_MESSAGE,
+    MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX,
+    MOLECULAR_CLOSED_SHELL_SUPERSESSION_REASON,
+    is_molecular_closed_shell_application,
+    molecular_closed_shell_adapter_requested,
+    molecular_closed_shell_execution_overlay,
+    molecular_closed_shell_invariants_overlay,
+)
 from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
@@ -520,6 +530,23 @@ def _route_sha256(contract: Mapping[str, Any]) -> str:
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _molecular_application_requested(
+    problem: ResolvedProblemContext | None,
+    request: RAAdaptRequest | ResolvedRAAdaptProtocol | None,
+) -> bool:
+    """Facade-gate test for the named molecular closed-shell application.
+
+    A default (``None``) or foreign request on a molecular problem is not an
+    application and keeps the ordinary facade locked; a request carrying the
+    named adapter is validated fail-closed against the problem.
+    """
+
+    public = request.request if isinstance(request, ResolvedRAAdaptProtocol) else request
+    if not isinstance(public, RAAdaptRequest):
+        return False
+    return is_molecular_closed_shell_application(problem, public)
 
 
 def _h2o_application_active(
@@ -1472,6 +1499,11 @@ def _repaired_route_contract(
             "on the Paper-IV H2O application; Paper-I routes select their "
             "selector cost through their algorithm identity."
         )
+    # The molecular closed-shell lane is identified by its named adapter; the
+    # problem itself is validated where it is available (run_ra_adapt and
+    # build_resolved_ra_protocol), so lineage contracts built without a problem
+    # still carry this lane's identity.
+    molecular_application = molecular_closed_shell_adapter_requested(request)
     if h2o_application:
         parent_contract = (
             canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
@@ -1587,6 +1619,8 @@ def _repaired_route_contract(
         (
             "paper_iv_h2o_ra_adapt__"
             if h2o_application
+            else MOLECULAR_CLOSED_SHELL_ROUTE_PREFIX
+            if molecular_application
             else "paper_i_ra_adapt__"
         )
         + representation
@@ -1726,6 +1760,8 @@ def _repaired_route_contract(
                 }
             )
             execution.pop("phase3_backend_cost_scope", None)
+    if molecular_application:
+        execution = molecular_closed_shell_execution_overlay(execution)
     if phase23_qiskit_cost_active:
         execution.update(
             {
@@ -2055,6 +2091,10 @@ def _repaired_route_contract(
                     "selector_compile_cost_no_transpile": True,
                 }
             )
+    if molecular_application:
+        invariants = molecular_closed_shell_invariants_overlay(
+            invariants, request=request
+        )
     if global_singleton_supply is not None:
         invariants.update(global_singleton_supply)
     if pure_hubbard_noise_application:
@@ -2354,6 +2394,14 @@ def _repaired_route_contract(
                 "selector_cost_structural_proxy_to_marrakesh_graph_span_"
                 "fixed_embedding_no_transpile"
             )
+    if molecular_application:
+        only_intended_scientific_changes.extend(
+            [
+                "molecular_restricted_closed_shell_problem_application",
+                "lane_owned_molecular_macro_pool",
+                "proxy_phase3_backend_cost_for_non_hh_problem",
+            ]
+        )
     if global_singleton_supply is not None:
         only_intended_scientific_changes.extend(
             [
@@ -2470,6 +2518,8 @@ def _repaired_route_contract(
                 "20260731"
             )
             if h2o_application and canonical_full_response_v2
+            else MOLECULAR_CLOSED_SHELL_SUPERSESSION_REASON
+            if molecular_application and canonical_full_response_v2
             else "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
             if canonical_full_response_v2
             else (
@@ -2703,6 +2753,12 @@ def build_resolved_ra_protocol(
         problem,
         request,
     )
+    if (
+        str(problem.family_key).strip().lower()
+        == MOLECULAR_CLOSED_SHELL_FAMILY
+        and not is_molecular_closed_shell_application(problem, request)
+    ):
+        raise ValueError(MOLECULAR_CLOSED_SHELL_LOCK_MESSAGE)
     if l3_page12_application:
         require_paper_i_l3_page12_materialization(
             problem=problem,
@@ -6040,6 +6096,10 @@ def run_ra_adapt(
             and int(problem.request.num_sites) in {2, 4}
         )
         or family_key == H2O_LINEAR_FD_FAMILY
+        or (
+            family_key == MOLECULAR_CLOSED_SHELL_FAMILY
+            and _molecular_application_requested(problem, request)
+        )
     ):
         raise ValueError(
             "The ordinary Paper-I RA-ADAPT facade is locked to the canonical "

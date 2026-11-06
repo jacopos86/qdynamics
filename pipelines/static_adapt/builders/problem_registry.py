@@ -814,6 +814,25 @@ def _resolve_molecular_problem_context(
             "molecular_restricted_closed_shell currently supports ordering='blocked' only."
         )
     molecular_problem = _load_molecular_problem_from_request(request)
+    return _resolve_molecular_problem_context_from_problem(
+        family_spec,
+        request,
+        molecular_problem,
+        hamiltonian=hamiltonian,
+        exact_energy_impl=exact_energy_impl,
+    )
+
+
+def _resolve_molecular_problem_context_from_problem(
+    family_spec: ProblemFamilySpec,
+    request: ProblemRequest,
+    molecular_problem: Any,
+    *,
+    hamiltonian: Any | None = None,
+    exact_energy_impl: Callable[..., float] | None = None,
+) -> ResolvedProblemContext:
+    """Construct a context from an already loaded molecular problem snapshot."""
+
     if int(request.num_sites) != int(molecular_problem.n_spatial_orbitals):
         raise ValueError(
             "molecular_restricted_closed_shell request.num_sites must equal "

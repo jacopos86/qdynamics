@@ -1298,6 +1298,11 @@ class StagedCampaign:
     promotion_horizon: str = "t20"
     method_order: tuple[str, ...] = (METHOD_AVQDS, METHOD_APM)
     comparator_first: bool = False
+    # The ledger vocabulary keeps one APM method identity ("exchange"); the
+    # registered arm that realizes it may be a closed selector bundle such as
+    # ``exchange_q_compiled`` (the manuscript's realized Gamma(v*) route on the
+    # dual-selector lineage).  The arm id is recorded in every run id and argv.
+    apm_arm: str = METHOD_APM
 
     def __post_init__(self) -> None:
         if not self.cells:
@@ -1312,6 +1317,11 @@ class StagedCampaign:
             raise KeyError(f"unknown promotion horizon: {self.promotion_horizon!r}")
         if set(self.method_order) != {METHOD_AVQDS, METHOD_APM}:
             raise ValueError("Paper-II staged campaign requires AVQDS and APM")
+        apm_arm = _runs.ARMS.get(str(self.apm_arm))
+        if apm_arm is None or apm_arm.is_comparator:
+            raise ValueError(
+                f"apm_arm must name a registered non-comparator arm; got {self.apm_arm!r}"
+            )
         _continuation_point_count(
             screen_horizon=self.screen_horizon,
             promotion_horizon=self.promotion_horizon,
@@ -1681,7 +1691,11 @@ class StagedCampaign:
                 )
             )
         kwargs: dict[str, Any] = {
-            "arm": action.key.method,
+            "arm": (
+                str(self.apm_arm)
+                if action.key.method == METHOD_APM
+                else action.key.method
+            ),
             "drive": action.key.drive,
             "horizon": action.horizon,
             "output_json": output_json,

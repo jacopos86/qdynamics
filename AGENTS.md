@@ -41,6 +41,7 @@ generated PDFs, run artifacts, route registries, or historical handoffs first.
 | Repository inspection, code, tests, docs cleanup, Git, or handoff | `agent_guidance/shared/repository-work.md`, then the nearest subtree `AGENTS.md` and target files |
 | Planning work another agent will execute, or executing a handoff written by one | `agent_guidance/shared/agent-handoff-contract.md` (anchors, scope, increments, evidence standards, traps, report-back format) |
 | Paper identity or workflow routing | `agent_guidance/paper-registry.yaml`, then `agent_guidance/README.md` and the selected lane contract when present |
+| Paper–Code Review, code-to-paper workflow, viewer versions, or source-line review comments | `agent_guidance/shared/paper-code-review.md` |
 | ADAPT, Hubbard--Holstein, molecular-vibronic, time dynamics, QSE, reporting, mathematical defaults, or route identity | `MATH/AGENTS.md`, `agent_guidance/shared/scientific-invariants.md`, then the selected lane contract when present |
 | Benchmark planning, local/remote execution, CHTC, Optuna, manifests, artifact aggregation, evidence report, or canonical run settings | the scientific route above, then `agent_guidance/shared/run-guide.md` and the exact existing run workflow named by the lane |
 | Completed-evidence table, source-map, or provenance refresh | `MATH/AGENTS.md`, then an existing matching results workflow or explicit target evidence contract |
@@ -134,6 +135,10 @@ or source-locked provenance.
   PDF; do not open, render, image, or visually inspect it unless the user
   explicitly requests that viewing action.
 - Preserve unrelated work, completed evidence, manifests, and source locks.
+- A new or copied manuscript file under `MATH/` declares its identity on line
+  one (`pipelines/shell/manuscript_identity.py --apply`); only a registry-named
+  in-repository source may say `active`. This is what keeps an indexer or agent
+  from linking a superseded copy of a paper whose manuscript lives elsewhere.
 - Git commits are at the agent's discretion, always (user policy,
   2026-08-17): commit deliberately with descriptive messages, without
   asking. This deliberately overrules earlier commit gating anywhere in
@@ -144,13 +149,10 @@ or source-locked provenance.
   on your own branch. Stage commits with explicit paths only — a broad
   `git add -A` in a shared checkout sweeps other agents' uncommitted
   work into your commit (incident: `ba7f2ac9`, 2026-08-18).
-- Memory budget (user directive 2026-08-18, revised 2026-08-31 for the
-  24 GB M4 replacement machine): all agent-launched work combined must
-  stay under 18 GB resident RAM. Read and obey
-  `agent_guidance/shared/memory-budget.md` before launching anything
-  heavy; wrap every heavy process tree in `pipelines/shell/ram_guard.py`.
-  Concurrent heavy jobs are allowed when their guard limits sum to at
-  most 18 GB and the free-memory headroom check passes.
+- Memory use (user revision 2026-09-19): run heavy commands directly,
+  without a mandatory RAM-guard wrapper or an agent-invented per-process
+  memory cap. Check actual machine headroom and concurrent usage through
+  `agent_guidance/shared/memory-budget.md` before substantial launches.
 - Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.

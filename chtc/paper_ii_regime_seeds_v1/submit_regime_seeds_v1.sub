@@ -11,9 +11,11 @@ log = logs/paper-ii-regime-seeds.$(Cluster).$(Process).log
 output = logs/paper-ii-regime-seeds.$(Cluster).$(Process).out
 error = logs/paper-ii-regime-seeds.$(Cluster).$(Process).err
 requirements = TARGET.HasSIF
-request_cpus = 4
-request_memory = 24GB
-request_disk = 40GB
-+MaxRuntime = 86400
+request_cpus = 1
+request_memory = $(request_mem)
+request_disk = 10GB
++MaxRuntime = 172800
++HolsteinRuntimeImageSha256 = "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
++HolsteinSeedPolicy = "three_complete_ordered_hh_hamiltonian_layers_v2"
 +JobBatchName = "holstein-paper-ii-regime-seeds-v1"
-queue regime_id from chtc/paper_ii_regime_seeds_v1/input/regime_ids.txt
+queue regime_id, request_mem from chtc/paper_ii_regime_seeds_v1/input/regime_queue.txt

@@ -56,6 +56,7 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     select_generalized_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
     APGeneralizedExchangeConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
@@ -187,6 +188,16 @@ class SupportPatchControllerConfig:
     # reported configuration, so a flagless call is the paper's route
     # rather than a diagnostic one.
     max_joint_patch_evaluations: int | None = 50000
+    # Positioned insertions offered to each deletion set in a d >= 1 rung.
+    # None (default) is the unrestricted branch pool, i.e. the historical
+    # search; a finite width is the declared exchange-face bound.
+    exchange_insertion_frontier: int | None = None
+    # Threshold for the pre-permission ray bound on the unrefit deletion
+    # (Paper II Eq. deletion_ray_bound).  None (default) reuses the post-refit
+    # ray tolerance ``prune_ray_distance_tol``, the coupling every stored
+    # lineage ran under; a declared value is a separate pre-permission
+    # threshold and leaves the post-refit certificate unchanged.
+    exchange_permission_ray_distance_max: float | None = None
     prune_history_window: int = 3
     prune_history_lambda: float = 0.0
     prune_appended_origin_target_policy: str = PRUNE_TARGET_ALL_ACTIVE
@@ -214,6 +225,21 @@ class SupportPatchControllerConfig:
     max_structural_pool_size: int | None = 8
     max_certification_attempts_per_deletion_branch: int | None = 2
     dynamics_policy: str = "exchange"
+    # Closed route bundle: objective ordinate + cost model + ranking kernel
+    # fixed together (exchange_config.EXCHANGE_ROUTE_BUNDLES).  The default is
+    # the historical route, unchanged.
+    exchange_route_bundle: str = "paper_ii_generalized_exchange_v2"
+    # Maintenance-regime loss tolerance tau_del for the shifted Paper-I kernel;
+    # None inherits prune_patch_smoothness_eta_max (the normalized Schur-loss
+    # tolerance the deletion permission already enforces).
+    maintenance_loss_tolerance: float | None = None
+    # Compile work guard for compiled-cost bundles (families admitted whole).
+    max_compiled_patches_per_checkpoint: int | None = None
+    # Execution resource for compiled-cost bundles (no scientific effect):
+    # compile pool size (None = support_patch_scoring_workers).  Each pool
+    # worker pins its BLAS and rayon threads to 1, so size the pool to the
+    # cores available (request_cpus >= compile_workers + 1).
+    compile_workers: int | None = None
     avqds_l2_cut: float = 1.0e-3
     # Safety valve only; the comparator's algorithmic stopping conditions
     # are its threshold and the absence of an improving candidate.
@@ -234,6 +260,23 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+            resolve_route_bundle,
+        )
+
+        resolve_route_bundle(str(self.exchange_route_bundle))
+        if self.maintenance_loss_tolerance is not None and (
+            not math.isfinite(float(self.maintenance_loss_tolerance))
+            or float(self.maintenance_loss_tolerance) < 0.0
+        ):
+            raise ValueError("maintenance_loss_tolerance must be finite and non-negative.")
+        if (
+            self.max_compiled_patches_per_checkpoint is not None
+            and int(self.max_compiled_patches_per_checkpoint) < 1
+        ):
+            raise ValueError("max_compiled_patches_per_checkpoint must be positive.")
+        if self.compile_workers is not None and int(self.compile_workers) < 1:
+            raise ValueError("compile_workers must be positive.")
         if str(self.debt_policy) not in {
             "insertion_only", "any_improving", "drift_ranked"
         }:
@@ -303,6 +346,17 @@ class SupportPatchControllerConfig:
             raise ValueError("AP support-patch decisions must not use reference trajectories.")
         if bool(self.uses_future_exact_forecast_for_decision):
             raise ValueError("AP support-patch decisions must not use future exact forecasts.")
+        if (
+            self.exchange_insertion_frontier is not None
+            and int(self.exchange_insertion_frontier) < 1
+        ):
+            raise ValueError("exchange_insertion_frontier must be at least 1.")
+        if self.exchange_permission_ray_distance_max is not None and not (
+            float(self.exchange_permission_ray_distance_max) > 0.0
+        ):
+            raise ValueError(
+                "exchange_permission_ray_distance_max must be positive."
+            )
         AppendCostSettings.from_config(self)
 
     def to_json_dict(self) -> dict[str, Any]:
@@ -396,6 +450,20 @@ class SupportPatchControllerConfig:
                 else int(self.max_structural_pool_size)
             ),
             "dynamics_policy": str(self.dynamics_policy),
+            "exchange_route_bundle": str(self.exchange_route_bundle),
+            "maintenance_loss_tolerance": (
+                None
+                if self.maintenance_loss_tolerance is None
+                else float(self.maintenance_loss_tolerance)
+            ),
+            "max_compiled_patches_per_checkpoint": (
+                None
+                if self.max_compiled_patches_per_checkpoint is None
+                else int(self.max_compiled_patches_per_checkpoint)
+            ),
+            "compile_workers": (
+                None if self.compile_workers is None else int(self.compile_workers)
+            ),
             "avqds_l2_cut": float(self.avqds_l2_cut),
             "avqds_max_appends_per_checkpoint": (
                 None
@@ -415,6 +483,18 @@ class SupportPatchControllerConfig:
                 self.uses_future_exact_forecast_for_decision
             ),
         }
+        if self.exchange_insertion_frontier is not None:
+            # Emitted only when declared: an undeclared bound must leave the
+            # provenance object identical to every stored lineage's, so that a
+            # completed run still validates against a recomputed contract.
+            payload["exchange_insertion_frontier"] = int(
+                self.exchange_insertion_frontier
+            )
+        if self.exchange_permission_ray_distance_max is not None:
+            # Same rule: undeclared leaves the provenance object byte-identical.
+            payload["exchange_permission_ray_distance_max"] = float(
+                self.exchange_permission_ray_distance_max
+            )
         payload["generalized_exchange"] = (
             APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
         )
@@ -1069,8 +1149,12 @@ def run_append_mclachlan_trajectory(
                     )
                     insertion_rounds = 0
                     round_labels: list[str] = []
+                    selection_round_work: list[dict[str, Any]] = []
 
                     for _round in range(max_rounds + 1):
+                        selector_pre_support = int(
+                            current_state.runtime_parameter_count
+                        )
                         with phase(PHASE_UNIFIED_SELECT):
                             selection, selection_payload = select_generalized_exchange_patch(
                                 state=current_state,
@@ -1093,6 +1177,33 @@ def run_append_mclachlan_trajectory(
                             maybe_step,
                         ) = _decision_from_exchange_selection(
                             selection, selection_payload
+                        )
+                        selector_post_support = (
+                            int(maybe_state.runtime_parameter_count)
+                            if decision.accepted and maybe_state is not None
+                            else int(selector_pre_support)
+                        )
+                        round_estimator_work = dict(
+                            selection_payload.get("estimator_work") or {}
+                        )
+                        selection_round_work.append(
+                            {
+                                "schema": "paper_ii_exchange_selection_round_work_v1",
+                                "selector_call_index": int(len(selection_round_work)),
+                                "pre_runtime_parameter_count": int(
+                                    selector_pre_support
+                                ),
+                                "post_runtime_parameter_count": int(
+                                    selector_post_support
+                                ),
+                                "accepted": bool(decision.accepted),
+                                "patch_kind": str(decision.patch_kind),
+                                "reason": str(decision.reason),
+                                "estimator_work": round_estimator_work,
+                                "complete": bool(
+                                    round_estimator_work.get("complete", False)
+                                ),
+                            }
                         )
                         if gate_mode != "mclachlan_l2":
                             break
@@ -1123,18 +1234,33 @@ def run_append_mclachlan_trajectory(
                         # to 20 while L^2 went from 4.5e-4 to 1.3e-3.
                         if checkpoint_l2 >= l2_before_round:
                             break
+                    round_metadata: dict[str, Any] = {
+                        "selection_round_work_schema": (
+                            "paper_ii_exchange_selection_round_work_v1"
+                        ),
+                        "selection_round_work": list(selection_round_work),
+                        "selector_call_count": int(len(selection_round_work)),
+                        "accepted_selector_count": int(
+                            sum(bool(row["accepted"]) for row in selection_round_work)
+                        ),
+                    }
                     if gate_mode == "mclachlan_l2":
-                        decision = replace(
-                            decision,
-                            metadata={
-                                **dict(decision.metadata or {}),
+                        round_metadata.update(
+                            {
                                 "insertion_gate_mode": gate_mode,
                                 "insertion_rounds": int(insertion_rounds),
                                 "insertion_round_kinds": list(round_labels),
                                 "checkpoint_l2_final": float(checkpoint_l2),
                                 "insertion_l2_cut": float(l2_cut),
-                            },
+                            }
                         )
+                    decision = replace(
+                        decision,
+                        metadata={
+                            **dict(decision.metadata or {}),
+                            **round_metadata,
+                        },
+                    )
             if (
                 not committed_in_round_loop
                 and decision.accepted
@@ -1248,7 +1374,17 @@ def run_append_mclachlan_trajectory(
         controller_resume_state=terminal_controller_resume_state,
         metadata={
             "trajectory_kind": "generalized_exchange_support_patch",
+            # Family label (pinned for historical readers) plus the closed route
+            # bundle actually in force, so compiled-Q runs are distinguishable.
             "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
+            "selection_route_bundle": str(
+                getattr(
+                    support_patch_config,
+                    "exchange_route_bundle",
+                    EXCHANGE_ROUTE_BUNDLE_HISTORICAL,
+                )
+                or EXCHANGE_ROUTE_BUNDLE_HISTORICAL
+            ),
             "uses_reference_for_decision": False,
             "uses_exact_reference_for_decision": False,
             "uses_future_exact_forecast_for_decision": False,

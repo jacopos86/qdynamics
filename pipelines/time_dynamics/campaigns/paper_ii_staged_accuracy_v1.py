@@ -46,6 +46,7 @@ from pipelines.time_dynamics.response_scales import (
 )
 from pipelines.time_dynamics.staged_campaign import (
     ACTION_RECORD_SAFEGUARD,
+    METHOD_APM,
     AccuracyPolicy,
     CampaignLedger,
     CellAction,
@@ -65,6 +66,85 @@ from pipelines.time_dynamics.staged_campaign_chtc import (
 
 
 CAMPAIGN_ID = "paper_ii_staged_accuracy_euler_v1"
+# The locked calibration campaign runs the seed every measurement was taken on
+# to the t20 promotion horizon. A regime survey reuses the same staged machinery
+# for another registered regime and a shorter promotion horizon; its campaign id
+# and output root are suffixed so it can never be confused with the locked
+# ledger, and the canonical response-normalized policy stays bound to the
+# calibration seed's verified exact-response sidecar.
+DEFAULT_REGIME = "hh_snake_nph1"
+DEFAULT_PROMOTION_HORIZON = "t20"
+
+
+DEFAULT_APM_ARM = METHOD_APM
+REGIME_RESPONSE_SCALE_REGISTRY = Path(__file__).with_name(
+    "paper_ii_exact_response_scales_by_regime.json"
+)
+REGIME_RESPONSE_SCALE_REGISTRY_SCHEMA = "paper_ii_exact_response_scales_by_regime_v1"
+
+
+def campaign_id_for(
+    regime: str, promotion_horizon: str, apm_arm: str = DEFAULT_APM_ARM
+) -> str:
+    if (
+        regime == DEFAULT_REGIME
+        and promotion_horizon == DEFAULT_PROMOTION_HORIZON
+        and apm_arm == DEFAULT_APM_ARM
+    ):
+        return CAMPAIGN_ID
+    suffix = f"{CAMPAIGN_ID}__{regime}__{promotion_horizon}"
+    return suffix if apm_arm == DEFAULT_APM_ARM else f"{suffix}__{apm_arm}"
+
+
+def _regime_response_scales(regime: str) -> Mapping[str, Any]:
+    """Load a survey regime's verified exact-response index from the registry.
+
+    Stage 1.5 writes the registry row with
+    ``pipelines.time_dynamics.diagnostics.build_regime_response_scales``; the
+    loader re-derives every scale from the content-addressed exact reference,
+    so a stale or edited sidecar fails closed here rather than at scoring time.
+    """
+
+    repository_root = Path(__file__).resolve().parents[3]
+    registry_path = REGIME_RESPONSE_SCALE_REGISTRY
+    producer = (
+        "PYTHONPATH=. python -m pipelines.time_dynamics.diagnostics."
+        f"build_regime_response_scales --regime {regime}"
+    )
+    if not registry_path.is_file():
+        raise ValueError(
+            f"no exact-response scales are registered for regime {regime!r}: "
+            f"{registry_path.name} is absent. Build them first with `{producer}`."
+        )
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    if registry.get("schema") != REGIME_RESPONSE_SCALE_REGISTRY_SCHEMA:
+        raise ValueError(f"unsupported response-scale registry: {registry_path}")
+    row = (registry.get("regimes") or {}).get(regime)
+    if not isinstance(row, Mapping):
+        raise ValueError(
+            f"no exact-response scales are registered for regime {regime!r}. "
+            f"Build them first with `{producer}`."
+        )
+    def _resolve(value: str) -> Path:
+        path = Path(str(value))
+        return path if path.is_absolute() else repository_root / path
+    seed_path = _resolve(runs.REGIMES[regime].seed_path)
+    return load_verified_response_scale_index(
+        _resolve(row["sidecar"]),
+        expected_sidecar_sha256=str(row["sha256"]),
+        exact_reference_root=_resolve(row["exact_reference_root"]),
+        seed_path=seed_path,
+        regime_id=regime,
+        family_key=SEED.family_key,
+        controller_ids=CONTROLLER_IDS,
+        expected_drives={
+            drive_id: {
+                "amplitude": runs.DRIVES[drive_id].amplitude,
+                "omega": runs.DRIVES[drive_id].omega,
+            }
+            for drive_id in DRIVE_IDS
+        },
+    )
 PRIOR_ENERGY_TARGET = 1.0e-4
 ACCURACY_CEILING = 1.0e-4
 PREFERRED_ACCURACY_FLOOR = 1.0e-5
@@ -152,16 +232,31 @@ def build_campaign(
     *,
     prior_root: str | Path | None,
     submission_policy_replay: str = "canonical",
+    regime: str = DEFAULT_REGIME,
+    promotion_horizon: str = DEFAULT_PROMOTION_HORIZON,
+    apm_arm: str = DEFAULT_APM_ARM,
 ) -> StagedCampaign:
+    if regime not in runs.REGIMES:
+        raise KeyError(f"unknown regime {regime!r}; known: {sorted(runs.REGIMES)}")
+    if promotion_horizon not in runs.HORIZONS:
+        raise KeyError(
+            f"unknown promotion horizon {promotion_horizon!r}; "
+            f"known: {sorted(runs.HORIZONS)}"
+        )
     cells = factorial_cells(
-        regime="hh_snake_nph1",
+        regime=regime,
         drives=DRIVE_IDS,
         controllers=CONTROLLER_IDS,
         methods=METHOD_IDS,
     )
     if submission_policy_replay == "canonical":
+        response_scales = (
+            _response_scales()
+            if regime == DEFAULT_REGIME
+            else _regime_response_scales(regime)
+        )
         accuracy_policy = AccuracyPolicy.response_normalized_matched_pair(
-            response_scales=_response_scales(),
+            response_scales=response_scales,
             response_relative_target=RESPONSE_RELATIVE_TARGET,
             response_relative_guard=RESPONSE_RELATIVE_GUARD,
             matched_accuracy_factor=MATCHED_ACCURACY_FACTOR,
@@ -192,7 +287,9 @@ def build_campaign(
             minimum_threshold=1.0e-12,
             maximum_rungs_per_horizon=24,
         ),
+        promotion_horizon=promotion_horizon,
         comparator_first=True,
+        apm_arm=apm_arm,
     )
 
 
@@ -200,8 +297,10 @@ def _load_ledger(path: Path) -> CampaignLedger:
     return CampaignLedger.read(path) if path.is_file() else CampaignLedger()
 
 
-def _action_output_path(output_root: Path, action: CellAction) -> Path:
-    return output_root / CAMPAIGN_ID / action.action_id / "run.json"
+def _action_output_path(
+    output_root: Path, action: CellAction, *, campaign_id: str = CAMPAIGN_ID
+) -> Path:
+    return output_root / campaign_id / action.action_id / "run.json"
 
 
 def _resolved_action(
@@ -226,15 +325,17 @@ def _next_payload(
     ledger: CampaignLedger,
     output_root: Path,
     search_profile: str,
+    campaign_id: str = CAMPAIGN_ID,
+    seed_path: str = SEED.artifact_json,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for action in campaign.next_actions(ledger):
         row = action.to_json_dict()
         if action.action != ACTION_RECORD_SAFEGUARD:
-            output = _action_output_path(output_root, action)
+            output = _action_output_path(output_root, action, campaign_id=campaign_id)
             command = campaign.build_run_command(
                 action,
-                seed_path=SEED.artifact_json,
+                seed_path=seed_path,
                 output_json=str(output),
                 numerics=NUMERICS_ID,
                 gate=runs.MCLACHLAN_L2_GATE.gate_id,
@@ -250,7 +351,7 @@ def _next_payload(
             )
         rows.append(row)
     return {
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": campaign_id,
         "stage": campaign.stage(ledger),
         "ledger_record_count": len(ledger.records),
         "action_count": len(rows),
@@ -310,6 +411,32 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--ledger", required=True, type=Path)
     parser.add_argument("--prior-root", type=Path)
     parser.add_argument(
+        "--regime",
+        choices=tuple(runs.REGIMES),
+        default=DEFAULT_REGIME,
+        help=(
+            "registered regime whose seed every cell starts from; anything but "
+            f"{DEFAULT_REGIME} is a survey campaign with a suffixed campaign id"
+        ),
+    )
+    parser.add_argument(
+        "--promotion-horizon",
+        choices=tuple(runs.HORIZONS),
+        default=DEFAULT_PROMOTION_HORIZON,
+        help="continuation horizon after the t5 screen",
+    )
+    parser.add_argument(
+        "--apm-arm",
+        choices=tuple(
+            arm_id for arm_id, arm in runs.ARMS.items() if not arm.is_comparator
+        ),
+        default=DEFAULT_APM_ARM,
+        help=(
+            "registered arm that realizes the APM method (the manuscript's "
+            "realized Gamma(v*) route is exchange_q_compiled where registered)"
+        ),
+    )
+    parser.add_argument(
         "--submission-policy-replay",
         choices=("canonical", "componentwise_1e-4"),
         default="canonical",
@@ -361,16 +488,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if (
         args.submission_policy_replay != "canonical"
+        and args.regime == DEFAULT_REGIME
         and args.command not in ("record", "record-package", "record-safeguard")
     ):
         parser.error(
             "a legacy --submission-policy-replay is permitted only for "
-            "ingesting already-submitted evidence"
+            "ingesting already-submitted evidence of the locked campaign"
         )
     campaign = build_campaign(
         prior_root=args.prior_root,
         submission_policy_replay=str(args.submission_policy_replay),
+        regime=str(args.regime),
+        promotion_horizon=str(args.promotion_horizon),
+        apm_arm=str(args.apm_arm),
     )
+    campaign_id = campaign_id_for(
+        str(args.regime), str(args.promotion_horizon), str(args.apm_arm)
+    )
+    default_seed_path = runs.REGIMES[str(args.regime)].seed_path
     ledger = _load_ledger(args.ledger)
     declared_policy = campaign.accuracy_policy.to_json_dict()
     if args.command == "reclassify":
@@ -383,7 +518,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "ledger": str(args.ledger),
                     "record_count": before,
                     "qualification_policy": declared_policy,
@@ -413,6 +548,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             ledger=ledger,
             output_root=args.output_root,
             search_profile=str(args.search_profile),
+            campaign_id=campaign_id,
+            seed_path=default_seed_path,
         )
         if args.action_dir is not None:
             _write_action_files(payload, args.action_dir)
@@ -432,11 +569,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.package_dir is None:
             parser.error("prepare-chtc requires --package-dir")
         prepared = prepare_staged_chtc_campaign(
-            campaign_id=CAMPAIGN_ID,
+            campaign_id=campaign_id,
             campaign=campaign,
             ledger=ledger,
             package_dir=args.package_dir,
-            seed_path=SEED.artifact_json if args.seed_json is None else args.seed_json,
+            seed_path=default_seed_path if args.seed_json is None else args.seed_json,
             numerics=NUMERICS_ID,
             gate=runs.MCLACHLAN_L2_GATE.gate_id,
             search_profile=str(args.search_profile),
@@ -448,7 +585,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "stage": campaign.stage(ledger),
                     "status": "PREPARED_NOT_SUBMITTED",
                     **prepared.to_json_dict(),
@@ -496,7 +633,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(
                 {
-                    "campaign_id": CAMPAIGN_ID,
+                    "campaign_id": campaign_id,
                     "ledger": str(args.ledger),
                     "ledger_record_count": len(ledger.records),
                     "next_stage": campaign.stage(ledger),
@@ -540,7 +677,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         json.dumps(
             {
-                "campaign_id": CAMPAIGN_ID,
+                "campaign_id": campaign_id,
                 "ledger": str(args.ledger),
                 "ledger_record_count": len(ledger.records),
                 "next_stage": campaign.stage(ledger),
@@ -556,4 +693,13 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["CAMPAIGN_ID", "build_campaign", "main"]
+__all__ = [
+    "CAMPAIGN_ID",
+    "DEFAULT_APM_ARM",
+    "DEFAULT_PROMOTION_HORIZON",
+    "DEFAULT_REGIME",
+    "REGIME_RESPONSE_SCALE_REGISTRY",
+    "build_campaign",
+    "campaign_id_for",
+    "main",
+]

@@ -1,0 +1,101 @@
+{
+  "accuracy_policy": {
+    "energy_guard": "sector_spectral_width_normalized_max_drift",
+    "energy_in_aggregate_burden": false,
+    "energy_in_componentwise_matching": true,
+    "schema": "siam_response_matched_accuracy_policy_v2"
+  },
+  "arms": {
+    "avqds": {
+      "aggregate_accuracy_burden": 0.3525076231905255,
+      "broad_response_guard_pass": true,
+      "g_E": 0.00048135783017393884,
+      "individual_target_pass": true,
+      "score_sha256": "8ed6b22040c302f1cd812f087c2f47a8ced9c271e0fbdf03cac8407b83222ff7"
+    },
+    "full_apm": {
+      "aggregate_accuracy_burden": 0.35890325778519067,
+      "broad_response_guard_pass": true,
+      "g_E": 0.0005454276292153136,
+      "individual_target_pass": true,
+      "score_sha256": "dd505863d020e6162d13bf322c9cd129aa072c67e580f04da81c796f430d4290"
+    }
+  },
+  "comparison_fingerprint": "ce85ee661be872d4801a6e2029829d5fe2ca20125068edd6d7b92ede1966e1cf",
+  "grid": {
+    "ordered_values_sha256": "d8f605a92f793fe2048016c368730bc76216694c3b2137ab238dbcea3d062deb",
+    "point_count": 26,
+    "times": [
+      0.0,
+      0.04,
+      0.08,
+      0.12,
+      0.16,
+      0.2,
+      0.24,
+      0.28,
+      0.32,
+      0.36,
+      0.4,
+      0.44,
+      0.48,
+      0.52,
+      0.56,
+      0.6,
+      0.64,
+      0.68,
+      0.72,
+      0.76,
+      0.8,
+      0.84,
+      0.88,
+      0.92,
+      0.96,
+      1.0
+    ]
+  },
+  "matched_accuracy": {
+    "apm_route": "paper_ii_exchange_q_compiled_v1",
+    "avqds_route": "not_applicable",
+    "both_inside_broad_guard": true,
+    "both_pass_energy_conservation": true,
+    "both_pass_fidelity": true,
+    "burden_ratio": 1.018143251872906,
+    "burden_ratio_ceiling": 2.0,
+    "burdens_matched": true,
+    "classification": "qualified_pair",
+    "components_matched": true,
+    "componentwise_deadband": 0.1,
+    "componentwise_ratio_ceiling": 2.0,
+    "componentwise_ratios": {
+      "C_1": 1.0265744508307562,
+      "C_2": 1.0164457391142592,
+      "D_d": 1.0,
+      "energy": 1.1331022267119308,
+      "fidelity": 1.0074228715671798,
+      "m_d": 1.0
+    },
+    "cost_comparison_admissible": true
+  },
+  "observable_contract": {
+    "impurity_number": "N_d=n_d_up+n_d_down",
+    "impurity_spin_square": "S_d2=3/4*(N_d-2*D_d)",
+    "integrated_screening": "Sigma_r=S_d2+sum_{j<=r}C_j",
+    "primitive_gate_set_unchanged": true,
+    "reporting_role": "offline_derived_from_checkpoint_statevectors",
+    "schema": "siam_screening_observables_v2"
+  },
+  "pair_sha256": "8c67d0f0cf6db5ca6b8996465eb6d41a8f2ab6efce892cac8385159d357dd41f",
+  "reference": {
+    "data_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/reference.npz",
+    "data_sha256": "aae315a4a61d847da72e979ab65c905b22bac5470a504ee1f166d00228bba08a",
+    "key": "03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061",
+    "manifest_path": "/Users/lordskyler/Holstein_test.worktrees/fable-paper-ii-regime-survey-20260905/output/siam_nb2_proof_qc_v1_reference/03c64995320209e13ceff3b4cd9e5c1cd0d9a9e498045f7c310dcc7de8af5061/manifest.json",
+    "manifest_sha256": "b5b9b3441704f3c8632f3d76a1eebc9ecb786e8bacf10805786708535445145c",
+    "observable_schema": "siam_screening_observables_v2",
+    "propagator_schema": "siam_exact_sector_eigh_v1",
+    "reference_schema": "siam_exact_sector_reference_v2",
+    "store_schema": "siam_exact_reference_store_v2"
+  },
+  "schema": "siam_matched_accuracy_pair_v3"
+}

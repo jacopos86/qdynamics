@@ -122,6 +122,36 @@ When doing readiness audits, final-polish passes, abstract/caption edits, or con
 
 Do not invent missing values. Either leave the placeholder explicitly marked as unresolved or rewrite the sentence to avoid the missing value.
 
+### Incomplete runs: write the finished paper with the value blank
+
+A run that has not returned yet is a missing *value*, never a missing *claim*, a
+missing row, or a smaller study. Write the manuscript in the shape it will have
+when every run lands, and leave only the unresolved number blank.
+
+- Keep the full complement in every count. If the study is eleven cells and ten
+  have returned, the manuscript says eleven cells and the eleventh row carries a
+  blank entry. Do not rewrite the count to ten, and do not restate it later as
+  "ten reported cells".
+- Do not add status vocabulary to reader-facing prose. `pending`, `still
+  running`, `not yet returned`, `awaiting`, `preliminary`, `provisional`, `so
+  far`, `at the time of writing`, and `currently` are drafting notes, not
+  manuscript content. A blank table entry already tells the reader the value is
+  unresolved; a sentence explaining why it is unresolved does not belong in a
+  journal manuscript.
+- Do not hedge a claim because one input is outstanding. State the claim over
+  the values that exist, at the scope the finished study will use, and let the
+  blank carry the incompleteness.
+- Ranges, counts, and aggregate statements are computed over the resolved
+  entries and are updated when the missing value lands. That update is expected
+  and is not a correction.
+- Record what is outstanding in the worklog or the run log, with the artifact
+  path, so the value can be filled without re-deriving it. That record is where
+  status belongs.
+
+This applies to abstract, results, captions, and conclusions alike. It does not
+override the rule above: a blank entry is still not usable as the support for an
+abstract-level or conclusion-level claim.
+
 Normalize obvious manuscript spelling and typesetting in edited spans: `ansats` -> `ansatz`; `Fubini-Study` -> `Fubini--Study` in LaTeX prose; `Schur-conplement` -> `Schur-complement`; `hard-ware` -> `hardware`; `Fermion--Boson` -> `fermion--boson` unless title case requires capitalization; `electron-phonon` -> `electron--phonon` in LaTeX prose; `two-qubit` should stay hyphenated as an adjective.
 
 ## Required context and target

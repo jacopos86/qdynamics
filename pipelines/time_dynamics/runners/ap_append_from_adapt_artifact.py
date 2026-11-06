@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -28,6 +30,9 @@ from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     build_candidate_pool_contract,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    APGeneralizedExchangeConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
     DriveAlignedAugmentation,
@@ -61,6 +66,7 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
 )
 from pipelines.time_dynamics.run_lock import build_run_lock
 from pipelines.time_dynamics.diagnostics.siam_segment_stitching import (
+    assert_siam_resume_code_revision,
     finalize_siam_resume_lineage,
     prepare_siam_resume_lineage,
 )
@@ -73,6 +79,12 @@ from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
     AP_SUPPORTED_PARAMETERIZATION_MODES,
     state_from_scaffold_runtime_input,
+)
+from pipelines.time_dynamics.ap_mclachlan.support_patch import (
+    PATCH_APPEND,
+    PATCH_DELETE,
+    PATCH_EXCHANGE,
+    PATCH_INSERT,
 )
 from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
     APPEND_OCCURRENCE_POLICIES,
@@ -292,6 +304,30 @@ def run_append_ap_mclachlan_from_runtime_input(
     runtime_provenance = dict(
         getattr(runtime_input, "provenance", {}) or {}
     )
+    route_bundle = APGeneralizedExchangeConfig.from_route_config(
+        effective_support_patch_config
+    ).route.bundle
+    route_contract = asdict(route_bundle)
+    route_contract_sha256 = hashlib.sha256(
+        json.dumps(
+            route_contract, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
+    run_guards = {
+        key: getattr(effective_support_patch_config, key, None)
+        for key in (
+            "max_joint_patch_evaluations",
+            "max_certification_attempts_per_level",
+            "max_certification_attempts_per_deletion_branch",
+            "max_structural_pool_size",
+            "max_insertion_batch_size",
+            "residual_ratio_threshold",
+        )
+    }
+    run_guards.update(
+        exchange_route_contract=route_contract,
+        exchange_route_contract_sha256=route_contract_sha256,
+    )
     run_lock = build_run_lock(
         seed_artifact_json=str(runtime_provenance.get("artifact_json") or "")
         or None,
@@ -328,17 +364,7 @@ def run_append_ap_mclachlan_from_runtime_input(
         structural_policy=str(
             getattr(effective_support_patch_config, "dynamics_policy", "exchange")
         ),
-        guards={
-            key: getattr(effective_support_patch_config, key, None)
-            for key in (
-                "max_joint_patch_evaluations",
-                "max_certification_attempts_per_level",
-                "max_certification_attempts_per_deletion_branch",
-                "max_structural_pool_size",
-                "max_insertion_batch_size",
-                "residual_ratio_threshold",
-            )
-        },
+        guards=run_guards,
         time_step_controller={
             "parameter_displacement_max": getattr(
                 effective_support_patch_config, "avqds_delta_theta_max", None
@@ -619,6 +645,58 @@ def _plot_rows(
             {} if selected_candidate is None else dict(selected_candidate.metadata or {})
         )
         patch_metadata = {**selected_metadata, **decision_metadata}
+        # Commit-kind telemetry consumed by
+        # diagnostics/siam_segment_stitching._row_costs.  Ported from the
+        # search-profiles lineage, which read per-checkpoint multi-commit keys
+        # (``checkpoint_commit_kinds`` and the ``*_by_kind`` coordinate maps).
+        # This branch's selector commits at most one patch per checkpoint and
+        # emits none of those keys, so every lookup below takes the lineage's
+        # own single-commit fallback: the kind tuple degenerates to the accepted
+        # ``patch_kind``, and the coordinate counts to the committed selection.
+        # The derivation is kept in the lineage's shape so that reinstating the
+        # multi-commit keys needs no change here.  One deliberate deviation: the
+        # lineage read the two PATCH_EXCHANGE coordinate counts straight out of
+        # the by-kind maps with no fallback, which would pin them to zero on this
+        # branch and silently zero the exchange columns of the stitched cost
+        # table.  They take the same single-commit fallback as the append and
+        # delete counts here.
+        committed_patch = dict(patch_metadata.get("committed", {}) or {})
+        committed_insertions = tuple(
+            committed_patch.get("inserted_selection", ()) or ()
+        )
+        committed_removals = tuple(
+            committed_patch.get("removed_runtime_indices", ()) or ()
+        )
+        effective_inserted_count = (
+            int(patch_metadata["checkpoint_inserted_coordinate_count"])
+            if patch_metadata.get("checkpoint_inserted_coordinate_count") is not None
+            else (
+                int(selected_score.inserted_count)
+                if selected_score is not None
+                else int(len(committed_insertions))
+            )
+        )
+        effective_removed_count = (
+            int(patch_metadata["checkpoint_deleted_coordinate_count"])
+            if patch_metadata.get("checkpoint_deleted_coordinate_count") is not None
+            else (
+                int(len(selected_score.removed_runtime_indices))
+                if selected_score is not None
+                else int(len(committed_removals))
+            )
+        )
+        checkpoint_commit_kinds = tuple(
+            str(kind)
+            for kind in (patch_metadata.get("checkpoint_commit_kinds", ()) or ())
+        )
+        if not checkpoint_commit_kinds and bool(decision.accepted):
+            checkpoint_commit_kinds = (str(decision.patch_kind),)
+        inserted_by_kind = dict(
+            patch_metadata.get("checkpoint_inserted_coordinates_by_kind", {}) or {}
+        )
+        deleted_by_kind = dict(
+            patch_metadata.get("checkpoint_deleted_coordinates_by_kind", {}) or {}
+        )
         selected_cost = (
             {}
             if selected_candidate is None
@@ -791,6 +869,60 @@ def _plot_rows(
                 "logical_parameter_count": int(point.logical_parameter_count),
                 "patch_kind": str(decision.patch_kind),
                 "patch_accepted": bool(decision.accepted),
+                "patch_commit_count": int(len(checkpoint_commit_kinds)),
+                "patch_commit_kinds": list(checkpoint_commit_kinds),
+                "patch_append_commit_count": int(
+                    sum(
+                        1
+                        for kind in checkpoint_commit_kinds
+                        if kind in {PATCH_APPEND, PATCH_INSERT}
+                    )
+                ),
+                "patch_delete_commit_count": int(
+                    sum(1 for kind in checkpoint_commit_kinds if kind == PATCH_DELETE)
+                ),
+                "patch_exchange_commit_count": int(
+                    sum(1 for kind in checkpoint_commit_kinds if kind == PATCH_EXCHANGE)
+                ),
+                "patch_append_inserted_coordinate_count": int(
+                    sum(
+                        int(inserted_by_kind.get(kind, 0) or 0)
+                        for kind in {PATCH_APPEND, PATCH_INSERT}
+                    )
+                    if inserted_by_kind
+                    else (
+                        effective_inserted_count
+                        if str(decision.patch_kind) in {PATCH_APPEND, PATCH_INSERT}
+                        else 0
+                    )
+                ),
+                "patch_exchange_inserted_coordinate_count": int(
+                    inserted_by_kind.get(PATCH_EXCHANGE, 0) or 0
+                    if inserted_by_kind
+                    else (
+                        effective_inserted_count
+                        if str(decision.patch_kind) == PATCH_EXCHANGE
+                        else 0
+                    )
+                ),
+                "patch_delete_deleted_coordinate_count": int(
+                    deleted_by_kind.get(PATCH_DELETE, 0)
+                    if deleted_by_kind
+                    else (
+                        effective_removed_count
+                        if str(decision.patch_kind) == PATCH_DELETE
+                        else 0
+                    )
+                ),
+                "patch_exchange_deleted_coordinate_count": int(
+                    deleted_by_kind.get(PATCH_EXCHANGE, 0) or 0
+                    if deleted_by_kind
+                    else (
+                        effective_removed_count
+                        if str(decision.patch_kind) == PATCH_EXCHANGE
+                        else 0
+                    )
+                ),
                 "patch_selected_label": decision.selected_label,
                 "patch_reason": str(decision.reason),
                 "patch_candidate_count": int(decision.candidate_count),
@@ -1227,6 +1359,14 @@ def _summary_from_rows(
                 1
                 for row in rows
                 if bool(row.get("integration_local_subdivision_applied", False))
+            )
+        ),
+        "uncured_local_subdivision_count": int(
+            sum(
+                1
+                for row in rows
+                if "not_cured"
+                in str(row.get("integration_local_subdivision_reason") or "")
             )
         ),
         "accepted_internal_substep_count": int(
@@ -1794,6 +1934,58 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--exchange-route-bundle",
+        choices=[
+            "paper_ii_generalized_exchange_v2",
+            "paper_ii_exchange_legacy_proxy_fixed_v1",
+            "paper_ii_exchange_q_compiled_v1",
+            "paper_ii_exchange_gamma_compiled_v1",
+        ],
+        default="paper_ii_generalized_exchange_v2",
+        help=(
+            "Closed route bundle fixing objective ordinate, cost model, and "
+            "ranking kernel together. The default is the historical route, "
+            "unchanged (its singleton-normalized proxy cost is identically 1). "
+            "'legacy_proxy_fixed_v1' keeps the historical score but normalizes "
+            "the proxy over the actual competing population; "
+            "'q_compiled_v1' ranks complete patches by realized captured-drift "
+            "change under population-relative compiled (FakeMarrakesh) cost "
+            "with the shifted Paper-I kernel; 'gamma_compiled_v1' is the "
+            "ideal-projection ablation with the identical cost map."
+        ),
+    )
+    parser.add_argument(
+        "--maintenance-loss-tolerance",
+        type=float,
+        default=None,
+        help=(
+            "tau_del for the shifted Paper-I kernel in the maintenance regime "
+            "(normalized captured-drift units). Default None inherits "
+            "--prune-patch-smoothness-eta-max."
+        ),
+    )
+    parser.add_argument(
+        "--max-compiled-patches-per-checkpoint",
+        type=int,
+        default=None,
+        help=(
+            "Compile work guard for compiled-cost bundles; admits candidate "
+            "families whole, like --max-joint-patch-evaluations. None is for "
+            "small systems and smokes only."
+        ),
+    )
+    parser.add_argument(
+        "--compile-workers",
+        type=int,
+        default=None,
+        help=(
+            "Process-pool size for compiled-cost bundles (default: "
+            "--support-patch-scoring-workers). Each worker pins BLAS and "
+            "rayon to one thread, so size this to the cores of the slot: "
+            "request_cpus >= compile_workers + 1."
+        ),
+    )
+    parser.add_argument(
         "--max-insertion-rounds-per-checkpoint", type=int, default=12,
         help="Safety valve on the greedy repeat; not part of the rule.",
     )
@@ -1889,20 +2081,51 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--exchange-insertion-frontier",
+        type=int,
+        default=None,
+        help=(
+            "Positioned insertions offered to each deletion set in a "
+            "d >= 1 rung, taken from the top of the d = 0 singleton ranking "
+            "and sealed before any rung is built. None (default) offers the "
+            "whole branch pool, so a rung declares |rung| x |pool| typed "
+            "patches and the joint-work guard refuses the first exchange-"
+            "bearing rung at production pool sizes; a finite width W declares "
+            "|rung| x (1 + W) instead. Deletion-subset completeness is "
+            "unaffected."
+        ),
+    )
+    parser.add_argument(
+        "--exchange-permission-ray-distance-max",
+        type=float,
+        default=None,
+        help=(
+            "Threshold for the pre-permission ray bound sin(min(pi/2, "
+            "sum_{mu in D} |theta_mu c_mu|)) on an unrefit deletion batch. "
+            "None (default) reuses the post-refit ray tolerance "
+            "--prune-ray-distance-tol, so only near-zero-angle coordinates "
+            "are ever deletable; a declared value is a separate "
+            "pre-permission threshold and leaves the post-refit ray and "
+            "velocity certificates unchanged."
+        ),
+    )
+    parser.add_argument(
         "--support-patch-scoring-workers",
         type=int,
         default=2,
         help=(
-            "Classical support-patch candidate scoring workers. Threads cover "
-            "append/prune/exchange candidate scoring only, and reduce in "
-            "canonical task order, so worker count never changes a decision; "
-            "1 remains the serial reference execution of the same code path. "
-            "The default of 2 is calibrated rather than assumed: on an 8-core "
-            "Apple-Accelerate host one L=2 conditioning-stress trajectory "
-            "measured 10.7s at 1 worker, 8.5s at 2, 9.3s at 4 and 10.3s at 8, "
-            "because candidate scoring is GIL-bound and extra workers cost "
-            "more contention than they recover. Recalibrate for another host "
-            "or problem size with "
+            "Classical support-patch scoring workers for the generalized-"
+            "exchange structural search. Workers above 1 only pre-warm the "
+            "checkpoint solve memo over deduplicated candidate solves; the "
+            "authoritative scoring loop always replays serially in canonical "
+            "order with memo hits, so worker count never changes a decision, "
+            "score, ordering, or telemetry count. 1 is the untouched serial "
+            "reference path. The numeric kernels (eigh/pinv) release the GIL, "
+            "so useful concurrency requires an ambient BLAS thread count of "
+            "1 (OMP/OPENBLAS/MKL/VECLIB/NUMEXPR *_NUM_THREADS); the ambient "
+            "values are recorded per selection in "
+            "structural_scoring_parallelism. Recalibrate for another host or "
+            "problem size with "
             "pipelines.time_dynamics.diagnostics.ap_runtime_benchmark."
         ),
     )
@@ -2054,6 +2277,16 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             if args.max_joint_patch_evaluations is None
             else int(args.max_joint_patch_evaluations)
         ),
+        exchange_insertion_frontier=(
+            None
+            if args.exchange_insertion_frontier is None
+            else int(args.exchange_insertion_frontier)
+        ),
+        exchange_permission_ray_distance_max=(
+            None
+            if args.exchange_permission_ray_distance_max is None
+            else float(args.exchange_permission_ray_distance_max)
+        ),
         append_schur_max_condition_number=(
             float(args.append_schur_max_condition_number)
             if args.append_schur_condition_gate
@@ -2080,6 +2313,20 @@ def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchCon
             else float(args.avqds_delta_theta_max)
         ),
         debt_policy=str(args.debt_policy),
+        exchange_route_bundle=str(args.exchange_route_bundle),
+        maintenance_loss_tolerance=(
+            None
+            if args.maintenance_loss_tolerance is None
+            else float(args.maintenance_loss_tolerance)
+        ),
+        max_compiled_patches_per_checkpoint=(
+            None
+            if args.max_compiled_patches_per_checkpoint is None
+            else int(args.max_compiled_patches_per_checkpoint)
+        ),
+        compile_workers=(
+            None if args.compile_workers is None else int(args.compile_workers)
+        ),
         insertion_gate_mode=str(args.insertion_gate_mode),
         insertion_l2_cut=float(args.insertion_l2_cut),
         max_insertion_rounds_per_checkpoint=int(
@@ -2282,6 +2529,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     args.resume_from_run_json,
                     prior,
                 )
+                try:
+                    assert_siam_resume_code_revision(
+                        prepared_siam_lineage, args.code_revision
+                    )
+                except ValueError as exc:
+                    raise SystemExit(f"error: {exc}") from exc
             resume_state = prior.get("resume_state") or {}
             if "coordinates" not in resume_state:
                 raise SystemExit(
@@ -2405,6 +2658,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
                 "support_patch_scoring_workers": int(
                     args.support_patch_scoring_workers
+                ),
+                "exchange_route_bundle": str(args.exchange_route_bundle),
+                "maintenance_loss_tolerance": (
+                    None
+                    if args.maintenance_loss_tolerance is None
+                    else float(args.maintenance_loss_tolerance)
+                ),
+                "max_compiled_patches_per_checkpoint": (
+                    None
+                    if args.max_compiled_patches_per_checkpoint is None
+                    else int(args.max_compiled_patches_per_checkpoint)
+                ),
+                "compile_workers": (
+                    None if args.compile_workers is None else int(args.compile_workers)
                 ),
                 "solve_damping": float(args.solve_damping),
                 "solve_repair_requested": bool(args.solve_repair),

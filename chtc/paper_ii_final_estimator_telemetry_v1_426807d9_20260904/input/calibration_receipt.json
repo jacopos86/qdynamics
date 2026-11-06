@@ -1,0 +1,361 @@
+{
+  "checks": [
+    {
+      "check_id": "promoted_class_settings_lock",
+      "details": {
+        "expected_path": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "failures": [],
+        "lock_policy": "manual_orchestrator_promotion_after_class_optuna_review",
+        "lock_status": "locked",
+        "require_canonical_controller_classes": true,
+        "resolved_path": "chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json",
+        "schema": "dynamics_class_settings_lock_manifest_v1",
+        "settings_entries": [
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:fermionic:dyn_controller_full:controller:e70eb8e96ea9",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "fermionic"
+          },
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:bosonic:dyn_controller_full:controller:5ecc858c43fc",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "bosonic"
+          },
+          {
+            "algorithm_id": "dyn_controller_full",
+            "class_tuned_result_locked": true,
+            "settings_id": "paper_ii_class_tuning_defaults_v1:hybrid:dyn_controller_full:controller:25cc56877136",
+            "strict_online_feedback_exact_free": true,
+            "tuning_class": "hybrid"
+          }
+        ],
+        "settings_entry_count": 3,
+        "sha256": "563e36119a690428e0659364c4d190ab698e6b147c15441db07776ac8e2724a2",
+        "smoke_variant_present": true
+      },
+      "status": "ok",
+      "summary": "promoted lock enforced (3 locked class settings, sha256 563e36119a69)"
+    },
+    {
+      "check_id": "benchmark_point_sameness",
+      "details": {
+        "axes": [
+          "compile_target",
+          "diagnostic_exact_reference",
+          "drive",
+          "observable_set",
+          "phonon_cutoff",
+          "reference_diagnostic_policy",
+          "static_seed_hash",
+          "time_grid"
+        ]
+      },
+      "status": "not_checked",
+      "summary": "no artifact carried per-benchmark-point rows"
+    },
+    {
+      "check_id": "seed_provenance",
+      "details": {
+        "distinct_seed_sha256": {
+          "7a36a2da06bba447c6d65d95692c8a45bc3aa64933d02f1f641e2178f4ea8f91": [
+            "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/ledger_371_rows_20260902.json",
+            "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/promotion_preview_20260902.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__state_motion_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_gamma_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__delta_theta_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__delta_theta_5e-5__exchange_q_compiled/run.json",
+            "output/paper_ii_final_selector_partial_20260903/cluster_9718538/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json"
+          ]
+        },
+        "forbidden_markers": [
+          "staged",
+          "fallback",
+          "pending",
+          "recovery"
+        ],
+        "inspected_seed_field_count": 2,
+        "scope_note": "markers are matched against the seed artifact's own basename and explicit seed-status fields only. Parent directories are excluded on purpose: the canonical campaign directory is literally named paper_ii_staged_accuracy_euler_v1, so a path-token rule would misreport it. Confirming the seed source artifact by hash against its manifest stays an operator step (see SKILL.md).",
+        "violations": []
+      },
+      "status": "ok",
+      "summary": "2 seed reference(s) carry no staged/fallback/pending/recovery marker"
+    },
+    {
+      "check_id": "trajectory_freeze_invalid_rows",
+      "details": {
+        "invalid_rows": [],
+        "motion_tolerance": 1e-12,
+        "sidecar_freeze_failures": [],
+        "signature": "theta_dot_l2==0 and rho_num==0 and rho_miss==1",
+        "trajectory_payload_count": 29,
+        "trajectory_row_count": 14529
+      },
+      "status": "ok",
+      "summary": "14529 trajectory row(s) across 29 payload(s) show no freeze signature"
+    },
+    {
+      "check_id": "qpu_faithful_decision_separation",
+      "details": {
+        "decision_flag_aliases": {
+          "exact_reference_controller_inputs": [
+            "exact_reference_controller_inputs",
+            "uses_exact_reference_for_decision"
+          ],
+          "uses_future_exact_forecast_for_decision": [
+            "uses_future_exact_forecast_for_decision"
+          ],
+          "uses_reference_for_decision": [
+            "uses_reference_for_decision"
+          ]
+        },
+        "decision_flag_keys": [
+          "uses_reference_for_decision",
+          "uses_future_exact_forecast_for_decision",
+          "exact_reference_controller_inputs"
+        ],
+        "flag_containers": [
+          "decision_data_flow",
+          "runtime_contract",
+          "summary",
+          "route_config",
+          "provenance"
+        ],
+        "leaks": [],
+        "payloads_without_declared_flags": [],
+        "run_payload_count": 29
+      },
+      "status": "ok",
+      "summary": "29 run payload(s) declare every exact-decision flag as false"
+    },
+    {
+      "check_id": "matched_accuracy_policy_binding",
+      "details": {
+        "drifted": {},
+        "live_constants": {
+          "absolute_doublon_error_ceiling": 0.005,
+          "absolute_energy_error_ceiling": 0.01,
+          "absolute_site_occupation_error_ceiling": 0.005,
+          "infidelity_ceiling": 0.0001,
+          "matched_accuracy_factor": 2.0,
+          "response_relative_guard": 0.15,
+          "response_relative_target": 0.05
+        },
+        "live_source": "pipelines/time_dynamics/campaigns/paper_ii_staged_accuracy_v1.py",
+        "protocol_source": "agent_guidance/time-dynamics/paper-ii-comparison-protocol.md"
+      },
+      "status": "ok",
+      "summary": "live policy constants match the protocol (5% target, 15% guard, factor 2, infidelity ceiling 1e-4)"
+    },
+    {
+      "check_id": "response_normalized_matched_accuracy",
+      "details": {
+        "policy_provenance": {
+          "constants": {
+            "absolute_doublon_error_ceiling": 0.005,
+            "absolute_energy_error_ceiling": 0.01,
+            "absolute_site_occupation_error_ceiling": 0.005,
+            "infidelity_ceiling": 0.0001,
+            "matched_accuracy_factor": 2.0,
+            "response_relative_guard": 0.15,
+            "response_relative_target": 0.05
+          },
+          "degraded": false,
+          "source": "campaign_verified_exact_reference_store"
+        }
+      },
+      "status": "not_checked",
+      "summary": "no artifact carried benchmark rows with accuracy metrics"
+    }
+  ],
+  "counts": {
+    "error": 0,
+    "not_checked": 2,
+    "ok": 5,
+    "warn": 0
+  },
+  "fail_closed": false,
+  "generated_utc": "2026-09-04T15:07:49.578708+00:00",
+  "inputs": {
+    "artifact_count": 31,
+    "artifacts": [
+      {
+        "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/promotion_preview_20260902.json",
+        "sha256": "40eb31245d369ed2fa335860f832d578e69bc9151c73c91b9457321d4b474fdf"
+      },
+      {
+        "path": "MATH/paper_facing/paper_II_dynamics/evidence/paper_ii_final_selector_comparison_v1/ledger_371_rows_20260902.json",
+        "sha256": "830370e43b26a818f92d36d571d1aae4cb7a5475b8df61652dba9e86a5b1b9e6"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "b6e5c4d6b25b05db70ddffad191ff1c840662f45d624965f3eacdad6a5aef59c"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "10a3509968443865ff63908f60beff038dd3a1b4b14dccff3cb21af6b268526b"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "3f6e34fe2d2ac620026f78c7d96a68425f8efa9217c1552391790ba7d389f11f"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "2f53fa5eaa8362f6d4b6d8a54f3c9c6c4caacd2981c4e8051750e352e87d7108"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "373581d5ff1051190336f149b09b33f9718dcb32edcbedbcc3a103d5dcecc835"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "05d6898bacd513645831a981a19e4442988ad8643331fec2f294ba3d162b1dce"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "e89907f0927c9752ff763b7c9ccef1627fb4dd724f71756c4e70ff353c232b82"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "3077914e38b4059547db5663e0c7b9790b2f94c710fcd9f7030e1446554153de"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "0b9894f5651998ac3f089fb1a539ac0b02d26e5b003288ff80c9b7d48dfdd668"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "1868995390bb7a1b08a0498aea25b70a9b17333fadc11174de4ff1c00add88b2"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "022776ccb3e352252b1053e67a41797d150470defa8360f1f25d07c44e1441bc"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "ac94ab2e9dc926c635fc779eb56cc69e2c012f2a8f7107b6608c98f37ed4ae7b"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__delta_theta_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "b2f5ec7241d54a70ce6efd3ad3d5122ab5c2f06a6f769b843a641c4f18b71a7c"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__state_motion_1e-3_plus_parameter_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "315b7f29137509ed9102e52c3e99ae4a803c0bfed0379be397ece082e49a7b43"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718529/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/weakslow__state_motion_5e-5__exchange_legacy_proxy_fixed/run.json",
+        "sha256": "13d2207d38e835848c0b99a4e5be4b2450c1b0a04d3bb35c3fdcd30c8db96ef0"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "d6140cc0ba27fa71d0f4f474fc5d8121483d96399013261bc27d261e91e7888e"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json",
+        "sha256": "f2733db301be0594471f90f6736247082249b2c55006c3eb8cfaf3acb11ce245"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json",
+        "sha256": "a80d6954794982819a3be21d27da6ea09f39dea396c8bde90c07d6b7a0e3d2c3"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__state_motion_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "d393e06d34406e951dec98c6474082fd50c040db86a85f76a3a6f2a9998b7bc4"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "239d51f382f5f873a323f495282d60f7b1b44c8d6e861bdbb16b88473d2f9e5f"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__delta_theta_5e-5__exchange_q_compiled/run.json",
+        "sha256": "e8b49727dff01b79ce441df93b8f3d335ceae040bc461bc8a0a57a0fd5e93664"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/midres__state_motion_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "ec64d984602dd5cde0caf58432616ee275ed80eba094bfa75d2024d36c43d749"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "a02a12486f79e53fc0b8cb25a2a9a9102127f2121c1446e3af44a2983566992c"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718536/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__delta_theta_5e-5__exchange_q_compiled/run.json",
+        "sha256": "1ad6be0cb0cd75007dc041caed7fccee3363e1d9e7dc3612bb8bb395b733be7b"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_gamma_compiled/run.json",
+        "sha256": "0fa1af02261f696764c2663bd56ae8252b3c6c456eb604aa0996fef10a891ea4"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastfast__state_motion_5e-5__exchange_q_compiled/run.json",
+        "sha256": "64dccff6cb6b9a4c1aa022df3a77cbf29764951ad5b88f45f8bccecb01169ec6"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/fastweak__delta_theta_5e-5__exchange_q_compiled/run.json",
+        "sha256": "b8a0bbbd5f84664a07a11f527731738b7f3f00d82643ddf905d41cbe6c8775b1"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718537/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/slowstrong__delta_theta_5e-5__exchange_q_compiled/run.json",
+        "sha256": "f83168dc8b06758fef4e3805ff6af00ad4fbf53740424f3bb5c74a87fa7354b0"
+      },
+      {
+        "path": "output/paper_ii_final_selector_partial_20260903/cluster_9718538/extracted/raw_outputs/paper_ii_final_selector_comparison_v1/strongfast__state_motion_1e-3_plus_parameter_5e-5__exchange_q_compiled/run.json",
+        "sha256": "e892812708d432dfb1ff093ded8e4e6331b56fe8834b81b219e406965d0c6134"
+      }
+    ],
+    "run_roots": [
+      "output/paper_ii_final_selector_partial_20260903"
+    ],
+    "unreadable": []
+  },
+  "not_checked": [
+    "benchmark_point_sameness",
+    "response_normalized_matched_accuracy"
+  ],
+  "repository_root": "/Users/lordskyler/Holstein_test.worktrees/codex-paper-ii-dual-selector-overnight-20260903",
+  "routed_to_documents": [
+    {
+      "document": "agent_guidance/time-dynamics/paper-ii-comparison-protocol.md",
+      "topic": "matched-accuracy admission and pair reasoning"
+    },
+    {
+      "document": "agent_guidance/skills/paper-ii-run/SKILL.md",
+      "topic": "promoting a newer class-settings lock"
+    },
+    {
+      "document": "agent_guidance/skills/paper-ii-results/SKILL.md",
+      "topic": "table/source-map transfer once calibration is clean"
+    }
+  ],
+  "schema": "paper_ii_benchmark_calibration_receipt_v1",
+  "status": "INCOMPLETE",
+  "tool": "pipelines/time_dynamics/diagnostics/paper_ii_benchmark_calibration.py"
+}

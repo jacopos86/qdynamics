@@ -1,0 +1,127 @@
+{
+  "schema": "paper_ii_final_estimator_telemetry_package_v1",
+  "campaign_id": "paper_ii_final_estimator_telemetry_v1",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "created_utc": "2026-09-04T15:14:58Z",
+  "scope": {
+    "action_count": 60,
+    "cell_count": 15,
+    "routes_per_cell": 4,
+    "apm_routes_per_cell": 3,
+    "apm_action_count": 45,
+    "avqds_action_count": 15,
+    "precursor_action_count": 0,
+    "time_span": [0.0, 20.0],
+    "time_point_count": 501,
+    "fresh_trajectories": true,
+    "purpose": "exact logical candidate-estimator accounting"
+  },
+  "routes": {
+    "paper_ii_exchange_legacy_proxy_fixed_v1": 15,
+    "paper_ii_exchange_q_compiled_v1": 15,
+    "paper_ii_exchange_gamma_compiled_v1": 15,
+    "avqds_adaptive_append_v1": 15
+  },
+  "source": {
+    "code_revision": "426807d9ccf599f16bed0d2c7679fd32bdbfca8d",
+    "archive": "input/source_426807d9.tar.gz",
+    "archive_sha256": "09b9d837bae8981a53ca1dd7df206c4b1b7aac322bf0dcf1c35dbe2b4c8fffe5",
+    "included_paths": [
+      "pipelines",
+      "src",
+      "chtc/paper_ii_production_v2/input/seeds"
+    ],
+    "telemetry_implementation_commit": "1feca59d4b791e2a3686f0de0bee4722898a560f",
+    "compile_worker_reconciliation_head": "7128545afb85af0fc70b2acc6ae2b8a07c949602"
+  },
+  "inputs": {
+    "actions_jsonl": {
+      "path": "input/actions.jsonl",
+      "sha256": "9134012a2f2cc7fcabd0e2277a8d20578c0c40f0f7bffa03a2abcfa91eff6860"
+    },
+    "action_ids": {
+      "path": "input/action_ids.txt",
+      "sha256": "886569ba2d8b29d5ca16096b41d8b8c057843ea38be5a9e3e51499845be3c1cc"
+    },
+    "action_ids_apm": {
+      "path": "input/action_ids_apm.txt",
+      "sha256": "fea3097760544dc5fde17989a452119e8aab8e8f86a5ae8e7d8538b1b4d0a4a3"
+    },
+    "action_ids_avqds": {
+      "path": "input/action_ids_avqds.txt",
+      "sha256": "d9282ab830d7d9974c7ab3e0df066e7a19210fe2d55a8c76adabed6143761e5c"
+    },
+    "prepare_summary": {
+      "path": "input/prepare_summary.json",
+      "sha256": "98dbcaaaf83e7ddc14f46a22a43d8c727b1140a279d617b269c137be9238d68e"
+    },
+    "matched_cells_lock": {
+      "path": "input/matched_cells_lock.json",
+      "sha256": "0d7d25d51504aacba64f8824da2b49241460c9cf70e02f5a4c9d3800f4148030"
+    },
+    "calibration_receipt": {
+      "path": "input/calibration_receipt.json",
+      "sha256": "46bf1e92d7304da98324eb5ed2e6604bb72a18f078774aaeb7d9efde8bb5fbd9",
+      "status": "INCOMPLETE",
+      "error_count": 0,
+      "not_checked": [
+        "benchmark_point_sameness",
+        "response_normalized_matched_accuracy"
+      ],
+      "allow_unverified_response_scales_used": false,
+      "carried_reason": "post-run comparison checks require the new trajectories"
+    },
+    "report_refresh_resolution": {
+      "path": "input/report_refresh_resolution.json",
+      "sha256": "75ee827b66ab0cfbd4231e2f5007c852d5e833bcfe93be8046e55e2bf33d573f",
+      "active_blocks": [],
+      "authorizes_new_campaign_submission": true
+    }
+  },
+  "runtime": {
+    "container_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "container_size_bytes": 216371200,
+    "apm": {
+      "request_cpus": 9,
+      "compile_workers": 8,
+      "scoring_workers": 4,
+      "request_memory": "6GB",
+      "request_disk": "40GB",
+      "max_runtime_seconds": 432000
+    },
+    "avqds": {
+      "request_cpus": 1,
+      "request_memory": "6GB",
+      "request_disk": "40GB",
+      "max_runtime_seconds": 432000
+    },
+    "thread_environment": {
+      "OPENBLAS_NUM_THREADS": 1,
+      "OMP_NUM_THREADS": 1,
+      "MKL_NUM_THREADS": 1,
+      "VECLIB_MAXIMUM_THREADS": 1,
+      "NUMEXPR_NUM_THREADS": 1,
+      "RAYON_NUM_THREADS": 1
+    },
+    "transfer_format": "one gzip archive plus SHA receipt per action"
+  },
+  "completion_contract": {
+    "trajectory_required": true,
+    "exact_estimator_work_required": true,
+    "terminal_qiskit_cost_required": true,
+    "physical_shots": null,
+    "physical_shots_status": "unavailable_statevector_no_shot_ledger"
+  },
+  "package_files": {
+    "run_action.py": "e81a3a8a68f1d1cb996d2edab414773f7b16dfe2f2986c03264ca8e1af1c3612",
+    "run_action_apptainer.sh": "eea58c920e25fab1c438864e524e1af0ff49f3e19deb1ffb4cec072130798a6a",
+    "submit_apm.sub": "3cda4ed67b28bcd13645bf7e65e6a9e19fcc229899af72b1a3f7772e9119b8bd",
+    "submit_avqds.sub": "e73bf6dc0b7549acde3357283cd0c4e135950e07d1d4ea659b1e388cf9da9233",
+    "validate_package.py": "637bf7d98f0d5cb6d7fcaf09dcfac8eb3e63bb5d819638af4c93f6272a55b86b"
+  },
+  "adoption": {
+    "paper_evidence_adopted": false,
+    "manuscript_updated": false,
+    "purpose": "author-requested exact estimator reruns only"
+  }
+}

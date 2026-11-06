@@ -1,0 +1,566 @@
+{
+  "backend_spec": "numpy:float64",
+  "created_utc": "2026-10-20T02:47:38.118609+00:00",
+  "exit_code": 0,
+  "exit_policy": {
+    "0": "all requested methods verified on the requested backend",
+    "1": "a check failed (receipts kept)",
+    "2": "usage error",
+    "3": "no failure, but a requested method was skipped_unsupported or blocked"
+  },
+  "inputs": {
+    "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
+    "container_schema": "qdynamics_matrix_elements_ele_h5",
+    "data_role": "simulated:qdynamics_matrix_elements_ele_h5",
+    "diagnostic_atol": 1e-12,
+    "n_qubits": 12,
+    "num_particles": [
+      4,
+      4
+    ],
+    "operator_sha256": "1065d877ac3185b2d51269694d45295e6d492eb8dcd05d56eaf4931e659e82ff",
+    "origin": "simulated",
+    "origin_attestation": null,
+    "problem_json_path": "/Users/lordskyler/Holstein_test.worktrees/claude-doron-h2o-export-20261019/agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/h2o_cas8e6o_problem.json",
+    "producer_origin_established": false,
+    "raw_sha256": "92c5ff8dc43a0381cc82c2363ef100246a52426b748d9102870c087318756efd",
+    "reduction": {
+      "active_indices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "formula": "E_core = E_nuc + 2 sum_c h_cc + sum_cd (2(cc|dd)-(cd|dc)); h'_pq = h_pq + sum_c (2(pq|cc)-(pc|cq))",
+      "frozen_core_indices": [
+        0
+      ],
+      "frozen_core_scalar_hartree": -60.660646986580154,
+      "kind": "frozen_core_occupied_prefix",
+      "n_frozen": 1
+    },
+    "schema_reference_producer": {
+      "author": "doronwu <dwu269@wisc.edu>",
+      "branch": "doron-chemistry",
+      "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+      "commit_date_utc": "2026-08-26T21:02:57Z",
+      "driver": "src/chemistry/pyscf/main_pyscf.py",
+      "driver_blob": "594293ae21d9",
+      "fcidump_written_by_driver": false,
+      "integrals": "src/chemistry/pyscf/electron_solver.py::PySCFDriver.get_matrix_elements",
+      "integrals_blob": "8400fc64c5ac",
+      "license_spdx": "GPL-3.0",
+      "repository": "https://github.com/jacopos86/qdynamics",
+      "writer": "src/chemistry/pyscf/read_write_pyscf_results.py::write_matrix_elements_h5",
+      "writer_blob": "3bf71a4d0d2c"
+    },
+    "semantic_sha256": "3cf3f4dadc1c825934ee892143ec9da46d0b91acf8e9bb605a97ed62c0b7e099",
+    "source": {
+      "caller_source": {
+        "dataset_dtypes": {
+          "h1": "float64",
+          "h2": "float64",
+          "mo_coeff": "float64",
+          "mo_energy": "float64",
+          "mo_occ": "float64",
+          "nuclear_repulsion": "float64"
+        },
+        "file_sha256": "e413ecbf9e150d313dd2daa0ef1fb72c83f583d2f48ca849db1a74fe927c6648",
+        "file_size_bytes": 51856,
+        "path": "/Users/lordskyler/Holstein_test.worktrees/claude-doron-h2o-export-20261019/agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/input/h2o_ele.h5"
+      },
+      "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
+      "container_schema": "qdynamics_matrix_elements_ele_h5",
+      "datasets": {
+        "h1": {
+          "sha256": "b1c6748964d4bc10d27e6ddb9d5eb142d54b8a2485e8306956624421bf31cc4e",
+          "shape": [
+            14,
+            14
+          ]
+        },
+        "h2": {
+          "sha256": "0b9cb4e40a7236bfcfd82c1557662b7cbbab96a7f02b7ada61fab4353c1a7cfc",
+          "shape": [
+            14,
+            14,
+            14,
+            14
+          ]
+        },
+        "mo_coeff_present": true,
+        "mo_energy": {
+          "sha256": "e891d26e5ae09be4e9a141af49ef0a56983d83a4c8e386e7a62d9a7dd074ca31",
+          "shape": [
+            7
+          ]
+        },
+        "mo_occ": {
+          "sha256": "bd2b53aa22436a4e0f23ce4ccfd2aa8c4f45ae441bdd03e8f0b757c61eb49302",
+          "shape": [
+            7
+          ]
+        },
+        "nuclear_repulsion": {
+          "value": 9.189275612994711
+        }
+      },
+      "extra_datasets": [],
+      "origin": "simulated",
+      "origin_attestation": null,
+      "origin_forced_by": null,
+      "origin_note": "schema recognition and content hashes identify bytes, not who produced them",
+      "producer_origin_established": false,
+      "schema_reference_producer": {
+        "author": "doronwu <dwu269@wisc.edu>",
+        "branch": "doron-chemistry",
+        "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+        "commit_date_utc": "2026-08-26T21:02:57Z",
+        "driver": "src/chemistry/pyscf/main_pyscf.py",
+        "driver_blob": "594293ae21d9",
+        "fcidump_written_by_driver": false,
+        "integrals": "src/chemistry/pyscf/electron_solver.py::PySCFDriver.get_matrix_elements",
+        "integrals_blob": "8400fc64c5ac",
+        "license_spdx": "GPL-3.0",
+        "repository": "https://github.com/jacopos86/qdynamics",
+        "writer": "src/chemistry/pyscf/read_write_pyscf_results.py::write_matrix_elements_h5",
+        "writer_blob": "3bf71a4d0d2c"
+      }
+    },
+    "tensor_sha256": "b31ce68fa8adcfecff455cdfc0ecce3587ae38676f49f4ce89f146b374460467"
+  },
+  "intake_receipt": {
+    "builder": {
+      "fixed_pruning_tolerance": 1e-12,
+      "name": "build_restricted_closed_shell_molecular_hamiltonian",
+      "ordering": "blocked",
+      "pruning_comparison": "abs_coefficient_lte_tolerance_before_and_after_aggregation",
+      "repr_mode": "JW",
+      "source_file_sha256": "403ea2978f2f452709f239b5f8e30999fdbe95fdc942a01c54342d615582e7e6"
+    },
+    "checks": {
+      "eri_first_pair_max_abs": 1.6653345369377348e-16,
+      "eri_pair_exchange_max_abs": 4.718447854656915e-16,
+      "eri_second_pair_max_abs": 1.6653345369377348e-16,
+      "h_hermitian_max_abs": 1.2212453270876722e-15,
+      "hf_witness_abs_defect": 1.4210854715202004e-14,
+      "input_tensor_determinant_energy": -74.9630234433856,
+      "mapped_coeff_imag_max_abs": 0.0
+    },
+    "declarations": {
+      "energy_units": "hartree",
+      "eri_convention": "real_spatial_chemists",
+      "frozen_core_scalar_hartree": -60.660646986580154,
+      "nuclear_scalar_hartree": 9.189275612994711,
+      "occupied_order": "occupied_prefix",
+      "one_body_core_policy": "already_contracted",
+      "orbital_basis": "orthonormal_spatial_mo",
+      "scalar_semantics": "nuclear_plus_frozen_core"
+    },
+    "diagnostic_atol": 1e-12,
+    "encoding": {
+      "framing": "uint64_big_endian_length_for_each_UTF8_name_and_value",
+      "operator_order": "actual_return_polynomial_order",
+      "operator_width": 12,
+      "signed_zero": "canonical_positive_zero",
+      "tensor_dtype": "little_endian_float64",
+      "tensor_order": "C",
+      "version": "length_delimited_le_float64_v1",
+      "word_convention": "exyz_left_q_n_minus_1_right_q_0"
+    },
+    "expected_raw_sha256": "92c5ff8dc43a0381cc82c2363ef100246a52426b748d9102870c087318756efd",
+    "operator_sha256": "1065d877ac3185b2d51269694d45295e6d492eb8dcd05d56eaf4931e659e82ff",
+    "payload_location": "$.problem",
+    "qualification": {
+      "assumptions": "declarations_not_physically_verified",
+      "binding": "snapshot_only_no_downstream_enforcement",
+      "builder_source_identity": "observed_source_file_hash",
+      "hf_check": "input_tensor_determinant_energy_witness"
+    },
+    "raw_sha256": "92c5ff8dc43a0381cc82c2363ef100246a52426b748d9102870c087318756efd",
+    "schema": "molecular_diagnostic_intake_v1",
+    "semantic_sha256": "3cf3f4dadc1c825934ee892143ec9da46d0b91acf8e9bb605a97ed62c0b7e099",
+    "tensor_sha256": "b31ce68fa8adcfecff455cdfc0ecce3587ae38676f49f4ce89f146b374460467"
+  },
+  "receipts": [
+    {
+      "backend": {
+        "available": true,
+        "complex_dtype": "complex128",
+        "exercised_device": "cpu",
+        "is_gpu": false,
+        "library": "numpy",
+        "library_version": "2.3.5",
+        "real_dtype": "float64",
+        "reason": null,
+        "requested_device": "cpu",
+        "spec": "numpy:float64"
+      },
+      "checks": {
+        "energy_drift_max_abs": 0.0,
+        "exact_energy_drift_max_abs": 7.105427357601002e-14,
+        "hamiltonian_sector_leakage": 2.3261632779547428e-17,
+        "initial_energy_minus_hf_witness_abs": 1.4210854715202004e-14,
+        "min_fidelity_vs_exact": 0.9998427537533338,
+        "point_count": 3,
+        "sector_leakage_max_norm": 0.0
+      },
+      "created_utc": "2026-10-20T02:47:38.116880+00:00",
+      "elapsed_s": 54.96357679204084,
+      "inputs": {
+        "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
+        "container_schema": "qdynamics_matrix_elements_ele_h5",
+        "data_role": "simulated:qdynamics_matrix_elements_ele_h5",
+        "diagnostic_atol": 1e-12,
+        "n_qubits": 12,
+        "num_particles": [
+          4,
+          4
+        ],
+        "operator_sha256": "1065d877ac3185b2d51269694d45295e6d492eb8dcd05d56eaf4931e659e82ff",
+        "origin": "simulated",
+        "origin_attestation": null,
+        "problem_json_path": "/Users/lordskyler/Holstein_test.worktrees/claude-doron-h2o-export-20261019/agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/h2o_cas8e6o_problem.json",
+        "producer_origin_established": false,
+        "raw_sha256": "92c5ff8dc43a0381cc82c2363ef100246a52426b748d9102870c087318756efd",
+        "reduction": {
+          "active_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "formula": "E_core = E_nuc + 2 sum_c h_cc + sum_cd (2(cc|dd)-(cd|dc)); h'_pq = h_pq + sum_c (2(pq|cc)-(pc|cq))",
+          "frozen_core_indices": [
+            0
+          ],
+          "frozen_core_scalar_hartree": -60.660646986580154,
+          "kind": "frozen_core_occupied_prefix",
+          "n_frozen": 1
+        },
+        "schema_reference_producer": {
+          "author": "doronwu <dwu269@wisc.edu>",
+          "branch": "doron-chemistry",
+          "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+          "commit_date_utc": "2026-08-26T21:02:57Z",
+          "driver": "src/chemistry/pyscf/main_pyscf.py",
+          "driver_blob": "594293ae21d9",
+          "fcidump_written_by_driver": false,
+          "integrals": "src/chemistry/pyscf/electron_solver.py::PySCFDriver.get_matrix_elements",
+          "integrals_blob": "8400fc64c5ac",
+          "license_spdx": "GPL-3.0",
+          "repository": "https://github.com/jacopos86/qdynamics",
+          "writer": "src/chemistry/pyscf/read_write_pyscf_results.py::write_matrix_elements_h5",
+          "writer_blob": "3bf71a4d0d2c"
+        },
+        "semantic_sha256": "3cf3f4dadc1c825934ee892143ec9da46d0b91acf8e9bb605a97ed62c0b7e099",
+        "source": {
+          "caller_source": {
+            "dataset_dtypes": {
+              "h1": "float64",
+              "h2": "float64",
+              "mo_coeff": "float64",
+              "mo_energy": "float64",
+              "mo_occ": "float64",
+              "nuclear_repulsion": "float64"
+            },
+            "file_sha256": "e413ecbf9e150d313dd2daa0ef1fb72c83f583d2f48ca849db1a74fe927c6648",
+            "file_size_bytes": 51856,
+            "path": "/Users/lordskyler/Holstein_test.worktrees/claude-doron-h2o-export-20261019/agent_guidance/shared/handoffs/doron-bridge-h2o-20261019/input/h2o_ele.h5"
+          },
+          "claimed_producer": "jacopos86/qdynamics@e5ec5bc45d02169e77ce93b05126c9804a03cdb6 src/chemistry/pyscf/main_pyscf.py, executed locally 2026-10-20 in ~/.venvs/doron-bridge-gpu (pyscf 2.14.0) on input/h2o.inp",
+          "container_schema": "qdynamics_matrix_elements_ele_h5",
+          "datasets": {
+            "h1": {
+              "sha256": "b1c6748964d4bc10d27e6ddb9d5eb142d54b8a2485e8306956624421bf31cc4e",
+              "shape": [
+                14,
+                14
+              ]
+            },
+            "h2": {
+              "sha256": "0b9cb4e40a7236bfcfd82c1557662b7cbbab96a7f02b7ada61fab4353c1a7cfc",
+              "shape": [
+                14,
+                14,
+                14,
+                14
+              ]
+            },
+            "mo_coeff_present": true,
+            "mo_energy": {
+              "sha256": "e891d26e5ae09be4e9a141af49ef0a56983d83a4c8e386e7a62d9a7dd074ca31",
+              "shape": [
+                7
+              ]
+            },
+            "mo_occ": {
+              "sha256": "bd2b53aa22436a4e0f23ce4ccfd2aa8c4f45ae441bdd03e8f0b757c61eb49302",
+              "shape": [
+                7
+              ]
+            },
+            "nuclear_repulsion": {
+              "value": 9.189275612994711
+            }
+          },
+          "extra_datasets": [],
+          "origin": "simulated",
+          "origin_attestation": null,
+          "origin_forced_by": null,
+          "origin_note": "schema recognition and content hashes identify bytes, not who produced them",
+          "producer_origin_established": false,
+          "schema_reference_producer": {
+            "author": "doronwu <dwu269@wisc.edu>",
+            "branch": "doron-chemistry",
+            "commit": "e5ec5bc45d02169e77ce93b05126c9804a03cdb6",
+            "commit_date_utc": "2026-08-26T21:02:57Z",
+            "driver": "src/chemistry/pyscf/main_pyscf.py",
+            "driver_blob": "594293ae21d9",
+            "fcidump_written_by_driver": false,
+            "integrals": "src/chemistry/pyscf/electron_solver.py::PySCFDriver.get_matrix_elements",
+            "integrals_blob": "8400fc64c5ac",
+            "license_spdx": "GPL-3.0",
+            "repository": "https://github.com/jacopos86/qdynamics",
+            "writer": "src/chemistry/pyscf/read_write_pyscf_results.py::write_matrix_elements_h5",
+            "writer_blob": "3bf71a4d0d2c"
+          }
+        },
+        "tensor_sha256": "b31ce68fa8adcfecff455cdfc0ecce3587ae38676f49f4ce89f146b374460467"
+      },
+      "lane": "paper_ii",
+      "method": "ap_mclachlan",
+      "notes": [
+        "CPU only: the AP-McLachlan geometry evaluator is dense numpy; no GPU path exists for this route (GPU status: unsupported, not attempted)",
+        "zero drive: molecular_restricted_closed_shell declares supports_driven_realtime=False; a dipole drive would be a separate bridge input",
+        "candidate pool and seed term are bridge choices (repository full_meta pool, restricted by the executed sector audit when candidate_sector_filter is on), not Doron data; which pool a molecular Paper II lane should use is an unselected scientific decision",
+        "logical_shared is not a conservation proof by itself: only generators passing the repository's executed-unitary audit are offered; the measured leakage gate stays in force",
+        "fidelity against exact sector propagation is a diagnostic of the variational trajectory, not a certification"
+      ],
+      "results": {
+        "candidate_count_offered": 169,
+        "candidate_sector_filter": "executed_fixed_counts",
+        "elapsed_times_from_initial_checkpoint": [
+          0.0,
+          0.02,
+          0.04
+        ],
+        "energies": [
+          -74.96302344338561,
+          -74.96302344338561,
+          -74.96302344338561
+        ],
+        "exact_energies": [
+          -74.96302344338534,
+          -74.96302344338535,
+          -74.96302344338528
+        ],
+        "exact_ground_energy": -75.01250192475737,
+        "exact_reference_clock": "elapsed_from_initial_checkpoint_static_zero_drive",
+        "executed_parameterization_sector_safe": true,
+        "fidelity_vs_exact_sector_propagation": [
+          0.9999999999999969,
+          0.999960667649333,
+          0.9998427537533338
+        ],
+        "final_runtime_parameter_count": 1,
+        "initial_time": 0.0,
+        "integrator_method": "rk4",
+        "parameterization_mode": "logical_shared",
+        "patch_kinds": [
+          "no_edit",
+          "no_edit",
+          "no_edit"
+        ],
+        "pool": {
+          "method_name": "hardcoded_adapt_vqe_full_meta_molecular",
+          "pool_key": "full_meta",
+          "pool_size": 644,
+          "qpb": 1
+        },
+        "runtime_parameter_counts": [
+          1,
+          1,
+          1
+        ],
+        "sector_audit": {
+          "audit": "pipelines.static_adapt.sector_invariants.audit_generator_sector_contract",
+          "audit_failing_by_class": {
+            "ham_block": 2,
+            "ham_term": 472
+          },
+          "audit_failing_count": 474,
+          "audit_failing_sample": [
+            "ham_block::molecular_one_body",
+            "ham_block::molecular_two_body",
+            "ham_term(eeeeeeeeexex)",
+            "ham_term(eeeeeeeeeyey)",
+            "ham_term(eeeeeeeezxzx)",
+            "ham_term(eeeeeeeezyzy)",
+            "ham_term(eeeeeeexzxez)",
+            "ham_term(eeeeeeeyzyez)",
+            "ham_term(eeeeeeexzzex)",
+            "ham_term(eeeeeeeyzzey)",
+            "ham_term(eeeeeeexzxze)",
+            "ham_term(eeeeeeeyzyze)"
+          ],
+          "criterion": "execution_preserves_fixed_counts",
+          "eligible_by_class": {
+            "ham_term": 78,
+            "uccsd_dbl": 76,
+            "uccsd_sing": 16
+          },
+          "eligible_count": 170,
+          "even_y_eligible_count": 78,
+          "filter_applied": true,
+          "fixed_count_quantities": [
+            "n_up",
+            "n_dn"
+          ],
+          "generator_count": 644,
+          "parameterization_mode": "logical_shared",
+          "requires_logical_shared_count": 94,
+          "schema": "doron_bridge_apm_candidate_sector_audit_v1"
+        },
+        "seed_selection": "auto",
+        "seed_term": "ham_term(eeeeeeeeeezz)",
+        "support_patch_config": {
+          "allow_incomplete_candidate_pool": false,
+          "append_cost_alpha": 1.0,
+          "append_cost_lambda_1q": 0.025,
+          "append_cost_lambda_2q": 0.05,
+          "append_cost_lambda_d": 0.05,
+          "append_cost_lambda_shot": 0.02,
+          "append_cost_lambda_theta": 0.0,
+          "append_cost_scale_floor": 1e-12,
+          "append_occurrence_policy": "layer_reuse",
+          "append_schur_max_condition_number": 1000000000000.0,
+          "avqds_delta_theta_max": null,
+          "avqds_l2_cut": 0.001,
+          "avqds_max_appends_per_checkpoint": null,
+          "certification_refit_enabled": true,
+          "certification_refit_max_iterations": 15,
+          "certification_refit_trust_radius": 0.6,
+          "compile_workers": null,
+          "controller_profile": "support_patch_exchange_family_v1",
+          "cost_model": "paper_i_proxy_denominator_v1",
+          "cost_normalization_mode": "family_robust_v1",
+          "debt_policy": "drift_ranked",
+          "deletion_enabled": true,
+          "dynamics_policy": "exchange",
+          "eps_loss": 1e-14,
+          "escalation_accumulated_drift_threshold": null,
+          "exchange_route_bundle": "paper_ii_generalized_exchange_v2",
+          "generalized_exchange": {
+            "certification": {
+              "condition_number_max": 1000000000000.0,
+              "ray_distance_max": 0.002,
+              "refit_enabled": true,
+              "refit_max_iterations": 15,
+              "refit_trust_radius": 0.6,
+              "velocity_change_max": 0.001
+            },
+            "eligibility": {
+              "accumulated_drift_threshold": null,
+              "allow_incomplete_candidate_pool": false,
+              "cooldown_steps": 2,
+              "deletion_enabled": true,
+              "insertion_gate_mode": "residual_ratio",
+              "minimum_surviving_support": 1,
+              "occurrence_policy": "layer_reuse",
+              "protect_drive_aligned": true,
+              "residual_ratio_threshold": 0.02,
+              "target_policy": "all_active"
+            },
+            "route": {
+              "bundle": {
+                "bundle_id": "paper_ii_generalized_exchange_v2",
+                "compiler": null,
+                "cost_model_id": "paper_i_proxy_singleton_inert_v1",
+                "kernel_id": "legacy_utility_debt_ordering_v2",
+                "objective_id": "legacy_composite_utility_v2"
+              },
+              "compile_workers": 1,
+              "maintenance_loss_tolerance": 0.001,
+              "maintenance_loss_tolerance_requested": null,
+              "max_compiled_patches_per_checkpoint": null
+            },
+            "score": {
+              "append_cost_alpha": 1.0,
+              "condition_damage_weight": 0.0,
+              "condition_relief_weight": 0.0,
+              "debt_policy": "drift_ranked",
+              "delta_weight": 1.0,
+              "epsilon_loss": 1e-14,
+              "history_weight": 0.0,
+              "history_window": 3,
+              "l2_cut": 0.001,
+              "prune_cost_alpha": 1.0
+            },
+            "search": {
+              "certification_attempts_per_deletion_branch": 2,
+              "certification_attempts_per_level": 12,
+              "insertion_cardinality": 1,
+              "interaction_frontier_widths": null,
+              "joint_patch_evaluations": 50000,
+              "pool_size": 8,
+              "rounds_per_checkpoint": 12,
+              "scoring_workers": 1,
+              "structural_score_floor": 0.0
+            }
+          },
+          "insertion_gate_mode": "residual_ratio",
+          "insertion_l2_cut": 0.001,
+          "interaction_frontier_widths": null,
+          "maintenance_loss_tolerance": null,
+          "max_certification_attempts_per_deletion_branch": 2,
+          "max_certification_attempts_per_level": 12,
+          "max_compiled_patches_per_checkpoint": null,
+          "max_insertion_batch_size": 1,
+          "max_insertion_rounds_per_checkpoint": 12,
+          "max_joint_patch_evaluations": 50000,
+          "max_structural_pool_size": 8,
+          "min_runtime_parameter_count": 1,
+          "parameterization_mode_default": "per_pauli_term",
+          "patch_utility_delta_weight": 1.0,
+          "protect_drive_aligned_atoms": true,
+          "prune_appended_origin_target_policy": "all_active",
+          "prune_condition_lambda_kappa_dam": 0.0,
+          "prune_condition_lambda_kappa_rel": 0.0,
+          "prune_cooldown_steps": 2,
+          "prune_cost_alpha": 1.0,
+          "prune_history_lambda": 0.0,
+          "prune_history_window": 3,
+          "prune_patch_smoothness_eta_max": 0.001,
+          "prune_ray_distance_tol": 0.002,
+          "residual_ratio_threshold": 0.02,
+          "structural_score_floor": 0.0,
+          "support_patch_scoring_workers": 1,
+          "uses_future_exact_forecast_for_decision": false,
+          "uses_reference_for_decision": false
+        },
+        "theta_max_abs": 0.0,
+        "times": [
+          0.0,
+          0.02,
+          0.04
+        ],
+        "trajectory_moved": false
+      },
+      "route": "pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory.run_append_mclachlan_trajectory",
+      "schema": "doron_bridge_method_receipt_v1",
+      "status": "cpu_verified"
+    }
+  ],
+  "requested_methods": [
+    "apm"
+  ],
+  "schema": "doron_bridge_method_receipt_v1_bundle",
+  "status_by_method": {
+    "ap_mclachlan": "cpu_verified"
+  }
+}

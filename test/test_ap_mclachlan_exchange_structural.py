@@ -11,9 +11,15 @@ import pytest
 from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
 from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+    CandidateCostInputs,
     StructuralScoreWeights,
+    _warm_solve_memo,
     enumerate_structural_candidates,
+    iter_structural_families,
     resolve_frontier_schedule,
+)
+from pipelines.time_dynamics.ap_mclachlan.compiled_patch_cost import (
+    CompiledPatchCostError,
 )
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
     evaluate_mclachlan_geometry,
@@ -23,6 +29,9 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     tokens_commute_from_terms,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.objective_ordinates import (
+    GammaMonotonicityError,
+)
 from pipelines.time_dynamics.ap_mclachlan.state import state_from_scaffold_runtime_input
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     build_structural_insertion_cache,
@@ -186,6 +195,115 @@ def test_work_guard_rejects_complete_family_and_freezes() -> None:
     assert result.guard.scored_count == len(result.candidates)
 
 
+def test_exchange_frontier_admits_the_rung_the_full_pool_refuses() -> None:
+    """Fails before the repair: every d >= 1 family is refused whole.
+
+    The cap is set to exactly the d = 0 family plus a width-1 exchange face on
+    both d >= 1 rungs.  Unrestricted, the d = 1 family declares
+    |rung| x |pool| and overruns; frontier-bounded it declares |rung| x 2 and
+    fits, so true exchange patches are enumerated for the first time.
+    """
+
+    _s, _e, _c, cuts, kwargs = _setup()
+    per_pool = len(cuts["ca"]) + len(cuts["cb"])
+    kwargs["max_joint_patch_evaluations"] = (1 + per_pool) + 3 * (1 + 1)
+
+    unrestricted = enumerate_structural_candidates(**kwargs)
+    assert unrestricted.guard.rejected_family == "singleton_d1"
+    assert Counter(c.kind for c in unrestricted.candidates)["exchange"] == 0
+
+    restricted = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=1
+    )
+    assert restricted.guard.rejected_family is None
+    assert restricted.guard.admitted_families == [
+        "singleton_d0",
+        "singleton_d1",
+        "singleton_d2",
+    ]
+    kinds = Counter(c.kind for c in restricted.candidates)
+    assert kinds["delete"] == 3
+    assert kinds["exchange"] == 3
+    assert len(restricted.exchange_frontier) == 1
+
+
+def test_exchange_frontier_bounds_the_declared_family_size() -> None:
+    """The work bound: every d >= 1 family declares |rung| x (1 + W)."""
+
+    _s, _e, _c, cuts, kwargs = _setup()
+    per_pool = len(cuts["ca"]) + len(cuts["cb"])
+    width = 2
+    result = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=width
+    )
+
+    per_set: Counter = Counter()
+    for candidate in result.candidates:
+        if candidate.removed_runtime_indices:
+            per_set[candidate.removed_runtime_indices] += 1
+    # Deletion-subset completeness is untouched; only the insertion face is
+    # bounded, at exactly 1 + W members per deletion set.
+    assert set(per_set) == {(0,), (1,), (0, 1)}
+    assert set(per_set.values()) == {1 + width}
+    assert result.guard.scored_count == (1 + per_pool) + 3 * (1 + width)
+    assert result.guard.scored_count == len(result.candidates)
+    assert len(result.exchange_frontier) == width
+    for candidate in result.candidates:
+        if candidate.removed_runtime_indices and candidate.inserted_selection:
+            assert candidate.inserted_selection[0] in result.exchange_frontier
+
+
+def test_exchange_frontier_none_is_the_unrestricted_product() -> None:
+    """The default is bitwise the historical search, not an approximation."""
+
+    _s, _e, _c, _cuts, kwargs = _setup()
+    baseline = enumerate_structural_candidates(**kwargs)
+    explicit = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=None
+    )
+    signature = [
+        (c.removed_runtime_indices, c.inserted_selection, c.score, c.family)
+        for c in baseline.candidates
+    ]
+    assert signature == [
+        (c.removed_runtime_indices, c.inserted_selection, c.score, c.family)
+        for c in explicit.candidates
+    ]
+    assert baseline.exchange_frontier is None
+    assert baseline.guard.to_json_dict() == explicit.guard.to_json_dict()
+
+
+def test_exchange_frontier_order_is_sealed_before_any_rung() -> None:
+    """The frontier is the top of the d = 0 ranking, by score then identity."""
+
+    _s, _e, _c, _cuts, kwargs = _setup()
+    full = enumerate_structural_candidates(**kwargs)
+    d0_best: dict[tuple[str, int], float] = {}
+    for candidate in full.candidates:
+        if candidate.family != "singleton_d0" or not candidate.inserted_selection:
+            continue
+        key = (
+            str(candidate.inserted_selection[0][0]),
+            int(candidate.inserted_selection[0][1]),
+        )
+        if np.isfinite(candidate.score):
+            d0_best[key] = max(d0_best.get(key, -np.inf), float(candidate.score))
+    expected = tuple(
+        sorted(d0_best, key=lambda p: (-d0_best[p], str(p[0]), int(p[1])))
+    )[:3]
+
+    result = enumerate_structural_candidates(
+        **kwargs, exchange_insertion_frontier=3
+    )
+    assert result.exchange_frontier == expected
+
+
+def test_exchange_frontier_width_must_be_at_least_one() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+    with pytest.raises(ValueError):
+        enumerate_structural_candidates(**kwargs, exchange_insertion_frontier=0)
+
+
 def test_priorities_are_max_singleton_scores_and_universe_is_sorted() -> None:
     _s, _e, _c, _cuts, kwargs = _setup()
     result = enumerate_structural_candidates(**kwargs)
@@ -282,6 +400,142 @@ def test_multi_child_frontier_plans_are_quotiented_and_admitted_whole() -> None:
         (c.removed_runtime_indices, c.plan.plan_id) for c in multi
     ]
     assert len(set(identities)) == len(identities)
+
+
+def test_one_compiler_failure_rejects_only_dependent_candidates() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+
+    def candidate_cost(removed, selection, plan):
+        del removed, plan
+        if selection and selection[0][0] == "ca":
+            raise CompiledPatchCostError("synthetic compiler failure")
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    failed = [
+        c for c in result.candidates if c.inserted_selection and c.inserted_selection[0][0] == "ca"
+    ]
+    surviving = [
+        c for c in result.candidates if c.inserted_selection and c.inserted_selection[0][0] == "cb"
+    ]
+    assert failed and surviving
+    assert all(c.cost_marginal is None and "synthetic compiler failure" in c.cost_error for c in failed)
+    assert all(c.cost_marginal == (1, 2, 3) and c.cost_error is None for c in surviving)
+
+
+def test_one_gamma_monotonicity_failure_rejects_only_that_candidate(
+    monkeypatch,
+) -> None:
+    _s, _e, _c, _cuts, kwargs = _setup()
+    checked = 0
+    compiled: list[
+        tuple[tuple[int, ...], tuple[tuple[str, int], ...]]
+    ] = []
+
+    def check_once(**_kwargs):
+        nonlocal checked
+        checked += 1
+        if checked == 1:
+            raise GammaMonotonicityError("synthetic rank transition")
+        return 0.0
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        compiled.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    monkeypatch.setattr(
+        "pipelines.time_dynamics.ap_mclachlan.exchange_structural."
+        "check_gamma_nested_monotonicity",
+        check_once,
+    )
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    insertions = [c for c in result.candidates if c.kind == "insert"]
+    rejected = [c for c in insertions if c.ordinate_error is not None]
+    surviving = [c for c in insertions if c.ordinate_error is None]
+    assert len(rejected) == 1 and surviving
+    assert rejected[0].m_gamma is None and rejected[0].cost_marginal == (1, 2, 3)
+    assert "synthetic rank transition" in rejected[0].ordinate_error
+    assert (
+        rejected[0].removed_runtime_indices,
+        rejected[0].inserted_selection,
+    ) in compiled
+    assert all(c.m_gamma is not None and c.cost_marginal == (1, 2, 3) for c in surviving)
+
+
+def test_compile_budget_counts_only_large_miss_insertion_face() -> None:
+    _s, _e, _c, cuts, kwargs = _setup()
+    calls: list[tuple[tuple[int, ...], tuple[tuple[str, int], ...]]] = []
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        calls.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(1, 2, 3))
+
+    insertion_count = len(cuts["ca"]) + len(cuts["cb"])
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=True,
+        max_compiled_patches_per_checkpoint=insertion_count,
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    assert result.compile_guard is not None
+    assert result.compile_guard.scored_count == insertion_count
+    assert result.compile_guard.admitted_families == ["singleton_d0"]
+    assert result.compile_guard.rejected_family == "singleton_d1"
+    assert len(calls) == insertion_count
+    assert all(selection and not removed for removed, selection in calls)
+
+
+def test_compile_budget_counts_only_maintenance_deletion_face() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup(deletable_indices=(0,))
+    calls: list[tuple[tuple[int, ...], tuple[tuple[str, int], ...]]] = []
+
+    def candidate_cost(removed, selection, plan):
+        del plan
+        calls.append((tuple(removed), tuple(selection)))
+        return CandidateCostInputs(cost_marginal=(-1, -2, -3))
+
+    kwargs.update(
+        route_bundle=SimpleNamespace(
+            uses_population_scoring=True,
+            needs_gamma=False,
+        ),
+        gamma_rcond=1.0e-12,
+        candidate_cost_inputs=candidate_cost,
+        population_accuracy_debt=False,
+        max_compiled_patches_per_checkpoint=1,
+        deletion_permission=lambda removed: SimpleNamespace(permitted=True),
+    )
+    result = enumerate_structural_candidates(**kwargs)
+    assert result.compile_guard is not None
+    assert result.compile_guard.scored_count == 1
+    assert result.compile_guard.admitted_families == ["singleton_d0", "singleton_d1"]
+    assert result.compile_guard.rejected_family is None
+    assert calls == [((0,), ())]
 
 
 def test_frontier_schedule_resolution() -> None:
@@ -389,3 +643,181 @@ def test_history_term_enters_deletion_denominator_exactly() -> None:
         )
         assert c.deletion_utility == pytest.approx(expected, rel=1.0e-9)
         assert c.deletion_utility < ref.deletion_utility
+
+
+# ---------------------------------------------------------------------------
+# Deterministic parallel scoring (speculative memo warm)
+# ---------------------------------------------------------------------------
+
+
+def _candidate_fingerprint(candidate) -> tuple:
+    return (
+        candidate.removed_runtime_indices,
+        candidate.inserted_selection,
+        candidate.family,
+        candidate.order_key,
+        candidate.q,
+        candidate.insertion_gain,
+        candidate.deletion_loss,
+        candidate.delta,
+        candidate.insertion_utility,
+        candidate.deletion_utility,
+        candidate.score,
+        candidate.rank_primary,
+        candidate.rank_secondary,
+    )
+
+
+def _family_stream(kwargs) -> tuple[list, object]:
+    families = []
+    telemetry = None
+    for family, members, final in iter_structural_families(**kwargs):
+        if family == "__telemetry__":
+            telemetry = final
+            continue
+        families.append(
+            (family, tuple(_candidate_fingerprint(c) for c in members))
+        )
+    return families, telemetry
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        WEIGHTS,
+        StructuralScoreWeights(
+            lambda_cond_relief=5.0, lambda_cond_damage=3.0
+        ),
+    ],
+    ids=["default_weights", "conditioning_weights"],
+)
+def test_parallel_scoring_matches_serial_candidates_bitwise(weights) -> None:
+    # Bitwise contract: parallel warm must execute the same arithmetic on the
+    # same inputs, so every float compares with ==, never approx.  The
+    # conditioning-weight leg turns any memo-population ordering defect into a
+    # hard score difference.
+    _s1, _e1, _c1, _cuts1, serial_kwargs = _setup(
+        max_insertion_batch_size=2, weights=weights
+    )
+    _s2, _e2, _c2, _cuts2, parallel_kwargs = _setup(
+        max_insertion_batch_size=2, weights=weights, scoring_workers=4
+    )
+    serial_families, serial_tel = _family_stream(serial_kwargs)
+    parallel_families, parallel_tel = _family_stream(parallel_kwargs)
+
+    assert parallel_families == serial_families
+    assert any(f.startswith("singleton_d1") for f, _m in serial_families)
+    assert any(f.startswith("frontier_") for f, _m in serial_families)
+    assert dict(parallel_tel.priorities) == dict(serial_tel.priorities)
+    assert parallel_tel.eligible_universe == serial_tel.eligible_universe
+    assert parallel_tel.frontier_schedule == serial_tel.frontier_schedule
+    assert parallel_tel.frontiers_used == serial_tel.frontiers_used
+    assert parallel_tel.q_base == serial_tel.q_base
+    assert (
+        parallel_tel.guard.to_json_dict() == serial_tel.guard.to_json_dict()
+    )
+    assert serial_tel.scoring_workers_requested == 1
+    assert serial_tel.scoring_workers_effective_max == 1
+    assert parallel_tel.scoring_workers_requested == 4
+    assert parallel_tel.scoring_workers_effective_max > 1
+
+
+def test_parallel_scoring_is_repeatable_across_runs() -> None:
+    first = _family_stream(_setup(scoring_workers=4)[4])
+    second = _family_stream(_setup(scoring_workers=4)[4])
+    assert first[0] == second[0]
+    assert first[1].guard.to_json_dict() == second[1].guard.to_json_dict()
+
+
+def test_warm_solve_memo_dedupes_and_ignores_completion_order() -> None:
+    import threading
+    import time as time_module
+
+    calls: list[tuple] = []
+    lock = threading.Lock()
+    memo: dict = {(("seeded",), ()): (0.0, 0.0, None, 0)}
+
+    def fake_q_of(removed, selection):
+        with lock:
+            calls.append((removed, selection))
+        # Later-submitted tasks finish first: completion order is adversarial.
+        time_module.sleep(0.002 if not removed else 0.0)
+        memo[(removed, selection)] = (1.0, 1.0, None, 1)
+        return 1.0
+
+    keys = [
+        ((), (("a", 0),)),
+        ((1,), ()),
+        ((), (("a", 0),)),  # duplicate: must be warmed once
+        (("seeded",), ()),  # already memoized: must not be warmed
+        ((2,), (("b", 1),)),
+    ]
+    effective = _warm_solve_memo(fake_q_of, keys, memo, 4)
+    assert effective == 3
+    assert sorted(calls) == sorted(
+        [((), (("a", 0),)), ((1,), ()), ((2,), (("b", 1),))]
+    )
+    assert len(calls) == 3
+    assert (("seeded",), ()) in memo and len(memo) == 4
+
+
+def test_warm_solve_memo_clamps_to_serial_for_degenerate_tasks() -> None:
+    memo: dict = {}
+    calls: list = []
+
+    def fake_q_of(removed, selection):
+        calls.append((removed, selection))
+        memo[(removed, selection)] = (1.0, 1.0, None, 1)
+        return 1.0
+
+    # One missing task: serial path, no pool.
+    assert _warm_solve_memo(fake_q_of, [((), (("a", 0),))], memo, 8) == 1
+    assert calls == []  # skipped entirely; the replay computes it
+    # Zero missing tasks: serial path.
+    memo[((), (("a", 0),))] = (1.0, 1.0, None, 1)
+    assert _warm_solve_memo(fake_q_of, [((), (("a", 0),))], memo, 8) == 1
+    with pytest.raises(ValueError):
+        _warm_solve_memo(fake_q_of, [], memo, 0)
+
+
+def test_scoring_workers_zero_is_rejected() -> None:
+    _s, _e, _c, _cuts, kwargs = _setup(scoring_workers=0)
+    with pytest.raises(ValueError, match="scoring_workers"):
+        list(iter_structural_families(**kwargs))
+
+
+def test_scoring_solve_exception_propagates_at_serial_position(
+    monkeypatch,
+) -> None:
+    import pipelines.time_dynamics.ap_mclachlan.exchange_structural as module
+
+    real_solve = module.structural_candidate_solve
+    poison_selection_atom = "cb"
+
+    def poisoned_solve(**kwargs):
+        memo_key = kwargs.get("memo_key")
+        if memo_key is not None and memo_key[1] and memo_key[1][0][0] == (
+            poison_selection_atom
+        ):
+            raise ValueError("poisoned candidate solve")
+        return real_solve(**kwargs)
+
+    outcomes = []
+    for workers in (1, 4):
+        monkeypatch.setattr(module, "structural_candidate_solve", poisoned_solve)
+        _s, _e, _c, _cuts, kwargs = _setup(scoring_workers=workers)
+        families = []
+        with pytest.raises(ValueError, match="poisoned candidate solve"):
+            for family, members, _final in iter_structural_families(**kwargs):
+                families.append(
+                    (family, tuple(_candidate_fingerprint(c) for c in members))
+                )
+        outcomes.append(families)
+        monkeypatch.setattr(module, "structural_candidate_solve", real_solve)
+    # Fail-closed at the identical serial position: same yielded prefix, and
+    # no member of the failing family ever escapes.
+    assert outcomes[0] == outcomes[1]
+    assert all(
+        not any(f.startswith("singleton_d0") for f, _m in fams)
+        for fams in outcomes
+    )
