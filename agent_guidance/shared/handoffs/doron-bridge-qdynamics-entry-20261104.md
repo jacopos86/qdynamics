@@ -99,4 +99,6 @@ source, and `ra_adapt/pools.py` locks the application to the active space the fi
 built from his files equals his JSON to 2e-14 (17 and 20 qubits), and the unchanged lane launcher runs
 RA-ADAPT on it.  Numbers and the run table: `doron-ra-adapt-lane-fixture-20261105.md` on that branch.  Merged
 2026-11-06: the builder branch (this entry point) into `claude/paper-iv-fixture-from-builder-20261102`,
-which now holds the entry point, the producer and the Paper IV campaign lineage together; nothing pushed.
+which now holds the entry point, the producer and the Paper IV campaign lineage together; pushed on 2026-11-06 to the public
+`jacopos86/qdynamics` as branch `RA-doron-integration` (Jake's decision: no action needed from Doron or
+Jacopo, and it lives in their repository); Holstein_test `origin` not pushed.

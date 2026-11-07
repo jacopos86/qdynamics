@@ -141,5 +141,7 @@ about 0.2 GB per run (two runs at once).
 - Merged 2026-11-06: `claude/molecular-vibronic-builder-20261102` (the entry point, main's
   bridge, the Paper V work) was merged into `claude/paper-iv-fixture-from-builder-20261102`, so
   this branch holds the entry point, this producer and the Paper IV campaign lineage together and
-  contains main; nothing pushed. The merge commit message carries the conflict resolution and
-  the test evidence.
+  contains main. Pushed on 2026-11-06 to the public `jacopos86/qdynamics` as branch
+  `RA-doron-integration` (Jake's decision: nothing required of Doron or Jacopo, who both have
+  push there); Holstein_test `origin` not pushed. The merge commit message carries the conflict
+  resolution and the test evidence.
