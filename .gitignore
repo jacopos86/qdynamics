@@ -16,7 +16,6 @@ qdynamics.egg-info
 *.png
 *.yml
 *.dat
-*.yml
 *.txt
 
 # === GitHub Actions === #
@@ -24,7 +23,6 @@ qdynamics.egg-info
 
 # === python cache & compiled files === #
 __pycache__
-utils/__pycache__/
 *.pyc
 
 # === TESTS data === #
@@ -32,4 +30,5 @@ TESTS
 Fermi-Hamil-JW-VQE-TROTTER-PIPELINE
 /artifacts
 results/
+scripts/
 .DS_Store

@@ -1,5 +1,6 @@
 cython
 colorlog
+h5py
 PyYAML
 pytest
 pytest-mpi
